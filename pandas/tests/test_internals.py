@@ -172,6 +172,13 @@ class TestBlock(unittest.TestCase):
         self.assert_(left is None)
         self.assert_(right is None)
 
+    def test_unicode_repr(self):
+        mat = np.empty((N, 2), dtype=object)
+        mat[:, 0] = 'foo'
+        mat[:, 1] = 'bar'
+        cols = ['b', u"\u05d0"]
+        str_repr = repr(make_block(mat.T, cols, TEST_COLS))
+
     def test_get(self):
         pass
 
@@ -422,4 +429,3 @@ if __name__ == '__main__':
     #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

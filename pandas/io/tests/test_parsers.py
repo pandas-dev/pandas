@@ -14,13 +14,14 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, isnull, MultiIndex, DatetimeIndex
+from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal, network)
 import pandas.util.testing as tm
+import pandas as pd
 
 import pandas.lib as lib
 from pandas.util import py3compat
@@ -278,7 +279,8 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 
         try:
             # it works!
-            df = self.read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
+            df = self.read_csv(StringIO('1,2'), names=['a', 'b'],
+                               header=None, sep=None)
             tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
         finally:
             sys.stdout = sys.__stdout__
@@ -350,11 +352,13 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         xp = DataFrame({'a' : [1, 5, 9], 'b' : [2, 6, 10], 'c' : [3, 7, 11],
                         'd' : [4, 8, 12]},
                        index=Index(['hello', 'world', 'foo'], name='message'))
-        rs = self.read_csv(StringIO(data), names=names, index_col=['message'])
+        rs = self.read_csv(StringIO(data), names=names,
+                           header=None, index_col=['message'])
         tm.assert_frame_equal(xp, rs)
         self.assert_(xp.index.name == rs.index.name)
 
-        rs = self.read_csv(StringIO(data), names=names, index_col='message')
+        rs = self.read_csv(StringIO(data), names=names,
+                           header=None, index_col='message')
         tm.assert_frame_equal(xp, rs)
         self.assert_(xp.index.name == rs.index.name)
 
@@ -676,7 +680,8 @@ c,4,5
 """
         df = self.read_table(StringIO(data), sep=',', header=None)
         names = ['foo', 'bar', 'baz', 'quux', 'panda']
-        df2 = self.read_table(StringIO(data), sep=',', header=None, names=names)
+        df2 = self.read_table(StringIO(data), sep=',', header=None,
+                              names=names)
         expected = [[1,2,3,4,5.],
                     [6,7,8,9,10],
                     [11,12,13,14,15]]
@@ -692,7 +697,7 @@ bar,4,5,6
 baz,7,8,9
 """
         names = ['A', 'B', 'C']
-        df = self.read_csv(StringIO(data), names=names)
+        df = self.read_csv(StringIO(data), names=names, header=None)
 
         self.assertEqual(names, ['A', 'B', 'C'])
 
@@ -703,18 +708,22 @@ baz,7,8,9
 
     def test_read_csv_dataframe(self):
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
-        df2 = self.read_table(self.csv1, sep=',', index_col=0, parse_dates=True)
+        df2 = self.read_table(self.csv1, sep=',', index_col=0,
+                              parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
         self.assert_(df.index.name == 'index')
-        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
+                                              Timestamp)))
         self.assert_(df.values.dtype == np.float64)
         tm.assert_frame_equal(df, df2)
 
     def test_read_csv_no_index_name(self):
         df = self.read_csv(self.csv2, index_col=0, parse_dates=True)
-        df2 = self.read_table(self.csv2, sep=',', index_col=0, parse_dates=True)
+        df2 = self.read_table(self.csv2, sep=',', index_col=0,
+                              parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
-        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64,
+                                              Timestamp)))
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         tm.assert_frame_equal(df, df2)
 
@@ -979,7 +988,8 @@ baz,12,13,14,15
 
         # regular index
         names = ['index', 'A', 'B', 'C', 'D']
-        df = self.read_csv(StringIO(no_header), index_col=0, names=names)
+        df = self.read_csv(StringIO(no_header), index_col=0,
+                           header=None, names=names)
         expected = self.read_csv(StringIO(self.data1), index_col=0)
         tm.assert_frame_equal(df, expected)
 
@@ -994,7 +1004,8 @@ bar,two,12,13,14,15
         lines = data.split('\n')
         no_header = '\n'.join(lines[1:])
         names = ['index1', 'index2', 'A', 'B', 'C', 'D']
-        df = self.read_csv(StringIO(no_header), index_col=[0, 1], names=names)
+        df = self.read_csv(StringIO(no_header), index_col=[0, 1],
+                           header=None, names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
         tm.assert_frame_equal(df, expected)
 
@@ -1022,7 +1033,8 @@ bar,two,12,13,14,15
         no_header = '\n'.join(lines[1:])
         names = ['A', 'B', 'C', 'D']
 
-        df = self.read_csv(StringIO(no_header), index_col=[0, 1], names=names)
+        df = self.read_csv(StringIO(no_header), index_col=[0, 1],
+                           header=None, names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
         tm.assert_frame_equal(df, expected)
 
@@ -1031,7 +1043,8 @@ bar,two,12,13,14,15
         tm.assert_frame_equal(df2, df)
 
         # reverse order of index
-        df = self.read_csv(StringIO(no_header), index_col=[1, 0], names=names)
+        df = self.read_csv(StringIO(no_header), index_col=[1, 0], names=names,
+                           header=None)
         expected = self.read_csv(StringIO(data), index_col=[1, 0])
         tm.assert_frame_equal(df, expected)
 
@@ -1176,10 +1189,10 @@ bar"""
 02/02/2010,1,2
 """
         parser = lambda d: parse(d, dayfirst=True)
-        df = self.read_csv(StringIO(text), skiprows=[0],
-                      names=['time', 'Q', 'NTU'], index_col=0,
-                      parse_dates=True, date_parser=parser,
-                      na_values=['NA'])
+        df = self.read_csv(StringIO(text),
+                           names=['time', 'Q', 'NTU'], header=0,
+                           index_col=0, parse_dates=True,
+                           date_parser=parser, na_values=['NA'])
 
         exp_index = Index([datetime(2010, 1, 31), datetime(2010, 2, 1),
                            datetime(2010, 2, 2)], name='time')
@@ -1573,7 +1586,7 @@ eight,1,2,3"""
         result = self.read_csv(fh, converters={'score':convert_score,
                                                  'days':convert_days},
                                  na_values=[-1,'',None])
-        self.assert_(isnull(result['days'][1]))
+        self.assert_(pd.isnull(result['days'][1]))
 
         fh = StringIO.StringIO(csv)
         result2 = self.read_csv(fh, converters={'score':convert_score,
@@ -1692,6 +1705,20 @@ eight,1,2,3"""
         except os.error:
             pass
 
+    def test_skipinitialspace(self):
+        s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
+             '1.00361,  1.12551, 330.65659, 0355626618.16711,  73.48821, '
+             '314.11625,  1917.09447,   179.71425,  80.000, 240.000, -350,  '
+             '70.06056, 344.98370, 1,   1, -0.689265, -0.692787,  '
+             '0.212036,    14.7674,   41.605,   -9999.0,   -9999.0,   '
+             '-9999.0,   -9999.0,   -9999.0,  -9999.0, 000, 012, 128')
+
+        sfile = StringIO(s)
+        # it's 33 columns
+        result = self.read_csv(sfile, names=range(33), na_values=['-9999.0'],
+                               header=None, skipinitialspace=True)
+        self.assertTrue(pd.isnull(result.ix[0, 29]))
+
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
@@ -1785,6 +1812,12 @@ a,b,c
 
         tm.assert_frame_equal(result, result2)
 
+        result = self.read_csv(StringIO(data), usecols=[1, 2], header=0,
+                               names=['foo', 'bar'])
+        expected = self.read_csv(StringIO(data), usecols=[1, 2])
+        expected.columns = ['foo', 'bar']
+        tm.assert_frame_equal(result, expected)
+
     def test_pure_python_failover(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
 
@@ -1829,6 +1862,21 @@ a,b,c
     def test_memory_map(self):
         # it works!
         result = self.read_csv(self.csv1, memory_map=True)
+
+    def test_disable_bool_parsing(self):
+        # #2090
+
+        data = """A,B,C
+Yes,No,Yes
+No,Yes,Yes
+Yes,,Yes
+No,No,No"""
+
+        result = read_csv(StringIO(data), dtype=object)
+        self.assertTrue((result.dtypes == object).all())
+
+        result = read_csv(StringIO(data), dtype=object, na_filter=False)
+        self.assertEquals(result['B'][2], '')
 
 
 class TestParseSQL(unittest.TestCase):

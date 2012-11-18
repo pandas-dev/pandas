@@ -7,14 +7,14 @@ See LICENSE for the license
 */
 
  /*
-n   Low-level ascii-file processing for pandas. Combines some elements from
+   Low-level ascii-file processing for pandas. Combines some elements from
    Python's built-in csv module and Warren Weckesser's textreader project on
    GitHub. See Python Software Foundation License and BSD licenses for these.
 
   */
 
 
-#include "parser.h"
+#include "tokenizer.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -23,9 +23,6 @@ n   Low-level ascii-file processing for pandas. Combines some elements from
 
 #define READ_ERROR_OUT_OF_MEMORY   1
 
-
-#define HAVE_MEMMAP
-#define HAVE_GZIP
 
 /*
 * restore:
@@ -330,9 +327,9 @@ int make_stream_space(parser_t *self, size_t nbytes) {
       LINE VECTORS
     */
     /*
-    printf("Line_start: "); 
-    
-    for (j = 0; j < self->lines + 1; ++j) { 
+    printf("Line_start: ");
+
+    for (j = 0; j < self->lines + 1; ++j) {
          printf("%d ", self->line_fields[j]);
      }
     printf("\n");
@@ -347,7 +344,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
     if (status != 0) {
         return PARSER_OUT_OF_MEMORY;
     }
-    
+
     // realloc took place
     if (cap != self->lines_cap) {
         self->line_fields = (int*) safe_realloc((void *) self->line_fields,
@@ -572,7 +569,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
     char *stream;
     char *buf = self->data + self->datapos;
 
-    
+
     start_lines = self->lines;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
@@ -1082,8 +1079,8 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->pword_start -= char_count;
     self->word_start -= char_count;
     /*
-    printf("Line_start: "); 
-    for (i = 0; i < self->lines + 1; ++i) { 
+    printf("Line_start: ");
+    for (i = 0; i < self->lines + 1; ++i) {
          printf("%d ", self->line_fields[i]);
      }
     printf("\n");
@@ -1212,8 +1209,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         }
 
         TRACE(("Trying to process %d bytes\n", self->datalen - self->datapos));
-        /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */   
-        
+        /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */
+
         status = tokenize_bytes(self, nrows);
 
         if (status < 0) {
@@ -1237,153 +1234,6 @@ int tokenize_all_rows(parser_t *self) {
     int status = _tokenize_helper(self, -1, 1);
     return status;
 }
-
-/*
-  Iteration through ragged matrix structure
-*/
-
-/* int test_tokenize(char *fname) { */
-/*     parser_t *self; */
-/*     coliter_t citer; */
-/*     int status = 0; */
-/*     int nbytes = CHUNKSIZE; */
-
-/*     clock_t start = clock(); */
-
-/*     self = parser_new(); */
-/*     self->chunksize = nbytes; */
-
-/*     // self->source = malloc(sizeof(file_source)); */
-
-/*     FILE* fp = fopen(fname, "rb"); */
-/*     parser_file_source_init(self, fp); */
-
-/*     parser_set_default_options(self); */
-
-/*     if (parser_init(self) < 0) { */
-/*         return -1; */
-/*     } */
-
-/*     self->header = 0; */
-
-/*     status = tokenize_all_rows(self); */
-
-/*     if (status != 0) { */
-/*         if (self->error_msg == NULL) { */
-/*             printf("PARSE_ERROR: no message\n"); */
-/*         } */
-/*         else { */
-/*             printf("PARSE_ERROR: %s", self->error_msg); */
-/*         } */
-/*     } */
-
-
-/*     // debug_print_parser(parser); */
-
-/*     // return 0; */
-/*     /\* if (status < 0) { *\/ */
-/*     /\*  return status; *\/ */
-/*     /\* } *\/ */
-
-/*     /\* int i, words = 0; *\/ */
-/*     /\* for (i = 0; i < parser.stream_len; ++i) *\/ */
-/*     /\* { *\/ */
-/*     /\*     if (parser.stream[i] == '\0') words++; *\/ */
-/*     /\* } *\/ */
-
-/*     printf("Time elapsed: %f\n", ((double)clock() - start) / CLOCKS_PER_SEC); */
-/*     /\* return 0; *\/ */
-
-/*     int i, j, error, columns; */
-/*     char *word; */
-/*     double data; */
-
-/*     columns = self->line_fields[0]; */
-
-/*     printf("columns: %d\n", columns); */
-/*     printf("errno is %d\n", errno); */
-
-/*     for (j = 0; j < columns; ++j) */
-/*     { */
-/*         coliter_setup(&citer, self, j, 0); */
-
-/*         for (i = 0; i < self->lines; ++i) */
-/*         { */
-/*             if (j >= self->line_fields[i]) continue; */
-
-/*             word = COLITER_NEXT(citer); */
-/*             error = to_double(word, &data, self->sci, self->decimal); */
-/*             if (error != 1) { */
-/*                 printf("error at %d, errno: %d\n", i, errno); */
-/*                 printf("failed: %s %d\n", word, (int) strlen(word)); */
-/*                 break; */
-/*             } */
-/*         } */
-/*     } */
-
-/*     /\* for (j = 0; j < columns; ++j) *\/ */
-/*     /\* { *\/ */
-/*     /\*  // citer = coliter_new(&parser, j); *\/ */
-/*     /\*  for (i = 0; i < parser->lines; ++i) *\/ */
-/*     /\*  { *\/ */
-/*     /\*      if (j >= parser->line_fields[i]) continue; *\/ */
-/*     /\*      word = parser->words[parser->line_start[i] + j]; *\/ */
-/*     /\*      error = to_double(word, &data, parser->sci, parser->decimal); *\/ */
-/*     /\*      if (error != 1) { *\/ */
-/*     /\*          printf("error at %d, errno: %d\n", i, errno); *\/ */
-/*     /\*          printf("failed: %s %d\n", word, (int) strlen(word)); *\/ */
-/*     /\*          break; *\/ */
-/*     /\*      } *\/ */
-/*     /\*  } *\/ */
-/*     /\*  // free(citer); *\/ */
-/*     /\* } *\/ */
-
-/*     printf("Time elapsed: %f\n", ((double)clock() - start) / CLOCKS_PER_SEC); */
-
-/*     /\* for (i = 0; i < parser.words_len; ++i) *\/ */
-/*     /\* { *\/ */
-/*     /\*     error = to_double(parser.words[i], &data, parser.sci, parser.decimal); *\/ */
-/*     /\*  if (error != 1) { *\/ */
-/*     /\*      ; *\/ */
-/*     /\*      printf("failed: %s %d\n", parser.words[i], *\/ */
-/*     /\*             (int) strlen(parser.words[i])); *\/ */
-/*     /\*  } else { *\/ */
-/*     /\*      ; *\/ */
-/*     /\*      /\\* printf("success: %.4f\n", data); *\\/ *\/ */
-/*     /\*  } *\/ */
-/*     /\* } *\/ */
-
-
-/*     /\* for (i = 0; i < parser.words_len; ++i) *\/ */
-/*     /\* { *\/ */
-/*     /\*     error = to_double(parser.words[i], &data, parser.sci, parser.decimal); *\/ */
-/*     /\*  if (error != 1) { *\/ */
-/*     /\*      ; *\/ */
-/*             /\* printf("failed: %s %d\n", parser.words[i], *\/ */
-/*             /\*     (int) strlen(parser.words[i])); *\/ */
-/*     /\*  } else { *\/ */
-/*     /\*      ; *\/ */
-/*     /\*      /\\* printf("success: %.4f\n", data); *\\/ *\/ */
-/*     /\*  } *\/ */
-/*     /\* } *\/ */
-
-
-/*     /\* printf("saw %d words\n", words); *\/ */
-
-/*     // debug_print_parser(&parser); */
-
-/*     parser_free(self); */
-
-/*     fclose(fp); */
-
-/*     /\* if (parser_cleanup(self) < 0) { *\/ */
-/*     /\*     return -1; *\/ */
-/*     /\* } *\/ */
-
-/*     /\* free(parser); *\/ */
-
-/*     return status; */
-/* } */
 
 
 void test_count_lines(char *fname) {
@@ -1422,27 +1272,6 @@ void test_count_lines(char *fname) {
     printf("Time elapsed: %f\n", ((double)clock() - start) / CLOCKS_PER_SEC);
 }
 
-
-/* int main(int argc, char *argv[]) */
-/* { */
-/*     // import_array(); */
-
-/*     TRACE(("hello: %s\n", "Wes")); */
-
-/*     test_tokenize("/Users/wesm/code/pandas/pandas/io/tests/test1.csv"); */
-
-/*     // char *msg = (char*) malloc(50); */
-/*     // sprintf(msg, "Hello: %s\n", "wes"); */
-/*     // printf("%s", msg); */
-
-/*     /\* int i; *\/ */
-/*     /\* for (i = 0; i < 10; ++i) *\/ */
-/*     /\* { *\/ */
-/*     /\*  test_count_lines("../foo.csv"); *\/ */
-/*     /\* } *\/ */
-
-/*     return 0; */
-/* } */
 
 
 // forward declaration
@@ -1533,51 +1362,51 @@ int P_INLINE to_longlong(char *item, long long *p_value)
 
 int P_INLINE to_longlong_thousands(char *item, long long *p_value, char tsep)
 {
-	int i, pos, status, n = strlen(item), count = 0;
-	char *tmp;
+    int i, pos, status, n = strlen(item), count = 0;
+    char *tmp;
     char *p_end;
 
-	for (i = 0; i < n; ++i)
-	{
-		if (*(item + i) == tsep) {
-			count++;
-		}
-	}
+    for (i = 0; i < n; ++i)
+    {
+        if (*(item + i) == tsep) {
+            count++;
+        }
+    }
 
-	if (count == 0) {
-		return to_longlong(item, p_value);
-	}
+    if (count == 0) {
+        return to_longlong(item, p_value);
+    }
 
-	tmp = (char*) malloc((n - count + 1) * sizeof(char));
-	if (tmp == NULL) {
-		return 0;
-	}
+    tmp = (char*) malloc((n - count + 1) * sizeof(char));
+    if (tmp == NULL) {
+        return 0;
+    }
 
-	pos = 0;
-	for (i = 0; i < n; ++i)
-	{
-		if (item[i] != tsep)
-			tmp[pos++] = item[i];
-	}
+    pos = 0;
+    for (i = 0; i < n; ++i)
+    {
+        if (item[i] != tsep)
+            tmp[pos++] = item[i];
+    }
 
-	tmp[pos] = '\0';
+    tmp[pos] = '\0';
 
-	status = to_longlong(tmp, p_value);
-	free(tmp);
+    status = to_longlong(tmp, p_value);
+    free(tmp);
 
-	return status;
+    return status;
 }
 
 int to_boolean(char *item, uint8_t *val) {
-	char *tmp;
-	int i, status = 0;
+    char *tmp;
+    int i, status = 0;
 
     static const char *tstrs[2] = {"TRUE", "YES"};
     static const char *fstrs[2] = {"FALSE", "NO"};
 
-	tmp = malloc(sizeof(char) * (strlen(item) + 1));
-	strcpy(tmp, item);
-	uppercase(tmp);
+    tmp = malloc(sizeof(char) * (strlen(item) + 1));
+    strcpy(tmp, item);
+    uppercase(tmp);
 
     for (i = 0; i < 2; ++i)
     {
@@ -1598,8 +1427,8 @@ int to_boolean(char *item, uint8_t *val) {
     status = -1;
 
 done:
-	free(tmp);
-	return status;
+    free(tmp);
+    return status;
 }
 
 // #define TEST
@@ -1609,15 +1438,15 @@ done:
 int main(int argc, char *argv[])
 {
     double x, y;
-	long long xi;
+    long long xi;
     int status;
     char *s;
 
     //s = "0.10e-3-+5.5e2i";
     // s = "1-0j";
     // status = to_complex(s, &x, &y, 'e', '.');
-	s = "123,789";
-	status = to_longlong_thousands(s, &xi, ',');
+    s = "123,789";
+    status = to_longlong_thousands(s, &xi, ',');
     printf("s = '%s'\n", s);
     printf("status = %d\n", status);
     printf("x = %d\n", (int) xi);
@@ -1672,7 +1501,7 @@ int main(int argc, char *argv[])
 //
 
 double P_INLINE xstrtod(const char *str, char **endptr, char decimal,
-					  char sci, int skip_trailing)
+                      char sci, int skip_trailing)
 {
   double number;
   int exponent;
@@ -1786,7 +1615,7 @@ double P_INLINE xstrtod(const char *str, char **endptr, char decimal,
 
 
   if (number == HUGE_VAL) {
-	  errno = ERANGE;
+      errno = ERANGE;
   }
 
   if (skip_trailing) {
@@ -1822,7 +1651,7 @@ double atof(const char *str)
 // ---------------------------------------------------------------------------
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-					 int *error, char tsep)
+                     int *error, char tsep)
 {
     const char *p = (const char *) p_item;
     int isneg = 0;
@@ -1858,39 +1687,39 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         // Process the digits.
         d = *p;
-		if (tsep != '\0') {
-			while (1) {
-				if (d == tsep) {
-					d = *++p;
-					continue;
-				} else if (!isdigit(d)) {
-					break;
-				}
-				if ((number > pre_min) ||
-					((number == pre_min) && (d - '0' <= dig_pre_min))) {
+        if (tsep != '\0') {
+            while (1) {
+                if (d == tsep) {
+                    d = *++p;
+                    continue;
+                } else if (!isdigit(d)) {
+                    break;
+                }
+                if ((number > pre_min) ||
+                    ((number == pre_min) && (d - '0' <= dig_pre_min))) {
 
-					number = number * 10 - (d - '0');
-					d = *++p;
-				}
-				else {
-					*error = ERROR_OVERFLOW;
-					return 0;
-				}
-			}
-		} else {
-			while (isdigit(d)) {
-				if ((number > pre_min) ||
-					((number == pre_min) && (d - '0' <= dig_pre_min))) {
+                    number = number * 10 - (d - '0');
+                    d = *++p;
+                }
+                else {
+                    *error = ERROR_OVERFLOW;
+                    return 0;
+                }
+            }
+        } else {
+            while (isdigit(d)) {
+                if ((number > pre_min) ||
+                    ((number == pre_min) && (d - '0' <= dig_pre_min))) {
 
-					number = number * 10 - (d - '0');
-					d = *++p;
-				}
-				else {
-					*error = ERROR_OVERFLOW;
-					return 0;
-				}
-			}
-		}
+                    number = number * 10 - (d - '0');
+                    d = *++p;
+                }
+                else {
+                    *error = ERROR_OVERFLOW;
+                    return 0;
+                }
+            }
+        }
     }
     else {
         // If number is less than pre_max, at least one more digit
@@ -1902,41 +1731,41 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         // Process the digits.
         d = *p;
-		if (tsep != '\0') {
-			while (1) {
-				if (d == tsep) {
-					d = *++p;
-					continue;
-				} else if (!isdigit(d)) {
-					break;
-				}
-				if ((number < pre_max) ||
-					((number == pre_max) && (d - '0' <= dig_pre_max))) {
+        if (tsep != '\0') {
+            while (1) {
+                if (d == tsep) {
+                    d = *++p;
+                    continue;
+                } else if (!isdigit(d)) {
+                    break;
+                }
+                if ((number < pre_max) ||
+                    ((number == pre_max) && (d - '0' <= dig_pre_max))) {
 
-					number = number * 10 + (d - '0');
-					d = *++p;
+                    number = number * 10 + (d - '0');
+                    d = *++p;
 
-				}
-				else {
-					*error = ERROR_OVERFLOW;
-					return 0;
-				}
-			}
-		} else {
-			while (isdigit(d)) {
-				if ((number < pre_max) ||
-					((number == pre_max) && (d - '0' <= dig_pre_max))) {
+                }
+                else {
+                    *error = ERROR_OVERFLOW;
+                    return 0;
+                }
+            }
+        } else {
+            while (isdigit(d)) {
+                if ((number < pre_max) ||
+                    ((number == pre_max) && (d - '0' <= dig_pre_max))) {
 
-					number = number * 10 + (d - '0');
-					d = *++p;
+                    number = number * 10 + (d - '0');
+                    d = *++p;
 
-				}
-				else {
-					*error = ERROR_OVERFLOW;
-					return 0;
-				}
-			}
-		}
+                }
+                else {
+                    *error = ERROR_OVERFLOW;
+                    return 0;
+                }
+            }
+        }
     }
 
     // Skip trailing spaces.

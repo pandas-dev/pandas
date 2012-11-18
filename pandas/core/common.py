@@ -1180,6 +1180,8 @@ def pprint_thing(thing, _nest_lvl=0):
             # either utf-8 or we replace errors
             result = str(thing).decode('utf-8', "replace")
 
+        result=result.replace("\t",r'\t') # escape tabs
+
     return unicode(result)  # always unicode
 
 

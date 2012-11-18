@@ -25,11 +25,6 @@ cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint64_t
 
 import numpy as np
-
-# cdef extern from "Python.h":
-#     void Py_INCREF(PyObject*)
-#     void Py_XDECREF(PyObject*)
-
 cimport util
 
 import pandas.lib as lib
@@ -66,7 +61,7 @@ try:
 except NameError:
     basestring = str
 
-cdef extern from "parser/parser.h":
+cdef extern from "parser/tokenizer.h":
 
     ctypedef enum ParserState:
         START_RECORD
@@ -401,10 +396,7 @@ cdef class TextReader:
         #----------------------------------------
         # header stuff
 
-        self.names = names
         self.leading_cols = 0
-        if names is not None:
-            header = None
 
         # TODO: no header vs. header is not the first row
         if header is None:
@@ -415,6 +407,7 @@ cdef class TextReader:
             self.parser.header = header
             self.parser_start = header + 1
 
+        self.names = names
         self.header, self.table_width = self._get_header()
 
         # compute buffer_lines as function of table width
@@ -545,6 +538,16 @@ cdef class TextReader:
 
             data_line = self.parser.header + 1
 
+            if self.names is not None:
+                if self.has_usecols and len(self.names) != len(self.usecols):
+                    raise CParserError('Number of passed names do not match'
+                                       ' usecols length.')
+                # elif not self.has_usecols:
+                #     lead = len(self.names) < self.table_width
+                #     self.leading_cols = lead
+
+                header = self.names
+
         elif self.names is not None:
             # Names passed
             if self.parser.lines < 1:
@@ -562,15 +565,20 @@ cdef class TextReader:
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
             field_count = len(header)
-        else:
+        elif not self.has_usecols:
             field_count = self.parser.line_fields[data_line]
+
             passed_count = len(header)
 
             if passed_count > field_count:
-                raise CParserError('Column names have %d fields, data has %d'
-                                   ' fields' % (passed_count, field_count))
+                raise CParserError('Column names have %d fields, '
+                                   'data has %d fields'
+                                   % (passed_count, field_count))
 
             self.leading_cols = field_count - passed_count
+        else:
+            # TODO: some better check here
+            pass
 
         return header, field_count
 
@@ -712,7 +720,7 @@ cdef class TextReader:
 
     def _convert_column_data(self, rows=None, upcast_na=False, footer=0):
         cdef:
-            Py_ssize_t i, ncols
+            Py_ssize_t i, nused, ncols
             kh_str_t *na_hashset = NULL
             int start, end
             object name
@@ -730,8 +738,9 @@ cdef class TextReader:
         #     end -= footer
 
         results = {}
+        nused = 0
         for i in range(self.table_width):
-            name = self._get_column_name(i)
+            name = self._get_column_name(i, nused)
 
             if self.has_usecols and not (i in self.usecols or
                                          name in self.usecols):
@@ -772,6 +781,9 @@ cdef class TextReader:
                 raise Exception('Unable to parse column %d' % i)
 
             results[i] = col_res
+
+            # number of used columns
+            nused += 1
 
         self.parser_start += end - start
 
@@ -920,11 +932,14 @@ cdef class TextReader:
     cdef _free_na_set(self, kh_str_t *table):
         kh_destroy_str(table)
 
-    cdef _get_column_name(self, i):
-        if self.header is not None:
-            return self.header[i - self.leading_cols]
+    cdef _get_column_name(self, Py_ssize_t i, Py_ssize_t nused):
+        if self.has_usecols and self.names is not None:
+            return self.names[nused]
         else:
-            return None
+            if self.header is not None:
+                return self.header[i - self.leading_cols]
+            else:
+                return None
 
 class CParserError(Exception):
     pass

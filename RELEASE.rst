@@ -22,14 +22,21 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.9.2
-============
+pandas 0.10.0
+=============
 
 **Release date:** Not yet released
 
 **New features**
 
+  - Add error handling to Series.str.encode/decode (#2276)
+
 **API Changes**
+
+  - ``names`` handling in file parsing: if explicit column `names` passed,
+    `header` argument will be respected. If there is an existing header column,
+    this can rename the columns. To fix legacy code, put ``header=None`` when
+    passing ``names``
 
 **Improvements to existing features**
 
@@ -37,7 +44,11 @@ pandas 0.9.2
 
 **Bug fixes**
 
+  - Fix major performance regression in DataFrame.iteritems (#
   - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
+  - Escape tabs in console output to avoid alignment issues (#2038)
+  - Properly box datetime64 values when retrieving cross-section from
+    mixed-dtype DataFrame (#2272)
 
 pandas 0.9.1
 ============

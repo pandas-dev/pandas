@@ -349,7 +349,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         lines = result.split('\n')
         header = lines[0].strip().split()
         joined = '\n'.join([re.sub('\s+', ' ', x).strip() for x in lines[1:]])
-        recons = read_table(StringIO(joined), names=header, sep=' ')
+        recons = read_table(StringIO(joined), names=header,
+                            header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         self.assertEqual(recons['A'].count(), biggie['A'].count())
         self.assert_((np.abs(recons['A'].dropna() -
@@ -894,6 +895,13 @@ class TestSeriesFormatting(unittest.TestCase):
         #check this works
         #GH2146
 
+    def test_mixed_datetime64(self):
+        df = DataFrame({'A': [1, 2],
+                        'B': ['2012-01-01', '2012-01-02']})
+        df['B'] = pd.to_datetime(df.B)
+
+        result = repr(df.ix[0])
+        self.assertTrue('2012-01-01' in result)
 
 class TestEngFormatter(unittest.TestCase):
 

@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
-from pandas import Series, Index
+from pandas import Series, Index, DataFrame
 
 class TestSQLite(unittest.TestCase):
 
@@ -17,7 +17,7 @@ class TestSQLite(unittest.TestCase):
     def test_basic(self):
         frame = tm.makeTimeDataFrame()
         self._check_roundtrip(frame)
-
+    
     def test_write_row_by_row(self):
         frame = tm.makeTimeDataFrame()
         frame.ix[0, 0] = np.nan
@@ -171,7 +171,13 @@ class TestSQLite(unittest.TestCase):
         finally:
             sys.stdout = sys.__stdout__
 
-
+    def test_keyword_as_column_names(self):
+        '''
+        '''
+        df = DataFrame({'From':np.ones(5)})
+        #print sql.get_sqlite_schema(df, 'testkeywords')
+        sql.write_frame(df, con = self.db, name = 'testkeywords')
+        
 if __name__ == '__main__':
     # unittest.main()
     import nose
