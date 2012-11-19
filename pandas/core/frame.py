@@ -1111,8 +1111,9 @@ class DataFrame(NDFrame):
         from pandas.core.reshape import block2d_to_block3d
 
         # only support this kind for now
-        assert(isinstance(self.index, MultiIndex) and
-               len(self.index.levels) == 2)
+        if (not isinstance(self.index, MultiIndex) or
+            len(self.index.levels) != 2):
+            raise AssertionError('Must have 2-level MultiIndex')
 
         self._consolidate_inplace()
 
@@ -1476,7 +1477,8 @@ class DataFrame(NDFrame):
             lines.append('Data columns:')
             space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
             counts = self.count()
-            assert(len(cols) == len(counts))
+            if len(cols) != len(counts):
+                raise AssertionError('Columns must equal counts')
             for col, count in counts.iteritems():
                 if not isinstance(col, basestring):
                     col = str(col)
@@ -1935,7 +1937,8 @@ class DataFrame(NDFrame):
 
     def _set_item_multiple(self, keys, value):
         if isinstance(value, DataFrame):
-            assert(len(value.columns) == len(keys))
+            if len(value.columns) != len(keys):
+                raise AssertionError('Columns must be same length as keys')
             for k1, k2 in zip(keys, value.columns):
                 self[k1] = value[k2]
         else:
@@ -2168,7 +2171,8 @@ class DataFrame(NDFrame):
         from itertools import izip
 
         n = len(row_labels)
-        assert(n == len(col_labels))
+        if n != len(col_labels):
+            raise AssertionError('Row labels must have same size as col labels')
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:
@@ -2946,7 +2950,8 @@ class DataFrame(NDFrame):
         labels = self._get_axis(axis)
 
         if by is not None:
-            assert(axis == 0)
+            if axis != 0:
+                raise AssertionError('Axis must be 0')
             if isinstance(by, (tuple, list)):
                 keys = [self[x].values for x in by]
                 indexer = _lexsort_indexer(keys, orders=ascending)
@@ -3907,7 +3912,8 @@ class DataFrame(NDFrame):
     def _apply_standard(self, func, axis, ignore_failures=False):
         try:
 
-            assert(not self._is_mixed_type)  # maybe a hack for now
+            if self._is_mixed_type:  # maybe a hack for now
+                raise AssertionError('Must be mixed type DataFrame')
             values = self.values
             dummy = Series(NA, index=self._get_axis(axis),
                            dtype=values.dtype)
@@ -4124,7 +4130,8 @@ class DataFrame(NDFrame):
         from pandas.tools.merge import merge, concat
 
         if isinstance(other, Series):
-            assert(other.name is not None)
+            if other.name is None:
+                raise AssertionError('Other Series must have a name')
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
@@ -5003,7 +5010,12 @@ def group_agg(values, bounds, f):
         result = np.empty((len(bounds), K), dtype=float)
 
     testagg = f(values[:min(1, len(values))])
-    assert(not (isinstance(testagg, np.ndarray) and testagg.ndim == 2))
+    if isinstance(testagg, np.ndarray):
+        raise AssertionError('Results must be an ndarray, not %s'
+                             % type(testagg))
+    if testagg.ndim == 2:
+        raise AssertionError('Results must be 2-D, not %d-D'
+                             % testagg.ndim)
 
     for i, left_bound in enumerate(bounds):
         if i == len(bounds) - 1:

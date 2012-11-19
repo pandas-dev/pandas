@@ -317,7 +317,9 @@ def pivot_simple(index, columns, values):
     -------
     DataFrame
     """
-    assert(len(index) == len(columns) == len(values))
+    if (len(index) != len(columns)) or (len(columns) != len(values)):
+        raise AssertionError('Length of index, columns, and values must be the'
+                             ' same')
 
     if len(index) == 0:
         return DataFrame(index=[])

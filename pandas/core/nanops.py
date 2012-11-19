@@ -388,7 +388,8 @@ def nancorr(a, b, method='pearson'):
     """
     a, b: ndarrays
     """
-    assert(len(a) == len(b))
+    if len(a) != len(b):
+        raise AssertionError('Operands to nancorr must have same size')
 
     valid = notnull(a) & notnull(b)
     if not valid.all():
@@ -427,7 +428,8 @@ def get_corr_func(method):
 
 
 def nancov(a, b):
-    assert(len(a) == len(b))
+    if len(a) != len(b):
+        raise AssertionError('Operands to nancov must have same size')
 
     valid = notnull(a) & notnull(b)
     if not valid.all():

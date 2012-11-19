@@ -340,7 +340,8 @@ class PandasObject(object):
 
         if axis.is_unique:
             if level is not None:
-                assert(isinstance(axis, MultiIndex))
+                if not isinstance(axis, MultiIndex):
+                    raise AssertionError('axis must be a MultiIndex')
                 new_axis = axis.drop(labels, level=level)
             else:
                 new_axis = axis.drop(labels)
@@ -348,7 +349,8 @@ class PandasObject(object):
             return self.reindex(**{axis_name: new_axis})
         else:
             if level is not None:
-                assert(isinstance(axis, MultiIndex))
+                if not isinstance(axis, MultiIndex):
+                    raise AssertionError('axis must be a MultiIndex')
                 indexer = -lib.ismember(axis.get_level_values(level),
                                         set(labels))
             else:
@@ -1012,7 +1014,9 @@ def truncate(self, before=None, after=None, copy=True):
     after = to_datetime(after)
 
     if before is not None and after is not None:
-        assert(before <= after)
+        if before > after:
+            raise AssertionError('Truncate: %s must be after %s' %
+                                 (before, after))
 
     result = self.ix[before:after]
 
