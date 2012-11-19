@@ -31,7 +31,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import (BlockManager, make_block, form_blocks,
                                    IntBlock)
-from pandas.core.series import Series, _radd_compat
+from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
@@ -417,7 +417,24 @@ class DataFrame(NDFrame):
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
         else:
-            raise PandasError('DataFrame constructor not properly called!')
+            try:
+                arr = np.array(data, dtype=dtype, copy=copy)
+            except (ValueError, TypeError):
+                raise PandasError('DataFrame constructor called with '
+                                  'incompatible data and dtype')
+
+            if arr.ndim == 0 and index is not None and columns is not None:
+                if isinstance(data, basestring) and dtype is None:
+                    dtype = np.object_
+                if dtype is None:
+                    data, dtype = _dtype_from_scalar(data)
+
+                values = np.empty((len(index), len(columns)), dtype=dtype)
+                values.fill(data)
+                mgr = self._init_ndarray(values, index, columns, dtype=dtype,
+                                         copy=False)
+            else:
+                raise PandasError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr)
 

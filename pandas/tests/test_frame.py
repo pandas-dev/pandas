@@ -2383,6 +2383,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           [('a',[8]),('a',[5]), ('b', [6])],
                           columns=['b', 'a','a'])
 
+    def test_constructor_single_value(self):
+        df = DataFrame(0., index=[1,2,3], columns=['a','b','c'])
+        assert_frame_equal(df, DataFrame(np.zeros(df.shape), df.index,
+                                         df.columns))
+
+        df = DataFrame('a', index=[1,2], columns=['a', 'c'])
+        assert_frame_equal(df, DataFrame(np.array([['a', 'a'],
+                                                   ['a', 'a']],
+                                                  dtype=object),
+                                         index=[1,2],
+                                         columns=['a', 'c']))
+
+        self.assertRaises(com.PandasError, DataFrame, 'a', [1,2])
+        self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a' ,'c'])
+        self.assertRaises(com.PandasError, DataFrame, 'a', [1,2], ['a', 'c'], float)
+
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))
