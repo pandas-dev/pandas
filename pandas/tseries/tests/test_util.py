@@ -37,7 +37,6 @@ class TestPivotAnnual(unittest.TestCase):
         leaps.index = leaps.index.year
         tm.assert_series_equal(annual[day].dropna(), leaps)
 
-    @slow
     def test_hourly(self):
         rng_hourly = date_range('1/1/1994', periods=(18* 8760 + 4*24), freq='H')
         data_hourly = np.random.randint(100, 350, rng_hourly.size)
@@ -52,7 +51,7 @@ class TestPivotAnnual(unittest.TestCase):
 
         annual = pivot_annual(ts_hourly)
 
-        for i in [1, 1416, 1417, 1418, 8784]:
+        for i in [1, 1416, 1417, 1418, 1439, 1440, 1441, 8784]:
             subset = ts_hourly[hoy == i]
             subset.index = [x.year for x in subset.index]
 
