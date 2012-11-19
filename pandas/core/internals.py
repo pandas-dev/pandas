@@ -23,8 +23,11 @@ class Block(object):
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object)
 
-        assert(values.ndim == ndim)
-        assert(len(items) == len(values))
+        if values.ndim != ndim:
+            raise AssertionError('Wrong number of dimensions')
+
+        if len(items) != len(values):
+            raise AssertionError('Wrong number of items passed')
 
         self._ref_locs = None
         self.values = values

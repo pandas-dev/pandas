@@ -885,8 +885,7 @@ def is_list_like(arg):
 def _is_sequence(x):
     try:
         iter(x)
-        assert(not isinstance(x, basestring))
-        return True
+        return not isinstance(x, basestring) and True
     except Exception:
         return False
 
