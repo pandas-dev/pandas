@@ -687,6 +687,19 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
+    def convert_objects(self):
+        """
+        Attempt to infer better dtype
+
+        Returns
+        -------
+        converted : Series
+        """
+        if self.dtype == np.object_:
+            return Series(lib.maybe_convert_objects(self, convert_datetime=1),
+                          self.index)
+        return self
+
     def repeat(self, reps):
         """
         See ndarray.repeat
