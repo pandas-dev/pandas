@@ -180,7 +180,9 @@ class Index(np.ndarray):
         return [self.name]
 
     def _set_names(self, values):
-        assert(len(values) == 1)
+        if len(values) != 1:
+            raise AssertionError('Length of new names must be 1, got %d'
+                                 % len(values))
         self.name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
@@ -255,7 +257,9 @@ class Index(np.ndarray):
 
     def _get_level_number(self, level):
         if not isinstance(level, int):
-            assert(level == self.name)
+            if level != self.name:
+                raise AssertionError('Level %s must be same as name (%s)'
+                                     % (level, self.name))
             level = 0
         return level
 
@@ -749,10 +753,12 @@ class Index(np.ndarray):
                             'objects')
 
         if method == 'pad':
-            assert(self.is_monotonic)
+            if not self.is_monotonic:
+                raise AssertionError('Must be monotonic for forward fill')
             indexer = self._engine.get_pad_indexer(target.values, limit)
         elif method == 'backfill':
-            assert(self.is_monotonic)
+            if not self.is_monotonic:
+                raise AssertionError('Must be monotonic for backward fill')
             indexer = self._engine.get_backfill_indexer(target.values, limit)
         elif method is None:
             indexer = self._engine.get_indexer(target.values)
@@ -1249,7 +1255,8 @@ class MultiIndex(Index):
     names = None
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
-        assert(len(levels) == len(labels))
+        if len(levels) != len(labels):
+            raise AssertionError('Length of levels and labels must be the same')
         if len(levels) == 0:
             raise Exception('Must pass non-zero number of levels/labels')
 
@@ -1272,7 +1279,10 @@ class MultiIndex(Index):
         if names is None:
             subarr.names = [None] * subarr.nlevels
         else:
-            assert(len(names) == subarr.nlevels)
+            if len(names) != subarr.nlevels:
+                raise AssertionError(('Length of names must be same as level '
+                                      '(%d), got %d') % (subarr.nlevels))
+
             subarr.names = list(names)
 
         # set the name
@@ -1815,7 +1825,10 @@ class MultiIndex(Index):
         ----------
         """
         order = [self._get_level_number(i) for i in order]
-        assert(len(order) == self.nlevels)
+        if len(order) != self.nlevels:
+            raise AssertionError(('Length of order must be same as '
+                                  'number of levels (%d), got %d')
+                                 % (self.nlevels, len(order)))
         new_levels = [self.levels[i] for i in order]
         new_labels = [self.labels[i] for i in order]
         new_names = [self.names[i] for i in order]
@@ -1912,11 +1925,15 @@ class MultiIndex(Index):
         self_index = self._tuple_index
 
         if method == 'pad':
-            assert(self.is_unique and self.is_monotonic)
+            if not self.is_unique or not self.is_monotonic:
+                raise AssertionError(('Must be unique and monotonic to '
+                                      'use forward fill getting the indexer'))
             indexer = self_index._engine.get_pad_indexer(target_index,
                                                          limit=limit)
         elif method == 'backfill':
-            assert(self.is_unique and self.is_monotonic)
+            if not self.is_unique or not self.is_monotonic:
+                raise AssertionError(('Must be unique and monotonic to '
+                                      'use backward fill getting the indexer'))
             indexer = self_index._engine.get_backfill_indexer(target_index,
                                                               limit=limit)
         else:
@@ -2083,7 +2100,9 @@ class MultiIndex(Index):
             return new_index
 
         if isinstance(level, (tuple, list)):
-            assert(len(key) == len(level))
+            if len(key) != len(level):
+                raise AssertionError('Key for location must have same '
+                                     'length as number of levels')
             result = None
             for lev, k in zip(level, key):
                 loc, new_index = self.get_loc_level(k, level=lev)
@@ -2329,7 +2348,8 @@ class MultiIndex(Index):
             raise TypeError('can only call with other hierarchical '
                             'index objects')
 
-        assert(self.nlevels == other.nlevels)
+        if self.nlevels != other.nlevels:
+            raise AssertionError('Must have same number of levels')
 
     def insert(self, loc, item):
         """
@@ -2477,7 +2497,8 @@ def _get_distinct_indexes(indexes):
 
 
 def _union_indexes(indexes):
-    assert(len(indexes) > 0)
+    if len(indexes) == 0:
+        raise AssertionError('Must have at least 1 Index to union')
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):

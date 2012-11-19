@@ -358,7 +358,8 @@ class _NDFrameIndexer(object):
                 return self.obj.reindex_axis(keys, axis=axis, level=level)
             except AttributeError:
                 # Series
-                assert(axis == 0)
+                if axis != 0:
+                    raise AssertionError('axis must be 0')
                 return self.obj.reindex(keys, level=level)
 
         if com._is_bool_indexer(key):

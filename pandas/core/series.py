@@ -1636,7 +1636,8 @@ copy : boolean, default False
         -------
         combined : Series
         """
-        assert(isinstance(other, Series))
+        if not isinstance(other, Series):
+            raise AssertionError('Other operand must be Series')
 
         new_index = self.index
         this = self

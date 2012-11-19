@@ -830,12 +830,9 @@ class Grouper(object):
                                              axis=self.axis):
             res = func(group)
             if result is None:
-                try:
-                    assert(not isinstance(res, np.ndarray))
-                    assert(not isinstance(res, list))
-                    result = np.empty(ngroups, dtype='O')
-                except Exception:
-                    raise ValueError('function does not reduce')
+                if isinstance(res, np.ndarray) or isinstance(res, list):
+                    raise ValueError('Function does not reduce')
+                result = np.empty(ngroups, dtype='O')
 
             counts[label] = group.shape[0]
             result[label] = res
@@ -1040,7 +1037,8 @@ class Grouping(object):
 
         if level is not None:
             if not isinstance(level, int):
-                assert(level in index.names)
+                if level not in index.names:
+                    raise AssertionError('Level %s not in index' % str(level))
                 level = index.names.index(level)
 
             inds = index.labels[level]
@@ -1231,7 +1229,8 @@ def _convert_grouper(axis, grouper):
         else:
             return grouper.reindex(axis).values
     elif isinstance(grouper, (list, np.ndarray)):
-        assert(len(grouper) == len(axis))
+        if len(grouper) != len(axis):
+            raise AssertionError('Grouper and axis must be same length')
         return grouper
     else:
         return grouper
@@ -1629,7 +1628,8 @@ class NDFrameGroupBy(GroupBy):
         return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
-        assert(self.grouper.nkeys == 1)
+        if self.grouper.nkeys != 1:
+            raise AssertionError('Number of keys must be 1')
 
         axis = self.axis
         obj = self._obj_with_exclusions
@@ -2061,7 +2061,9 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
         # Since I'm now compressing the group ids, it's now not "possible" to
         # produce empty slices because such groups would not be observed in the
         # data
-        assert(start < end)
+        if start >= end:
+            raise AssertionError('Start %s must be less than end %s'
+                                 % (str(start), str(end)))
         yield i, _get_slice(slice(start, end))
 
 
