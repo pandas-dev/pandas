@@ -550,6 +550,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # preserve names
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
 
+        #inplace
+        rs = self.frame.copy()
+        rs.sortlevel(0, inplace=True)
+        assert_frame_equal(rs, self.frame.sortlevel(0))
+
+
     def test_delevel_infer_dtype(self):
         tuples = [tuple for tuple in cart_product(['foo', 'bar'],
                                                   [10, 20], [1.0, 1.1])]
@@ -1602,4 +1608,3 @@ if __name__ == '__main__':
     #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

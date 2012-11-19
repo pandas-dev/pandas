@@ -2958,7 +2958,7 @@ class DataFrame(NDFrame):
         else:
             return self.take(indexer, axis=axis)
 
-    def sortlevel(self, level=0, axis=0, ascending=True):
+    def sortlevel(self, level=0, axis=0, ascending=True, inplace=False):
         """
         Sort multilevel index by chosen axis and primary level. Data will be
         lexicographically sorted by the chosen level followed by the other
@@ -2969,6 +2969,8 @@ class DataFrame(NDFrame):
         level : int
         axis : {0, 1}
         ascending : bool, default True
+        inplace : boolean, default False
+            Sort the DataFrame without creating a new instance
 
         Returns
         -------
@@ -2980,20 +2982,23 @@ class DataFrame(NDFrame):
 
         new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
 
-        if self._data.is_mixed_dtype():
+        if self._data.is_mixed_dtype() and not inplace:
             if axis == 0:
                 return self.reindex(index=new_axis)
             else:
                 return self.reindex(columns=new_axis)
 
-        if axis == 0:
-            index = new_axis
-            columns = self.columns
+        if inplace:
+            if axis == 1:
+                self._data = self._data.reindex_items(self._data.items[indexer],
+                                                      copy=False)
+            elif axis == 0:
+                self._data = self._data.take(indexer)
+
+            self._clear_item_cache()
+            return self
         else:
-            index = self.index
-            columns = new_axis
-        new_values = self.values.take(indexer, axis=axis)
-        return self._constructor(new_values, index=index, columns=columns)
+            return self.take(indexer, axis=axis)
 
     def swaplevel(self, i, j, axis=0):
         """
