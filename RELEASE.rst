@@ -47,6 +47,8 @@ pandas 0.10.0
   - Fix major performance regression in DataFrame.iteritems (#
   - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
   - Escape tabs in console output to avoid alignment issues (#2038)
+  - Properly box datetime64 values when retrieving cross-section from
+    mixed-dtype DataFrame (#2272)
 
 pandas 0.9.1
 ============

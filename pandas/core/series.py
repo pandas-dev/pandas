@@ -2038,8 +2038,9 @@ copy : boolean, default False
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
-        Invoke function on values of Series. Can be ufunc or Python function
-        expecting only single values
+        Invoke function on values of Series. Can be ufunc, a Python function
+        that applies to the entire Series, or a Python function that only
+        works on single values
 
         Parameters
         ----------
@@ -2051,6 +2052,11 @@ copy : boolean, default False
         See also
         --------
         Series.map: For element-wise operations
+
+        Notes
+        -----
+        func is applied to the entire Series at once first. If an exception
+        is raised, then apply to each value.
 
         Returns
         -------
