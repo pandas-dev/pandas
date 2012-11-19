@@ -645,8 +645,10 @@ def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
     result = np.empty(n, dtype='O')
 
     for i from 0 <= i < n:
+        msecs = round(float(seconds[i] % 1)*10**6)
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
-                             int(hours[i]), int(minutes[i]), int(seconds[i]))
+                             int(hours[i]), int(minutes[i]), int(seconds[i]),
+							 int(msecs))
 
     return result
 
