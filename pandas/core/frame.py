@@ -872,7 +872,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
-                     coerce_float=False):
+                     coerce_float=False, nrows=None):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -905,6 +905,33 @@ class DataFrame(NDFrame):
             if len(algos.unique(columns)) < len(columns):
                 raise ValueError('Non-unique columns not yet supported in '
                                  'from_records')
+
+        if com.is_iterator(data):
+            if nrows == 0:
+                return DataFrame()
+
+            try:
+                first_row = data.next()
+            except StopIteration:
+                return DataFrame(index=index, columns=columns)
+
+            dtype = None
+            if hasattr(first_row, 'dtype') and first_row.dtype.names:
+                dtype = first_row.dtype
+
+            values = [first_row]
+
+            i = 1
+            for row in data:
+                values.append(row)
+                i += 1
+                if i >= nrows:
+                    break
+
+            if dtype is not None:
+                data = np.array(values, dtype=dtype)
+            else:
+                data = values
 
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             keys, sdict = _rec_to_dict(data)
