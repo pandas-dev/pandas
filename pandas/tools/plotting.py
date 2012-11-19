@@ -412,7 +412,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
 
 def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None, 
-                         **kwds):
+                         use_columns=False, **kwds):
     """Parallel coordinates plotting.
 
     Parameters:
@@ -422,6 +422,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     cols: A list of column names to use, optional
     ax: matplotlib axis object, optional
     colors: A list or tuple of colors to use for the different classes, optional
+    use_columns: If true, columns will be used as xticks, optional
     kwds: A list of keywords for matplotlib plot method
 
     Returns:
@@ -446,7 +447,12 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     used_legends = set([])
 
     ncols = len(df.columns)
-    x = range(ncols)
+    
+    # Determine values to use for xticks
+    if use_columns and np.all(np.isreal(list(df.columns))):
+        x = df.columns
+    else:
+        x = range(ncols)
 
     if ax == None:
         ax = plt.gca()
@@ -471,11 +477,12 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
         else:
             ax.plot(x, y, color=colors[kls], **kwds)
 
-    for i in range(ncols):
+    for i in x:
         ax.axvline(i, linewidth=1, color='black')
 
     ax.set_xticks(x)
     ax.set_xticklabels(df.columns)
+    ax.set_xlim(x[0], x[-1])
     ax.legend(loc='upper right')
     ax.grid()
     return ax
