@@ -354,8 +354,9 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.agg(aggfun)
         foo = (self.df.A == 'foo').sum()
         bar = (self.df.A == 'bar').sum()
-        self.assert_((result.xs('foo') == foo).all())
-        self.assert_((result.xs('bar') == bar).all())
+        K = len(result.columns)
+        assert_almost_equal(result.xs('foo'), [foo] * K)
+        assert_almost_equal(result.xs('bar'), [bar] * K)
 
         def aggfun(ser):
             return ser.size
@@ -392,7 +393,7 @@ class TestGroupBy(unittest.TestCase):
 
         self.assert_(result.index.equals(self.ts.index))
         for _, gp in grouped:
-            self.assert_((result.reindex(gp.index) == gp.mean()).all())
+            assert_fp_equal(result.reindex(gp.index), gp.mean())
 
         grouped = self.tsframe.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
@@ -401,7 +402,7 @@ class TestGroupBy(unittest.TestCase):
             agged = gp.mean()
             res = result.reindex(gp.index)
             for col in self.tsframe:
-                self.assert_((res[col] == agged[col]).all())
+                assert_fp_equal(res[col], agged[col])
 
         # group columns
         grouped = self.tsframe.groupby({'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1},
@@ -413,7 +414,7 @@ class TestGroupBy(unittest.TestCase):
             agged = gp.mean(1)
             res = result.reindex(columns=gp.columns)
             for idx in gp.index:
-                self.assert_((res.xs(idx) == agged[idx]).all())
+                assert_fp_equal(res.xs(idx), agged[idx])
 
     def test_transform_multiple(self):
         grouped = self.ts.groupby([lambda x: x.year, lambda x: x.month])
@@ -597,7 +598,7 @@ class TestGroupBy(unittest.TestCase):
 
         for k, v in groups.iteritems():
             samething = self.tsframe.index.take(indices[k])
-            self.assert_((samething == v).all())
+            self.assertTrue((samething == v).all())
 
     def test_grouping_is_iterable(self):
         # this code path isn't used anywhere else
@@ -2092,6 +2093,11 @@ class TestGroupBy(unittest.TestCase):
         result = df.groupby(level=0).first()
         got_dt = result[1].dtype
         self.assert_(issubclass(got_dt.type, np.datetime64))
+
+
+
+def assert_fp_equal(a, b):
+    assert((np.abs(a - b) < 1e-12).all())
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
