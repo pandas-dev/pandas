@@ -49,6 +49,7 @@ pandas 0.10.0
   - Escape tabs in console output to avoid alignment issues (#2038)
   - Properly box datetime64 values when retrieving cross-section from
     mixed-dtype DataFrame (#2272)
+  - Fix concatenation bug leading to #2057, #2257
 
 pandas 0.9.1
 ============

@@ -1025,7 +1025,7 @@ class _Concatenator(object):
 
     def _concat_blocks(self, blocks):
         values_list = [b.values for b in blocks if b is not None]
-        concat_values = com._concat_compat(values_list)
+        concat_values = com._concat_compat(values_list, axis=self.axis)
 
         if self.axis > 0:
             # Not safe to remove this check, need to profile
