@@ -1392,6 +1392,30 @@ class TestConcatenate(unittest.TestCase):
         expected.ix['ItemC', :, :2] = 'baz'
         tm.assert_panel_equal(result, expected)
 
+    def test_panel_concat_buglet(self):
+        # #2257
+        def make_panel():
+            index = 5
+            cols  = 3
+            def df():
+                return DataFrame(np.random.randn(index,cols),
+                                 index = [ "I%s" % i for i in range(index) ],
+                                 columns = [ "C%s" % i for i in range(cols) ])
+            return Panel(dict([("Item%s" % x, df()) for x in ['A','B','C']]))
+
+        panel1 = make_panel()
+        panel2 = make_panel()
+
+        panel2 = panel2.rename_axis(dict([ (x,"%s_1" % x)
+                                           for x in panel2.major_axis ]),
+                                    axis=1)
+
+        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
+        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+
+        # it works!
+        concat([ panel1, panel3 ], axis = 1, verify_integrity = True)
+
     def test_concat_series(self):
         ts = tm.makeTimeSeries()
         ts.name = 'foo'
