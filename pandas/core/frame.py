@@ -5037,12 +5037,8 @@ def group_agg(values, bounds, f):
         result = np.empty((len(bounds), K), dtype=float)
 
     testagg = f(values[:min(1, len(values))])
-    if isinstance(testagg, np.ndarray):
-        raise AssertionError('Results must be an ndarray, not %s'
-                             % type(testagg))
-    if testagg.ndim == 2:
-        raise AssertionError('Results must be 2-D, not %d-D'
-                             % testagg.ndim)
+    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
+        raise AssertionError('Function must reduce')
 
     for i, left_bound in enumerate(bounds):
         if i == len(bounds) - 1:
