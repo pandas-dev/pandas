@@ -415,20 +415,37 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
                          use_columns=False, xticks=None, **kwds):
     """Parallel coordinates plotting.
 
-    Parameters:
-    -----------
-    data: A DataFrame containing data to be plotted
-    class_column: Column name containing class names
-    cols: A list of column names to use, optional
-    ax: matplotlib axis object, optional
-    colors: A list or tuple of colors to use for the different classes, optional
-    use_columns: If true, columns will be used as xticks, optional
-    xticks: A list of values to use for xticks, optional
-    kwds: A list of keywords for matplotlib plot method
+    Parameters
+    ----------
+    data: DataFrame
+        A DataFrame containing data to be plotted
+    class_column: str
+        Column name containing class names
+    cols: list, optional
+        A list of column names to use
+    ax: matplotlib.axis, optional
+        matplotlib axis object
+    colors: list or tuple, optional
+        Colors to use for the different classes
+    use_columns: bool, optional
+        If true, columns will be used as xticks
+    xticks: list or tuple, optional
+        A list of values to use for xticks
+    kwds: list, optional
+        A list of keywords for matplotlib plot method
 
-    Returns:
-    --------
+    Returns
+    -------
     ax: matplotlib axis object
+    
+    Examples
+    --------
+    >>> from pandas import read_csv
+    >>> from pandas.tools.plotting import parallel_coordinates
+    >>> from matplotlib import pyplot as plt
+    >>> df = read_csv('https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv')
+    >>> parallel_coordinates(df, 'Name', colors=('#556270', '#4ECDC4', '#C7F464'))
+    >>> plt.show()
     """
     import matplotlib.pyplot as plt
     import random
