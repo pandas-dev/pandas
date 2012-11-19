@@ -402,7 +402,7 @@ class DataFrame(NDFrame):
                     index = _get_names_from_index(data)
 
                 if isinstance(data[0], (list, tuple, dict, Series)):
-                    arrays, columns = _to_arrays(data, columns)
+                    arrays, columns = _to_arrays(data, columns, dtype)
 
                     columns = _ensure_index(columns)
 
@@ -5159,7 +5159,7 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
-def _to_arrays(data, columns, coerce_float=False):
+def _to_arrays(data, columns, dtype=None, coerce_float=False):
     """
     Return list of arrays, columns
     """
@@ -5167,30 +5167,31 @@ def _to_arrays(data, columns, coerce_float=False):
     if len(data) == 0:
         return [], columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
-        return _list_to_arrays(data, columns, coerce_float=coerce_float)
+        return _list_to_arrays(data, columns, dtype=dtype, coerce_float=coerce_float)
     elif isinstance(data[0], dict):
-        return _list_of_dict_to_arrays(data, columns,
+        return _list_of_dict_to_arrays(data, columns, dtype=dtype,
                                        coerce_float=coerce_float)
     elif isinstance(data[0], Series):
-        return _list_of_series_to_arrays(data, columns,
+        return _list_of_series_to_arrays(data, columns, dtype=dtype,
                                         coerce_float=coerce_float)
     else:
         # last ditch effort
         data = map(tuple, data)
-        return _list_to_arrays(data, columns, coerce_float=coerce_float)
+        return _list_to_arrays(data, columns, dtype=dtype,
+                               coerce_float=coerce_float)
 
 
-def _list_to_arrays(data, columns, coerce_float=False):
+def _list_to_arrays(data, columns, dtype=None, coerce_float=False):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
         # list of lists
         content = list(lib.to_object_array(data).T)
-    return _convert_object_array(content, columns,
+    return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 
 
-def _list_of_series_to_arrays(data, columns, coerce_float=False):
+def _list_of_series_to_arrays(data, columns, dtype=None, coerce_float=False):
     from pandas.core.index import _get_combined_index
 
     if columns is None:
@@ -5211,13 +5212,13 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(content, columns,
+        return _convert_object_array(content, columns, dtype=dtype,
                                      coerce_float=coerce_float)
     else:
         return values.T, columns
 
 
-def _list_of_dict_to_arrays(data, columns, coerce_float=False):
+def _list_of_dict_to_arrays(data, columns, dtype=None, coerce_float=False):
     if columns is None:
         gen = (x.keys() for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
@@ -5228,11 +5229,11 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False):
             for d in data]
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(content, columns,
+    return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 
 
-def _convert_object_array(content, columns, coerce_float=False):
+def _convert_object_array(content, columns, dtype=None, coerce_float=False):
     if columns is None:
         columns = _default_index(len(content))
     else:
@@ -5241,6 +5242,7 @@ def _convert_object_array(content, columns, coerce_float=False):
                                  'columns' % (len(columns), len(content)))
 
     arrays = [lib.maybe_convert_objects(arr, try_float=coerce_float)
+              if dtype != object and dtype != np.object else arr
               for arr in content]
 
     return arrays, columns
