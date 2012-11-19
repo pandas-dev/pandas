@@ -412,7 +412,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
 
 def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None, 
-                         use_columns=False, **kwds):
+                         use_columns=False, xticks=None, **kwds):
     """Parallel coordinates plotting.
 
     Parameters:
@@ -423,6 +423,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     ax: matplotlib axis object, optional
     colors: A list or tuple of colors to use for the different classes, optional
     use_columns: If true, columns will be used as xticks, optional
+    xticks: A list of values to use for xticks, optional
     kwds: A list of keywords for matplotlib plot method
 
     Returns:
@@ -448,9 +449,17 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
 
     ncols = len(df.columns)
     
-    # Determine values to use for xticks
-    if use_columns and np.all(np.isreal(list(df.columns))):
+    # determine values to use for xticks
+    if use_columns is True:
+        if not np.all(np.isreal(list(df.columns))):
+            raise ValueError('Columns must be numeric to be used as xticks')
         x = df.columns
+    elif xticks is not None:
+        if not np.all(np.isreal(xticks)):
+            raise ValueError('xticks specified must be numeric')
+        elif len(xticks) != ncols:
+            raise ValueError('Length of xticks must match number of columns')
+        x = xticks
     else:
         x = range(ncols)
 
