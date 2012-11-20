@@ -265,6 +265,40 @@ a,b,c
         self.assertTrue((result[1] == exp[1]).all())
         self.assertTrue((result[2] == exp[2]).all())
 
+    def test_cr_delimited(self):
+        def _test(text, **kwargs):
+            nice_text = text.replace('\r', '\r\n')
+            result = TextReader(StringIO(text), **kwargs).read()
+            expected = TextReader(StringIO(nice_text), **kwargs).read()
+            assert_array_dicts_equal(result, expected)
+
+        data = 'a,b,c\r1,2,3\r4,5,6\r7,8,9\r10,11,12'
+        _test(data, delimiter=',')
+
+        data = 'a  b  c\r1  2  3\r4  5  6\r7  8  9\r10  11  12'
+        _test(data, delim_whitespace=True)
+
+        data = 'a,b,c\r1,2,3\r4,5,6\r,88,9\r10,11,12'
+        _test(data, delimiter=',')
+
+        sample = ('A,B,C,D,E,F,G,H,I,J,K,L,M,N,O\r'
+                  'AAAAA,BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0\r'
+                  ',BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0')
+        _test(sample, delimiter=',')
+
+        data = 'A  B  C\r  2  3\r4  5  6'
+        _test(data, delim_whitespace=True)
+
+    def test_empty_field_eof(self):
+        data = 'a,b,c\n1,2,3\n4,,'
+
+        result = TextReader(StringIO(data), delimiter=',').read()
+
+        expected = {0: np.array([1, 4]),
+                    1: np.array(['2', ''], dtype=object),
+                    2: np.array(['3', ''], dtype=object)}
+        assert_array_dicts_equal(result, expected)
+
 
 def assert_array_dicts_equal(left, right):
     for k, v in left.iteritems():

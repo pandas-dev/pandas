@@ -43,7 +43,7 @@ See LICENSE for the license
   #if defined(__GNUC__)
     #define P_INLINE __inline__
   #elif defined(_MSC_VER)
-    #define P_INLINE 
+    #define P_INLINE
   #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
     #define P_INLINE inline
   #else
