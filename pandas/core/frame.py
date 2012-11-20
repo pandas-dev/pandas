@@ -911,7 +911,10 @@ class DataFrame(NDFrame):
                 return DataFrame()
 
             try:
-                first_row = data.next()
+                if py3compat.PY3:
+                    first_row = next(data)
+                else:
+                    first_row = data.next()
             except StopIteration:
                 return DataFrame(index=index, columns=columns)
 
