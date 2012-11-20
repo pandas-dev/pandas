@@ -2639,6 +2639,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame.from_records(tuples, columns=['a', 'b', 'c', 'd'])
         self.assert_(np.isnan(df['c'][0]))
 
+    def test_from_records_iterator(self):
+        arr = np.array([(1.0, 2), (3.0, 4), (5., 6), (7., 8)],
+                       dtype=[('x', float), ('y', int)])
+        df = DataFrame.from_records(iter(arr), nrows=2)
+        xp = DataFrame({'x' : np.array([1.0, 3.0], dtype=float),
+                        'y' : np.array([2, 4], dtype=int)})
+        assert_frame_equal(df, xp)
+
+        arr = [(1.0, 2), (3.0, 4), (5., 6), (7., 8)]
+        df = DataFrame.from_records(iter(arr), columns=['x', 'y'],
+                                    nrows=2)
+        assert_frame_equal(df, xp)
+
     def test_from_records_columns_not_modified(self):
         tuples = [(1, 2, 3),
                   (1, 2, 3),

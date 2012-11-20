@@ -710,10 +710,10 @@ class TestStringMethods(unittest.TestCase):
         exp = encodeBase.map(f)
         tm.assert_series_equal(result, exp)
 
-        decodeBase = Series(['a', 'b', 'a\x9d'])
+        decodeBase = Series([b'a', b'b', b'a\x9d'])
 
         self.assertRaises(UnicodeDecodeError,
-                          decodeBase.str.encode, 'cp1252')
+                          decodeBase.str.decode, 'cp1252')
 
         f = lambda x: x.decode('cp1252', 'ignore')
         result = decodeBase.str.decode('cp1252', 'ignore')

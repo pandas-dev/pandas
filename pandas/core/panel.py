@@ -590,7 +590,9 @@ class Panel(NDFrame):
                                   columns=self.minor_axis)
             mat = value.values
         elif isinstance(value, np.ndarray):
-            assert(value.shape == (N, K))
+            if value.shape != (N, K):
+                raise AssertionError(('Shape of values must be (%d, %d), '
+                                      'not (%d, %d)') % ((N, K) + values.shape))
             mat = np.asarray(value)
         elif np.isscalar(value):
             dtype = _infer_dtype(value)
@@ -1394,7 +1396,8 @@ def _prep_ndarray(values, copy=True):
     else:
         if copy:
             values = values.copy()
-    assert(values.ndim == 3)
+    if values.ndim != 3:
+        raise AssertionError('Number of dimensions must be 3')
     return values
 
 
@@ -1461,7 +1464,8 @@ def _extract_axis(data, axis=0, intersect=False):
                 raise ValueError('ndarrays must match shape on axis %d' % axis)
 
             if have_frames:
-                assert(lengths[0] == len(index))
+                if lengths[0] != len(index):
+                    raise AssertionError('Length of data and index must match')
             else:
                 index = Index(np.arange(lengths[0]))
 

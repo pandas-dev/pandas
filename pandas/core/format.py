@@ -293,8 +293,9 @@ class DataFrameFormatter(object):
 
         if column_format is None:
             column_format = '|l|%s|' % '|'.join('c' for _ in strcols)
-        else:
-            assert isinstance(column_format, basestring)
+        elif not isinstance(column_format, basestring):
+            raise AssertionError(('column_format must be str or unicode, not %s'
+                                  % type(column_format)))
 
         self.buf.write('\\begin{tabular}{%s}\n' % column_format)
         self.buf.write('\\hline\n')
@@ -474,7 +475,9 @@ class HTMLFormatter(object):
         if self.classes is not None:
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()
-            assert isinstance(self.classes, (list, tuple))
+            if not isinstance(self.classes, (list, tuple)):
+                raise AssertionError(('classes must be list or tuple, '
+                                      'not %s') % type(self.classes))
             _classes.extend(self.classes)
 
         self.write('<table border="1" class="%s">' % ' '.join(_classes),

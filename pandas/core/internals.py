@@ -43,7 +43,9 @@ class Block(object):
         if self._ref_locs is None:
             indexer = self.ref_items.get_indexer(self.items)
             indexer = com._ensure_platform_int(indexer)
-            assert((indexer != -1).all())
+            if (indexer == -1).any():
+                raise AssertionError('Some block items were not in block '
+                                     'ref_items')
             self._ref_locs = indexer
         return self._ref_locs
 
@@ -51,7 +53,8 @@ class Block(object):
         """
         If maybe_rename=True, need to set the items for this guy
         """
-        assert(isinstance(ref_items, Index))
+        if not isinstance(ref_items, Index):
+            raise AssertionError('block ref_items must be an Index')
         if maybe_rename:
             self.items = ref_items.take(self.ref_locs)
         self.ref_items = ref_items
@@ -98,7 +101,8 @@ class Block(object):
         return make_block(values, self.items, self.ref_items)
 
     def merge(self, other):
-        assert(self.ref_items.equals(other.ref_items))
+        if not self.ref_items.equals(other.ref_items):
+            raise AssertionError('Merge operands must have same ref_items')
 
         # Not sure whether to allow this or not
         # if not union_ref.equals(other.ref_items):
@@ -287,7 +291,8 @@ class Block(object):
         return make_block(values, self.items, self.ref_items)
 
     def take(self, indexer, axis=1, fill_value=np.nan):
-        assert(axis >= 1)
+        if axis < 1:
+            raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_fast(self.values, indexer, None,
                                    None, axis=axis,
                                    fill_value=fill_value)
@@ -496,7 +501,11 @@ class BlockManager(object):
 
         ndim = len(axes)
         for block in blocks:
-            assert(ndim == block.values.ndim)
+            if ndim != block.values.ndim:
+                raise AssertionError(('Number of Block dimensions (%d) must '
+                                      'equal number of axes (%d)')
+                                     % (block.values.ndim, ndim))
+
 
         if do_integrity_check:
             self._verify_integrity()
@@ -580,10 +589,15 @@ class BlockManager(object):
     def _verify_integrity(self):
         mgr_shape = self.shape
         for block in self.blocks:
-            assert(block.ref_items is self.items)
-            assert(block.values.shape[1:] == mgr_shape[1:])
+            if block.ref_items is not self.items:
+                raise AssertionError("Block ref_items must be BlockManager "
+                                     "items")
+            if block.values.shape[1:] != mgr_shape[1:]:
+                raise AssertionError('Block shape incompatible with manager')
         tot_items = sum(len(x.items) for x in self.blocks)
-        assert(len(self.items) == tot_items)
+        if len(self.items) != tot_items:
+            raise AssertionError('Number of manager items must equal union of '
+                                 'block items')
 
     def astype(self, dtype):
         new_blocks = []
@@ -751,23 +765,28 @@ class BlockManager(object):
         if items.is_unique:
             for block in self.blocks:
                 indexer = items.get_indexer(block.items)
-                assert((indexer != -1).all())
+                if (indexer == -1).any():
+                    raise AssertionError('Items must contain all block items')
                 result[indexer] = block.get_values(dtype)
                 itemmask[indexer] = 1
         else:
             for block in self.blocks:
                 mask = items.isin(block.items)
                 indexer = mask.nonzero()[0]
-                assert(len(indexer) == len(block.items))
+                if (len(indexer) != len(block.items)):
+                    raise AssertionError('All items must be in block items')
                 result[indexer] = block.get_values(dtype)
                 itemmask[indexer] = 1
 
-        assert(itemmask.all())
+        if not itemmask.all():
+            raise AssertionError('Some items were not contained in blocks')
 
         return result
 
     def xs(self, key, axis=1, copy=True):
-        assert(axis >= 1)
+        if axis < 1:
+            raise AssertionError('Can only take xs across axis >= 1, got %d'
+                                 % axis)
 
         loc = self.axes[axis].get_loc(key)
         slicer = [slice(None, None) for _ in range(self.ndim)]
@@ -899,7 +918,9 @@ class BlockManager(object):
         """
         if value.ndim == self.ndim - 1:
             value = value.reshape((1,) + value.shape)
-        assert(value.shape[1:] == self.shape[1:])
+        if value.shape[1:] != self.shape[1:]:
+            raise AssertionError('Shape of new values must be compatible '
+                                 'with manager shape')
         if item in self.items:
             i, block = self._find_block(item)
             if not block.should_store(value):
@@ -984,7 +1005,9 @@ class BlockManager(object):
                 return self
 
         if axis == 0:
-            assert(method is None)
+            if method is not None:
+                raise AssertionError('method argument not supported for '
+                                     'axis == 0')
             return self.reindex_items(new_axis)
 
         new_axis, indexer = cur_axis.reindex(new_axis, method)
@@ -1118,7 +1141,8 @@ class BlockManager(object):
         return BlockManager(new_blocks, new_axes)
 
     def merge(self, other, lsuffix=None, rsuffix=None):
-        assert(self._is_indexed_like(other))
+        if not self._is_indexed_like(other):
+            raise AssertionError('Must have same axes to merge managers')
 
         this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
 
@@ -1157,7 +1181,9 @@ class BlockManager(object):
         """
         Check all axes except items
         """
-        assert(self.ndim == other.ndim)
+        if self.ndim != other.ndim:
+            raise AssertionError(('Number of dimensions must agree '
+                                  'got %d and %d') % (self.ndim, other.ndim))
         for ax, oax in zip(self.axes[1:], other.axes[1:]):
             if not ax.equals(oax):
                 return False
@@ -1165,7 +1191,8 @@ class BlockManager(object):
 
     def rename_axis(self, mapper, axis=1):
         new_axis = Index([mapper(x) for x in self.axes[axis]])
-        assert(new_axis.is_unique)
+        if not new_axis.is_unique:
+            raise AssertionError('New axis must be unique to rename')
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
@@ -1231,10 +1258,12 @@ class BlockManager(object):
 
         for i, blk in enumerate(self.blocks):
             indexer = self.items.get_indexer(blk.items)
-            assert((indexer != -1).all())
+            if (indexer == -1).any():
+                raise AssertionError('Block items must be in manager items')
             result.put(indexer, i)
 
-        assert((result >= 0).all())
+        if (result < 0).any():
+            raise AssertionError('Some items were not in any block')
         return result
 
     @property
@@ -1245,7 +1274,8 @@ class BlockManager(object):
             indexer = self.items.get_indexer(blk.items)
             result.put(indexer, blk.values.dtype.name)
             mask.put(indexer, 1)
-        assert(mask.all())
+        if not (mask.all()):
+            raise AssertionError('Some items were not in any block')
         return result
 
 def form_blocks(arrays, names, axes):

@@ -41,6 +41,7 @@ pandas 0.10.0
 **Improvements to existing features**
 
   - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
+  - Add ``nrows`` option to DataFrame.from_records for iterators (#1794)
 
 **Bug fixes**
 
