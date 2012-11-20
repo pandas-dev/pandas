@@ -403,7 +403,6 @@ class DataFrame(NDFrame):
 
                 if isinstance(data[0], (list, tuple, dict, Series)):
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
-
                     columns = _ensure_index(columns)
 
                     if index is None:
