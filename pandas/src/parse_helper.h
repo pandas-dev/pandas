@@ -17,7 +17,7 @@ int to_double(char *item, double *p_value, char sci, char decimal)
   #define PyBytes_AS_STRING            PyString_AS_STRING
 #endif
 
-PANDAS_INLINE int floatify(PyObject* str, double *result) {
+int floatify(PyObject* str, double *result) {
     int status;
     char *data;
     PyObject* tmp = NULL;

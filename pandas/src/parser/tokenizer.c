@@ -377,7 +377,10 @@ int P_INLINE end_field(parser_t *self) {
     // set pointer and metadata
     self->words[self->words_len] = self->pword_start;
 
-    TRACE(("Saw word %s at: %d\n", self->pword_start, self->word_start))
+    TRACE(("Char diff: %d\n", self->pword_start - self->words[0]));
+
+    TRACE(("Saw word %s at: %d. Total: %d\n",
+           self->pword_start, self->word_start, self->words_len + 1))
 
     self->word_starts[self->words_len] = self->word_start;
     self->words_len++;
@@ -398,6 +401,9 @@ int P_INLINE end_line(parser_t *self) {
     int ex_fields = -1;
 
     fields = self->line_fields[self->lines];
+
+    TRACE(("Line end, nfields: %d\n", fields));
+
 
     if (self->lines > 0) {
         ex_fields = self->line_fields[self->lines - 1];
@@ -524,9 +530,18 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
 //    printf("pushing %c\n", c);
 
+#if defined(VERBOSE)
+#define PUSH_CHAR(c)                                \
+    printf("Pushing %c, slen now: %d\n", c, slen);  \
+    *stream++ = c;                                  \
+    slen++;
+#else
 #define PUSH_CHAR(c)                           \
     *stream++ = c;                             \
     slen++;
+#endif
+
+
 
 // This is a little bit of a hack but works for now
 
@@ -538,18 +553,36 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;  \
     slen = self->stream_len;
 
-#define END_LINE()                                                      \
+#define END_LINE_STATE(STATE)                                           \
     self->stream_len = slen;                                            \
     if (end_line(self) < 0) {                                           \
         goto parsingerror;                                              \
     }                                                                   \
-    self->state = START_RECORD;                                         \
+    self->state = STATE;                                                \
     if (line_limit > 0 && self->lines == start_lines + line_limit) {    \
         goto linelimit;                                                 \
                                                                         \
     }                                                                   \
     stream = self->stream + self->stream_len;                           \
     slen = self->stream_len;
+
+#define END_LINE_AND_FIELD_STATE(STATE)                                 \
+    self->stream_len = slen;                                            \
+    if (end_line(self) < 0) {                                           \
+        goto parsingerror;                                              \
+    }                                                                   \
+    if (end_field(self) < 0) {                                          \
+        goto parsingerror;                                              \
+    }                                                                   \
+    stream = self->stream + self->stream_len;                           \
+    slen = self->stream_len;                                            \
+    self->state = STATE;                                                \
+    if (line_limit > 0 && self->lines == start_lines + line_limit) {    \
+        goto linelimit;                                                 \
+                                                                        \
+    }
+
+#define END_LINE() END_LINE_STATE(START_RECORD)
 
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
@@ -747,14 +780,15 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             if (c == '\n') {
                 END_LINE();
                 /* self->state = START_RECORD; */
+            } else if (c == self->delimiter){
+                // Handle \r-delimited files
+                END_LINE_AND_FIELD_STATE(START_FIELD);
             } else {
-                /* self->error_msg = ("new-line character seen in" */
-                /*                 " unquoted field - do you need" */
-                /*                 " to open the file in " */
-                /*                 "universal-newline mode?"); */
-                goto parsingerror;
+                PUSH_CHAR(c);
+                END_LINE_STATE(IN_FIELD);
             }
             break;
+
         default:
             break;
 
@@ -804,8 +838,9 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
         // Next character in file
         c = *buf++;
 
-        TRACE(("Iter: %d Char: %c Line %d field_count %d\n",
-               i, c, self->file_lines + 1, self->line_fields[self->lines]));
+        TRACE(("Iter: %d Char: %c Line %d field_count %d, state %d\n",
+               i, c, self->file_lines + 1, self->line_fields[self->lines],
+               self->state));
 
         switch(self->state) {
 
@@ -828,10 +863,14 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
             } else if (c == '\r') {
                 self->state = EAT_CRNL;
                 break;
+            } else if (IS_WHITESPACE(c)) {
+                END_FIELD();
+                self->state = EAT_WHITESPACE;
+                break;
+            } else {
+                /* normal character - handle as START_FIELD */
+                self->state = START_FIELD;
             }
-
-            /* normal character - handle as START_FIELD */
-            self->state = START_FIELD;
             /* fallthru */
         case START_FIELD:
             /* expecting field */
@@ -972,14 +1011,15 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
             if (c == '\n') {
                 END_LINE();
                 /* self->state = START_RECORD; */
+            } else if (IS_WHITESPACE(c)){
+                // Handle \r-delimited files
+                END_LINE_AND_FIELD_STATE(EAT_WHITESPACE);
             } else {
-                /* self->error_msg = ("new-line character seen in" */
-                /*                 " unquoted field - do you need" */
-                /*                 " to open the file in " */
-                /*                 "universal-newline mode?"); */
-                goto parsingerror;
+                PUSH_CHAR(c);
+                END_LINE_STATE(IN_FIELD);
             }
             break;
+
         default:
             break;
 
@@ -1009,13 +1049,13 @@ linelimit:
 
 
 int parser_handle_eof(parser_t *self) {
-    TRACE(("handling eof, datalen: %d\n", self->datalen))
+    TRACE(("handling eof, datalen: %d, pstate: %d\n", self->datalen, self->state))
     if (self->datalen == 0 && (self->state != START_RECORD)) {
         // test cases needed here
         // TODO: empty field at end of line
         TRACE(("handling eof\n"));
 
-        if (self->state == IN_FIELD) {
+        if (self->state == IN_FIELD || self->state == START_FIELD) {
             if (end_field(self) < 0)
                 return -1;
         } else if (self->state == QUOTE_IN_QUOTED_FIELD) {
@@ -1212,6 +1252,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */
 
         status = tokenize_bytes(self, nrows);
+
+        /* debug_print_parser(self); */
 
         if (status < 0) {
             // XXX
