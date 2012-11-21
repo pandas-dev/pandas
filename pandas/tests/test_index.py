@@ -851,6 +851,11 @@ class TestInt64Index(unittest.TestCase):
         df=pd.DataFrame({u"\u05d0":[1,2,3],"\u05d1":[4,5,6],"c":[7,8,9]})
         print(df.columns) # should not raise UnicodeDecodeError
 
+    def test_repr_summary(self):
+        r = repr(pd.Index(np.arange(10000)))
+        self.assertTrue(len(r) < 100)
+        self.assertTrue( "..." in r)
+
 class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):
