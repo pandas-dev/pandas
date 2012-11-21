@@ -2022,6 +2022,8 @@ class DataFrame(NDFrame):
 
                 if not isinstance(value, np.ndarray):
                     value = com._asarray_tuplesafe(value)
+                elif isinstance(value, PeriodIndex):
+                    value = value.asobject
                 else:
                     value = value.copy()
         else:
@@ -2699,7 +2701,11 @@ class DataFrame(NDFrame):
                     lev_num = self.columns._get_level_number(col_level)
                     name_lst[lev_num] = name
                     name = tuple(name_lst)
-            new_obj.insert(0, name, _maybe_cast(self.index.values))
+            if isinstance(self.index, PeriodIndex):
+                values = self.index.asobject
+            else:
+                values = self.index.values
+            new_obj.insert(0, name, _maybe_cast(values))
 
         new_obj.index = new_index
         return new_obj
