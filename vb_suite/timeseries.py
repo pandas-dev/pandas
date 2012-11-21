@@ -156,3 +156,14 @@ a = rng[:50000].append(rng[50002:])
 
 timeseries_infer_freq = \
     Benchmark('infer_freq(a)', setup, start_date=datetime(2012, 7, 1))
+
+# setitem PeriodIndex
+
+setup = common_setup + """
+rng = period_range('1/1/1990', freq='S', periods=100000)
+df = DataFrame(index=range(len(rng)))
+"""
+
+period_setitem = \
+    Benchmark("df['col'] = rng", setup,
+              start_date=datetime(2012, 8, 1))
