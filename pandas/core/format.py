@@ -16,6 +16,9 @@ import pandas.core.common as com
 import pandas.lib as lib
 
 import numpy as np
+import itertools
+
+from collections import namedtuple
 
 docstring_to_string = """
      Parameters
@@ -407,6 +410,7 @@ class DataFrameFormatter(object):
             names.append('' if columns.name is None else columns.name)
         return names
 
+
 class HTMLFormatter(object):
 
     indent_delta = 2
@@ -680,6 +684,94 @@ def _get_level_lengths(levels):
         result.append(recs)
 
     return result
+
+
+ExcelCell = namedtuple("ExcelCell",
+                       'row, col, val, style, mergestart, mergeend')
+
+header_style = {"font": {"bold": True},
+              "borders": {"top": "thin",
+                        "right": "thin",
+                        "bottom": "thin",
+                        "left": "thin"},
+              "alignment": {"horizontal": "center"}}
+
+
+class ExcelFormatter(object):
+
+    def __init__(self, df):
+        self.df = df
+        self.rowcounter = 0
+
+    def _format_header_mi(self):
+        levels = self.df.columns.format(sparsify=True, adjoin=False,
+                                   names=False)
+        level_lenghts = fmt._get_level_lengths(levels)
+        for lnum, (records, values) in enumerate(zip(level_lenghts,
+                                                     levels)):
+            name = self.df.columns.names[lnum]
+            yield ExcelCell(lnum, 0, name, header_style, None, None)
+            for i in records:
+                if records[i] > 1:
+                    yield ExcelCell(lnum, i + 1, values[i],
+                            header_style, lnum, i + records[i])
+                else:
+                    yield ExcelCell(lnum, i + 1, values[i],
+                                    header_style, None, None)
+
+            self.rowcounter = lnum
+
+    def _format_header_regular(self):
+        for colindex, colname in enumerate(self.df.columns):
+            yield ExcelCell(self.rowcounter, colindex,
+                            colname, header_style, None, None)
+
+    def _format_header(self):
+        if isinstance(self.df.columns, MultiIndex):
+            gen = self._format_header_mi()
+        else:
+            gen = self._format_header_regular()
+
+        gen2 = ()
+        if self.df.index.names:
+            row = [x if x is not None else ''
+                   for x in self.df.index.names] + [''] * len(self.df.columns)
+            if reduce(lambda x, y: x and y, map(lambda x: x != '', row)):
+                gen2 = (ExcelCell(self.rowcounter, colindex, val,
+                                  header_style, None, None)
+                        for colindex, val in enumerate(row))
+                self.rowcounter += 1
+        return itertools.chain(gen, gen2)
+
+    def _format_body(self):
+
+        if isinstance(self.df.columns, MultiIndex):
+            return self._format_hierarchical_rows()
+        else:
+            return self._format_regular_rows()
+
+    def _format_regular_rows(self):
+        self.rowcounter += 1
+        for colidx, colname in enumerate(self.df.columns):
+            series = self.df[colname]
+            for i, val in enumerate(series):
+                yield ExcelCell(self.rowcounter + i, colidx,
+                                val, None, None, None)
+
+    def _format_hierarchical_rows(self):
+        self.rowcounter += 1
+        for idx, idxval in enumerate(self.df.index):
+            yield ExcelCell(self.rowcounter + idx, 0,
+                            idxval, header_style, None, None)
+
+        for colidx, colname in enumerate(self.df.columns):
+            series = self.df[colname]
+            for i, val in enumerate(series):
+                yield ExcelCell(self.rowcounter + i,
+                                colidx + 1, val, None, None, None)
+
+    def get_formatted_cells(self):
+        return itertools.chain(self._format_header(), self._format_body())
 
 #----------------------------------------------------------------------
 # Array formatters
