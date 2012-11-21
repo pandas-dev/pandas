@@ -133,11 +133,15 @@ class Index(np.ndarray):
         return self.view()
 
     def __repr__(self):
-        if py3compat.PY3:
-            prepr = com.pprint_thing(self)
+        if len(self) > 6 and len(self) > np.get_printoptions()['threshold']:
+            data = self[:3].tolist() + ["..."] + self[-3:].tolist()
         else:
-            prepr = com.pprint_thing_encoded(self)
-        return 'Index(%s, dtype=%s)' % (prepr, self.dtype)
+            data = self
+        if py3compat.PY3:
+            prepr = com.pprint_thing(data)
+        else:
+            prepr = com.pprint_thing_encoded(data)
+        return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
