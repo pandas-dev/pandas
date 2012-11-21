@@ -731,6 +731,12 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_almost_equal([0, 0, 0, 0, 1, 2, 3, 4, 5, 6],
                             self.zframe['A'].values)
 
+        # construct no data
+        sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
+        for col, series in sdf.iteritems():
+            self.assert_(isinstance(series, SparseSeries))
+        
+
         # construct from nested dict
         data = {}
         for c, s in self.frame.iteritems():

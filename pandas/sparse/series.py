@@ -108,13 +108,23 @@ class SparseSeries(SparseArray, Series):
             if index is None:
                 raise Exception('must pass index!')
 
-            values = np.empty(len(index))
-            values.fill(data)
+            length = len(index)
 
-            # TODO: more efficient
-
-            values, sparse_index = make_sparse(values, kind=kind,
-                                               fill_value=fill_value)
+            if data == fill_value or (np.isnan(data)
+                    and np.isnan(fill_value)):
+                if kind == 'block':
+                    sparse_index = BlockIndex(length, [], [])
+                else:
+                    sparse_index = IntIndex(length, [])
+                values = np.array([])
+            else:
+                if kind == 'block':
+                    locs, lens = ([0], [length]) if length else ([], [])
+                    sparse_index = BlockIndex(length, locs, lens)
+                else:
+                    sparse_index = IntIndex(length, index)
+                values = np.empty(length)
+                values.fill(data)
 
         else:
             # array-like
