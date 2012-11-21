@@ -8,13 +8,6 @@ except ImportError:  # pragma: no cover
 
 import itertools
 
-try:
-    next
-except NameError:  # pragma: no cover
-    # Python < 2.6
-    def next(x):
-        return x.next()
-
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
