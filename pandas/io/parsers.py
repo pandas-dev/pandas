@@ -6,6 +6,7 @@ import re
 from itertools import izip
 from urlparse import urlparse
 import csv
+import xlwt
 
 try:
     next
@@ -1881,6 +1882,89 @@ def _trim_excel_header(row):
     return row
 
 
+class CellStyleConverter(object):
+    """
+    Utility Class which converts a style dict to xlrd or openpyxl style
+    """
+
+    @staticmethod
+    def to_xls(style_dict):
+        """
+        converts a style_dict to an xlwt style object
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        """
+        def style_to_xlwt(item, firstlevel=True, field_sep=',', line_sep=';'):
+            """helper wich recursively generate an xlwt easy style string
+            for example:
+
+              hstyle = {"font": {"bold": True},
+              "border": {"top": "thin",
+                        "right": "thin",
+                        "bottom": "thin",
+                        "left": "thin"},
+              "align": {"horiz": "center"}}
+              will be converted to
+              font: bold on; \
+                      border: top thin, right thin, bottom thin, left thin; \
+                      align: horiz center;
+            """
+            if hasattr(item, 'items'):
+                if firstlevel:
+                    it = ["%s: %s" % (key, style_to_xlwt(value, False))
+                          for key, value in item.items()]
+                    out = "%s " % (line_sep).join(it)
+                    return out
+                else:
+                    it = ["%s %s" % (key, style_to_xlwt(value, False))
+                          for key, value in item.items()]
+                    out = "%s " % (field_sep).join(it)
+                    return out
+            else:
+                item = "%s" % item
+                item = item.replace("True", "on")
+                item = item.replace("False", "off")
+                return item
+
+        if style_dict:
+            xlwt_stylestr = style_to_xlwt(style_dict)
+            return xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
+        else:
+            return xlwt.XFStyle()
+
+    @staticmethod
+    def to_xlsx(style_dict):
+        """
+        converts a style_dict to an openpyxl style object
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        """
+
+        from openpyxl.style import Style
+        xls_style = Style()
+        for key, value in style_dict.items():
+            for nk, nv in value.items():
+                if key == "borders":
+                    (xls_style.borders.__getattribute__(nk)
+                            .__setattr__('border_style', nv))
+                else:
+                    xls_style.__getattribute__(key).__setattr__(nk, nv)
+
+        return xls_style
+
+
+def _conv_value(val):
+    #convert value for excel dump
+    if isinstance(val, np.int64):
+        val = int(val)
+    if isinstance(val, np.bool8):
+        val = bool(val)
+
+    return val
+
+
 class ExcelWriter(object):
     """
     Class for writing DataFrame objects into excel sheets, uses xlwt for xls,
@@ -1897,11 +1981,12 @@ class ExcelWriter(object):
             self.use_xlsx = False
             import xlwt
             self.book = xlwt.Workbook()
-            self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
+            self.fm_datetime = xlwt.easyxf(
+                    num_format_str='YYYY-MM-DD HH:MM:SS')
             self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
         else:
             from openpyxl.workbook import Workbook
-            self.book = Workbook(optimized_write=True)
+            self.book = Workbook()#optimized_write=True)
         self.path = path
         self.sheets = {}
         self.cur_sheet = None
@@ -1912,16 +1997,18 @@ class ExcelWriter(object):
         """
         self.book.save(self.path)
 
-    def writerow(self, row, sheet_name=None):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
         """
-        Write the given row into Excel an excel sheet
+        Write given formated cells into Excel an excel sheet
 
         Parameters
         ----------
-        row : list
-            Row of data to save to Excel sheet
+        cells : generator
+            cell of formated data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
+        startrow: upper left cell row to dump data frame
+        startcol: upper left cell column to dump data frame
         """
         if sheet_name is None:
             sheet_name = self.cur_sheet
@@ -1929,49 +2016,67 @@ class ExcelWriter(object):
             raise Exception('Must pass explicit sheet_name or set '
                             'cur_sheet property')
         if self.use_xlsx:
-            self._writerow_xlsx(row, sheet_name)
+            self._writecells_xlsx(cells, sheet_name, startrow, startcol)
         else:
-            self._writerow_xls(row, sheet_name)
+            self._writecells_xls(cells, sheet_name, startrow, startcol)
 
-    def _writerow_xls(self, row, sheet_name):
+    def _writecells_xlsx(self, cells, sheet_name, startrow, startcol):
+        from openpyxl.cell import get_column_letter
+
         if sheet_name in self.sheets:
-            sheet, row_idx = self.sheets[sheet_name]
+            wks = self.sheets[sheet_name]
         else:
-            sheet = self.book.add_sheet(sheet_name)
-            row_idx = 0
-        sheetrow = sheet.row(row_idx)
-        for i, val in enumerate(row):
-            if isinstance(val, (datetime.datetime, datetime.date)):
-                if isinstance(val, datetime.datetime):
-                    sheetrow.write(i, val, self.fm_datetime)
-                else:
-                    sheetrow.write(i, val, self.fm_date)
-            elif isinstance(val, np.int64):
-                sheetrow.write(i, int(val))
-            elif isinstance(val, np.bool8):
-                sheetrow.write(i, bool(val))
+            wks = self.book.create_sheet()
+            wks.title = sheet_name
+            self.sheets[sheet_name] = wks
+
+        for cell in cells:
+            colletter = get_column_letter(startcol + cell.col + 1)
+            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell.value = _conv_value(cell.val)
+            if cell.style:
+                style = CellStyleConverter.to_xlsx(cell.style)
+                for field in style.__fields__:
+                    xcell.style.__setattr__(field,
+                            style.__getattribute__(field))
+
+            if isinstance(cell.val, datetime.datetime):
+                style.num_format_str = "YYYY-MM-DD HH:SS"
+            elif isinstance(cell.val, datetime.date):
+                style.num_format_str = "YYYY-MM-DD"
+
+            #merging requires openpyxl latest (works on 1.5.7)
+            if cell.mergestart is not None and cell.mergeend is not None:
+                cletterstart = get_column_letter(startcol + cell.col + 1)
+                cletterend = get_column_letter(startcol + cell.mergeend + 1)
+
+                wks.merge_cells('%s%s:%s%s' % (cletterstart,
+                                               startrow + cell.row + 1,
+                                               cletterend,
+                                               startrow + cell.mergestart + 1))
+
+    def _writecells_xls(self, cells, sheet_name, startrow, startcol):
+        if sheet_name in self.sheets:
+            wks = self.sheets[sheet_name]
+        else:
+            wks = self.book.add_sheet(sheet_name)
+            self.sheets[sheet_name] = wks
+
+        for cell in cells:
+            val = _conv_value(cell.val)
+            style = CellStyleConverter.to_xls(cell.style)
+            if isinstance(val, datetime.datetime):
+                style.num_format_str = "YYYY-MM-DD HH:SS"
+            elif isinstance(val, datetime.date):
+                style.num_format_str = "YYYY-MM-DD"
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+                wks.write_merge(startrow + cell.row,
+                                startrow + cell.mergestart,
+                                startcol + cell.col,
+                                startcol + cell.mergeend,
+                                val, style)
             else:
-                sheetrow.write(i, val)
-        row_idx += 1
-        if row_idx == 1000:
-            sheet.flush_row_data()
-        self.sheets[sheet_name] = (sheet, row_idx)
-
-    def _writerow_xlsx(self, row, sheet_name):
-        if sheet_name in self.sheets:
-            sheet, row_idx = self.sheets[sheet_name]
-        else:
-            sheet = self.book.create_sheet()
-            sheet.title = sheet_name
-            row_idx = 0
-
-        conv_row = []
-        for val in row:
-            if isinstance(val, np.int64):
-                val = int(val)
-            elif isinstance(val, np.bool8):
-                val = bool(val)
-            conv_row.append(val)
-        sheet.append(conv_row)
-        row_idx += 1
-        self.sheets[sheet_name] = (sheet, row_idx)
+                wks.write(startrow + cell.row,
+                          startcol + cell.col,
+                          val, style)
