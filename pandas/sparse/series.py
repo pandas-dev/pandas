@@ -82,6 +82,9 @@ class SparseSeries(SparseArray, Series):
     def __new__(cls, data, index=None, sparse_index=None, kind='block',
                 fill_value=None, name=None, copy=False):
 
+        for x in (data, index):
+            com.assert_ndarray_endianess(x)
+
         is_sparse_array = isinstance(data, SparseArray)
         if fill_value is None:
             if is_sparse_array:

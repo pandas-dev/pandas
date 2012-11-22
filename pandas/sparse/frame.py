@@ -75,6 +75,9 @@ class SparseDataFrame(DataFrame):
         self.default_kind = default_kind
         self.default_fill_value = default_fill_value
 
+        for x in (data, index, columns):
+            com.assert_ndarray_endianess(x)
+
         if isinstance(data, dict):
             sdict, columns, index = self._init_dict(data, index, columns)
         elif isinstance(data, (np.ndarray, list)):

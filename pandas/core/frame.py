@@ -370,6 +370,9 @@ class DataFrame(NDFrame):
         if data is None:
             data = {}
 
+        for x in (data, index, columns):
+            com.assert_ndarray_endianess(x)
+
         if isinstance(data, DataFrame):
             data = data._data
 

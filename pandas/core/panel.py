@@ -212,6 +212,9 @@ class Panel(NDFrame):
         if data is None:
             data = {}
 
+        for x in (data, items, major_axis,minor_axis):
+            com.assert_ndarray_endianess(x)
+
         passed_axes = [items, major_axis, minor_axis]
         axes = None
         if isinstance(data, BlockManager):
