@@ -14,6 +14,20 @@ import numpy as np
 
 from pandas.util import py3compat
 
+def test_assert_endianess():
+    little_endian = (sys.byteorder == 'little')
+    if little_endian:
+        arr = np.array([1], dtype='>i8')
+    else:
+        arr = np.array([1], dtype='<i8')
+
+    try:
+        DataFrame(arr)
+    except:
+        pass
+    else:
+        assert False,"did not raise ValueError on wrong endianess"
+
 def test_is_sequence():
     is_seq=com._is_sequence
     assert(is_seq((1,2)))

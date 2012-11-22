@@ -232,6 +232,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.empty = Series([], index=[])
 
+    def test_wrong_endianess_caught(self):
+        arr = np.array([1], dtype='>i8')
+        self.assertRaises(ValueError,Series,arr)
+
     def test_constructor(self):
         # Recognize TimeSeries
         self.assert_(isinstance(self.ts, TimeSeries))
