@@ -36,15 +36,16 @@ reshape_pivot_time_series = Benchmark('f()', setup,
 # Sparse key space, re: #2278
 
 setup = common_setup + """
-NUM_ROWS = 10000
-df = DataFrame({'A' : np.random.randint(100, size=NUM_ROWS),
-                'B' : np.random.randint(300, size=NUM_ROWS),
-                'C' : np.random.randint(-7, 7, size=NUM_ROWS),
-                'D' : np.random.randint(-19,19, size=NUM_ROWS),
-                'E' : np.random.randint(100, size=NUM_ROWS),
+NUM_ROWS = 1000
+df = DataFrame({'A' : np.random.randint(50, size=NUM_ROWS),
+                'B' : np.random.randint(50, size=NUM_ROWS),
+                'C' : np.random.randint(0,10, size=NUM_ROWS),
+                'D' : np.random.randint(0,10, size=NUM_ROWS),
+                'E' : np.random.randint(10, size=NUM_ROWS),
                 'F' : np.random.randn(NUM_ROWS)})
 idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
 """
 
 unstack_sparse_keyspace = Benchmark('idf.unstack()', setup,
                                     start_date=datetime(2011, 10, 1))
+
