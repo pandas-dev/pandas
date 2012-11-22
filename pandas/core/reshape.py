@@ -72,10 +72,6 @@ class _Unstacker(object):
         self.removed_name = self.new_index_names.pop(self.level)
         self.removed_level = self.new_index_levels.pop(self.level)
 
-        v = self.level
-        lshape = self.index.levshape
-        self.full_shape = np.prod(lshape[:v] + lshape[v + 1:]), lshape[v]
-
         self._make_sorted_values_labels()
         self._make_selectors()
 
@@ -88,17 +84,13 @@ class _Unstacker(object):
         sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
         group_index = get_group_index(to_sort, sizes)
-        max_groups = np.prod(sizes)
-        if max_groups > 1000000:
-            comp_index, obs_ids = _compress_group_index(group_index)
-            ngroups = len(obs_ids)
-        else:
-            comp_index, ngroups = group_index, max_groups
+        comp_index, obs_ids = _compress_group_index(group_index)
+        ngroups = len(obs_ids)
 
         indexer = lib.groupsort_indexer(comp_index, ngroups)[0]
         indexer = _ensure_platform_int(indexer)
 
-        self.sorted_values = self.values.take(indexer, axis=0)
+        self.sorted_values = com.take_2d(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
 
     def _make_selectors(self):
@@ -108,29 +100,25 @@ class _Unstacker(object):
         group_index = get_group_index(self.sorted_labels[:-1],
                                       [len(x) for x in new_levels])
 
-        group_index = _ensure_platform_int(group_index)
+        comp_index, obs_ids = _compress_group_index(group_index)
+        ngroups = len(obs_ids)
 
-        group_mask = np.zeros(self.full_shape[0], dtype=bool)
-        group_mask.put(group_index, True)
-
+        comp_index = _ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level]
-        selector = self.sorted_labels[-1] + stride * group_index
+        self.full_shape = ngroups, stride
+
+        selector = self.sorted_labels[-1] + stride * comp_index
         mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
-
-        # compress labels
-        unique_groups = np.arange(self.full_shape[0])[group_mask]
-        compressor = group_index.searchsorted(unique_groups)
 
         if mask.sum() < len(self.index):
             raise ReshapeError('Index contains duplicate entries, '
                                'cannot reshape')
 
-        self.group_mask = group_mask
-        self.group_index = group_index
+        self.group_index = comp_index
         self.mask = mask
-        self.unique_groups = unique_groups
-        self.compressor = compressor
+        self.unique_groups = obs_ids
+        self.compressor = comp_index.searchsorted(np.arange(ngroups))
 
     def get_result(self):
         # TODO: find a better way than this masking business
@@ -141,9 +129,12 @@ class _Unstacker(object):
 
         # filter out missing levels
         if values.shape[1] > 0:
-            mask = value_mask.sum(0) > 0
-            values = values[:, mask]
-            columns = columns[mask]
+            col_inds, obs_ids = _compress_group_index(self.sorted_labels[-1])
+            # rare case, level values not observed
+            if len(obs_ids) < self.full_shape[1]:
+                inds = (value_mask.sum(0) > 0).nonzero()[0]
+                values = com.take_2d(values, inds, axis=1)
+                columns = columns[inds]
 
         return DataFrame(values, index=index, columns=columns)
 
@@ -167,9 +158,6 @@ class _Unstacker(object):
 
             chunk.flat[self.mask] = self.sorted_values[:, i]
             mask_chunk.flat[self.mask] = True
-
-        new_values = new_values.take(self.unique_groups, axis=0)
-        new_mask = new_mask.take(self.unique_groups, axis=0)
 
         return new_values, new_mask
 

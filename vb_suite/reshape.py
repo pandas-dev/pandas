@@ -32,3 +32,19 @@ f = lambda: pdf.pivot('date', 'variable', 'value')
 
 reshape_pivot_time_series = Benchmark('f()', setup,
                                       start_date=datetime(2012, 5, 1))
+
+# Sparse key space, re: #2278
+
+setup = common_setup + """
+NUM_ROWS = 10000
+df = DataFrame({'A' : np.random.randint(100, size=NUM_ROWS),
+                'B' : np.random.randint(300, size=NUM_ROWS),
+                'C' : np.random.randint(-7, 7, size=NUM_ROWS),
+                'D' : np.random.randint(-19,19, size=NUM_ROWS),
+                'E' : np.random.randint(100, size=NUM_ROWS),
+                'F' : np.random.randn(NUM_ROWS)})
+idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
+"""
+
+unstack_sparse_keyspace = Benchmark('idf.unstack()', setup,
+                                    start_date=datetime(2011, 10, 1))
