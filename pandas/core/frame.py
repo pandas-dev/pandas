@@ -3512,14 +3512,17 @@ class DataFrame(NDFrame):
         -------
         result : DataFrame
         """
-        if other.empty:
-            return self.copy()
 
-        if self.empty:
-            return other.copy()
+        other_idxlen = len(other.index) # save for compare
 
         this, other = self.align(other, copy=False)
         new_index = this.index
+
+        if other.empty and len(new_index) == len(self.index):
+            return self.copy()
+
+        if self.empty and len(other) == other_idxlen:
+            return other.copy()
 
         # sorts if possible
         new_columns = this.columns.union(other.columns)
