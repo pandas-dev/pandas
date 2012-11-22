@@ -1959,8 +1959,10 @@ def _conv_value(val):
     #convert value for excel dump
     if isinstance(val, np.int64):
         val = int(val)
-    if isinstance(val, np.bool8):
+    elif isinstance(val, np.bool8):
         val = bool(val)
+    elif isinstance(val, lib.Timestamp):
+        val = val._repr_base
 
     return val
 
@@ -2021,6 +2023,7 @@ class ExcelWriter(object):
             self._writecells_xls(cells, sheet_name, startrow, startcol)
 
     def _writecells_xlsx(self, cells, sheet_name, startrow, startcol):
+
         from openpyxl.cell import get_column_letter
 
         if sheet_name in self.sheets:

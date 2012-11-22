@@ -1,7 +1,7 @@
 #include <errno.h>
 #include <float.h>
 
-double PANDAS_INLINE xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+double xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
 
 int to_double(char *item, double *p_value, char sci, char decimal)
 {

@@ -1180,7 +1180,7 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csvexcel(self, writer, na_rep=None, cols=None,
+    def _helper_csv(self, writer, na_rep=None, cols=None,
                          header=True, index=True,
                          index_label=None, float_format=None):
         if cols is None:
@@ -1315,7 +1315,7 @@ class DataFrame(NDFrame):
             else:
                 csvout = csv.writer(f, lineterminator='\n', delimiter=sep,
                                     quoting=quoting)
-            self._helper_csvexcel(csvout, na_rep=na_rep,
+            self._helper_csv(csvout, na_rep=na_rep,
                                   float_format=float_format, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label)
@@ -1368,16 +1368,13 @@ class DataFrame(NDFrame):
         from pandas.io.parsers import ExcelWriter
         need_save = False
         if isinstance(excel_writer, basestring):
-            excel_writer = ExcelWriter(excel_writer)
+            excel_writer = ExcelWriter(excel_writer, na_rep=na_rep)
             need_save = True
-        # excel_writer.cur_sheet = sheet_name
-        # self._helper_csvexcel(excel_writer, na_rep=na_rep,
-        #                       float_format=float_format, cols=cols,
-        #                       header=header, index=index,
-        #                       index_label=index_label)
-        formatter = fmt.ExcelFormatter(self)
+
+        formatter = fmt.ExcelFormatter(self, na_rep=na_rep, cols=cols)
         formatted_cells = formatter.get_formatted_cells()
-        excel_writer.write_cells(formatted_cells, sheet_name)
+        excel_writer.write_cells(formatted_cells, sheet_name,
+                                 startrow=startrow, startcol=startcol)
         if need_save:
             excel_writer.save()
 

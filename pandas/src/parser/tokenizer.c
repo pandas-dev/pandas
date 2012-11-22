@@ -395,7 +395,7 @@ int P_INLINE end_field(parser_t *self) {
     return 0;
 }
 
-int P_INLINE end_line(parser_t *self) {
+int end_line(parser_t *self) {
     int fields;
     khiter_t k;  /* for hash set detection */
     int ex_fields = -1;
