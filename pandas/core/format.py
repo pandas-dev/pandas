@@ -720,23 +720,33 @@ class ExcelFormatter(object):
     ----------
     df : dataframe
     na_rep: na representation
-    index : boolean, default True
-        output row names (index)
+    float_format : string, default None
+            Format string for floating point numbers
     cols : sequence, optional
         Columns to write
+    index : boolean, default True
+        output row names (index)
     """
 
-    def __init__(self, df, na_rep='', cols=None):
+    def __init__(self,
+                 df,
+                 na_rep='',
+                 float_format=None,
+                 cols=None
+                 ):
         self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
         self.columns = cols
         if cols is None:
             self.columns = df.columns
+        self.float_format = float_format
 
     def _format_value(self, val):
         if lib.checknull(val):
             val = self.na_rep
+        if self.float_format is not None and com.is_float(val):
+            val = self.float_format % val
         return val
 
     def _format_header_mi(self):

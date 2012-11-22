@@ -2048,7 +2048,8 @@ class ExcelWriter(object):
             elif isinstance(cell.val, datetime.date):
                 style.num_format_str = "YYYY-MM-DD"
 
-            #merging requires openpyxl latest (works on 1.5.7)
+            #merging requires openpyxl latest (works on 1.6.1)
+            #todo add version check
             if cell.mergestart is not None and cell.mergeend is not None:
                 cletterstart = get_column_letter(startcol + cell.col + 1)
                 cletterend = get_column_letter(startcol + cell.mergeend + 1)

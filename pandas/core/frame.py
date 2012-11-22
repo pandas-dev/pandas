@@ -1368,10 +1368,13 @@ class DataFrame(NDFrame):
         from pandas.io.parsers import ExcelWriter
         need_save = False
         if isinstance(excel_writer, basestring):
-            excel_writer = ExcelWriter(excel_writer, na_rep=na_rep)
+            excel_writer = ExcelWriter(excel_writer)
             need_save = True
 
-        formatter = fmt.ExcelFormatter(self, na_rep=na_rep, cols=cols)
+        formatter = fmt.ExcelFormatter(self,
+                                       na_rep=na_rep,
+                                       cols=cols,
+                                       float_format=float_format)
         formatted_cells = formatter.get_formatted_cells()
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol)
