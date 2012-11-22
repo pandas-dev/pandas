@@ -182,6 +182,13 @@ class TestDataFrameFormatting(unittest.TestCase):
         # this should work
         buf.getvalue()
 
+    def test_to_string_with_col_space(self):
+        df = DataFrame(np.random.random(size=(1,3)))
+        c10=len(df.to_string(col_space=10).split("\n")[1])
+        c20=len(df.to_string(col_space=20).split("\n")[1])
+        c30=len(df.to_string(col_space=30).split("\n")[1])
+        self.assertTrue( c10 < c20 < c30 )
+
     def test_to_html_unicode(self):
         # it works!
         df = DataFrame({u'\u03c3' : np.arange(10.)})
