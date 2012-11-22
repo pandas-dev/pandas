@@ -132,12 +132,48 @@ class Index(np.ndarray):
     def _shallow_copy(self):
         return self.view()
 
-    def __repr__(self):
+    def __str__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
         if py3compat.PY3:
-            prepr = com.pprint_thing(self)
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
+        if len(self) > 6 and len(self) > np.get_printoptions()['threshold']:
+            data = self[:3].tolist() + ["..."] + self[-3:].tolist()
         else:
-            prepr = com.pprint_thing_encoded(self)
-        return 'Index(%s, dtype=%s)' % (prepr, self.dtype)
+            data = self
+
+        prepr = com.pprint_thing(data)
+        return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Index
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
@@ -206,15 +242,6 @@ class Index(np.ndarray):
         if name is None:
             name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
-
-    def __str__(self):
-        try:
-            return np.array_repr(self.values)
-        except UnicodeError:
-            converted = u','.join(com.pprint_thing(x) for x in self.values)
-            result = u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
-                                              str(self.values.dtype))
-            return com.console_encode(result)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -1319,7 +1346,33 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
-    def __repr__(self):
+    def __str__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
         output = 'MultiIndex\n%s'
 
         options = np.get_printoptions()
@@ -1335,10 +1388,15 @@ class MultiIndex(Index):
 
         np.set_printoptions(threshold=options['threshold'])
 
-        if py3compat.PY3:
-            return output % summary
-        else:
-            return com.console_encode(output % summary)
+        return output % summary
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Index
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def __len__(self):
         return len(self.labels[0])
