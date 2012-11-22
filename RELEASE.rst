@@ -42,6 +42,9 @@ pandas 0.10.0
 
   - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
   - Add ``nrows`` option to DataFrame.from_records for iterators (#1794)
+  - Unstack/reshape algorithm rewrite to avoid high memory use in cases where
+    the number of observed key-tuples is much smaller than the total possible
+    number that could occur (#2278). Also improves performance in most cases.
 
 **Bug fixes**
 

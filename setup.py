@@ -575,6 +575,7 @@ algos_ext = Extension('pandas._algos',
                       )
 
 lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
+                                 'pandas/src/parse_helper.h',
                                  'pandas/src/datetime/np_datetime.h',
                                  'pandas/src/datetime/np_datetime_strings.h']
 
