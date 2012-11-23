@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 import nose
 import os
 import string
@@ -460,9 +458,9 @@ class TestDataFramePlots(unittest.TestCase):
         path = os.path.join(curpath(), 'data/iris.csv')
         df = read_csv(path)
         _check_plot_works(parallel_coordinates, df, 'Name')
-        _check_plot_works(parallel_coordinates, df, 'Name', 
+        _check_plot_works(parallel_coordinates, df, 'Name',
                           colors=('#556270', '#4ECDC4', '#C7F464'))
-        _check_plot_works(parallel_coordinates, df, 'Name', 
+        _check_plot_works(parallel_coordinates, df, 'Name',
                           colors=['dodgerblue', 'aquamarine', 'seagreen'])
 
     @slow
