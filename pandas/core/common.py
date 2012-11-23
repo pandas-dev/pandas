@@ -8,13 +8,6 @@ except ImportError:  # pragma: no cover
 
 import itertools
 
-try:
-    next
-except NameError:  # pragma: no cover
-    # Python < 2.6
-    def next(x):
-        return x.next()
-
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
@@ -592,10 +585,12 @@ def _is_bool_indexer(key):
 
     return False
 
-
 def _default_index(n):
-    from pandas.core.index import Index
-    return Index(np.arange(n))
+    from pandas.core.index import Int64Index
+    values = np.arange(n)
+    result = values.view(Int64Index)
+    result.name = None
+    return result
 
 
 def ensure_float(arr):

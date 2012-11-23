@@ -15,3 +15,11 @@ index = Index(np.arange(100))
 series_constructor_ndarray = \
     Benchmark("Series(data, index=index)", setup=setup,
               name='series_constructor_ndarray')
+
+setup = common_setup + """
+arr = np.random.randn(100, 100)
+"""
+
+frame_constructor_ndarray = \
+    Benchmark("DataFrame(arr)", setup=setup,
+              name='frame_constructor_ndarray')

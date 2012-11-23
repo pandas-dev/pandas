@@ -1,5 +1,4 @@
 # pylint: disable-msg=E1101,W0612
-from __future__ import with_statement # for Python 2.5
 import pandas.util.compat as itertools
 from datetime import datetime, time, timedelta
 import sys
@@ -2141,6 +2140,14 @@ class TestDatetime64(unittest.TestCase):
         self.assert_(d2.dtypes[0] == np.dtype('M8[ns]'))
         d3 = d2.set_index('index')
         assert_frame_equal(d1, d3)
+
+        # #2329
+        stamp = datetime(2012, 11, 22)
+        df = DataFrame([[stamp, 12.1]], columns=['Date', 'Value'])
+        df = df.set_index('Date')
+
+        self.assertEquals(df.index[0], stamp)
+        self.assertEquals(df.reset_index()['Date'][0], stamp)
 
     def test_datetimeindex_union_join_empty(self):
         dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')

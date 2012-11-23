@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 """
 DataFrame
 ---------
@@ -29,8 +27,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
-from pandas.core.internals import (BlockManager, make_block, form_blocks,
-                                   IntBlock)
+from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util import py3compat
@@ -2024,6 +2021,8 @@ class DataFrame(NDFrame):
 
                 if not isinstance(value, np.ndarray):
                     value = com._asarray_tuplesafe(value)
+                elif isinstance(value, PeriodIndex):
+                    value = value.asobject
                 else:
                     value = value.copy()
         else:
@@ -2701,7 +2700,11 @@ class DataFrame(NDFrame):
                     lev_num = self.columns._get_level_number(col_level)
                     name_lst[lev_num] = name
                     name = tuple(name_lst)
-            new_obj.insert(0, name, _maybe_cast(self.index.values))
+            if isinstance(self.index, PeriodIndex):
+                values = self.index.asobject
+            else:
+                values = self.index.values
+            new_obj.insert(0, name, _maybe_cast(values))
 
         new_obj.index = new_index
         return new_obj

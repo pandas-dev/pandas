@@ -482,8 +482,8 @@ class NDFrame(PandasObject):
             for i, ax in enumerate(axes):
                 data = data.reindex_axis(ax, axis=i)
 
-        self._data = data
-        self._item_cache = {}
+        object.__setattr__(self, '_data', data)
+        object.__setattr__(self, '_item_cache', {})
 
     def astype(self, dtype):
         """
