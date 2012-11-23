@@ -65,3 +65,14 @@ bool_arr[:1000] = True
 
 frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
                                      start_date=datetime(2011, 1, 1))
+
+#----------------------------------------------------------------------
+# iteritems (monitor no-copying behaviour)
+
+setup = common_setup + """
+df = DataFrame(randn(10000, 100))
+"""
+
+# as far back as the earliest test currently in the suite
+frame_iteritems = Benchmark('for name,col in df.iteritems(): pass', setup,
+                                     start_date=datetime(2010, 6, 1))
