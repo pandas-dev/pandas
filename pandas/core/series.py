@@ -562,6 +562,44 @@ copy : boolean, default False
         except Exception:
             return self.values[indexer]
 
+    def where(self, cond, other=nan, inplace=False):
+        """
+        Return a Series where cond is True; otherwise values are from other
+
+        Parameters
+        ----------
+        cond: boolean Series or array
+        other: scalar or Series
+
+        Returns
+        -------
+        wh: Series
+        """
+        if not hasattr(cond, 'shape'):
+            raise ValueError('where requires an ndarray like object for its '
+                             'condition')
+
+        if inplace:
+            self._set_with(~cond, other)
+            return self
+
+        return self._get_values(cond).reindex_like(self).fillna(other)
+
+    def mask(self, cond):
+        """
+        Returns copy of self whose values are replaced with nan if the
+        inverted condition is True
+
+        Parameters
+        ----------
+        cond: boolean Series or array
+
+        Returns
+        -------
+        wh: Series
+        """
+        return self.where(~cond, nan)
+
     def __setitem__(self, key, value):
         try:
             try:
