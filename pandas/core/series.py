@@ -849,6 +849,9 @@ copy : boolean, default False
             else:
                 return Series(self.values.copy(), index=new_index,
                               name=self.name)
+        elif inplace:
+            raise TypeError('Cannot reset_index inplace on a Series '
+                            'to create a DataFrame')
         else:
             from pandas.core.frame import DataFrame
             if name is None:

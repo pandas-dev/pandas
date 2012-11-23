@@ -55,6 +55,8 @@ pandas 0.10.0
     mixed-dtype DataFrame (#2272)
   - Fix concatenation bug leading to #2057, #2257
   - Fix regression in Index console formatting (#2319)
+  - Box Period data when assigning PeriodIndex to frame column (#2243, #2281)
+  - Raise exception on calling reset_index on Series with inplace=True (#2277)
 
 pandas 0.9.1
 ============
