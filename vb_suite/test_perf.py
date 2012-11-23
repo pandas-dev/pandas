@@ -108,10 +108,10 @@ def main():
                                 t_baseline=baseline_res['timing'],
                                 ratio=ratio,
                                 name=baseline_res.name),columns=["t_head","t_baseline","ratio","name"])
-        totals = totals.ix[totals.t_head > 1.0] # ignore sub 1ms
+        totals = totals.ix[totals.t_head > 0.010] # ignore sub 10micros
         totals = totals.dropna().sort("ratio").set_index('name') # sort in ascending order
 
-        s = "\n\nResults:\n" + totals.to_string(float_format=lambda x: "%0.2f" %x) + "\n\n"
+        s = "\n\nResults:\n" + totals.to_string(float_format=lambda x: "%0.4f" %x) + "\n\n"
         s += "Columns: test_name | head_time [ms] | baseline_time [ms] | ratio\n\n"
         s += "- a Ratio of 1.30 means HEAD is 30% slower then the Baseline.\n\n"
 
