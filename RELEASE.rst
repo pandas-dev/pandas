@@ -54,6 +54,7 @@ pandas 0.10.0
   - Properly box datetime64 values when retrieving cross-section from
     mixed-dtype DataFrame (#2272)
   - Fix concatenation bug leading to #2057, #2257
+  - Fix regression in Index console formatting (#2319)
 
 pandas 0.9.1
 ============
