@@ -1433,31 +1433,66 @@ cdef inline int m8_weekday(int64_t val):
 cdef int64_t DAY_NS = 86400000000000LL
 
 
-def date_normalize(ndarray[int64_t] stamps):
+def date_normalize(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
         pandas_datetimestruct dts
+        _TSObject tso
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
 
-    for i in range(n):
-        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
-        dts.hour = 0
-        dts.min = 0
-        dts.sec = 0
-        dts.us = 0
-        result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+    if tz is not None:
+        for i in range(n):
+            tso = convert_to_tsobject(stamps[i], tz)
+            dts = tso.dts
+            dts.hour = 0
+            dts.min = 0
+            dts.sec = 0
+            dts.us = 0
+            result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+    else:
+        for i in range(n):
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            dts.hour = 0
+            dts.min = 0
+            dts.sec = 0
+            dts.us = 0
+            result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 
     return result
 
-def dates_normalized(ndarray[int64_t] stamps):
+
+def dates_normalized(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
 
-    for i in range(n):
-        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
-        if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-            return False
+    if tz is None or _is_utc(tz):
+        for i in range(n):
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                return False
+    elif _is_tzlocal(tz):
+        for i in range(n):
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            if (dts.min + dts.sec + dts.us) > 0:
+                return False
+            dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
+                          dts.sec, dts.us, tz)
+            dt = dt + tz.utcoffset(dt)
+            if dt.hour > 0:
+                return False
+    else:
+        trans = _get_transitions(tz)
+        deltas = _get_deltas(tz)
+        for i in range(n):
+            # Adjust datetime64 timestamp, recompute datetimestruct
+            pos = trans.searchsorted(stamps[i]) - 1
+            inf = tz._transition_info[pos]
+
+            pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos],
+                                              PANDAS_FR_ns, &dts)
+            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                return False
 
     return True
 

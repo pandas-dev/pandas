@@ -167,3 +167,11 @@ df = DataFrame(index=range(len(rng)))
 period_setitem = \
     Benchmark("df['col'] = rng", setup,
               start_date=datetime(2012, 8, 1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000 9:30', periods=100000, freq='S', tz='US/Eastern')
+"""
+
+datetimeindex_normalize = \
+    Benchmark('rng.normalize()', setup,
+              start_date=datetime(2012, 9, 1))

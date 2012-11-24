@@ -725,6 +725,40 @@ class TestTimeZones(unittest.TestCase):
         rng2 = DatetimeIndex(data=rng, tz='US/Eastern')
         self.assert_(rng.equals(rng2))
 
+    def test_normalize_tz(self):
+        rng = date_range('1/1/2000 9:30', periods=10, freq='D',
+                         tz='US/Eastern')
+
+        result = rng.normalize()
+        expected = date_range('1/1/2000', periods=10, freq='D',
+                              tz='US/Eastern')
+        self.assert_(result.equals(expected))
+
+        self.assert_(result.is_normalized)
+        self.assert_(not rng.is_normalized)
+
+        rng = date_range('1/1/2000 9:30', periods=10, freq='D',
+                         tz='UTC')
+
+        result = rng.normalize()
+        expected = date_range('1/1/2000', periods=10, freq='D',
+                              tz='UTC')
+        self.assert_(result.equals(expected))
+
+        self.assert_(result.is_normalized)
+        self.assert_(not rng.is_normalized)
+
+        from dateutil.tz import tzlocal
+        rng = date_range('1/1/2000 9:30', periods=10, freq='D',
+                         tz=tzlocal())
+        result = rng.normalize()
+        expected = date_range('1/1/2000', periods=10, freq='D',
+                              tz=tzlocal())
+        self.assert_(result.equals(expected))
+
+        self.assert_(result.is_normalized)
+        self.assert_(not rng.is_normalized)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
