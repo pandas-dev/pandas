@@ -231,22 +231,64 @@ Note, with the :ref:`advanced indexing <indexing.advanced>` ``ix`` method, you
 may select along more than one axis using boolean vectors combined with other
 indexing expressions.
 
-Indexing a DataFrame with a boolean DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Where and Masking
+~~~~~~~~~~~~~~~~~
 
-You may wish to set values on a DataFrame based on some boolean criteria
-derived from itself or another DataFrame or set of DataFrames. This can be done
-intuitively like so:
+Selecting values from a Series with a boolean vector in the *[]*, returns a subset of the rows.
+The method `where` allows selection that preserves the original data shape (and is a copy).
+
+.. ipython:: python
+
+   # return only the selected rows
+   s[s > 0]
+
+   # return a Series of the same shape as the original
+   s.where(s > 0)
+
+Selecting values from a DataFrame with a boolean critierion in the *[]*, that is the same shape as
+the original DataFrame, returns a similary sized DataFrame (and is a copy). `where` is used under the hood as the implementation.
+
+.. ipython:: python
+
+   # return a DataFrame of the same shape as the original
+   # this is equiavalent to `df.where(df < 0)` 
+   df[df < 0]
+
+In addition, `where` takes an optional `other` argument for replacement of values where the 
+condition is False, in the returned copy.
+
+.. ipython:: python
+
+   df.where(df < 0, -df)
+
+You may wish to set values based on some boolean criteria.
+This can be done intuitively like so:
+
+.. ipython:: python
+
+   s2 = s.copy()
+   s2[s2 < 0] = 0
+   s2
+
+   df2 = df.copy()
+   df2[df2 < 0] = 0
+   df2
+
+Furthermore, `where` aligns the input boolean condition (ndarray or DataFrame), such that partial selection
+with setting is possible. This is analagous to partial setting via `.ix` (but on the contents rather than the axis labels)
 
 .. ipython:: python
 
    df2 = df.copy()
-   df2 < 0
-   df2[df2 < 0] = 0
+   df2[ df2[1:4] > 0 ] = 3
    df2
 
-Note that such an operation requires that the boolean DataFrame is indexed
-exactly the same.
+`mask` is the inverse boolean operation of `where`.
+
+.. ipython:: python
+
+   s.mask(s >= 0)
+   df.mask(df >= 0)
 
 
 Take Methods
