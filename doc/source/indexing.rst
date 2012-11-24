@@ -234,8 +234,9 @@ indexing expressions.
 Where and Masking
 ~~~~~~~~~~~~~~~~~
 
-Selecting values from a Series with a boolean vector in the *[]*, returns a subset of the rows.
-The method `where` allows selection that preserves the original data shape (and is a copy).
+Selecting values from a Series with a boolean vector generally returns a subset of the data.
+To guarantee that selection output has the same shape as the original data, you can use the
+``where`` method in ``Series`` and ``DataFrame``.
 
 .. ipython:: python
 
@@ -245,16 +246,16 @@ The method `where` allows selection that preserves the original data shape (and 
    # return a Series of the same shape as the original
    s.where(s > 0)
 
-Selecting values from a DataFrame with a boolean critierion in the *[]*, that is the same shape as
-the original DataFrame, returns a similary sized DataFrame (and is a copy). `where` is used under the hood as the implementation.
+Selecting values from a DataFrame with a boolean critierion now also preserves input data shape.
+``where`` is used under the hood as the implementation.
 
 .. ipython:: python
 
    # return a DataFrame of the same shape as the original
-   # this is equiavalent to `df.where(df < 0)` 
+   # this is equiavalent to ``df.where(df < 0)``
    df[df < 0]
 
-In addition, `where` takes an optional `other` argument for replacement of values where the 
+In addition, ``where`` takes an optional ``other`` argument for replacement of values where the
 condition is False, in the returned copy.
 
 .. ipython:: python
@@ -274,8 +275,8 @@ This can be done intuitively like so:
    df2[df2 < 0] = 0
    df2
 
-Furthermore, `where` aligns the input boolean condition (ndarray or DataFrame), such that partial selection
-with setting is possible. This is analagous to partial setting via `.ix` (but on the contents rather than the axis labels)
+Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame), such that partial selection
+with setting is possible. This is analagous to partial setting via ``.ix`` (but on the contents rather than the axis labels)
 
 .. ipython:: python
 
@@ -283,11 +284,23 @@ with setting is possible. This is analagous to partial setting via `.ix` (but on
    df2[ df2[1:4] > 0 ] = 3
    df2
 
-`mask` is the inverse boolean operation of `where`.
+By default, ``where`` returns a modified copy of the data. There is an optional parameter ``inplace``
+so that the original data can be modified without creating a copy:
+
+.. ipython:: python
+
+   df_orig = df.copy()
+
+   df_orig.where(df > 0, -df, inplace=True);
+
+   df_orig
+
+``mask`` is the inverse boolean operation of ``where``.
 
 .. ipython:: python
 
    s.mask(s >= 0)
+
    df.mask(df >= 0)
 
 

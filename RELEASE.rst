@@ -38,6 +38,7 @@ pandas 0.10.0
     `header` argument will be respected. If there is an existing header column,
     this can rename the columns. To fix legacy code, put ``header=None`` when
     passing ``names``
+  - DataFrame selection using a boolean frame now preserves input shape
 
 **Improvements to existing features**
 

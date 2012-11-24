@@ -3453,9 +3453,10 @@ class DataFrame(NDFrame):
         # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index.is_all_dates and other.index.is_all_dates:
             import warnings
-            warnings.warn(("TimeSeries broadcasting across DataFrame index "
+            warnings.warn(("TimeSeries broadcasting along DataFrame index "
                            "by default is deprecated. Please use "
-                           "DataFrame.sub"),
+                           "DataFrame.<op> to explicitly broadcast arithmetic "
+                           "operations along the index"),
                            FutureWarning)
             return self._combine_match_index(other, func, fill_value)
         else:
