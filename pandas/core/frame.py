@@ -2008,12 +2008,16 @@ class DataFrame(NDFrame):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
         if _is_sequence(value):
-            if isinstance(value, Series):
+            is_frame = isinstance(value, DataFrame)
+            if isinstance(value, Series) or is_frame:
                 if value.index.equals(self.index):
                     # copy the values
                     value = value.values.copy()
                 else:
                     value = value.reindex(self.index).values
+
+                if is_frame:
+                    value = value.T
             else:
                 if len(value) != len(self.index):
                     raise AssertionError('Length of values does not match '
@@ -2023,6 +2027,8 @@ class DataFrame(NDFrame):
                     value = com._asarray_tuplesafe(value)
                 elif isinstance(value, PeriodIndex):
                     value = value.asobject
+                elif value.ndim == 2:
+                    value = value.copy().T
                 else:
                     value = value.copy()
         else:

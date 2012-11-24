@@ -274,6 +274,19 @@ class TestMultiLevel(unittest.TestCase):
         df.ix[:,:] = 10
         assert_frame_equal(df, result)
 
+    def test_frame_setitem_multi_column(self):
+        df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
+                                              [0, 1, 0, 1]])
+
+        cp = df.copy()
+        cp['a'] = cp['b']
+        assert_frame_equal(cp['a'], cp['b'])
+
+        # set with ndarray
+        cp = df.copy()
+        cp['a'] = cp['b'].values
+        assert_frame_equal(cp['a'], cp['b'])
+
     def test_getitem_tuple_plus_slice(self):
         # GH #671
         df = DataFrame({'a' : range(10),

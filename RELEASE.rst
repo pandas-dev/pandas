@@ -57,6 +57,8 @@ pandas 0.10.0
   - Fix regression in Index console formatting (#2319)
   - Box Period data when assigning PeriodIndex to frame column (#2243, #2281)
   - Raise exception on calling reset_index on Series with inplace=True (#2277)
+  - Enable setting multiple columns in DataFrame with hierarchical columns
+    (#2295)
 
 pandas 0.9.1
 ============

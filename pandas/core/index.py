@@ -2369,9 +2369,12 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
-        if not isinstance(item, tuple) or len(item) != self.nlevels:
-            raise Exception("%s cannot be inserted in this MultiIndex"
-                            % str(item))
+        # Pad the key with empty strings if lower levels of the key
+        # aren't specified:
+        if not isinstance(item, tuple):
+            item = (item,) + ('',) * (self.nlevels - 1)
+        elif len(item) != self.nlevels:
+            raise ValueError('Passed item incompatible tuple length')
 
         new_levels = []
         new_labels = []

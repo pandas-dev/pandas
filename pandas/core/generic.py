@@ -542,19 +542,8 @@ class NDFrame(PandasObject):
         self._item_cache.clear()
 
     def _set_item(self, key, value):
-        if hasattr(self, 'columns') and isinstance(self.columns, MultiIndex):
-            # Pad the key with empty strings if lower levels of the key
-            # aren't specified:
-            if not isinstance(key, tuple):
-                key = (key,)
-            if len(key) != self.columns.nlevels:
-                key += ('',) * (self.columns.nlevels - len(key))
         self._data.set(key, value)
-
-        try:
-            del self._item_cache[key]
-        except KeyError:
-            pass
+        self._clear_item_cache()
 
     def __delitem__(self, key):
         """

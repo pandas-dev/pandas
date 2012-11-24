@@ -921,15 +921,27 @@ class BlockManager(object):
         if value.shape[1:] != self.shape[1:]:
             raise AssertionError('Shape of new values must be compatible '
                                  'with manager shape')
-        if item in self.items:
+
+        def _set_item(item, arr):
             i, block = self._find_block(item)
             if not block.should_store(value):
                 # delete from block, create and append new block
                 self._delete_from_block(i, item)
-                self._add_new_block(item, value, loc=None)
+                self._add_new_block(item, arr, loc=None)
             else:
-                block.set(item, value)
-        else:
+                block.set(item, arr)
+
+        try:
+            loc = self.items.get_loc(item)
+            if isinstance(loc, int):
+                _set_item(self.items[loc], value)
+            else:
+                subset = self.items[loc]
+                if len(value) != len(subset):
+                    raise AssertionError('Number of items to set did not match')
+                for i, (item, arr) in enumerate(zip(subset, value)):
+                    _set_item(item, arr[None, :])
+        except KeyError:
             # insert at end
             self.insert(len(self.items), item, value)
 
