@@ -7,6 +7,7 @@ to disk
 
 from datetime import datetime, date
 import time
+import re
 
 import numpy as np
 from pandas import (
@@ -67,12 +68,20 @@ _LEGACY_MAP = {
 
 # oh the troubles to reduce import time
 _table_mod = None
+_table_supports_index = True
 
 def _tables():
     global _table_mod
+    global _table_supports_index
     if _table_mod is None:
         import tables
         _table_mod = tables
+
+        # version requirements
+        major, minor, subv = tables.__version__.split('.')
+        if major >= 2 and minor >= 3:
+            _table_supports_index = True
+
     return _table_mod
 
 
@@ -188,6 +197,9 @@ class HDFStore(object):
     def __setitem__(self, key, value):
         self.put(key, value)
 
+    def __delitem__(self, key):
+        return self.remove(key)
+
     def __contains__(self, key):
         return hasattr(self.handle.root, key)
 
@@ -295,33 +307,17 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        where : list, optional
-
-           Must be a list of dict objects of the following forms. Selection can
-           be performed on the 'index' or 'column' fields.
-
-           Comparison op
-               {'field' : 'index',
-                'op'    : '>=',
-                'value' : value}
-
-           Match single value
-               {'field' : 'index',
-                'value' : v1}
-
-           Match a set of values
-               {'field' : 'index',
-                'value' : [v1, v2, v3]}
+        where : list of Term (or convertable) objects, optional
 
         """
         group = getattr(self.handle.root, key, None)
-        if 'table' not in group._v_attrs.pandas_type:
-            raise Exception('can only select on objects written as tables')
+        if where is not None and not _is_table_type(group):
+            raise Exception('can only select with where on objects written as tables')
         if group is not None:
             return self._read_group(group, where)
 
     def put(self, key, value, table=False, append=False,
-            compression=None):
+            compression=None, **kwargs):
         """
         Store object in HDFStore
 
@@ -342,7 +338,7 @@ class HDFStore(object):
             be used.
         """
         self._write_to_group(key, value, table=table, append=append,
-                             comp=compression)
+                             comp=compression, **kwargs)
 
     def _get_handler(self, op, kind):
         return getattr(self, '_%s_%s' % (op, kind))
@@ -359,18 +355,22 @@ class HDFStore(object):
             For Table node, delete specified rows. See HDFStore.select for more
             information
 
-        Parameters
-        ----------
-        key : object
+        Returns
+        -------
+        number of rows removed (or None if not a Table)
+
         """
         if where is None:
             self.handle.removeNode(self.handle.root, key, recursive=True)
         else:
             group = getattr(self.handle.root, key, None)
             if group is not None:
-                self._delete_from_table(group, where)
+                if not _is_table_type(group):
+                    raise Exception('can only remove with where on objects written as tables')
+                return self._delete_from_table(group, where)
+        return None
 
-    def append(self, key, value):
+    def append(self, key, value, **kwargs):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -385,10 +385,58 @@ class HDFStore(object):
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
         """
-        self._write_to_group(key, value, table=True, append=True)
+        self._write_to_group(key, value, table=True, append=True, **kwargs)
+
+    def create_table_index(self, key, columns = None, optlevel = None, kind = None):
+        """
+        Create a pytables index on the specified columns
+          note: cannot index Time64Col() currently; PyTables must be >= 2.3.1
+          
+
+        Paramaters
+        ----------
+        key : object (the node to index)
+        columns : None or list_like (the columns to index - currently supports index/column)
+        optlevel: optimization level (defaults to 6)
+        kind    : kind of index (defaults to 'medium')
+
+        Exceptions
+        ----------
+        raises if the node is not a table
+
+        """
+
+        # version requirements
+        if not _table_supports_index:
+            raise("PyTables >= 2.3 is required for table indexing")
+
+        group = getattr(self.handle.root, key, None)
+        if group is None: return
+
+        if not _is_table_type(group):
+            raise Exception("cannot create table index on a non-table")
+
+        table = getattr(group, 'table', None)        
+        if table is None: return
+
+        if columns is None:
+            columns = ['index']
+        if not isinstance(columns, (tuple,list)):
+            columns = [ columns ]
+
+        kw = dict()
+        if optlevel is not None:
+            kw['optlevel'] = optlevel
+        if kind is not None:
+            kw['kind']     = kind
+
+        for c in columns:
+            v = getattr(table.cols,c,None)
+            if v is not None and not v.is_indexed:
+                v.createIndex(**kw)
 
     def _write_to_group(self, key, value, table=False, append=False,
-                        comp=None):
+                        comp=None, **kwargs):
         root = self.handle.root
         if key not in root._v_children:
             group = self.handle.createGroup(root, key)
@@ -400,7 +448,7 @@ class HDFStore(object):
             kind = '%s_table' % kind
             handler = self._get_handler(op='write', kind=kind)
             wrapper = lambda value: handler(group, value, append=append,
-                                            comp=comp)
+                                            comp=comp, **kwargs)
         else:
             if append:
                 raise ValueError('Can only append to Tables')
@@ -530,7 +578,7 @@ class HDFStore(object):
 
         return BlockManager(blocks, axes)
 
-    def _write_frame_table(self, group, df, append=False, comp=None):
+    def _write_frame_table(self, group, df, append=False, comp=None, **kwargs):
         mat = df.values
         values = mat.reshape((1,) + mat.shape)
 
@@ -540,7 +588,7 @@ class HDFStore(object):
 
         self._write_table(group, items=['value'],
                           index=df.index, columns=df.columns,
-                          values=values, append=append, compression=comp)
+                          values=values, append=append, compression=comp, **kwargs)
 
     def _write_wide(self, group, panel):
         panel._consolidate_inplace()
@@ -549,10 +597,10 @@ class HDFStore(object):
     def _read_wide(self, group, where=None):
         return Panel(self._read_block_manager(group))
 
-    def _write_wide_table(self, group, panel, append=False, comp=None):
+    def _write_wide_table(self, group, panel, append=False, comp=None, **kwargs):
         self._write_table(group, items=panel.items, index=panel.major_axis,
                           columns=panel.minor_axis, values=panel.values,
-                          append=append, compression=comp)
+                          append=append, compression=comp, **kwargs)
 
     def _read_wide_table(self, group, where=None):
         return self._read_panel_table(group, where)
@@ -569,10 +617,10 @@ class HDFStore(object):
             self._write_sparse_intindex(group, key, index)
         else:
             setattr(group._v_attrs, '%s_variety' % key, 'regular')
-            converted, kind, _ = _convert_index(index)
-            self._write_array(group, key, converted)
+            converted = _convert_index(index).set_name('index')
+            self._write_array(group, key, converted.values)
             node = getattr(group, key)
-            node._v_attrs.kind = kind
+            node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
 
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
@@ -629,11 +677,11 @@ class HDFStore(object):
                                                  index.labels,
                                                  index.names)):
             # write the level
-            conv_level, kind, _ = _convert_index(lev)
             level_key = '%s_level%d' % (key, i)
-            self._write_array(group, level_key, conv_level)
+            conv_level = _convert_index(lev).set_name(level_key)
+            self._write_array(group, level_key, conv_level.values)
             node = getattr(group, level_key)
-            node._v_attrs.kind = kind
+            node._v_attrs.kind = conv_level.kind
             node._v_attrs.name = name
 
             # write the name
@@ -738,22 +786,28 @@ class HDFStore(object):
         getattr(group, key)._v_attrs.transposed = transposed
 
     def _write_table(self, group, items=None, index=None, columns=None,
-                     values=None, append=False, compression=None):
+                     values=None, append=False, compression=None, 
+                     min_itemsize = None, **kwargs):
         """ need to check for conform to the existing table:
             e.g. columns should match """
-        # create dict of types
-        index_converted, index_kind, index_t = _convert_index(index)
-        columns_converted, cols_kind, col_t = _convert_index(columns)
+
+        # create Col types
+        index_converted   = _convert_index(index).set_name('index')
+        columns_converted = _convert_index(columns).set_name('column')
 
         # create the table if it doesn't exist (or get it if it does)
         if not append:
             if 'table' in group:
                 self.handle.removeNode(group, 'table')
+        else:
+            # check that we are not truncating on our indicies
+            index_converted.maybe_set(min_itemsize = min_itemsize)
+            columns_converted.maybe_set(min_itemsize = min_itemsize)
 
         if 'table' not in group:
             # create the table
-            desc = {'index': index_t,
-                    'column': col_t,
+            desc = {'index' : index_converted.typ,
+                    'column': columns_converted.typ,
                     'values': _tables().FloatCol(shape=(len(values)))}
 
             options = {'name': 'table',
@@ -775,16 +829,20 @@ class HDFStore(object):
             # the table must already exist
             table = getattr(group, 'table', None)
 
+            # check that we are not truncating on our indicies
+            index_converted.validate(table)
+            columns_converted.validate(table)
+
         # check for backwards incompatibility
         if append:
-            existing_kind = table._v_attrs.index_kind
-            if existing_kind != index_kind:
+            existing_kind = getattr(table._v_attrs,'index_kind',None)
+            if existing_kind is not None and existing_kind != index_converted.kind:
                 raise TypeError("incompatible kind in index [%s - %s]" %
-                                (existing_kind, index_kind))
+                                (existing_kind, index_converted.kind))
 
         # add kinds
-        table._v_attrs.index_kind = index_kind
-        table._v_attrs.columns_kind = cols_kind
+        table._v_attrs.index_kind   = index_converted.kind
+        table._v_attrs.columns_kind = columns_converted.kind
         if append:
             existing_fields = getattr(table._v_attrs, 'fields', None)
             if (existing_fields is not None and
@@ -916,35 +974,90 @@ class HDFStore(object):
             lp = DataFrame(new_values, index=new_index, columns=lp.columns)
             wp = lp.to_panel()
 
-        if sel.column_filter:
-            new_minor = sorted(set(wp.minor_axis) & sel.column_filter)
+        if sel.filter:
+            new_minor = sorted(set(wp.minor_axis) & sel.filter)
             wp = wp.reindex(minor=new_minor)
         return wp
 
 
-    def _delete_from_table(self, group, where = None):
+    def _delete_from_table(self, group, where):
+        """ delete rows from a group where condition is True """
         table = getattr(group, 'table')
 
         # create the selection
-        s = Selection(table, where, table._v_attrs.index_kind)
+        s = Selection(table,where,table._v_attrs.index_kind)
         s.select_coords()
 
         # delete the rows in reverse order
-        l = list(s.values)
-        l.reverse()
-        for c in l:
-            table.removeRows(c)
-        self.handle.flush()
-        return len(s.values)
+        l  = list(s.values)
+        ln = len(l)
 
+        if ln:
+
+            # if we can do a consecutive removal - do it!
+            if l[0]+ln-1 == l[-1]:
+                table.removeRows(start = l[0], stop = l[-1]+1)
+
+            # one by one
+            else:
+                l.reverse()
+                for c in l:
+                    table.removeRows(c)
+                    
+                    self.handle.flush()
+
+        # return the number of rows removed
+        return ln
+
+class Col(object):
+    """ a column description class 
+
+        Parameters
+        ----------
+
+        values : the ndarray like converted values
+        kind   : a string description of this type
+        typ    : the pytables type
+        
+        """
+
+    def __init__(self, values, kind, typ, itemsize = None, **kwargs):
+        self.values = values
+        self.kind   = kind
+        self.typ    = typ
+        self.itemsize = itemsize
+        self.name   = None
+
+    def set_name(self, n):
+        self.name = n
+        return self
+
+    def __iter__(self):
+        return iter(self.values)
+
+    def maybe_set(self, min_itemsize = None, **kwargs):
+        """ maybe set a string col itemsize """
+        if self.kind == 'string' and min_itemsize is not None:
+            if self.typ.itemsize < min_itemsize:
+                self.typ = _tables().StringCol(itemsize = min_itemsize, pos = getattr(self.typ,'pos',None))
+
+    def validate(self, table, **kwargs):
+        """ validate this column for string truncation (or reset to the max size) """
+        if self.kind == 'string':
+            
+            # the current column name
+            t = getattr(table.description,self.name,None)
+            if t is not None:
+                if t.itemsize < self.itemsize:
+                    raise Exception("[%s] column has a min_itemsize of [%s] but itemsize [%s] is required!" % (self.name,self.itemsize,t.itemsize))
 
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
-        return converted, 'datetime64', _tables().Int64Col()
+        return Col(converted, 'datetime64', _tables().Int64Col())
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
-        return index.values, 'integer', atom
+        return Col(index.values, 'integer', atom)
 
     if isinstance(index, MultiIndex):
         raise Exception('MultiIndex not supported here!')
@@ -955,33 +1068,33 @@ def _convert_index(index):
 
     if inferred_type == 'datetime64':
         converted = values.view('i8')
-        return converted, 'datetime64', _tables().Int64Col()
+        return Col(converted, 'datetime64', _tables().Int64Col())
     elif inferred_type == 'datetime':
         converted = np.array([(time.mktime(v.timetuple()) +
                             v.microsecond / 1E6) for v in values],
                             dtype=np.float64)
-        return converted, 'datetime', _tables().Time64Col()
+        return Col(converted, 'datetime', _tables().Time64Col())
     elif inferred_type == 'date':
         converted = np.array([time.mktime(v.timetuple()) for v in values],
                             dtype=np.int32)
-        return converted, 'date', _tables().Time32Col()
+        return Col(converted, 'date', _tables().Time32Col())
     elif inferred_type == 'string':
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
-        return converted, 'string', _tables().StringCol(itemsize)
+        return Col(converted, 'string', _tables().StringCol(itemsize), itemsize = itemsize)
     elif inferred_type == 'unicode':
         atom = _tables().ObjectAtom()
-        return np.asarray(values, dtype='O'), 'object', atom
+        return Col(np.asarray(values, dtype='O'), 'object', atom)
     elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
-        return np.asarray(values, dtype=np.int64), 'integer', atom
+        return Col(np.asarray(values, dtype=np.int64), 'integer', atom)
     elif inferred_type == 'floating':
         atom = _tables().Float64Col()
-        return np.asarray(values, dtype=np.float64), 'float', atom
+        return Col(np.asarray(values, dtype=np.float64), 'float', atom)
     else:  # pragma: no cover
         atom = _tables().ObjectAtom()
-        return np.asarray(values, dtype='O'), 'object', atom
+        return Col(np.asarray(values, dtype='O'), 'object', atom)
 
 
 def _read_array(group, key):
@@ -1088,6 +1201,151 @@ def _alias_to_class(alias):
     return _reverse_index_map.get(alias, Index)
 
 
+class Term(object):
+    """ create a term object that holds a field, op, and value 
+
+        Parameters
+        ----------
+        field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
+        op    : a valid op (defaults to '=') (optional)
+                >, >=, <, <=, =, != (not equal) are allowed
+        value : a value or list of values (required)
+
+        Returns
+        -------
+        a Term object
+
+        Examples
+        --------
+        Term(dict(field = 'index', op = '>', value = '20121114'))
+        Term('index', '20121114')
+        Term('index', '>', '20121114')
+        Term('index', ['20121114','20121114'])
+        Term('index', datetime(2012,11,14))
+        Term('major>20121114')
+        Term('minor', ['A','B'])
+        
+    """
+
+    _ops     = ['<','<=','>','>=','=','!=']
+    _search  = re.compile("^(?P<field>\w+)(?P<op>%s)(?P<value>.+)$" % '|'.join(_ops))
+    _index   = ['index','major_axis','major']
+    _column  = ['column','minor_axis','minor']
+
+    def __init__(self, field, op = None, value = None, index_kind = None):
+        self.field = None
+        self.op    = None
+        self.value = None
+        self.index_kind = index_kind
+        self.filter     = None
+        self.condition  = None
+
+        # unpack lists/tuples in field
+        if isinstance(field,(tuple,list)):
+            f = field
+            field = f[0]
+            if len(f) > 1:
+                op = f[1]
+            if len(f) > 2:
+                value = f[2]
+                
+        # backwards compatible
+        if isinstance(field, dict):
+            self.field = field.get('field')
+            self.op    = field.get('op') or '='
+            self.value = field.get('value')
+
+        # passed a term
+        elif isinstance(field,Term):
+            self.field = field.field
+            self.op    = field.op
+            self.value = field.value
+
+        # a string expression (or just the field)
+        elif isinstance(field,basestring):
+
+            # is a term is passed
+            s = self._search.match(field)
+            if s is not None:
+                self.field = s.group('field')
+                self.op    = s.group('op')
+                self.value = s.group('value')
+
+            else:
+                self.field = field
+
+                # is an op passed?
+                if isinstance(op, basestring) and op in self._ops:
+                    self.op    = op
+                    self.value = value
+                else:
+                    self.op    = '='
+                    self.value = op
+
+        else:
+            raise Exception("Term does not understand the supplied field [%s]" % field)
+        
+        # we have valid fields
+        if self.field is None or self.op is None or self.value is None:
+            raise Exception("Could not create this term [%s]" % str(self))
+
+        # valid field name
+        if self.field in self._index:
+            self.field = 'index'
+        elif self.field in self._column:
+            self.field = 'column'
+        else:
+            raise Exception("field is not a valid index/column for this term [%s]" % str(self))
+
+        # we have valid conditions
+        if self.op in ['>','>=','<','<=']:
+            if hasattr(self.value,'__iter__') and len(self.value) > 1:
+                raise Exception("an inequality condition cannot have multiple values [%s]" % str(self))
+
+        if not hasattr(self.value,'__iter__'):
+            self.value = [ self.value ]
+
+        self.eval()
+
+    def __str__(self):
+        return "field->%s,op->%s,value->%s" % (self.field,self.op,self.value)
+
+    __repr__ = __str__
+
+    def eval(self):
+        """ set the numexpr expression for this term """
+        
+        # convert values
+        values = [ self.convert_value(v) for v in self.value ]
+
+        # equality conditions
+        if self.op in ['=','!=']:
+        
+            # too many values to create the expression?
+            if len(values) <= 61:
+                self.condition = "(%s)" % ' | '.join([ "(%s == %s)" % (self.field,v[0]) for v in values])
+
+            # use a filter after reading
+            else:
+                self.filter = set([ v[1] for v in values ])
+
+        else:
+
+            self.condition = '(%s %s %s)' % (self.field, self.op, values[0][0])
+      
+    def convert_value(self, v):
+
+        if self.field == 'index':
+            if self.index_kind == 'datetime64' :
+                return [lib.Timestamp(v).value, None]
+            elif isinstance(v, datetime):
+                return [time.mktime(v.timetuple()), None]
+        elif not isinstance(v, basestring):
+            return [str(v), None]
+
+        # string quoting
+        return ["'" + v + "'", v]
+
 class Selection(object):
     """
     Carries out a selection operation on a tables.Table object.
@@ -1095,72 +1353,47 @@ class Selection(object):
     Parameters
     ----------
     table : tables.Table
-    where : list of dicts of the following form
+    where : list of Terms (or convertable to)
 
-        Comparison op
-           {'field' : 'index',
-            'op'    : '>=',
-            'value' : value}
-
-        Match single value
-           {'field' : 'index',
-            'value' : v1}
-
-        Match a set of values
-           {'field' : 'index',
-            'value' : [v1, v2, v3]}
     """
     def __init__(self, table, where=None, index_kind=None):
-        self.table = table
-        self.where = where
+        self.table      = table
+        self.where      = where
         self.index_kind = index_kind
-        self.column_filter = None
-        self.the_condition = None
-        self.conditions = []
-        self.values = None
-        if where:
-            self.generate(where)
+        self.values     = None
+        self.condition  = None
+        self.filter     = None
+        self.terms      = self.generate(where)
+
+        # create the numexpr & the filter
+        if self.terms:
+            conds = [ t.condition for t in self.terms if t.condition is not None ]
+            if len(conds):
+                self.condition = "(%s)" % ' & '.join(conds)
+            self.filter    = set()
+            for t in self.terms:
+                if t.filter is not None:
+                    self.filter |= t.filter
 
     def generate(self, where):
-        # and condictions
-        for c in where:
-            op = c.get('op', None)
-            value = c['value']
-            field = c['field']
+        """ where can be a : dict,list,tuple,string """
+        if where is None: return None
 
-            if field == 'index' and self.index_kind == 'datetime64':
-                val = lib.Timestamp(value).value
-                self.conditions.append('(%s %s %s)' % (field, op, val))
-            elif field == 'index' and isinstance(value, datetime):
-                value = time.mktime(value.timetuple())
-                self.conditions.append('(%s %s %s)' % (field, op, value))
-            else:
-                self.generate_multiple_conditions(op, value, field)
-
-        if len(self.conditions):
-            self.the_condition = '(' + ' & '.join(self.conditions) + ')'
-
-    def generate_multiple_conditions(self, op, value, field):
-
-        if op and op == 'in' or isinstance(value, (list, np.ndarray)):
-            if len(value) <= 61:
-                l = '(' + ' | '.join([ "(%s == '%s')" % (field, v)
-                                       for v in value]) + ')'
-                self.conditions.append(l)
-            else:
-                self.column_filter = set(value)
+        if not isinstance(where, (list,tuple)):
+            where = [ where ]
         else:
-            if op is None:
-                op = '=='
-            self.conditions.append('(%s %s "%s")' % (field, op, value))
+            # do we have a single list/tuple
+            if not isinstance(where[0], (list,tuple)):
+                where = [ where ]
+
+        return [ Term(c, index_kind = self.index_kind) for c in where ]
 
     def select(self):
         """
         generate the selection
         """
-        if self.the_condition:
-            self.values = self.table.readWhere(self.the_condition)
-
+        if self.condition is not None:
+            self.values = self.table.readWhere(self.condition)
         else:
             self.values = self.table.read()
 
@@ -1168,7 +1401,7 @@ class Selection(object):
         """
         generate the selection
         """
-        self.values = self.table.getWhereList(self.the_condition)
+        self.values = self.table.getWhereList(self.condition)
 
 
 def _get_index_factory(klass):
