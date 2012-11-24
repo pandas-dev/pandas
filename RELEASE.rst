@@ -46,17 +46,13 @@ pandas 0.10.0
 **Improvements to existing features**
 
   - Add ``nrows`` option to DataFrame.from_records for iterators (#1794)
-<<<<<<< Updated upstream
   - Unstack/reshape algorithm rewrite to avoid high memory use in cases where
     the number of observed key-tuples is much smaller than the total possible
     number that could occur (#2278). Also improves performance in most cases.
   - Support duplicate columns in DataFrame.from_records (#2179)
   - Add ``normalize`` option to Series/DataFrame.asfreq (#2137)
-||||||| merged common ancestors
-=======
   - SparseSeries and SparseDataFrame construction from empty and scalar
     values now no longer create dense ndarrays unnecessarily (#2322)
->>>>>>> Stashed changes
 
 **Bug fixes**
 
