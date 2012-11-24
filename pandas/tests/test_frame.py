@@ -2681,8 +2681,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.isnan(df['a'].values[-1]))
 
     def test_from_records_duplicates(self):
-        self.assertRaises(ValueError, DataFrame.from_records,
-                          [(1,2,3), (4,5,6)], columns=['a','b','a'])
+        result = DataFrame.from_records([(1,2,3), (4,5,6)],
+                                        columns=['a','b','a'])
+
+        expected = DataFrame([(1,2,3), (4,5,6)],
+                             columns=['a', 'b', 'a'])
+
+        assert_frame_equal(result, expected)
 
     def test_from_records_set_index_name(self):
         def create_dict(order_id):
