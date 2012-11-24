@@ -2,6 +2,7 @@ import numpy as np
 
 import pandas as pd
 
+import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.nanops as nanops
 
@@ -71,13 +72,8 @@ def pivot_annual(series, freq=None):
 
     flat_index = (year - years.min()) * width + offset
 
-    values = np.empty((len(years), width), dtype=series.dtype)
-
-    if not np.issubdtype(series.dtype, np.integer):
-        values.fill(np.nan)
-    else:
-        raise Exception('need to upcast')
-
+    values = np.empty((len(years), width))
+    values.fill(np.nan)
     values.put(flat_index, series.values)
 
     return DataFrame(values, index=years, columns=columns)

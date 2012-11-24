@@ -40,7 +40,6 @@ class TestPivotAnnual(unittest.TestCase):
     def test_hourly(self):
         rng_hourly = date_range('1/1/1994', periods=(18* 8760 + 4*24), freq='H')
         data_hourly = np.random.randint(100, 350, rng_hourly.size)
-        data_hourly = data_hourly.astype('float64')
         ts_hourly = Series(data_hourly, index=rng_hourly)
 
         grouped = ts_hourly.groupby(ts_hourly.index.year)
@@ -51,6 +50,7 @@ class TestPivotAnnual(unittest.TestCase):
 
         annual = pivot_annual(ts_hourly)
 
+        ts_hourly = ts_hourly.astype(float)
         for i in [1, 1416, 1417, 1418, 1439, 1440, 1441, 8784]:
             subset = ts_hourly[hoy == i]
             subset.index = [x.year for x in subset.index]
@@ -103,4 +103,3 @@ def test_normalize_date():
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
