@@ -3459,6 +3459,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.isnan(larger_added['E']).all())
 
         # TimeSeries
+        import sys
+
+        buf = StringIO()
+        sys.stderr = buf
+
         ts = self.tsframe['A']
         added = self.tsframe + ts
 
@@ -3473,6 +3478,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         smaller_ts = ts[:-5]
         smaller_added2 = self.tsframe + smaller_ts
         assert_frame_equal(smaller_added, smaller_added2)
+
+        sys.stderr = sys.__stderr__
 
         # length 0
         result = self.tsframe + ts[:0]
