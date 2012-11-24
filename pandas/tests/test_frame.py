@@ -3479,8 +3479,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         smaller_added2 = self.tsframe + smaller_ts
         assert_frame_equal(smaller_added, smaller_added2)
 
-        sys.stderr = sys.__stderr__
-
         # length 0
         result = self.tsframe + ts[:0]
 
@@ -3492,6 +3490,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = self.tsframe[:1].reindex(columns=[])
         result = frame * ts
         self.assertEqual(len(result), len(ts))
+
+        sys.stderr = sys.__stderr__
 
     def test_combineFunc(self):
         result = self.frame * 2

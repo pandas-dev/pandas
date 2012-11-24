@@ -31,6 +31,7 @@ from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
 import pandas.tests.test_frame as test_frame
 import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
+from pandas.util.py3compat import StringIO
 
 from test_array import assert_sp_array_equal
 
@@ -819,7 +820,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         pass
 
     def test_sparse_series_ops(self):
+        import sys
+        buf = StringIO()
+        sys.stderr = buf
         self._check_all(self._check_frame_ops)
+        sys.stderr = sys.__stderr__
 
     def _check_frame_ops(self, frame):
         fill = frame.default_fill_value
