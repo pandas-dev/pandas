@@ -622,7 +622,7 @@ class TestTimeZones(unittest.TestCase):
             self.assert_(isinstance(result, DatetimeIndex))
             self.assert_(result.tz.zone == 'UTC')
 
-    def test_join_naive_with_aware(self):
+    def test_join_aware(self):
         rng = date_range('1/1/2011', periods=10, freq='H')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -630,6 +630,20 @@ class TestTimeZones(unittest.TestCase):
 
         self.assertRaises(Exception, ts.__add__, ts_utc)
         self.assertRaises(Exception, ts_utc.__add__, ts)
+
+        test1 = DataFrame(np.zeros((6,3)),
+                          index=date_range("2012-11-15 00:00:00", periods=6,
+                                           freq="100L", tz="US/Central"))
+        test2 = DataFrame(np.zeros((3,3)),
+                          index=date_range("2012-11-15 00:00:00", periods=3,
+                                           freq="250L", tz="US/Central"),
+                          columns=range(3,6))
+
+        result = test1.join(test2, how='outer')
+        ex_index = test1.index.union(test2.index)
+
+        self.assertTrue(result.index.equals(ex_index))
+        self.assertTrue(result.index.tz.zone == 'US/Central')
 
     def test_align_aware(self):
         idx1 = date_range('2001', periods=5, freq='H', tz='US/Eastern')
