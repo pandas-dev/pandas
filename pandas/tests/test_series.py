@@ -953,15 +953,26 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rs  = s.where(cond)
         assert(s.shape == rs.shape)
 
+        rs = s.where(cond[:3], -s)
+        assert_series_equal(rs, s.abs()[:3].append(s[3:]))
+
         self.assertRaises(ValueError, s.where, 1)
+        self.assertRaises(ValueError, s.where, cond[:3].values, -s)
+        self.assertRaises(ValueError, s.where, cond, s[:3].values)
 
     def test_where_inplace(self):
         s = Series(np.random.randn(5))
         cond = s > 0
 
         rs = s.copy()
-        rs.where(cond,inplace=True)
+        rs.where(cond, inplace=True)
         assert_series_equal(rs.dropna(), s[cond])
+        assert_series_equal(rs, s.where(cond))
+
+        rs = s.copy()
+        rs.where(cond, -s, inplace=True)
+        assert_series_equal(rs, s.where(cond, -s))
+
 
     def test_mask(self):
         s = Series(np.random.randn(5))

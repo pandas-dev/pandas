@@ -575,15 +575,27 @@ copy : boolean, default False
         -------
         wh: Series
         """
+        if isinstance(cond, Series):
+            cond = cond.reindex(self.index, fill_value=True)
         if not hasattr(cond, 'shape'):
             raise ValueError('where requires an ndarray like object for its '
                              'condition')
+        if len(cond) != len(self):
+            raise ValueError('condition must have same length as series')
 
-        if inplace:
+        ser = self if inplace else self.copy()
+        if not isinstance(other, (list, tuple, np.ndarray)):
             self._set_with(~cond, other)
             return self
 
-        return self._get_values(cond).reindex_like(self).fillna(other)
+        if isinstance(other, Series):
+            other = other.reindex(ser.index)
+        if len(other) != len(ser):
+            raise ValueError('Length of replacements must equal series length')
+
+        np.putmask(ser, ~cond, other)
+
+        return ser
 
     def mask(self, cond):
         """
