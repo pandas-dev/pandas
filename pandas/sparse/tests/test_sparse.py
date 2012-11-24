@@ -3,6 +3,7 @@
 from unittest import TestCase
 import cPickle as pickle
 import operator
+from datetime import datetime
 
 import nose
 
@@ -19,6 +20,7 @@ from pandas.core.datetools import BDay
 from pandas.core.index import Index
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
+from pandas.core.common import isnull
 import pandas.util.testing as tm
 
 import pandas.sparse.frame as spf
@@ -220,6 +222,16 @@ class TestSparseSeries(TestCase,
                           copy=True)
         sp.sp_values[:5] = 100
         self.assert_(values[0] == 97)
+
+    def test_constructor_scalar(self):
+        data = 5
+        sp = SparseSeries(data, np.arange(100))
+        sp = sp.reindex(np.arange(200))
+        self.assert_((sp.ix[:99] == data).all())
+        self.assert_(isnull(sp.ix[100:]).all())
+
+        data = np.nan
+        sp = SparseSeries(data, np.arange(100))
 
     def test_constructor_ndarray(self):
         pass
@@ -735,7 +747,6 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
         for col, series in sdf.iteritems():
             self.assert_(isinstance(series, SparseSeries))
-        
 
         # construct from nested dict
         data = {}

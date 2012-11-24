@@ -104,14 +104,22 @@ class SparseSeries(SparseArray, Series):
             data = Series(data)
             values, sparse_index = make_sparse(data, kind=kind,
                                                fill_value=fill_value)
-        elif np.isscalar(data):  # pragma: no cover
+        elif isinstance(data, (tuple, list, np.ndarray)):
+            # array-like
+            if sparse_index is None:
+                values, sparse_index = make_sparse(data, kind=kind,
+                                                   fill_value=fill_value)
+            else:
+                values = data
+                assert(len(values) == sparse_index.npoints)
+        else:
             if index is None:
                 raise Exception('must pass index!')
 
             length = len(index)
 
-            if data == fill_value or (np.isnan(data)
-                    and np.isnan(fill_value)):
+            if data == fill_value or (isnull(data)
+                    and isnull(fill_value)):
                 if kind == 'block':
                     sparse_index = BlockIndex(length, [], [])
                 else:
@@ -125,15 +133,6 @@ class SparseSeries(SparseArray, Series):
                     sparse_index = IntIndex(length, index)
                 values = np.empty(length)
                 values.fill(data)
-
-        else:
-            # array-like
-            if sparse_index is None:
-                values, sparse_index = make_sparse(data, kind=kind,
-                                                   fill_value=fill_value)
-            else:
-                values = data
-                assert(len(values) == sparse_index.npoints)
 
         if index is None:
             index = Index(np.arange(sparse_index.length))
