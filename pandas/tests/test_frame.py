@@ -2978,6 +2978,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         foo = self.frame.pop('foo')
         self.assert_('foo' not in self.frame)
 
+    def test_pop_non_unique_cols(self):
+        df=DataFrame({0:[0,1],1:[0,1],2:[4,5]})
+        df.columns=["a","b","a"]
+
+        res=df.pop("a")
+        self.assertEqual(type(res),DataFrame)
+        self.assertEqual(len(res),2)
+        self.assertEqual(len(df.columns),1)
+        self.assertTrue("b" in df.columns)
+        self.assertFalse("a" in df.columns)
+        self.assertEqual(len(df.index),2)
+
     def test_iter(self):
         self.assert_(tm.equalContents(list(self.frame), self.frame.columns))
 
