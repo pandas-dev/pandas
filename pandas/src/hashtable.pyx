@@ -502,7 +502,7 @@ cdef class Int64HashTable(HashTable):
 
         return labels, counts[:count].copy()
 
-    def get_labels_groupby(self, ndarray[int64_t] values, list uniques):
+    def get_labels_groupby(self, ndarray[int64_t] values):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels
@@ -510,6 +510,7 @@ cdef class Int64HashTable(HashTable):
             int ret = 0
             int64_t val
             khiter_t k
+            Int64Vector uniques = Int64Vector()
 
         labels = np.empty(n, dtype=np.int64)
 
@@ -532,7 +533,9 @@ cdef class Int64HashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        return labels
+        arr_uniques = uniques.to_array(xfer_data=True)
+
+        return labels, arr_uniques
 
     def unique(self, ndarray[int64_t] values):
         cdef:

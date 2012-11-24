@@ -2206,16 +2206,12 @@ def _compress_group_index(group_index, sort=True):
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
 
-    uniques = []
     table = lib.Int64HashTable(min(1000000, len(group_index)))
 
     group_index = com._ensure_int64(group_index)
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
-    comp_ids = table.get_labels_groupby(group_index, uniques)
-
-    # these are the unique ones we observed, in the order we observed them
-    obs_group_ids = np.array(uniques, dtype=np.int64)
+    comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
 
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)

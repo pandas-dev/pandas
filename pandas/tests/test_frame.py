@@ -1730,6 +1730,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         should_be_view[0][0] = 97
         self.assertEqual(df.values[0, 0], 97)
 
+    def test_constructor_dtype_list_data(self):
+        df = DataFrame([[1, '2'],
+                        [None, 'a']], dtype=object)
+        self.assert_(df.ix[1, 0] is None)
+        self.assert_(df.ix[0, 1] == '2')
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
@@ -6130,6 +6136,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         comb = self.empty.combine_first(self.frame)
         assert_frame_equal(comb, self.frame)
+
+        comb = self.frame.combine_first(DataFrame(index=["faz","boo"]))
+        self.assertTrue("faz" in comb.index)
 
     def test_combine_first_mixed_bug(self):
         idx = Index(['a','b','c','e'])

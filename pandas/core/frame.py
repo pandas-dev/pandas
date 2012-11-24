@@ -399,8 +399,7 @@ class DataFrame(NDFrame):
                     index = _get_names_from_index(data)
 
                 if isinstance(data[0], (list, tuple, dict, Series)):
-                    arrays, columns = _to_arrays(data, columns)
-
+                    arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
                     if index is None:
@@ -2008,12 +2007,16 @@ class DataFrame(NDFrame):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
         if _is_sequence(value):
-            if isinstance(value, Series):
+            is_frame = isinstance(value, DataFrame)
+            if isinstance(value, Series) or is_frame:
                 if value.index.equals(self.index):
                     # copy the values
                     value = value.values.copy()
                 else:
                     value = value.reindex(self.index).values
+
+                if is_frame:
+                    value = value.T
             else:
                 if len(value) != len(self.index):
                     raise AssertionError('Length of values does not match '
@@ -2023,6 +2026,8 @@ class DataFrame(NDFrame):
                     value = com._asarray_tuplesafe(value)
                 elif isinstance(value, PeriodIndex):
                     value = value.asobject
+                elif value.ndim == 2:
+                    value = value.copy().T
                 else:
                     value = value.copy()
         else:
@@ -3506,14 +3511,17 @@ class DataFrame(NDFrame):
         -------
         result : DataFrame
         """
-        if other.empty:
-            return self.copy()
 
-        if self.empty:
-            return other.copy()
+        other_idxlen = len(other.index) # save for compare
 
         this, other = self.align(other, copy=False)
         new_index = this.index
+
+        if other.empty and len(new_index) == len(self.index):
+            return self.copy()
+
+        if self.empty and len(other) == other_idxlen:
+            return other.copy()
 
         # sorts if possible
         new_columns = this.columns.union(other.columns)
@@ -5200,7 +5208,7 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
-def _to_arrays(data, columns, coerce_float=False):
+def _to_arrays(data, columns, coerce_float=False, dtype=None):
     """
     Return list of arrays, columns
     """
@@ -5208,30 +5216,35 @@ def _to_arrays(data, columns, coerce_float=False):
     if len(data) == 0:
         return [], columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
-        return _list_to_arrays(data, columns, coerce_float=coerce_float)
+        return _list_to_arrays(data, columns, coerce_float=coerce_float,
+                               dtype=dtype)
     elif isinstance(data[0], dict):
         return _list_of_dict_to_arrays(data, columns,
-                                       coerce_float=coerce_float)
+                                       coerce_float=coerce_float,
+                                       dtype=dtype)
     elif isinstance(data[0], Series):
         return _list_of_series_to_arrays(data, columns,
-                                        coerce_float=coerce_float)
+                                         coerce_float=coerce_float,
+                                         dtype=dtype)
     else:
         # last ditch effort
         data = map(tuple, data)
-        return _list_to_arrays(data, columns, coerce_float=coerce_float)
+        return _list_to_arrays(data, columns,
+                               coerce_float=coerce_float,
+                               dtype=dtype)
 
 
-def _list_to_arrays(data, columns, coerce_float=False):
+def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
         # list of lists
         content = list(lib.to_object_array(data).T)
-    return _convert_object_array(content, columns,
+    return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 
 
-def _list_of_series_to_arrays(data, columns, coerce_float=False):
+def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     from pandas.core.index import _get_combined_index
 
     if columns is None:
@@ -5252,13 +5265,13 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(content, columns,
+        return _convert_object_array(content, columns, dtype=dtype,
                                      coerce_float=coerce_float)
     else:
         return values.T, columns
 
 
-def _list_of_dict_to_arrays(data, columns, coerce_float=False):
+def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
         gen = (x.keys() for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
@@ -5269,11 +5282,11 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False):
             for d in data]
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(content, columns,
+    return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 
 
-def _convert_object_array(content, columns, coerce_float=False):
+def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = _default_index(len(content))
     else:
@@ -5282,6 +5295,7 @@ def _convert_object_array(content, columns, coerce_float=False):
                                  'columns' % (len(columns), len(content)))
 
     arrays = [lib.maybe_convert_objects(arr, try_float=coerce_float)
+              if dtype != object and dtype != np.object else arr
               for arr in content]
 
     return arrays, columns
