@@ -1092,10 +1092,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import sys
 
         buf = StringIO()
+        tmp = sys.stderr
         sys.stderr = buf
+        try:
         # it works (with no Cython exception barf)!
-        repr(s)
-        sys.stderr = sys.__stderr__
+            repr(s)
+        finally:
+            sys.stderr = tmp
         self.assertEquals(buf.getvalue(), '')
 
     def test_repr_name_iterable_indexable(self):
@@ -1744,12 +1747,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
 
     def test_operators_frame(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
         # rpow does not work with DataFrame
-        df = DataFrame({'A' : self.ts})
+        try:
+            df = DataFrame({'A' : self.ts})
 
-        tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
-        tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
-        tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
+            tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
+            tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
+            tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
+        finally:
+            sys.stderr = tmp
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
@@ -1849,6 +1859,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # partial overlap
         self.assertAlmostEqual(self.ts[:15].corr(self.ts[5:]), 1)
 
+        self.assert_(isnull(self.ts[:15].corr(self.ts[5:], min_periods=12)))
+
+        ts1 = self.ts[:15].reindex(self.ts.index)
+        ts2 = self.ts[5:].reindex(self.ts.index)
+        self.assert_(isnull(ts1.corr(ts2, min_periods=12)))
+
         # No overlap
         self.assert_(np.isnan(self.ts[::2].corr(self.ts[1::2])))
 
@@ -1911,6 +1927,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         cp = self.ts[:10].copy()
         cp[:] = np.nan
         self.assert_(isnull(cp.cov(cp)))
+
+        # min_periods
+        self.assert_(isnull(self.ts[:15].cov(self.ts[5:], min_periods=12)))
+
+        ts1 = self.ts[:15].reindex(self.ts.index)
+        ts2 = self.ts[5:].reindex(self.ts.index)
+        self.assert_(isnull(ts1.cov(ts2, min_periods=12)))
 
     def test_copy(self):
         ts = self.ts.copy()

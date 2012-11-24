@@ -1529,7 +1529,8 @@ copy : boolean, default False
 
         return Series(data, index=names)
 
-    def corr(self, other, method='pearson'):
+    def corr(self, other, method='pearson',
+             min_periods=None):
         """
         Compute correlation two Series, excluding missing values
 
@@ -1540,21 +1541,29 @@ copy : boolean, default False
             pearson : standard correlation coefficient
             kendall : Kendall Tau correlation coefficient
             spearman : Spearman rank correlation
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result
+
 
         Returns
         -------
         correlation : float
         """
         this, other = self.align(other, join='inner', copy=False)
-        return nanops.nancorr(this.values, other.values, method=method)
+        if len(this) == 0:
+            return np.nan
+        return nanops.nancorr(this.values, other.values, method=method,
+                              min_periods=min_periods)
 
-    def cov(self, other):
+    def cov(self, other, min_periods=None):
         """
         Compute covariance with Series, excluding missing values
 
         Parameters
         ----------
         other : Series
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result
 
         Returns
         -------
@@ -1565,7 +1574,8 @@ copy : boolean, default False
         this, other = self.align(other, join='inner')
         if len(this) == 0:
             return np.nan
-        return nanops.nancov(this.values, other.values)
+        return nanops.nancov(this.values, other.values,
+                             min_periods=min_periods)
 
     def diff(self, periods=1):
         """

@@ -31,6 +31,9 @@ pandas 0.10.0
 
   - Add error handling to Series.str.encode/decode (#2276)
   - Add ``where`` and ``mask`` to Series (#2337)
+  - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
+  - Support optional ``min_periods`` keyword in ``corr`` and ``cov``
+    for both Series and DataFrame (#2002)
 
 **API Changes**
 
@@ -42,7 +45,6 @@ pandas 0.10.0
 
 **Improvements to existing features**
 
-  - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
   - Add ``nrows`` option to DataFrame.from_records for iterators (#1794)
   - Unstack/reshape algorithm rewrite to avoid high memory use in cases where
     the number of observed key-tuples is much smaller than the total possible

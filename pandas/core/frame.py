@@ -4241,7 +4241,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson'):
+    def corr(self, method='pearson', min_periods=None):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 
@@ -4251,6 +4251,10 @@ class DataFrame(NDFrame):
             pearson : standard correlation coefficient
             kendall : Kendall Tau correlation coefficient
             spearman : Spearman rank correlation
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for pearson
+            correlation
 
         Returns
         -------
@@ -4261,8 +4265,10 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(com._ensure_float64(mat))
+            correl = lib.nancorr(com._ensure_float64(mat), minp=min_periods)
         else:
+            if min_periods is None:
+                min_periods = 1
             mat = mat.T
             corrf = nanops.get_corr_func(method)
             K = len(cols)
@@ -4271,7 +4277,7 @@ class DataFrame(NDFrame):
             for i, ac in enumerate(mat):
                 for j, bc in enumerate(mat):
                     valid = mask[i] & mask[j]
-                    if not valid.any():
+                    if valid.sum() < min_periods:
                         c = NA
                     elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
@@ -4282,9 +4288,15 @@ class DataFrame(NDFrame):
 
         return self._constructor(correl, index=cols, columns=cols)
 
-    def cov(self):
+    def cov(self, min_periods=None):
         """
         Compute pairwise covariance of columns, excluding NA/null values
+
+        Parameters
+        ----------
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result.
 
         Returns
         -------
@@ -4298,9 +4310,14 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if notnull(mat).all():
-            baseCov = np.cov(mat.T)
+            if min_periods is not None and min_periods > len(mat):
+                baseCov = np.empty((mat.shape[1], mat.shape[1]))
+                baseCov.fill(np.nan)
+            else:
+                baseCov = np.cov(mat.T)
         else:
-            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True)
+            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True,
+                                  minp=min_periods)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 

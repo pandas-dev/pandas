@@ -822,9 +822,12 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
     def test_sparse_series_ops(self):
         import sys
         buf = StringIO()
+        tmp = sys.stderr
         sys.stderr = buf
-        self._check_all(self._check_frame_ops)
-        sys.stderr = sys.__stderr__
+        try:
+            self._check_all(self._check_frame_ops)
+        finally:
+            sys.stderr = tmp
 
     def _check_frame_ops(self, frame):
         fill = frame.default_fill_value
