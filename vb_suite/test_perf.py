@@ -27,7 +27,6 @@ do a run for it and store the results.
 everything and calculate a ration for the timing information.
 7) print the results to the log file and to stdout.
 
-Known Issues: vbench fails to locate a baseline if HEAD is not a descendent
 """
 
 import shutil
@@ -77,10 +76,8 @@ def prprint(s):
     print("*** %s"%s)
 
 def main():
-
     from vbench.api import BenchmarkRunner
     from vbench.db import BenchmarkDB
-    from vbench.git import GitRepo
     from suite import REPO_PATH, BUILD, DB_PATH, PREPARE, dependencies, benchmarks
 
     if not args.base_commit:
@@ -102,23 +99,33 @@ def main():
         logfile = open(args.log_file, 'w')
 
         prprint( "Processing Repo at '%s'..." % REPO_PATH)
-        repo = GitRepo(REPO_PATH)
 
         # get hashes of baseline and current head
-        h_head = args.target_commit or repo.shas[-1]
-        h_baseline = args.base_commit
 
         prprint( "Opening DB at '%s'...\n" % DB_PATH)
         db = BenchmarkDB(DB_PATH)
 
-        prprint('Target [%s] : %s' % (h_head, repo.messages.get(h_head,"")))
-        prprint('Baseline [%s] : %s\n' % (h_baseline,repo.messages.get(h_baseline,"")))
 
         prprint("Initializing Runner...")
         runner = BenchmarkRunner(benchmarks, REPO_PATH, REPO_PATH, BUILD, DB_PATH,
                                  TMP_DIR, PREPARE, always_clean=True,
             #                             run_option='eod', start_date=START_DATE,
                                  module_dependencies=dependencies)
+
+        repo = runner.repo #(steal the parsed git repo used by runner)
+
+        # ARGH. reparse the repo, not discarding any commits,
+        # and overwrite the previous parse results
+        #prprint ("Slaughtering kittens..." )
+        (repo.shas, repo.messages,
+         repo.timestamps, repo.authors) = _parse_commit_log(REPO_PATH)
+
+        h_head = args.target_commit or repo.shas[-1]
+        h_baseline = args.base_commit
+
+        prprint('Target [%s] : %s\n' % (h_head, repo.messages.get(h_head,"")))
+        prprint('Baseline [%s] : %s\n' % (h_baseline,repo.messages.get(h_baseline,"")))
+
 
         prprint ("removing any previous measurements for the commits." )
         db.delete_rev_results(h_baseline)
@@ -149,7 +156,7 @@ def main():
         s += "Columns: test_name | target_duration [ms] | baseline_duration [ms] | ratio\n\n"
         s += "- a Ratio of 1.30 means the target commit is 30% slower then the baseline.\n\n"
 
-        s += 'Target [%s] : %s' % (h_head, repo.messages.get(h_head,""))
+        s += 'Target [%s] : %s\n' % (h_head, repo.messages.get(h_head,""))
         s += 'Baseline [%s] : %s\n\n' % (h_baseline,repo.messages.get(h_baseline,""))
 
         logfile.write(s)
@@ -162,6 +169,48 @@ def main():
         #        print("Disposing of TMP_DIR: %s" % TMP_DIR)
         shutil.rmtree(TMP_DIR)
         logfile.close()
+
+
+# hack , vbench.git ignores some commits, but we
+# need to be able to reference any commit.
+# modified from vbench.git
+def _parse_commit_log(repo_path):
+    from vbench.git import parser, _convert_timezones
+    from pandas import Series
+    git_cmd = 'git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path)
+    githist = git_cmd + ('log --graph --pretty=format:'
+                          '\"::%h::%cd::%s::%an\" > githist.txt')
+    os.system(githist)
+    githist = open('githist.txt').read()
+    os.remove('githist.txt')
+
+    shas = []
+    timestamps = []
+    messages = []
+    authors = []
+    for line in githist.split('\n'):
+        if '*' not in line.split("::")[0]: # skip non-commit lines
+            continue
+
+        _, sha, stamp, message, author = line.split('::', 4)
+
+        # parse timestamp into datetime object
+        stamp = parser.parse(stamp)
+
+        shas.append(sha)
+        timestamps.append(stamp)
+        messages.append(message)
+        authors.append(author)
+
+    # to UTC for now
+    timestamps = _convert_timezones(timestamps)
+
+    shas = Series(shas, timestamps)
+    messages = Series(messages, shas)
+    timestamps = Series(timestamps, shas)
+    authors = Series(authors, shas)
+    return shas[::-1], messages[::-1], timestamps[::-1], authors[::-1]
+
 
 if __name__ == '__main__':
     if not args.auto and not args.base_commit and not args.target_commit:
