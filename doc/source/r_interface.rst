@@ -15,10 +15,14 @@ rpy2 / R interface
 If your computer has R and rpy2 (> 2.2) installed (which will be left to the
 reader), you will be able to leverage the below functionality. On Windows,
 doing this is quite an ordeal at the moment, but users on Unix-like systems
-should find it quite easy. rpy2 evolves in time and the current interface is
-designed for the 2.2.x series, and we recommend to use over other series 
-unless you are prepared to fix parts of the code. Released packages are available
-in PyPi, but should the latest code in the 2.2.x series be wanted it can be obtained with:
+should find it quite easy. rpy2 evolves in time, and is currently reaching 
+its release 2.3, while the current interface is
+designed for the 2.2.x series. We recommend to use 2.2.x over other series 
+unless you are prepared to fix parts of the code, yet the rpy2-2.3.0
+introduces improvements such as a better R-Python bridge memory management
+layer so I might be a good idea to bite the bullet and submit patches for
+the few minor differences that need to be fixed.
+
 
 ::
 
