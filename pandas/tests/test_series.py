@@ -952,6 +952,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         rs  = s.where(cond)
         assert(s.shape == rs.shape)
+        assert(rs is not s)
 
         rs = s.where(cond[:3], -s)
         assert_series_equal(rs, s.abs()[:3].append(s[3:]))

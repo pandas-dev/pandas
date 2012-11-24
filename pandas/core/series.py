@@ -585,8 +585,8 @@ copy : boolean, default False
 
         ser = self if inplace else self.copy()
         if not isinstance(other, (list, tuple, np.ndarray)):
-            self._set_with(~cond, other)
-            return self
+            ser._set_with(~cond, other)
+            return ser
 
         if isinstance(other, Series):
             other = other.reindex(ser.index)
