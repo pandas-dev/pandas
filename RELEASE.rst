@@ -30,6 +30,7 @@ pandas 0.10.0
 **New features**
 
   - Add error handling to Series.str.encode/decode (#2276)
+  - Add ``where`` and ``mask`` to Series (#2337)
 
 **API Changes**
 

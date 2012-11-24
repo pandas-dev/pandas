@@ -562,6 +562,56 @@ copy : boolean, default False
         except Exception:
             return self.values[indexer]
 
+    def where(self, cond, other=nan, inplace=False):
+        """
+        Return a Series where cond is True; otherwise values are from other
+
+        Parameters
+        ----------
+        cond: boolean Series or array
+        other: scalar or Series
+
+        Returns
+        -------
+        wh: Series
+        """
+        if isinstance(cond, Series):
+            cond = cond.reindex(self.index, fill_value=True)
+        if not hasattr(cond, 'shape'):
+            raise ValueError('where requires an ndarray like object for its '
+                             'condition')
+        if len(cond) != len(self):
+            raise ValueError('condition must have same length as series')
+
+        ser = self if inplace else self.copy()
+        if not isinstance(other, (list, tuple, np.ndarray)):
+            ser._set_with(~cond, other)
+            return ser
+
+        if isinstance(other, Series):
+            other = other.reindex(ser.index)
+        if len(other) != len(ser):
+            raise ValueError('Length of replacements must equal series length')
+
+        np.putmask(ser, ~cond, other)
+
+        return ser
+
+    def mask(self, cond):
+        """
+        Returns copy of self whose values are replaced with nan if the
+        inverted condition is True
+
+        Parameters
+        ----------
+        cond: boolean Series or array
+
+        Returns
+        -------
+        wh: Series
+        """
+        return self.where(~cond, nan)
+
     def __setitem__(self, key, value):
         try:
             try:

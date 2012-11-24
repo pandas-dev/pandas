@@ -3459,6 +3459,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.isnan(larger_added['E']).all())
 
         # TimeSeries
+        import sys
+
+        buf = StringIO()
+        sys.stderr = buf
+
         ts = self.tsframe['A']
         added = self.tsframe + ts
 
@@ -3485,6 +3490,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = self.tsframe[:1].reindex(columns=[])
         result = frame * ts
         self.assertEqual(len(result), len(ts))
+
+        sys.stderr = sys.__stderr__
 
     def test_combineFunc(self):
         result = self.frame * 2

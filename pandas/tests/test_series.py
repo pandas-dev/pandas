@@ -939,6 +939,49 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = self.series.ix[idx]
         assert_series_equal(result, self.series[:10])
 
+    def test_where(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs  = s.where(cond).dropna()
+        rs2 = s[cond]
+        assert_series_equal(rs, rs2)
+
+        rs  = s.where(cond,-s)
+        assert_series_equal(rs, s.abs())
+
+        rs  = s.where(cond)
+        assert(s.shape == rs.shape)
+        assert(rs is not s)
+
+        rs = s.where(cond[:3], -s)
+        assert_series_equal(rs, s.abs()[:3].append(s[3:]))
+
+        self.assertRaises(ValueError, s.where, 1)
+        self.assertRaises(ValueError, s.where, cond[:3].values, -s)
+        self.assertRaises(ValueError, s.where, cond, s[:3].values)
+
+    def test_where_inplace(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs = s.copy()
+        rs.where(cond, inplace=True)
+        assert_series_equal(rs.dropna(), s[cond])
+        assert_series_equal(rs, s.where(cond))
+
+        rs = s.copy()
+        rs.where(cond, -s, inplace=True)
+        assert_series_equal(rs, s.where(cond, -s))
+
+
+    def test_mask(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs = s.where(cond, np.nan)
+        assert_series_equal(rs, s.mask(~cond))
+
     def test_ix_setitem(self):
         inds = self.series.index[[3,4,7]]
 
