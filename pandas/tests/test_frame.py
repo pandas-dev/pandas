@@ -1730,6 +1730,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         should_be_view[0][0] = 97
         self.assertEqual(df.values[0, 0], 97)
 
+    def test_constructor_dtype_list_data(self):
+        df = DataFrame([[1, '2'],
+                        [None, 'a']], dtype=object)
+        self.assert_(df.ix[1, 0] is None)
+        self.assert_(df.ix[0, 1] == '2')
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
