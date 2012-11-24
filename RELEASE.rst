@@ -50,6 +50,7 @@ pandas 0.10.0
     the number of observed key-tuples is much smaller than the total possible
     number that could occur (#2278). Also improves performance in most cases.
   - Support duplicate columns in DataFrame.from_records (#2179)
+  - Add ``normalize`` option to Series/DataFrame.asfreq (#2137)
 
 **Bug fixes**
 

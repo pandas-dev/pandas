@@ -758,6 +758,26 @@ class TestTimeSeries(unittest.TestCase):
         expected = rng.get_indexer(ts_slice.index)
         self.assert_(np.array_equal(result, expected))
 
+    def test_asfreq_normalize(self):
+        rng = date_range('1/1/2000 09:30', periods=20)
+        norm = date_range('1/1/2000', periods=20)
+        vals = np.random.randn(20)
+        ts = Series(vals, index=rng)
+
+        result = ts.asfreq('D', normalize=True)
+        norm = date_range('1/1/2000', periods=20)
+        expected = Series(vals, index=norm)
+
+        assert_series_equal(result, expected)
+
+        vals = np.random.randn(20, 3)
+        ts = DataFrame(vals, index=rng)
+
+        result = ts.asfreq('D', normalize=True)
+        expected = DataFrame(vals, index=norm)
+
+        assert_frame_equal(result, expected)
+
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
         self.assertEquals(len(rng), 4)

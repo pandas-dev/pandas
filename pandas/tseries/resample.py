@@ -340,7 +340,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
             Timestamp(lresult, tz=last.tz))
 
 
-def asfreq(obj, freq, method=None, how=None):
+def asfreq(obj, freq, method=None, how=None, normalize=False):
     """
     Utility frequency conversion method for Series/DataFrame
     """
@@ -359,4 +359,7 @@ def asfreq(obj, freq, method=None, how=None):
         if len(obj.index) == 0:
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
-        return obj.reindex(dti, method=method)
+        rs = obj.reindex(dti, method=method)
+        if normalize:
+            rs.index = rs.index.normalize()
+        return rs
