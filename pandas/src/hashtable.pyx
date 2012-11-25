@@ -35,6 +35,10 @@ cdef extern from "kvec.h":
         size_t n, m
         int64_t* a
 
+    ctypedef struct kv_double:
+        size_t n, m
+        double* a
+
     ctypedef struct kv_object_t:
         size_t n, m
         PyObject** a
@@ -42,6 +46,7 @@ cdef extern from "kvec.h":
     inline void kv_object_push(kv_object_t *v, PyObject* x)
     inline void kv_object_destroy(kv_object_t *v)
     inline void kv_int64_push(kv_int64_t *v, int64_t x)
+    inline void kv_double_push(kv_double *v, double x)
 
 
 cdef class ObjectVector:
@@ -52,6 +57,9 @@ cdef class ObjectVector:
 
     def __cinit__(self):
         self.owndata = 1
+
+    def __len__(self):
+        return self.vec.n
 
     def to_array(self, xfer_data=True):
         """ Here we use the __array__ method, that is called when numpy
@@ -68,9 +76,10 @@ cdef class ObjectVector:
 
         # urgh, mingw32 barfs because of this
 
-        # if xfer_data:
-        #     self.owndata = 0
-        #     util.set_array_owndata(result)
+        if xfer_data:
+            self.owndata = 0
+            util.set_array_owndata(result)
+
         # return result
 
         return result.copy()
@@ -91,6 +100,9 @@ cdef class Int64Vector:
 
     def __cinit__(self):
         self.owndata = 1
+
+    def __len__(self):
+        return self.vec.n
 
     def to_array(self, xfer_data=True):
         """ Here we use the __array__ method, that is called when numpy
@@ -113,6 +125,44 @@ cdef class Int64Vector:
 
     cdef inline append(self, int64_t x):
         kv_int64_push(&self.vec, x)
+
+    def __dealloc__(self):
+        if self.owndata:
+            free(self.vec.a)
+
+cdef class Float64Vector:
+
+    cdef:
+        bint owndata
+        kv_double vec
+
+    def __cinit__(self):
+        self.owndata = 1
+
+    def __len__(self):
+        return self.vec.n
+
+    def to_array(self, xfer_data=True):
+        """ Here we use the __array__ method, that is called when numpy
+            tries to get an array from the object."""
+        cdef:
+            npy_intp shape[1]
+            ndarray result
+
+        shape[0] = <npy_intp> self.vec.n
+
+        # Create a 1D array, of length 'size'
+        result = PyArray_SimpleNewFromData(1, shape, np.NPY_FLOAT64,
+                                           self.vec.a)
+
+        if xfer_data:
+            self.owndata = 0
+            util.set_array_owndata(result)
+
+        return result
+
+    cdef inline append(self, float64_t x):
+        kv_double_push(&self.vec, x)
 
     def __dealloc__(self):
         if self.owndata:
@@ -197,7 +247,7 @@ cdef class StringHashTable(HashTable):
             object val
             char *buf
             khiter_t k
-            list uniques = []
+            ObjectVector uniques = ObjectVector()
 
         for i in range(n):
             val = values[i]
@@ -212,7 +262,7 @@ cdef class StringHashTable(HashTable):
                 uniques.append(val)
 
         # return None
-        return uniques
+        return uniques.to_array(xfer_data=True)
 
     def factorize(self, ndarray[object] values):
         cdef:
@@ -471,7 +521,7 @@ cdef class Int64HashTable(HashTable):
         labels, counts = self.get_labels(values, reverse, 0)
         return reverse, labels, counts
 
-    def get_labels(self, ndarray[int64_t] values, list uniques,
+    def get_labels(self, ndarray[int64_t] values, Int64Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -570,7 +620,6 @@ def value_count_int64(ndarray[int64_t] values):
         Py_ssize_t i, n = len(values)
         kh_int64_t *table
         int ret = 0
-        list uniques = []
 
     table = kh_init_int64()
     kh_resize_int64(table, n)
@@ -615,11 +664,12 @@ cdef class Float64HashTable(HashTable):
         kh_destroy_float64(self.table)
 
     def factorize(self, ndarray[float64_t] values):
-        uniques = []
+        uniques = Float64Vector()
         labels, counts = self.get_labels(values, uniques, 0, -1)
-        return uniques, labels, counts
+        return uniques.to_array(xfer_data=True), labels, counts
 
-    cpdef get_labels(self, ndarray[float64_t] values, list uniques,
+    cpdef get_labels(self, ndarray[float64_t] values,
+                     Float64Vector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -690,7 +740,7 @@ cdef class Float64HashTable(HashTable):
             int ret = 0
             float64_t val
             khiter_t k
-            list uniques = []
+            Float64Vector uniques = Float64Vector()
             bint seen_na = 0
 
         # TODO: kvec
@@ -708,7 +758,7 @@ cdef class Float64HashTable(HashTable):
                 seen_na = 1
                 uniques.append(ONAN)
 
-        return uniques
+        return uniques.to_array(xfer_data=True)
 
 cdef class PyObjectHashTable(HashTable):
     cdef kh_pymap_t *table
@@ -842,7 +892,7 @@ cdef class PyObjectHashTable(HashTable):
 
         return result
 
-    cpdef get_labels(self, ndarray[object] values, list uniques,
+    cpdef get_labels(self, ndarray[object] values, ObjectVector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -882,12 +932,12 @@ cdef class PyObjectHashTable(HashTable):
 
 cdef class Factorizer:
     cdef public PyObjectHashTable table
-    cdef public uniques
+    cdef public ObjectVector uniques
     cdef public Py_ssize_t count
 
     def __init__(self, size_hint):
         self.table = PyObjectHashTable(size_hint)
-        self.uniques = []
+        self.uniques = ObjectVector()
         self.count = 0
 
     def get_count(self):
@@ -902,7 +952,7 @@ cdef class Factorizer:
             if labels.dtype != np.int_:
                 labels = labels.astype(np.int_)
 
-            sorter = list_to_object_array(self.uniques).argsort()
+            sorter = self.uniques.to_array(xfer_data=False).argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
@@ -919,12 +969,12 @@ cdef class Factorizer:
 
 cdef class Int64Factorizer:
     cdef public Int64HashTable table
-    cdef public list uniques
+    cdef public Int64Vector uniques
     cdef public Py_ssize_t count
 
     def __init__(self, size_hint):
         self.table = Int64HashTable(size_hint)
-        self.uniques = []
+        self.uniques = Int64Vector()
         self.count = 0
 
     def get_count(self):
@@ -940,7 +990,7 @@ cdef class Int64Factorizer:
             if labels.dtype != np.int_:
                 labels = labels.astype(np.int_)
 
-            sorter = list_to_object_array(self.uniques).argsort()
+            sorter = self.uniques.to_array(xfer_data=False).argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
@@ -951,103 +1001,6 @@ cdef class Int64Factorizer:
         return labels, counts
 
 
-cdef class DictFactorizer:
-
-    cdef public:
-        dict table
-        list uniques
-        Py_ssize_t count
-
-    def __init__(self, table=None, uniques=None):
-        if table is None:
-            self.table = {}
-        else:
-            self.table = table
-
-        if uniques is None:
-            self.uniques = []
-            self.count = 0
-        else:
-            self.uniques = uniques
-            self.count = len(uniques)
-
-    def get_count(self):
-        return self.count
-
-    def get_labels(self, ndarray[object] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels
-            ndarray[int64_t] counts
-            Py_ssize_t idx, count = self.count
-            int ret = 0
-            object val
-
-        labels = np.empty(n, dtype=np.int64)
-        counts = np.empty(count + n, dtype=np.int64)
-
-        for i in range(n):
-            val = values[i]
-
-            if val in self.table:
-                idx = self.table[val]
-                labels[i] = idx
-                counts[idx] = counts[idx] + 1
-            else:
-                self.table[val] = count
-                self.uniques.append(val)
-                labels[i] = count
-                counts[count] = 1
-                count += 1
-
-        return labels, counts[:count].copy()
-
-    def factorize(self, ndarray[object] values, sort=False):
-        labels, counts = self.get_labels(values)
-
-        # sort on
-        if sort:
-            if labels.dtype != np.int_:
-                labels = labels.astype(np.int_)
-
-            sorter = list_to_object_array(self.uniques).argsort()
-            reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-            reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-            labels = reverse_indexer.take(labels)
-            counts = counts.take(sorter)
-
-        self.count = len(counts)
-        return labels, counts
-
-    def unique(self, ndarray[object] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            Py_ssize_t idx, count = self.count
-            object val
-
-        for i in range(n):
-            val = values[i]
-            if val not in self.table:
-                self.table[val] = count
-                self.uniques.append(val)
-                count += 1
-        return self.uniques
-
-
-    def unique_int64(self, ndarray[int64_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            Py_ssize_t idx, count = self.count
-            int64_t val
-
-        for i in range(n):
-            val = values[i]
-            if val not in self.table:
-                self.table[val] = count
-                self.uniques.append(val)
-                count += 1
-        return self.uniques
 
 def lookup2(ndarray[object] values):
     cdef:

@@ -117,15 +117,16 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
     values = np.asarray(values)
     is_datetime = com.is_datetime64_dtype(values)
-    hash_klass, values = _get_data_algo(values, _hashtables)
+    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    uniques = []
     table = hash_klass(len(values))
+    uniques = vec_klass()
     labels, counts = table.get_labels(values, uniques, 0, na_sentinel)
 
     labels = com._ensure_platform_int(labels)
 
-    uniques = com._asarray_tuplesafe(uniques)
+    uniques = uniques.to_array(xfer_data=True)
+
     if sort and len(counts) > 0:
         sorter = uniques.argsort()
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
@@ -325,7 +326,7 @@ _rank2d_functions = {
 }
 
 _hashtables = {
-    'float64': lib.Float64HashTable,
-    'int64': lib.Int64HashTable,
-    'generic': lib.PyObjectHashTable
+    'float64': (lib.Float64HashTable, lib.Float64Vector),
+    'int64': (lib.Int64HashTable, lib.Int64Vector),
+    'generic': (lib.PyObjectHashTable, lib.ObjectVector)
 }

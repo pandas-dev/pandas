@@ -1317,7 +1317,7 @@ void test_count_lines(char *fname) {
 
 
 // forward declaration
-double P_INLINE xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+static double xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
 
 
 P_INLINE void lowercase(char *p) {
@@ -1542,7 +1542,7 @@ int main(int argc, char *argv[])
 // * Commented out the other functions.
 //
 
-double P_INLINE xstrtod(const char *str, char **endptr, char decimal,
+static double xstrtod(const char *str, char **endptr, char decimal,
                       char sci, int skip_trailing)
 {
   double number;
