@@ -572,7 +572,8 @@ def _factorize_keys(lk, rk, sort=True):
     count = rizer.get_count()
 
     if sort:
-        llab, rlab = _sort_labels(rizer.uniques, llab, rlab)
+        uniques = rizer.uniques.to_array(xfer_data=False)
+        llab, rlab = _sort_labels(uniques, llab, rlab)
 
     # NA group
     lmask = llab == -1; lany = lmask.any()

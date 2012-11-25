@@ -69,6 +69,7 @@ pandas 0.10.0
     (#2295)
   - Respect dtype=object in DataFrame constructor (#2291)
   - Fix DatetimeIndex.join bug with tz-aware indexes and how='outer' (#2317)
+  - pop(...) and del works with DataFrame with duplicate columns (#2349)
 
 pandas 0.9.1
 ============
