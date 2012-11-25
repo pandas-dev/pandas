@@ -117,6 +117,10 @@ def _comp_method(op, name):
             else:
                 result = lib.scalar_compare(x, y, op)
         else:
+            if (isinstance(x, np.ndarray) and
+                isinstance(y, np.ndarray) and
+                len(x) != len(y)):
+                raise ValueError('Array lengths must equal to compare')
             result = op(x, y)
 
         return result
