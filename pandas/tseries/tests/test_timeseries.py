@@ -1938,7 +1938,7 @@ class TestLegacySupport(unittest.TestCase):
         dates = [ (datetime(2012, 9, 9, 0, 0),
                    datetime(2012, 9, 8, 15, 10))]
         arr = np.array(dates,
-                       dtype=[('Date', '<M8[us]'), ('Forecasting', '<M8[us]')])
+                       dtype=[('Date', 'M8[us]'), ('Forecasting', 'M8[us]')])
         df = DataFrame(arr)
 
         self.assertEqual(df['Date'][0], dates[0][0])
