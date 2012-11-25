@@ -87,6 +87,8 @@ class SparseDataFrame(DataFrame):
 
             if index is None:
                 index = Index([])
+            else:
+                index = _ensure_index(index)
 
             if columns is None:
                 columns = Index([])

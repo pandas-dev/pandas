@@ -801,6 +801,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sp = SparseDataFrame(dense)
         assert_sp_frame_equal(sp, self.frame)
 
+    def test_constructor_convert_index_once(self):
+        arr = np.array([1.5, 2.5, 3.5])
+        sdf = SparseDataFrame(columns=range(4), index=arr)
+        self.assertTrue(sdf[0].index is sdf[1].index)
+
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())

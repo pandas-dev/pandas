@@ -14,7 +14,7 @@ from pandas.core.common import isnull
 from pandas.core.index import Index, _ensure_index
 from pandas.core.series import Series, TimeSeries, _maybe_match_name
 from pandas.core.frame import DataFrame
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas.core.datetools as datetools
 
 from pandas.util import py3compat
@@ -135,7 +135,7 @@ class SparseSeries(SparseArray, Series):
                 values.fill(data)
 
         if index is None:
-            index = Index(np.arange(sparse_index.length))
+            index = com._default_index(sparse_index.length)
         index = _ensure_index(index)
 
         # Create array, do *not* copy data by default
@@ -421,7 +421,7 @@ to sparse
 
         new_index, fill_vec = self.index.reindex(index, method=method,
                                                  limit=limit)
-        new_values = common.take_1d(self.values, fill_vec)
+        new_values = com.take_1d(self.values, fill_vec)
         return SparseSeries(new_values, index=new_index,
                             fill_value=self.fill_value, name=self.name)
 
