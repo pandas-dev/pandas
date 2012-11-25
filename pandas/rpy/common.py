@@ -197,6 +197,40 @@ def convert_robj(obj, use_pandas=True):
 
     raise Exception('Do not know what to do with %s object' % type(obj))
 
+
+def convert_to_r_posixct(obj):
+    """
+    Convert DatetimeIndex or np.datetime array to R POSIXct using
+    m8[s] format.
+
+    Parameters
+    ----------
+    obj : source pandas object (one of [DatetimeIndex, np.datetime])
+
+    Returns
+    -------
+    An R POSIXct vector (rpy2.robjects.vectors.POSIXct)
+
+    """
+    import time
+    from rpy2.rinterface import StrSexpVector
+
+    # convert m8[ns] to m8[s]
+    vals = robj.vectors.FloatSexpVector(obj.values.view('i8') / 1E9)
+    as_posixct = robj.baseenv.get('as.POSIXct')
+    origin = StrSexpVector([time.strftime("%Y-%m-%d",
+                                          time.gmtime(0)),])
+
+    # We will be sending ints as UTC
+    tz = obj.tz.zone if hasattr(obj, 'tz') and hasattr(obj.tz, 'zone') else 'UTC'
+    tz = StrSexpVector([tz])
+    utc_tz = StrSexpVector(['UTC'])
+
+    posixct = as_posixct(vals, origin=origin, tz=utc_tz)
+    posixct.do_slot_assign('tzone', tz)
+    return posixct
+
+
 VECTOR_TYPES = {np.float64: robj.FloatVector,
                np.float32: robj.FloatVector,
                np.float: robj.FloatVector,
@@ -242,14 +276,18 @@ def convert_to_r_dataframe(df, strings_as_factors=False):
     for column in df:
         value = df[column]
         value_type = value.dtype.type
-        value = [item if pd.notnull(item) else NA_TYPES[value_type]
-                 for item in value]
 
-        value = VECTOR_TYPES[value_type](value)
+        if value_type == np.datetime64:
+            value = convert_to_r_posixct(value)
+        else:
+            value = [item if pd.notnull(item) else NA_TYPES[value_type]
+                     for item in value]
 
-        if not strings_as_factors:
-            I = robj.baseenv.get("I")
-            value = I(value)
+            value = VECTOR_TYPES[value_type](value)
+
+            if not strings_as_factors:
+                I = robj.baseenv.get("I")
+                value = I(value)
 
         columns[column] = value
 
