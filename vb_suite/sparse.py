@@ -33,7 +33,7 @@ setup = common_setup + """
 from pandas.core.sparse import SparseDataFrame
 """
 
-stmt = "SparseDataFrame(columns=np.arange(100), index=np.arange(1e4))"
+stmt = "SparseDataFrame(columns=np.arange(100), index=np.arange(1000))"
 
 sparse_constructor = Benchmark(stmt, setup, name="sparse_frame_constructor",
                                start_date=datetime(2012, 6, 1))
