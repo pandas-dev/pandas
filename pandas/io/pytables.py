@@ -68,7 +68,7 @@ _LEGACY_MAP = {
 
 # oh the troubles to reduce import time
 _table_mod = None
-_table_supports_index = True
+_table_supports_index = False
 
 def _tables():
     global _table_mod
@@ -79,7 +79,7 @@ def _tables():
 
         # version requirements
         major, minor, subv = tables.__version__.split('.')
-        if major >= 2 and minor >= 3:
+        if int(major) >= 2 and int(minor) >= 3:
             _table_supports_index = True
 
     return _table_mod

@@ -184,6 +184,11 @@ class TestHDFStore(unittest.TestCase):
         self.store.put('f2', df)
         self.assertRaises(Exception, self.store.create_table_index, 'f2')
 
+        # try to change the version supports flag
+        from pandas.io import pytables
+        pytables._table_supports_index = False
+        self.assertRaises(Exception, self.store.create_table_index, 'f')
+
     def test_append_diff_item_order(self):
         wp = tm.makePanel()
         wp1 = wp.ix[:, :10, :]
