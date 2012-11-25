@@ -3467,36 +3467,38 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         import sys
 
         buf = StringIO()
+        tmp = sys.stderr
         sys.stderr = buf
 
-        ts = self.tsframe['A']
-        added = self.tsframe + ts
+        try:
+            ts = self.tsframe['A']
+            added = self.tsframe + ts
 
-        for key, col in self.tsframe.iteritems():
-            assert_series_equal(added[key], col + ts)
+            for key, col in self.tsframe.iteritems():
+                assert_series_equal(added[key], col + ts)
 
-        smaller_frame = self.tsframe[:-5]
-        smaller_added = smaller_frame + ts
+            smaller_frame = self.tsframe[:-5]
+            smaller_added = smaller_frame + ts
 
-        self.assert_(smaller_added.index.equals(self.tsframe.index))
+            self.assert_(smaller_added.index.equals(self.tsframe.index))
 
-        smaller_ts = ts[:-5]
-        smaller_added2 = self.tsframe + smaller_ts
-        assert_frame_equal(smaller_added, smaller_added2)
+            smaller_ts = ts[:-5]
+            smaller_added2 = self.tsframe + smaller_ts
+            assert_frame_equal(smaller_added, smaller_added2)
 
-        # length 0
-        result = self.tsframe + ts[:0]
+            # length 0
+            result = self.tsframe + ts[:0]
 
-        # Frame is length 0
-        result = self.tsframe[:0] + ts
-        self.assertEqual(len(result), 0)
+            # Frame is length 0
+            result = self.tsframe[:0] + ts
+            self.assertEqual(len(result), 0)
 
-        # empty but with non-empty index
-        frame = self.tsframe[:1].reindex(columns=[])
-        result = frame * ts
-        self.assertEqual(len(result), len(ts))
-
-        sys.stderr = sys.__stderr__
+            # empty but with non-empty index
+            frame = self.tsframe[:1].reindex(columns=[])
+            result = frame * ts
+            self.assertEqual(len(result), len(ts))
+        finally:
+            sys.stderr = tmp
 
     def test_combineFunc(self):
         result = self.frame * 2
@@ -4226,12 +4228,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_corr(self):
         _skip_if_no_scipy()
         self.frame['A'][:5] = nan
-        self.frame['B'][:10] = nan
+        self.frame['B'][5:10] = nan
 
-        def _check_method(method='pearson'):
-            correls = self.frame.corr(method=method)
-            exp = self.frame['A'].corr(self.frame['C'], method=method)
-            assert_almost_equal(correls['A']['C'], exp)
+        def _check_method(method='pearson', check_minp=False):
+            if not check_minp:
+                correls = self.frame.corr(method=method)
+                exp = self.frame['A'].corr(self.frame['C'], method=method)
+                assert_almost_equal(correls['A']['C'], exp)
+            else:
+                result = self.frame.corr(min_periods=len(self.frame) - 8)
+                expected = self.frame.corr()
+                expected.ix['A', 'B'] = expected.ix['B', 'A'] = nan
 
         _check_method('pearson')
         _check_method('kendall')
@@ -4268,6 +4275,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df3.corr()
 
     def test_cov(self):
+        # min_periods no NAs (corner case)
+        expected = self.frame.cov()
+        result = self.frame.cov(min_periods=len(self.frame))
+
+        assert_frame_equal(expected, result)
+
+        result = self.frame.cov(min_periods=len(self.frame) + 1)
+        self.assert_(isnull(result.values).all())
+
+        # with NAs
+        frame = self.frame.copy()
+        frame['A'][:5] = nan
+        frame['B'][5:10] = nan
+        result = self.frame.cov(min_periods=len(self.frame) - 8)
+        expected = self.frame.cov()
+        expected.ix['A', 'B'] = np.nan
+        expected.ix['B', 'A'] = np.nan
+
+        # regular
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
         cov = self.frame.cov()
@@ -4279,6 +4305,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = self.mixed_frame.cov()
         expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].cov()
         assert_frame_equal(result, expected)
+
 
     def test_corrwith(self):
         a = self.tsframe
