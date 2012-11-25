@@ -199,7 +199,7 @@ typedef struct parser_t {
 
 
 
-void *safe_realloc(void *buffer, size_t size);
+static void *safe_realloc(void *buffer, size_t size);
 
 
 typedef struct coliter_t {

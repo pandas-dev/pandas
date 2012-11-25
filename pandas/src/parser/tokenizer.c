@@ -43,7 +43,7 @@ See LICENSE for the license
 
 
 
-void *safe_realloc(void *buffer, size_t size) {
+static void *safe_realloc(void *buffer, size_t size) {
     void *result;
     // OS X is weird
     // http://stackoverflow.com/questions/9560609/
@@ -88,7 +88,7 @@ coliter_t *coliter_new(parser_t *self, int i) {
  /* uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error); */
 
 
- void free_if_not_null(void *ptr) {
+static  void free_if_not_null(void *ptr) {
      if (ptr != NULL) free(ptr);
  }
 
@@ -101,7 +101,7 @@ coliter_t *coliter_new(parser_t *self, int i) {
  */
 
 
- void *grow_buffer(void *buffer, int length, int *capacity,
+static void *grow_buffer(void *buffer, int length, int *capacity,
                    int space, int elsize, int *error) {
      int cap = *capacity;
 
@@ -263,7 +263,7 @@ void parser_free(parser_t *self) {
     free(self);
 }
 
-int make_stream_space(parser_t *self, size_t nbytes) {
+static int make_stream_space(parser_t *self, size_t nbytes) {
     int i, status, cap;
     void *orig_ptr;
 
@@ -361,13 +361,13 @@ int make_stream_space(parser_t *self, size_t nbytes) {
 }
 
 
-int P_INLINE push_char(parser_t *self, char c) {
+static int push_char(parser_t *self, char c) {
     /* TRACE(("pushing %c \n", c)) */
     self->stream[self->stream_len++] = c;
     return 0;
 }
 
-int P_INLINE end_field(parser_t *self) {
+static int P_INLINE end_field(parser_t *self) {
     // XXX cruft
     self->numeric_field = 0;
 
@@ -395,7 +395,7 @@ int P_INLINE end_field(parser_t *self) {
     return 0;
 }
 
-int P_INLINE end_line(parser_t *self) {
+static int end_line(parser_t *self) {
     int fields;
     khiter_t k;  /* for hash set detection */
     int ex_fields = -1;
@@ -494,7 +494,7 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
     return 0;
 }
 
-int parser_buffer_bytes(parser_t *self, size_t nbytes) {
+static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     int status;
     size_t bytes_read;
     void *src = self->source;
@@ -1048,7 +1048,7 @@ linelimit:
 }
 
 
-int parser_handle_eof(parser_t *self) {
+static int parser_handle_eof(parser_t *self) {
     TRACE(("handling eof, datalen: %d, pstate: %d\n", self->datalen, self->state))
     if (self->datalen == 0 && (self->state != START_RECORD)) {
         // test cases needed here
