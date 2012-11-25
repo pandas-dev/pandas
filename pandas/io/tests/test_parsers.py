@@ -1366,6 +1366,20 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
                              na_values=['NaN'])
         assert_almost_equal(df.values, expected)
 
+    def test_bool_na_values(self):
+        data = """A,B,C
+True,False,True
+NA,True,False
+False,NA,True"""
+
+        result = self.read_csv(StringIO(data))
+        expected = DataFrame({'A': np.array([True, nan, False], dtype=object),
+                              'B': np.array([False, True, nan], dtype=object),
+                              'C': [True,  False, True]})
+
+        tm.assert_frame_equal(result, expected)
+
+
 class TestPythonParser(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
