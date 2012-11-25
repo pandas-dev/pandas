@@ -673,7 +673,7 @@ class Index(np.ndarray):
 
         Returns
         -------
-        loc : int
+        loc : int if unique index, possibly slice or mask if not
         """
         return self._engine.get_loc(key)
 
