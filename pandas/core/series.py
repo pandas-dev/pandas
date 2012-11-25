@@ -117,10 +117,6 @@ def _comp_method(op, name):
             else:
                 result = lib.scalar_compare(x, y, op)
         else:
-            if (isinstance(x, np.ndarray) and
-                isinstance(y, np.ndarray) and
-                len(x) != len(y)):
-                raise ValueError('Array lengths must equal to compare')
             result = op(x, y)
 
         return result
@@ -130,11 +126,15 @@ def _comp_method(op, name):
 
         if isinstance(other, Series):
             name = _maybe_match_name(self, other)
+            if len(self) != len(other):
+                raise ValueError('Series lengths must match to compare')
             return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
         elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
         elif isinstance(other, np.ndarray):
+            if len(self) != len(other):
+                raise ValueError('Lengths must match to compare')
             return Series(na_op(self.values, np.asarray(other)),
                           index=self.index, name=self.name)
         else:
