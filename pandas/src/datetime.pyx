@@ -664,8 +664,8 @@ cdef inline object _get_zone(object tz):
         except AttributeError:
             return tz
 
-cdef int64_t _NS_LOWER_BOUND = -9223285636854775809LL
-cdef int64_t _NS_UPPER_BOUND = -9223372036854775807LL
+# cdef int64_t _NS_LOWER_BOUND = -9223285636854775809LL
+# cdef int64_t _NS_UPPER_BOUND = -9223372036854775807LL
 
 cdef inline _check_dts_bounds(int64_t value, pandas_datetimestruct *dts):
     cdef pandas_datetimestruct dts2
