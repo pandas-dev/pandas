@@ -620,34 +620,38 @@ cpdef convert_to_tsobject(object ts, object tz=None):
         _check_dts_bounds(obj.value, &obj.dts)
 
     if tz is not None:
-        if _is_utc(tz):
-            obj.tzinfo = tz
-        elif _is_tzlocal(tz):
-            pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
-            dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day, obj.dts.hour,
-                          obj.dts.min, obj.dts.sec, obj.dts.us, tz)
-            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
-            pandas_datetime_to_datetimestruct(obj.value + delta,
+        _localize_tso(obj, tz)
+
+    return obj
+
+cdef inline void _localize_tso(_TSObject obj, object tz):
+    if _is_utc(tz):
+        obj.tzinfo = tz
+    elif _is_tzlocal(tz):
+        pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
+        dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day, obj.dts.hour,
+                      obj.dts.min, obj.dts.sec, obj.dts.us, tz)
+        delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+        pandas_datetime_to_datetimestruct(obj.value + delta,
+                                          PANDAS_FR_ns, &obj.dts)
+        obj.tzinfo = tz
+    else:
+        # Adjust datetime64 timestamp, recompute datetimestruct
+        trans = _get_transitions(tz)
+        deltas = _get_deltas(tz)
+        pos = trans.searchsorted(obj.value, side='right') - 1
+
+        # statictzinfo
+        if not hasattr(tz, '_transition_info'):
+            pandas_datetime_to_datetimestruct(obj.value + deltas[0],
                                               PANDAS_FR_ns, &obj.dts)
             obj.tzinfo = tz
         else:
-            # Adjust datetime64 timestamp, recompute datetimestruct
-            trans = _get_transitions(tz)
-            deltas = _get_deltas(tz)
-            pos = trans.searchsorted(obj.value, side='right') - 1
+            inf = tz._transition_info[pos]
+            pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
+                                              PANDAS_FR_ns, &obj.dts)
+            obj.tzinfo = tz._tzinfos[inf]
 
-            # statictzinfo
-            if not hasattr(tz, '_transition_info'):
-                pandas_datetime_to_datetimestruct(obj.value + deltas[0],
-                                                  PANDAS_FR_ns, &obj.dts)
-                obj.tzinfo = tz
-            else:
-                inf = tz._transition_info[pos]
-                pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
-                                                  PANDAS_FR_ns, &obj.dts)
-                obj.tzinfo = tz._tzinfos[inf]
-
-    return obj
 
 def get_timezone(tz):
     return _get_zone(tz)
@@ -1441,24 +1445,90 @@ def date_normalize(ndarray[int64_t] stamps, tz=None):
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
 
     if tz is not None:
-        for i in range(n):
-            tso = convert_to_tsobject(stamps[i], tz)
-            dts = tso.dts
-            dts.hour = 0
-            dts.min = 0
-            dts.sec = 0
-            dts.us = 0
-            result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+        tso = _TSObject()
+        if isinstance(tz, basestring):
+            tz = pytz.timezone(tz)
+        result = _normalize_local(stamps, tz)
     else:
         for i in range(n):
+            if stamps[i] == NPY_NAT:
+                result[i] = NPY_NAT
+                continue
             pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
-            dts.hour = 0
-            dts.min = 0
-            dts.sec = 0
-            dts.us = 0
-            result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+            result[i] = _normalized_stamp(&dts)
 
     return result
+
+cdef _normalize_local(ndarray[int64_t] stamps, object tz):
+    cdef:
+        Py_ssize_t n = len(stamps)
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] trans, deltas, pos
+        pandas_datetimestruct dts
+
+    if _is_utc(tz):
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                result[i] = NPY_NAT
+                continue
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            result[i] = _normalized_stamp(&dts)
+    elif _is_tzlocal(tz):
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                result[i] = NPY_NAT
+                continue
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
+                                              &dts)
+            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, tz)
+            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            pandas_datetime_to_datetimestruct(stamps[i] + delta,
+                                              PANDAS_FR_ns, &dts)
+            result[i] = _normalized_stamp(&dts)
+    else:
+        # Adjust datetime64 timestamp, recompute datetimestruct
+        trans = _get_transitions(tz)
+        deltas = _get_deltas(tz)
+        _pos = trans.searchsorted(stamps, side='right') - 1
+        if _pos.dtype != np.int64:
+            _pos = _pos.astype(np.int64)
+        pos = _pos
+
+        # statictzinfo
+        if not hasattr(tz, '_transition_info'):
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
+                                                  PANDAS_FR_ns, &dts)
+                result[i] = _normalized_stamp(&dts)
+        else:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
+                                                  PANDAS_FR_ns, &dts)
+                result[i] = _normalized_stamp(&dts)
+
+    return result
+
+cdef inline int64_t _normalized_stamp(pandas_datetimestruct *dts):
+    dts.hour = 0
+    dts.min = 0
+    dts.sec = 0
+    dts.us = 0
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+
+
+cdef inline void m8_populate_tsobject(int64_t stamp, _TSObject tso, object tz):
+    tso.value = stamp
+    pandas_datetime_to_datetimestruct(tso.value, PANDAS_FR_ns, &tso.dts)
+
+    if tz is not None:
+        _localize_tso(tso, tz)
 
 
 def dates_normalized(ndarray[int64_t] stamps, tz=None):
