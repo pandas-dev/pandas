@@ -155,22 +155,22 @@ class TestBlock(unittest.TestCase):
         self.assertRaises(Exception, self.fblock.delete, 'b')
 
     def test_split_block_at(self):
-        left, right = self.fblock.split_block_at('a')
-        self.assert_(left is None)
-        self.assert_(np.array_equal(right.items, ['c', 'e']))
+        bs = list(self.fblock.split_block_at('a'))
+        self.assertEqual(len(bs),1)
+        self.assertTrue(np.array_equal(bs[0].items, ['c', 'e']))
 
-        left, right = self.fblock.split_block_at('c')
-        self.assert_(np.array_equal(left.items, ['a']))
-        self.assert_(np.array_equal(right.items, ['e']))
+        bs = list(self.fblock.split_block_at('c'))
+        self.assertEqual(len(bs),2)
+        self.assertTrue(np.array_equal(bs[0].items, ['a']))
+        self.assertTrue(np.array_equal(bs[1].items, ['e']))
 
-        left, right = self.fblock.split_block_at('e')
-        self.assert_(np.array_equal(left.items, ['a', 'c']))
-        self.assert_(right is None)
+        bs = list(self.fblock.split_block_at('e'))
+        self.assertEqual(len(bs),1)
+        self.assertTrue(np.array_equal(bs[0].items, ['a', 'c']))
 
         bblock = get_bool_ex(['f'])
-        left, right = bblock.split_block_at('f')
-        self.assert_(left is None)
-        self.assert_(right is None)
+        bs = list(bblock.split_block_at('f'))
+        self.assertEqual(len(bs),0)
 
     def test_unicode_repr(self):
         mat = np.empty((N, 2), dtype=object)

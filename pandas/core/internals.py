@@ -181,38 +181,26 @@ class Block(object):
 
     def split_block_at(self, item):
         """
-        Split block around given column, for "deleting" a column without
-        having to copy data by returning views on the original array
+        Split block into zero or more blocks around columns with given label,
+        for "deleting" a column without having to copy data by returning views
+        on the original array.
 
         Returns
         -------
-        leftb, rightb : (Block or None, Block or None)
+        generator of Block
         """
         loc = self.items.get_loc(item)
 
-        if len(self.items) == 1:
-            # no blocks left
-            return None, None
+        if type(loc) == slice or type(loc) == int:
+            mask = [True]*len(self)
+            mask[loc] = False
+        else: # already a mask, inverted
+            mask = -loc
 
-        if loc == 0:
-            # at front
-            left_block = None
-            right_block = make_block(self.values[1:], self.items[1:].copy(),
-                                      self.ref_items)
-        elif loc == len(self.values) - 1:
-            # at back
-            left_block = make_block(self.values[:-1], self.items[:-1].copy(),
-                                    self.ref_items)
-            right_block = None
-        else:
-            # in the middle
-            left_block = make_block(self.values[:loc],
-                                    self.items[:loc].copy(), self.ref_items)
-            right_block = make_block(self.values[loc + 1:],
-                                     self.items[loc + 1:].copy(),
-                                     self.ref_items)
-
-        return left_block, right_block
+        for s,e in com.split_ranges(mask):
+            yield make_block(self.values[s:e],
+                             self.items[s:e].copy(),
+                             self.ref_items)
 
     def fillna(self, value, inplace=False):
         new_values = self.values if inplace else self.values.copy()
@@ -906,9 +894,12 @@ class BlockManager(object):
         i, _ = self._find_block(item)
         loc = self.items.get_loc(item)
 
+        self._delete_from_block(i, item)
+        if com._is_bool_indexer(loc): # dupe keys may return mask
+            loc = [i for i,v in enumerate(loc) if v]
+
         new_items = self.items.delete(loc)
 
-        self._delete_from_block(i, item)
         self.set_items_norename(new_items)
 
     def set(self, item, value):
@@ -970,13 +961,8 @@ class BlockManager(object):
         Delete and maybe remove the whole block
         """
         block = self.blocks.pop(i)
-        new_left, new_right = block.split_block_at(item)
-
-        if new_left is not None:
-            self.blocks.append(new_left)
-
-        if new_right is not None:
-            self.blocks.append(new_right)
+        for b in block.split_block_at(item):
+            self.blocks.append(b)
 
     def _add_new_block(self, item, value, loc=None):
         # Do we care about dtype at the moment?
