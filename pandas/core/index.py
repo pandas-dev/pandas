@@ -107,16 +107,18 @@ class Index(np.ndarray):
             subarr = com._asarray_tuplesafe(data, dtype=object)
 
         if dtype is None:
-            if _shouldbe_timestamp(subarr):
-                from pandas.tseries.index import DatetimeIndex
-                return DatetimeIndex(subarr, copy=copy, name=name)
-
-            if lib.is_period_array(subarr):
-                from pandas.tseries.period import PeriodIndex
-                return PeriodIndex(subarr, name=name)
-
-            if lib.is_integer_array(subarr):
+            inferred = lib.infer_dtype(subarr)
+            if inferred == 'integer':
                 return Int64Index(subarr.astype('i8'), name=name)
+            elif inferred != 'string':
+                if (inferred.startswith('datetime') or
+                    lib.is_timestamp_array(subarr)):
+                    from pandas.tseries.index import DatetimeIndex
+                    return DatetimeIndex(subarr, copy=copy, name=name)
+
+                if lib.is_period_array(subarr):
+                    from pandas.tseries.period import PeriodIndex
+                    return PeriodIndex(subarr, name=name)
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -170,7 +172,7 @@ class Index(np.ndarray):
         """
         return list(self.values)
 
-    @property
+    @cache_readonly
     def dtype(self):
         return self.values.dtype
 
@@ -1206,7 +1208,7 @@ class Int64Index(Index):
     def _constructor(self):
         return Int64Index
 
-    @property
+    @cache_readonly
     def dtype(self):
         return np.dtype('int64')
 
@@ -1319,7 +1321,7 @@ class MultiIndex(Index):
         # hack for various methods
         return self.values
 
-    @property
+    @cache_readonly
     def dtype(self):
         return np.dtype('O')
 
