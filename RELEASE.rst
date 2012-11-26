@@ -42,6 +42,8 @@ pandas 0.10.0
     this can rename the columns. To fix legacy code, put ``header=None`` when
     passing ``names``
   - DataFrame selection using a boolean frame now preserves input shape
+  - If function passed to Series.apply yields a Series, result will be a
+    DataFrame (#2316)
 
 **Improvements to existing features**
 
