@@ -246,6 +246,10 @@ class TestTimeSeries(unittest.TestCase):
         _check_rng(rng_eastern)
         _check_rng(rng_utc)
 
+    def test_ctor_str_intraday(self):
+        rng = DatetimeIndex(['1-1-2000 00:00:01'])
+        self.assert_(rng[0].second == 1)
+
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
         data = dict((k, 1) for k in rng)

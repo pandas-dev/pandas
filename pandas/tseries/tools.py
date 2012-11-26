@@ -235,18 +235,13 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     repl = {}
     reso = 'year'
-    stopped = False
+
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
-        can_be_zero = ['hour', 'minute', 'second', 'microsecond']
         value = getattr(parsed, attr)
         if value is not None and value != 0:  # or attr in can_be_zero):
             repl[attr] = value
-            if not stopped:
-                reso = attr
-        else:
-            stopped = True
-            break
+            reso = attr
     ret = default.replace(**repl)
     return ret, parsed, reso  # datetime, resolution
 
