@@ -1116,8 +1116,7 @@ class Grouping(object):
         if self._was_factor:  # pragma: no cover
             raise Exception('Should not call this method grouping by level')
         else:
-            labs, uniques = algos.factorize(self.grouper,
-                                                    sort=self.sort)
+            labs, uniques = algos.factorize(self.grouper, sort=self.sort)
             uniques = Index(uniques, name=self.name)
             self._labels = labs
             self._group_index = uniques

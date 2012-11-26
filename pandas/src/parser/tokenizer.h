@@ -194,6 +194,7 @@ typedef struct parser_t {
     int skip_footer;
 
     // error handling
+    char *warn_msg;
     char *error_msg;
 } parser_t;
 

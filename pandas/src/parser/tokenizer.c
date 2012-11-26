@@ -183,6 +183,7 @@ int parser_cleanup(parser_t *self) {
 
     // XXX where to put this
     free_if_not_null(self->error_msg);
+    free_if_not_null(self->warn_msg);
 
     if (self->skipset != NULL)
         kh_destroy_int64((kh_int64_t*) self->skipset);
@@ -252,6 +253,7 @@ int parser_init(parser_t *self) {
     self->state = START_RECORD;
 
     self->error_msg = NULL;
+    self->warn_msg = NULL;
 
     return 0;
 }
@@ -395,10 +397,27 @@ static int P_INLINE end_field(parser_t *self) {
     return 0;
 }
 
+
+static void append_warning(parser_t *self, const char *msg) {
+    int ex_length;
+    int length = strlen(msg);
+
+    if (self->warn_msg == NULL) {
+        self->warn_msg = (char*) malloc(length + 1);
+        strcpy(self->warn_msg, msg);
+    } else {
+        ex_length = strlen(self->warn_msg);
+        self->warn_msg = (char*) safe_realloc(self->warn_msg,
+                                              ex_length + length + 1);
+        strcpy(self->warn_msg + ex_length, msg);
+    }
+}
+
 static int end_line(parser_t *self) {
     int fields;
     khiter_t k;  /* for hash set detection */
     int ex_fields = -1;
+    char *msg;
 
     fields = self->line_fields[self->lines];
 
@@ -449,9 +468,12 @@ static int end_line(parser_t *self) {
         } else {
             // simply skip bad lines
             if (self->warn_bad_lines) {
-                // print error message
-                printf("Skipping line %d: expected %d fields, saw %d\n",
-                       self->file_lines, ex_fields, fields);
+                // pass up error message
+                msg = (char*) malloc(100);
+                sprintf(msg, "Skipping line %d: expected %d fields, saw %d\n",
+                        self->file_lines, ex_fields, fields);
+                append_warning(self, msg);
+                free(msg);
             }
         }
     } else {
@@ -1276,7 +1298,6 @@ int tokenize_all_rows(parser_t *self) {
     int status = _tokenize_helper(self, -1, 1);
     return status;
 }
-
 
 void test_count_lines(char *fname) {
     clock_t start = clock();
