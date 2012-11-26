@@ -126,11 +126,15 @@ def _comp_method(op, name):
 
         if isinstance(other, Series):
             name = _maybe_match_name(self, other)
+            if len(self) != len(other):
+                raise ValueError('Series lengths must match to compare')
             return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
         elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
         elif isinstance(other, np.ndarray):
+            if len(self) != len(other):
+                raise ValueError('Lengths must match to compare')
             return Series(na_op(self.values, np.asarray(other)),
                           index=self.index, name=self.name)
         else:
