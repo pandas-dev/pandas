@@ -802,8 +802,8 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                                          'utc=True')
                 else:
                     iresult[i] = _pydatetime_to_dts(val, &dts)
-                    if is_timestamp(val):
-                        iresult[i] += val.nanosecond
+                    if isinstance(val, _Timestamp):
+                        iresult[i] += (<_Timestamp>val).nanosecond
                     _check_dts_bounds(iresult[i], &dts)
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
