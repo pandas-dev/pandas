@@ -632,7 +632,7 @@ class Grouper(object):
         all_labels = [ping.labels for ping in self.groupings]
         if self._overflow_possible:
             tups = lib.fast_zip(all_labels)
-            labs, uniques, _ = algos.factorize(tups)
+            labs, uniques = algos.factorize(tups)
 
             if self.sort:
                 uniques, labs = _reorder_by_uniques(uniques, labs)
@@ -1056,7 +1056,7 @@ class Grouping(object):
                 self._was_factor = True
 
                 # all levels may not be observed
-                labels, uniques, counts = algos.factorize(inds, sort=True)
+                labels, uniques = algos.factorize(inds, sort=True)
 
                 if len(uniques) < len(level_index):
                     level_index = level_index.take(uniques)
@@ -1090,7 +1090,6 @@ class Grouping(object):
         return iter(self.indices)
 
     _labels = None
-    _counts = None
     _group_index = None
 
     @property
@@ -1108,16 +1107,6 @@ class Grouping(object):
         return self._labels
 
     @property
-    def counts(self):
-        if self._counts is None:
-            if self._was_factor:
-                self._counts = lib.group_count(com._ensure_int64(self.labels),
-                                               self.ngroups)
-            else:
-                self._make_labels()
-        return self._counts
-
-    @property
     def group_index(self):
         if self._group_index is None:
             self._make_labels()
@@ -1127,12 +1116,11 @@ class Grouping(object):
         if self._was_factor:  # pragma: no cover
             raise Exception('Should not call this method grouping by level')
         else:
-            labs, uniques, counts = algos.factorize(self.grouper,
+            labs, uniques = algos.factorize(self.grouper,
                                                     sort=self.sort)
             uniques = Index(uniques, name=self.name)
             self._labels = labs
             self._group_index = uniques
-            self._counts = counts
 
     _groups = None
 
@@ -2145,7 +2133,7 @@ def _lexsort_indexer(keys, orders=None):
         if not key.dtype == np.object_:
             key = key.astype('O')
 
-        ids, _ = rizer.factorize(key, sort=True)
+        ids = rizer.factorize(key, sort=True)
 
         n = len(rizer.uniques)
         shape.append(n)

@@ -566,8 +566,8 @@ def _factorize_keys(lk, rk, sort=True):
 
     rizer = klass(max(len(lk), len(rk)))
 
-    llab, _ = rizer.factorize(lk)
-    rlab, _ = rizer.factorize(rk)
+    llab = rizer.factorize(lk)
+    rlab = rizer.factorize(rk)
 
     count = rizer.get_count()
 

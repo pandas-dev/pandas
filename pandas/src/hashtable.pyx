@@ -268,7 +268,6 @@ cdef class StringHashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            ndarray[int64_t] counts = np.empty(n, dtype=np.int64)
             dict reverse = {}
             Py_ssize_t idx, count = 0
             int ret = 0
@@ -283,7 +282,6 @@ cdef class StringHashTable(HashTable):
             if k != self.table.n_buckets:
                 idx = self.table.vals[k]
                 labels[i] = idx
-                counts[idx] = counts[idx] + 1
             else:
                 k = kh_put_str(self.table, buf, &ret)
                 # print 'putting %s, %s' % (val, count)
@@ -293,11 +291,10 @@ cdef class StringHashTable(HashTable):
                 self.table.vals[k] = count
                 reverse[count] = val
                 labels[i] = count
-                counts[count] = 1
                 count += 1
 
         # return None
-        return reverse, labels, counts[:count].copy()
+        return reverse, labels
 
 cdef class Int32HashTable(HashTable):
     cdef kh_int32_t *table
@@ -376,7 +373,6 @@ cdef class Int32HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            ndarray[int64_t] counts = np.empty(n, dtype=np.int64)
             dict reverse = {}
             Py_ssize_t idx, count = 0
             int ret = 0
@@ -389,7 +385,6 @@ cdef class Int32HashTable(HashTable):
             if k != self.table.n_buckets:
                 idx = self.table.vals[k]
                 labels[i] = idx
-                counts[idx] = counts[idx] + 1
             else:
                 k = kh_put_int32(self.table, val, &ret)
                 if not ret:
@@ -397,11 +392,10 @@ cdef class Int32HashTable(HashTable):
                 self.table.vals[k] = count
                 reverse[count] = val
                 labels[i] = count
-                counts[count] = 1
                 count += 1
 
         # return None
-        return reverse, labels, counts[:count].copy()
+        return reverse, labels
 
 cdef class Int64HashTable(HashTable):
     cdef kh_int64_t *table
@@ -518,22 +512,20 @@ cdef class Int64HashTable(HashTable):
 
     def factorize(self, ndarray[object] values):
         reverse = {}
-        labels, counts = self.get_labels(values, reverse, 0)
-        return reverse, labels, counts
+        labels = self.get_labels(values, reverse, 0)
+        return reverse, labels
 
     def get_labels(self, ndarray[int64_t] values, Int64Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels
-            ndarray[int64_t] counts
             Py_ssize_t idx, count = count_prior
             int ret = 0
             int64_t val
             khiter_t k
 
         labels = np.empty(n, dtype=np.int64)
-        counts = np.empty(count_prior + n, dtype=np.int64)
 
         for i in range(n):
             val = values[i]
@@ -541,16 +533,14 @@ cdef class Int64HashTable(HashTable):
             if k != self.table.n_buckets:
                 idx = self.table.vals[k]
                 labels[i] = idx
-                counts[idx] = counts[idx] + 1
             else:
                 k = kh_put_int64(self.table, val, &ret)
                 self.table.vals[k] = count
                 uniques.append(val)
                 labels[i] = count
-                counts[count] = 1
                 count += 1
 
-        return labels, counts[:count].copy()
+        return labels
 
     def get_labels_groupby(self, ndarray[int64_t] values):
         cdef:
@@ -615,37 +605,6 @@ cdef class Int64HashTable(HashTable):
 
         return result
 
-def value_count_int64(ndarray[int64_t] values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        kh_int64_t *table
-        int ret = 0
-
-    table = kh_init_int64()
-    kh_resize_int64(table, n)
-
-    for i in range(n):
-        val = values[i]
-        k = kh_get_int64(table, val)
-        if k != table.n_buckets:
-            table.vals[k] += 1
-        else:
-            k = kh_put_int64(table, val, &ret)
-            table.vals[k] = 1
-
-    # for (k = kh_begin(h); k != kh_end(h); ++k)
-    # 	if (kh_exist(h, k)) kh_value(h, k) = 1;
-    i = 0
-    result_keys = np.empty(table.n_occupied, dtype=np.int64)
-    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
-    for k in range(table.n_buckets):
-        if kh_exist_int64(table, k):
-            result_keys[i] = table.keys[k]
-            result_counts[i] = table.vals[k]
-            i += 1
-    kh_destroy_int64(table)
-
-    return result_keys, result_counts
 
 cdef class Float64HashTable(HashTable):
     cdef kh_float64_t *table
@@ -665,8 +624,8 @@ cdef class Float64HashTable(HashTable):
 
     def factorize(self, ndarray[float64_t] values):
         uniques = Float64Vector()
-        labels, counts = self.get_labels(values, uniques, 0, -1)
-        return uniques.to_array(xfer_data=True), labels, counts
+        labels = self.get_labels(values, uniques, 0, -1)
+        return uniques.to_array(xfer_data=True), labels
 
     cpdef get_labels(self, ndarray[float64_t] values,
                      Float64Vector uniques,
@@ -674,14 +633,12 @@ cdef class Float64HashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels
-            ndarray[int64_t] counts
             Py_ssize_t idx, count = count_prior
             int ret = 0
             float64_t val
             khiter_t k
 
         labels = np.empty(n, dtype=np.int64)
-        counts = np.empty(count_prior + n, dtype=np.int64)
 
         for i in range(n):
             val = values[i]
@@ -694,16 +651,14 @@ cdef class Float64HashTable(HashTable):
             if k != self.table.n_buckets:
                 idx = self.table.vals[k]
                 labels[i] = idx
-                counts[idx] = counts[idx] + 1
             else:
                 k = kh_put_float64(self.table, val, &ret)
                 self.table.vals[k] = count
                 uniques.append(val)
                 labels[i] = count
-                counts[count] = 1
                 count += 1
 
-        return labels, counts[:count].copy()
+        return labels
 
     def map_locations(self, ndarray[float64_t] values):
         cdef:
@@ -897,14 +852,12 @@ cdef class PyObjectHashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels
-            ndarray[int64_t] counts
             Py_ssize_t idx, count = count_prior
             int ret = 0
             object val
             khiter_t k
 
         labels = np.empty(n, dtype=np.int64)
-        counts = np.empty(count_prior + n, dtype=np.int64)
 
         for i in range(n):
             val = values[i]
@@ -918,16 +871,14 @@ cdef class PyObjectHashTable(HashTable):
             if k != self.table.n_buckets:
                 idx = self.table.vals[k]
                 labels[i] = idx
-                counts[idx] = counts[idx] + 1
             else:
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
                 self.table.vals[k] = count
                 uniques.append(val)
                 labels[i] = count
-                counts[count] = 1
                 count += 1
 
-        return labels, counts[:count].copy()
+        return labels
 
 
 cdef class Factorizer:
@@ -944,8 +895,8 @@ cdef class Factorizer:
         return self.count
 
     def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1):
-        labels, counts = self.table.get_labels(values, self.uniques,
-                                               self.count, na_sentinel)
+        labels = self.table.get_labels(values, self.uniques,
+                                       self.count, na_sentinel)
 
         # sort on
         if sort:
@@ -957,10 +908,9 @@ cdef class Factorizer:
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
             labels = reverse_indexer.take(labels)
-            counts = counts.take(sorter)
 
-        self.count = len(counts)
-        return labels, counts
+        self.count = len(self.uniques)
+        return labels
 
     def unique(self, ndarray[object] values):
         # just for fun
@@ -982,8 +932,8 @@ cdef class Int64Factorizer:
 
     def factorize(self, ndarray[int64_t] values, sort=False,
                   na_sentinel=-1):
-        labels, counts = self.table.get_labels(values, self.uniques,
-                                               self.count, na_sentinel)
+        labels = self.table.get_labels(values, self.uniques,
+                                       self.count, na_sentinel)
 
         # sort on
         if sort:
@@ -995,26 +945,8 @@ cdef class Int64Factorizer:
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
             labels = reverse_indexer.take(labels)
-            counts = counts.take(sorter)
 
-        self.count = len(counts)
-        return labels, counts
+        self.count = len(self.uniques)
+        return labels
 
-
-
-def lookup2(ndarray[object] values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        int ret = 0
-        object val
-        khiter_t k
-        long hval
-        ndarray[int64_t] locs = np.empty(n, dtype=np.int64)
-
-    # for i in range(n):
-    #     val = values[i]
-        # hval = PyObject_Hash(val)
-        # k = kh_get_pymap(self.table, <PyObject*>val)
-
-    return locs
 

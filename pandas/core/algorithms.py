@@ -121,13 +121,13 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     table = hash_klass(len(values))
     uniques = vec_klass()
-    labels, counts = table.get_labels(values, uniques, 0, na_sentinel)
+    labels = table.get_labels(values, uniques, 0, na_sentinel)
 
     labels = com._ensure_platform_int(labels)
 
     uniques = uniques.to_array(xfer_data=True)
 
-    if sort and len(counts) > 0:
+    if sort and len(uniques) > 0:
         sorter = uniques.argsort()
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -137,12 +137,11 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         np.putmask(labels, mask, -1)
 
         uniques = uniques.take(sorter)
-        counts = counts.take(sorter)
 
     if is_datetime:
-        uniques = np.array(uniques, dtype='M8[ns]')
+        uniques = uniques.view('M8[ns]')
 
-    return labels, uniques, counts
+    return labels, uniques
 
 
 def value_counts(values, sort=True, ascending=False):
