@@ -2119,9 +2119,9 @@ copy : boolean, default False
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
-        Invoke function on values of Series. Can be ufunc, a Python function
-        that applies to the entire Series, or a Python function that only
-        works on single values
+        Invoke function on values of Series. Can be ufunc (a NumPy function
+        that applies to the entire Series) or a Python function that only works
+        on single values
 
         Parameters
         ----------
@@ -2141,22 +2141,21 @@ copy : boolean, default False
 
         Returns
         -------
-        y : Series
+        y : Series or DataFrame if func returns a Series
         """
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
         else:
             f = func
 
-        try:
-            result = f(self)
-            if isinstance(result, np.ndarray):
-                result = Series(result, index=self.index, name=self.name)
-            else:
-                raise ValueError('Must yield array')
-            return result
-        except Exception:
-            mapped = lib.map_infer(self.values, f, convert=convert_dtype)
+        if isinstance(f, np.ufunc):
+            return f(self)
+
+        mapped = lib.map_infer(self.values, f, convert=convert_dtype)
+        if isinstance(mapped[0], Series):
+            from pandas.core.frame import DataFrame
+            return DataFrame(mapped.tolist(), index=self.index)
+        else:
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,

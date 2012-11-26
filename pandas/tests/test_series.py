@@ -2513,9 +2513,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import math
         assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
-        # does not return Series
-        result = self.ts.apply(lambda x: x.values * 2)
-        assert_series_equal(result, self.ts * 2)
+        # how to handle Series result, #2316
+        result = self.ts.apply(lambda x: Series([x, x ** 2],
+                                                index=['x', 'x^2']))
+        expected = DataFrame({'x': self.ts, 'x^2': self.ts **2})
+        tm.assert_frame_equal(result, expected)
 
     def test_apply_same_length_inference_bug(self):
         s = Series([1, 2])
