@@ -339,7 +339,10 @@ for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
         _offset_map[_name] = offsets.WeekOfMonth(week=_iweek, weekday=_i)
         _rule_aliases[_name.replace('-', '@')] = _name
 
-_legacy_reverse_map = dict((v, k) for k, v in _rule_aliases.iteritems())
+# Note that _rule_aliases is not 1:1 (d[BA]==d[A@DEC]), and so traversal
+# order matters when constructing an inverse. we pick one. #2331
+_legacy_reverse_map = dict((v, k) for k, v in
+                           reversed(sorted(_rule_aliases.iteritems())))
 
 # for helping out with pretty-printing and name-lookups
 
