@@ -200,8 +200,6 @@ typedef struct parser_t {
 
 
 
-static void *safe_realloc(void *buffer, size_t size);
-
 
 typedef struct coliter_t {
     char **words;
