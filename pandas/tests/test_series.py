@@ -2948,6 +2948,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assert_(np.array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.]))
 
+        self.assertRaises(ValueError, ts.fillna)
+        self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
+
     def test_fillna_bug(self):
         x = Series([nan, 1., nan, 3., nan],['z','a','b','c','d'])
         filled = x.fillna(method='ffill')
@@ -2974,8 +2977,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         except ValueError, inst:
             self.assert_('ffil' in str(inst))
 
-    def test_fillna_toomany_params(self):
-        self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
+    def test_ffill(self):
+        ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
+        ts[2] = np.NaN
+        assert_series_equal(ts.ffill(), ts.fillna(method='ffill'))
+
+    def test_bfill(self):
+        ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
+        ts[2] = np.NaN
+        assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_replace(self):
         N = 100

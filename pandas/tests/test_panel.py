@@ -950,6 +950,15 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)
 
+        self.assertRaises(ValueError, self.panel.fillna)
+        self.assertRaises(ValueError, self.panel.fillna, 5, method='ffill')
+
+    def test_ffill_bfill(self):
+        assert_panel_equal(self.panel.ffill(),
+                           self.panel.fillna(method='ffill'))
+        assert_panel_equal(self.panel.bfill(),
+                           self.panel.fillna(method='bfill'))
+
     def test_truncate_fillna_bug(self):
         # #1823
         result = self.panel.truncate(before=None, after=None, axis='items')

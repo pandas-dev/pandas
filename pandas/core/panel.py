@@ -901,7 +901,7 @@ class Panel(NDFrame):
 
         return self._constructor(result_values, items, major, minor)
 
-    def fillna(self, value=None, method='pad'):
+    def fillna(self, value=None, method=None):
         """
         Fill NaN values using the specified method.
 
@@ -927,14 +927,26 @@ class Panel(NDFrame):
         DataFrame.reindex, DataFrame.asfreq
         """
         if value is None:
+            if method is None:
+                raise ValueError('must specify a fill method or value')
             result = {}
             for col, s in self.iterkv():
                 result[col] = s.fillna(method=method, value=value)
 
             return self._constructor.from_dict(result)
         else:
+            if method is not None:
+                raise ValueError('cannot specify both a fill method and value')
             new_data = self._data.fillna(value)
             return self._constructor(new_data)
+
+
+    def ffill(self):
+        return self.fillna(method='ffill')
+
+    def bfill(self):
+        return self.fillna(method='bfill')
+
 
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
