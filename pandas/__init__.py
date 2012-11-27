@@ -22,6 +22,9 @@ except Exception:  # pragma: no cover
 from pandas.version import version as __version__
 from pandas.info import __doc__
 
+# let init-time option registration happen
+import pandas.core.config_init
+
 from pandas.core.api import *
 from pandas.sparse.api import *
 from pandas.stats.api import *

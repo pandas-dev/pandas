@@ -19,6 +19,7 @@ import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas
 import pandas as pd
+from pandas.core.config import set_option,get_option
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -64,7 +65,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_repr_truncation(self):
         max_len = 20
-        fmt.print_config.max_colwidth = max_len
+        set_option("print_config.max_colwidth", max_len)
         df = DataFrame({'A': np.random.randn(10),
                  'B': [tm.rands(np.random.randint(max_len - 1,
                      max_len + 1)) for i in range(10)]})
@@ -76,10 +77,10 @@ class TestDataFrameFormatting(unittest.TestCase):
             else:
                 self.assert_('...' not in line)
 
-        fmt.print_config.max_colwidth = None
+        set_option("print_config.max_colwidth", 999999)
         self.assert_('...' not in repr(df))
 
-        fmt.print_config.max_colwidth = max_len + 2
+        set_option("print_config.max_colwidth", max_len + 2)
         self.assert_('...' not in repr(df))
 
     def test_repr_should_return_str (self):
@@ -425,7 +426,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         assert(df_s == expected)
 
         fmt.reset_printoptions()
-        self.assertEqual(fmt.print_config.precision, 7)
+        self.assertEqual(get_option("print_config.precision"), 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()

@@ -11,7 +11,8 @@ except:
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
-
+from pandas.core.config import get_option, set_option, \
+                               reset_options
 import pandas.core.common as com
 import pandas.lib as lib
 
@@ -69,7 +70,7 @@ class SeriesFormatter(object):
         self.header = header
 
         if float_format is None:
-            float_format = print_config.float_format
+            float_format = get_option("print_config.float_format")
         self.float_format = float_format
 
     def _get_footer(self):
@@ -143,11 +144,11 @@ if py3compat.PY3:  # pragma: no cover
     _strlen = len
 else:
     def _encode_diff(x):
-        return len(x) - len(x.decode(print_config.encoding))
+        return len(x) - len(x.decode(get_option("print_config.encoding")))
 
     def _strlen(x):
         try:
-            return len(x.decode(print_config.encoding))
+            return len(x.decode(get_option("print_config.encoding")))
         except UnicodeError:
             return len(x)
 
@@ -174,7 +175,7 @@ class DataFrameFormatter(object):
         self.show_index_names = index_names
 
         if sparsify is None:
-            sparsify = print_config.multi_sparse
+            sparsify = get_option("print_config.multi_sparse")
 
         self.sparsify = sparsify
 
@@ -186,7 +187,7 @@ class DataFrameFormatter(object):
         self.index = index
 
         if justify is None:
-            self.justify = print_config.colheader_justify
+            self.justify = get_option("print_config.colheader_justify")
         else:
             self.justify = justify
 
@@ -690,13 +691,13 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = GenericArrayFormatter
 
     if space is None:
-        space = print_config.column_space
+        space = get_option("print_config.column_space")
 
     if float_format is None:
-        float_format = print_config.float_format
+        float_format = get_option("print_config.float_format")
 
     if digits is None:
-        digits = print_config.precision
+        digits = get_option("print_config.precision")
 
     fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
                         float_format=float_format,
@@ -724,9 +725,9 @@ class GenericArrayFormatter(object):
 
     def _format_strings(self):
         if self.float_format is None:
-            float_format = print_config.float_format
+            float_format = get_option("print_config.float_format")
             if float_format is None:
-                fmt_str = '%% .%dg' % print_config.precision
+                fmt_str = '%% .%dg' % get_option("print_config.precision")
                 float_format = lambda x: fmt_str % x
         else:
             float_format = self.float_format
@@ -848,7 +849,7 @@ def _make_fixed_width(strings, justify='right', minimum=None):
     if minimum is not None:
         max_len = max(minimum, max_len)
 
-    conf_max = print_config.max_colwidth
+    conf_max = get_option("print_config.max_colwidth")
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
@@ -926,7 +927,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify=None,
                      max_colwidth=None, notebook_repr_html=None,
                      date_dayfirst=None, date_yearfirst=None,
-                     multi_sparse=None, encoding=None):
+                     pprint_nest_depth=None,multi_sparse=None, encoding=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -950,37 +951,65 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         When True, prints and parses dates with the day first, eg 20/01/2005
     date_yearfirst : boolean
         When True, prints and parses dates with the year first, eg 2005/01/20
+    pprint_nest_depth : int
+        Defaults to 3.
+        Controls the number of nested levels to process when pretty-printing
+        nested sequences.
     multi_sparse : boolean
         Default True, "sparsify" MultiIndex display (don't display repeated
         elements in outer levels within groups)
     """
     if precision is not None:
-        print_config.precision = precision
+        set_option("print_config.precision", precision)
     if column_space is not None:
-        print_config.column_space = column_space
+        set_option("print_config.column_space", column_space)
     if max_rows is not None:
-        print_config.max_rows = max_rows
+        set_option("print_config.max_rows", max_rows)
     if max_colwidth is not None:
-        print_config.max_colwidth = max_colwidth
+        set_option("print_config.max_colwidth", max_colwidth)
     if max_columns is not None:
-        print_config.max_columns = max_columns
+        set_option("print_config.max_columns", max_columns)
     if colheader_justify is not None:
-        print_config.colheader_justify = colheader_justify
+        set_option("print_config.colheader_justify", colheader_justify)
     if notebook_repr_html is not None:
-        print_config.notebook_repr_html = notebook_repr_html
+        set_option("print_config.notebook_repr_html", notebook_repr_html)
     if date_dayfirst is not None:
-        print_config.date_dayfirst = date_dayfirst
+        set_option("print_config.date_dayfirst", date_dayfirst)
     if date_yearfirst is not None:
-        print_config.date_yearfirst = date_yearfirst
+        set_option("print_config.date_yearfirst", date_yearfirst)
+    if pprint_nest_depth is not None:
+        set_option("print_config.pprint_nest_depth", pprint_nest_depth)
     if multi_sparse is not None:
-        print_config.multi_sparse = multi_sparse
+        set_option("print_config.multi_sparse", multi_sparse)
     if encoding is not None:
-        print_config.encoding = encoding
-
+        set_option("print_config.encoding", encoding)
 
 def reset_printoptions():
-    print_config.reset()
+    reset_options("print_config.")
 
+def detect_console_encoding():
+    """
+    Try to find the most capable encoding supported by the console.
+    slighly modified from the way IPython handles the same issue.
+    """
+    import locale
+
+    encoding = None
+    try:
+        encoding=sys.stdin.encoding
+    except AttributeError:
+        pass
+
+    if not encoding or encoding =='ascii': # try again for something better
+        try:
+            encoding = locale.getpreferredencoding()
+        except Exception:
+            pass
+
+    if not encoding: # when all else fails. this will usually be "ascii"
+            encoding = sys.getdefaultencoding()
+
+    return encoding
 
 class EngFormatter(object):
     """
@@ -1088,59 +1117,8 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
                       "being renamed to 'accuracy'", FutureWarning)
         accuracy = precision
 
-    print_config.float_format = EngFormatter(accuracy, use_eng_prefix)
-    print_config.column_space = max(12, accuracy + 9)
-
-
-class _GlobalPrintConfig(object):
-    """
-    Holds the console formatting settings for DataFrame and friends
-    """
-
-    def __init__(self):
-        self.precision = self.digits = 7
-        self.float_format = None
-        self.column_space = 12
-        self.max_rows = 200
-        self.max_colwidth = 50
-        self.max_columns = 0
-        self.colheader_justify = 'right'
-        self.notebook_repr_html = True
-        self.date_dayfirst = False
-        self.date_yearfirst = False
-        self.pprint_nest_depth = 3
-        self.multi_sparse = True
-        self.encoding = self.detect_encoding()
-
-    def detect_encoding(self):
-        """
-        Try to find the most capable encoding supported by the console.
-        slighly modified from the way IPython handles the same issue.
-        """
-        import locale
-
-        encoding = None
-        try:
-            encoding = sys.stdin.encoding
-        except AttributeError:
-            pass
-
-        if not encoding or encoding == 'ascii':  # try again for better
-            try:
-                encoding = locale.getpreferredencoding()
-            except Exception:
-                pass
-
-        if not encoding:  # when all else fails. this will usually be "ascii"
-            encoding = sys.getdefaultencoding()
-
-        return encoding
-
-    def reset(self):
-        self.__init__()
-
-print_config = _GlobalPrintConfig()
-
+    set_option("print_config.float_format", EngFormatter(accuracy, use_eng_prefix))
+    set_option("print_config.column_space", max(12, accuracy + 9))
 
 def _put_lines(buf, lines):
     if any(isinstance(x, unicode) for x in lines):

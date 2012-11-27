@@ -13,6 +13,7 @@ import pandas.lib as lib
 import pandas._algos as _algos
 from pandas.lib import Timestamp
 from pandas.util import py3compat
+from pandas.core.config import get_option
 
 __all__ = ['Index']
 
@@ -1576,8 +1577,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            import pandas.core.format as fmt
-            sparsify = fmt.print_config.multi_sparse
+            sparsify = get_option("print_config.multi_sparse")
 
         if sparsify:
             # little bit of a kludge job for #1217
@@ -2578,9 +2578,13 @@ def _union_indexes(indexes):
 
     if kind == 'special':
         result = indexes[0]
-        for other in indexes[1:]:
-            result = result.union(other)
-        return result
+
+        if hasattr(result, 'union_many'):
+            return result.union_many(indexes[1:])
+        else:
+            for other in indexes[1:]:
+                result = result.union(other)
+            return result
     elif kind == 'array':
         index = indexes[0]
         for other in indexes[1:]:
