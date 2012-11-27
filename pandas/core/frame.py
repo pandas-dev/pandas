@@ -44,6 +44,8 @@ import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas.lib as lib
 
+from pandas.core.config import get_option
+
 #----------------------------------------------------------------------
 # Docstring templates
 
@@ -579,12 +581,11 @@ class DataFrame(NDFrame):
         Check if it is needed to use info/summary view to represent a
         particular DataFrame.
         """
-        config = fmt.print_config
 
         terminal_width, terminal_height = get_terminal_size()
-        max_rows = (terminal_height if config.max_rows == 0
-                    else config.max_rows)
-        max_columns = config.max_columns
+        max_rows = (terminal_height if get_option("print_config.max_rows") == 0
+                    else get_option("print_config.max_rows"))
+        max_columns = get_option("print_config.max_columns")
 
         if max_columns > 0:
             if len(self.index) <= max_rows and \
@@ -608,27 +609,58 @@ class DataFrame(NDFrame):
                 else:
                     return False
 
-    def __repr__(self):
+    def __str__(self):
         """
         Return a string representation for a particular DataFrame
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
         """
-        buf = StringIO()
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
+        buf = StringIO(u"")
         if self._need_info_repr_():
             self.info(buf=buf, verbose=self._verbose_info)
         else:
             self.to_string(buf=buf)
-        value = buf.getvalue()
 
-        if py3compat.PY3:
-            return unicode(value)
-        return com.console_encode(value)
+        value = buf.getvalue()
+        assert type(value) == unicode
+
+        return value
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def _repr_html_(self):
         """
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
-        if fmt.print_config.notebook_repr_html:
+        if get_option("print_config.notebook_repr_html"):
             if self._need_info_repr_():
                 return None
             else:
@@ -1389,19 +1421,21 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, nanRep=None,
-                  index_names=True, justify=None, force_unicode=False):
+                  index_names=True, justify=None, force_unicode=None):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no effect",
+                          FutureWarning)
 
         if nanRep is not None:  # pragma: no cover
-            import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
         if colSpace is not None:  # pragma: no cover
-            import warnings
             warnings.warn("colSpace is deprecated, use col_space",
                           FutureWarning)
             col_space = colSpace
@@ -1414,15 +1448,10 @@ class DataFrame(NDFrame):
                                            justify=justify,
                                            index_names=index_names,
                                            header=header, index=index)
-        formatter.to_string(force_unicode=force_unicode)
+        formatter.to_string()
 
         if buf is None:
             result = formatter.buf.getvalue()
-            if not force_unicode:
-                try:
-                    result = str(result)
-                except ValueError:
-                    pass
             return result
 
     @Appender(fmt.docstring_to_string, indents=1)
@@ -2220,7 +2249,8 @@ class DataFrame(NDFrame):
 
         n = len(row_labels)
         if n != len(col_labels):
-            raise AssertionError('Row labels must have same size as col labels')
+            raise AssertionError('Row labels must have same size as '
+                                 'column labels')
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:

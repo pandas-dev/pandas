@@ -13,6 +13,7 @@ import pandas.lib as lib
 import pandas._algos as _algos
 from pandas.lib import Timestamp
 from pandas.util import py3compat
+from pandas.core.config import get_option
 
 __all__ = ['Index']
 
@@ -139,11 +140,49 @@ class Index(np.ndarray):
             data = self[:3].tolist() + ["..."] + self[-3:].tolist()
         else:
             data = self
+
+    def __str__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
         if py3compat.PY3:
-            prepr = com.pprint_thing(data)
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
+        if len(self) > 6 and len(self) > np.get_printoptions()['threshold']:
+            data = self[:3].tolist() + ["..."] + self[-3:].tolist()
         else:
-            prepr = com.pprint_thing_encoded(data)
+            data = self
+
+        prepr = com.pprint_thing(data)
         return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Index
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
@@ -212,15 +251,6 @@ class Index(np.ndarray):
         if name is None:
             name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
-
-    def __str__(self):
-        try:
-            return np.array_repr(self.values)
-        except UnicodeError:
-            converted = u','.join(com.pprint_thing(x) for x in self.values)
-            result = u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
-                                              str(self.values.dtype))
-            return com.console_encode(result)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -400,8 +430,8 @@ class Index(np.ndarray):
             result = []
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
-                    return header + ['%s' % x for x in self]
-                result.append('%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
+                    return header + [u'%s' % x for x in self]
+                result.append(u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
             return header + result
 
         values = self.values
@@ -1325,7 +1355,33 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
-    def __repr__(self):
+    def __str__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular Index
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
         output = 'MultiIndex\n%s'
 
         options = np.get_printoptions()
@@ -1341,10 +1397,15 @@ class MultiIndex(Index):
 
         np.set_printoptions(threshold=options['threshold'])
 
-        if py3compat.PY3:
-            return output % summary
-        else:
-            return com.console_encode(output % summary)
+        return output % summary
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Index
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def __len__(self):
         return len(self.labels[0])
@@ -1502,7 +1563,7 @@ class MultiIndex(Index):
                 formatted = lev.take(lab).format()
             else:
                 # weird all NA case
-                formatted = [str(x) for x in com.take_1d(lev.values, lab)]
+                formatted = [com.pprint_thing(x) for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
 
         result_levels = []
@@ -1516,8 +1577,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            import pandas.core.format as fmt
-            sparsify = fmt.print_config.multi_sparse
+            sparsify = get_option("print_config.multi_sparse")
 
         if sparsify:
             # little bit of a kludge job for #1217
@@ -2467,15 +2527,13 @@ def _ensure_index(index_like):
         return Index(index_like, name=index_like.name)
 
     if isinstance(index_like, list):
-        klasses = (list, np.ndarray)
-        all_arrays = all(isinstance(x, klasses) for x in index_like)
+        # #2200 ?
+        converted, all_arrays = lib.clean_index_list(index_like)
 
-        if len(index_like) > 0 and all_arrays:
-            return MultiIndex.from_arrays(index_like)
+        if len(converted) > 0 and all_arrays:
+            return MultiIndex.from_arrays(converted)
         else:
-            # #2200 ?
-            index_like = [tuple(x) if isinstance(x, klasses) else x
-                          for x in index_like]
+            index_like = converted
 
     return Index(index_like)
 
@@ -2518,9 +2576,13 @@ def _union_indexes(indexes):
 
     if kind == 'special':
         result = indexes[0]
-        for other in indexes[1:]:
-            result = result.union(other)
-        return result
+
+        if hasattr(result, 'union_many'):
+            return result.union_many(indexes[1:])
+        else:
+            for other in indexes[1:]:
+                result = result.union(other)
+            return result
     elif kind == 'array':
         index = indexes[0]
         for other in indexes[1:]:

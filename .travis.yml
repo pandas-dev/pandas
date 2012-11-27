@@ -7,7 +7,17 @@ python:
   - 3.2
 
 install:
-  - pip install --use-mirrors cython numpy nose pytz python-dateutil
+  - export PYTHONIOENCODING=utf8 # activate venv 1.8.4 "detach" fix
+  - virtualenv --version
+  - whoami
+  - pwd
+  # install 1.7.0b2 for 3.3, and pull a version of numpy git master
+  # with a alternate fix for detach bug as a temporary workaround
+  # for the others.
+  - "if [ $TRAVIS_PYTHON_VERSION == '3.3' ]; then pip uninstall numpy; pip install http://downloads.sourceforge.net/project/numpy/NumPy/1.7.0b2/numpy-1.7.0b2.tar.gz; fi"
+  - "if [ $TRAVIS_PYTHON_VERSION == '3.2' ] || [ $TRAVIS_PYTHON_VERSION == '3.1' ]; then pip install --use-mirrors git+git://github.com/numpy/numpy.git@089bfa5865cd39e2b40099755e8563d8f0d04f5f#egg=numpy; fi"
+  - "if [ ${TRAVIS_PYTHON_VERSION:0:1} == '2' ]; then pip install numpy; fi" # should be nop if pre-installed
+  - pip install --use-mirrors cython nose pytz python-dateutil
 
 script:
   - python setup.py build_ext install

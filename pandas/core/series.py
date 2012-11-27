@@ -33,6 +33,7 @@ import pandas.lib as lib
 from pandas.util.decorators import Appender, Substitution, cache_readonly
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
+from pandas.core.config import get_option
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -915,11 +916,37 @@ copy : boolean, default False
 
             return df.reset_index(level=level, drop=drop)
 
-    def __repr__(self):
-        """Clean string representation of a Series"""
+
+    def __str__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
         width, height = get_terminal_size()
-        max_rows = (height if fmt.print_config.max_rows == 0
-                    else fmt.print_config.max_rows)
+        max_rows = (height if get_option("print_config.max_rows") == 0
+                    else get_option("print_config.max_rows"))
         if len(self.index) > (max_rows or 1000):
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
@@ -927,13 +954,24 @@ copy : boolean, default False
                                     length=len(self) > 50,
                                     name=True)
         else:
-            result = '%s' % ndarray.__repr__(self)
+            result = com.pprint_thing(self)
 
-        if py3compat.PY3:
-            return unicode(result)
-        return com.console_encode(result)
+        assert type(result) == unicode
+        return result
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Series
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def _tidy_repr(self, max_vals=20):
+        """
+
+        Internal function, should always return unicode string
+        """
         num = max_vals // 2
         head = self[:num]._get_repr(print_header=True, length=False,
                                     name=False)
@@ -941,11 +979,13 @@ copy : boolean, default False
                                                   length=False,
                                                   name=False)
         result = head + '\n...\n' + tail
-        return '%s\n%s' % (result, self._repr_footer())
+        result = '%s\n%s' % (result, self._repr_footer())
+
+        return unicode(result)
 
     def _repr_footer(self):
-        namestr = "Name: %s, " % com.pprint_thing(self.name) if self.name is not None else ""
-        return '%sLength: %d' % (namestr, len(self))
+        namestr = u"Name: %s, " % com.pprint_thing(self.name) if self.name is not None else ""
+        return u'%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, name=False):
@@ -978,6 +1018,9 @@ copy : boolean, default False
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
                                   length=length, name=name)
+
+        assert type(the_repr) == unicode
+
         if buf is None:
             return the_repr
         else:
@@ -985,13 +1028,17 @@ copy : boolean, default False
 
     def _get_repr(self, name=False, print_header=False, length=True,
                   na_rep='NaN', float_format=None):
+        """
+
+        Internal function, should always return unicode string
+        """
+
         formatter = fmt.SeriesFormatter(self, name=name, header=print_header,
                                         length=length, na_rep=na_rep,
                                         float_format=float_format)
-        return formatter.to_string()
-
-    def __str__(self):
-        return repr(self)
+        result = formatter.to_string()
+        assert type(result) == unicode
+        return result
 
     def __iter__(self):
         if np.issubdtype(self.dtype, np.datetime64):

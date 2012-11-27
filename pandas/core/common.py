@@ -19,6 +19,8 @@ import csv
 
 from pandas.util.py3compat import StringIO, BytesIO
 
+from pandas.core.config import get_option
+
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
     np.seterr(all='ignore')
@@ -1113,7 +1115,7 @@ def in_interactive_session():
 # 2) If you need to send something to the console, use console_encode().
 #
 #    console_encode() should (hopefully) choose the right encoding for you
-#    based on the encoding set in fmt.print_config.encoding.
+#    based on the encoding set in option "print_config.encoding"
 #
 # 3) if you need to write something out to file, use
 #    pprint_thing_encoded(encoding).
@@ -1165,16 +1167,17 @@ def pprint_thing(thing, _nest_lvl=0):
     result - unicode object on py2, str on py3. Always Unicode.
 
     """
-    from pandas.core.format import print_config
+
     if thing is None:
         result = ''
     elif (py3compat.PY3 and hasattr(thing,'__next__')) or \
          hasattr(thing,'next'):
         return unicode(thing)
     elif (isinstance(thing, dict) and
-          _nest_lvl < print_config.pprint_nest_depth):
+          _nest_lvl < get_option("print_config.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl)
-    elif _is_sequence(thing) and _nest_lvl < print_config.pprint_nest_depth:
+    elif _is_sequence(thing) and _nest_lvl < \
+		get_option("print_config.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl)
     else:
         # when used internally in the package, everything
@@ -1202,7 +1205,6 @@ def pprint_thing_encoded(object, encoding='utf-8', errors='replace'):
 
 
 def console_encode(object):
-    from pandas.core.format import print_config
     """
     this is the sanctioned way to prepare something for
     sending *to the console*, it delegates to pprint_thing() to get
@@ -1210,4 +1212,5 @@ def console_encode(object):
     set in print_config.encoding. Use this everywhere
     where you output to the console.
     """
-    return pprint_thing_encoded(object, print_config.encoding)
+    return pprint_thing_encoded(object,
+             get_option("print_config.encoding"))

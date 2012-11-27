@@ -19,6 +19,7 @@ import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas
 import pandas as pd
+from pandas.core.config import set_option,get_option
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -64,7 +65,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_repr_truncation(self):
         max_len = 20
-        fmt.print_config.max_colwidth = max_len
+        set_option("print_config.max_colwidth", max_len)
         df = DataFrame({'A': np.random.randn(10),
                  'B': [tm.rands(np.random.randint(max_len - 1,
                      max_len + 1)) for i in range(10)]})
@@ -76,10 +77,10 @@ class TestDataFrameFormatting(unittest.TestCase):
             else:
                 self.assert_('...' not in line)
 
-        fmt.print_config.max_colwidth = None
+        set_option("print_config.max_colwidth", 999999)
         self.assert_('...' not in repr(df))
 
-        fmt.print_config.max_colwidth = max_len + 2
+        set_option("print_config.max_colwidth", max_len + 2)
         self.assert_('...' not in repr(df))
 
     def test_repr_should_return_str (self):
@@ -135,7 +136,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df.info(buf=buf)
         buf.getvalue()
 
-        result = self.frame.to_string(force_unicode=True)
+        result = self.frame.to_string()
         self.assert_(isinstance(result, unicode))
 
     def test_to_string_unicode_two(self):
@@ -425,7 +426,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         assert(df_s == expected)
 
         fmt.reset_printoptions()
-        self.assertEqual(fmt.print_config.precision, 7)
+        self.assertEqual(get_option("print_config.precision"), 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
@@ -495,7 +496,6 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(issubclass(df['x'].dtype.type, np.integer))
 
         output = df.to_string()
-        self.assert_(isinstance(output, str))
         expected = ('    x\n'
                     '0 -15\n'
                     '1  20\n'
@@ -809,6 +809,10 @@ class TestSeriesFormatting(unittest.TestCase):
         s = Series([u'\u03c3'] * 10)
         repr(s)
 
+        a = Series([u"\u05d0"] * 1000)
+        a.name = 'title1'
+        repr(a)
+
     def test_to_string(self):
         buf = StringIO()
 
@@ -849,16 +853,16 @@ class TestSeriesFormatting(unittest.TestCase):
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
         result = s.to_string()
-        expected = ('0     foo\n'
-                    '1     NaN\n'
-                    '2   -1.23\n'
-                    '3    4.56')
+        expected = (u'0     foo\n'
+                    u'1     NaN\n'
+                    u'2   -1.23\n'
+                    u'3    4.56')
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
         s = Series(['foo', np.nan, 'bar', 'baz'])
         result = s.to_string()
-        expected = ('0    foo\n'
+        expected = (u'0    foo\n'
                     '1    NaN\n'
                     '2    bar\n'
                     '3    baz')
@@ -866,7 +870,7 @@ class TestSeriesFormatting(unittest.TestCase):
 
         s = Series(['foo', 5, 'bar', 'baz'])
         result = s.to_string()
-        expected = ('0    foo\n'
+        expected = (u'0    foo\n'
                     '1      5\n'
                     '2    bar\n'
                     '3    baz')
@@ -877,7 +881,7 @@ class TestSeriesFormatting(unittest.TestCase):
         s[::2] = np.nan
 
         result = s.to_string()
-        expected = ('0       NaN\n'
+        expected = (u'0       NaN\n'
                     '1    1.5678\n'
                     '2       NaN\n'
                     '3   -3.0000\n'
