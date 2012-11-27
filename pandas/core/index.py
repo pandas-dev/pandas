@@ -2578,9 +2578,13 @@ def _union_indexes(indexes):
 
     if kind == 'special':
         result = indexes[0]
-        for other in indexes[1:]:
-            result = result.union(other)
-        return result
+
+        if hasattr(result, 'union_many'):
+            return result.union_many(indexes[1:])
+        else:
+            for other in indexes[1:]:
+                result = result.union(other)
+            return result
     elif kind == 'array':
         index = indexes[0]
         for other in indexes[1:]:
