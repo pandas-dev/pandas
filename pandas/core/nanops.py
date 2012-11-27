@@ -384,19 +384,22 @@ def _zero_out_fperr(arg):
         return 0 if np.abs(arg) < 1e-14 else arg
 
 
-def nancorr(a, b, method='pearson'):
+def nancorr(a, b, method='pearson', min_periods=None):
     """
     a, b: ndarrays
     """
     if len(a) != len(b):
         raise AssertionError('Operands to nancorr must have same size')
 
+    if min_periods is None:
+        min_periods = 1
+
     valid = notnull(a) & notnull(b)
     if not valid.all():
         a = a[valid]
         b = b[valid]
 
-    if len(a) == 0:
+    if len(a) < min_periods:
         return np.nan
 
     f = get_corr_func(method)
@@ -427,16 +430,19 @@ def get_corr_func(method):
     return _cor_methods[method]
 
 
-def nancov(a, b):
+def nancov(a, b, min_periods=None):
     if len(a) != len(b):
         raise AssertionError('Operands to nancov must have same size')
+
+    if min_periods is None:
+        min_periods = 1
 
     valid = notnull(a) & notnull(b)
     if not valid.all():
         a = a[valid]
         b = b[valid]
 
-    if len(a) == 0:
+    if len(a) < min_periods:
         return np.nan
 
     return np.cov(a, b)[0, 1]

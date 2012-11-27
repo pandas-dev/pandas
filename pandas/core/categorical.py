@@ -53,9 +53,9 @@ class Categorical(object):
             labels, levels = data.factorize()
         else:
             try:
-                labels, levels, _ = factorize(data, sort=True)
+                labels, levels = factorize(data, sort=True)
             except TypeError:
-                labels, levels, _ = factorize(data, sort=False)
+                labels, levels = factorize(data, sort=False)
 
         return Categorical(labels, levels,
                            name=getattr(data, 'name', None))

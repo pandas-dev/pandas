@@ -135,7 +135,7 @@ class PandasObject(object):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
-    def asfreq(self, freq, method=None, how=None):
+    def asfreq(self, freq, method=None, how=None, normalize=False):
         """
         Convert all TimeSeries inside to specified frequency using DateOffset
         objects. Optionally provide fill method to pad/backfill missing values.
@@ -149,13 +149,16 @@ class PandasObject(object):
             backfill / bfill: use NEXT valid observation to fill methdo
         how : {'start', 'end'}, default end
             For PeriodIndex only, see PeriodIndex.asfreq
+        normalize : bool, default False
+            Whether to reset output index to midnight
 
         Returns
         -------
         converted : type of caller
         """
         from pandas.tseries.resample import asfreq
-        return asfreq(self, freq, method=method, how=how)
+        return asfreq(self, freq, method=method, how=how,
+                      normalize=normalize)
 
     def at_time(self, time, asof=False):
         """

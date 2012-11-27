@@ -896,11 +896,7 @@ class DataFrame(NDFrame):
         """
         # Make a copy of the input columns so we can modify it
         if columns is not None:
-            columns = list(columns)
-
-            if len(algos.unique(columns)) < len(columns):
-                raise ValueError('Non-unique columns not yet supported in '
-                                 'from_records')
+            columns = _ensure_index(columns)
 
         if com.is_iterator(data):
             if nrows == 0:
@@ -932,48 +928,66 @@ class DataFrame(NDFrame):
             else:
                 data = values
 
-        if isinstance(data, (np.ndarray, DataFrame, dict)):
-            keys, sdict = _rec_to_dict(data)
+        if isinstance(data, dict):
             if columns is None:
-                columns = keys
+                columns = arr_columns = _ensure_index(sorted(data))
+                arrays = [data[k] for k in columns]
             else:
-                sdict = dict((k, v) for k, v in sdict.iteritems()
-                             if k in columns)
+                arrays = []
+                arr_columns = []
+                for k, v in data.iteritems():
+                    if k in columns:
+                        arr_columns.append(k)
+                        arrays.append(v)
+
+        elif isinstance(data, (np.ndarray, DataFrame)):
+            arrays, columns = _to_arrays(data, columns)
+            if columns is not None:
+                columns = _ensure_index(columns)
+            arr_columns = columns
         else:
-            arrays, columns = _to_arrays(data, columns,
-                                         coerce_float=coerce_float)
-            columns=list(columns) # _to_arrays returns index, but we might mutate
-            sdict = dict(zip(columns, arrays))
+            arrays, arr_columns = _to_arrays(data, columns,
+                                             coerce_float=coerce_float)
+
+            arr_columns = _ensure_index(arr_columns)
+            if columns is not None:
+                columns = _ensure_index(columns)
+            else:
+                columns = arr_columns
 
         if exclude is None:
             exclude = set()
         else:
             exclude = set(exclude)
 
-        for col in exclude:
-            del sdict[col]
-            columns.remove(col)
-
         result_index = None
         if index is not None:
             if (isinstance(index, basestring) or
                 not hasattr(index, "__iter__")):
-                result_index = sdict.pop(index)
-                result_index = Index(result_index, name=index)
-                columns.remove(index)
+                i = columns.get_loc(index)
+                exclude.add(index)
+                result_index = Index(arrays[i], name=index)
             else:
                 try:
-                    arrays = []
-                    for field in index:
-                        arrays.append(sdict[field])
-                    for field in index:
-                        del sdict[field]
-                        columns.remove(field)
-                    result_index = MultiIndex.from_arrays(arrays, names=index)
+                    to_remove = [arr_columns.get_loc(field) for field in index]
+
+                    result_index = MultiIndex.from_arrays(
+                        [arrays[i] for i in to_remove], names=index)
+
+                    exclude.update(index)
                 except Exception:
                     result_index = index
 
-        return cls(sdict, index=result_index, columns=columns)
+        if any(exclude):
+            to_remove = [arr_columns.get_loc(col) for col in exclude]
+            arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
+            arr_columns = arr_columns.drop(exclude)
+            columns = columns.drop(exclude)
+
+        mgr = _arrays_to_mgr(arrays, arr_columns, result_index,
+                             columns)
+
+        return DataFrame(mgr)
 
     def to_records(self, index=True):
         """
@@ -3439,9 +3453,10 @@ class DataFrame(NDFrame):
         # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index.is_all_dates and other.index.is_all_dates:
             import warnings
-            warnings.warn(("TimeSeries broadcasting across DataFrame index "
+            warnings.warn(("TimeSeries broadcasting along DataFrame index "
                            "by default is deprecated. Please use "
-                           "DataFrame.sub"),
+                           "DataFrame.<op> to explicitly broadcast arithmetic "
+                           "operations along the index"),
                            FutureWarning)
             return self._combine_match_index(other, func, fill_value)
         else:
@@ -4226,7 +4241,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson'):
+    def corr(self, method='pearson', min_periods=None):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 
@@ -4236,6 +4251,10 @@ class DataFrame(NDFrame):
             pearson : standard correlation coefficient
             kendall : Kendall Tau correlation coefficient
             spearman : Spearman rank correlation
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for pearson
+            correlation
 
         Returns
         -------
@@ -4246,8 +4265,10 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(com._ensure_float64(mat))
+            correl = lib.nancorr(com._ensure_float64(mat), minp=min_periods)
         else:
+            if min_periods is None:
+                min_periods = 1
             mat = mat.T
             corrf = nanops.get_corr_func(method)
             K = len(cols)
@@ -4256,7 +4277,7 @@ class DataFrame(NDFrame):
             for i, ac in enumerate(mat):
                 for j, bc in enumerate(mat):
                     valid = mask[i] & mask[j]
-                    if not valid.any():
+                    if valid.sum() < min_periods:
                         c = NA
                     elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
@@ -4267,9 +4288,15 @@ class DataFrame(NDFrame):
 
         return self._constructor(correl, index=cols, columns=cols)
 
-    def cov(self):
+    def cov(self, min_periods=None):
         """
         Compute pairwise covariance of columns, excluding NA/null values
+
+        Parameters
+        ----------
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result.
 
         Returns
         -------
@@ -4283,9 +4310,14 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if notnull(mat).all():
-            baseCov = np.cov(mat.T)
+            if min_periods is not None and min_periods > len(mat):
+                baseCov = np.empty((mat.shape[1], mat.shape[1]))
+                baseCov.fill(np.nan)
+            else:
+                baseCov = np.cov(mat.T)
         else:
-            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True)
+            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True,
+                                  minp=min_periods)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 
@@ -5217,9 +5249,18 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     """
     Return list of arrays, columns
     """
+    if isinstance(data, DataFrame):
+        if columns is not None:
+            arrays = [data.icol(i).values for i, col in enumerate(data.columns)
+                      if col in columns]
+        else:
+            columns = data.columns
+            arrays = [data.icol(i).values for i in range(len(columns))]
+
+        return arrays, columns
 
     if len(data) == 0:
-        return [], columns if columns is not None else []
+        return [], [] # columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
@@ -5231,6 +5272,10 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_of_series_to_arrays(data, columns,
                                          coerce_float=coerce_float,
                                          dtype=dtype)
+    elif isinstance(data, np.ndarray):
+        columns = list(data.dtype.names)
+        arrays = [data[k] for k in columns]
+        return arrays, columns
     else:
         # last ditch effort
         data = map(tuple, data)

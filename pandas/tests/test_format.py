@@ -793,7 +793,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'A': [{'a':1, 'b':2}]})
 
         val = df.to_string()
-        self.assertTrue("{'a': 1, 'b': 2}" in val)
+        self.assertTrue("'a': 1" in val)
+        self.assertTrue("'b': 2" in val)
 
     def test_to_latex(self):
         # it works!
@@ -837,6 +838,13 @@ class TestSeriesFormatting(unittest.TestCase):
         result = cp.to_string(length=True, name=True)
         last_line = result.split('\n')[-1].strip()
         self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d" % len(cp))
+
+    def test_freq_name_separation(self):
+        s = Series(np.random.randn(10),
+                   index=pd.date_range('1/1/2000', periods=10), name=0)
+
+        result = repr(s)
+        self.assertTrue('Freq: D, Name: 0' in result)
 
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])

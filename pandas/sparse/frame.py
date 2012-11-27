@@ -87,12 +87,16 @@ class SparseDataFrame(DataFrame):
 
             if index is None:
                 index = Index([])
+            else:
+                index = _ensure_index(index)
 
             if columns is None:
                 columns = Index([])
             else:
                 for c in columns:
-                    sdict[c] = Series(np.nan, index=index)
+                    sdict[c] = SparseSeries(np.nan, index=index,
+                                            kind=self.default_kind,
+                                            fill_value=self.default_fill_value)
 
         self._series = sdict
         self.columns = columns

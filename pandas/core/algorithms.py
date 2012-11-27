@@ -117,16 +117,17 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
     values = np.asarray(values)
     is_datetime = com.is_datetime64_dtype(values)
-    hash_klass, values = _get_data_algo(values, _hashtables)
+    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    uniques = []
     table = hash_klass(len(values))
-    labels, counts = table.get_labels(values, uniques, 0, na_sentinel)
+    uniques = vec_klass()
+    labels = table.get_labels(values, uniques, 0, na_sentinel)
 
     labels = com._ensure_platform_int(labels)
 
-    uniques = com._asarray_tuplesafe(uniques)
-    if sort and len(counts) > 0:
+    uniques = uniques.to_array()
+
+    if sort and len(uniques) > 0:
         sorter = uniques.argsort()
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -136,12 +137,11 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         np.putmask(labels, mask, -1)
 
         uniques = uniques.take(sorter)
-        counts = counts.take(sorter)
 
     if is_datetime:
-        uniques = np.array(uniques, dtype='M8[ns]')
+        uniques = uniques.view('M8[ns]')
 
-    return labels, uniques, counts
+    return labels, uniques
 
 
 def value_counts(values, sort=True, ascending=False):
@@ -325,7 +325,7 @@ _rank2d_functions = {
 }
 
 _hashtables = {
-    'float64': lib.Float64HashTable,
-    'int64': lib.Int64HashTable,
-    'generic': lib.PyObjectHashTable
+    'float64': (lib.Float64HashTable, lib.Float64Vector),
+    'int64': (lib.Int64HashTable, lib.Int64Vector),
+    'generic': (lib.PyObjectHashTable, lib.ObjectVector)
 }

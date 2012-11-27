@@ -126,11 +126,15 @@ def _comp_method(op, name):
 
         if isinstance(other, Series):
             name = _maybe_match_name(self, other)
+            if len(self) != len(other):
+                raise ValueError('Series lengths must match to compare')
             return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
         elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
         elif isinstance(other, np.ndarray):
+            if len(self) != len(other):
+                raise ValueError('Lengths must match to compare')
             return Series(na_op(self.values, np.asarray(other)),
                           index=self.index, name=self.name)
         else:
@@ -1529,7 +1533,8 @@ copy : boolean, default False
 
         return Series(data, index=names)
 
-    def corr(self, other, method='pearson'):
+    def corr(self, other, method='pearson',
+             min_periods=None):
         """
         Compute correlation two Series, excluding missing values
 
@@ -1540,21 +1545,29 @@ copy : boolean, default False
             pearson : standard correlation coefficient
             kendall : Kendall Tau correlation coefficient
             spearman : Spearman rank correlation
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result
+
 
         Returns
         -------
         correlation : float
         """
         this, other = self.align(other, join='inner', copy=False)
-        return nanops.nancorr(this.values, other.values, method=method)
+        if len(this) == 0:
+            return np.nan
+        return nanops.nancorr(this.values, other.values, method=method,
+                              min_periods=min_periods)
 
-    def cov(self, other):
+    def cov(self, other, min_periods=None):
         """
         Compute covariance with Series, excluding missing values
 
         Parameters
         ----------
         other : Series
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result
 
         Returns
         -------
@@ -1565,7 +1578,8 @@ copy : boolean, default False
         this, other = self.align(other, join='inner')
         if len(this) == 0:
             return np.nan
-        return nanops.nancov(this.values, other.values)
+        return nanops.nancov(this.values, other.values,
+                             min_periods=min_periods)
 
     def diff(self, periods=1):
         """
@@ -2105,9 +2119,9 @@ copy : boolean, default False
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
-        Invoke function on values of Series. Can be ufunc, a Python function
-        that applies to the entire Series, or a Python function that only
-        works on single values
+        Invoke function on values of Series. Can be ufunc (a NumPy function
+        that applies to the entire Series) or a Python function that only works
+        on single values
 
         Parameters
         ----------
@@ -2127,22 +2141,21 @@ copy : boolean, default False
 
         Returns
         -------
-        y : Series
+        y : Series or DataFrame if func returns a Series
         """
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
         else:
             f = func
 
-        try:
-            result = f(self)
-            if isinstance(result, np.ndarray):
-                result = Series(result, index=self.index, name=self.name)
-            else:
-                raise ValueError('Must yield array')
-            return result
-        except Exception:
-            mapped = lib.map_infer(self.values, f, convert=convert_dtype)
+        if isinstance(f, np.ufunc):
+            return f(self)
+
+        mapped = lib.map_infer(self.values, f, convert=convert_dtype)
+        if isinstance(mapped[0], Series):
+            from pandas.core.frame import DataFrame
+            return DataFrame(mapped.tolist(), index=self.index)
+        else:
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,

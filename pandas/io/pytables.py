@@ -544,8 +544,9 @@ class HDFStore(object):
         group._v_attrs.nblocks = nblocks
         for i in range(nblocks):
             blk = data.blocks[i]
-            self._write_index(group, 'block%d_items' % i, blk.items)
+            # I have no idea why, but writing values before items fixed #2299
             self._write_array(group, 'block%d_values' % i, blk.values)
+            self._write_index(group, 'block%d_items' % i, blk.items)
 
     def _read_block_manager(self, group):
         ndim = group._v_attrs.ndim
@@ -725,6 +726,7 @@ class HDFStore(object):
         # Transform needed to interface with pytables row/col notation
         empty_array = any(x == 0 for x in value.shape)
         transposed = False
+
         if not empty_array:
             value = value.T
             transposed = True
@@ -1597,6 +1599,9 @@ def _convert_index(index):
                             dtype=np.int32)
         return Col(converted, 'date', _tables().Time32Col())
     elif inferred_type == 'string':
+        # atom = _tables().ObjectAtom()
+        # return np.asarray(values, dtype='O'), 'object', atom
+
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
         return Col(converted, 'string', _tables().StringCol(itemsize), itemsize = itemsize)

@@ -79,7 +79,7 @@ class SeriesFormatter(object):
             if getattr(self.series.index, 'freq', None):
                 footer += 'Freq: %s' % self.series.index.freqstr
 
-            if footer and self.series.name:
+            if footer and self.series.name is not None:
                 footer += ', '
 
             series_name = com.pprint_thing(self.series.name)

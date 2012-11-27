@@ -1092,10 +1092,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import sys
 
         buf = StringIO()
+        tmp = sys.stderr
         sys.stderr = buf
+        try:
         # it works (with no Cython exception barf)!
-        repr(s)
-        sys.stderr = sys.__stderr__
+            repr(s)
+        finally:
+            sys.stderr = tmp
         self.assertEquals(buf.getvalue(), '')
 
     def test_repr_name_iterable_indexable(self):
@@ -1595,6 +1598,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         b = Series(['b', 'a'])
         self.assertRaises(ValueError, a.__lt__, b)
 
+        a = Series([1, 2])
+        b = Series([2, 3, 4])
+        self.assertRaises(ValueError, a.__eq__, b)
+
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).asobject)
         s[::2] = np.nan
@@ -1744,12 +1751,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
 
     def test_operators_frame(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
         # rpow does not work with DataFrame
-        df = DataFrame({'A' : self.ts})
+        try:
+            df = DataFrame({'A' : self.ts})
 
-        tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
-        tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
-        tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
+            tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
+            tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
+            tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
+        finally:
+            sys.stderr = tmp
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
@@ -1849,6 +1863,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # partial overlap
         self.assertAlmostEqual(self.ts[:15].corr(self.ts[5:]), 1)
 
+        self.assert_(isnull(self.ts[:15].corr(self.ts[5:], min_periods=12)))
+
+        ts1 = self.ts[:15].reindex(self.ts.index)
+        ts2 = self.ts[5:].reindex(self.ts.index)
+        self.assert_(isnull(ts1.corr(ts2, min_periods=12)))
+
         # No overlap
         self.assert_(np.isnan(self.ts[::2].corr(self.ts[1::2])))
 
@@ -1911,6 +1931,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         cp = self.ts[:10].copy()
         cp[:] = np.nan
         self.assert_(isnull(cp.cov(cp)))
+
+        # min_periods
+        self.assert_(isnull(self.ts[:15].cov(self.ts[5:], min_periods=12)))
+
+        ts1 = self.ts[:15].reindex(self.ts.index)
+        ts2 = self.ts[5:].reindex(self.ts.index)
+        self.assert_(isnull(ts1.cov(ts2, min_periods=12)))
 
     def test_copy(self):
         ts = self.ts.copy()
@@ -2486,9 +2513,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import math
         assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
-        # does not return Series
-        result = self.ts.apply(lambda x: x.values * 2)
-        assert_series_equal(result, self.ts * 2)
+        # how to handle Series result, #2316
+        result = self.ts.apply(lambda x: Series([x, x ** 2],
+                                                index=['x', 'x^2']))
+        expected = DataFrame({'x': self.ts, 'x^2': self.ts **2})
+        tm.assert_frame_equal(result, expected)
 
     def test_apply_same_length_inference_bug(self):
         s = Series([1, 2])
