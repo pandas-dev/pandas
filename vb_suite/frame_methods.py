@@ -13,8 +13,8 @@ df['foo'] = 'bar'
 
 row_labels = list(df.index[::10])[:900]
 col_labels = list(df.columns) * 100
-row_labels_all = list(df.index) * len(df.columns)
-col_labels_all = list(df.columns) * len(df.index)
+row_labels_all = np.array(list(df.index) * len(df.columns), dtype='object')
+col_labels_all = np.array(list(df.columns) * len(df.index), dtype='object')
 """
 
 frame_fancy_lookup = Benchmark('df.lookup(row_labels, col_labels)', setup,

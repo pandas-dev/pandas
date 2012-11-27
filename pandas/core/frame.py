@@ -2249,7 +2249,8 @@ class DataFrame(NDFrame):
 
         n = len(row_labels)
         if n != len(col_labels):
-            raise AssertionError('Row labels must have same size as col labels')
+            raise AssertionError('Row labels must have same size as '
+                                 'column labels')
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:
