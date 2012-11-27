@@ -27,6 +27,7 @@ from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal)
+from pandas.util import py3compat
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -2926,6 +2927,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({'A': [uval, uval]})
         result = repr(df)
         self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+
+    def test_unicode_string_with_unicode(self):
+        df = DataFrame({'A': [u"\u05d0"]})
+
+        if py3compat.PY3:
+            str(df)
+        else:
+            unicode(df)
+
+    def test_bytestring_with_unicode(self):
+        df = DataFrame({'A': [u"\u05d0"]})
+        if py3compat.PY3:
+            bytes(df)
+        else:
+            str(df)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),

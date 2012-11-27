@@ -1086,6 +1086,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rep_str = repr(ser)
         self.assert_("Name: 0" in rep_str)
 
+    def test_tidy_repr(self):
+        a=Series([u"\u05d0"]*1000)
+        a.name= 'title1'
+        repr(a)         # should not raise exception
+
     def test_repr_bool_fails(self):
         s = Series([DataFrame(np.random.randn(2,2)) for i in range(5)])
 
@@ -1123,6 +1128,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
         df=Series(data,index=index1)
         self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
+
+
+    def test_unicode_string_with_unicode(self):
+        df = Series([u"\u05d0"],name=u"\u05d1")
+        if py3compat.PY3:
+            str(df)
+        else:
+            unicode(df)
+
+    def test_bytestring_with_unicode(self):
+        df = Series([u"\u05d0"],name=u"\u05d1")
+        if py3compat.PY3:
+            bytes(df)
+        else:
+            str(df)
+
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
