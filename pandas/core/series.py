@@ -2256,7 +2256,7 @@ copy : boolean, default False
             np.putmask(result, mask, value)
         else:
             if method is None:  # pragma: no cover
-                raise ValueError('must specify a fill method')
+                raise ValueError('must specify a fill method or value')
 
             fill_f = _get_fill_func(method)
 
@@ -2273,6 +2273,12 @@ copy : boolean, default False
                 result = Series(values, index=self.index, name=self.name)
 
         return result
+
+    def ffill(self, inplace=False, limit=None):
+        return self.fillna(method='ffill', inplace=inplace, limit=limit)
+
+    def bfill(self, inplace=False, limit=None):
+        return self.fillna(method='bfill', inplace=inplace, limit=limit)
 
     def replace(self, to_replace, value=None, method='pad', inplace=False,
                 limit=None):
