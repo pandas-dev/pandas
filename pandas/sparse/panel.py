@@ -76,6 +76,9 @@ class SparsePanel(Panel):
         self.default_fill_value = fill_value = default_fill_value
         self.default_kind = kind = default_kind
 
+        for x in (items, major_axis,minor_axis):
+            com.assert_ndarray_endianess(x)
+
         # pre-filter, if necessary
         if items is None:
             items = Index(sorted(frames.keys()))

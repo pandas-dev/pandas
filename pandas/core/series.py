@@ -413,7 +413,9 @@ dtype : numpy.dtype or None
     input data
 copy : boolean, default False
         """
-        pass
+
+        for x in (data, index):
+            com.assert_ndarray_endianess(x)
 
     @property
     def _constructor(self):

@@ -35,6 +35,10 @@ class TestIndex(unittest.TestCase):
         self.empty = Index([])
         self.tuples = Index(zip(['foo', 'bar', 'baz'], [1, 2, 3]))
 
+    def test_wrong_endianess_caught(self):
+        arr = np.array([1], dtype='>i8')
+        self.assertRaises(ValueError,Index,arr)
+
     def test_hash_error(self):
         self.assertRaises(TypeError, hash, self.strIndex)
 
@@ -883,6 +887,7 @@ class TestMultiIndex(unittest.TestCase):
         self.index = MultiIndex(levels=[major_axis, minor_axis],
                                 labels=[major_labels, minor_labels],
                                 names=['first', 'second'])
+
 
     def test_constructor_single_level(self):
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],

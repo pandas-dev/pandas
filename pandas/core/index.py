@@ -81,6 +81,9 @@ class Index(np.ndarray):
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
+
+            com.assert_ndarray_endianess(data)
+
             if issubclass(data.dtype.type, np.datetime64):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name)

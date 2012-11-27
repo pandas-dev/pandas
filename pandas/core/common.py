@@ -599,6 +599,15 @@ def ensure_float(arr):
 
     return arr
 
+def assert_ndarray_endianess(ar):
+    import sys
+    little_endian = (sys.byteorder == 'little')
+    if not isinstance(ar,np.ndarray):
+        return
+
+    if ((ar.dtype.byteorder == '>' and little_endian) or
+        (ar.dtype.byteorder == '<' and not little_endian)):
+        raise ValueError(u"Non-native byte order not supported")
 
 def _mut_exclusive(arg1, arg2):
     if arg1 is not None and arg2 is not None:

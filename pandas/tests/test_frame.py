@@ -1520,6 +1520,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.simple = DataFrame(arr, columns=['one', 'two', 'three'],
                                  index=['a', 'b', 'c'])
 
+    def test_wrong_endianess_caught(self):
+        arr = np.array([1], dtype='>i8')
+        self.assertRaises(ValueError,DataFrame,arr)
+
     def test_get_axis(self):
         self.assert_(DataFrame._get_axis_name(0) == 'index')
         self.assert_(DataFrame._get_axis_name(1) == 'columns')
