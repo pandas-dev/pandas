@@ -44,6 +44,8 @@ import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas.lib as lib
 
+from pandas.core.config import get_option
+
 #----------------------------------------------------------------------
 # Docstring templates
 
@@ -579,12 +581,11 @@ class DataFrame(NDFrame):
         Check if it is needed to use info/summary view to represent a
         particular DataFrame.
         """
-        config = fmt.print_config
 
         terminal_width, terminal_height = get_terminal_size()
-        max_rows = (terminal_height if config.max_rows == 0
-                    else config.max_rows)
-        max_columns = config.max_columns
+        max_rows = (terminal_height if get_option("print_config.max_rows") == 0
+                    else get_option("print_config.max_rows"))
+        max_columns = get_option("print_config.max_columns")
 
         if max_columns > 0:
             if len(self.index) <= max_rows and \
@@ -659,7 +660,7 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
-        if fmt.print_config.notebook_repr_html:
+        if get_option("print_config.notebook_repr_html"):
             if self._need_info_repr_():
                 return None
             else:
