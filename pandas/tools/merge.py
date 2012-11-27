@@ -566,13 +566,14 @@ def _factorize_keys(lk, rk, sort=True):
 
     rizer = klass(max(len(lk), len(rk)))
 
-    llab, _ = rizer.factorize(lk)
-    rlab, _ = rizer.factorize(rk)
+    llab = rizer.factorize(lk)
+    rlab = rizer.factorize(rk)
 
     count = rizer.get_count()
 
     if sort:
-        llab, rlab = _sort_labels(rizer.uniques, llab, rlab)
+        uniques = rizer.uniques.to_array()
+        llab, rlab = _sort_labels(uniques, llab, rlab)
 
     # NA group
     lmask = llab == -1; lany = lmask.any()

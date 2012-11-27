@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 import nose
 import unittest
 import os
@@ -723,4 +721,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

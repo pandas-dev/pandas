@@ -30,6 +30,10 @@ pandas 0.10.0
 **New features**
 
   - Add error handling to Series.str.encode/decode (#2276)
+  - Add ``where`` and ``mask`` to Series (#2337)
+  - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
+  - Support optional ``min_periods`` keyword in ``corr`` and ``cov``
+    for both Series and DataFrame (#2002)
 
 **API Changes**
 
@@ -37,11 +41,20 @@ pandas 0.10.0
     `header` argument will be respected. If there is an existing header column,
     this can rename the columns. To fix legacy code, put ``header=None`` when
     passing ``names``
+  - DataFrame selection using a boolean frame now preserves input shape
+  - If function passed to Series.apply yields a Series, result will be a
+    DataFrame (#2316)
 
 **Improvements to existing features**
 
-  - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
   - Add ``nrows`` option to DataFrame.from_records for iterators (#1794)
+  - Unstack/reshape algorithm rewrite to avoid high memory use in cases where
+    the number of observed key-tuples is much smaller than the total possible
+    number that could occur (#2278). Also improves performance in most cases.
+  - Support duplicate columns in DataFrame.from_records (#2179)
+  - Add ``normalize`` option to Series/DataFrame.asfreq (#2137)
+  - SparseSeries and SparseDataFrame construction from empty and scalar
+    values now no longer create dense ndarrays unnecessarily (#2322)
 
 **Bug fixes**
 
@@ -51,6 +64,14 @@ pandas 0.10.0
   - Properly box datetime64 values when retrieving cross-section from
     mixed-dtype DataFrame (#2272)
   - Fix concatenation bug leading to #2057, #2257
+  - Fix regression in Index console formatting (#2319)
+  - Box Period data when assigning PeriodIndex to frame column (#2243, #2281)
+  - Raise exception on calling reset_index on Series with inplace=True (#2277)
+  - Enable setting multiple columns in DataFrame with hierarchical columns
+    (#2295)
+  - Respect dtype=object in DataFrame constructor (#2291)
+  - Fix DatetimeIndex.join bug with tz-aware indexes and how='outer' (#2317)
+  - pop(...) and del works with DataFrame with duplicate columns (#2349)
 
 pandas 0.9.1
 ============

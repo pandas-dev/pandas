@@ -135,7 +135,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df.info(buf=buf)
         buf.getvalue()
 
-        result = self.frame.to_string(force_unicode=True)
+        result = self.frame.to_string()
         self.assert_(isinstance(result, unicode))
 
     def test_to_string_unicode_two(self):
@@ -495,7 +495,6 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(issubclass(df['x'].dtype.type, np.integer))
 
         output = df.to_string()
-        self.assert_(isinstance(output, str))
         expected = ('    x\n'
                     '0 -15\n'
                     '1  20\n'
@@ -793,7 +792,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'A': [{'a':1, 'b':2}]})
 
         val = df.to_string()
-        self.assertTrue("{'a': 1, 'b': 2}" in val)
+        self.assertTrue("'a': 1" in val)
+        self.assertTrue("'b': 2" in val)
 
     def test_to_latex(self):
         # it works!
@@ -807,6 +807,10 @@ class TestSeriesFormatting(unittest.TestCase):
     def test_repr_unicode(self):
         s = Series([u'\u03c3'] * 10)
         repr(s)
+
+        a = Series([u"\u05d0"] * 1000)
+        a.name = 'title1'
+        repr(a)
 
     def test_to_string(self):
         buf = StringIO()
@@ -838,19 +842,26 @@ class TestSeriesFormatting(unittest.TestCase):
         last_line = result.split('\n')[-1].strip()
         self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d" % len(cp))
 
+    def test_freq_name_separation(self):
+        s = Series(np.random.randn(10),
+                   index=pd.date_range('1/1/2000', periods=10), name=0)
+
+        result = repr(s)
+        self.assertTrue('Freq: D, Name: 0' in result)
+
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
         result = s.to_string()
-        expected = ('0     foo\n'
-                    '1     NaN\n'
-                    '2   -1.23\n'
-                    '3    4.56')
+        expected = (u'0     foo\n'
+                    u'1     NaN\n'
+                    u'2   -1.23\n'
+                    u'3    4.56')
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
         s = Series(['foo', np.nan, 'bar', 'baz'])
         result = s.to_string()
-        expected = ('0    foo\n'
+        expected = (u'0    foo\n'
                     '1    NaN\n'
                     '2    bar\n'
                     '3    baz')
@@ -858,7 +869,7 @@ class TestSeriesFormatting(unittest.TestCase):
 
         s = Series(['foo', 5, 'bar', 'baz'])
         result = s.to_string()
-        expected = ('0    foo\n'
+        expected = (u'0    foo\n'
                     '1      5\n'
                     '2    bar\n'
                     '3    baz')
@@ -869,7 +880,7 @@ class TestSeriesFormatting(unittest.TestCase):
         s[::2] = np.nan
 
         result = s.to_string()
-        expected = ('0       NaN\n'
+        expected = (u'0       NaN\n'
                     '1    1.5678\n'
                     '2       NaN\n'
                     '3   -3.0000\n'

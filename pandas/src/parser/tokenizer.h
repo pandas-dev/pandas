@@ -194,12 +194,11 @@ typedef struct parser_t {
     int skip_footer;
 
     // error handling
+    char *warn_msg;
     char *error_msg;
 } parser_t;
 
 
-
-void *safe_realloc(void *buffer, size_t size);
 
 
 typedef struct coliter_t {

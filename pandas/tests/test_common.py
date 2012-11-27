@@ -1,4 +1,3 @@
-from __future__ import with_statement
 from datetime import datetime
 import sys
 
@@ -117,6 +116,35 @@ def test_iterpairs():
     result = list(com.iterpairs(data))
 
     assert(result == expected)
+
+def test_split_ranges():
+    def _bin(x, width):
+        "return int(x) as a base2 string of given width"
+        return ''.join(str((x>>i)&1) for i in xrange(width-1,-1,-1))
+
+    def test_locs(mask):
+        nfalse = sum(np.array(mask) == 0)
+
+        remaining=0
+        for s, e in com.split_ranges(mask):
+            remaining += e-s
+
+            assert 0 not in mask[s:e]
+
+        # make sure the total items covered by the ranges are a complete cover
+        assert remaining + nfalse == len(mask)
+
+    # exhaustively test all possible mask sequences of length 8
+    ncols=8
+    for i in range(2**ncols):
+        cols=map(int,list(_bin(i,ncols))) # count up in base2
+        mask=[cols[i] == 1 for i in range(len(cols))]
+        test_locs(mask)
+
+    # base cases
+    test_locs([])
+    test_locs([0])
+    test_locs([1])
 
 def test_indent():
     s = 'a b c\nd e f'

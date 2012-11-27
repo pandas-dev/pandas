@@ -10,6 +10,7 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
+from pandas.util.compat import OrderedDict
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.lib as lib
@@ -632,7 +633,7 @@ class Grouper(object):
         all_labels = [ping.labels for ping in self.groupings]
         if self._overflow_possible:
             tups = lib.fast_zip(all_labels)
-            labs, uniques, _ = algos.factorize(tups)
+            labs, uniques = algos.factorize(tups)
 
             if self.sort:
                 uniques, labs = _reorder_by_uniques(uniques, labs)
@@ -1056,7 +1057,7 @@ class Grouping(object):
                 self._was_factor = True
 
                 # all levels may not be observed
-                labels, uniques, counts = algos.factorize(inds, sort=True)
+                labels, uniques = algos.factorize(inds, sort=True)
 
                 if len(uniques) < len(level_index):
                     level_index = level_index.take(uniques)
@@ -1090,7 +1091,6 @@ class Grouping(object):
         return iter(self.indices)
 
     _labels = None
-    _counts = None
     _group_index = None
 
     @property
@@ -1108,16 +1108,6 @@ class Grouping(object):
         return self._labels
 
     @property
-    def counts(self):
-        if self._counts is None:
-            if self._was_factor:
-                self._counts = lib.group_count(com._ensure_int64(self.labels),
-                                               self.ngroups)
-            else:
-                self._make_labels()
-        return self._counts
-
-    @property
     def group_index(self):
         if self._group_index is None:
             self._make_labels()
@@ -1127,12 +1117,10 @@ class Grouping(object):
         if self._was_factor:  # pragma: no cover
             raise Exception('Should not call this method grouping by level')
         else:
-            labs, uniques, counts = algos.factorize(self.grouper,
-                                                    sort=self.sort)
+            labs, uniques = algos.factorize(self.grouper, sort=self.sort)
             uniques = Index(uniques, name=self.name)
             self._labels = labs
             self._group_index = uniques
-            self._counts = counts
 
     _groups = None
 
@@ -1538,7 +1526,7 @@ class NDFrameGroupBy(GroupBy):
         if isinstance(arg, basestring):
             return getattr(self, arg)(*args, **kwargs)
 
-        result = {}
+        result = OrderedDict()
         if isinstance(arg, dict):
             if self.axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
@@ -1546,7 +1534,7 @@ class NDFrameGroupBy(GroupBy):
             obj = self._obj_with_exclusions
 
             if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
-                new_arg = {}
+                new_arg = OrderedDict()
                 for k, v in arg.iteritems():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -2145,7 +2133,7 @@ def _lexsort_indexer(keys, orders=None):
         if not key.dtype == np.object_:
             key = key.astype('O')
 
-        ids, _ = rizer.factorize(key, sort=True)
+        ids = rizer.factorize(key, sort=True)
 
         n = len(rizer.uniques)
         shape.append(n)
@@ -2206,16 +2194,12 @@ def _compress_group_index(group_index, sort=True):
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
 
-    uniques = []
     table = lib.Int64HashTable(min(1000000, len(group_index)))
 
     group_index = com._ensure_int64(group_index)
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
-    comp_ids = table.get_labels_groupby(group_index, uniques)
-
-    # these are the unique ones we observed, in the order we observed them
-    obs_group_ids = np.array(uniques, dtype=np.int64)
+    comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
 
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)

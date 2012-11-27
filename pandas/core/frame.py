@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 """
 DataFrame
 ---------
@@ -29,8 +27,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
-from pandas.core.internals import (BlockManager, make_block, form_blocks,
-                                   IntBlock)
+from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util import py3compat
@@ -402,8 +399,7 @@ class DataFrame(NDFrame):
                     index = _get_names_from_index(data)
 
                 if isinstance(data[0], (list, tuple, dict, Series)):
-                    arrays, columns = _to_arrays(data, columns)
-
+                    arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
                     if index is None:
@@ -612,20 +608,51 @@ class DataFrame(NDFrame):
                 else:
                     return False
 
-    def __repr__(self):
+    def __str__(self):
         """
         Return a string representation for a particular DataFrame
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
         """
-        buf = StringIO()
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
+        buf = StringIO(u"")
         if self._need_info_repr_():
             self.info(buf=buf, verbose=self._verbose_info)
         else:
             self.to_string(buf=buf)
-        value = buf.getvalue()
 
-        if py3compat.PY3:
-            return unicode(value)
-        return com.console_encode(value)
+        value = buf.getvalue()
+        assert type(value) == unicode
+
+        return value
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def _repr_html_(self):
         """
@@ -900,11 +927,7 @@ class DataFrame(NDFrame):
         """
         # Make a copy of the input columns so we can modify it
         if columns is not None:
-            columns = list(columns)
-
-            if len(algos.unique(columns)) < len(columns):
-                raise ValueError('Non-unique columns not yet supported in '
-                                 'from_records')
+            columns = _ensure_index(columns)
 
         if com.is_iterator(data):
             if nrows == 0:
@@ -936,48 +959,66 @@ class DataFrame(NDFrame):
             else:
                 data = values
 
-        if isinstance(data, (np.ndarray, DataFrame, dict)):
-            keys, sdict = _rec_to_dict(data)
+        if isinstance(data, dict):
             if columns is None:
-                columns = keys
+                columns = arr_columns = _ensure_index(sorted(data))
+                arrays = [data[k] for k in columns]
             else:
-                sdict = dict((k, v) for k, v in sdict.iteritems()
-                             if k in columns)
+                arrays = []
+                arr_columns = []
+                for k, v in data.iteritems():
+                    if k in columns:
+                        arr_columns.append(k)
+                        arrays.append(v)
+
+        elif isinstance(data, (np.ndarray, DataFrame)):
+            arrays, columns = _to_arrays(data, columns)
+            if columns is not None:
+                columns = _ensure_index(columns)
+            arr_columns = columns
         else:
-            arrays, columns = _to_arrays(data, columns,
-                                         coerce_float=coerce_float)
-            columns=list(columns) # _to_arrays returns index, but we might mutate
-            sdict = dict(zip(columns, arrays))
+            arrays, arr_columns = _to_arrays(data, columns,
+                                             coerce_float=coerce_float)
+
+            arr_columns = _ensure_index(arr_columns)
+            if columns is not None:
+                columns = _ensure_index(columns)
+            else:
+                columns = arr_columns
 
         if exclude is None:
             exclude = set()
         else:
             exclude = set(exclude)
 
-        for col in exclude:
-            del sdict[col]
-            columns.remove(col)
-
         result_index = None
         if index is not None:
             if (isinstance(index, basestring) or
                 not hasattr(index, "__iter__")):
-                result_index = sdict.pop(index)
-                result_index = Index(result_index, name=index)
-                columns.remove(index)
+                i = columns.get_loc(index)
+                exclude.add(index)
+                result_index = Index(arrays[i], name=index)
             else:
                 try:
-                    arrays = []
-                    for field in index:
-                        arrays.append(sdict[field])
-                    for field in index:
-                        del sdict[field]
-                        columns.remove(field)
-                    result_index = MultiIndex.from_arrays(arrays, names=index)
+                    to_remove = [arr_columns.get_loc(field) for field in index]
+
+                    result_index = MultiIndex.from_arrays(
+                        [arrays[i] for i in to_remove], names=index)
+
+                    exclude.update(index)
                 except Exception:
                     result_index = index
 
-        return cls(sdict, index=result_index, columns=columns)
+        if any(exclude):
+            to_remove = [arr_columns.get_loc(col) for col in exclude]
+            arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
+            arr_columns = arr_columns.drop(exclude)
+            columns = columns.drop(exclude)
+
+        mgr = _arrays_to_mgr(arrays, arr_columns, result_index,
+                             columns)
+
+        return DataFrame(mgr)
 
     def to_records(self, index=True):
         """
@@ -1385,19 +1426,21 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, nanRep=None,
-                  index_names=True, justify=None, force_unicode=False):
+                  index_names=True, justify=None, force_unicode=None):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no effect",
+                          FutureWarning)
 
         if nanRep is not None:  # pragma: no cover
-            import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
         if colSpace is not None:  # pragma: no cover
-            import warnings
             warnings.warn("colSpace is deprecated, use col_space",
                           FutureWarning)
             col_space = colSpace
@@ -1410,15 +1453,10 @@ class DataFrame(NDFrame):
                                            justify=justify,
                                            index_names=index_names,
                                            header=header, index=index)
-        formatter.to_string(force_unicode=force_unicode)
+        formatter.to_string()
 
         if buf is None:
             result = formatter.buf.getvalue()
-            if not force_unicode:
-                try:
-                    result = str(result)
-                except ValueError:
-                    pass
             return result
 
     @Appender(fmt.docstring_to_string, indents=1)
@@ -2017,12 +2055,16 @@ class DataFrame(NDFrame):
         # Need to make sure new columns (which go into the BlockManager as new
         # blocks) are always copied
         if _is_sequence(value):
-            if isinstance(value, Series):
+            is_frame = isinstance(value, DataFrame)
+            if isinstance(value, Series) or is_frame:
                 if value.index.equals(self.index):
                     # copy the values
                     value = value.values.copy()
                 else:
                     value = value.reindex(self.index).values
+
+                if is_frame:
+                    value = value.T
             else:
                 if len(value) != len(self.index):
                     raise AssertionError('Length of values does not match '
@@ -2030,6 +2072,10 @@ class DataFrame(NDFrame):
 
                 if not isinstance(value, np.ndarray):
                     value = com._asarray_tuplesafe(value)
+                elif isinstance(value, PeriodIndex):
+                    value = value.asobject
+                elif value.ndim == 2:
+                    value = value.copy().T
                 else:
                     value = value.copy()
         else:
@@ -2707,7 +2753,11 @@ class DataFrame(NDFrame):
                     lev_num = self.columns._get_level_number(col_level)
                     name_lst[lev_num] = name
                     name = tuple(name_lst)
-            new_obj.insert(0, name, _maybe_cast(self.index.values))
+            if isinstance(self.index, PeriodIndex):
+                values = self.index.asobject
+            else:
+                values = self.index.values
+            new_obj.insert(0, name, _maybe_cast(values))
 
         new_obj.index = new_index
         return new_obj
@@ -3436,6 +3486,12 @@ class DataFrame(NDFrame):
 
         # teeny hack because one does DataFrame + TimeSeries all the time
         if self.index.is_all_dates and other.index.is_all_dates:
+            import warnings
+            warnings.warn(("TimeSeries broadcasting along DataFrame index "
+                           "by default is deprecated. Please use "
+                           "DataFrame.<op> to explicitly broadcast arithmetic "
+                           "operations along the index"),
+                           FutureWarning)
             return self._combine_match_index(other, func, fill_value)
         else:
             return self._combine_match_columns(other, func, fill_value)
@@ -3509,14 +3565,17 @@ class DataFrame(NDFrame):
         -------
         result : DataFrame
         """
-        if other.empty:
-            return self.copy()
 
-        if self.empty:
-            return other.copy()
+        other_idxlen = len(other.index) # save for compare
 
         this, other = self.align(other, copy=False)
         new_index = this.index
+
+        if other.empty and len(new_index) == len(self.index):
+            return self.copy()
+
+        if self.empty and len(other) == other_idxlen:
+            return other.copy()
 
         # sorts if possible
         new_columns = this.columns.union(other.columns)
@@ -4216,7 +4275,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson'):
+    def corr(self, method='pearson', min_periods=None):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 
@@ -4226,6 +4285,10 @@ class DataFrame(NDFrame):
             pearson : standard correlation coefficient
             kendall : Kendall Tau correlation coefficient
             spearman : Spearman rank correlation
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for pearson
+            correlation
 
         Returns
         -------
@@ -4236,8 +4299,10 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(com._ensure_float64(mat))
+            correl = lib.nancorr(com._ensure_float64(mat), minp=min_periods)
         else:
+            if min_periods is None:
+                min_periods = 1
             mat = mat.T
             corrf = nanops.get_corr_func(method)
             K = len(cols)
@@ -4246,7 +4311,7 @@ class DataFrame(NDFrame):
             for i, ac in enumerate(mat):
                 for j, bc in enumerate(mat):
                     valid = mask[i] & mask[j]
-                    if not valid.any():
+                    if valid.sum() < min_periods:
                         c = NA
                     elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
@@ -4257,9 +4322,15 @@ class DataFrame(NDFrame):
 
         return self._constructor(correl, index=cols, columns=cols)
 
-    def cov(self):
+    def cov(self, min_periods=None):
         """
         Compute pairwise covariance of columns, excluding NA/null values
+
+        Parameters
+        ----------
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result.
 
         Returns
         -------
@@ -4273,9 +4344,14 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if notnull(mat).all():
-            baseCov = np.cov(mat.T)
+            if min_periods is not None and min_periods > len(mat):
+                baseCov = np.empty((mat.shape[1], mat.shape[1]))
+                baseCov.fill(np.nan)
+            else:
+                baseCov = np.cov(mat.T)
         else:
-            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True)
+            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True,
+                                  minp=min_periods)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 
@@ -5203,38 +5279,56 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
-def _to_arrays(data, columns, coerce_float=False):
+def _to_arrays(data, columns, coerce_float=False, dtype=None):
     """
     Return list of arrays, columns
     """
+    if isinstance(data, DataFrame):
+        if columns is not None:
+            arrays = [data.icol(i).values for i, col in enumerate(data.columns)
+                      if col in columns]
+        else:
+            columns = data.columns
+            arrays = [data.icol(i).values for i in range(len(columns))]
+
+        return arrays, columns
 
     if len(data) == 0:
-        return [], columns if columns is not None else []
+        return [], [] # columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
-        return _list_to_arrays(data, columns, coerce_float=coerce_float)
+        return _list_to_arrays(data, columns, coerce_float=coerce_float,
+                               dtype=dtype)
     elif isinstance(data[0], dict):
         return _list_of_dict_to_arrays(data, columns,
-                                       coerce_float=coerce_float)
+                                       coerce_float=coerce_float,
+                                       dtype=dtype)
     elif isinstance(data[0], Series):
         return _list_of_series_to_arrays(data, columns,
-                                        coerce_float=coerce_float)
+                                         coerce_float=coerce_float,
+                                         dtype=dtype)
+    elif isinstance(data, np.ndarray):
+        columns = list(data.dtype.names)
+        arrays = [data[k] for k in columns]
+        return arrays, columns
     else:
         # last ditch effort
         data = map(tuple, data)
-        return _list_to_arrays(data, columns, coerce_float=coerce_float)
+        return _list_to_arrays(data, columns,
+                               coerce_float=coerce_float,
+                               dtype=dtype)
 
 
-def _list_to_arrays(data, columns, coerce_float=False):
+def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
         # list of lists
         content = list(lib.to_object_array(data).T)
-    return _convert_object_array(content, columns,
+    return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 
 
-def _list_of_series_to_arrays(data, columns, coerce_float=False):
+def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     from pandas.core.index import _get_combined_index
 
     if columns is None:
@@ -5255,13 +5349,13 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(content, columns,
+        return _convert_object_array(content, columns, dtype=dtype,
                                      coerce_float=coerce_float)
     else:
         return values.T, columns
 
 
-def _list_of_dict_to_arrays(data, columns, coerce_float=False):
+def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
         gen = (x.keys() for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
@@ -5272,11 +5366,11 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False):
             for d in data]
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(content, columns,
+    return _convert_object_array(content, columns, dtype=dtype,
                                  coerce_float=coerce_float)
 
 
-def _convert_object_array(content, columns, coerce_float=False):
+def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = _default_index(len(content))
     else:
@@ -5285,6 +5379,7 @@ def _convert_object_array(content, columns, coerce_float=False):
                                  'columns' % (len(columns), len(content)))
 
     arrays = [lib.maybe_convert_objects(arr, try_float=coerce_float)
+              if dtype != object and dtype != np.object else arr
               for arr in content]
 
     return arrays, columns

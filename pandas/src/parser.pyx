@@ -142,6 +142,7 @@ cdef extern from "parser/tokenizer.h":
         int skip_footer
 
         #  error handling
+        char *warn_msg
         char *error_msg
 
     ctypedef struct coliter_t:
@@ -651,6 +652,11 @@ cdef class TextReader:
         with nogil:
             status = tokenize_nrows(self.parser, nrows)
 
+        if self.parser.warn_msg != NULL:
+            print >> sys.stderr, self.parser.warn_msg
+            free(self.parser.warn_msg)
+            self.parser.warn_msg = NULL
+
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
 
@@ -673,6 +679,12 @@ cdef class TextReader:
         else:
             with nogil:
                 status = tokenize_all_rows(self.parser)
+
+            if self.parser.warn_msg != NULL:
+                print >> sys.stderr, self.parser.warn_msg
+                free(self.parser.warn_msg)
+                self.parser.warn_msg = NULL
+
             if status < 0:
                 raise_parser_error('Error tokenizing data', self.parser)
             footer = self.skip_footer
@@ -975,6 +987,10 @@ def _maybe_upcast(arr):
         na_value = na_values[arr.dtype]
         arr = arr.astype(float)
         np.putmask(arr, arr == na_value, np.nan)
+    elif arr.dtype == np.bool_:
+        mask = arr.view(np.uint8) == na_values[np.uint8]
+        arr = arr.astype(object)
+        np.putmask(arr, mask, np.nan)
 
     return arr
 
@@ -1294,7 +1310,8 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
             # in the hash table
             if k != na_hashset.n_buckets:
                 na_count += 1
-                data[i] = NA
+                data[0] = NA
+                data += 1
                 continue
 
             error = to_boolean(word, data)
@@ -1310,10 +1327,7 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
                 return None, None
             data += 1
 
-    if na_count > 0:
-        return result, na_count
-    else:
-        return result.view(np.bool_), na_count
+    return result.view(np.bool_), na_count
 
 cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
                   kh_str_t *na_hashset):

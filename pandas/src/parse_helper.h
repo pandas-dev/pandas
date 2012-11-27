@@ -1,7 +1,8 @@
 #include <errno.h>
 #include <float.h>
 
-double xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+static double xstrtod(const char *p, char **q, char decimal, char sci,
+                      int skip_trailing);
 
 int to_double(char *item, double *p_value, char sci, char decimal)
 {
@@ -115,8 +116,8 @@ PANDAS_INLINE void uppercase(char *p) {
 }
 
 
-double PANDAS_INLINE xstrtod(const char *str, char **endptr, char decimal,
-                             char sci, int skip_trailing)
+static double xstrtod(const char *str, char **endptr, char decimal,
+                      char sci, int skip_trailing)
 {
   double number;
   int exponent;

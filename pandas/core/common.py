@@ -8,13 +8,6 @@ except ImportError:  # pragma: no cover
 
 import itertools
 
-try:
-    next
-except NameError:  # pragma: no cover
-    # Python < 2.6
-    def next(x):
-        return x.next()
-
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
@@ -592,10 +585,12 @@ def _is_bool_indexer(key):
 
     return False
 
-
 def _default_index(n):
-    from pandas.core.index import Index
-    return Index(np.arange(n))
+    from pandas.core.index import Int64Index
+    values = np.arange(n, dtype=np.int64)
+    result = values.view(Int64Index)
+    result.name = None
+    return result
 
 
 def ensure_float(arr):
@@ -704,6 +699,23 @@ def iterpairs(seq):
 
     return itertools.izip(seq_it, seq_it_next)
 
+def split_ranges(mask):
+    """ Generates tuples of ranges which cover all True value in mask
+
+    >>> list(split_ranges([1,0,0,1,0]))
+    [(0, 1), (3, 4)]
+    """
+    ranges = [(0,len(mask))]
+
+    for pos,val in enumerate(mask):
+        if not val: # this pos should be ommited, split off the prefix range
+            r = ranges.pop()
+            if pos > r[0]: # yield non-zero range
+                yield (r[0],pos)
+            if pos+1 < len(mask): # save the rest for processing
+                ranges.append((pos+1,len(mask)))
+    if ranges:
+        yield ranges[-1]
 
 def indent(string, spaces=4):
     dent = ' ' * spaces

@@ -62,6 +62,21 @@ among the series in the DataFrame, also excluding NA/null values.
    frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
    frame.cov()
 
+``DataFrame.cov`` also supports an optional ``min_periods`` keyword that
+specifies the required minimum number of observations for each column pair
+in order to have a valid result.
+
+.. ipython:: python
+
+   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame.ix[:5, 'a'] = np.nan
+   frame.ix[5:10, 'b'] = np.nan
+
+   frame.cov()
+
+   frame.cov(min_periods=12)
+
+
 .. _computation.correlation:
 
 Correlation
@@ -96,6 +111,19 @@ All of these are currently computed using pairwise complete observations.
 
 Note that non-numeric columns will be automatically excluded from the
 correlation calculation.
+
+Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
+
+.. ipython:: python
+
+   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame.ix[:5, 'a'] = np.nan
+   frame.ix[5:10, 'b'] = np.nan
+
+   frame.corr()
+
+   frame.corr(min_periods=12)
+
 
 A related method ``corrwith`` is implemented on DataFrame to compute the
 correlation between like-labeled Series contained in different DataFrame
@@ -290,9 +318,9 @@ columns using ``ix`` indexing:
 
 Expanding window moment functions
 ---------------------------------
-A common alternative to rolling statistics is to use an *expanding* window, 
-which yields the value of the statistic with all the data available up to that 
-point in time. As these calculations are a special case of rolling statistics, 
+A common alternative to rolling statistics is to use an *expanding* window,
+which yields the value of the statistic with all the data available up to that
+point in time. As these calculations are a special case of rolling statistics,
 they are implemented in pandas such that the following two calls are equivalent:
 
 .. ipython:: python
@@ -301,7 +329,7 @@ they are implemented in pandas such that the following two calls are equivalent:
 
    expanding_mean(df)[:5]
 
-Like the ``rolling_`` functions, the following methods are included in the 
+Like the ``rolling_`` functions, the following methods are included in the
 ``pandas`` namespace or can be located in ``pandas.stats.moments``.
 
 .. csv-table::
@@ -324,12 +352,12 @@ Like the ``rolling_`` functions, the following methods are included in the
     ``expanding_corr``, Correlation (binary)
     ``expanding_corr_pairwise``, Pairwise correlation of DataFrame columns
 
-Aside from not having a ``window`` parameter, these functions have the same 
-interfaces as their ``rolling_`` counterpart. Like above, the parameters they 
+Aside from not having a ``window`` parameter, these functions have the same
+interfaces as their ``rolling_`` counterpart. Like above, the parameters they
 all accept are:
 
-  - ``min_periods``: threshold of non-null data points to require. Defaults to 
-    minimum needed to compute statistic. No ``NaNs`` will be output once 
+  - ``min_periods``: threshold of non-null data points to require. Defaults to
+    minimum needed to compute statistic. No ``NaNs`` will be output once
     ``min_periods`` non-null data points have been seen.
   - ``freq``: optionally specify a :ref:`frequency string <timeseries.alias>`
     or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
@@ -338,15 +366,15 @@ all accept are:
 
 .. note::
 
-   The output of the ``rolling_`` and ``expanding_`` functions do not return a 
-   ``NaN`` if there are at least ``min_periods`` non-null values in the current 
-   window. This differs from ``cumsum``, ``cumprod``, ``cummax``, and 
-   ``cummin``, which return ``NaN`` in the output wherever a ``NaN`` is 
+   The output of the ``rolling_`` and ``expanding_`` functions do not return a
+   ``NaN`` if there are at least ``min_periods`` non-null values in the current
+   window. This differs from ``cumsum``, ``cumprod``, ``cummax``, and
+   ``cummin``, which return ``NaN`` in the output wherever a ``NaN`` is
    encountered in the input.
 
-An expanding window statistic will be more stable (and less responsive) than 
-its rolling window counterpart as the increasing window size decreases the 
-relative impact of an individual data point. As an example, here is the 
+An expanding window statistic will be more stable (and less responsive) than
+its rolling window counterpart as the increasing window size decreases the
+relative impact of an individual data point. As an example, here is the
 ``expanding_mean`` output for the previous time series dataset:
 
 .. ipython:: python

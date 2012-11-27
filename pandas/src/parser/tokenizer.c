@@ -43,7 +43,7 @@ See LICENSE for the license
 
 
 
-void *safe_realloc(void *buffer, size_t size) {
+static void *safe_realloc(void *buffer, size_t size) {
     void *result;
     // OS X is weird
     // http://stackoverflow.com/questions/9560609/
@@ -88,7 +88,7 @@ coliter_t *coliter_new(parser_t *self, int i) {
  /* uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error); */
 
 
- void free_if_not_null(void *ptr) {
+static  void free_if_not_null(void *ptr) {
      if (ptr != NULL) free(ptr);
  }
 
@@ -101,7 +101,7 @@ coliter_t *coliter_new(parser_t *self, int i) {
  */
 
 
- void *grow_buffer(void *buffer, int length, int *capacity,
+static void *grow_buffer(void *buffer, int length, int *capacity,
                    int space, int elsize, int *error) {
      int cap = *capacity;
 
@@ -183,6 +183,7 @@ int parser_cleanup(parser_t *self) {
 
     // XXX where to put this
     free_if_not_null(self->error_msg);
+    free_if_not_null(self->warn_msg);
 
     if (self->skipset != NULL)
         kh_destroy_int64((kh_int64_t*) self->skipset);
@@ -252,6 +253,7 @@ int parser_init(parser_t *self) {
     self->state = START_RECORD;
 
     self->error_msg = NULL;
+    self->warn_msg = NULL;
 
     return 0;
 }
@@ -263,7 +265,7 @@ void parser_free(parser_t *self) {
     free(self);
 }
 
-int make_stream_space(parser_t *self, size_t nbytes) {
+static int make_stream_space(parser_t *self, size_t nbytes) {
     int i, status, cap;
     void *orig_ptr;
 
@@ -361,13 +363,13 @@ int make_stream_space(parser_t *self, size_t nbytes) {
 }
 
 
-int P_INLINE push_char(parser_t *self, char c) {
+static int push_char(parser_t *self, char c) {
     /* TRACE(("pushing %c \n", c)) */
     self->stream[self->stream_len++] = c;
     return 0;
 }
 
-int P_INLINE end_field(parser_t *self) {
+static int P_INLINE end_field(parser_t *self) {
     // XXX cruft
     self->numeric_field = 0;
 
@@ -395,10 +397,27 @@ int P_INLINE end_field(parser_t *self) {
     return 0;
 }
 
-int end_line(parser_t *self) {
+
+static void append_warning(parser_t *self, const char *msg) {
+    int ex_length;
+    int length = strlen(msg);
+
+    if (self->warn_msg == NULL) {
+        self->warn_msg = (char*) malloc(length + 1);
+        strcpy(self->warn_msg, msg);
+    } else {
+        ex_length = strlen(self->warn_msg);
+        self->warn_msg = (char*) safe_realloc(self->warn_msg,
+                                              ex_length + length + 1);
+        strcpy(self->warn_msg + ex_length, msg);
+    }
+}
+
+static int end_line(parser_t *self) {
     int fields;
     khiter_t k;  /* for hash set detection */
     int ex_fields = -1;
+    char *msg;
 
     fields = self->line_fields[self->lines];
 
@@ -449,9 +468,12 @@ int end_line(parser_t *self) {
         } else {
             // simply skip bad lines
             if (self->warn_bad_lines) {
-                // print error message
-                printf("Skipping line %d: expected %d fields, saw %d\n",
-                       self->file_lines, ex_fields, fields);
+                // pass up error message
+                msg = (char*) malloc(100);
+                sprintf(msg, "Skipping line %d: expected %d fields, saw %d\n",
+                        self->file_lines, ex_fields, fields);
+                append_warning(self, msg);
+                free(msg);
             }
         }
     } else {
@@ -494,7 +516,7 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
     return 0;
 }
 
-int parser_buffer_bytes(parser_t *self, size_t nbytes) {
+static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     int status;
     size_t bytes_read;
     void *src = self->source;
@@ -1048,7 +1070,7 @@ linelimit:
 }
 
 
-int parser_handle_eof(parser_t *self) {
+static int parser_handle_eof(parser_t *self) {
     TRACE(("handling eof, datalen: %d, pstate: %d\n", self->datalen, self->state))
     if (self->datalen == 0 && (self->state != START_RECORD)) {
         // test cases needed here
@@ -1277,7 +1299,6 @@ int tokenize_all_rows(parser_t *self) {
     return status;
 }
 
-
 void test_count_lines(char *fname) {
     clock_t start = clock();
 
@@ -1317,7 +1338,7 @@ void test_count_lines(char *fname) {
 
 
 // forward declaration
-double P_INLINE xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+static double xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
 
 
 P_INLINE void lowercase(char *p) {
@@ -1542,7 +1563,7 @@ int main(int argc, char *argv[])
 // * Commented out the other functions.
 //
 
-double P_INLINE xstrtod(const char *str, char **endptr, char decimal,
+static double xstrtod(const char *str, char **endptr, char decimal,
                       char sci, int skip_trailing)
 {
   double number;

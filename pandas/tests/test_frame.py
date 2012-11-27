@@ -27,6 +27,7 @@ from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal)
+from pandas.util import py3compat
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -1730,6 +1731,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         should_be_view[0][0] = 97
         self.assertEqual(df.values[0, 0], 97)
 
+    def test_constructor_dtype_list_data(self):
+        df = DataFrame([[1, '2'],
+                        [None, 'a']], dtype=object)
+        self.assert_(df.ix[1, 0] is None)
+        self.assert_(df.ix[0, 1] == '2')
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
@@ -2675,8 +2682,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.isnan(df['a'].values[-1]))
 
     def test_from_records_duplicates(self):
-        self.assertRaises(ValueError, DataFrame.from_records,
-                          [(1,2,3), (4,5,6)], columns=['a','b','a'])
+        result = DataFrame.from_records([(1,2,3), (4,5,6)],
+                                        columns=['a','b','a'])
+
+        expected = DataFrame([(1,2,3), (4,5,6)],
+                             columns=['a', 'b', 'a'])
+
+        assert_frame_equal(result, expected)
 
     def test_from_records_set_index_name(self):
         def create_dict(order_id):
@@ -2916,6 +2928,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = repr(df)
         self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
 
+    def test_unicode_string_with_unicode(self):
+        df = DataFrame({'A': [u"\u05d0"]})
+
+        if py3compat.PY3:
+            str(df)
+        else:
+            unicode(df)
+
+    def test_bytestring_with_unicode(self):
+        df = DataFrame({'A': [u"\u05d0"]})
+        if py3compat.PY3:
+            bytes(df)
+        else:
+            str(df)
+
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
                        columns=[tm.rands(10) for _ in xrange(20)])
@@ -2971,6 +2998,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame['foo'] = 'bar'
         foo = self.frame.pop('foo')
         self.assert_('foo' not in self.frame)
+
+    def test_pop_non_unique_cols(self):
+        df=DataFrame({0:[0,1],1:[0,1],2:[4,5]})
+        df.columns=["a","b","a"]
+
+        res=df.pop("a")
+        self.assertEqual(type(res),DataFrame)
+        self.assertEqual(len(res),2)
+        self.assertEqual(len(df.columns),1)
+        self.assertTrue("b" in df.columns)
+        self.assertFalse("a" in df.columns)
+        self.assertEqual(len(df.index),2)
 
     def test_iter(self):
         self.assert_(tm.equalContents(list(self.frame), self.frame.columns))
@@ -3453,32 +3492,41 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(np.isnan(larger_added['E']).all())
 
         # TimeSeries
-        ts = self.tsframe['A']
-        added = self.tsframe + ts
+        import sys
 
-        for key, col in self.tsframe.iteritems():
-            assert_series_equal(added[key], col + ts)
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
 
-        smaller_frame = self.tsframe[:-5]
-        smaller_added = smaller_frame + ts
+        try:
+            ts = self.tsframe['A']
+            added = self.tsframe + ts
 
-        self.assert_(smaller_added.index.equals(self.tsframe.index))
+            for key, col in self.tsframe.iteritems():
+                assert_series_equal(added[key], col + ts)
 
-        smaller_ts = ts[:-5]
-        smaller_added2 = self.tsframe + smaller_ts
-        assert_frame_equal(smaller_added, smaller_added2)
+            smaller_frame = self.tsframe[:-5]
+            smaller_added = smaller_frame + ts
 
-        # length 0
-        result = self.tsframe + ts[:0]
+            self.assert_(smaller_added.index.equals(self.tsframe.index))
 
-        # Frame is length 0
-        result = self.tsframe[:0] + ts
-        self.assertEqual(len(result), 0)
+            smaller_ts = ts[:-5]
+            smaller_added2 = self.tsframe + smaller_ts
+            assert_frame_equal(smaller_added, smaller_added2)
 
-        # empty but with non-empty index
-        frame = self.tsframe[:1].reindex(columns=[])
-        result = frame * ts
-        self.assertEqual(len(result), len(ts))
+            # length 0
+            result = self.tsframe + ts[:0]
+
+            # Frame is length 0
+            result = self.tsframe[:0] + ts
+            self.assertEqual(len(result), 0)
+
+            # empty but with non-empty index
+            frame = self.tsframe[:1].reindex(columns=[])
+            result = frame * ts
+            self.assertEqual(len(result), len(ts))
+        finally:
+            sys.stderr = tmp
 
     def test_combineFunc(self):
         result = self.frame * 2
@@ -4208,12 +4256,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_corr(self):
         _skip_if_no_scipy()
         self.frame['A'][:5] = nan
-        self.frame['B'][:10] = nan
+        self.frame['B'][5:10] = nan
 
-        def _check_method(method='pearson'):
-            correls = self.frame.corr(method=method)
-            exp = self.frame['A'].corr(self.frame['C'], method=method)
-            assert_almost_equal(correls['A']['C'], exp)
+        def _check_method(method='pearson', check_minp=False):
+            if not check_minp:
+                correls = self.frame.corr(method=method)
+                exp = self.frame['A'].corr(self.frame['C'], method=method)
+                assert_almost_equal(correls['A']['C'], exp)
+            else:
+                result = self.frame.corr(min_periods=len(self.frame) - 8)
+                expected = self.frame.corr()
+                expected.ix['A', 'B'] = expected.ix['B', 'A'] = nan
 
         _check_method('pearson')
         _check_method('kendall')
@@ -4250,6 +4303,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df3.corr()
 
     def test_cov(self):
+        # min_periods no NAs (corner case)
+        expected = self.frame.cov()
+        result = self.frame.cov(min_periods=len(self.frame))
+
+        assert_frame_equal(expected, result)
+
+        result = self.frame.cov(min_periods=len(self.frame) + 1)
+        self.assert_(isnull(result.values).all())
+
+        # with NAs
+        frame = self.frame.copy()
+        frame['A'][:5] = nan
+        frame['B'][5:10] = nan
+        result = self.frame.cov(min_periods=len(self.frame) - 8)
+        expected = self.frame.cov()
+        expected.ix['A', 'B'] = np.nan
+        expected.ix['B', 'A'] = np.nan
+
+        # regular
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
         cov = self.frame.cov()
@@ -4261,6 +4333,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = self.mixed_frame.cov()
         expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].cov()
         assert_frame_equal(result, expected)
+
 
     def test_corrwith(self):
         a = self.tsframe
@@ -6130,6 +6203,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         comb = self.empty.combine_first(self.frame)
         assert_frame_equal(comb, self.frame)
+
+        comb = self.frame.combine_first(DataFrame(index=["faz","boo"]))
+        self.assertTrue("faz" in comb.index)
 
     def test_combine_first_mixed_bug(self):
         idx = Index(['a','b','c','e'])

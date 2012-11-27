@@ -274,6 +274,19 @@ class TestMultiLevel(unittest.TestCase):
         df.ix[:,:] = 10
         assert_frame_equal(df, result)
 
+    def test_frame_setitem_multi_column(self):
+        df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
+                                              [0, 1, 0, 1]])
+
+        cp = df.copy()
+        cp['a'] = cp['b']
+        assert_frame_equal(cp['a'], cp['b'])
+
+        # set with ndarray
+        cp = df.copy()
+        cp['a'] = cp['b'].values
+        assert_frame_equal(cp['a'], cp['b'])
+
     def test_getitem_tuple_plus_slice(self):
         # GH #671
         df = DataFrame({'a' : range(10),
@@ -834,6 +847,38 @@ Thur,Lunch,Yes,51.51,17"""
         applied = grouped.apply(lambda x: x * 2)
         expected = grouped.transform(lambda x: x * 2)
         assert_series_equal(applied.reindex(expected.index), expected)
+
+    def test_unstack_sparse_keyspace(self):
+        # memory problems with naive impl #2278
+        # Generate Long File & Test Pivot
+        NUM_ROWS = 1000
+
+        df = DataFrame({'A' : np.random.randint(100, size=NUM_ROWS),
+                        'B' : np.random.randint(300, size=NUM_ROWS),
+                        'C' : np.random.randint(-7, 7, size=NUM_ROWS),
+                        'D' : np.random.randint(-19,19, size=NUM_ROWS),
+                        'E' : np.random.randint(3000, size=NUM_ROWS),
+                        'F' : np.random.randn(NUM_ROWS)})
+
+        idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
+
+        # it works! is sufficient
+        idf.unstack('E')
+
+    def test_unstack_unobserved_keys(self):
+        # related to #2278 refactoring
+        levels = [[0, 1], [0, 1, 2, 3]]
+        labels = [[0, 0, 1, 1], [0, 2, 0, 2]]
+
+        index = MultiIndex(levels, labels)
+
+        df = DataFrame(np.random.randn(4, 2), index=index)
+
+        result = df.unstack()
+        self.assertEquals(len(result.columns), 4)
+
+        recons = result.stack()
+        assert_frame_equal(recons, df)
 
     def test_groupby_corner(self):
         midx = MultiIndex(levels=[['foo'],['bar'],['baz']],

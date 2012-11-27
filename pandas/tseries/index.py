@@ -470,7 +470,7 @@ class DatetimeIndex(Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return lib.ints_to_pydatetime(self.asi8)
+        return lib.ints_to_pydatetime(self.asi8, self.tz)
 
     def __repr__(self):
         from pandas.core.format import _format_datetime64
@@ -869,7 +869,7 @@ class DatetimeIndex(Int64Index):
             return joined
         else:
             tz = getattr(other, 'tz', None)
-            return DatetimeIndex(joined, name=name, tz=tz)
+            return self._simple_new(joined, name, tz=tz)
 
     def _can_fast_union(self, other):
         if not isinstance(other, DatetimeIndex):
@@ -1175,8 +1175,9 @@ class DatetimeIndex(Int64Index):
         -------
         normalized : DatetimeIndex
         """
-        new_values = lib.date_normalize(self.asi8)
-        return DatetimeIndex(new_values, freq='infer', name=self.name)
+        new_values = lib.date_normalize(self.asi8, self.tz)
+        return DatetimeIndex(new_values, freq='infer', name=self.name,
+                             tz=self.tz)
 
     def __iter__(self):
         return iter(self._get_object_index())
@@ -1218,7 +1219,7 @@ class DatetimeIndex(Int64Index):
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return lib.dates_normalized(self.asi8)
+        return lib.dates_normalized(self.asi8, self.tz)
 
     def equals(self, other):
         """
@@ -1538,7 +1539,7 @@ def _to_m8(key):
 def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):
     def parser(x):
         result = parse_time_string(x, offset, dayfirst=dayfirst,
-                                   yearfirst=None)
+                                   yearfirst=yearfirst)
         return result[0]
 
     arr = np.asarray(arr, dtype=object)
@@ -1568,5 +1569,3 @@ def _in_range(start, end, rng_start, rng_end):
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
-
-

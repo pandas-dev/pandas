@@ -939,6 +939,49 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = self.series.ix[idx]
         assert_series_equal(result, self.series[:10])
 
+    def test_where(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs  = s.where(cond).dropna()
+        rs2 = s[cond]
+        assert_series_equal(rs, rs2)
+
+        rs  = s.where(cond,-s)
+        assert_series_equal(rs, s.abs())
+
+        rs  = s.where(cond)
+        assert(s.shape == rs.shape)
+        assert(rs is not s)
+
+        rs = s.where(cond[:3], -s)
+        assert_series_equal(rs, s.abs()[:3].append(s[3:]))
+
+        self.assertRaises(ValueError, s.where, 1)
+        self.assertRaises(ValueError, s.where, cond[:3].values, -s)
+        self.assertRaises(ValueError, s.where, cond, s[:3].values)
+
+    def test_where_inplace(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs = s.copy()
+        rs.where(cond, inplace=True)
+        assert_series_equal(rs.dropna(), s[cond])
+        assert_series_equal(rs, s.where(cond))
+
+        rs = s.copy()
+        rs.where(cond, -s, inplace=True)
+        assert_series_equal(rs, s.where(cond, -s))
+
+
+    def test_mask(self):
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
+        rs = s.where(cond, np.nan)
+        assert_series_equal(rs, s.mask(~cond))
+
     def test_ix_setitem(self):
         inds = self.series.index[[3,4,7]]
 
@@ -1043,16 +1086,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rep_str = repr(ser)
         self.assert_("Name: 0" in rep_str)
 
+    def test_tidy_repr(self):
+        a=Series([u"\u05d0"]*1000)
+        a.name= 'title1'
+        repr(a)         # should not raise exception
+
     def test_repr_bool_fails(self):
         s = Series([DataFrame(np.random.randn(2,2)) for i in range(5)])
 
         import sys
 
         buf = StringIO()
+        tmp = sys.stderr
         sys.stderr = buf
+        try:
         # it works (with no Cython exception barf)!
-        repr(s)
-        sys.stderr = sys.__stderr__
+            repr(s)
+        finally:
+            sys.stderr = tmp
         self.assertEquals(buf.getvalue(), '')
 
     def test_repr_name_iterable_indexable(self):
@@ -1077,6 +1128,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
         df=Series(data,index=index1)
         self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
+
+
+    def test_unicode_string_with_unicode(self):
+        df = Series([u"\u05d0"],name=u"\u05d1")
+        if py3compat.PY3:
+            str(df)
+        else:
+            unicode(df)
+
+    def test_bytestring_with_unicode(self):
+        df = Series([u"\u05d0"],name=u"\u05d1")
+        if py3compat.PY3:
+            bytes(df)
+        else:
+            str(df)
+
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
@@ -1552,6 +1619,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         b = Series(['b', 'a'])
         self.assertRaises(ValueError, a.__lt__, b)
 
+        a = Series([1, 2])
+        b = Series([2, 3, 4])
+        self.assertRaises(ValueError, a.__eq__, b)
+
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).asobject)
         s[::2] = np.nan
@@ -1701,12 +1772,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(TypeError, operator.add, datetime.now(), self.ts)
 
     def test_operators_frame(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
         # rpow does not work with DataFrame
-        df = DataFrame({'A' : self.ts})
+        try:
+            df = DataFrame({'A' : self.ts})
 
-        tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
-        tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
-        tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
+            tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
+            tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
+            tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
+        finally:
+            sys.stderr = tmp
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
@@ -1806,6 +1884,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # partial overlap
         self.assertAlmostEqual(self.ts[:15].corr(self.ts[5:]), 1)
 
+        self.assert_(isnull(self.ts[:15].corr(self.ts[5:], min_periods=12)))
+
+        ts1 = self.ts[:15].reindex(self.ts.index)
+        ts2 = self.ts[5:].reindex(self.ts.index)
+        self.assert_(isnull(ts1.corr(ts2, min_periods=12)))
+
         # No overlap
         self.assert_(np.isnan(self.ts[::2].corr(self.ts[1::2])))
 
@@ -1868,6 +1952,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         cp = self.ts[:10].copy()
         cp[:] = np.nan
         self.assert_(isnull(cp.cov(cp)))
+
+        # min_periods
+        self.assert_(isnull(self.ts[:15].cov(self.ts[5:], min_periods=12)))
+
+        ts1 = self.ts[:15].reindex(self.ts.index)
+        ts2 = self.ts[5:].reindex(self.ts.index)
+        self.assert_(isnull(ts1.cov(ts2, min_periods=12)))
 
     def test_copy(self):
         ts = self.ts.copy()
@@ -2443,9 +2534,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import math
         assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
-        # does not return Series
-        result = self.ts.apply(lambda x: x.values * 2)
-        assert_series_equal(result, self.ts * 2)
+        # how to handle Series result, #2316
+        result = self.ts.apply(lambda x: Series([x, x ** 2],
+                                                index=['x', 'x^2']))
+        expected = DataFrame({'x': self.ts, 'x^2': self.ts **2})
+        tm.assert_frame_equal(result, expected)
 
     def test_apply_same_length_inference_bug(self):
         s = Series([1, 2])

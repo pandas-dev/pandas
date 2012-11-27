@@ -15,7 +15,7 @@ from numpy.ma.testutils import assert_equal
 from pandas import Timestamp
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.period import Period, PeriodIndex, period_range
-from pandas.tseries.index import DatetimeIndex, date_range
+from pandas.tseries.index import DatetimeIndex, date_range, Index
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.period as pmod
 
@@ -1299,6 +1299,19 @@ class TestPeriodIndex(TestCase):
 
         ts = df['1/1/2000']
         assert_series_equal(ts, df.ix[:, 0])
+
+    def test_frame_setitem(self):
+        rng = period_range('1/1/2000', periods=5)
+        rng.name = 'index'
+        df = DataFrame(randn(5, 3), index=rng)
+
+        df['Index'] = rng
+        rs = Index(df['Index'])
+        self.assert_(rs.equals(rng))
+
+        rs = df.reset_index().set_index('index')
+        self.assert_(isinstance(rs.index, PeriodIndex))
+        self.assert_(rs.index.equals(rng))
 
     def test_nested_dict_frame_constructor(self):
         rng = period_range('1/1/2000', periods=5)

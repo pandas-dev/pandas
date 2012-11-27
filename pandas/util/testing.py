@@ -23,7 +23,6 @@ import pandas.core.panel as panel
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
-from pandas.tseries.interval import IntervalIndex
 
 Index = index.Index
 Series = series.Series
@@ -96,7 +95,7 @@ def assert_almost_equal(a, b):
 
     if isiterable(a):
         np.testing.assert_(isiterable(b))
-        np.testing.assert_equal(len(a), len(b))
+        assert(len(a) == len(b))
         if np.array_equal(a, b):
             return True
         else:

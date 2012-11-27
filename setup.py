@@ -203,8 +203,8 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 9
-MICRO = 2
+MINOR = 10
+MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
@@ -575,6 +575,7 @@ algos_ext = Extension('pandas._algos',
                       )
 
 lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
+                                 'pandas/src/parse_helper.h',
                                  'pandas/src/datetime/np_datetime.h',
                                  'pandas/src/datetime/np_datetime_strings.h']
 

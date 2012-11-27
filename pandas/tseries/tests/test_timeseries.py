@@ -1,5 +1,4 @@
 # pylint: disable-msg=E1101,W0612
-from __future__ import with_statement # for Python 2.5
 import pandas.util.compat as itertools
 from datetime import datetime, time, timedelta
 import sys
@@ -246,6 +245,10 @@ class TestTimeSeries(unittest.TestCase):
         _check_rng(rng)
         _check_rng(rng_eastern)
         _check_rng(rng_utc)
+
+    def test_ctor_str_intraday(self):
+        rng = DatetimeIndex(['1-1-2000 00:00:01'])
+        self.assert_(rng[0].second == 1)
 
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
@@ -758,6 +761,26 @@ class TestTimeSeries(unittest.TestCase):
         result = rng.get_indexer(ts2.index)
         expected = rng.get_indexer(ts_slice.index)
         self.assert_(np.array_equal(result, expected))
+
+    def test_asfreq_normalize(self):
+        rng = date_range('1/1/2000 09:30', periods=20)
+        norm = date_range('1/1/2000', periods=20)
+        vals = np.random.randn(20)
+        ts = Series(vals, index=rng)
+
+        result = ts.asfreq('D', normalize=True)
+        norm = date_range('1/1/2000', periods=20)
+        expected = Series(vals, index=norm)
+
+        assert_series_equal(result, expected)
+
+        vals = np.random.randn(20, 3)
+        ts = DataFrame(vals, index=rng)
+
+        result = ts.asfreq('D', normalize=True)
+        expected = DataFrame(vals, index=norm)
+
+        assert_frame_equal(result, expected)
 
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
@@ -1919,7 +1942,7 @@ class TestLegacySupport(unittest.TestCase):
         dates = [ (datetime(2012, 9, 9, 0, 0),
                    datetime(2012, 9, 8, 15, 10))]
         arr = np.array(dates,
-                       dtype=[('Date', '<M8[us]'), ('Forecasting', '<M8[us]')])
+                       dtype=[('Date', 'M8[us]'), ('Forecasting', 'M8[us]')])
         df = DataFrame(arr)
 
         self.assertEqual(df['Date'][0], dates[0][0])
@@ -2141,6 +2164,14 @@ class TestDatetime64(unittest.TestCase):
         self.assert_(d2.dtypes[0] == np.dtype('M8[ns]'))
         d3 = d2.set_index('index')
         assert_frame_equal(d1, d3)
+
+        # #2329
+        stamp = datetime(2012, 11, 22)
+        df = DataFrame([[stamp, 12.1]], columns=['Date', 'Value'])
+        df = df.set_index('Date')
+
+        self.assertEquals(df.index[0], stamp)
+        self.assertEquals(df.reset_index()['Date'][0], stamp)
 
     def test_datetimeindex_union_join_empty(self):
         dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')

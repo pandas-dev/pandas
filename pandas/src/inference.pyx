@@ -679,6 +679,7 @@ def maybe_convert_bool(ndarray[object] arr):
         ndarray[uint8_t] result
         object val
         set true_vals, false_vals
+        int na_count = 0
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
@@ -698,10 +699,19 @@ def maybe_convert_bool(ndarray[object] arr):
             result[i] = 1
         elif val in false_vals:
             result[i] = 0
+        elif PyFloat_Check(val):
+            result[i] = UINT8_MAX
+            na_count += 1
         else:
             return arr
 
-    return result.view(np.bool_)
+    if na_count > 0:
+        mask = result == UINT8_MAX
+        arr = result.view(np.bool_).astype(object)
+        np.putmask(arr, mask, np.nan)
+        return arr
+    else:
+        return result.view(np.bool_)
 
 
 def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,

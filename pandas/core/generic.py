@@ -135,7 +135,7 @@ class PandasObject(object):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
-    def asfreq(self, freq, method=None, how=None):
+    def asfreq(self, freq, method=None, how=None, normalize=False):
         """
         Convert all TimeSeries inside to specified frequency using DateOffset
         objects. Optionally provide fill method to pad/backfill missing values.
@@ -149,13 +149,16 @@ class PandasObject(object):
             backfill / bfill: use NEXT valid observation to fill methdo
         how : {'start', 'end'}, default end
             For PeriodIndex only, see PeriodIndex.asfreq
+        normalize : bool, default False
+            Whether to reset output index to midnight
 
         Returns
         -------
         converted : type of caller
         """
         from pandas.tseries.resample import asfreq
-        return asfreq(self, freq, method=method, how=how)
+        return asfreq(self, freq, method=method, how=how,
+                      normalize=normalize)
 
     def at_time(self, time, asof=False):
         """
@@ -482,8 +485,8 @@ class NDFrame(PandasObject):
             for i, ax in enumerate(axes):
                 data = data.reindex_axis(ax, axis=i)
 
-        self._data = data
-        self._item_cache = {}
+        object.__setattr__(self, '_data', data)
+        object.__setattr__(self, '_item_cache', {})
 
     def astype(self, dtype):
         """
@@ -542,19 +545,8 @@ class NDFrame(PandasObject):
         self._item_cache.clear()
 
     def _set_item(self, key, value):
-        if hasattr(self, 'columns') and isinstance(self.columns, MultiIndex):
-            # Pad the key with empty strings if lower levels of the key
-            # aren't specified:
-            if not isinstance(key, tuple):
-                key = (key,)
-            if len(key) != self.columns.nlevels:
-                key += ('',) * (self.columns.nlevels - len(key))
         self._data.set(key, value)
-
-        try:
-            del self._item_cache[key]
-        except KeyError:
-            pass
+        self._clear_item_cache()
 
     def __delitem__(self, key):
         """
