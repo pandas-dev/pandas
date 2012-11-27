@@ -41,7 +41,7 @@ frame_fillna_inplace = Benchmark('df.fillna(0, inplace=True)', setup,
 
 setup = common_setup + """
 df = DataFrame(randn(1000, 1000))
-idx = range(400, 700)
+idx = np.arange(400, 700)
 """
 
 frame_reindex_axis0 = Benchmark('df.reindex(idx)', setup)
