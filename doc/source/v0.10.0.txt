@@ -18,20 +18,33 @@ API changes
     .. ipython:: python
 
         def f(x):
-	   return Series([ x, x**2 ], index = ['x', 'x^s'])
+	        return Series([ x, x**2 ], index = ['x', 'x^s'])
         s = Series(np.random.rand(5))
-	s
+	    s
         s.apply(f)
 
     This is conceptually similar to the following.
 
     .. ipython:: python
 
-       concat([ f(y) for x, y in s.iteritems() ], axis=1).T
+        concat([ f(y) for x, y in s.iteritems() ], axis=1).T
 
+  - New API functions for working with pandas options (GH2097_):
+
+    - ``get_option`` / ``set_option`` - get/set the value of an option.
+    - ``reset_option`` / ``reset_options`` - reset an options / all options to their default value.
+    - ``describe_options`` - print a description of one or more option. When called  with no arguments. print all registered options.
+    - ``set_printoptions`` is now deprecated (but functioning), the print options now live under "print_config.XYZ". For example:
+
+
+    .. ipython:: python
+
+       import pandas as pd
+       pd.get_option("print_config.max_rows")
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
 .. _GH2316: https://github.com/pydata/pandas/issues/2316
+.. _GH2097: https://github.com/pydata/pandas/issues/2097
