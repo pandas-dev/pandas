@@ -65,6 +65,7 @@ class TestHDFStore(unittest.TestCase):
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
+        self.store.append('e', tm.makePanel())
         repr(self.store)
         str(self.store)
 
@@ -141,14 +142,30 @@ class TestHDFStore(unittest.TestCase):
         self._check_roundtrip(df, tm.assert_frame_equal)
 
     def test_append(self):
-        df = tm.makeTimeDataFrame()
-        self.store.append('c', df[:10])
-        self.store.append('c', df[10:])
-        tm.assert_frame_equal(self.store['c'], df)
+        pth = '__test_append__.h5'
 
-        self.store.put('d', df[:10], table=True)
-        self.store.append('d', df[10:])
-        tm.assert_frame_equal(self.store['d'], df)
+        try:
+            store = HDFStore(pth)
+
+            df = tm.makeTimeDataFrame()
+            store.append('df1', df[:10])
+            store.append('df1', df[10:])
+            tm.assert_frame_equal(store['df1'], df)
+            
+            store.put('df2', df[:10], table=True)
+            store.append('df2', df[10:])
+            tm.assert_frame_equal(store['df2'], df)
+
+            wp = tm.makePanel()
+            store.append('wp1', wp.ix[:,:10,:])
+            store.append('wp1', wp.ix[:,10:,:])
+            tm.assert_panel_equal(store['wp1'], wp)
+
+        except:
+            raise
+        finally:
+            store.close()
+            os.remove(pth)
 
     def test_append_with_strings(self):
         wp = tm.makePanel()
@@ -198,7 +215,7 @@ class TestHDFStore(unittest.TestCase):
         self.assertRaises(Exception, self.store.put, 'panel', wp2,
                           append=True)
 
-    def test_append_incompatible_dtypes(self):
+    def test_table_index_incompatible_dtypes(self):
         df1 = DataFrame({'a': [1, 2, 3]})
         df2 = DataFrame({'a': [4, 5, 6]},
                         index=date_range('1/1/2000', periods=3))
@@ -206,6 +223,51 @@ class TestHDFStore(unittest.TestCase):
         self.store.put('frame', df1, table=True)
         self.assertRaises(Exception, self.store.put, 'frame', df2,
                           table=True, append=True)
+
+    def test_table_values_dtypes_roundtrip(self):
+        df1 = DataFrame({'a': [1, 2, 3]}, dtype = 'f8')
+        self.store.append('df1', df1)
+        assert df1.dtypes == self.store['df1'].dtypes
+
+        df2 = DataFrame({'a': [1, 2, 3]}, dtype = 'i8')
+        self.store.append('df2', df2)
+        assert df2.dtypes == self.store['df2'].dtypes
+
+        # incompatible dtype
+        self.assertRaises(Exception, self.store.append, 'df2', df1)
+
+    def test_table_mixed_dtypes(self):
+
+        # frame
+        def _make_one_df():
+            df = tm.makeDataFrame()
+            df['obj1'] = 'foo'
+            df['obj2'] = 'bar'
+            df['bool1'] = df['A'] > 0
+            df['bool2'] = df['B'] > 0
+            df['int1'] = 1
+            df['int2'] = 2
+            return df.consolidate()
+        
+        df1 = _make_one_df()
+
+        self.store.append('df1_mixed', df1)
+        tm.assert_frame_equal(self.store.select('df1_mixed'), df1)
+
+        # panel
+        def _make_one_panel():
+            wp = tm.makePanel()
+            wp['obj1'] = 'foo'
+            wp['obj2'] = 'bar'
+            wp['bool1'] = wp['ItemA'] > 0
+            wp['bool2'] = wp['ItemB'] > 0
+            wp['int1'] = 1
+            wp['int2'] = 2
+            return wp.consolidate()
+        p1 = _make_one_panel()
+
+        self.store.append('p1_mixed', p1)
+        tm.assert_panel_equal(self.store.select('p1_mixed'), p1)
 
     def test_remove(self):
         ts = tm.makeTimeSeries()
@@ -573,10 +635,6 @@ class TestHDFStore(unittest.TestCase):
         self.store['obj'] = df2
         tm.assert_frame_equal(self.store['obj'], df2)
 
-        # storing in Table not yet supported
-        self.assertRaises(Exception, self.store.put, 'foo',
-                          df1, table=True)
-
         # check that can store Series of all of these types
         self._check_roundtrip(df1['obj1'], tm.assert_series_equal)
         self._check_roundtrip(df1['bool1'], tm.assert_series_equal)
@@ -746,6 +804,15 @@ class TestHDFStore(unittest.TestCase):
         store['b']
         store['c']
         store['d']
+        store.close()
+
+    def test_legacy_table_read(self):
+        # legacy table types
+        pth = curpath()
+        store = HDFStore(os.path.join(pth, 'legacy_table.h5'), 'r')
+        store.select('df1')
+        store.select('df2')
+        store.select('wp1')
         store.close()
 
     def test_store_datetime_fractional_secs(self):

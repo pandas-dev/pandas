@@ -620,6 +620,11 @@ sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=common_include)
 
+pytables_ext = Extension('pandas._pytables',
+                         sources=[srcpath('pytables', suffix=suffix)],
+                         include_dirs=[np.get_include()],
+                         libraries=libraries)
+
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
@@ -629,6 +634,7 @@ extensions = [algos_ext,
               lib_ext,
               period_ext,
               sparse_ext,
+              pytables_ext,
               parser_ext]
 
 # if not ISRELEASED:
