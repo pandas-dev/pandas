@@ -10,6 +10,7 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
+from pandas.util.compat import OrderedDict
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.lib as lib
@@ -1525,7 +1526,7 @@ class NDFrameGroupBy(GroupBy):
         if isinstance(arg, basestring):
             return getattr(self, arg)(*args, **kwargs)
 
-        result = {}
+        result = OrderedDict()
         if isinstance(arg, dict):
             if self.axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
@@ -1533,7 +1534,7 @@ class NDFrameGroupBy(GroupBy):
             obj = self._obj_with_exclusions
 
             if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
-                new_arg = {}
+                new_arg = OrderedDict()
                 for k, v in arg.iteritems():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]

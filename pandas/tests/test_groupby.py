@@ -1859,6 +1859,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_more_flexible_frame_multi_function(self):
         from pandas import concat
+        from pandas.util.compat import OrderedDict
 
         grouped = self.df.groupby('A')
 
@@ -1868,8 +1869,8 @@ class TestGroupBy(unittest.TestCase):
         expected = concat([exmean, exstd], keys=['mean', 'std'], axis=1)
         expected = expected.swaplevel(0, 1, axis=1).sortlevel(0, axis=1)
 
-        result = grouped.aggregate({'C' : [np.mean, np.std],
-                                    'D' : [np.mean, np.std]})
+        d=OrderedDict([['C',[np.mean, np.std]],['D',[np.mean, np.std]]])
+        result = grouped.aggregate(d)
 
         assert_frame_equal(result, expected)
 
@@ -1884,10 +1885,12 @@ class TestGroupBy(unittest.TestCase):
         def foo(x): return np.mean(x)
         def bar(x): return np.std(x, ddof=1)
         result = grouped.aggregate({'C' : np.mean,
-                                    'D' : {'foo': np.mean,
-                                           'bar': np.std}})
+                                    'D' : OrderedDict([['foo', np.mean],
+                                           ['bar', np.std]])})
+
         expected = grouped.aggregate({'C' : [np.mean],
                                       'D' : [foo, bar]})
+
         assert_frame_equal(result, expected)
 
     def test_multi_function_flexible_mix(self):
@@ -1896,7 +1899,7 @@ class TestGroupBy(unittest.TestCase):
         grouped = self.df.groupby('A')
 
         result = grouped.aggregate({'C' : {'foo' : 'mean',
-                                           'bar' : 'std'},
+                                          'bar' : 'std'},
                                     'D' : 'sum'})
         result2 = grouped.aggregate({'C' : {'foo' : 'mean',
                                            'bar' : 'std'},

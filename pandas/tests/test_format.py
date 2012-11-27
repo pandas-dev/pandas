@@ -793,7 +793,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'A': [{'a':1, 'b':2}]})
 
         val = df.to_string()
-        self.assertTrue("{'a': 1, 'b': 2}" in val)
+        self.assertTrue("'a': 1" in val)
+        self.assertTrue("'b': 2" in val)
 
     def test_to_latex(self):
         # it works!
