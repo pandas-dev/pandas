@@ -5,6 +5,11 @@ python:
   - 2.7
   - 3.1
   - 3.2
+  - 3.3
+
+matrix:
+  allow_failures:
+    - python: 3.3 # until travis yograde to 1.8.4
 
 install:
   - export PYTHONIOENCODING=utf8 # activate venv 1.8.4 "detach" fix
