@@ -1,4 +1,4 @@
-from cpython cimport PyObject
+from cpython cimport PyObject, Py_INCREF
 
 from khash cimport *
 from numpy cimport *
@@ -29,144 +29,96 @@ def list_to_object_array(list obj):
     return arr
 
 
-cdef extern from "kvec.h":
-
-    ctypedef struct kv_int64_t:
-        size_t n, m
-        int64_t* a
-
-    ctypedef struct kv_double:
-        size_t n, m
-        double* a
-
-    ctypedef struct kv_object_t:
-        size_t n, m
-        PyObject** a
-
-    inline void kv_object_push(kv_object_t *v, PyObject* x)
-    inline void kv_object_destroy(kv_object_t *v)
-    inline void kv_int64_push(kv_int64_t *v, int64_t x)
-    inline void kv_double_push(kv_double *v, double x)
-
+cdef size_t _INIT_VEC_CAP = 32
 
 cdef class ObjectVector:
 
     cdef:
-        bint owndata
-        kv_object_t vec
+        size_t n, m
+        ndarray ao
+        PyObject **data
 
     def __cinit__(self):
-        self.owndata = 1
+        self.n = 0
+        self.m = _INIT_VEC_CAP
+        self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
+        self.data = <PyObject**> self.ao.data
 
     def __len__(self):
-        return self.vec.n
+        return self.n
 
-    def to_array(self, xfer_data=True):
-        """ Here we use the __array__ method, that is called when numpy
-            tries to get an array from the object."""
-        cdef:
-            npy_intp shape[1]
-            ndarray result
-
-        shape[0] = <npy_intp> self.vec.n
-
-        # Create a 1D array, of length 'size'
-        result = PyArray_SimpleNewFromData(1, shape,
-                                           np.NPY_OBJECT, self.vec.a)
-
-        # urgh, mingw32 barfs because of this
-
-        if xfer_data:
-            self.owndata = 0
-            util.set_array_owndata(result)
-
-        # return result
-
-        return result.copy()
+    def to_array(self):
+        self.ao.resize(self.n)
+        return self.ao
 
     cdef inline append(self, object o):
-        kv_object_push(&self.vec, <PyObject*> o)
+        if self.n == self.m:
+            self.m = self.m * 2
+            self.ao.resize(self.m)
+            self.data = <PyObject**> self.ao.data
 
-    def __dealloc__(self):
-        if self.owndata:
-            kv_object_destroy(&self.vec)
+        Py_INCREF(o)
+        self.data[self.n] = <PyObject*> o
+        self.n += 1
 
 
 cdef class Int64Vector:
 
     cdef:
-        bint owndata
-        kv_int64_t vec
+        size_t n, m
+        ndarray ao
+        int64_t *data
 
     def __cinit__(self):
-        self.owndata = 1
+        self.n = 0
+        self.m = _INIT_VEC_CAP
+        self.ao = np.empty(_INIT_VEC_CAP, dtype=np.int64)
+        self.data = <int64_t*> self.ao.data
 
     def __len__(self):
-        return self.vec.n
+        return self.n
 
-    def to_array(self, xfer_data=True):
-        """ Here we use the __array__ method, that is called when numpy
-            tries to get an array from the object."""
-        cdef:
-            npy_intp shape[1]
-            ndarray result
-
-        shape[0] = <npy_intp> self.vec.n
-
-        # Create a 1D array, of length 'size'
-        result = PyArray_SimpleNewFromData(1, shape, np.NPY_INT64,
-                                           self.vec.a)
-
-        if xfer_data:
-            self.owndata = 0
-            util.set_array_owndata(result)
-
-        return result
+    def to_array(self):
+        self.ao.resize(self.n)
+        return self.ao
 
     cdef inline append(self, int64_t x):
-        kv_int64_push(&self.vec, x)
+        if self.n == self.m:
+            self.m = self.m * 2
+            self.ao.resize(self.m)
+            self.data = <int64_t*> self.ao.data
 
-    def __dealloc__(self):
-        if self.owndata:
-            free(self.vec.a)
+        self.data[self.n] = x
+        self.n += 1
 
 cdef class Float64Vector:
 
     cdef:
-        bint owndata
-        kv_double vec
+        size_t n, m
+        ndarray ao
+        float64_t *data
 
     def __cinit__(self):
-        self.owndata = 1
+        self.n = 0
+        self.m = _INIT_VEC_CAP
+        self.ao = np.empty(_INIT_VEC_CAP, dtype=np.float64)
+        self.data = <float64_t*> self.ao.data
 
     def __len__(self):
-        return self.vec.n
+        return self.n
 
-    def to_array(self, xfer_data=True):
-        """ Here we use the __array__ method, that is called when numpy
-            tries to get an array from the object."""
-        cdef:
-            npy_intp shape[1]
-            ndarray result
-
-        shape[0] = <npy_intp> self.vec.n
-
-        # Create a 1D array, of length 'size'
-        result = PyArray_SimpleNewFromData(1, shape, np.NPY_FLOAT64,
-                                           self.vec.a)
-
-        if xfer_data:
-            self.owndata = 0
-            util.set_array_owndata(result)
-
-        return result
+    def to_array(self):
+        self.ao.resize(self.n)
+        return self.ao
 
     cdef inline append(self, float64_t x):
-        kv_double_push(&self.vec, x)
+        if self.n == self.m:
+            self.m = self.m * 2
+            self.ao.resize(self.m)
+            self.data = <float64_t*> self.ao.data
 
-    def __dealloc__(self):
-        if self.owndata:
-            free(self.vec.a)
+        self.data[self.n] = x
+        self.n += 1
 
 
 cdef class HashTable:
@@ -262,7 +214,7 @@ cdef class StringHashTable(HashTable):
                 uniques.append(val)
 
         # return None
-        return uniques.to_array(xfer_data=True)
+        return uniques.to_array()
 
     def factorize(self, ndarray[object] values):
         cdef:
@@ -573,7 +525,7 @@ cdef class Int64HashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        arr_uniques = uniques.to_array(xfer_data=True)
+        arr_uniques = uniques.to_array()
 
         return labels, arr_uniques
 
@@ -587,8 +539,6 @@ cdef class Int64HashTable(HashTable):
             khiter_t k
             Int64Vector uniques = Int64Vector()
 
-        # TODO: kvec
-
         for i in range(n):
             val = values[i]
             k = kh_get_int64(self.table, val)
@@ -597,11 +547,7 @@ cdef class Int64HashTable(HashTable):
                 uniques.append(val)
                 count += 1
 
-        result = uniques.to_array(xfer_data=True)
-
-        # result = np.array(uniques, copy=False)
-        # result.base = <PyObject*> uniques
-        # Py_INCREF(uniques)
+        result = uniques.to_array()
 
         return result
 
@@ -625,7 +571,7 @@ cdef class Float64HashTable(HashTable):
     def factorize(self, ndarray[float64_t] values):
         uniques = Float64Vector()
         labels = self.get_labels(values, uniques, 0, -1)
-        return uniques.to_array(xfer_data=True), labels
+        return uniques.to_array(), labels
 
     cpdef get_labels(self, ndarray[float64_t] values,
                      Float64Vector uniques,
@@ -698,8 +644,6 @@ cdef class Float64HashTable(HashTable):
             Float64Vector uniques = Float64Vector()
             bint seen_na = 0
 
-        # TODO: kvec
-
         for i in range(n):
             val = values[i]
 
@@ -713,7 +657,7 @@ cdef class Float64HashTable(HashTable):
                 seen_na = 1
                 uniques.append(ONAN)
 
-        return uniques.to_array(xfer_data=True)
+        return uniques.to_array()
 
 cdef class PyObjectHashTable(HashTable):
     cdef kh_pymap_t *table
@@ -839,11 +783,7 @@ cdef class PyObjectHashTable(HashTable):
                 seen_na = 1
                 uniques.append(ONAN)
 
-        result = uniques.to_array(xfer_data=True)
-
-        # result = np.array(uniques, copy=False)
-        # result.base = <PyObject*> uniques
-        # Py_INCREF(uniques)
+        result = uniques.to_array()
 
         return result
 
@@ -903,7 +843,7 @@ cdef class Factorizer:
             if labels.dtype != np.int_:
                 labels = labels.astype(np.int_)
 
-            sorter = self.uniques.to_array(xfer_data=False).argsort()
+            sorter = self.uniques.to_array().argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
@@ -940,7 +880,7 @@ cdef class Int64Factorizer:
             if labels.dtype != np.int_:
                 labels = labels.astype(np.int_)
 
-            sorter = self.uniques.to_array(xfer_data=False).argsort()
+            sorter = self.uniques.to_array().argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
