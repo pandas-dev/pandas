@@ -808,6 +808,10 @@ class TestSeriesFormatting(unittest.TestCase):
         s = Series([u'\u03c3'] * 10)
         repr(s)
 
+        a = Series([u"\u05d0"] * 1000)
+        a.name = 'title1'
+        repr(a)
+
     def test_to_string(self):
         buf = StringIO()
 
