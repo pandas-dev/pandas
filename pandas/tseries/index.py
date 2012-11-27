@@ -1539,7 +1539,7 @@ def _to_m8(key):
 def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):
     def parser(x):
         result = parse_time_string(x, offset, dayfirst=dayfirst,
-                                   yearfirst=None)
+                                   yearfirst=yearfirst)
         return result[0]
 
     arr = np.asarray(arr, dtype=object)

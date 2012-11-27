@@ -11,4 +11,4 @@ install:
 
 script:
   - python setup.py build_ext install
-  - nosetests --exe -w /tmp pandas.tests
+  - nosetests --exe -w /tmp -A "not slow" pandas

@@ -713,7 +713,7 @@ class PeriodIndex(Int64Index):
         Specialized factorize that boxes uniques
         """
         from pandas.core.algorithms import factorize
-        labels, uniques, _ = factorize(self.values)
+        labels, uniques = factorize(self.values)
         uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
         return labels, uniques
 

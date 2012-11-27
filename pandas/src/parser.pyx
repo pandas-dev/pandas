@@ -142,6 +142,7 @@ cdef extern from "parser/tokenizer.h":
         int skip_footer
 
         #  error handling
+        char *warn_msg
         char *error_msg
 
     ctypedef struct coliter_t:
@@ -651,6 +652,11 @@ cdef class TextReader:
         with nogil:
             status = tokenize_nrows(self.parser, nrows)
 
+        if self.parser.warn_msg != NULL:
+            print >> sys.stderr, self.parser.warn_msg
+            free(self.parser.warn_msg)
+            self.parser.warn_msg = NULL
+
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
 
@@ -673,6 +679,12 @@ cdef class TextReader:
         else:
             with nogil:
                 status = tokenize_all_rows(self.parser)
+
+            if self.parser.warn_msg != NULL:
+                print >> sys.stderr, self.parser.warn_msg
+                free(self.parser.warn_msg)
+                self.parser.warn_msg = NULL
+
             if status < 0:
                 raise_parser_error('Error tokenizing data', self.parser)
             footer = self.skip_footer

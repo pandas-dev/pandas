@@ -1109,24 +1109,6 @@ class TestGroupBy(unittest.TestCase):
         agged2 = df.groupby(keys).aggregate(aggfun)
         self.assertEqual(len(agged2.columns) + 1, len(df.columns))
 
-    def test_grouping_attrs(self):
-        deleveled = self.mframe.reset_index()
-        grouped = deleveled.groupby(['first', 'second'])
-
-        for i, ping in enumerate(grouped.grouper.groupings):
-            the_counts = self.mframe.groupby(level=i).count()['A']
-            other_counts = Series(ping.counts, ping.group_index)
-            assert_almost_equal(the_counts,
-                                other_counts.reindex(the_counts.index))
-
-        # compute counts when group by level
-        grouped = self.mframe.groupby(level=0)
-        ping = grouped.grouper.groupings[0]
-        the_counts = grouped.size()
-        other_counts = Series(ping.counts, ping.group_index)
-        assert_almost_equal(the_counts,
-                            other_counts.reindex(the_counts.index))
-
     def test_groupby_level(self):
         frame = self.mframe
         deleveled = frame.reset_index()

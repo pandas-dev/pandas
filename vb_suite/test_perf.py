@@ -18,14 +18,11 @@ How
 ---
 These are the steps taken:
 1) create a temp directory into which vbench will clone the temporary repo.
-2) parse the Git tree to obtain metadata, and determine the HEAD.
-3) instantiate a vbench runner, using the local repo as the source repo.
-4) If results for the BASELINE_COMMIT aren't already in the db, have vbench
-do a run for it and store the results.
-5) perform a vbench run for HEAD and store the results.
-6) pull the results for both commits from the db. use pandas to align
+2) instantiate a vbench runner, using the local repo as the source repo.
+3) perform a vbench run for the baseline commit, then the target commit.
+4) pull the results for both commits from the db. use pandas to align
 everything and calculate a ration for the timing information.
-7) print the results to the log file and to stdout.
+5) print the results to the log file and to stdout.
 
 """
 
@@ -33,11 +30,10 @@ import shutil
 import os
 import argparse
 import tempfile
-
-from pandas import DataFrame
+import time
 
 DEFAULT_MIN_DURATION = 0.01
-BASELINE_COMMIT = 'bdbca8e3dc' # 9,1 + regression fix # TODO: detect upstream/master
+BASELINE_COMMIT = '2149c50' # 0.9.1 + regression fix + vb fixes # TODO: detect upstream/master
 
 parser = argparse.ArgumentParser(description='Use vbench to generate a report comparing performance between two commits.')
 parser.add_argument('-a', '--auto',
@@ -61,6 +57,7 @@ parser.add_argument('-o', '--output',
 args = parser.parse_args()
 
 def get_results_df(db,rev):
+    from pandas import DataFrame
     """Takes a git commit hash and returns a Dataframe of benchmark results
     """
     bench = DataFrame(db.get_benchmarks())
@@ -76,6 +73,7 @@ def prprint(s):
     print("*** %s"%s)
 
 def main():
+    from pandas import DataFrame
     from vbench.api import BenchmarkRunner
     from vbench.db import BenchmarkDB
     from suite import REPO_PATH, BUILD, DB_PATH, PREPARE, dependencies, benchmarks
@@ -98,13 +96,8 @@ def main():
     try:
         logfile = open(args.log_file, 'w')
 
-        prprint( "Processing Repo at '%s'..." % REPO_PATH)
-
-        # get hashes of baseline and current head
-
         prprint( "Opening DB at '%s'...\n" % DB_PATH)
         db = BenchmarkDB(DB_PATH)
-
 
         prprint("Initializing Runner...")
         runner = BenchmarkRunner(benchmarks, REPO_PATH, REPO_PATH, BUILD, DB_PATH,
@@ -114,8 +107,8 @@ def main():
 
         repo = runner.repo #(steal the parsed git repo used by runner)
 
-        # ARGH. reparse the repo, not discarding any commits,
-        # and overwrite the previous parse results
+        # ARGH. reparse the repo, without discarding any commits,
+        # then overwrite the previous parse results
         #prprint ("Slaughtering kittens..." )
         (repo.shas, repo.messages,
          repo.timestamps, repo.authors) = _parse_commit_log(REPO_PATH)
@@ -125,7 +118,6 @@ def main():
 
         prprint('Target [%s] : %s\n' % (h_head, repo.messages.get(h_head,"")))
         prprint('Baseline [%s] : %s\n' % (h_baseline,repo.messages.get(h_baseline,"")))
-
 
         prprint ("removing any previous measurements for the commits." )
         db.delete_rev_results(h_baseline)
@@ -152,7 +144,9 @@ def main():
         totals = totals.ix[totals.t_head > args.min_duration] # ignore below threshold
         totals = totals.dropna().sort("ratio").set_index('name') # sort in ascending order
 
-        s = "\n\nResults:\n" + totals.to_string(float_format=lambda x: "%0.4f" %x) + "\n\n"
+        s = "\n\nResults:\n"
+        s += totals.to_string(float_format=lambda x: "{:4.4f}".format(x).rjust(10))
+        s += "\n\n"
         s += "Columns: test_name | target_duration [ms] | baseline_duration [ms] | ratio\n\n"
         s += "- a Ratio of 1.30 means the target commit is 30% slower then the baseline.\n\n"
 
