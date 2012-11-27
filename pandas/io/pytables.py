@@ -31,8 +31,6 @@ from pandas.tools.merge import concat
 import pandas.lib as lib
 from contextlib import contextmanager
 
-import sys
-sys.path.insert(0,'/home/jreback/pandas/pandas')
 import pandas._pytables as pylib
 
 # reading and writing the full object in one go

@@ -854,6 +854,8 @@ after data is already in the table (this may become automatic in the future or a
    df2 = df[4:]
    store.append('df', df1)
    store.append('df', df2)
+   store.append('wp', wp)
+   store
 
    store.select('df')
 
@@ -879,7 +881,7 @@ a subset of the data. This allows one to have a very large on-disk table and ret
 
 A query is specified using the ``Term`` class under the hood. 
 
-   - 'index' refers to the index of a DataFrame 
+   - 'index' and 'column' are supported indexers of a DataFrame 
    - 'major_axis' and 'minor_axis' are supported indexers of the Panel
 
 Valid terms can be created from ``dict, list, tuple, or string``. Objects can be embeded as values. Allowed operations are: ``<, <=, >, >=, =``. ``=`` will be inferred as an implicit set operation (e.g. if 2 or more values are provided). The following are all valid terms. 
@@ -921,7 +923,6 @@ Notes & Caveats
 
    - Selection by items (the top level panel dimension) is not possible; you always get all of the items in the returned Panel
    - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *index* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the ``min_itemsize`` on the first table creation. If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information).
-   - Mixed-Type Panels/DataFrames are not currently supported (but coming soon)!
    - Once a ``table`` is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
    - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
 
@@ -930,6 +931,11 @@ Performance
 
    - ``Tables`` come with a performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
      Write times are generally longer as compared with regular stores. Query times can be quite fast, especially on an indexed axis.
+   - ``Tables`` can (as of 0.10.0) be expressed as different types.
+
+     - ``AppendableTable`` which is a similiar table to past versions (this is the default).
+     - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
+
    - To delete a lot of data, it is sometimes better to erase the table and rewrite it. ``PyTables`` tends to increase the file size with deletions
    - In general it is best to store Panels with the most frequently selected dimension in the minor axis and a time/date like dimension in the major axis, but this is not required. Panels can have any major_axis and minor_axis type that is a valid Panel indexer.
    - No dimensions are currently indexed automagically (in the ``PyTables`` sense); these require an explict call to ``create_table_index``
