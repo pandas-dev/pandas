@@ -125,7 +125,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     labels = com._ensure_platform_int(labels)
 
-    uniques = uniques.to_array(xfer_data=True)
+    uniques = uniques.to_array()
 
     if sort and len(uniques) > 0:
         sorter = uniques.argsort()

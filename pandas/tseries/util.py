@@ -71,6 +71,7 @@ def pivot_annual(series, freq=None):
         raise NotImplementedError(freq)
 
     flat_index = (year - years.min()) * width + offset
+    flat_index = com._ensure_platform_int(flat_index)
 
     values = np.empty((len(years), width))
     values.fill(np.nan)

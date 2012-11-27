@@ -386,33 +386,69 @@ class Panel(NDFrame):
     #----------------------------------------------------------------------
     # Magic methods
 
-    def __repr__(self):
+    def __str__(self):
+        """
+        Return a string representation for a particular Panel
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular Panel
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular Panel
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
+
         class_name = str(self.__class__)
 
         I, N, K = len(self.items), len(self.major_axis), len(self.minor_axis)
 
-        dims = 'Dimensions: %d (items) x %d (major) x %d (minor)' % (I, N, K)
+        dims = u'Dimensions: %d (items) x %d (major) x %d (minor)' % (I, N, K)
 
         if len(self.major_axis) > 0:
-            major = 'Major axis: %s to %s' % (self.major_axis[0],
+            major = u'Major axis: %s to %s' % (self.major_axis[0],
                                               self.major_axis[-1])
         else:
-            major = 'Major axis: None'
+            major = u'Major axis: None'
 
         if len(self.minor_axis) > 0:
-            minor = 'Minor axis: %s to %s' % (self.minor_axis[0],
-                                              self.minor_axis[-1])
+            minor = u'Minor axis: %s to %s' % (com.pprint_thing(self.minor_axis[0]),
+                                              com.pprint_thing(self.minor_axis[-1]))
         else:
-            minor = 'Minor axis: None'
+            minor = u'Minor axis: None'
 
         if len(self.items) > 0:
-            items = 'Items: %s to %s' % (self.items[0], self.items[-1])
+            items = u'Items: %s to %s' % (com.pprint_thing(self.items[0]),
+                                          com.pprint_thing(self.items[-1]))
         else:
-            items = 'Items: None'
+            items = u'Items: None'
 
-        output = '%s\n%s\n%s\n%s\n%s' % (class_name, dims, items, major, minor)
+        output = u'%s\n%s\n%s\n%s\n%s' % (class_name, dims, items, major, minor)
 
         return output
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Panel
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def __iter__(self):
         return iter(self.items)

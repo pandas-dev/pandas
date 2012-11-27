@@ -856,6 +856,21 @@ class TestInt64Index(unittest.TestCase):
         self.assertTrue(len(r) < 100)
         self.assertTrue( "..." in r)
 
+    def test_unicode_string_with_unicode(self):
+        idx = Index(range(1000))
+
+        if py3compat.PY3:
+            str(idx)
+        else:
+            unicode(idx)
+
+    def test_bytestring_with_unicode(self):
+        idx = Index(range(1000))
+        if py3compat.PY3:
+            bytes(idx)
+        else:
+            str(idx)
+
 class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):
@@ -1684,6 +1699,24 @@ class TestMultiIndex(unittest.TestCase):
         d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
         index=pd.DataFrame(d).set_index(["a","b"]).index
         self.assertFalse("\\u" in repr(index)) # we don't want unicode-escaped
+
+    def test_unicode_string_with_unicode(self):
+        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
+        idx=pd.DataFrame(d).set_index(["a","b"]).index
+
+        if py3compat.PY3:
+            str(idx)
+        else:
+            unicode(idx)
+
+    def test_bytestring_with_unicode(self):
+        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
+        idx=pd.DataFrame(d).set_index(["a","b"]).index
+
+        if py3compat.PY3:
+            bytes(idx)
+        else:
+            str(idx)
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index
