@@ -136,7 +136,7 @@ left_index : boolean, default False
 right_index : boolean, default False
     Use the index from the right DataFrame as the join key. Same caveats as
     left_index
-sort : boolean, default True
+sort : boolean, default False
     Sort the join keys lexicographically in the result DataFrame
 suffixes : 2-length sequence (tuple, list, ...)
     Suffix to apply to overlapping column names in the left and right
@@ -4257,7 +4257,7 @@ class DataFrame(NDFrame):
     @Substitution('')
     @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
-              left_index=False, right_index=False, sort=True,
+              left_index=False, right_index=False, sort=False,
               suffixes=('_x', '_y'), copy=True):
         from pandas.tools.merge import merge
         return merge(self, right, how=how, on=on,

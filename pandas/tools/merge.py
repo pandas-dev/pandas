@@ -25,7 +25,7 @@ import pandas.lib as lib
 @Substitution('\nleft : DataFrame')
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
-          left_index=False, right_index=False, sort=True,
+          left_index=False, right_index=False, sort=False,
           suffixes=('_x', '_y'), copy=True):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,

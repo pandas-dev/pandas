@@ -533,7 +533,7 @@ class TestMerge(unittest.TestCase):
                            'value' : [5, 6, 7, 8]})
 
         merged = left.merge(right, left_on='lkey', right_on='rkey',
-                            how='outer')
+                            how='outer', sort=True)
 
         assert_almost_equal(merged['lkey'],
                             ['bar', 'baz', 'foo', 'foo', 'foo', 'foo', np.nan])
@@ -709,7 +709,8 @@ def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
         result = x.join(y, how=how)
 
-        expected = merge(x.reset_index(), y.reset_index(), how=how)
+        expected = merge(x.reset_index(), y.reset_index(), how=how,
+                         sort=True)
         expected = expected.set_index('index')
 
         assert_frame_equal(result, expected)

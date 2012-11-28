@@ -80,6 +80,26 @@ join_dataframe_integer_key = Benchmark("merge(df, df2, on='key')", setup,
 #----------------------------------------------------------------------
 # Merges
 
+setup = common_setup + """
+N = 10000
+
+indices = np.array([rands(10) for _ in xrange(N)], dtype='O')
+indices2 = np.array([rands(10) for _ in xrange(N)], dtype='O')
+key = np.tile(indices[:8000], 10)
+key2 = np.tile(indices2[:8000], 10)
+
+left = DataFrame({'key' : key, 'key2':key2,
+                  'value' : np.random.randn(80000)})
+right = DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
+                   'value2' : np.random.randn(8000)})
+"""
+
+merge_2intkey_nosort = Benchmark('merge(left, right, sort=False)', setup,
+                                 start_date=datetime(2011, 10, 20))
+
+merge_2intkey_sort = Benchmark('merge(left, right)', setup,
+                               start_date=datetime(2011, 10, 20))
+
 #----------------------------------------------------------------------
 # Appending DataFrames
 
