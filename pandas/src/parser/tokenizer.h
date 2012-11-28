@@ -119,6 +119,7 @@ typedef enum {
     QUOTE_IN_QUOTED_FIELD,
     EAT_CRNL,
     EAT_WHITESPACE,
+    EAT_COMMENT,
     FINISHED
 } ParserState;
 

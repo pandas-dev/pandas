@@ -73,6 +73,7 @@ cdef extern from "parser/tokenizer.h":
         QUOTE_IN_QUOTED_FIELD
         EAT_CRNL
         EAT_WHITESPACE
+        EAT_COMMENT
         FINISHED
 
     ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
@@ -331,6 +332,11 @@ cdef class TextReader:
 
         self.parser.quotechar = ord(quotechar)
         self.parser.quoting = quoting
+
+        if comment is not None:
+            if len(comment) > 1:
+                raise ValueError('Only length-1 comment characters supported')
+            self.parser.commentchar = ord(comment)
 
         # error handling of bad lines
         self.parser.error_bad_lines = int(error_bad_lines)

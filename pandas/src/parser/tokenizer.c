@@ -255,6 +255,8 @@ int parser_init(parser_t *self) {
     self->error_msg = NULL;
     self->warn_msg = NULL;
 
+    self->commentchar = '\0';
+
     return 0;
 }
 
@@ -688,6 +690,10 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 /* save empty field */
                 END_FIELD();
             }
+            else if (c == self->commentchar) {
+                END_FIELD();
+                self->state = EAT_COMMENT;
+            }
             else {
                 /* begin new unquoted field */
                 if (self->quoting == QUOTE_NONNUMERIC)
@@ -725,6 +731,10 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 // End of field. End of line not reached yet
                 END_FIELD();
                 self->state = START_FIELD;
+            }
+            else if (c == self->commentchar) {
+                END_FIELD();
+                self->state = EAT_COMMENT;
             }
             else {
                 /* normal character - save in field */
@@ -808,6 +818,14 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             } else {
                 PUSH_CHAR(c);
                 END_LINE_STATE(IN_FIELD);
+            }
+            break;
+
+        case EAT_COMMENT:
+            if (c == '\n') {
+                END_LINE();
+            } else if (c == '\r') {
+                self->state = EAT_CRNL;
             }
             break;
 
@@ -919,6 +937,10 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
             else if (IS_WHITESPACE(c)) {
                 self->state = EAT_WHITESPACE;
             }
+            else if (c == self->commentchar) {
+                END_FIELD();
+                self->state = EAT_COMMENT;
+            }
             else {
                 /* begin new unquoted field */
                 if (self->quoting == QUOTE_NONNUMERIC)
@@ -956,6 +978,10 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                 // End of field. End of line not reached yet
                 END_FIELD();
                 self->state = EAT_WHITESPACE;
+            }
+            else if (c == self->commentchar) {
+                END_FIELD();
+                self->state = EAT_COMMENT;
             }
             else {
                 /* normal character - save in field */
@@ -1039,6 +1065,14 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
             } else {
                 PUSH_CHAR(c);
                 END_LINE_STATE(IN_FIELD);
+            }
+            break;
+
+        case EAT_COMMENT:
+            if (c == '\n') {
+                END_LINE();
+            } else if (c == '\r') {
+                self->state = EAT_CRNL;
             }
             break;
 
