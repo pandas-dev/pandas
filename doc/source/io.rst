@@ -1,3 +1,4 @@
+
 .. _io:
 
 .. currentmodule:: pandas
@@ -793,16 +794,33 @@ Objects can be written to the file just like adding key-value pairs to a dict:
               major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
+   # store.put('s', s') is an equivalent method
    store['s'] = s
+
    store['df'] = df
+
    store['wp'] = wp
+
+   # the type of stored data
+   store.handle.root.wp._v_attrs.pandas_type
+
    store
 
 In a current or later Python session, you can retrieve stored objects:
 
 .. ipython:: python
 
+   # store.get('df') is an equivalent method
    store['df']
+
+Deletion of the object specified by the key
+
+.. ipython:: python
+
+   # store.remove('wp') is an equivalent method
+   del store['wp']
+
+   store
 
 .. ipython:: python
    :suppress:
@@ -812,8 +830,115 @@ In a current or later Python session, you can retrieve stored objects:
    os.remove('store.h5')
 
 
-.. Storing in Table format
-.. ~~~~~~~~~~~~~~~~~~~~~~~
+These stores are **not** appendable once written (though you can simply remove them and rewrite). Nor are they **queryable**; they must be retrieved in their entirety.
 
-.. Querying objects stored in Table format
-.. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Storing in Table format
+~~~~~~~~~~~~~~~~~~~~~~~
+
+``HDFStore`` supports another ``PyTables`` format on disk, the ``table`` format. Conceptually a ``table`` is shaped
+very much like a DataFrame, with rows and columns. A ``table`` may be appended to in the same or other sessions.
+In addition, delete & query type operations are supported. You can create an index with ``create_table_index``
+after data is already in the table (this may become automatic in the future or an option on appending/putting a ``table``).
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('store.h5')
+
+.. ipython:: python
+
+   store = HDFStore('store.h5')
+   df1 = df[0:4]
+   df2 = df[4:]
+   store.append('df', df1)
+   store.append('df', df2)
+   store.append('wp', wp)
+   store
+
+   store.select('df')
+
+   # the type of stored data
+   store.handle.root.df._v_attrs.pandas_type
+
+   store.create_table_index('df')
+   store.handle.root.df.table
+
+.. ipython:: python
+   :suppress:
+
+   store.close()
+   import os
+   os.remove('store.h5')
+
+
+Querying objects stored in Table format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``select`` and ``delete`` operations have an optional criteria that can be specified to select/delete only
+a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
+
+A query is specified using the ``Term`` class under the hood. 
+
+   - 'index' and 'column' are supported indexers of a DataFrame 
+   - 'major_axis' and 'minor_axis' are supported indexers of the Panel
+
+Valid terms can be created from ``dict, list, tuple, or string``. Objects can be embeded as values. Allowed operations are: ``<, <=, >, >=, =``. ``=`` will be inferred as an implicit set operation (e.g. if 2 or more values are provided). The following are all valid terms. 
+
+       - ``dict(field = 'index', op = '>', value = '20121114')``
+       - ``('index', '>', '20121114')``
+       - ``'index>20121114'``
+       - ``('index', '>', datetime(2012,11,14))``
+       - ``('index', ['20121114','20121115'])``
+       - ``('major', '=', Timestamp('2012/11/14'))``
+       - ``('minor_axis', ['A','B'])``
+
+Queries are built up using a list of ``Terms`` (currently only **anding** of terms is supported). An example query for a panel might be specified as follows. 
+``['major_axis>20000102', ('minor_axis', '=', ['A','B']) ]``. This is roughly translated to: `major_axis must be greater than the date 20000102 and the minor_axis must be A or B`
+
+.. ipython:: python
+
+   store = HDFStore('store.h5')
+   store.append('wp',wp)
+   store.select('wp',[ 'major_axis>20000102', ('minor_axis', '=', ['A','B']) ])
+
+Delete from objects stored in Table format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+
+   store.remove('wp', 'index>20000102' )
+   store.select('wp')
+
+.. ipython:: python
+   :suppress:
+
+   store.close()
+   import os
+   os.remove('store.h5')
+
+Notes & Caveats
+~~~~~~~~~~~~~~~
+
+   - Selection by items (the top level panel dimension) is not possible; you always get all of the items in the returned Panel
+   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *index* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the ``min_itemsize`` on the first table creation. If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information).
+   - Once a ``table`` is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
+   - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
+
+Performance
+~~~~~~~~~~~
+
+   - ``Tables`` come with a performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
+     Write times are generally longer as compared with regular stores. Query times can be quite fast, especially on an indexed axis.
+   - ``Tables`` can (as of 0.10.0) be expressed as different types.
+
+     - ``AppendableTable`` which is a similiar table to past versions (this is the default).
+     - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
+
+   - To delete a lot of data, it is sometimes better to erase the table and rewrite it. ``PyTables`` tends to increase the file size with deletions
+   - In general it is best to store Panels with the most frequently selected dimension in the minor axis and a time/date like dimension in the major axis, but this is not required. Panels can have any major_axis and minor_axis type that is a valid Panel indexer.
+   - No dimensions are currently indexed automagically (in the ``PyTables`` sense); these require an explict call to ``create_table_index``
+   - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
+     use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
+   - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
