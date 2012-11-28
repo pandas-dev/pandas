@@ -77,6 +77,8 @@ pandas 0.10.0
     something weird) (#2263)
   - Prevent uint64 -> int64 overflows (#2355)
   - Enable joins between MultiIndex and regular Index (#2024)
+  - Fix time zone metadata issue when unioning non-overlapping DatetimeIndex
+    objects (#2367)
 
 pandas 0.9.1
 ============
