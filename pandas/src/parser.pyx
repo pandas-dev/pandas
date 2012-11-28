@@ -820,8 +820,12 @@ cdef class TextReader:
                     col_dtype = self.dtype
 
             if col_dtype is not None:
-                if isinstance(col_dtype, np.dtype):
-                    col_dtype = col_dtype.str
+                if not isinstance(col_dtype, basestring):
+                    if isinstance(col_dtype, np.dtype):
+                        col_dtype = col_dtype.str
+                    else:
+                        col_dtype = np.dtype(col_dtype).str
+
                 return self._convert_with_dtype(col_dtype, i, start, end,
                                                 na_filter, na_hashset)
 

@@ -258,9 +258,19 @@ one,two
 
         reader = _make_reader(dtype={'one': 'u1', 1: 'S1'})
         result = reader.read()
-
         self.assert_(result[0].dtype == 'u1')
         self.assert_(result[1].dtype == 'S1')
+
+        reader = _make_reader(dtype={'one': np.uint8, 1: object})
+        result = reader.read()
+        self.assert_(result[0].dtype == 'u1')
+        self.assert_(result[1].dtype == 'O')
+
+        reader = _make_reader(dtype={'one': np.dtype('u1'),
+                                     1: np.dtype('O')})
+        result = reader.read()
+        self.assert_(result[0].dtype == 'u1')
+        self.assert_(result[1].dtype == 'O')
 
     def test_usecols(self):
         data = """\
