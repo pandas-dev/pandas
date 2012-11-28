@@ -238,7 +238,8 @@ class TestDataFramePlots(unittest.TestCase):
         ax = df.plot(x=1, y=2, title='Test', figsize=(16, 8))
 
         self.assert_(ax.title.get_text() == 'Test')
-        self.assert_((np.round(ax.figure.get_size_inches()) == np.array((16., 8.))).all())
+        self.assert_((np.round(ax.figure.get_size_inches())
+                      == np.array((16., 8.))).all())
 
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test

@@ -1202,6 +1202,7 @@ class BarPlot(MPLPlot):
             self.tickoffset = 0.25
         else:
             self.tickoffset = 0.375
+        self.bar_width = 0.5
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1241,12 +1242,12 @@ class BarPlot(MPLPlot):
 
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
-                rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior, **kwds)
+                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=pos_prior, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior)
-                rect = bar_f(ax, self.ax_pos, y, 0.5, start=start,
+                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=start,
                              label=label, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)

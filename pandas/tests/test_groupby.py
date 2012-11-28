@@ -2052,6 +2052,11 @@ class TestGroupBy(unittest.TestCase):
         exp = df.groupby(labels).agg(nanops.nanmedian)
         assert_frame_equal(result, exp)
 
+        df = DataFrame(np.random.randn(1000, 5))
+        rs = df.groupby(labels).agg(np.median)
+        xp = df.groupby(labels).median()
+        assert_frame_equal(rs, xp)
+
     def test_groupby_categorical_no_compress(self):
         data = Series(np.random.randn(9))
 

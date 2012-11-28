@@ -11,10 +11,31 @@ from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 from pandas.util.compat import OrderedDict
+from pandas.util.decorators import Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.lib as lib
 
+_agg_doc = """Aggregate using input function or dict of {column -> function}
+
+Parameters
+----------
+arg : function or dict
+    Function to use for aggregating groups. If a function, must either
+    work when passed a DataFrame or when passed to DataFrame.apply. If
+    pass a dict, the keys must be DataFrame column names
+
+Notes
+-----
+Numpy functions mean/median/prod/sum/std/var are special cased so the
+default behavior is applying the function along axis=0
+(e.g., np.mean(arr_2d, axis=0)) as opposed to
+mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
+
+Returns
+-------
+aggregated : DataFrame
+"""
 
 class GroupByError(Exception):
     pass
@@ -298,10 +319,8 @@ class GroupBy(object):
     def aggregate(self, func, *args, **kwargs):
         raise NotImplementedError
 
+    @Appender(_agg_doc)
     def agg(self, func, *args, **kwargs):
-        """
-        See docstring for aggregate
-        """
         return self.aggregate(func, *args, **kwargs)
 
     def _iterate_slices(self):
@@ -1508,21 +1527,8 @@ class NDFrameGroupBy(GroupBy):
         else:
             return self.obj
 
+    @Appender(_agg_doc)
     def aggregate(self, arg, *args, **kwargs):
-        """
-        Aggregate using input function or dict of {column -> function}
-
-        Parameters
-        ----------
-        arg : function or dict
-            Function to use for aggregating groups. If a function, must either
-            work when passed a DataFrame or when passed to DataFrame.apply. If
-            pass a dict, the keys must be DataFrame column names
-
-        Returns
-        -------
-        aggregated : DataFrame
-        """
         if isinstance(arg, basestring):
             return getattr(self, arg)(*args, **kwargs)
 
@@ -2238,9 +2244,9 @@ _cython_table = {
     np.mean: 'mean',
     np.prod: 'prod',
     np.std: 'std',
-    np.var: 'var'
+    np.var: 'var',
+    np.median: 'median'
 }
-
 
 def _is_numeric_dtype(dt):
     typ = dt.type
