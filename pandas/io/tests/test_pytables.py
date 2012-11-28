@@ -350,29 +350,44 @@ class TestHDFStore(unittest.TestCase):
 
     def test_terms(self):
 
-        terms = [
-            dict(field = 'index', op = '>', value = '20121114'),
-            ('index', '20121114'),
-            ('index', '>', '20121114'),
-            ('index', ['20121114','20121114']),
-            ('index', datetime(2012,11,14)),
-            'index>20121114',
-            'major>20121114',
-            'major_axis>20121114',
-            ('minor', ['A','B']),
-            ('minor_axis', ['A','B']),
-            ('column', ['A','B']),
-            ]
+        wp = tm.makePanel()
+        self.store.put('wp', wp, table=True)
 
+        # some invalid terms
+        terms = [
+            [ 'minor', ['A','B'] ],
+            [ 'index', ['20121114'] ],
+            [ 'index', ['20121114', '20121114'] ],
+            ]
+        for t in terms:
+            self.assertRaises(Exception, self.store.select, 'wp', t)
+ 
         self.assertRaises(Exception, Term.__init__)
         self.assertRaises(Exception, Term.__init__, 'blah')
         self.assertRaises(Exception, Term.__init__, 'index')
         self.assertRaises(Exception, Term.__init__, 'index', '==')
         self.assertRaises(Exception, Term.__init__, 'index', '>', 5)
 
-        # test em
-        wp = tm.makePanel()
-        self.store.put('wp', wp, table=True)
+        result = self.store.select('wp',[ Term('major_axis<20000108'), Term('minor_axis', '=', ['A','B']) ])
+        expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
+        tm.assert_panel_equal(result, expected)
+
+        # valid terms
+        terms = [
+            dict(field = 'index', op = '>', value = '20121114'),
+            ('index', '20121114'),
+            ('index', '>', '20121114'),
+            (('index', ['20121114','20121114']),),
+            ('index', datetime(2012,11,14)),
+            'index>20121114',
+            'major>20121114',
+            'major_axis>20121114',
+            (('minor', ['A','B']),),
+            (('minor_axis', ['A','B']),),
+            ((('minor_axis', ['A','B']),),),
+            (('column', ['A','B']),),
+            ]
+
         for t in terms:
            self.store.select('wp', t)
  
@@ -712,10 +727,14 @@ class TestHDFStore(unittest.TestCase):
         date = wp.major_axis[len(wp.major_axis) // 2]
 
         crit1 = ('index','>=',date)
-        crit2 = ('column', ['A', 'D'])
+        crit2 = ('column', '=', ['A', 'D'])
 
         result = self.store.select('wp', [crit1, crit2])
         expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
+        tm.assert_panel_equal(result, expected)
+
+        result = self.store.select('wp', [ 'major_axis>=20000124', ('minor_axis', '=', ['A','B']) ])
+        expected = wp.truncate(before='20000124').reindex(minor=['A', 'B'])
         tm.assert_panel_equal(result, expected)
 
     def test_frame_select(self):

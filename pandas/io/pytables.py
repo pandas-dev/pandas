@@ -1751,7 +1751,7 @@ class Term(object):
         
     """
 
-    _ops     = ['<','<=','>','>=','=','!=']
+    _ops     = ['<=','<','>=','>','!=','=']
     _search  = re.compile("^(?P<field>\w+)(?P<op>%s)(?P<value>.+)$" % '|'.join(_ops))
     _index   = ['index','major_axis','major']
     _column  = ['column','minor_axis','minor']
@@ -1765,7 +1765,7 @@ class Term(object):
         self.condition  = None
 
         # unpack lists/tuples in field
-        if isinstance(field,(tuple,list)):
+        while(isinstance(field,(tuple,list))):
             f = field
             field = f[0]
             if len(f) > 1:
@@ -1923,8 +1923,8 @@ class Selection(object):
         if not isinstance(where, (list,tuple)):
             where = [ where ]
         else:
-            # do we have a single list/tuple
-            if not isinstance(where[0], (list,tuple)):
+            # do we have all list/tuple
+            if not any([ isinstance(w, (list,tuple,Term)) for w in where ]):
                 where = [ where ]
 
         return [ Term(c, kinds = self.table.kinds_map()) for c in where ]
