@@ -645,6 +645,16 @@ class TestTimeZones(unittest.TestCase):
         self.assertTrue(result.index.equals(ex_index))
         self.assertTrue(result.index.tz.zone == 'US/Central')
 
+        # non-overlapping
+        rng = date_range("2012-11-15 00:00:00", periods=6,
+                         freq="H", tz="US/Central")
+
+        rng2 = date_range("2012-11-15 12:00:00", periods=6,
+                         freq="H", tz="US/Eastern")
+
+        result = rng.union(rng2)
+        self.assertTrue(result.tz.zone == 'UTC')
+
     def test_align_aware(self):
         idx1 = date_range('2001', periods=5, freq='H', tz='US/Eastern')
         idx2 = date_range('2001', periods=5, freq='2H', tz='US/Eastern')

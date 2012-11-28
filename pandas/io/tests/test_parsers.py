@@ -34,6 +34,8 @@ from pandas.io.date_converters import (
     parse_date_time, parse_date_fields, parse_all_fields
 )
 
+from pandas._parser import OverflowError
+
 def _skip_if_no_xlrd():
     try:
         import xlrd
@@ -863,7 +865,9 @@ yes,3
 No,3
 Yes,3
 """
-        data = self.read_csv(StringIO(data))
+        data = self.read_csv(StringIO(data),
+                             true_values=['yes', 'Yes', 'YES'],
+                             false_values=['no', 'NO', 'No'])
         self.assert_(data['A'].dtype == np.bool_)
 
         data = """A,B
@@ -873,6 +877,14 @@ TRUE,3
 """
         data = self.read_csv(StringIO(data))
         self.assert_(data['A'].dtype == np.bool_)
+
+        data = """A,B
+foo,bar
+bar,foo"""
+        result = self.read_csv(StringIO(data), true_values=['foo'],
+                               false_values=['bar'])
+        expected = DataFrame({'A': [True, False], 'B': [False, True]})
+        tm.assert_frame_equal(result, expected)
 
     def test_int_conversion(self):
         data = """A,B
@@ -1763,6 +1775,12 @@ class TestCParserHighMemory(ParserTests, unittest.TestCase):
         ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
         self.assertEqual(result.dtype, ex_dtype)
 
+    def test_parse_dates_empty_string(self):
+        # #2263
+        s = StringIO("Date, test\n2012-01-01, 1\n,2")
+        result = pd.read_csv(s, parse_dates=["Date"], na_filter=False)
+        self.assertTrue(result['Date'].isnull()[1])
+
 class TestCParserLowMemory(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
@@ -1892,6 +1910,21 @@ No,No,No"""
         result = read_csv(StringIO(data), dtype=object, na_filter=False)
         self.assertEquals(result['B'][2], '')
 
+    def test_int64_overflow(self):
+        data = """ID
+00013007854817840016671868
+00013007854817840016749251
+00013007854817840016754630
+00013007854817840016781876
+00013007854817840017028824
+00013007854817840017963235
+00013007854817840018860166"""
+
+        result = read_csv(StringIO(data))
+        self.assertTrue(result['ID'].dtype == object)
+
+        self.assertRaises(OverflowError, read_csv, StringIO(data),
+                          dtype='i8')
 
 class TestParseSQL(unittest.TestCase):
 

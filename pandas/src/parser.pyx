@@ -73,7 +73,10 @@ cdef extern from "parser/tokenizer.h":
         QUOTE_IN_QUOTED_FIELD
         EAT_CRNL
         EAT_WHITESPACE
+        EAT_COMMENT
         FINISHED
+
+    enum: ERROR_OVERFLOW
 
     ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                  int *status)
@@ -231,7 +234,8 @@ cdef class TextReader:
 
     cdef public:
         int leading_cols, table_width, skip_footer, buffer_lines
-        object delimiter, na_values, converters, delim_whitespace
+        object delimiter, converters, delim_whitespace
+        object na_values, true_values, false_values
         object memory_map
         object as_recarray
         object header, names
@@ -278,6 +282,9 @@ cdef class TextReader:
 
                   na_filter=True,
                   na_values=None,
+                  true_values=None,
+                  false_values=None,
+
                   compact_ints=False,
                   use_unsigned=False,
                   low_memory=False,
@@ -332,6 +339,11 @@ cdef class TextReader:
         self.parser.quotechar = ord(quotechar)
         self.parser.quoting = quoting
 
+        if comment is not None:
+            if len(comment) > 1:
+                raise ValueError('Only length-1 comment characters supported')
+            self.parser.commentchar = ord(comment)
+
         # error handling of bad lines
         self.parser.error_bad_lines = int(error_bad_lines)
         self.parser.warn_bad_lines = int(warn_bad_lines)
@@ -356,6 +368,10 @@ cdef class TextReader:
         self.delim_whitespace = delim_whitespace
 
         self.na_values = na_values
+
+        self.true_values = _maybe_encode(true_values)
+        self.false_values = _maybe_encode(false_values)
+
         self.converters = converters
 
         self.na_filter = na_filter
@@ -820,8 +836,12 @@ cdef class TextReader:
                     col_dtype = self.dtype
 
             if col_dtype is not None:
-                if isinstance(col_dtype, np.dtype):
-                    col_dtype = col_dtype.str
+                if not isinstance(col_dtype, basestring):
+                    if isinstance(col_dtype, np.dtype):
+                        col_dtype = col_dtype.str
+                    else:
+                        col_dtype = np.dtype(col_dtype).str
+
                 return self._convert_with_dtype(col_dtype, i, start, end,
                                                 na_filter, na_hashset)
 
@@ -830,9 +850,13 @@ cdef class TextReader:
         else:
             col_res = None
             for dt in dtype_cast_order:
-                col_res, na_count = self._convert_with_dtype(dt, i, start,
-                                                             end, na_filter,
-                                                             na_hashset)
+                try:
+                    col_res, na_count = self._convert_with_dtype(
+                        dt, i, start, end, na_filter, na_hashset)
+                except OverflowError:
+                    col_res, na_count = self._convert_with_dtype(
+                        '|O8', i, start, end, na_filter, na_hashset)
+
                 if col_res is not None:
                     break
 
@@ -841,6 +865,7 @@ cdef class TextReader:
     cdef _convert_with_dtype(self, object dtype, Py_ssize_t i,
                              int start, int end,
                              bint na_filter, kh_str_t *na_hashset):
+        cdef kh_str_t *true_set, *false_set
 
         if dtype[1] == 'i' or dtype[1] == 'u':
             result, na_count = _try_int64(self.parser, i, start, end,
@@ -862,8 +887,18 @@ cdef class TextReader:
             return result, na_count
 
         elif dtype[1] == 'b':
-            result, na_count = _try_bool(self.parser, i, start, end,
-                                         na_filter, na_hashset)
+            if self.true_values is not None or self.false_values is not None:
+
+                true_set = kset_from_list(self.true_values + _true_values)
+                false_set = kset_from_list(self.false_values + _false_values)
+                result, na_count = _try_bool_flex(self.parser, i, start, end,
+                                                  na_filter, na_hashset,
+                                                  true_set, false_set)
+                kh_destroy_str(true_set)
+                kh_destroy_str(false_set)
+            else:
+                result, na_count = _try_bool(self.parser, i, start, end,
+                                             na_filter, na_hashset)
             return result, na_count
         elif dtype[1] == 'c':
             raise NotImplementedError
@@ -955,6 +990,14 @@ cdef class TextReader:
 
 class CParserError(Exception):
     pass
+
+
+class OverflowError(ValueError):
+    pass
+
+cdef object _true_values = [b'True', b'TRUE', b'true']
+cdef object _false_values = [b'False', b'FALSE', b'false']
+
 
 def _ensure_encoded(list lst):
     cdef list result = []
@@ -1241,6 +1284,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
 
     return result, na_count
 
+
 cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
                 bint na_filter, kh_str_t *na_hashset):
     cdef:
@@ -1273,6 +1317,9 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
             data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
                                    &error, parser.thousands)
             if error != 0:
+                if error == ERROR_OVERFLOW:
+                    raise OverflowError(word)
+
                 return None, None
     else:
         for i in range(lines):
@@ -1280,9 +1327,12 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
             data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
                                    &error, parser.thousands)
             if error != 0:
+                if error == ERROR_OVERFLOW:
+                    raise OverflowError(word)
                 return None, None
 
     return result, na_count
+
 
 cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
                bint na_filter, kh_str_t *na_hashset):
@@ -1321,6 +1371,77 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
     else:
         for i in range(lines):
             word = COLITER_NEXT(it)
+
+            error = to_boolean(word, data)
+            if error != 0:
+                return None, None
+            data += 1
+
+    return result.view(np.bool_), na_count
+
+
+cdef _try_bool_flex(parser_t *parser, int col, int line_start, int line_end,
+                    bint na_filter, kh_str_t *na_hashset,
+                    kh_str_t *true_hashset, kh_str_t *false_hashset):
+    cdef:
+        int error, na_count = 0
+        size_t i, lines
+        coliter_t it
+        char *word
+        uint8_t *data
+        ndarray result
+
+        uint8_t NA = na_values[np.bool_]
+        khiter_t k
+
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=np.uint8)
+    data = <uint8_t *> result.data
+    coliter_setup(&it, parser, col, line_start)
+
+    if na_filter:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+
+            k = kh_get_str(na_hashset, word)
+            # in the hash table
+            if k != na_hashset.n_buckets:
+                na_count += 1
+                data[0] = NA
+                data += 1
+                continue
+
+            k = kh_get_str(true_hashset, word)
+            if k != true_hashset.n_buckets:
+                data[0] = 1
+                data += 1
+                continue
+
+            k = kh_get_str(false_hashset, word)
+            if k != false_hashset.n_buckets:
+                data[0] = 0
+                data += 1
+                continue
+
+            error = to_boolean(word, data)
+            if error != 0:
+                return None, None
+            data += 1
+    else:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+
+            k = kh_get_str(true_hashset, word)
+            if k != true_hashset.n_buckets:
+                data[0] = 1
+                data += 1
+                continue
+
+            k = kh_get_str(false_hashset, word)
+            if k != false_hashset.n_buckets:
+                data[0] = 0
+                data += 1
+                continue
 
             error = to_boolean(word, data)
             if error != 0:
@@ -1623,4 +1744,11 @@ cdef _fill_structured_column(char *dst, char* src, int elsize,
             memcpy(dst, src, elsize)
             dst += stride
             src += elsize
+
+
+
+def _maybe_encode(values):
+    if values is None:
+        return []
+    return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
 

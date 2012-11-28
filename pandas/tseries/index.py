@@ -824,7 +824,7 @@ class DatetimeIndex(Int64Index):
         else:
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
-                result.tz = self.tz
+                result.tz = this.tz
                 if result.freq is None:
                     result.offset = to_offset(result.inferred_freq)
             return result

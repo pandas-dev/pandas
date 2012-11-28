@@ -1762,12 +1762,17 @@ class MultiIndex(Index):
         -------
         appended : Index
         """
-        if isinstance(other, (list, tuple)):
-            to_concat = (self.values,) + tuple(k.values for k in other)
-        else:
-            to_concat = self.values, other.values
+        if not isinstance(other, (list, tuple)):
+            other = [other]
+
+        to_concat = (self.values,) + tuple(k.values for k in other)
         new_tuples = np.concatenate(to_concat)
-        return MultiIndex.from_tuples(new_tuples, names=self.names)
+
+        # if all(isinstance(x, MultiIndex) for x in other):
+        try:
+            return MultiIndex.from_tuples(new_tuples, names=self.names)
+        except:
+            return Index(new_tuples)
 
     def argsort(self, *args, **kwargs):
         return self.values.argsort()
@@ -2408,14 +2413,7 @@ class MultiIndex(Index):
                                           names=result_names)
 
     def _assert_can_do_setop(self, other):
-        if not isinstance(other, MultiIndex):
-            if len(other) == 0:
-                return True
-            raise TypeError('can only call with other hierarchical '
-                            'index objects')
-
-        if self.nlevels != other.nlevels:
-            raise AssertionError('Must have same number of levels')
+        pass
 
     def insert(self, loc, item):
         """
@@ -2527,15 +2525,13 @@ def _ensure_index(index_like):
         return Index(index_like, name=index_like.name)
 
     if isinstance(index_like, list):
-        klasses = (list, np.ndarray)
-        all_arrays = all(isinstance(x, klasses) for x in index_like)
+        # #2200 ?
+        converted, all_arrays = lib.clean_index_list(index_like)
 
-        if len(index_like) > 0 and all_arrays:
-            return MultiIndex.from_arrays(index_like)
+        if len(converted) > 0 and all_arrays:
+            return MultiIndex.from_arrays(converted)
         else:
-            # #2200 ?
-            index_like = [tuple(x) if isinstance(x, klasses) else x
-                          for x in index_like]
+            index_like = converted
 
     return Index(index_like)
 

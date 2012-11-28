@@ -444,24 +444,6 @@ cdef class Int64HashTable(HashTable):
 
         return locs
 
-    def lookup_i4(self, ndarray[int64_t] values):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            int64_t val
-            khiter_t k
-            ndarray[int64_t] locs = np.empty(n, dtype=np.int64)
-
-        for i in range(n):
-            val = values[i]
-            k = kh_get_int64(self.table, val)
-            if k != self.table.n_buckets:
-                locs[i] = self.table.vals[k]
-            else:
-                locs[i] = -1
-
-        return locs
-
     def factorize(self, ndarray[object] values):
         reverse = {}
         labels = self.get_labels(values, reverse, 0)

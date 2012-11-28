@@ -13,8 +13,8 @@ df['foo'] = 'bar'
 
 row_labels = list(df.index[::10])[:900]
 col_labels = list(df.columns) * 100
-row_labels_all = list(df.index) * len(df.columns)
-col_labels_all = list(df.columns) * len(df.index)
+row_labels_all = np.array(list(df.index) * len(df.columns), dtype='object')
+col_labels_all = np.array(list(df.columns) * len(df.index), dtype='object')
 """
 
 frame_fancy_lookup = Benchmark('df.lookup(row_labels, col_labels)', setup,
@@ -41,7 +41,7 @@ frame_fillna_inplace = Benchmark('df.fillna(0, inplace=True)', setup,
 
 setup = common_setup + """
 df = DataFrame(randn(1000, 1000))
-idx = range(400, 700)
+idx = np.arange(400, 700)
 """
 
 frame_reindex_axis0 = Benchmark('df.reindex(idx)', setup)
@@ -71,8 +71,20 @@ frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
 
 setup = common_setup + """
 df = DataFrame(randn(10000, 100))
+def f():
+    if hasattr(df, '_item_cache'):
+        df._item_cache.clear()
+    for name, col in df.iteritems():
+        pass
+
+def g():
+    for name, col in df.iteritems():
+        pass
 """
 
 # as far back as the earliest test currently in the suite
-frame_iteritems = Benchmark('for name,col in df.iteritems(): pass', setup,
-                                     start_date=datetime(2010, 6, 1))
+frame_iteritems = Benchmark('f()', setup,
+                            start_date=datetime(2010, 6, 1))
+
+frame_iteritems_cached = Benchmark('g()', setup,
+                                   start_date=datetime(2010, 6, 1))

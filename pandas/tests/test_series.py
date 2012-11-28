@@ -2036,6 +2036,25 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = np.array([1, 2, 3, None], dtype=object)
         self.assert_(np.array_equal(result, expected))
 
+    def test_drop_duplicates(self):
+        s = Series([1, 2, 3, 3])
+
+        result = s.duplicated()
+        expected = Series([False, False, False, True])
+        assert_series_equal(result, expected)
+
+        result = s.duplicated(take_last=True)
+        expected = Series([False, False, True, False])
+        assert_series_equal(result, expected)
+
+        result = s.drop_duplicates()
+        expected = s[[True, True, True, False]]
+        assert_series_equal(result, expected)
+
+        result = s.drop_duplicates(take_last=True)
+        expected = s[[True, True, False, True]]
+        assert_series_equal(result, expected)
+
     def test_sort(self):
         ts = self.ts.copy()
         ts.sort()

@@ -407,6 +407,16 @@ class TestMerge(unittest.TestCase):
 
         # _assert_same_contents(expected, expected2.ix[:, expected.columns])
 
+    def test_join_hierarchical_mixed(self):
+        df = DataFrame([(1,2,3), (4,5,6)], columns = ['a','b','c'])
+        new_df = df.groupby(['a']).agg({'b': [np.mean, np.sum]})
+        other_df = DataFrame([(1,2,3), (7,10,6)], columns = ['a','b','d'])
+        other_df.set_index('a', inplace=True)
+
+        result = merge(new_df, other_df, left_index=True, right_index=True)
+        self.assertTrue(('b', 'mean') in result)
+        self.assertTrue('b' in result)
+
     def test_join_float64_float32(self):
         a = DataFrame(randn(10,2), columns=['a','b'])
         b = DataFrame(randn(10,1), columns=['c']).astype(np.float32)
@@ -523,7 +533,7 @@ class TestMerge(unittest.TestCase):
                            'value' : [5, 6, 7, 8]})
 
         merged = left.merge(right, left_on='lkey', right_on='rkey',
-                            how='outer')
+                            how='outer', sort=True)
 
         assert_almost_equal(merged['lkey'],
                             ['bar', 'baz', 'foo', 'foo', 'foo', 'foo', np.nan])
@@ -699,7 +709,8 @@ def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
         result = x.join(y, how=how)
 
-        expected = merge(x.reset_index(), y.reset_index(), how=how)
+        expected = merge(x.reset_index(), y.reset_index(), how=how,
+                         sort=True)
         expected = expected.set_index('index')
 
         assert_frame_equal(result, expected)

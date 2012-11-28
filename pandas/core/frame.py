@@ -136,7 +136,7 @@ left_index : boolean, default False
 right_index : boolean, default False
     Use the index from the right DataFrame as the join key. Same caveats as
     left_index
-sort : boolean, default True
+sort : boolean, default False
     Sort the join keys lexicographically in the result DataFrame
 suffixes : 2-length sequence (tuple, list, ...)
     Suffix to apply to overlapping column names in the left and right
@@ -681,8 +681,12 @@ class DataFrame(NDFrame):
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
-        for i, k in enumerate(self.columns):
-            yield k, self.icol(i)
+        if self.columns.is_unique and hasattr(self, '_item_cache'):
+            for k in self.columns:
+                yield k, self._get_item_cache(k)
+        else:
+            for i, k in enumerate(self.columns):
+                yield k, self.icol(i)
 
     def iterrows(self):
         """
@@ -1829,15 +1833,8 @@ class DataFrame(NDFrame):
                     return self.ix[:, i]
 
             values = self._data.iget(i)
-            if hasattr(self,'default_fill_value'):
-                s = self._col_klass.from_array(values, index=self.index,
-                                               name=label,
-                                               fill_value= self.default_fill_value)
-            else:
-                s = self._col_klass.from_array(values, index=self.index,
-                                               name=label)
-
-            return s
+            return self._col_klass.from_array(values, index=self.index,
+                                              name=label)
 
     def _ixs(self, i, axis=0):
         if axis == 0:
@@ -2249,7 +2246,8 @@ class DataFrame(NDFrame):
 
         n = len(row_labels)
         if n != len(col_labels):
-            raise AssertionError('Row labels must have same size as col labels')
+            raise AssertionError('Row labels must have same size as '
+                                 'column labels')
 
         thresh = 1000
         if not self._is_mixed_type or n > thresh:
@@ -4259,7 +4257,7 @@ class DataFrame(NDFrame):
     @Substitution('')
     @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
-              left_index=False, right_index=False, sort=True,
+              left_index=False, right_index=False, sort=False,
               suffixes=('_x', '_y'), copy=True):
         from pandas.tools.merge import merge
         return merge(self, right, how=how, on=on,

@@ -707,6 +707,36 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
     return result
 
+def clean_index_list(list obj):
+    '''
+    Utility used in pandas.core.index._ensure_index
+    '''
+    cdef:
+        ndarray[object] converted
+        Py_ssize_t i, n = len(obj)
+        object v
+        bint all_arrays = 1
+
+    for i in range(n):
+        v = obj[i]
+        if not (PyList_Check(v) or cnp.PyArray_Check(v)):
+            all_arrays = 0
+            break
+
+    if all_arrays:
+        return obj, all_arrays
+
+    converted = np.empty(n, dtype=object)
+    for i in range(n):
+        v = obj[i]
+        if PyList_Check(v) or cnp.PyArray_Check(v):
+            converted[i] = tuple(v)
+        else:
+            converted[i] = v
+
+    return maybe_convert_objects(converted), 0
+
+
 include "hashtable.pyx"
 include "datetime.pyx"
 include "skiplist.pyx"

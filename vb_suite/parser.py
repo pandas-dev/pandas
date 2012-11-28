@@ -2,10 +2,10 @@ from vbench.api import Benchmark
 from datetime import datetime
 
 common_setup = """from pandas_vb_common import *
+from pandas import read_csv, read_table
 """
 
 setup = common_setup + """
-from pandas import read_csv
 import os
 N = 10000
 K = 8
@@ -19,7 +19,6 @@ read_csv_vb = Benchmark("read_csv('test.csv', sep='|')", setup,
 
 
 setup = common_setup + """
-from pandas import read_csv
 import os
 N = 10000
 K = 8
@@ -35,7 +34,6 @@ read_csv_thou_vb = Benchmark("read_csv('test.csv', sep='|', thousands=',')",
                              start_date=datetime(2012, 5, 7))
 
 setup = common_setup + """
-from pandas import read_csv
 import os
 N = 10000
 K = 8
@@ -46,13 +44,22 @@ df.ix[:5, 0] = '#'
 df.to_csv('test.csv', sep='|')
 """
 
-read_csv_comment_vb = Benchmark("read_csv('test.csv', sep='|', comment='#')",
-                                setup,
-                                cleanup="os.remove('test.csv')",
-                                start_date=datetime(2012, 5, 7))
+read_csv_comment = Benchmark("read_csv('test.csv', sep='|', comment='#')",
+                             setup,
+                             cleanup="os.remove('test.csv')",
+                             start_date=datetime(2012, 5, 7))
 
 setup = common_setup + """
-from pandas import read_table
+data = ['A,B,C']
+data = data + ['1,2,3 # comment'] * 100000
+data = '\\n'.join(data)
+"""
+
+stmt = "read_csv(StringIO(data), comment='#')"
+read_csv_comment2 = Benchmark(stmt, setup,
+                              start_date=datetime(2011, 11, 1))
+
+setup = common_setup + """
 from cStringIO import StringIO
 import os
 N = 10000
@@ -72,7 +79,6 @@ sdate = datetime(2012, 5, 7)
 read_table_multiple_date = Benchmark(cmd, setup, start_date=sdate)
 
 setup = common_setup + """
-from pandas import read_table
 from cStringIO import StringIO
 import os
 N = 10000

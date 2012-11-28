@@ -34,9 +34,12 @@ pandas 0.10.0
   - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
   - Support optional ``min_periods`` keyword in ``corr`` and ``cov``
     for both Series and DataFrame (#2002)
+  - Add ``duplicated`` and ``drop_duplicates`` functions to Series (#1923)
 
 **API Changes**
 
+  - ``pandas.merge`` will now default to ``sort=False``. For many use cases
+    sorting the join keys is not necessary, and doing it by default is wasteful
   - ``names`` handling in file parsing: if explicit column `names` passed,
     `header` argument will be respected. If there is an existing header column,
     this can rename the columns. To fix legacy code, put ``header=None`` when
@@ -44,6 +47,9 @@ pandas 0.10.0
   - DataFrame selection using a boolean frame now preserves input shape
   - If function passed to Series.apply yields a Series, result will be a
     DataFrame (#2316)
+  - Values like YES/NO/yes/no will not be considered as boolean by default any
+    longer in the file parsers. This can be customized using the new
+    ``true_values`` and ``false_values`` options (#2360)
 
 **Improvements to existing features**
 
@@ -72,6 +78,13 @@ pandas 0.10.0
   - Respect dtype=object in DataFrame constructor (#2291)
   - Fix DatetimeIndex.join bug with tz-aware indexes and how='outer' (#2317)
   - pop(...) and del works with DataFrame with duplicate columns (#2349)
+  - Treat empty strings as NA in date parsing (rather than let dateutil do
+    something weird) (#2263)
+  - Prevent uint64 -> int64 overflows (#2355)
+  - Enable joins between MultiIndex and regular Index (#2024)
+  - Fix time zone metadata issue when unioning non-overlapping DatetimeIndex
+    objects (#2367)
+  - Raise/handle int64 overflows in parsers (#2247)
 
 pandas 0.9.1
 ============
