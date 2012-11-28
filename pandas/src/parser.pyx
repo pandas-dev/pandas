@@ -76,6 +76,8 @@ cdef extern from "parser/tokenizer.h":
         EAT_COMMENT
         FINISHED
 
+    enum: ERROR_OVERFLOW
+
     ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                  int *status)
     ctypedef int (*io_cleanup)(void *src)
@@ -840,9 +842,13 @@ cdef class TextReader:
         else:
             col_res = None
             for dt in dtype_cast_order:
-                col_res, na_count = self._convert_with_dtype(dt, i, start,
-                                                             end, na_filter,
-                                                             na_hashset)
+                try:
+                    col_res, na_count = self._convert_with_dtype(
+                        dt, i, start, end, na_filter, na_hashset)
+                except OverflowError:
+                    col_res, na_count = self._convert_with_dtype(
+                        '|O8', i, start, end, na_filter, na_hashset)
+
                 if col_res is not None:
                     break
 
@@ -965,6 +971,11 @@ cdef class TextReader:
 
 class CParserError(Exception):
     pass
+
+
+class OverflowError(ValueError):
+    pass
+
 
 def _ensure_encoded(list lst):
     cdef list result = []
@@ -1251,6 +1262,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
 
     return result, na_count
 
+
 cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
                 bint na_filter, kh_str_t *na_hashset):
     cdef:
@@ -1283,6 +1295,9 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
             data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
                                    &error, parser.thousands)
             if error != 0:
+                if error == ERROR_OVERFLOW:
+                    raise OverflowError(word)
+
                 return None, None
     else:
         for i in range(lines):
@@ -1290,6 +1305,8 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
             data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
                                    &error, parser.thousands)
             if error != 0:
+                if error == ERROR_OVERFLOW:
+                    raise OverflowError(word)
                 return None, None
 
     return result, na_count

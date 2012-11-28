@@ -34,6 +34,8 @@ from pandas.io.date_converters import (
     parse_date_time, parse_date_fields, parse_all_fields
 )
 
+from pandas._parser import OverflowError
+
 def _skip_if_no_xlrd():
     try:
         import xlrd
@@ -1898,6 +1900,21 @@ No,No,No"""
         result = read_csv(StringIO(data), dtype=object, na_filter=False)
         self.assertEquals(result['B'][2], '')
 
+    def test_int64_overflow(self):
+        data = """ID
+00013007854817840016671868
+00013007854817840016749251
+00013007854817840016754630
+00013007854817840016781876
+00013007854817840017028824
+00013007854817840017963235
+00013007854817840018860166"""
+
+        result = read_csv(StringIO(data))
+        self.assertTrue(result['ID'].dtype == object)
+
+        self.assertRaises(OverflowError, read_csv, StringIO(data),
+                          dtype='i8')
 
 class TestParseSQL(unittest.TestCase):
 
