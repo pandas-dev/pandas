@@ -377,6 +377,10 @@ class SparseDataFrame(DataFrame):
                     return self.ix[:, i]
 
             return self[label]
+            # values = self._data.iget(i)
+            # return self._col_klass.from_array(
+            #     values, index=self.index, name=label,
+            #     fill_value= self.default_fill_value)
 
     @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col):

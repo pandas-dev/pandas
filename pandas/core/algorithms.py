@@ -56,13 +56,13 @@ def unique(values):
     return _hashtable_algo(f, values.dtype)
 
 
-def count(values, uniques=None):
-    f = lambda htype, caster: _count_generic(values, htype, caster)
+# def count(values, uniques=None):
+#     f = lambda htype, caster: _count_generic(values, htype, caster)
 
-    if uniques is not None:
-        raise NotImplementedError
-    else:
-        return _hashtable_algo(f, values.dtype)
+#     if uniques is not None:
+#         raise NotImplementedError
+#     else:
+#         return _hashtable_algo(f, values.dtype)
 
 
 def _hashtable_algo(f, dtype):
@@ -82,7 +82,7 @@ def _count_generic(values, table_type, type_caster):
 
     values = type_caster(values)
     table = table_type(min(len(values), 1000000))
-    uniques, labels, counts = table.factorize(values)
+    uniques, labels = table.factorize(values)
 
     return Series(counts, index=uniques)
 

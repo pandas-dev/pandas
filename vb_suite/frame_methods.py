@@ -71,8 +71,20 @@ frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
 
 setup = common_setup + """
 df = DataFrame(randn(10000, 100))
+def f():
+    if hasattr(df, '_item_cache'):
+        df._item_cache.clear()
+    for name, col in df.iteritems():
+        pass
+
+def g():
+    for name, col in df.iteritems():
+        pass
 """
 
 # as far back as the earliest test currently in the suite
-frame_iteritems = Benchmark('for name,col in df.iteritems(): pass', setup,
-                                     start_date=datetime(2010, 6, 1))
+frame_iteritems = Benchmark('f()', setup,
+                            start_date=datetime(2010, 6, 1))
+
+frame_iteritems_cached = Benchmark('g()', setup,
+                                   start_date=datetime(2010, 6, 1))
