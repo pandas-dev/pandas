@@ -21,6 +21,7 @@ from pandas.util.decorators import Appender
 
 import pandas.lib as lib
 import pandas._parser as _parser
+from pandas.tseries.period import Period
 
 class DateConversionError(Exception):
     pass
@@ -970,6 +971,10 @@ def TextParser(*args, **kwds):
 # verbose=False, encoding=None, squeeze=False):
 
 
+def count_empty_vals(vals):
+    return sum([1 for v in vals if v == '' or v is None])
+
+
 class PythonParser(ParserBase):
 
     def __init__(self, f, **kwds):
@@ -1100,6 +1105,13 @@ class PythonParser(ParserBase):
                                    self.index_col,
                                    self.index_names)
 
+        #handle new style for names in index
+        count_empty_content_vals = count_empty_vals(content[0])
+        indexnamerow = None
+        if count_empty_content_vals == len(columns):
+            indexnamerow = content[0]
+            content = content[1:]
+
         alldata = self._rows_to_cols(content)
         data = self._exclude_implicit_index(alldata)
 
@@ -1107,6 +1119,9 @@ class PythonParser(ParserBase):
 
         data = self._convert_data(data)
         index = self._make_index(data, alldata, columns)
+        if indexnamerow:
+            coffset = len(indexnamerow) - len(columns)
+            index.names = indexnamerow[:coffset]
 
         return index, columns, data
 
@@ -1870,7 +1885,8 @@ class ExcelFile(object):
 
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
-    while len(row) > 0 and row[0] == '':
+    # xlrd uses '' , openpyxl None
+    while len(row) > 0 and (row[0] == '' or row[0] is None):
         row = row[1:]
     return row
 
@@ -1954,8 +1970,8 @@ def _conv_value(val):
         val = int(val)
     elif isinstance(val, np.bool8):
         val = bool(val)
-    elif isinstance(val, lib.Timestamp):
-        val = val._repr_base
+    elif isinstance(val, Period):
+        val = "%s" % val
 
     return val
 
@@ -1982,6 +1998,9 @@ class ExcelWriter(object):
         else:
             from openpyxl.workbook import Workbook
             self.book = Workbook()#optimized_write=True)
+            #open pyxl 1.6.1 adds a dummy sheet remove it
+            if self.book.worksheets:
+                self.book.remove_sheet(self.book.worksheets[0])
         self.path = path
         self.sheets = {}
         self.cur_sheet = None
@@ -2037,9 +2056,9 @@ class ExcelWriter(object):
                             style.__getattribute__(field))
 
             if isinstance(cell.val, datetime.datetime):
-                style.num_format_str = "YYYY-MM-DD HH:SS"
+                xcell.style.number_format.format_code = "YYYY-MM-DD HH:MM:SS"
             elif isinstance(cell.val, datetime.date):
-                style.num_format_str = "YYYY-MM-DD"
+                xcell.style.number_format.format_code = "YYYY-MM-DD"
 
             #merging requires openpyxl latest (works on 1.6.1)
             #todo add version check
@@ -2063,7 +2082,7 @@ class ExcelWriter(object):
             val = _conv_value(cell.val)
             style = CellStyleConverter.to_xls(cell.style)
             if isinstance(val, datetime.datetime):
-                style.num_format_str = "YYYY-MM-DD HH:SS"
+                style.num_format_str = "YYYY-MM-DD HH:MM:SS"
             elif isinstance(val, datetime.date):
                 style.num_format_str = "YYYY-MM-DD"
 
