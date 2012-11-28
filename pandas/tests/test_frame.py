@@ -1762,6 +1762,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         1 : np.zeros(10, dtype=bool)})
         self.assertEqual(df.values.dtype, np.bool_)
 
+    def test_constructor_overflow_int64(self):
+        values = np.array([2**64 - i for i in range(1, 10)],
+                          dtype=np.uint64)
+
+        result = DataFrame({'a': values})
+        self.assert_(result['a'].dtype == object)
+
+        # #2355
+        data_scores = [(6311132704823138710, 273), (2685045978526272070, 23),
+                       (8921811264899370420, 45), (17019687244989530680L, 270),
+                       (9930107427299601010L, 273)]
+        dtype = [('uid', 'u8'), ('score', 'u8')]
+        data = np.zeros((len(data_scores),),dtype=dtype)
+        data[:] = data_scores
+        df_crawls = DataFrame(data)
+        self.assert_(df_crawls['uid'].dtype == object)
+
+
     def test_is_mixed_type(self):
         self.assert_(not self.frame._is_mixed_type)
         self.assert_(self.mixed_frame._is_mixed_type)
