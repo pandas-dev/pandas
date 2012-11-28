@@ -1415,7 +1415,10 @@ class DataFrame(NDFrame):
         formatter = fmt.ExcelFormatter(self,
                                        na_rep=na_rep,
                                        cols=cols,
-                                       float_format=float_format)
+                                       header=header,
+                                       float_format=float_format,
+                                       index=index,
+                                       index_label=index_label)
         formatted_cells = formatter.get_formatted_cells()
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol)
