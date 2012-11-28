@@ -544,7 +544,10 @@ def try_parse_dates(ndarray[object] values, parser=None,
         # EAFP here
         try:
             for i from 0 <= i < n:
-                result[i] = parse_date(values[i])
+                if values[i] == '':
+                    result[i] = np.nan
+                else:
+                    result[i] = parse_date(values[i])
         except Exception:
             # failed
             return values
@@ -553,7 +556,10 @@ def try_parse_dates(ndarray[object] values, parser=None,
 
         try:
             for i from 0 <= i < n:
-                result[i] = parse_date(values[i])
+                if values[i] == '':
+                    result[i] = np.nan
+                else:
+                    result[i] = parse_date(values[i])
         except Exception:
             # raise if passed parser and it failed
             raise

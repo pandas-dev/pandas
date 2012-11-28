@@ -72,6 +72,8 @@ pandas 0.10.0
   - Respect dtype=object in DataFrame constructor (#2291)
   - Fix DatetimeIndex.join bug with tz-aware indexes and how='outer' (#2317)
   - pop(...) and del works with DataFrame with duplicate columns (#2349)
+  - Treat empty strings as NA in date parsing (rather than let dateutil do
+    something weird) (#2263)
 
 pandas 0.9.1
 ============

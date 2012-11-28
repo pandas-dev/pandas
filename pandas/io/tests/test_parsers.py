@@ -1763,6 +1763,12 @@ class TestCParserHighMemory(ParserTests, unittest.TestCase):
         ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
         self.assertEqual(result.dtype, ex_dtype)
 
+    def test_parse_dates_empty_string(self):
+        # #2263
+        s = StringIO("Date, test\n2012-01-01, 1\n,2")
+        result = pd.read_csv(s, parse_dates=["Date"], na_filter=False)
+        self.assertTrue(result['Date'].isnull()[1])
+
 class TestCParserLowMemory(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
