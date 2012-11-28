@@ -679,7 +679,8 @@ def sanitize_objects(ndarray[object] values, set na_values,
 
     return na_count
 
-def maybe_convert_bool(ndarray[object] arr):
+def maybe_convert_bool(ndarray[object] arr,
+                       true_values=None, false_values=None):
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
@@ -690,8 +691,15 @@ def maybe_convert_bool(ndarray[object] arr):
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
 
-    true_vals = set(('True', 'TRUE', 'true', 'Yes', 'YES', 'yes'))
-    false_vals = set(('False', 'FALSE', 'false', 'No', 'NO', 'no'))
+    # the defaults
+    true_vals = set(('True', 'TRUE', 'true'))
+    false_vals = set(('False', 'FALSE', 'false'))
+
+    if true_values is not None:
+        true_vals = true_vals | set(true_values)
+
+    if false_values is not None:
+        false_vals = false_vals | set(false_values)
 
     for i from 0 <= i < n:
         val = arr[i]

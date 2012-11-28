@@ -38,6 +38,8 @@ pandas 0.10.0
 
 **API Changes**
 
+  - ``pandas.merge`` will now default to ``sort=False``. For many use cases
+    sorting the join keys is not necessary, and doing it by default is wasteful
   - ``names`` handling in file parsing: if explicit column `names` passed,
     `header` argument will be respected. If there is an existing header column,
     this can rename the columns. To fix legacy code, put ``header=None`` when
@@ -45,6 +47,9 @@ pandas 0.10.0
   - DataFrame selection using a boolean frame now preserves input shape
   - If function passed to Series.apply yields a Series, result will be a
     DataFrame (#2316)
+  - Values like YES/NO/yes/no will not be considered as boolean by default any
+    longer in the file parsers. This can be customized using the new
+    ``true_values`` and ``false_values`` options (#2360)
 
 **Improvements to existing features**
 

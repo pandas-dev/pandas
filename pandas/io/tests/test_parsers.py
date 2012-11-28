@@ -865,7 +865,9 @@ yes,3
 No,3
 Yes,3
 """
-        data = self.read_csv(StringIO(data))
+        data = self.read_csv(StringIO(data),
+                             true_values=['yes', 'Yes', 'YES'],
+                             false_values=['no', 'NO', 'No'])
         self.assert_(data['A'].dtype == np.bool_)
 
         data = """A,B
@@ -875,6 +877,14 @@ TRUE,3
 """
         data = self.read_csv(StringIO(data))
         self.assert_(data['A'].dtype == np.bool_)
+
+        data = """A,B
+foo,bar
+bar,foo"""
+        result = self.read_csv(StringIO(data), true_values=['foo'],
+                               false_values=['bar'])
+        expected = DataFrame({'A': [True, False], 'B': [False, True]})
+        tm.assert_frame_equal(result, expected)
 
     def test_int_conversion(self):
         data = """A,B

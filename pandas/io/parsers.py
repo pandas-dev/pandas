@@ -54,6 +54,10 @@ names : array-like
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
+true_values : list
+    Values to consider as True
+false_values : list
+    Values to consider as False
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to
@@ -200,6 +204,8 @@ _parser_defaults = {
     'names': None,
     'skiprows': None,
     'na_values': None,
+    'true_values': None,
+    'false_values': None,
     'skip_footer': 0,
     'converters': None,
 
@@ -268,6 +274,8 @@ def _make_parser_function(name, sep=','):
                  skipfooter=None,
                  skip_footer=0,
                  na_values=None,
+                 true_values=None,
+                 false_values=None,
                  delimiter=None,
                  converters=None,
                  dtype=None,
@@ -322,6 +330,8 @@ def _make_parser_function(name, sep=','):
                     names=names,
                     skiprows=skiprows,
                     na_values=na_values,
+                    true_values=true_values,
+                    false_values=false_values,
                     keep_default_na=keep_default_na,
                     thousands=thousands,
                     comment=comment,
@@ -619,6 +629,8 @@ class ParserBase(object):
         self.keep_date_col = kwds.pop('keep_date_col', False)
 
         self.na_values = kwds.get('na_values')
+        self.true_values = kwds.get('true_values')
+        self.false_values = kwds.get('false_values')
 
         self._date_conv = _make_date_converter(date_parser=self.date_parser,
                                                dayfirst=self.dayfirst)
@@ -733,12 +745,58 @@ class ParserBase(object):
                     col_na_values = _get_na_values(col_name,
                                                    self.na_values)
 
-            arr, _ = _convert_types(arr, col_na_values)
+            arr, _ = self._convert_types(arr, col_na_values)
             arrays.append(arr)
 
         index = MultiIndex.from_arrays(arrays, names=self.index_names)
 
         return index
+
+
+    def _convert_to_ndarrays(self, dct, na_values, verbose=False,
+                             converters=None):
+        result = {}
+        for c, values in dct.iteritems():
+            conv_f = None if converters is None else converters.get(c, None)
+            col_na_values = _get_na_values(c, na_values)
+            coerce_type = True
+            if conv_f is not None:
+                values = lib.map_infer(values, conv_f)
+                coerce_type = False
+            cvals, na_count = self._convert_types(values, col_na_values,
+                                                  coerce_type)
+            result[c] = cvals
+            if verbose and na_count:
+                print 'Filled %d NA values in column %s' % (na_count, str(c))
+        return result
+
+    def _convert_types(self, values, na_values, try_num_bool=True):
+        na_count = 0
+        if issubclass(values.dtype.type, (np.number, np.bool_)):
+            mask = lib.ismember(values, na_values)
+            na_count = mask.sum()
+            if na_count > 0:
+                if com.is_integer_dtype(values):
+                    values = values.astype(np.float64)
+                np.putmask(values, mask, np.nan)
+            return values, na_count
+
+        if try_num_bool:
+            try:
+                result = lib.maybe_convert_numeric(values, na_values, False)
+            except Exception:
+                na_count = lib.sanitize_objects(values, na_values, False)
+                result = values
+        else:
+            na_count = lib.sanitize_objects(values, na_values, False)
+            result = values
+
+        if result.dtype == np.object_ and try_num_bool:
+            result = lib.maybe_convert_bool(values,
+                                            true_values=self.true_values,
+                                            false_values=self.false_values)
+
+        return result, na_count
 
     def _do_date_conversions(self, names, data):
         # returns data, columns
@@ -1121,8 +1179,8 @@ class PythonParser(ParserBase):
                 col = self.orig_names[col]
             clean_conv[col] = f
 
-        return _convert_to_ndarrays(data, self.na_values, self.verbose,
-                                    clean_conv)
+        return self._convert_to_ndarrays(data, self.na_values, self.verbose,
+                                         clean_conv)
 
     def _infer_columns(self):
         names = self.names
@@ -1537,49 +1595,6 @@ def _get_na_values(col, na_values):
             return _NA_VALUES
     else:
         return na_values
-
-
-def _convert_to_ndarrays(dct, na_values, verbose=False, converters=None):
-    result = {}
-    for c, values in dct.iteritems():
-        conv_f = None if converters is None else converters.get(c, None)
-        col_na_values = _get_na_values(c, na_values)
-        coerce_type = True
-        if conv_f is not None:
-            values = lib.map_infer(values, conv_f)
-            coerce_type = False
-        cvals, na_count = _convert_types(values, col_na_values, coerce_type)
-        result[c] = cvals
-        if verbose and na_count:
-            print 'Filled %d NA values in column %s' % (na_count, str(c))
-    return result
-
-
-def _convert_types(values, na_values, try_num_bool=True):
-    na_count = 0
-    if issubclass(values.dtype.type, (np.number, np.bool_)):
-        mask = lib.ismember(values, na_values)
-        na_count = mask.sum()
-        if na_count > 0:
-            if com.is_integer_dtype(values):
-                values = values.astype(np.float64)
-            np.putmask(values, mask, np.nan)
-        return values, na_count
-
-    if try_num_bool:
-        try:
-            result = lib.maybe_convert_numeric(values, na_values, False)
-        except Exception:
-            na_count = lib.sanitize_objects(values, na_values, False)
-            result = values
-    else:
-        na_count = lib.sanitize_objects(values, na_values, False)
-        result = values
-
-    if result.dtype == np.object_ and try_num_bool:
-        result = lib.maybe_convert_bool(values)
-
-    return result, na_count
 
 
 

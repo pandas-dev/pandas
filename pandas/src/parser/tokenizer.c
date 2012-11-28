@@ -1498,14 +1498,14 @@ int to_boolean(char *item, uint8_t *val) {
     char *tmp;
     int i, status = 0;
 
-    static const char *tstrs[2] = {"TRUE", "YES"};
-    static const char *fstrs[2] = {"FALSE", "NO"};
+    static const char *tstrs[1] = {"TRUE"};
+    static const char *fstrs[1] = {"FALSE"};
 
     tmp = malloc(sizeof(char) * (strlen(item) + 1));
     strcpy(tmp, item);
     uppercase(tmp);
 
-    for (i = 0; i < 2; ++i)
+    for (i = 0; i < 1; ++i)
     {
         if (strcmp(tmp, tstrs[i]) == 0) {
             *val = 1;
@@ -1513,7 +1513,7 @@ int to_boolean(char *item, uint8_t *val) {
         }
     }
 
-    for (i = 0; i < 2; ++i)
+    for (i = 0; i < 1; ++i)
     {
         if (strcmp(tmp, fstrs[i]) == 0) {
             *val = 0;
