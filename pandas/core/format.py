@@ -11,8 +11,7 @@ except:
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
-from pandas.core.config import get_option, set_option, \
-                               reset_options
+from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
 import pandas.lib as lib
 
@@ -985,7 +984,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         set_option("print_config.encoding", encoding)
 
 def reset_printoptions():
-    reset_options("print_config.")
+    reset_option("^print_config\.")
 
 def detect_console_encoding():
     """
