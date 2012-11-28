@@ -35,4 +35,4 @@ script:
    - 'if [ x"$VBENCH" != x"true" ]; then nosetests --exe -w /tmp -A "not slow" pandas; fi'
    - pwd
    - 'if [ x"$VBENCH" == x"true" ]; then pip install sqlalchemy git+git://github.com/pydata/vbench.git; python vb_suite/perf_HEAD.py; fi'
-   - python -c "import numpy;print numpy.version.version"
+   - python -c "import numpy;print(numpy.version.version)"
