@@ -407,6 +407,16 @@ class TestMerge(unittest.TestCase):
 
         # _assert_same_contents(expected, expected2.ix[:, expected.columns])
 
+    def test_join_hierarchical_mixed(self):
+        df = DataFrame([(1,2,3), (4,5,6)], columns = ['a','b','c'])
+        new_df = df.groupby(['a']).agg({'b': [np.mean, np.sum]})
+        other_df = DataFrame([(1,2,3), (7,10,6)], columns = ['a','b','d'])
+        other_df.set_index('a', inplace=True)
+
+        result = merge(new_df, other_df, left_index=True, right_index=True)
+        self.assertTrue(('b', 'mean') in result)
+        self.assertTrue('b' in result)
+
     def test_join_float64_float32(self):
         a = DataFrame(randn(10,2), columns=['a','b'])
         b = DataFrame(randn(10,1), columns=['c']).astype(np.float32)

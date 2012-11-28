@@ -1762,12 +1762,17 @@ class MultiIndex(Index):
         -------
         appended : Index
         """
-        if isinstance(other, (list, tuple)):
-            to_concat = (self.values,) + tuple(k.values for k in other)
-        else:
-            to_concat = self.values, other.values
+        if not isinstance(other, (list, tuple)):
+            other = [other]
+
+        to_concat = (self.values,) + tuple(k.values for k in other)
         new_tuples = np.concatenate(to_concat)
-        return MultiIndex.from_tuples(new_tuples, names=self.names)
+
+        # if all(isinstance(x, MultiIndex) for x in other):
+        try:
+            return MultiIndex.from_tuples(new_tuples, names=self.names)
+        except:
+            return Index(new_tuples)
 
     def argsort(self, *args, **kwargs):
         return self.values.argsort()
@@ -2408,14 +2413,7 @@ class MultiIndex(Index):
                                           names=result_names)
 
     def _assert_can_do_setop(self, other):
-        if not isinstance(other, MultiIndex):
-            if len(other) == 0:
-                return True
-            raise TypeError('can only call with other hierarchical '
-                            'index objects')
-
-        if self.nlevels != other.nlevels:
-            raise AssertionError('Must have same number of levels')
+        pass
 
     def insert(self, loc, item):
         """
