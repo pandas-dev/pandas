@@ -117,10 +117,11 @@ API changes
 
   - New API functions for working with pandas options (GH2097_):
 
-    - ``get_option`` / ``set_option`` - get/set the value of an option.
-    - ``reset_option`` / ``reset_options`` - reset an options / all options to their default value.
-    - ``describe_options`` - print a description of one or more option. When called  with no arguments. print all registered options.
-    - ``set_printoptions`` is now deprecated (but functioning), the print options now live under "print_config.XYZ". For example:
+    - ``get_option`` / ``set_option`` - get/set the value of an option. Partial names are accepted.
+    - ``reset_option`` - reset one or more options to their default value. Partial names are accepted.
+    - ``describe_option`` - print a description of one or more options. When called  with no arguments. print all registered options.
+
+    Note: ``set_printoptions`` is now deprecated (but functioning), the print options now live under "print_config.XYZ". For example:
 
 
     .. ipython:: python
