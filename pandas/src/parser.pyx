@@ -368,8 +368,9 @@ cdef class TextReader:
         self.delim_whitespace = delim_whitespace
 
         self.na_values = na_values
-        self.true_values = true_values
-        self.false_values = false_values
+
+        self.true_values = _maybe_encode(true_values)
+        self.false_values = _maybe_encode(false_values)
 
         self.converters = converters
 
@@ -888,8 +889,8 @@ cdef class TextReader:
         elif dtype[1] == 'b':
             if self.true_values is not None or self.false_values is not None:
 
-                true_set = _get_true_set(self.true_values)
-                false_set = _get_false_set(self.false_values)
+                true_set = kset_from_list(self.true_values + _true_values)
+                false_set = kset_from_list(self.false_values + _false_values)
                 result, na_count = _try_bool_flex(self.parser, i, start, end,
                                                   na_filter, na_hashset,
                                                   true_set, false_set)
@@ -994,24 +995,8 @@ class CParserError(Exception):
 class OverflowError(ValueError):
     pass
 
-cdef object _true_values = ['True', 'TRUE', 'true']
-cdef object _false_values = ['False', 'FALSE', 'false']
-
-cdef kh_str_t* _get_true_set(object values):
-    if values is None:
-        values = []
-    elif not isinstance(values, list):
-        values = list(values)
-
-    return kset_from_list(values + _true_values)
-
-cdef kh_str_t* _get_false_set(object values):
-    if values is None:
-        values = []
-    elif not isinstance(values, list):
-        values = list(values)
-
-    return kset_from_list(values + _false_values)
+cdef object _true_values = [b'True', b'TRUE', b'true']
+cdef object _false_values = [b'False', b'FALSE', b'false']
 
 
 def _ensure_encoded(list lst):
@@ -1759,4 +1744,11 @@ cdef _fill_structured_column(char *dst, char* src, int elsize,
             memcpy(dst, src, elsize)
             dst += stride
             src += elsize
+
+
+
+def _maybe_encode(values):
+    if values is None:
+        return []
+    return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
 

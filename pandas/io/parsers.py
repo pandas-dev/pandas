@@ -614,6 +614,7 @@ class TextFileReader(object):
     get_chunk = read
 
 
+
 class ParserBase(object):
 
     def __init__(self, kwds):
