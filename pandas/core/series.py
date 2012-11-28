@@ -1248,6 +1248,39 @@ copy : boolean, default False
         """
         return len(self.value_counts())
 
+    def drop_duplicates(self, take_last=False):
+        """
+        Return Series with duplicate values removed
+
+        Parameters
+        ----------
+        take_last : boolean, default False
+            Take the last observed index in a group. Default first
+
+        Returns
+        -------
+        deduplicated : Series
+        """
+        duplicated = self.duplicated(take_last=take_last)
+        return self[-duplicated]
+
+    def duplicated(self, take_last=False):
+        """
+        Return boolean Series denoting duplicate values
+
+        Parameters
+        ----------
+        take_last : boolean, default False
+            Take the last observed index in a group. Default first
+
+        Returns
+        -------
+        duplicated : Series
+        """
+        keys = com._ensure_object(self.values)
+        duplicated = lib.duplicated(keys, take_last=take_last)
+        return Series(duplicated, index=self.index, name=self.name)
+
     sum = _make_stat_func(nanops.nansum, 'sum', 'sum')
     mean = _make_stat_func(nanops.nanmean, 'mean', 'mean')
     median = _make_stat_func(nanops.nanmedian, 'median', 'median', extras='')

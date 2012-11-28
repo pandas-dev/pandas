@@ -164,6 +164,18 @@ frame_drop_dup_na_inplace = Benchmark(statement2, setup,
                                   name='frame_drop_dup_na_inplace',
                                   start_date=datetime(2012, 5, 16))
 
+setup = common_setup + """
+s = Series(np.random.randint(0, 1000, size=10000))
+s2 = Series(np.tile([rands(10) for i in xrange(1000)], 10))
+"""
+
+series_drop_duplicates_int = Benchmark('s.drop_duplicates()', setup,
+                                       start_date=datetime(2012, 11, 27))
+
+series_drop_duplicates_string = \
+    Benchmark('s2.drop_duplicates()', setup,
+              start_date=datetime(2012, 11, 27))
+
 #----------------------------------------------------------------------
 # fillna, many columns
 

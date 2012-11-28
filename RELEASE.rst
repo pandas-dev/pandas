@@ -34,6 +34,7 @@ pandas 0.10.0
   - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
   - Support optional ``min_periods`` keyword in ``corr`` and ``cov``
     for both Series and DataFrame (#2002)
+  - Add ``duplicated`` and ``drop_duplicates`` functions to Series (#1923)
 
 **API Changes**
 
@@ -74,6 +75,8 @@ pandas 0.10.0
   - pop(...) and del works with DataFrame with duplicate columns (#2349)
   - Treat empty strings as NA in date parsing (rather than let dateutil do
     something weird) (#2263)
+  - Prevent uint64 -> int64 overflows (#2355)
+  - Enable joins between MultiIndex and regular Index (#2024)
 
 pandas 0.9.1
 ============
