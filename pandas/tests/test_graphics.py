@@ -214,6 +214,7 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_plot_xy(self):
+        import matplotlib.pyplot as plt
         # columns.inferred_type == 'string'
         df = tm.makeTimeDataFrame()
         self._check_data(df.plot(x=0, y=1),
@@ -232,8 +233,16 @@ class TestDataFramePlots(unittest.TestCase):
         self._check_data(df.plot(x=1), df.set_index(1).plot())
         self._check_data(df.plot(y=1), df[1].plot())
 
+        # figsize and title
+        plt.close('all')
+        ax = df.plot(x=1, y=2, title='Test', figsize=(16, 8))
+
+        self.assert_(ax.title.get_text() == 'Test')
+        self.assert_((np.round(ax.figure.get_size_inches()) == np.array((16., 8.))).all())
+
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test
+
 
     @slow
     def test_xcompat(self):
