@@ -9,6 +9,95 @@ enhancements along with a large number of bug fixes.
 New features
 ~~~~~~~~~~~~
 
+Updated PyTables Support
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Docs for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
+
+`the full docs for tables
+<https://github.com/pydata/pandas/blob/master/io.html#hdf5-pytables>`__
+
+
+    .. ipython:: python
+       :suppress:
+       :okexcept:
+
+       os.remove('store.h5')
+
+    .. ipython:: python
+
+       store = HDFStore('store.h5')
+       df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
+                  columns=['A', 'B', 'C'])
+       df 
+
+       # appending data frames
+       df1 = df[0:4]
+       df2 = df[4:]
+       store.append('df', df1)
+       store.append('df', df2)
+       store
+
+       # selecting the entire store
+       store.select('df')
+
+    .. ipython:: python
+
+       from pandas.io.pytables import Term
+       wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+              major_axis=date_range('1/1/2000', periods=5),
+              minor_axis=['A', 'B', 'C', 'D'])
+       wp
+
+       # storing a panel
+       store.append('wp',wp)
+
+       # selecting via A QUERY
+       store.select('wp',
+         [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
+
+       # removing data from tables
+       store.remove('wp', [ 'major_axis', '>', wp.major_axis[3] ])
+       store.select('wp')
+
+       # deleting a store
+       del store['df']
+       store
+
+  **Enhancements**
+
+       - added multi-dtype support!
+
+          .. ipython:: python
+            
+             df['string'] = 'string'
+	     df['int']    = 1
+            
+             store.append('df',df)
+	     df1 = store.select('df')	    
+	     df1
+	     df1.get_dtype_counts()
+
+       - performance improvments on table writing
+       - support for arbitrarily indexed dimensions
+
+  **Bug Fixes**
+
+       - added ``Term`` method of specifying where conditions, closes GH #1996
+       - ``del store['df']`` now call ``store.remove('df')`` for store deletion
+       - deleting of consecutive rows is much faster than before
+       - ``min_itemsize`` parameter can be specified in table creation to force a minimum size for indexing columns
+         (the previous implementation would set the column size based on the first append)
+       - indexing support via ``create_table_index`` (requires PyTables >= 2.3), close GH #698
+       - appending on a store would fail if the table was not first created via ``put``
+       - minor change to select and remove: require a table ONLY if where is also provided (and not None)
+
+    .. ipython:: python
+       :suppress:
+
+       store.close()
+       import os
+       os.remove('store.h5')
 
 API changes
 ~~~~~~~~~~~
