@@ -552,7 +552,8 @@ class DatetimeIndex(Int64Index):
 
     def __contains__(self, key):
         try:
-            return np.isscalar(self.get_loc(key))
+            res = self.get_loc(key)
+            return np.isscalar(res) or type(res) == slice
         except (KeyError, TypeError):
             return False
 
