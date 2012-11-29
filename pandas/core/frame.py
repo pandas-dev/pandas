@@ -1305,7 +1305,8 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
-               mode='w', nanRep=None, encoding=None, quoting=None, line_terminator='\n'):
+               mode='w', nanRep=None, encoding=None, quoting=None,
+               line_terminator='\n'):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1337,7 +1338,8 @@ class DataFrame(NDFrame):
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
         line_terminator: string, default '\n'
-            The newline character or character sequence to use in the output file
+            The newline character or character sequence to use in the output
+            file
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1361,8 +1363,8 @@ class DataFrame(NDFrame):
                                            delimiter=sep, encoding=encoding,
                                            quoting=quoting)
             else:
-                csvout = csv.writer(f, lineterminator=line_terminator, delimiter=sep,
-                                    quoting=quoting)
+                csvout = csv.writer(f, lineterminator=line_terminator,
+                                    delimiter=sep, quoting=quoting)
             self._helper_csv(csvout, na_rep=na_rep,
                                   float_format=float_format, cols=cols,
                                   header=header, index=index,
@@ -1442,8 +1444,8 @@ class DataFrame(NDFrame):
         """
         import warnings
         if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no effect",
-                          FutureWarning)
+            warnings.warn("force_unicode is deprecated, it will have no "
+                          "effect", FutureWarning)
 
         if nanRep is not None:  # pragma: no cover
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -2397,7 +2399,8 @@ class DataFrame(NDFrame):
         if fill_na:
             return (left_result.fillna(fill_value, method=method, limit=limit,
                                        axis=fill_axis),
-                    right_result.fillna(fill_value, method=method, limit=limit))
+                    right_result.fillna(fill_value, method=method,
+                                        limit=limit))
         else:
             return left_result, right_result
 
