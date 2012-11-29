@@ -1201,6 +1201,9 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         Default True, "sparsify" MultiIndex display (don't display repeated
         elements in outer levels within groups)
     """
+    import warnings
+    warnings.warn("set_printoptions is deprecated, use set_option instead",
+                          FutureWarning)
     if precision is not None:
         set_option("print_config.precision", precision)
     if column_space is not None:
@@ -1227,6 +1230,9 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         set_option("print_config.encoding", encoding)
 
 def reset_printoptions():
+    import warnings
+    warnings.warn("reset_printoptions is deprecated, use reset_option instead",
+                          FutureWarning)
     reset_option("^print_config\.")
 
 def detect_console_encoding():

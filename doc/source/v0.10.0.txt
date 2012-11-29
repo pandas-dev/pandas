@@ -122,7 +122,7 @@ API changes
     - ``reset_option`` - reset one or more options to their default value. Partial names are accepted.
     - ``describe_option`` - print a description of one or more options. When called  with no arguments. print all registered options.
 
-    Note: ``set_printoptions`` is now deprecated (but functioning), the print options now live under "print_config.XYZ". For example:
+    Note: ``set_printoptions``/ ``reset_printoptions``  are now deprecated (but functioning), the print options now live under "print_config.XYZ". For example:
 
 
     .. ipython:: python
