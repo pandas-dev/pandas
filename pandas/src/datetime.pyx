@@ -1603,3 +1603,74 @@ cpdef normalize_date(object dt):
         return datetime(dt.year, dt.month, dt.day)
     else:
         raise TypeError('Unrecognized type: %s' % type(dt))
+
+
+cdef extern from "period.h":
+    int64_t get_period_ordinal(int year, int month, int day,
+                          int hour, int minute, int second,
+                          int freq) except INT32_MIN
+
+cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
+                                                 int freq, object tz):
+    cdef:
+        Py_ssize_t n = len(stamps)
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] trans, deltas, pos
+        pandas_datetimestruct dts
+
+    if not have_pytz:
+        raise Exception('Could not find pytz module')
+
+    if _is_utc(tz):
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                result[i] = NPY_NAT
+                continue
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
+                                           dts.hour, dts.min, dts.sec, freq)
+
+    elif _is_tzlocal(tz):
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                result[i] = NPY_NAT
+                continue
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
+                                              &dts)
+            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, tz)
+            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            pandas_datetime_to_datetimestruct(stamps[i] + delta,
+                                              PANDAS_FR_ns, &dts)
+            result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
+                                           dts.hour, dts.min, dts.sec, freq)
+    else:
+        # Adjust datetime64 timestamp, recompute datetimestruct
+        trans = _get_transitions(tz)
+        deltas = _get_deltas(tz)
+        _pos = trans.searchsorted(stamps, side='right') - 1
+        if _pos.dtype != np.int64:
+            _pos = _pos.astype(np.int64)
+        pos = _pos
+
+        # statictzinfo
+        if not hasattr(tz, '_transition_info'):
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
+                                                  PANDAS_FR_ns, &dts)
+                result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
+                                               dts.hour, dts.min, dts.sec, freq)
+        else:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
+                                                  PANDAS_FR_ns, &dts)
+                result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
+                                               dts.hour, dts.min, dts.sec, freq)
+
+    return result
