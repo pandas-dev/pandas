@@ -3860,7 +3860,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             # test roundtrip
             self.frame.to_excel(path,'test1')
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0)
+            recons = reader.parse('test1', index_col=0, has_index_labels=True)
             assert_frame_equal(self.frame, recons)
 
             self.frame.to_excel(path,'test1', index=False)
@@ -3869,19 +3869,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             recons.index = self.frame.index
             assert_frame_equal(self.frame, recons)
 
-            self.frame.to_excel(path,'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, skiprows=[1])
-            assert_frame_equal(self.frame.ix[1:], recons)
+            # self.frame.to_excel(path,'test1')
+            # reader = ExcelFile(path)
+            # recons = reader.parse('test1', index_col=0, skiprows=[2], has_index_labels=True)
+            # assert_frame_equal(self.frame.ix[1:], recons)
 
             self.frame.to_excel(path,'test1',na_rep='NA')
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, na_values=['NA'])
+            recons = reader.parse('test1', index_col=0, na_values=['NA'], has_index_labels=True)
             assert_frame_equal(self.frame, recons)
 
             self.mixed_frame.to_excel(path,'test1')
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0)
+            recons = reader.parse('test1', index_col=0, has_index_labels=True)
             assert_frame_equal(self.mixed_frame, recons)
 
             self.tsframe.to_excel(path, 'test1')
@@ -3909,7 +3909,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.tsframe.to_excel(writer,'test2')
             writer.save()
             reader = ExcelFile(path)
-            recons = reader.parse('test1',index_col=0)
+            recons = reader.parse('test1',index_col=0, has_index_labels=True)
             assert_frame_equal(self.frame, recons)
             recons = reader.parse('test2',index_col=0)
             assert_frame_equal(self.tsframe, recons)
@@ -3921,10 +3921,45 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             col_aliases = Index(['AA', 'X', 'Y', 'Z'])
             self.frame2.to_excel(path, 'test1', header=col_aliases)
             reader = ExcelFile(path)
-            rs = reader.parse('test1', index_col=0)
+            rs = reader.parse('test1', index_col=0, has_index_labels=True)
             xp = self.frame2.copy()
             xp.columns = col_aliases
             assert_frame_equal(xp, rs)
+
+            # test index_label
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path, 'test1', index_label=['test'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0, has_index_labels=True).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path, 'test1', index_label=['test', 'dummy', 'dummy2'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0, has_index_labels=True).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path, 'test1', index_label='test')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0, has_index_labels=True).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+
+            #test index_labels in same row as column names
+            self.frame.to_excel('/tmp/tests.xls', 'test1', cols=['A', 'B', 'C', 'D'], index=False)
+            #take 'A' and 'B' as indexes (they are in same row as cols 'C', 'D')
+            df = self.frame.copy()
+            df = df.set_index(['A', 'B'])
+
+
+            reader = ExcelFile('/tmp/tests.xls')
+            recons = reader.parse('test1', index_col=[0, 1])
+            assert_frame_equal(df, recons)
+
+
 
             os.remove(path)
 
@@ -3989,7 +4024,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             # round trip
             frame.to_excel(path, 'test1')
             reader = ExcelFile(path)
-            df = reader.parse('test1', index_col=[0,1], parse_dates=False)
+            df = reader.parse('test1', index_col=[0,1], parse_dates=False, has_index_labels=True)
             assert_frame_equal(frame, df)
             self.assertEqual(frame.index.names, df.index.names)
             self.frame.index = old_index # needed if setUP becomes a classmethod
@@ -4002,7 +4037,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
             tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=[0,1])
+            recons = reader.parse('test1', index_col=[0,1], has_index_labels=True)
             assert_frame_equal(tsframe, recons)
 
             # infer index
@@ -4011,22 +4046,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             recons = reader.parse('test1')
             assert_frame_equal(tsframe, recons)
 
-            # no index
-            tsframe.index.names = ['first', 'second']
-            tsframe.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1')
-            assert_almost_equal(tsframe.values,
-                                recons.ix[:, tsframe.columns].values)
-            self.assertEqual(len(tsframe.columns) + 2, len(recons.columns))
-
-            tsframe.index.names = [None, None]
 
             # no index
-            tsframe.to_excel(path, 'test1', index=False)
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=None)
-            assert_almost_equal(recons.values, self.tsframe.values)
+            #TODO : mention this does not make sence anymore
+            #with  the new formatting as we are not alligning colnames and indexlabels
+            #on the same row
+
+            # tsframe.index.names = ['first', 'second']
+            # tsframe.to_excel(path, 'test1')
+            # reader = ExcelFile(path)
+            # recons = reader.parse('test1')
+            # assert_almost_equal(tsframe.values,
+            #                     recons.ix[:, tsframe.columns].values)
+            # self.assertEqual(len(tsframe.columns) + 2, len(recons.columns))
+
+            # tsframe.index.names = [None, None]
+
+            # # no index
+            # tsframe.to_excel(path, 'test1', index=False)
+            # reader = ExcelFile(path)
+            # recons = reader.parse('test1', index_col=None)
+            # assert_almost_equal(recons.values, self.tsframe.values)
+
             self.tsframe.index = old_index # needed if setUP becomes classmethod
 
             # write a big DataFrame
@@ -4088,6 +4129,125 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                            index=['A', 'B'], columns=['X', 'Y', 'Z'])
             assert_frame_equal(rs, xp)
             os.remove(filename)
+
+    def test_to_excel_styleconverter(self):
+        from pandas.io.parsers import CellStyleConverter
+        try:
+            import xlwt
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        hstyle = {"font": {"bold": True},
+              "borders": {"top": "thin",
+                        "right": "thin",
+                        "bottom": "thin",
+                        "left": "thin"},
+              "alignment": {"horizontal": "center"}}
+        xls_style = CellStyleConverter.to_xls(hstyle)
+        self.assertTrue(xls_style.font.bold)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.top)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.right)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.bottom)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.left)
+        self.assertEquals(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
+
+        xlsx_style = CellStyleConverter.to_xlsx(hstyle)
+        self.assertTrue(xlsx_style.font.bold)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.top.border_style)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.right.border_style)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.bottom.border_style)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.left.border_style)
+        self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
+                          xlsx_style.alignment.horizontal)
+
+    def test_to_excel_header_styling(self):
+
+        import StringIO
+        s = StringIO.StringIO(
+        """Date,ticker,type,value
+        2001-01-01,x,close,12.2
+        2001-01-01,x,open ,12.1
+        2001-01-01,y,close,12.2
+        2001-01-01,y,open ,12.1
+        2001-02-01,x,close,12.2
+        2001-02-01,x,open ,12.1
+        2001-02-01,y,close,12.2
+        2001-02-01,y,open ,12.1
+        2001-03-01,x,close,12.2
+        2001-03-01,x,open ,12.1
+        2001-03-01,y,close,12.2
+        2001-03-01,y,open ,12.1""")
+        df = read_csv(s, parse_dates=["Date"])
+        pdf = df.pivot_table(values="value", rows=["ticker"],
+                                             cols=["Date", "type"])
+
+        try:
+            import xlrd
+            import openpyxl
+            from openpyxl.cell import get_column_letter
+        except ImportError:
+            raise nose.SkipTest
+
+        filename = '__tmp__.xls'
+        pdf.to_excel(filename, 'test1')
+
+
+        wbk = xlrd.open_workbook(filename,
+                                 formatting_info=True)
+        self.assertEquals(["test1"], wbk.sheet_names())
+        ws = wbk.sheet_by_name('test1')
+        self.assertEquals([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
+                          ws.merged_cells)
+        for i in range(0, 2):
+            for j in range(0, 7):
+                xfx = ws.cell_xf_index(0, 0)
+                cell_xf = wbk.xf_list[xfx]
+                font = wbk.font_list
+                self.assertEquals(1, font[cell_xf.font_index].bold)
+                self.assertEquals(1, cell_xf.border.top_line_style)
+                self.assertEquals(1, cell_xf.border.right_line_style)
+                self.assertEquals(1, cell_xf.border.bottom_line_style)
+                self.assertEquals(1, cell_xf.border.left_line_style)
+                self.assertEquals(2, cell_xf.alignment.hor_align)
+
+        os.remove(filename)
+        # test xlsx_styling
+        filename = '__tmp__.xlsx'
+        pdf.to_excel(filename, 'test1')
+
+        wbk = openpyxl.load_workbook(filename)
+        self.assertEquals(["test1"], wbk.get_sheet_names())
+        ws = wbk.get_sheet_by_name('test1')
+
+        xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
+        xlsaddrs += ["A%s" % i for i in range(1, 6)]
+        xlsaddrs += ["B1", "D1", "F1"]
+        for xlsaddr in xlsaddrs:
+            cell = ws.cell(xlsaddr)
+            self.assertTrue(cell.style.font.bold)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.top.border_style)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.right.border_style)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.bottom.border_style)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.left.border_style)
+            self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
+                              cell.style.alignment.horizontal)
+
+        mergedcells_addrs = ["C1", "E1", "G1"]
+        for maddr in mergedcells_addrs:
+            self.assertTrue(ws.cell(maddr).merged)
+
+        os.remove(filename)
+
+
 
     def test_info(self):
         io = StringIO()

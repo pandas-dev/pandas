@@ -1226,7 +1226,7 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csvexcel(self, writer, na_rep=None, cols=None,
+    def _helper_csv(self, writer, na_rep=None, cols=None,
                          header=True, index=True,
                          index_label=None, float_format=None):
         if cols is None:
@@ -1361,7 +1361,7 @@ class DataFrame(NDFrame):
             else:
                 csvout = csv.writer(f, lineterminator='\n', delimiter=sep,
                                     quoting=quoting)
-            self._helper_csvexcel(csvout, na_rep=na_rep,
+            self._helper_csv(csvout, na_rep=na_rep,
                                   float_format=float_format, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label)
@@ -1372,7 +1372,7 @@ class DataFrame(NDFrame):
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None):
+                 index_label=None, startrow=0, startcol=0):
         """
         Write DataFrame to a excel sheet
 
@@ -1397,6 +1397,9 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
+        startow : upper left cell row to dump data frame
+        startcol : upper left cell column to dump data frame
+
 
         Notes
         -----
@@ -1413,11 +1416,17 @@ class DataFrame(NDFrame):
         if isinstance(excel_writer, basestring):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
-        excel_writer.cur_sheet = sheet_name
-        self._helper_csvexcel(excel_writer, na_rep=na_rep,
-                              float_format=float_format, cols=cols,
-                              header=header, index=index,
-                              index_label=index_label)
+
+        formatter = fmt.ExcelFormatter(self,
+                                       na_rep=na_rep,
+                                       cols=cols,
+                                       header=header,
+                                       float_format=float_format,
+                                       index=index,
+                                       index_label=index_label)
+        formatted_cells = formatter.get_formatted_cells()
+        excel_writer.write_cells(formatted_cells, sheet_name,
+                                 startrow=startrow, startcol=startcol)
         if need_save:
             excel_writer.save()
 
