@@ -2214,11 +2214,6 @@ copy : boolean, default False
         --------
         Series.map: For element-wise operations
 
-        Notes
-        -----
-        func is applied to the entire Series at once first. If an exception
-        is raised, then apply to each value.
-
         Returns
         -------
         y : Series or DataFrame if func returns a Series

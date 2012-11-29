@@ -35,6 +35,7 @@ pandas 0.10.0
   - Support optional ``min_periods`` keyword in ``corr`` and ``cov``
     for both Series and DataFrame (#2002)
   - Add ``duplicated`` and ``drop_duplicates`` functions to Series (#1923)
+  - Add docs for ``HDFStore table`` format
 
 **API Changes**
 
@@ -61,6 +62,11 @@ pandas 0.10.0
   - Add ``normalize`` option to Series/DataFrame.asfreq (#2137)
   - SparseSeries and SparseDataFrame construction from empty and scalar
     values now no longer create dense ndarrays unnecessarily (#2322)
+  - Support multiple query selection formats for ``HDFStore tables`` (#1996)
+  - Support ``del store['df']`` syntax to delete HDFStores
+  - Add multi-dtype support for ``HDFStore tables``
+  - ``min_itemsize`` parameter can be specified in ``HDFStore table`` creation
+  - Indexing support in ``HDFStore tables`` (#698)
 
 **Bug fixes**
 
@@ -85,6 +91,9 @@ pandas 0.10.0
   - Fix time zone metadata issue when unioning non-overlapping DatetimeIndex
     objects (#2367)
   - Raise/handle int64 overflows in parsers (#2247)
+  - Deleting of consecutive rows in ``HDFStore tables``` is much faster than before
+  - Appending on a HDFStore would fail if the table was not first created via ``put``
+
 
 pandas 0.9.1
 ============

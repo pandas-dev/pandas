@@ -411,7 +411,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     return fig
 
 
-def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None, 
+def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
                          **kwds):
     """Parallel coordinates plotting.
 
@@ -746,6 +746,8 @@ class MPLPlot(object):
                 ax = self._maybe_right_yaxis(ax)
             else:
                 fig = self.ax.get_figure()
+                if self.figsize is not None:
+                    fig.set_size_inches(self.figsize)
                 ax = self._maybe_right_yaxis(self.ax)
 
             axes = [ax]
@@ -1200,6 +1202,7 @@ class BarPlot(MPLPlot):
             self.tickoffset = 0.25
         else:
             self.tickoffset = 0.375
+        self.bar_width = 0.5
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1239,12 +1242,12 @@ class BarPlot(MPLPlot):
 
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
-                rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior, **kwds)
+                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=pos_prior, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior)
-                rect = bar_f(ax, self.ax_pos, y, 0.5, start=start,
+                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=start,
                              label=label, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
@@ -1373,10 +1376,11 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     if y is not None:
         if com.is_integer(y) and not frame.columns.holds_integer():
             y = frame.columns[y]
-        return plot_series(frame[y], label=y, kind=kind, use_index=True,
+        return plot_series(frame[y], label=y, kind=kind, use_index=use_index,
                            rot=rot, xticks=xticks, yticks=yticks,
                            xlim=xlim, ylim=ylim, ax=ax, style=style,
                            grid=grid, logy=logy, secondary_y=secondary_y,
+                           title=title, figsize=figsize, fontsize=fontsize,
                            **kwds)
 
     plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
@@ -1392,7 +1396,6 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         return plot_obj.axes
     else:
         return plot_obj.axes[0]
-
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,

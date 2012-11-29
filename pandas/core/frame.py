@@ -3947,9 +3947,9 @@ class DataFrame(NDFrame):
         >>> df.apply(numpy.sum, axis=0) # equiv to df.sum(0)
         >>> df.apply(numpy.sum, axis=1) # equiv to df.sum(1)
 
-        Notes
-        -----
-        To apply a function elementwise, use applymap
+        See also
+        --------
+        DataFrame.applymap: For elementwise operations
 
         Returns
         -------
