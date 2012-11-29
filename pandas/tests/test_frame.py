@@ -3839,6 +3839,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     'three,3,6\n')
         self.assertEqual(buf.getvalue(), expected)
 
+    def test_to_csv_line_terminators(self):
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+                       index=['one', 'two', 'three'])
+
+        buf = StringIO()
+        df.to_csv(buf, line_terminator='\r\n')
+        expected = ('A,B\r\n'
+                    'one,1,4\r\n'
+                    'two,2,5\r\n'
+                    'three,3,6\r\n')
+        self.assertEqual(buf.getvalue(), expected)
+
+
     def test_to_excel_from_excel(self):
         try:
             import xlwt
