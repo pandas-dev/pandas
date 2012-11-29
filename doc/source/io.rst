@@ -763,6 +763,7 @@ one can use the ExcelWriter class, as in the following example:
    df2.to_excel(writer, sheet_name='sheet2')
    writer.save()
 
+.. _io-hdf5:
 
 HDF5 (PyTables)
 ---------------
