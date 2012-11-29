@@ -3845,7 +3845,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         buf = StringIO()
         df.to_csv(buf, line_terminator='\r\n')
-        expected = ('A,B\r\n'
+        expected = (',A,B\r\n'
                     'one,1,4\r\n'
                     'two,2,5\r\n'
                     'three,3,6\r\n')
@@ -3853,7 +3853,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         buf = StringIO()
         df.to_csv(buf) # The default line terminator remains \n
-        expected = ('A,B\n'
+        expected = (',A,B\n'
                     'one,1,4\n'
                     'two,2,5\n'
                     'three,3,6\n')
