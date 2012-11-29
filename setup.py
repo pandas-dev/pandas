@@ -551,8 +551,6 @@ tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'reduce', 'stats', 'datetime',
                    'hashtable', 'inference', 'properties', 'join', 'engines']
 
-plib_depends = ['plib']
-
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -560,10 +558,6 @@ if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
     tseries_depends.append('pandas/src/util.pxd')
-    plib_depends = [srcpath(f, suffix='.pyx')
-                    for f in plib_depends]
-    plib_depends.append('pandas/src/util.pxd')
-    plib_depends.append('pandas/src/datetime.pxd')
 else:
     tseries_depends = []
     plib_depends = []
@@ -578,7 +572,8 @@ algos_ext = Extension('pandas._algos',
 lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
                                  'pandas/src/parse_helper.h',
                                  'pandas/src/datetime/np_datetime.h',
-                                 'pandas/src/datetime/np_datetime_strings.h']
+                                 'pandas/src/datetime/np_datetime_strings.h',
+                                 'pandas/src/period.h']
 
 # some linux distros require it
 libraries = ['m'] if 'win32' not in sys.platform else []
@@ -587,7 +582,8 @@ lib_ext = Extension('pandas.lib',
                     depends=lib_depends,
                     sources=[srcpath('tseries', suffix=suffix),
                              'pandas/src/datetime/np_datetime.c',
-                             'pandas/src/datetime/np_datetime_strings.c'],
+                             'pandas/src/datetime/np_datetime_strings.c',
+                             'pandas/src/period.c'],
                     include_dirs=common_include,
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
@@ -597,14 +593,6 @@ sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()],
                        libraries=libraries)
-
-period_ext = Extension('pandas._period',
-                       depends=plib_depends + ['pandas/src/numpy_helper.h',
-                                               'pandas/src/period.h'],
-                       sources=[srcpath('plib', suffix=suffix),
-                                'pandas/src/datetime/np_datetime.c',
-                                'pandas/src/period.c'],
-                       include_dirs=[np.get_include()])
 
 parser_ext = Extension('pandas._parser',
                        depends=['pandas/src/parser/tokenizer.h',
@@ -633,7 +621,6 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
 
 extensions = [algos_ext,
               lib_ext,
-              period_ext,
               sparse_ext,
               pytables_ext,
               parser_ext]
