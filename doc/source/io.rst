@@ -669,7 +669,7 @@ over the string representation of the object. All arguments are optional:
 
   - ``buf`` default None, for example a StringIO object
   - ``columns`` default None, which columns to write
-  - ``col_space`` default None, number of spaces to write between columns
+  - ``col_space`` default None, minimum width of each column.
   - ``na_rep`` default ``NaN``, representation of NA value
   - ``formatters`` default None, a dictionary (by column) of functions each of
     which takes a single argument and returns a formatted string

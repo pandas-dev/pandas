@@ -30,7 +30,7 @@ docstring_to_string = """
     columns : sequence, optional
         the subset of columns to write; default None writes all columns
     col_space : int, optional
-        the width of each columns
+        the minimum width of each column
     header : bool, optional
         whether to print column labels, default True
     index : bool, optional
@@ -221,7 +221,7 @@ class DataFrameFormatter(object):
                 fmt_values = self._format_col(i)
                 cheader = str_columns[i]
 
-                max_colwidth = max(_strlen(x) for x in cheader)
+                max_colwidth = max(self.col_space or 0, *(_strlen(x) for x in cheader))
 
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=max_colwidth)
@@ -431,6 +431,11 @@ class HTMLFormatter(object):
         self.elements.append(' ' * indent + com.pprint_thing(s))
 
     def write_th(self, s, indent=0, tags=None):
+        if (self.fmt.col_space is not None
+            and self.fmt.col_space > 0 ):
+            tags = (tags or "" )
+            tags += 'style="min-width: %s;"' % self.fmt.col_space
+
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
 
     def write_td(self, s, indent=0, tags=None):
