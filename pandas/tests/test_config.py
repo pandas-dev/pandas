@@ -33,8 +33,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(hasattr(pd, 'get_option'))
         self.assertTrue(hasattr(pd, 'set_option'))
         self.assertTrue(hasattr(pd, 'reset_option'))
-        self.assertTrue(hasattr(pd, 'reset_options'))
-        self.assertTrue(hasattr(pd, 'describe_options'))
+        self.assertTrue(hasattr(pd, 'describe_option'))
 
     def test_register_option(self):
         self.cf.register_option('a', 1, 'doc')
@@ -55,7 +54,7 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('k.b.c.d1', 1, 'doc')
         self.cf.register_option('k.b.c.d2', 1, 'doc')
 
-    def test_describe_options(self):
+    def test_describe_option(self):
         self.cf.register_option('a', 1, 'doc')
         self.cf.register_option('b', 1, 'doc2')
         self.cf.deprecate_option('b')
@@ -67,31 +66,52 @@ class TestConfig(unittest.TestCase):
         self.cf.deprecate_option('g.h',rkey="blah")
 
         # non-existent keys raise KeyError
-        self.assertRaises(KeyError, self.cf.describe_options, 'no.such.key')
+        self.assertRaises(KeyError, self.cf.describe_option, 'no.such.key')
 
         # we can get the description for any key we registered
-        self.assertTrue('doc' in self.cf.describe_options('a',_print_desc=False))
-        self.assertTrue('doc2' in self.cf.describe_options('b',_print_desc=False))
-        self.assertTrue('precated' in self.cf.describe_options('b',_print_desc=False))
+        self.assertTrue('doc' in self.cf.describe_option('a',_print_desc=False))
+        self.assertTrue('doc2' in self.cf.describe_option('b',_print_desc=False))
+        self.assertTrue('precated' in self.cf.describe_option('b',_print_desc=False))
 
-        self.assertTrue('doc3' in self.cf.describe_options('c.d.e1',_print_desc=False))
-        self.assertTrue('doc4' in self.cf.describe_options('c.d.e2',_print_desc=False))
+        self.assertTrue('doc3' in self.cf.describe_option('c.d.e1',_print_desc=False))
+        self.assertTrue('doc4' in self.cf.describe_option('c.d.e2',_print_desc=False))
 
         # if no doc is specified we get a default message
         # saying "description not available"
-        self.assertTrue('vailable' in self.cf.describe_options('f',_print_desc=False))
-        self.assertTrue('vailable' in self.cf.describe_options('g.h',_print_desc=False))
-        self.assertTrue('precated' in self.cf.describe_options('g.h',_print_desc=False))
-        self.assertTrue('blah' in self.cf.describe_options('g.h',_print_desc=False))
+        self.assertTrue('vailable' in self.cf.describe_option('f',_print_desc=False))
+        self.assertTrue('vailable' in self.cf.describe_option('g.h',_print_desc=False))
+        self.assertTrue('precated' in self.cf.describe_option('g.h',_print_desc=False))
+        self.assertTrue('blah' in self.cf.describe_option('g.h',_print_desc=False))
+
+    def test_case_insensitive(self):
+        self.cf.register_option('KanBAN', 1, 'doc')
+
+        self.assertTrue('doc' in self.cf.describe_option('kanbaN',_print_desc=False))
+        self.assertEqual(self.cf.get_option('kanBaN'), 1)
+        self.cf.set_option('KanBan',2)
+        self.assertEqual(self.cf.get_option('kAnBaN'), 2)
+
+
+        # gets of non-existent keys fail
+        self.assertRaises(KeyError, self.cf.get_option, 'no_such_option')
+        self.cf.deprecate_option('KanBan')
+
+        # testing warning with catch_warning was only added in 2.6
+        self.assertTrue(self.cf._is_deprecated('kAnBaN'))
+
+    def test_set_option(self):
+        self.cf.register_option('a', 1, 'doc')
+        self.cf.register_option('b.c', 'hullo', 'doc2')
+        self.cf.register_option('b.b', None, 'doc2')
 
     def test_get_option(self):
         self.cf.register_option('a', 1, 'doc')
-        self.cf.register_option('b.a', 'hullo', 'doc2')
+        self.cf.register_option('b.c', 'hullo', 'doc2')
         self.cf.register_option('b.b', None, 'doc2')
 
         # gets of existing keys succeed
         self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.a'), 'hullo')
+        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
         self.assertTrue(self.cf.get_option('b.b') is None)
 
         # gets of non-existent keys fail
@@ -99,86 +119,86 @@ class TestConfig(unittest.TestCase):
 
     def test_set_option(self):
         self.cf.register_option('a', 1, 'doc')
-        self.cf.register_option('b.a', 'hullo', 'doc2')
+        self.cf.register_option('b.c', 'hullo', 'doc2')
         self.cf.register_option('b.b', None, 'doc2')
 
         self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.a'), 'hullo')
+        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
         self.assertTrue(self.cf.get_option('b.b') is None)
 
         self.cf.set_option('a', 2)
-        self.cf.set_option('b.a', 'wurld')
+        self.cf.set_option('b.c', 'wurld')
         self.cf.set_option('b.b', 1.1)
 
         self.assertEqual(self.cf.get_option('a'), 2)
-        self.assertEqual(self.cf.get_option('b.a'), 'wurld')
+        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
         self.assertEqual(self.cf.get_option('b.b'), 1.1)
 
         self.assertRaises(KeyError, self.cf.set_option, 'no.such.key', None)
 
     def test_validation(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
-        self.cf.register_option('b.a', 'hullo', 'doc2',
+        self.cf.register_option('b.c', 'hullo', 'doc2',
                                 validator=self.cf.is_text)
         self.assertRaises(ValueError, self.cf.register_option, 'a.b.c.d2',
                           'NO', 'doc', validator=self.cf.is_int)
 
         self.cf.set_option('a', 2)  # int is_int
-        self.cf.set_option('b.a', 'wurld')  # str is_str
+        self.cf.set_option('b.c', 'wurld')  # str is_str
 
         self.assertRaises(ValueError, self.cf.set_option, 'a', None)  # None not is_int
         self.assertRaises(ValueError, self.cf.set_option, 'a', 'ab')
-        self.assertRaises(ValueError, self.cf.set_option, 'b.a', 1)
+        self.assertRaises(ValueError, self.cf.set_option, 'b.c', 1)
 
     def test_reset_option(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
-        self.cf.register_option('b.a', 'hullo', 'doc2',
+        self.cf.register_option('b.c', 'hullo', 'doc2',
                                 validator=self.cf.is_str)
         self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.a'), 'hullo')
+        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
 
         self.cf.set_option('a', 2)
-        self.cf.set_option('b.a', 'wurld')
+        self.cf.set_option('b.c', 'wurld')
         self.assertEqual(self.cf.get_option('a'), 2)
-        self.assertEqual(self.cf.get_option('b.a'), 'wurld')
+        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
 
         self.cf.reset_option('a')
         self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.a'), 'wurld')
-        self.cf.reset_option('b.a')
+        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
+        self.cf.reset_option('b.c')
         self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.a'), 'hullo')
+        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
 
-    def test_reset_options(self):
+    def test_reset_option_all(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
-        self.cf.register_option('b.a', 'hullo', 'doc2',
+        self.cf.register_option('b.c', 'hullo', 'doc2',
                                 validator=self.cf.is_str)
         self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.a'), 'hullo')
+        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
 
         self.cf.set_option('a', 2)
-        self.cf.set_option('b.a', 'wurld')
+        self.cf.set_option('b.c', 'wurld')
         self.assertEqual(self.cf.get_option('a'), 2)
-        self.assertEqual(self.cf.get_option('b.a'), 'wurld')
+        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
 
-        self.cf.reset_options()
+        self.cf.reset_option("all")
         self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.a'), 'hullo')
+        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
 
 
     def test_deprecate_option(self):
         import sys
-        self.cf.deprecate_option('c')  # we can deprecate non-existent options
+        self.cf.deprecate_option('foo')  # we can deprecate non-existent options
 
         # testing warning with catch_warning was only added in 2.6
         if sys.version_info[:2]<(2,6):
             raise nose.SkipTest()
 
-        self.assertTrue(self.cf._is_deprecated('c'))
+        self.assertTrue(self.cf._is_deprecated('foo'))
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             try:
-                self.cf.get_option('c')
+                self.cf.get_option('foo')
             except KeyError:
                 pass
             else:
@@ -188,8 +208,8 @@ class TestConfig(unittest.TestCase):
             self.assertTrue('deprecated' in str(w[-1]))  # we get the default message
 
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
-        self.cf.register_option('b.a', 'hullo', 'doc2')
-        self.cf.register_option('c', 'hullo', 'doc2')
+        self.cf.register_option('b.c', 'hullo', 'doc2')
+        self.cf.register_option('foo', 'hullo', 'doc2')
 
         self.cf.deprecate_option('a', removal_ver='nifty_ver')
         with warnings.catch_warnings(record=True) as w:
@@ -202,10 +222,10 @@ class TestConfig(unittest.TestCase):
 
             self.assertRaises(KeyError, self.cf.deprecate_option, 'a')  # can't depr. twice
 
-        self.cf.deprecate_option('b.a', 'zounds!')
+        self.cf.deprecate_option('b.c', 'zounds!')
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.cf.get_option('b.a')
+            self.cf.get_option('b.c')
 
             self.assertEqual(len(w), 1)  # should have raised one warning
             self.assertTrue('zounds!' in str(w[-1]))  # we get the custom message
@@ -252,8 +272,8 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(self.cf.get_option('base.a'), 3)
         self.assertEqual(self.cf.get_option('base.b'), 4)
-        self.assertTrue('doc1' in self.cf.describe_options('base.a',_print_desc=False))
-        self.assertTrue('doc2' in self.cf.describe_options('base.b',_print_desc=False))
+        self.assertTrue('doc1' in self.cf.describe_option('base.a',_print_desc=False))
+        self.assertTrue('doc2' in self.cf.describe_option('base.b',_print_desc=False))
 
         self.cf.reset_option('base.a')
         self.cf.reset_option('base.b')
