@@ -26,7 +26,7 @@ Updated PyTables Support
        store = HDFStore('store.h5')
        df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
                   columns=['A', 'B', 'C'])
-       df 
+       df
 
        # appending data frames
        df1 = df[0:4]
@@ -66,17 +66,18 @@ Updated PyTables Support
        - added mixed-dtype support!
 
           .. ipython:: python
-            
+
              df['string'] = 'string'
 	     df['int']    = 1
-            
+
              store.append('df',df)
-	     df1 = store.select('df')	    
+	     df1 = store.select('df')
 	     df1
 	     df1.get_dtype_counts()
 
        - performance improvments on table writing
        - support for arbitrarily indexed dimensions
+	   - ``SparseSeries`` now has a ``density`` property (#2384)
 
   **Bug Fixes**
 

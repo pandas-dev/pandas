@@ -372,6 +372,10 @@ to sparse
         else:
             return Series(self.values, index=self.index, name=self.name)
 
+    @property
+    def density(self):
+        return float(len(self.sp_index)) / len(self.index)
+
     def astype(self, dtype=None):
         """
 
