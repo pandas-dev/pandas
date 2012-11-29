@@ -63,7 +63,7 @@ Updated PyTables Support
 
   **Enhancements**
 
-       - added multi-dtype support!
+       - added mixed-dtype support!
 
           .. ipython:: python
             

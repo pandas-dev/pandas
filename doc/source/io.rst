@@ -855,7 +855,6 @@ after data is already in the table (this may become automatic in the future or a
    df2 = df[4:]
    store.append('df', df1)
    store.append('df', df2)
-   store.append('wp', wp)
    store
 
    store.select('df')
@@ -866,16 +865,27 @@ after data is already in the table (this may become automatic in the future or a
    store.create_table_index('df')
    store.handle.root.df.table
 
+Storing Mixed Types in a Table
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
+Passing ``min_itemsize = { column_name : size }`` as a paremeter to append will set a larger minimum for the column. Storing ``floats, strings, ints, bools`` are currently supported.
+
 .. ipython:: python
-   :suppress:
+       
+    df_mixed             = df.copy()     
+    df_mixed['string']   = 'string'
+    df_mixed['int']      = 1
+    df_mixed['bool']     = True
 
-   store.close()
-   import os
-   os.remove('store.h5')
+    store.append('df_mixed',df_mixed)
+    df_mixed1 = store.select('df_mixed')	    
+    df_mixed1
+    df_mixed1.get_dtype_counts()
 
 
-Querying objects stored in Table format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Querying a Table
+~~~~~~~~~~~~~~~~
 
 ``select`` and ``delete`` operations have an optional criteria that can be specified to select/delete only
 a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
@@ -900,32 +910,32 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
    store.append('wp',wp)
    store.select('wp',[ 'major_axis>20000102', ('minor_axis', '=', ['A','B']) ])
 
-Delete from objects stored in Table format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Delete from a Table
+~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
    store.remove('wp', 'index>20000102' )
    store.select('wp')
 
-.. ipython:: python
-   :suppress:
-
-   store.close()
-   import os
-   os.remove('store.h5')
-
 Notes & Caveats
 ~~~~~~~~~~~~~~~
 
    - Selection by items (the top level panel dimension) is not possible; you always get all of the items in the returned Panel
-   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *index* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the ``min_itemsize`` on the first table creation. If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information).
    - Once a ``table`` is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
    - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
+   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *column* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information). This is **ONLY** necessary for storing ``Panels`` (as the indexing column is stored directly in a column)
+
+     .. ipython:: python
+
+        store.append('wp_big_strings', wp, min_itemsize = 30)
+	wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
+        store.append('wp_big_strings', wp)
+        store.select('wp_big_strings')
+
 
 Performance
 ~~~~~~~~~~~
@@ -943,3 +953,10 @@ Performance
    - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
      use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
    - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+
+.. ipython:: python
+   :suppress:
+
+   store.close()
+   import os
+   os.remove('store.h5')
