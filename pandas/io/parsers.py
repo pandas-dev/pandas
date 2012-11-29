@@ -458,6 +458,8 @@ class TextFileReader(object):
 
         # might mutate self.engine
         self.options, self.engine = self._clean_options(options, engine)
+        if 'has_index_labels' in kwds:
+            self.options['has_index_labels'] = kwds['has_index_labels']
 
         self._make_engine(self.engine)
 
@@ -933,6 +935,9 @@ def TextParser(*args, **kwds):
         rows will be discarded
     index_col : int or list, default None
         Column or columns to use as the (possibly hierarchical) index
+    has_index_labels: boolean, default False
+        True if the cols defined in index_col have an index name and are
+        not in the header
     na_values : iterable, default None
         Custom NA values
     keep_default_na : bool, default True
@@ -1001,6 +1006,9 @@ class PythonParser(ParserBase):
         self.doublequote = kwds['doublequote']
         self.skipinitialspace = kwds['skipinitialspace']
         self.quoting = kwds['quoting']
+        self.has_index_labels = False
+        if 'has_index_labels' in kwds:
+            self.has_index_labels = kwds['has_index_labels']
 
         self.verbose = kwds['verbose']
         self.converters = kwds['converters']
@@ -1108,7 +1116,7 @@ class PythonParser(ParserBase):
         #handle new style for names in index
         count_empty_content_vals = count_empty_vals(content[0])
         indexnamerow = None
-        if count_empty_content_vals == len(columns):
+        if self.has_index_labels and count_empty_content_vals == len(columns):
             indexnamerow = content[0]
             content = content[1:]
 
@@ -1715,7 +1723,7 @@ class ExcelFile(object):
         return object.__repr__(self)
 
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
-              index_col=None, parse_cols=None, parse_dates=False,
+              index_col=None, has_index_labels=False, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
               **kwds):
         """
@@ -1734,6 +1742,9 @@ class ExcelFile(object):
         index_col : int, default None
             Column to use as the row labels of the DataFrame. Pass None if
             there is no such column
+        has_index_labels: boolean, default False
+            True if the cols defined in index_col have an index name and are
+            not in the header
         parse_cols : int or list, default None
             If None then parse all columns,
             If int then indicates last column to be parsed
@@ -1755,6 +1766,7 @@ class ExcelFile(object):
                   False: self._parse_xls}
         return choose[self.use_xlsx](sheetname, header=header,
                                      skiprows=skiprows, index_col=index_col,
+                                     has_index_labels=has_index_labels,
                                      parse_cols=parse_cols,
                                      parse_dates=parse_dates,
                                      date_parser=date_parser,
@@ -1796,7 +1808,7 @@ class ExcelFile(object):
             return i in parse_cols
 
     def _parse_xlsx(self, sheetname, header=0, skiprows=None,
-                    skip_footer=0, index_col=None,
+                    skip_footer=0, index_col=None, has_index_labels=False,
                     parse_cols=None, parse_dates=False, date_parser=None,
                     na_values=None, thousands=None, chunksize=None):
         sheet = self.book.get_sheet_by_name(name=sheetname)
@@ -1820,6 +1832,7 @@ class ExcelFile(object):
             data[header] = _trim_excel_header(data[header])
 
         parser = TextParser(data, header=header, index_col=index_col,
+                            has_index_labels=has_index_labels,
                             na_values=na_values,
                             thousands=thousands,
                             parse_dates=parse_dates,
@@ -1831,7 +1844,7 @@ class ExcelFile(object):
         return parser.read()
 
     def _parse_xls(self, sheetname, header=0, skiprows=None,
-                   skip_footer=0, index_col=None,
+                   skip_footer=0, index_col=None, has_index_labels=None,
                    parse_cols=None, parse_dates=False, date_parser=None,
                    na_values=None, thousands=None, chunksize=None):
         from xlrd import xldate_as_tuple, XL_CELL_DATE, XL_CELL_ERROR
@@ -1865,6 +1878,7 @@ class ExcelFile(object):
             data[header] = _trim_excel_header(data[header])
 
         parser = TextParser(data, header=header, index_col=index_col,
+                            has_index_labels=has_index_labels,
                             na_values=na_values,
                             thousands=thousands,
                             parse_dates=parse_dates,
