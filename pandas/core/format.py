@@ -17,6 +17,9 @@ import pandas.lib as lib
 
 import numpy as np
 
+import itertools
+
+
 docstring_to_string = """
      Parameters
      ----------
@@ -400,6 +403,7 @@ class DataFrameFormatter(object):
             names.append('' if columns.name is None else columns.name)
         return names
 
+
 class HTMLFormatter(object):
 
     indent_delta = 2
@@ -673,6 +677,217 @@ def _get_level_lengths(levels):
         result.append(recs)
 
     return result
+
+
+#from collections import namedtuple
+# ExcelCell = namedtuple("ExcelCell",
+#                        'row, col, val, style, mergestart, mergeend')
+
+class ExcelCell:
+    __fields__ = ('row', 'col', 'val', 'style', 'mergestart', 'mergeend')
+    __slots__ = __fields__
+
+    def __init__(self, row, col, val,
+                       style=None, mergestart=None, mergeend=None):
+        self.row = row
+        self.col = col
+        self.val = val
+        self.style = style
+        self.mergestart = mergestart
+        self.mergeend = mergeend
+
+
+header_style = {"font": {"bold": True},
+              "borders": {"top": "thin",
+                        "right": "thin",
+                        "bottom": "thin",
+                        "left": "thin"},
+              "alignment": {"horizontal": "center"}}
+
+
+class ExcelFormatter(object):
+    """
+    Class for formatting a DataFrame to a list of ExcelCells,
+
+    Parameters
+    ----------
+    df : dataframe
+    na_rep: na representation
+    float_format : string, default None
+            Format string for floating point numbers
+    cols : sequence, optional
+        Columns to write
+    header : boolean or list of string, default True
+        Write out column names. If a list of string is given it is
+        assumed to be aliases for the column names
+    index : boolean, default True
+        output row names (index)
+    index_label : string or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+    """
+
+    def __init__(self,
+                 df,
+                 na_rep='',
+                 float_format=None,
+                 cols=None,
+                 header=True,
+                 index=True,
+                 index_label=None
+                 ):
+        self.df = df
+        self.rowcounter = 0
+        self.na_rep = na_rep
+        self.columns = cols
+        if cols is None:
+            self.columns = df.columns
+        self.float_format = float_format
+        self.index = index
+        self.index_label = index_label
+        self.header = header
+
+    def _format_value(self, val):
+        if lib.checknull(val):
+            val = self.na_rep
+        if self.float_format is not None and com.is_float(val):
+            val = float(self.float_format % val)
+        return val
+
+    def _format_header_mi(self):
+        levels = self.columns.format(sparsify=True, adjoin=False,
+                                   names=False)
+        level_lenghts = _get_level_lengths(levels)
+        coloffset = 0
+        if isinstance(self.df.index, MultiIndex):
+            coloffset = len(self.df.index[0]) - 1
+
+        for lnum, (records, values) in enumerate(zip(level_lenghts,
+                                                     levels)):
+            name = self.columns.names[lnum]
+            yield ExcelCell(lnum, coloffset, name, header_style)
+            for i in records:
+                if records[i] > 1:
+                    yield ExcelCell(lnum,coloffset + i + 1, values[i],
+                            header_style, lnum, coloffset + i + records[i])
+                else:
+                    yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
+
+            self.rowcounter = lnum
+
+    def _format_header_regular(self):
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
+        if has_aliases or self.header:
+            coloffset = 0
+            if self.index:
+                coloffset = 1
+            if isinstance(self.df.index, MultiIndex):
+                coloffset = len(self.df.index[0])
+
+            colnames = self.columns
+            if has_aliases:
+                if len(self.header) != len(self.columns):
+                    raise ValueError(('Writing %d cols but got %d aliases'
+                                       % (len(self.columns), len(self.header))))
+                else:
+                    colnames = self.header
+
+            for colindex, colname in enumerate(colnames):
+                yield ExcelCell(self.rowcounter, colindex + coloffset, colname,
+                                header_style)
+
+    def _format_header(self):
+        if isinstance(self.columns, MultiIndex):
+            gen = self._format_header_mi()
+        else:
+            gen = self._format_header_regular()
+
+        gen2 = ()
+        if self.df.index.names:
+            row = [x if x is not None else ''
+                   for x in self.df.index.names] + [''] * len(self.columns)
+            if reduce(lambda x, y: x and y, map(lambda x: x != '', row)):
+                gen2 = (ExcelCell(self.rowcounter, colindex, val, header_style)
+                        for colindex, val in enumerate(row))
+                self.rowcounter += 1
+        return itertools.chain(gen, gen2)
+
+    def _format_body(self):
+
+        if isinstance(self.df.index, MultiIndex):
+            return self._format_hierarchical_rows()
+        else:
+            return self._format_regular_rows()
+
+    def _format_regular_rows(self):
+        self.rowcounter += 1
+
+        coloffset = 0
+        #output index and index_label?
+        if self.index:
+            #chek aliases
+            #if list only take first as this is not a MultiIndex
+            if self.index_label and isinstance(self.index_label,
+                                               (list, tuple, np.ndarray)):
+                index_label = self.index_label[0]
+            #if string good to go
+            elif self.index_label and isinstance(self.index_label, str):
+                index_label = self.index_label
+            else:
+                index_label = self.df.index.names[0]
+
+            if index_label:
+                yield ExcelCell(self.rowcounter, 0,
+                                index_label, header_style)
+                self.rowcounter += 1
+
+            #write index_values
+            index_values = self.df.index
+            coloffset = 1
+            for idx, idxval in enumerate(index_values):
+                yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
+
+        for colidx, colname in enumerate(self.columns):
+            series = self.df[colname]
+            for i, val in enumerate(series):
+                yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
+
+    def _format_hierarchical_rows(self):
+        self.rowcounter += 1
+
+        gcolidx = 0
+        #output index and index_label?
+        if self.index:
+            index_labels = self.df.index.names
+            #check for aliases
+            if self.index_label and isinstance(self.index_label,
+                                               (list, tuple, np.ndarray)):
+                index_labels = self.index_label
+
+            #if index labels are not empty go ahead and dump
+            if filter(lambda x: x is not None, index_labels):
+                for cidx, name in enumerate(index_labels):
+                    yield ExcelCell(self.rowcounter, cidx,
+                                    name, header_style)
+                self.rowcounter += 1
+
+            for indexcolvals in zip(*self.df.index):
+                for idx, indexcolval in enumerate(indexcolvals):
+                    yield ExcelCell(self.rowcounter + idx, gcolidx,
+                                    indexcolval, header_style)
+                gcolidx += 1
+
+        for colidx, colname in enumerate(self.columns):
+            series = self.df[colname]
+            for i, val in enumerate(series):
+                yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
+
+    def get_formatted_cells(self):
+        for cell in itertools.chain(self._format_header(),
+                                    self._format_body()):
+            cell.val = self._format_value(cell.val)
+            yield cell
 
 #----------------------------------------------------------------------
 # Array formatters
