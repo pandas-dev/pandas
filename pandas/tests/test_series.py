@@ -1446,7 +1446,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, self.ts)
 
     def test_all_any(self):
-        np.random.seed(12345)
         ts = tm.makeTimeSeries()
         bool_series = ts > 0
         self.assert_(not bool_series.all())
