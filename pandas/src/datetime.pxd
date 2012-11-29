@@ -1,4 +1,4 @@
-from numpy cimport int64_t, int32_t, npy_int64, npy_int32
+from numpy cimport int64_t, int32_t, npy_int64, npy_int32, ndarray
 from cpython cimport PyObject
 
 from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
@@ -140,3 +140,6 @@ cdef inline int _cstring_to_dts(char *val, int length,
                                      NPY_UNSAFE_CASTING,
                                      dts, &islocal, &out_bestunit, &special)
     return result
+
+cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
+                                                 int freq, object tz)

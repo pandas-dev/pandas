@@ -563,6 +563,7 @@ if suffix == '.pyx':
     plib_depends = [srcpath(f, suffix='.pyx')
                     for f in plib_depends]
     plib_depends.append('pandas/src/util.pxd')
+    plib_depends.append('pandas/src/datetime.pxd')
 else:
     tseries_depends = []
     plib_depends = []

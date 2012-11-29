@@ -1,5 +1,4 @@
 # cython: profile=False
-
 cimport numpy as np
 import numpy as np
 
@@ -23,7 +22,6 @@ import_array()
 
 # import datetime C API
 PyDateTime_IMPORT
-
 
 cdef extern from "period.h":
     ctypedef struct date_info:
@@ -103,7 +101,7 @@ cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
 
     return period_ord_w_mult * mult + 1;
 
-def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
+def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     periods corresponding to desired frequency, per period convention.
@@ -117,10 +115,13 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
 
     out = np.empty(l, dtype='i8')
 
-    for i in range(l):
-        pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
-        out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                    dts.hour, dts.min, dts.sec, freq)
+    if tz is None:
+        for i in range(l):
+            pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
+            out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
+                                        dts.hour, dts.min, dts.sec, freq)
+    else:
+        out = localize_dt64arr_to_period(dtarr, freq, tz)
     return out
 
 def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
@@ -353,4 +354,3 @@ cdef accessor _get_accessor_func(int code):
         return &pweekday
     else:
         raise ValueError('Unrecognized code: %s' % code)
-

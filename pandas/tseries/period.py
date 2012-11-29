@@ -421,12 +421,12 @@ def _get_ordinals(data, freq):
         return lib.map_infer(data, f)
 
 
-def dt64arr_to_periodarr(data, freq):
+def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
     base, mult = _gfc(freq)
-    return plib.dt64arr_to_periodarr(data.view('i8'), base)
+    return plib.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
 # --- Period index sketch
 def _period_index_cmp(opname):
@@ -494,6 +494,8 @@ class PeriodIndex(Int64Index):
     hour : int or array, default None
     minute : int or array, default None
     second : int or array, default None
+    tz : object, default None
+        Timezone for converting datetime64 data to Periods
 
     Examples
     --------
@@ -514,7 +516,8 @@ class PeriodIndex(Int64Index):
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None,
                 year=None, month=None, quarter=None, day=None,
-                hour=None, minute=None, second=None):
+                hour=None, minute=None, second=None,
+                tz=None):
 
         freq = _freq_mod.get_standard_freq(freq)
 
@@ -531,9 +534,9 @@ class PeriodIndex(Int64Index):
             else:
                 fields = [year, month, quarter, day, hour, minute, second]
                 data, freq = cls._generate_range(start, end, periods,
-                                                    freq, fields)
+                                                 freq, fields)
         else:
-            ordinal, freq = cls._from_arraylike(data, freq)
+            ordinal, freq = cls._from_arraylike(data, freq, tz)
             data = np.array(ordinal, dtype=np.int64, copy=False)
 
         subarr = data.view(cls)
@@ -562,7 +565,7 @@ class PeriodIndex(Int64Index):
         return subarr, freq
 
     @classmethod
-    def _from_arraylike(cls, data, freq):
+    def _from_arraylike(cls, data, freq, tz):
         if not isinstance(data, np.ndarray):
             if np.isscalar(data) or isinstance(data, Period):
                 raise ValueError('PeriodIndex() must be called with a '
@@ -608,7 +611,7 @@ class PeriodIndex(Int64Index):
                                       'inferred from first element'))
 
                 if np.issubdtype(data.dtype, np.datetime64):
-                    data = dt64arr_to_periodarr(data, freq)
+                    data = dt64arr_to_periodarr(data, freq, tz)
                 elif data.dtype == np.int64:
                     pass
                 else:
@@ -1219,4 +1222,3 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)
-
