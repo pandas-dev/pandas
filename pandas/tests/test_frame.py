@@ -3851,6 +3851,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     'three,3,6\r\n')
         self.assertEqual(buf.getvalue(), expected)
 
+        buf = StringIO()
+        df.to_csv(buf) # The default line terminator remains \n
+        expected = ('A,B\n'
+                    'one,1,4\n'
+                    'two,2,5\n'
+                    'three,3,6\n')
+        self.assertEqual(buf.getvalue(), expected)
+
+
+
 
     def test_to_excel_from_excel(self):
         try:
