@@ -84,7 +84,7 @@ def _tables():
 
         # version requirements
         major, minor, subv = tables.__version__.split('.')
-        if int(major) >= 2 and int(minor) >= 3:
+        if int(major) >= 2 and int(minor[0]) >= 3:
             _table_supports_index = True
 
     return _table_mod
@@ -400,7 +400,7 @@ class HDFStore(object):
         self._write_to_group(key, value, table=True, append=True, **kwargs)
 
     def create_table_index(self, key, **kwargs):
-        """ Create a pytables index on the table 
+        """ Create a pytables index on the table
         Paramaters
         ----------
         key : object (the node to index)
@@ -569,7 +569,7 @@ class HDFStore(object):
     def _write_frame_table(self, group, df, append=False, comp=None, **kwargs):
         t = create_table(self, group, typ = 'appendable_frame')
         t.write(axes_to_index=[0], obj=df, append=append, compression=comp, **kwargs)
-        
+
     def _write_wide(self, group, panel):
         panel._consolidate_inplace()
         self._write_block_manager(group, panel._data)
@@ -581,7 +581,7 @@ class HDFStore(object):
         t = create_table(self, group, typ = 'appendable_panel')
         t.write(axes_to_index=[1,2], obj=panel,
                 append=append, compression=comp, **kwargs)
-        
+
     def _read_wide_table(self, group, where=None):
         t = create_table(self, group)
         return t.read(where)
@@ -806,7 +806,7 @@ class HDFStore(object):
 
 
 class Col(object):
-    """ a column description class 
+    """ a column description class
 
         Parameters
         ----------
@@ -814,7 +814,7 @@ class Col(object):
         values : the ndarray like converted values
         kind   : a string description of this type
         typ    : the pytables type
-        
+
         """
     is_indexable = True
 
@@ -906,7 +906,7 @@ class Col(object):
 
         # validate this column for string truncation (or reset to the max size)
         if self.kind == 'string':
-            
+
             c = self.col
             if c is not None:
                 if c.itemsize < self.itemsize:
@@ -1016,7 +1016,7 @@ class Table(object):
 
         parent : my parent HDFStore
         group  : the group node where the table resides
-        
+
         """
     table_type = None
     ndim       = None
@@ -1047,7 +1047,7 @@ class Table(object):
     @property
     def table(self):
         """ return the table group """
-        return getattr(self.group, 'table', None)        
+        return getattr(self.group, 'table', None)
 
     @property
     def handle(self):
@@ -1097,7 +1097,7 @@ class Table(object):
     def index_cols(self):
         """ return a list of my index cols """
         return [ i.cname for i in self.index_axes ]
-    
+
     def values_cols(self):
         """ return a list of my values cols """
         return [ i.cname for i in self.values_axes ]
@@ -1119,7 +1119,7 @@ class Table(object):
         if ic is not None and ic != self.index_cols():
             raise TypeError("incompatible index cols with existing [%s - %s]" %
                             (ic, self.index_cols()))
-                   
+
     @property
     def indexables(self):
         """ create/cache the indexables if they don't exist """
@@ -1130,7 +1130,7 @@ class Table(object):
 
             # index columns
             self._indexables.extend([ Col(name = i) for i in self.attrs.index_cols ])
-            
+
             # data columns
             self._indexables.extend([ DataCol.create_for_block(i = i) for i, c in enumerate(self.attrs.values_cols) ])
 
@@ -1140,7 +1140,7 @@ class Table(object):
         """
         Create a pytables index on the specified columns
           note: cannot index Time64Col() currently; PyTables must be >= 2.3.1
-          
+
 
         Paramaters
         ----------
@@ -1309,7 +1309,7 @@ class LegacyTable(Table):
 
         major = Factor.from_array(index)
         minor = Factor.from_array(column)
-        
+
         J, K = len(major.levels), len(minor.levels)
         key = major.labels * K + minor.labels
 
@@ -1373,7 +1373,7 @@ class LegacyTable(Table):
 
         return wp
 
-    def write(self, axes_to_index, obj, append=False, compression=None, 
+    def write(self, axes_to_index, obj, append=False, compression=None,
               complevel=None, min_itemsize = None, **kwargs):
 
         # create the table if it doesn't exist (or get it if it does)
@@ -1391,7 +1391,7 @@ class LegacyTable(Table):
 
             # set the table attributes
             self.set_attrs()
-            
+
             # create the table
             table = self.handle.createTable(self.group, **options)
 
@@ -1475,7 +1475,7 @@ class LegacyTable(Table):
                 l.reverse()
                 for c in l:
                     table.removeRows(c)
-                    
+
                     self.handle.flush()
 
         # return the number of rows removed
@@ -1725,7 +1725,7 @@ def _alias_to_class(alias):
 
 
 class Term(object):
-    """ create a term object that holds a field, op, and value 
+    """ create a term object that holds a field, op, and value
 
         Parameters
         ----------
@@ -1748,7 +1748,7 @@ class Term(object):
         Term('index', datetime(2012,11,14))
         Term('major>20121114')
         Term('minor', ['A','B'])
-        
+
     """
 
     _ops     = ['<=','<','>=','>','!=','=']
@@ -1772,7 +1772,7 @@ class Term(object):
                 op = f[1]
             if len(f) > 2:
                 value = f[2]
-                
+
         # backwards compatible
         if isinstance(field, dict):
             self.field = field.get('field')
@@ -1808,7 +1808,7 @@ class Term(object):
 
         else:
             raise Exception("Term does not understand the supplied field [%s]" % field)
-        
+
         # we have valid fields
         if self.field is None or self.op is None or self.value is None:
             raise Exception("Could not create this term [%s]" % str(self))
@@ -1848,19 +1848,19 @@ class Term(object):
 
     def eval(self):
         """ set the numexpr expression for this term """
-        
+
         # convert values
         values = [ self.convert_value(v) for v in self.value ]
 
         # equality conditions
         if self.op in ['=','!=']:
-        
+
             if self.is_in_table:
 
                 # too many values to create the expression?
                 if len(values) <= 61:
                     self.condition = "(%s)" % ' | '.join([ "(%s == %s)" % (self.field,v[0]) for v in values])
-                    
+
                 # use a filter after reading
                 else:
                     self.filter = set([ v[1] for v in values ])
@@ -1874,7 +1874,7 @@ class Term(object):
             if self.is_in_table:
 
                 self.condition = '(%s %s %s)' % (self.field, self.op, values[0][0])
-      
+
     def convert_value(self, v):
 
         if self.field == 'index':

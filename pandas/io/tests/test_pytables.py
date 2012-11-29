@@ -151,7 +151,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('df1', df[:10])
             store.append('df1', df[10:])
             tm.assert_frame_equal(store['df1'], df)
-            
+
             store.put('df2', df[:10], table=True)
             store.append('df2', df[10:])
             tm.assert_frame_equal(store['df2'], df)
@@ -248,7 +248,7 @@ class TestHDFStore(unittest.TestCase):
             df['int1'] = 1
             df['int2'] = 2
             return df.consolidate()
-        
+
         df1 = _make_one_df()
 
         self.store.append('df1_mixed', df1)
@@ -361,7 +361,7 @@ class TestHDFStore(unittest.TestCase):
             ]
         for t in terms:
             self.assertRaises(Exception, self.store.select, 'wp', t)
- 
+
         self.assertRaises(Exception, Term.__init__)
         self.assertRaises(Exception, Term.__init__, 'blah')
         self.assertRaises(Exception, Term.__init__, 'index')
@@ -390,7 +390,7 @@ class TestHDFStore(unittest.TestCase):
 
         for t in terms:
            self.store.select('wp', t)
- 
+
     def test_series(self):
         s = tm.makeStringSeries()
         self._check_roundtrip(s, tm.assert_series_equal)
@@ -810,8 +810,8 @@ class TestHDFStore(unittest.TestCase):
         try:
             store.put('obj', obj, table=True)
             retrieved = store['obj']
-            sorted_obj = _test_sort(obj)
-            comparator(retrieved, sorted_obj)
+            # sorted_obj = _test_sort(obj)
+            comparator(retrieved, obj)
         finally:
             store.close()
             os.remove(self.scratchpath)
