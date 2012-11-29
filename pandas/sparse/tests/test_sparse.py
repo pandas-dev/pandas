@@ -838,6 +838,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assertEquals(sdf.default_fill_value, 0)
         tm.assert_frame_equal(sdf.to_dense(), df)
 
+    def test_density(self):
+        df = SparseSeries([nan, nan, nan, 0, 1, 2, 3, 4, 5, 6])
+        self.assertEquals(df.density, 0.7)
+
     def test_sparse_to_dense(self):
         pass
 
