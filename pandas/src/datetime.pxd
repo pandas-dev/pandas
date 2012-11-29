@@ -1,4 +1,4 @@
-from numpy cimport int64_t, int32_t, npy_int64, npy_int32
+from numpy cimport int64_t, int32_t, npy_int64, npy_int32, ndarray
 from cpython cimport PyObject
 
 from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
