@@ -12,7 +12,7 @@ from pandas.io.pytables import HDFStore, get_store, Term
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
-from pandas import concat
+from pandas import concat, Timestamp
 
 try:
     import tables
@@ -177,9 +177,20 @@ class TestHDFStore(unittest.TestCase):
         expected = expected.reindex(minor_axis = sorted(expected.minor_axis))
         tm.assert_panel_equal(self.store['s1'], expected)
 
+        # test dict format
+        self.store.append('s2', wp, min_itemsize = { 'column' : 20 })
+        self.store.append('s2', wp2)
+        expected = concat([ wp, wp2], axis = 2)
+        expected = expected.reindex(minor_axis = sorted(expected.minor_axis))
+        tm.assert_panel_equal(self.store['s2'], expected)
+
+        # apply the wrong field (similar to #1)
+        self.store.append('s3', wp, min_itemsize = { 'index' : 20 })
+        self.assertRaises(Exception, self.store.append, 's3')
+
         # test truncation of bigger strings
-        self.store.append('s2', wp)
-        self.assertRaises(Exception, self.store.append, 's2', wp2)
+        self.store.append('s4', wp)
+        self.assertRaises(Exception, self.store.append, 's4', wp2)
 
     def test_create_table_index(self):
         wp = tm.makePanel()
@@ -245,6 +256,7 @@ class TestHDFStore(unittest.TestCase):
             df['obj2'] = 'bar'
             df['bool1'] = df['A'] > 0
             df['bool2'] = df['B'] > 0
+            df['bool3'] = True
             df['int1'] = 1
             df['int2'] = 2
             return df.consolidate()

@@ -1226,7 +1226,7 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csvexcel(self, writer, na_rep=None, cols=None,
+    def _helper_csv(self, writer, na_rep=None, cols=None,
                          header=True, index=True,
                          index_label=None, float_format=None):
         if cols is None:
@@ -1305,7 +1305,8 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
-               mode='w', nanRep=None, encoding=None, quoting=None):
+               mode='w', nanRep=None, encoding=None, quoting=None,
+               line_terminator='\n'):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1336,6 +1337,9 @@ class DataFrame(NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
+        line_terminator: string, default '\n'
+            The newline character or character sequence to use in the output
+            file
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1355,13 +1359,13 @@ class DataFrame(NDFrame):
 
         try:
             if encoding is not None:
-                csvout = com.UnicodeWriter(f, lineterminator='\n',
+                csvout = com.UnicodeWriter(f, lineterminator=line_terminator,
                                            delimiter=sep, encoding=encoding,
                                            quoting=quoting)
             else:
-                csvout = csv.writer(f, lineterminator='\n', delimiter=sep,
-                                    quoting=quoting)
-            self._helper_csvexcel(csvout, na_rep=na_rep,
+                csvout = csv.writer(f, lineterminator=line_terminator,
+                                    delimiter=sep, quoting=quoting)
+            self._helper_csv(csvout, na_rep=na_rep,
                                   float_format=float_format, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label)
@@ -1372,7 +1376,7 @@ class DataFrame(NDFrame):
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None):
+                 index_label=None, startrow=0, startcol=0):
         """
         Write DataFrame to a excel sheet
 
@@ -1397,6 +1401,9 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
+        startow : upper left cell row to dump data frame
+        startcol : upper left cell column to dump data frame
+
 
         Notes
         -----
@@ -1413,11 +1420,17 @@ class DataFrame(NDFrame):
         if isinstance(excel_writer, basestring):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
-        excel_writer.cur_sheet = sheet_name
-        self._helper_csvexcel(excel_writer, na_rep=na_rep,
-                              float_format=float_format, cols=cols,
-                              header=header, index=index,
-                              index_label=index_label)
+
+        formatter = fmt.ExcelFormatter(self,
+                                       na_rep=na_rep,
+                                       cols=cols,
+                                       header=header,
+                                       float_format=float_format,
+                                       index=index,
+                                       index_label=index_label)
+        formatted_cells = formatter.get_formatted_cells()
+        excel_writer.write_cells(formatted_cells, sheet_name,
+                                 startrow=startrow, startcol=startcol)
         if need_save:
             excel_writer.save()
 
@@ -1431,8 +1444,8 @@ class DataFrame(NDFrame):
         """
         import warnings
         if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no effect",
-                          FutureWarning)
+            warnings.warn("force_unicode is deprecated, it will have no "
+                          "effect", FutureWarning)
 
         if nanRep is not None:  # pragma: no cover
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -2386,7 +2399,8 @@ class DataFrame(NDFrame):
         if fill_na:
             return (left_result.fillna(fill_value, method=method, limit=limit,
                                        axis=fill_axis),
-                    right_result.fillna(fill_value, method=method, limit=limit))
+                    right_result.fillna(fill_value, method=method,
+                                        limit=limit))
         else:
             return left_result, right_result
 

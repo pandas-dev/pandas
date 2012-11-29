@@ -9,6 +9,8 @@ Overview
 
 This module supports the following requirements:
 - options are referenced using keys in dot.notation, e.g. "x.y.option - z".
+- keys are case-insensitive.
+- functions should accept partial/regex keys, when unambiguous.
 - options can be registered by modules at import time.
 - options can be registered at init-time (via core.config_init)
 - options have a default value, and (optionally) a description and
@@ -23,6 +25,7 @@ This module supports the following requirements:
 - all options in a certain sub - namespace can be reset at once.
 - the user can set / get / reset or ask for the description of an option.
 - a developer can register and mark an option as deprecated.
+
 
 Implementation
 ==============
@@ -56,17 +59,18 @@ RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator")
 __deprecated_options = {} # holds deprecated option metdata
 __registered_options = {} # holds registered option metdata
 __global_config = {}      # holds the current values for registered options
+__reserved_keys = ["all"] # keys which have a special meaning
 
 ##########################################
 # User API
 
 
-def get_option(key):
+def get_option(pat):
     """Retrieves the value of the specified option
 
     Parameters
     ----------
-    key - str, a fully - qualified option name , e.g. "x.y.z.option"
+    pat - str/regexp which should match a single option.
 
     Returns
     -------
@@ -77,7 +81,16 @@ def get_option(key):
     KeyError if no such option exists
     """
 
+    keys = _select_options(pat)
+    if len(keys) == 0:
+        _warn_if_deprecated(pat)
+        raise KeyError("No such keys(s)")
+    if len(keys) > 1:
+        raise KeyError("Pattern matched multiple keys")
+    key = keys[0]
+
     _warn_if_deprecated(key)
+
     key = _translate_key(key)
 
     # walk the nested dict
@@ -86,12 +99,12 @@ def get_option(key):
     return root[k]
 
 
-def set_option(key, value):
+def set_option(pat, value):
     """Sets the value of the specified option
 
     Parameters
     ----------
-    key - str, a fully - qualified option name , e.g. "x.y.z.option"
+    pat - str/regexp which should match a single option.
 
     Returns
     -------
@@ -101,6 +114,14 @@ def set_option(key, value):
     ------
     KeyError if no such option exists
     """
+    keys = _select_options(pat)
+    if len(keys) == 0:
+        _warn_if_deprecated(pat)
+        raise KeyError("No such keys(s)")
+    if len(keys) > 1:
+        raise KeyError("Pattern matched multiple keys")
+    key = keys[0]
+
     _warn_if_deprecated(key)
     key = _translate_key(key)
 
@@ -110,30 +131,13 @@ def set_option(key, value):
 
     # walk the nested dict
     root, k = _get_root(key)
-
     root[k] = value
 
 
-def _get_option_desription(key):
-    """Prints the description associated with the specified option
-
-    Parameters
-    ----------
-    key - str, a fully - qualified option name , e.g. "x.y.z.option"
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    KeyError if no such option exists
-    """
-    _warn_if_deprecated(key)
-    key = _translate_key(key)
-
-def describe_options(pat="",_print_desc=True):
+def describe_option(pat="",_print_desc=True):
     """ Prints the description for one or more registered options
+
+    Call with not arguments to get a listing for all registered options.
 
     Parameters
     ----------
@@ -150,44 +154,47 @@ def describe_options(pat="",_print_desc=True):
     is False
 
     """
-    s=u""
-    if pat in __registered_options.keys(): # exact key name?
-        s = _build_option_description(pat)
-    else:
-        for k in sorted(__registered_options.keys()): # filter by pat
-            if re.search(pat,k):
-                s += _build_option_description(k)
-
-    if s == u"":
+    keys = _select_options(pat)
+    if len(keys) == 0:
         raise KeyError("No such keys(s)")
+
+    s=u""
+    for k in keys: # filter by pat
+        s += _build_option_description(k)
 
     if _print_desc:
         print(s)
     else:
         return(s)
 
-def reset_option(key):
-    """ Reset a single option to it's default value """
-    set_option(key, __registered_options[key].defval)
+def reset_option(pat):
+    """Reset one or more options to their default value.
 
-
-def reset_options(prefix=""):
-    """ Resets all registered options to their default value
+    pass "all" as argument to reset all options.
 
     Parameters
     ----------
-    prefix - str,  if specified only options matching `prefix`* will be reset
+    pat - str/regex  if specified only options matching `prefix`* will be reset
 
     Returns
     -------
     None
 
     """
+    keys = _select_options(pat)
 
-    for k in __registered_options.keys():
-        if k[:len(prefix)] == prefix:
-            reset_option(k)
+    if pat == u"":
+        raise ValueError("You must provide a non-empty pattern")
 
+    if len(keys) == 0:
+        raise KeyError("No such keys(s)")
+
+    if len(keys) > 1 and len(pat)<4 and pat != "all":
+        raise ValueError("You must specify at least 4 characters "
+                         "when resetting multiple keys")
+
+    for k in keys:
+        set_option(k, __registered_options[k].defval)
 
 ######################################################
 # Functions for use by pandas developers, in addition to User - api
@@ -214,9 +221,12 @@ def register_option(key, defval, doc="", validator=None):
 
     """
 
+    key=key.lower()
 
     if key in __registered_options:
         raise KeyError("Option '%s' has already been registered" % key)
+    if key in __reserved_keys:
+        raise KeyError("Option '%s' is a reserved key" % key)
 
     # the default value should be legal
     if validator:
@@ -282,6 +292,8 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
     KeyError - if key has already been deprecated.
 
     """
+    key=key.lower()
+
     if key in __deprecated_options:
         raise KeyError("Option '%s' has already been defined as deprecated." % key)
 
@@ -289,6 +301,17 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
 
 ################################
 # functions internal to the module
+
+def _select_options(pat):
+    """returns a list of keys matching `pat`
+
+    if pat=="all", returns all registered options
+    """
+    keys = sorted(__registered_options.keys())
+    if pat == "all": # reserved key
+        return keys
+
+    return [k for k in keys if re.search(pat,k,re.I)]
 
 
 def _get_root(key):
@@ -301,6 +324,8 @@ def _get_root(key):
 
 def _is_deprecated(key):
     """ Returns True if the given option has been deprecated """
+
+    key = key.lower()
     return __deprecated_options.has_key(key)
 
 
@@ -356,6 +381,7 @@ def _warn_if_deprecated(key):
     -------
     bool - True if `key` is deprecated, False otherwise.
     """
+
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
