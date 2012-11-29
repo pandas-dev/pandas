@@ -68,6 +68,7 @@ pandas 0.10.0
   - Add multi-dtype support for ``HDFStore tables``
   - ``min_itemsize`` parameter can be specified in ``HDFStore table`` creation
   - Indexing support in ``HDFStore tables`` (#698)
+  - Add `line_terminator` option to DataFrame.to_csv (#2383)
 
 **Bug fixes**
 
@@ -94,7 +95,8 @@ pandas 0.10.0
   - Raise/handle int64 overflows in parsers (#2247)
   - Deleting of consecutive rows in ``HDFStore tables``` is much faster than before
   - Appending on a HDFStore would fail if the table was not first created via ``put``
-
+  - Use `col_space` argument as minimum column width in DataFrame.to_html (#2328)
+  - Fix tz-aware DatetimeIndex.to_period (#2232)
 
 pandas 0.9.1
 ============
