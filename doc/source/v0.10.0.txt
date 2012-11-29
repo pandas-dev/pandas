@@ -12,10 +12,7 @@ New features
 Updated PyTables Support
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Docs for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
-
-`the full docs for tables
-<https://github.com/pydata/pandas/blob/master/io.html#hdf5-pytables>`__
+:ref:`Docs <io-hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
 
 
     .. ipython:: python
@@ -83,12 +80,12 @@ Docs for PyTables ``Table`` format & several enhancements to the api. Here is a 
 
   **Bug Fixes**
 
-       - added ``Term`` method of specifying where conditions, closes GH #1996
+       - added ``Term`` method of specifying where conditions (GH1996_).
        - ``del store['df']`` now call ``store.remove('df')`` for store deletion
        - deleting of consecutive rows is much faster than before
        - ``min_itemsize`` parameter can be specified in table creation to force a minimum size for indexing columns
          (the previous implementation would set the column size based on the first append)
-       - indexing support via ``create_table_index`` (requires PyTables >= 2.3), close GH #698
+       - indexing support via ``create_table_index`` (requires PyTables >= 2.3) (GH698_).
        - appending on a store would fail if the table was not first created via ``put``
        - minor change to select and remove: require a table ONLY if where is also provided (and not None)
 
@@ -135,5 +132,7 @@ See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
+.. _GH698: https://github.com/pydata/pandas/issues/698
+.. _GH1996: https://github.com/pydata/pandas/issues/1996
 .. _GH2316: https://github.com/pydata/pandas/issues/2316
 .. _GH2097: https://github.com/pydata/pandas/issues/2097
