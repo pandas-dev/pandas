@@ -3170,7 +3170,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', axis=0, inplace=False,
+    def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None):
         """
         Fill NA/NaN values using the specified method
@@ -3207,7 +3207,11 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         if value is None:
+            if method is None:
+                raise ValueError('must specify a fill method or value')
             if self._is_mixed_type and axis == 1:
+                if inplace:
+                    raise NotImplementedError()
                 return self.T.fillna(method=method, limit=limit).T
 
             new_blocks = []
@@ -3222,6 +3226,8 @@ class DataFrame(NDFrame):
 
             new_data = BlockManager(new_blocks, self._data.axes)
         else:
+            if method is not None:
+                raise ValueError('cannot specify both a fill method and value')
             # Float type values
             if len(self.columns) == 0:
                 return self
@@ -3245,6 +3251,14 @@ class DataFrame(NDFrame):
             return self
         else:
             return self._constructor(new_data)
+
+    def ffill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='ffill', axis=axis, inplace=inplace,
+                           limit=limit)
+
+    def bfill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='bfill', axis=axis, inplace=inplace,
+                           limit=limit)
 
     def replace(self, to_replace, value=None, method='pad', axis=0,
                 inplace=False, limit=None):

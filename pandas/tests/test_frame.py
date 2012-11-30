@@ -4901,6 +4901,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.mixed_frame.fillna(value=0)
 
+        self.assertRaises(ValueError, self.tsframe.fillna)
+        self.assertRaises(ValueError, self.tsframe.fillna, 5, method='ffill')
+
+    def test_ffill(self):
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+
+        assert_frame_equal(self.tsframe.ffill(),
+                           self.tsframe.fillna(method='ffill'))
+
+    def test_bfill(self):
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+
+        assert_frame_equal(self.tsframe.bfill(),
+                           self.tsframe.fillna(method='bfill'))
+
     def test_fillna_skip_certain_blocks(self):
         # don't try to fill boolean, int blocks
 
@@ -4923,10 +4940,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df[1][:4] = np.nan
         df[3][-4:] = np.nan
-        expected = df.fillna()
+        expected = df.fillna(method='ffill')
         self.assert_(expected is not df)
 
-        df2 = df.fillna(inplace=True)
+        df2 = df.fillna(method='ffill', inplace=True)
         self.assert_(df2 is df)
         assert_frame_equal(df2, expected)
 
@@ -4957,13 +4974,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.randn(10, 10))
         df.values[:, ::2] = np.nan
 
-        result = df.fillna(axis=1)
+        result = df.fillna(method='ffill', axis=1)
         expected = df.T.fillna(method='pad').T
         assert_frame_equal(result, expected)
 
         df.insert(6, 'foo', 5)
-        result = df.fillna(axis=1)
-        expected = df.astype(float).fillna(axis=1)
+        result = df.fillna(method='ffill', axis=1)
+        expected = df.astype(float).fillna(method='ffill', axis=1)
         assert_frame_equal(result, expected)
 
     def test_fillna_invalid_method(self):
@@ -7654,7 +7671,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
         data = np.random.rand(20, 5)
         df = DataFrame(index=range(20), columns=cols, data=data)
-        self.assert_(df.columns.tolist() == df.fillna().columns.tolist())
+        filled = df.fillna(method='ffill')
+        self.assert_(df.columns.tolist() == filled.columns.tolist())
 
     def test_take(self):
         # homogeneous
