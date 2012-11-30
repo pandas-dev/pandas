@@ -17,6 +17,7 @@ import pandas.core.common as com
 
 import pandas.lib as lib
 import pandas.algos as _algos
+import pandas.hashtable as _hash
 
 _agg_doc = """Aggregate using input function or dict of {column -> function}
 

@@ -565,7 +565,7 @@ cdef class Float64HashTable(HashTable):
         labels = self.get_labels(values, uniques, 0, -1)
         return uniques.to_array(), labels
 
-    def get_lables(self, ndarray[float64_t] values,
+    def get_labels(self, ndarray[float64_t] values,
                      Float64Vector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
@@ -779,7 +779,7 @@ cdef class PyObjectHashTable(HashTable):
 
         return result
 
-    def get_lables(self, ndarray[object] values, ObjectVector uniques,
+    def get_labels(self, ndarray[object] values, ObjectVector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)

@@ -17,6 +17,8 @@ import pandas.util.testing as tm
 from pandas.util.compat import product as cart_product
 import pandas as pd
 
+import pandas.index as _index
+
 class TestMultiLevel(unittest.TestCase):
 
     def setUp(self):
@@ -1591,9 +1593,8 @@ Thur,Lunch,Yes,51.51,17"""
     def test_indexing_over_hashtable_size_cutoff(self):
         n = 10000
 
-        import pandas.lib as lib
-        old_cutoff = lib._SIZE_CUTOFF
-        lib._SIZE_CUTOFF = 20000
+        old_cutoff = _index._SIZE_CUTOFF
+        _index._SIZE_CUTOFF = 20000
 
         s = Series(np.arange(n),
                    MultiIndex.from_arrays((["a"] * n, np.arange(n))))
@@ -1603,7 +1604,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEquals(s[("a", 6)], 6)
         self.assertEquals(s[("a", 7)], 7)
 
-        lib._SIZE_CUTOFF = old_cutoff
+        _index._SIZE_CUTOFF = old_cutoff
 
     def test_xs_mixed_no_copy(self):
         index = MultiIndex.from_arrays([['a','a', 'b', 'b'], [1,2,1,2]],

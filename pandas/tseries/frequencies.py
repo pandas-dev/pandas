@@ -9,6 +9,7 @@ from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
 import pandas.core.common as com
 import pandas.lib as lib
+import pandas.tslib as tslib
 
 
 class FreqGroup(object):
@@ -763,7 +764,7 @@ class _FrequencyInferer(object):
 
     @cache_readonly
     def deltas(self):
-        return lib.unique_deltas(self.values)
+        return tslib.unique_deltas(self.values)
 
     @cache_readonly
     def is_unique(self):
@@ -805,7 +806,7 @@ class _FrequencyInferer(object):
 
     @cache_readonly
     def fields(self):
-        return lib.build_field_sarray(self.values)
+        return tslib.build_field_sarray(self.values)
 
     @cache_readonly
     def rep_stamp(self):
@@ -856,11 +857,11 @@ class _FrequencyInferer(object):
     @cache_readonly
     def mdiffs(self):
         nmonths = self.fields['Y'] * 12 + self.fields['M']
-        return lib.unique_deltas(nmonths.astype('i8'))
+        return tslib.unique_deltas(nmonths.astype('i8'))
 
     @cache_readonly
     def ydiffs(self):
-        return lib.unique_deltas(self.fields['Y'].astype('i8'))
+        return tslib.unique_deltas(self.fields['Y'].astype('i8'))
 
     def _infer_daily_rule(self):
         annual_rule = self._get_annual_rule()

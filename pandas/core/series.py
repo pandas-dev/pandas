@@ -32,6 +32,7 @@ import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, cache_readonly
 
 import pandas.lib as lib
+import pandas.tslib as tslib
 import pandas.index as _index
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -808,7 +809,7 @@ copy : boolean, default False
         value : scalar (int) or Series (slice, sequence)
         """
         try:
-            return lib.get_value_at(self, i)
+            return _index.get_value_at(self, i)
         except IndexError:
             raise
         except:
@@ -819,7 +820,7 @@ copy : boolean, default False
                 if isinstance(label, Index):
                     return self.reindex(label)
                 else:
-                    return lib.get_value_at(self, i)
+                    return _index.get_value_at(self, i)
 
     iget = iget_value
     irow = iget_value
@@ -2986,7 +2987,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     not com.is_datetime64_dtype(dtype)):
                     if dtype == object:
                         ints = np.asarray(data).view('i8')
-                        subarr = lib.ints_to_pydatetime(ints)
+                        subarr = tslib.ints_to_pydatetime(ints)
                     elif raise_cast_failure:
                         raise TypeError('Cannot cast datetime64 to %s' % dtype)
                 else:

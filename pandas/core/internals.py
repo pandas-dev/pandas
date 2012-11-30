@@ -7,13 +7,14 @@ import numpy as np
 from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
 import pandas.core.common as com
 import pandas.lib as lib
+import pandas.tslib as tslib
 
 from pandas.util import py3compat
 
 class Block(object):
     """
-    Canonical n-dimensional unit of homogeneous dtype contained in a pandas data
-    structure
+    Canonical n-dimensional unit of homogeneous dtype contained in a pandas
+    data structure
 
     Index-ignorant; let the container take care of that
     """
@@ -399,7 +400,7 @@ class DatetimeBlock(Block):
 
     def __init__(self, values, items, ref_items, ndim=2):
         if values.dtype != _NS_DTYPE:
-            values = lib.cast_to_nanoseconds(values)
+            values = tslib.cast_to_nanoseconds(values)
 
         Block.__init__(self, values, items, ref_items, ndim=ndim)
 
@@ -429,14 +430,14 @@ class DatetimeBlock(Block):
         loc = self.items.get_loc(item)
 
         if value.dtype != _NS_DTYPE:
-            value = lib.cast_to_nanoseconds(value)
+            value = tslib.cast_to_nanoseconds(value)
 
         self.values[loc] = value
 
     def get_values(self, dtype):
         if dtype == object:
             flat_i8 = self.values.ravel().view(np.int64)
-            res = lib.ints_to_pydatetime(flat_i8)
+            res = tslib.ints_to_pydatetime(flat_i8)
             return res.reshape(self.values.shape)
         return self.values
 
@@ -1300,7 +1301,7 @@ def form_blocks(arrays, names, axes):
             complex_items.append((k, v))
         elif issubclass(v.dtype.type, np.datetime64):
             if v.dtype != _NS_DTYPE:
-                v = lib.cast_to_nanoseconds(v)
+                v = tslib.cast_to_nanoseconds(v)
 
             if hasattr(v, 'tz') and v.tz is not None:
                 object_items.append((k, v))

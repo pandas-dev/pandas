@@ -1708,6 +1708,41 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
 #----------------------------------------------------------------------
 # group operations
 
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_lexsorted(list list_of_arrays):
+    cdef:
+        int i
+        Py_ssize_t n, nlevels
+        int64_t k, cur, pre
+        ndarray arr
+
+    nlevels = len(list_of_arrays)
+    n = len(list_of_arrays[0])
+
+    cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
+    for i from 0 <= i < nlevels:
+        # vecs[i] = <int64_t *> (<ndarray> list_of_arrays[i]).data
+
+        arr = list_of_arrays[i]
+        vecs[i] = <int64_t *> arr.data
+    # assume uniqueness??
+
+    for i from 1 <= i < n:
+        for k from 0 <= k < nlevels:
+            cur = vecs[k][i]
+            pre = vecs[k][i-1]
+            if cur == pre:
+                continue
+            elif cur > pre:
+                break
+            else:
+                return False
+    free(vecs)
+    return True
+
+
 @cython.boundscheck(False)
 def groupby_indices(ndarray values):
     cdef:

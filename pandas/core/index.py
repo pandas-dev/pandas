@@ -203,7 +203,7 @@ class Index(np.ndarray):
         if self.inferred_type == 'string':
             from dateutil.parser import parse
             parser = lambda x: parse(x, dayfirst=dayfirst)
-            parsed = tslib.try_parse_dates(self.values, parser=parser)
+            parsed = lib.try_parse_dates(self.values, parser=parser)
             return DatetimeIndex(parsed)
         else:
             return DatetimeIndex(self.values)
@@ -727,7 +727,7 @@ class Index(np.ndarray):
                 raise
 
             try:
-                return lib.get_value_box(series, key)
+                return tslib.get_value_box(series, key)
             except IndexError:
                 raise
             except TypeError:
@@ -1526,7 +1526,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return lib.get_value_at(series, key)
+                return _index.get_value_at(series, key)
             except IndexError:
                 raise
             except TypeError:

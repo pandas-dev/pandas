@@ -435,8 +435,8 @@ class TestBinGroupers(unittest.TestCase):
         }
 
         for fname in funcs:
-            args = [getattr(lib, 'group_%s' % fname),
-                    getattr(lib, 'group_%s_bin' % fname),
+            args = [getattr(algos, 'group_%s' % fname),
+                    getattr(algos, 'group_%s_bin' % fname),
                     np_funcs[fname]]
             self._check_versions(*args)
 

@@ -294,20 +294,6 @@ def is_period_array(ndarray[object] values):
             return False
     return True
 
-def extract_ordinals(ndarray[object] values, freq):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
-        object p
-
-    for i in range(n):
-        p = values[i]
-        ordinals[i] = p.ordinal
-        if p.freq != freq:
-            raise ValueError("%s is wrong freq" % p)
-
-    return ordinals
-
 
 cdef extern from "parse_helper.h":
     inline int floatify(object, double *result) except -1

@@ -29,6 +29,9 @@ import pandas.core.common as com
 from pandas.tools.merge import concat
 
 import pandas.lib as lib
+import pandas.algos as algos
+import pandas.tslib as tslib
+
 from contextlib import contextmanager
 
 # reading and writing the full object in one go
@@ -609,9 +612,9 @@ class HDFStore(object):
                 node._v_attrs.freq = index.freq
 
             if hasattr(index, 'tz') and index.tz is not None:
-                zone = lib.get_timezone(index.tz)
+                zone = tslib.get_timezone(index.tz)
                 if zone is None:
-                    zone = lib.tot_seconds(index.tz.utcoffset())
+                    zone = tslib.tot_seconds(index.tz.utcoffset())
                 node._v_attrs.tz = zone
 
     def _read_index(self, group, key):
@@ -1276,26 +1279,27 @@ class Table(object):
         raise NotImplementedError("cannot delete on an abstract table")
 
 class WORMTable(Table):
-    """ a write-once read-many table:
-         this format DOES NOT ALLOW appending to a table. writing is a one-time operation
-         the data are stored in a format that allows for searching the data on disk
+    """ a write-once read-many table: this format DOES NOT ALLOW appending to a
+         table. writing is a one-time operation the data are stored in a format
+         that allows for searching the data on disk
          """
     table_type = 'worm'
 
     def read(self, **kwargs):
-        """ read the indicies and the indexing array, calculate offset rows and return """
+        """ read the indicies and the indexing array, calculate offset rows and
+        return """
         raise NotImplementedError("WORMTable needs to implement read")
 
     def write(self, **kwargs):
-        """ write in a format that we can search later on (but cannot append to):
-               write out the indicies and the values using _write_array (e.g. a CArray)
-               create an indexing table so that we can search """
+        """ write in a format that we can search later on (but cannot append
+               to): write out the indicies and the values using _write_array
+               (e.g. a CArray) create an indexing table so that we can search"""
         raise NotImplementedError("WORKTable needs to implement write")
 
 class LegacyTable(Table):
-    """ an appendable table:
-          allow append/query/delete operations to a (possibily) already existing appendable table
-          this table ALLOWS append (but doesn't require them), and stores the data in a format
+    """ an appendable table: allow append/query/delete operations to a
+          (possibily) already existing appendable table this table ALLOWS
+          append (but doesn't require them), and stores the data in a format
           that can be easily searched
 
         """
@@ -1318,7 +1322,7 @@ class LegacyTable(Table):
 
         panels = []
         if len(unique(key)) == len(key):
-            sorter, _ = lib.groupsort_indexer(com._ensure_int64(key), J * K)
+            sorter, _ = algos.groupsort_indexer(com._ensure_int64(key), J * K)
             sorter = com._ensure_platform_int(sorter)
 
             # create the panels

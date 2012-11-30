@@ -42,7 +42,10 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
+
 import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.algos as _algos
 
 from pandas.core.config import get_option
 
@@ -380,7 +383,7 @@ class DataFrame(NDFrame):
             mask = ma.getmaskarray(data)
             datacopy = ma.copy(data)
             if issubclass(data.dtype.type, np.datetime64):
-                datacopy[mask] = lib.iNaT
+                datacopy[mask] = tslib.iNaT
             else:
                 datacopy = com._maybe_upcast(datacopy)
                 datacopy[mask] = NA
@@ -4306,7 +4309,8 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(com._ensure_float64(mat), minp=min_periods)
+            correl = _algos.nancorr(com._ensure_float64(mat),
+                                    minp=min_periods)
         else:
             if min_periods is None:
                 min_periods = 1
@@ -4357,8 +4361,8 @@ class DataFrame(NDFrame):
             else:
                 baseCov = np.cov(mat.T)
         else:
-            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True,
-                                  minp=min_periods)
+            baseCov = _algos.nancorr(com._ensure_float64(mat), cov=True,
+                                     minp=min_periods)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 

@@ -11,6 +11,7 @@ import pandas.util.testing as tm
 
 import numpy as np
 
+from pandas.tslib import iNaT
 from pandas.util import py3compat
 
 def test_is_sequence():
@@ -76,9 +77,8 @@ def test_isnull_datetime():
     idx = date_range('1/1/1990', periods=20)
     assert(notnull(idx).all())
 
-    import pandas.lib as lib
     idx = np.asarray(idx)
-    idx[0] = lib.iNaT
+    idx[0] = iNaT
     idx = DatetimeIndex(idx)
     mask = isnull(idx)
     assert(mask[0])

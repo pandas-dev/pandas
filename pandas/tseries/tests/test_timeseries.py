@@ -24,8 +24,12 @@ import pandas.util.testing as tm
 
 from pandas.util.py3compat import StringIO
 
-from pandas.lib import NaT, iNaT
+from pandas.tslib import NaT, iNaT
 import pandas.lib as lib
+import pandas.tslib as tslib
+
+import pandas.index as _index
+
 import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
@@ -110,9 +114,9 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         import datetime
         # #1821
 
-        old_cutoff = lib._SIZE_CUTOFF
+        old_cutoff = _index._SIZE_CUTOFF
         try:
-            lib._SIZE_CUTOFF = 1000
+            _index._SIZE_CUTOFF = 1000
 
             # create large list of non periodic datetime
             dates = []
@@ -144,7 +148,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
             df.ix[timestamp]
             self.assert_(len(df.ix[[timestamp]]) > 0)
         finally:
-            lib._SIZE_CUTOFF = old_cutoff
+            _index._SIZE_CUTOFF = old_cutoff
 
 def assert_range_equal(left, right):
     assert(left.equals(right))
@@ -500,7 +504,7 @@ class TestTimeSeries(unittest.TestCase):
 
         idx = Index(arr)
 
-        self.assert_((idx.values == lib.cast_to_nanoseconds(arr)).all())
+        self.assert_((idx.values == tslib.cast_to_nanoseconds(arr)).all())
 
     def test_index_astype_datetime64(self):
         idx = Index([datetime(2012, 1, 1)], dtype=object)
@@ -598,7 +602,7 @@ class TestTimeSeries(unittest.TestCase):
             else:
                 expected[i] = parse(val)
 
-        result = lib.array_to_datetime(strings)
+        result = tslib.array_to_datetime(strings)
         assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
@@ -2291,16 +2295,16 @@ class TestSeriesDatetime64(unittest.TestCase):
 
     def test_set_none_nan(self):
         self.series[3] = None
-        self.assert_(self.series[3] is lib.NaT)
+        self.assert_(self.series[3] is NaT)
 
         self.series[3:5] = None
-        self.assert_(self.series[4] is lib.NaT)
+        self.assert_(self.series[4] is NaT)
 
         self.series[5] = np.nan
-        self.assert_(self.series[5] is lib.NaT)
+        self.assert_(self.series[5] is NaT)
 
         self.series[5:7] = np.nan
-        self.assert_(self.series[6] is lib.NaT)
+        self.assert_(self.series[6] is NaT)
 
     def test_intercept_astype_object(self):
         # Work around NumPy 1.6 bugs

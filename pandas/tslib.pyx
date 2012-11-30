@@ -1967,3 +1967,17 @@ cdef accessor _get_accessor_func(int code):
     else:
         raise ValueError('Unrecognized code: %s' % code)
 
+
+def extract_ordinals(ndarray[object] values, freq):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
+        object p
+
+    for i in range(n):
+        p = values[i]
+        ordinals[i] = p.ordinal
+        if p.freq != freq:
+            raise ValueError("%s is wrong freq" % p)
+
+    return ordinals
