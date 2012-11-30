@@ -1098,6 +1098,17 @@ def in_interactive_session():
     import __main__ as main
     return not hasattr(main, '__file__')
 
+def in_qtconsole():
+    """
+    check if we're inside an IPython qtconsole
+    """
+    try:
+        ip = get_ipython()
+        if ip.config['KernelApp']['parent_appname'] == 'ipython-qtconsole':
+            return True
+    except:
+        return False
+
 # Unicode consolidation
 # ---------------------
 #

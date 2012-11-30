@@ -585,7 +585,10 @@ class DataFrame(NDFrame):
         particular DataFrame.
         """
 
-        terminal_width, terminal_height = get_terminal_size()
+        if com.in_qtconsole():
+            terminal_width, terminal_height = 10, 100
+        else:
+            terminal_width, terminal_height = get_terminal_size()
         max_rows = (terminal_height if get_option("print_config.max_rows") == 0
                     else get_option("print_config.max_rows"))
         max_columns = get_option("print_config.max_columns")

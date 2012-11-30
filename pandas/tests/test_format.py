@@ -782,6 +782,21 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         fmt.reset_printoptions()
 
+    def test_fake_qtconsole_repr_html(self):
+        def get_ipython():
+            return {'config' :
+                        {'KernelApp' :
+                             {'parent_appname' : 'ipython-qtconsole'}}}
+
+        repstr = self.frame._repr_html_()
+        self.assert_(repstr is not None)
+
+        fmt.set_printoptions(max_rows=5, max_columns=2)
+
+        self.assert_(self.frame._repr_html_() is None)
+
+        fmt.reset_printoptions()
+
     def test_to_html_with_classes(self):
         df = pandas.DataFrame()
         result = df.to_html(classes="sortable draggable")
