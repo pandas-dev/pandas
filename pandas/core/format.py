@@ -19,6 +19,7 @@ import numpy as np
 
 import itertools
 
+from pandas.tseries.period import PeriodIndex
 
 docstring_to_string = """
      Parameters
@@ -688,7 +689,7 @@ def _get_level_lengths(levels):
 # ExcelCell = namedtuple("ExcelCell",
 #                        'row, col, val, style, mergestart, mergeend')
 
-class ExcelCell:
+class ExcelCell(object):
     __fields__ = ('row', 'col', 'val', 'style', 'mergestart', 'mergeend')
     __slots__ = __fields__
 
@@ -849,6 +850,9 @@ class ExcelFormatter(object):
 
             #write index_values
             index_values = self.df.index
+            if isinstance(self.df.index, PeriodIndex):
+                index_values = self.df.index.to_timestamp()
+
             coloffset = 1
             for idx, idxval in enumerate(index_values):
                 yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
