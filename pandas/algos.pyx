@@ -2503,9 +2503,6 @@ def group_median(ndarray[float64_t, ndim=2] out,
         ndarray[int64_t] _counts
         ndarray data
         float64_t* ptr
-
-    from pandas._algos import take_2d_axis1_float64
-
     ngroups = len(counts)
     N, K = (<object> values).shape
 
