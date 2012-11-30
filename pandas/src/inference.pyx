@@ -620,13 +620,18 @@ def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
 
     return result
 
-def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
-    ndarray[object] days, ndarray[object] hours, ndarray[object] minutes,
-    ndarray[object] seconds):
+def try_parse_datetime_components(ndarray[object] years,
+                                  ndarray[object] months,
+                                  ndarray[object] days,
+                                  ndarray[object] hours,
+                                  ndarray[object] minutes,
+                                  ndarray[object] seconds):
 
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
+        int secs
+        double micros
 
     from datetime import datetime
 
@@ -637,8 +642,15 @@ def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
     result = np.empty(n, dtype='O')
 
     for i from 0 <= i < n:
+        secs = int(seconds[i])
+
+        micros = seconds[i] - secs
+        if micros > 0:
+            micros = micros * 1000000
+
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
-                             int(hours[i]), int(minutes[i]), int(seconds[i]))
+                             int(hours[i]), int(minutes[i]), int(secs),
+                             int(micros))
 
     return result
 
