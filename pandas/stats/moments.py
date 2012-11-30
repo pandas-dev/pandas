@@ -281,13 +281,26 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
 
     rs = return_hook(result)
     if center:
-        if isinstance(rs, (Series, DataFrame, Panel)):
-            rs = rs.shift(-int((window + 1) / 2.), axis=axis)
-        else:
-            offset = int((window + 1)/ 2.)
-            rs[:-offset] = rs[offset:]
-            rs[-offset:] = np.nan
+        rs = _center_window(rs, window, axis)
+    return rs
 
+def _center_window(rs, window, axis):
+    if isinstance(rs, (Series, DataFrame, Panel)):
+        rs = rs.shift(-int((window + 1) / 2.), axis=axis)
+    else:
+        offset = int((window + 1) / 2.)
+
+        rs_indexer = [slice(None)] * rs.ndim
+        rs_indexer[axis] = slice(None, -offset)
+
+        lead_indexer = [slice(None)] * rs.ndim
+        lead_indexer[axis] = slice(offset, None)
+
+        na_indexer = [slice(None)] * rs.ndim
+        na_indexer[axis] = slice(-offset, None)
+
+        rs[rs_indexer] = rs[lead_indexer]
+        rs[na_indexer] = np.nan
     return rs
 
 def _process_data_structure(arg, kill_inf=True):

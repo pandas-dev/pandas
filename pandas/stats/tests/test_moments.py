@@ -190,22 +190,28 @@ class TestMoments(unittest.TestCase):
 
     def _check_moment_func(self, func, static_comp, window=50,
                            has_min_periods=True,
+                           has_center=True,
                            has_time_rule=True,
                            preserve_nan=True,
                            fill_value=None):
 
         self._check_ndarray(func, static_comp, window=window,
                             has_min_periods=has_min_periods,
-                            preserve_nan=preserve_nan)
+                            preserve_nan=preserve_nan,
+                            has_center=has_center,
+                            fill_value=fill_value)
 
         self._check_structures(func, static_comp,
                                has_min_periods=has_min_periods,
                                has_time_rule=has_time_rule,
-                               fill_value=fill_value)
+                               fill_value=fill_value,
+                               has_center=has_center)
 
     def _check_ndarray(self, func, static_comp, window=50,
                        has_min_periods=True,
-                       preserve_nan=True):
+                       preserve_nan=True,
+                       has_center=True,
+                       fill_value=None):
 
         result = func(self.arr, window)
         assert_almost_equal(result[-1],
@@ -243,6 +249,26 @@ class TestMoments(unittest.TestCase):
         else:
             result = func(arr, 50)
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))
+
+
+        if has_center:
+            if has_min_periods:
+                result = func(arr, 20, min_periods=15, center=True)
+                expected = func(arr, 20, min_periods=15)
+            else:
+                result = func(arr, 20, center=True)
+                expected = func(arr, 20)
+
+            assert_almost_equal(result[0], expected[10])
+            if fill_value is None:
+                self.assert_(np.isnan(result[-10:]).all())
+            else:
+                self.assert_((result[-10:] == 0).all())
+            if has_min_periods:
+                self.assert_(np.isnan(expected[23]))
+                self.assert_(np.isnan(result[13]))
+                self.assert_(np.isnan(expected[-5]))
+                self.assert_(np.isnan(result[-15]))
 
     def _check_structures(self, func, static_comp,
                           has_min_periods=True, has_time_rule=True,
