@@ -13,7 +13,6 @@ import pandas.core.common as com
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
-import pandas._period as plib
 import pandas._algos as _algos
 
 
@@ -22,16 +21,26 @@ import pandas._algos as _algos
 
 def _period_field_accessor(name, alias):
     def f(self):
+<<<<<<< HEAD
         base, _ = _gfc(self.freq)
         return plib.get_period_field(alias, self.ordinal, base)
+=======
+        base, mult = _gfc(self.freq)
+        return lib.get_period_field(alias, self.ordinal, base)
+>>>>>>> upstream/master
     f.__name__ = name
     return property(f)
 
 
 def _field_accessor(name, alias):
     def f(self):
+<<<<<<< HEAD
         base, _ = _gfc(self.freq)
         return plib.get_period_field_arr(alias, self.values, base)
+=======
+        base, mult = _gfc(self.freq)
+        return lib.get_period_field_arr(alias, self.values, base)
+>>>>>>> upstream/master
     f.__name__ = name
     return property(f)
 
@@ -120,7 +129,7 @@ class Period(object):
             raise ValueError('Only mult == 1 supported')
 
         if self.ordinal is None:
-            self.ordinal = plib.period_ordinal(dt.year, dt.month, dt.day,
+            self.ordinal = lib.period_ordinal(dt.year, dt.month, dt.day,
                                                dt.hour, dt.minute, dt.second,
                                                dt.microsecond, base)
 
@@ -174,7 +183,12 @@ class Period(object):
         if mult2 != 1:
             raise ValueError('Only mult == 1 supported')
 
+<<<<<<< HEAD
         new_ordinal = plib.period_asfreq(self.ordinal, base1, base2, how)
+=======
+        end = how == 'E'
+        new_ordinal = lib.period_asfreq(self.ordinal, base1, base2, end)
+>>>>>>> upstream/master
 
         return Period(ordinal=new_ordinal, freq=base2)
 
@@ -214,7 +228,7 @@ class Period(object):
         base, _ = _gfc(freq)
         val = self.asfreq(freq, how)
 
-        dt64 = plib.period_ordinal_to_dt64(val.ordinal, base)
+        dt64 = lib.period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64)
 
     year = _period_field_accessor('year', 0)
@@ -237,14 +251,24 @@ class Period(object):
         return Period(datetime.now(), freq=freq)
 
     def __repr__(self):
+<<<<<<< HEAD
         base, _ = _gfc(self.freq)
         formatted = plib.period_format(self.ordinal, base)
+=======
+        base, mult = _gfc(self.freq)
+        formatted = lib.period_format(self.ordinal, base)
+>>>>>>> upstream/master
         freqstr = _freq_mod._reverse_period_code_map[base]
         return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
+<<<<<<< HEAD
         base, _ = _gfc(self.freq)
         formatted = plib.period_format(self.ordinal, base)
+=======
+        base, mult = _gfc(self.freq)
+        formatted = lib.period_format(self.ordinal, base)
+>>>>>>> upstream/master
         return ("%s" % formatted)
 
     def strftime(self, fmt):
@@ -388,8 +412,13 @@ class Period(object):
             >>> a.strftime('%b. %d, %Y was a %A')
             'Jan. 01, 2001 was a Monday'
         """
+<<<<<<< HEAD
         base, _ = _gfc(self.freq)
         return plib.period_format(self.ordinal, base, fmt)
+=======
+        base, mult = _gfc(self.freq)
+        return lib.period_format(self.ordinal, base, fmt)
+>>>>>>> upstream/master
 
 
 def _get_date_and_freq(value, freq):
@@ -427,12 +456,17 @@ def _get_ordinals(data, freq):
         return lib.map_infer(data, f)
 
 
-def dt64arr_to_periodarr(data, freq):
+def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
+<<<<<<< HEAD
     base, _ = _gfc(freq)
     return plib.dt64arr_to_periodarr(data.view('i8'), base)
+=======
+    base, mult = _gfc(freq)
+    return lib.dt64arr_to_periodarr(data.view('i8'), base, tz)
+>>>>>>> upstream/master
 
 # --- Period index sketch
 def _period_index_cmp(opname):
@@ -500,7 +534,12 @@ class PeriodIndex(Int64Index):
     hour : int or array, default None
     minute : int or array, default None
     second : int or array, default None
+<<<<<<< HEAD
     microsecond : int or array, default None
+=======
+    tz : object, default None
+        Timezone for converting datetime64 data to Periods
+>>>>>>> upstream/master
 
     Examples
     --------
@@ -521,7 +560,12 @@ class PeriodIndex(Int64Index):
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None,
                 year=None, month=None, quarter=None, day=None,
+<<<<<<< HEAD
                 hour=None, minute=None, second=None, microsecond=None):
+=======
+                hour=None, minute=None, second=None,
+                tz=None):
+>>>>>>> upstream/master
 
         freq = _freq_mod.get_standard_freq(freq)
 
@@ -541,7 +585,7 @@ class PeriodIndex(Int64Index):
                 data, freq = cls._generate_range(start, end, periods,
                                                  freq, fields)
         else:
-            ordinal, freq = cls._from_arraylike(data, freq)
+            ordinal, freq = cls._from_arraylike(data, freq, tz)
             data = np.array(ordinal, dtype=np.int64, copy=False)
 
         subarr = data.view(cls)
@@ -571,7 +615,7 @@ class PeriodIndex(Int64Index):
         return subarr, freq
 
     @classmethod
-    def _from_arraylike(cls, data, freq):
+    def _from_arraylike(cls, data, freq, tz):
         if not isinstance(data, np.ndarray):
             if np.isscalar(data) or isinstance(data, Period):
                 raise ValueError('PeriodIndex() must be called with a '
@@ -607,8 +651,12 @@ class PeriodIndex(Int64Index):
                 else:
                     base1, _ = _gfc(data.freq)
                     base2, _ = _gfc(freq)
+<<<<<<< HEAD
                     data = plib.period_asfreq_arr(data.values, base1, base2,
                                                   'E')
+=======
+                    data = lib.period_asfreq_arr(data.values, base1, base2, 1)
+>>>>>>> upstream/master
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq', None)
@@ -618,7 +666,7 @@ class PeriodIndex(Int64Index):
                                       'inferred from first element'))
 
                 if np.issubdtype(data.dtype, np.datetime64):
-                    data = dt64arr_to_periodarr(data, freq)
+                    data = dt64arr_to_periodarr(data, freq, tz)
                 elif data.dtype == np.int64:
                     pass
                 else:
@@ -733,7 +781,12 @@ class PeriodIndex(Int64Index):
         if mult2 != 1:
             raise ValueError('Only mult == 1 supported')
 
+<<<<<<< HEAD
         new_data = plib.period_asfreq_arr(self.values, base1, base2, how)
+=======
+        end = how == 'E'
+        new_data = lib.period_asfreq_arr(self.values, base1, base2, end)
+>>>>>>> upstream/master
 
         result = new_data.view(PeriodIndex)
         result.name = self.name
@@ -801,7 +854,7 @@ class PeriodIndex(Int64Index):
         base, _ = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
-        new_data = plib.periodarr_to_dt64arr(new_data.values, base)
+        new_data = lib.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def shift(self, n):
@@ -1150,17 +1203,27 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None, hour=None,
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
             y, m = _quarter_to_myear(y, q, freq)
+<<<<<<< HEAD
             val = plib.period_ordinal(y, m, 1, 1, 1, 1, 1, base)
+=======
+            val = lib.period_ordinal(y, m, 1, 1, 1, 1, base)
+>>>>>>> upstream/master
             ordinals.append(val)
     else:
         base, mult = _gfc(freq)
         if mult != 1:
             raise ValueError('Only mult == 1 supported')
 
+<<<<<<< HEAD
         arrays = _make_field_arrays(year, month, day, hour, minute, second,
                                     microsecond)
         for y, mth, d, h, mn, s, us in zip(*arrays):
             ordinals.append(plib.period_ordinal(y, mth, d, h, mn, s, us, base))
+=======
+        arrays = _make_field_arrays(year, month, day, hour, minute, second)
+        for y, mth, d, h, mn, s in zip(*arrays):
+            ordinals.append(lib.period_ordinal(y, mth, d, h, mn, s, base))
+>>>>>>> upstream/master
 
     return np.array(ordinals, dtype=np.int64), freq
 
@@ -1189,8 +1252,12 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
+<<<<<<< HEAD
     return plib.period_ordinal(year, month, day, hour, minute, second,
                                microsecond, base)
+=======
+    return lib.period_ordinal(year, month, day, hour, minute, second, base)
+>>>>>>> upstream/master
 
 
 def _quarter_to_myear(year, quarter, freq):

@@ -1072,6 +1072,38 @@ class TestTimeSeries(unittest.TestCase):
         pts = ts.to_period('M')
         self.assert_(pts.index.equals(exp.index.asfreq('M')))
 
+    def test_to_period_tz(self):
+        _skip_if_no_pytz()
+        from dateutil.tz import tzlocal
+        from pandas.tseries.period import period_range
+        from pytz import utc as UTC
+
+        xp = date_range('1/1/2000', '4/1/2000').to_period()
+
+        ts = date_range('1/1/2000', '4/1/2000', tz='US/Eastern')
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=UTC)
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
     def test_frame_to_period(self):
         K = 5
         from pandas.tseries.period import period_range
@@ -2210,7 +2242,8 @@ class TestDatetime64(unittest.TestCase):
     def test_slice_locs_indexerror(self):
         times = [datetime(2000, 1, 1) + timedelta(minutes=i) for i in range(1000000)]
         s = Series(range(1000000), times)
-        s.ix[datetime(1900,1,1):datetime(2100,1,1)]
+        s.ix[datetime(1900,1,1)
+:datetime(2100,1,1)]
 
 
 class TestSeriesDatetime64(unittest.TestCase):

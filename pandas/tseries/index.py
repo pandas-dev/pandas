@@ -703,7 +703,7 @@ class DatetimeIndex(Int64Index):
         if freq is None:
             freq = get_period_alias(self.freqstr)
 
-        return PeriodIndex(self.values, freq=freq)
+        return PeriodIndex(self.values, freq=freq, tz=self.tz)
 
     def order(self, return_indexer=False, ascending=True):
         """
