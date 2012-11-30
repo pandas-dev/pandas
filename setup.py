@@ -547,8 +547,7 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] =  build_ext
 
-lib_depends = ['reindex', 'groupby',
-               'reduce', 'inference', 'properties']
+lib_depends = ['reduce', 'inference', 'properties']
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
