@@ -15,7 +15,7 @@ import pandas.core.common as com
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
-import pandas._algos as _algos
+import pandas.algos as _algos
 
 
 #---------------

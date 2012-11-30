@@ -6,8 +6,8 @@ intended for public consumption
 import numpy as np
 
 import pandas.core.common as com
-import pandas.lib as lib
-import pandas._algos as _algos
+import pandas.algos as algos
+import pandas.hashtable as htable
 
 
 def match(to_match, values, na_sentinel=-1):
@@ -70,11 +70,11 @@ def _hashtable_algo(f, dtype):
     f(HashTable, type_caster) -> result
     """
     if com.is_float_dtype(dtype):
-        return f(lib.Float64HashTable, com._ensure_float64)
+        return f(htable.Float64HashTable, com._ensure_float64)
     elif com.is_integer_dtype(dtype):
-        return f(lib.Int64HashTable, com._ensure_int64)
+        return f(htable.Int64HashTable, com._ensure_int64)
     else:
-        return f(lib.PyObjectHashTable, com._ensure_object)
+        return f(htable.PyObjectHashTable, com._ensure_object)
 
 
 def _count_generic(values, table_type, type_caster):
@@ -167,7 +167,7 @@ def value_counts(values, sort=True, ascending=False):
 
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
-        keys, counts = lib.value_count_int64(values)
+        keys, counts = htable.value_count_int64(values)
         result = Series(counts, index=keys)
     else:
         counter = defaultdict(lambda: 0)
@@ -271,7 +271,7 @@ def quantile(x, q, interpolation_method='fraction'):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)
-        return _algos.arrmap_float64(q, _get_score)
+        return algos.arrmap_float64(q, _get_score)
 
 
 def _interpolate(a, b, fraction):
@@ -313,19 +313,19 @@ def group_position(*args):
 
 
 _rank1d_functions = {
-    'float64': lib.rank_1d_float64,
-    'int64': lib.rank_1d_int64,
-    'generic': lib.rank_1d_generic
+    'float64': algos.rank_1d_float64,
+    'int64': algos.rank_1d_int64,
+    'generic': algos.rank_1d_generic
 }
 
 _rank2d_functions = {
-    'float64': lib.rank_2d_float64,
-    'int64': lib.rank_2d_int64,
-    'generic': lib.rank_2d_generic
+    'float64': algos.rank_2d_float64,
+    'int64': algos.rank_2d_int64,
+    'generic': algos.rank_2d_generic
 }
 
 _hashtables = {
-    'float64': (lib.Float64HashTable, lib.Float64Vector),
-    'int64': (lib.Int64HashTable, lib.Int64Vector),
-    'generic': (lib.PyObjectHashTable, lib.ObjectVector)
+    'float64': (htable.Float64HashTable, htable.Float64Vector),
+    'int64': (htable.Int64HashTable, htable.Int64Vector),
+    'generic': (htable.PyObjectHashTable, htable.ObjectVector)
 }

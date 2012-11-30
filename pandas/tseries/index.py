@@ -18,8 +18,9 @@ import pandas.tseries.tools as tools
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
-import pandas._algos as _algos
-import pandas._hash as _hash
+import pandas.tslib as tslib
+import pandas.algos as _algos
+import pandas.index as _index
 
 
 def _utc():
@@ -36,7 +37,7 @@ def _field_accessor(name, field):
             utc = _utc()
             if self.tz is not utc:
                 values = self._local_timestamps()
-        return lib.get_date_field(values, field)
+        return tslib.get_date_field(values, field)
     f.__name__ = name
     return property(f)
 
@@ -135,7 +136,7 @@ class DatetimeIndex(Int64Index):
     # structured array cache for datetime fields
     _sarr_cache = None
 
-    _engine_type = _hash.DatetimeEngine
+    _engine_type = _index.DatetimeEngine
 
     offset = None
 
@@ -225,7 +226,7 @@ class DatetimeIndex(Int64Index):
                     verify_integrity = False
             else:
                 if data.dtype != _NS_DTYPE:
-                    subarr = lib.cast_to_nanoseconds(data)
+                    subarr = tslib.cast_to_nanoseconds(data)
                 else:
                     subarr = data
         elif data.dtype == _INT64_DTYPE:
@@ -257,7 +258,7 @@ class DatetimeIndex(Int64Index):
                     getattr(data, 'tz', None) is None):
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
-                    subarr = lib.tz_localize_to_utc(ints, tz)
+                    subarr = tslib.tz_localize_to_utc(ints, tz)
 
                 subarr = subarr.view(_NS_DTYPE)
 
@@ -367,7 +368,7 @@ class DatetimeIndex(Int64Index):
                 index = _generate_regular_range(start, end, periods, offset)
 
             if tz is not None and getattr(index, 'tz', None) is None:
-                index = lib.tz_localize_to_utc(com._ensure_int64(index), tz)
+                index = tslib.tz_localize_to_utc(com._ensure_int64(index), tz)
                 index = index.view(_NS_DTYPE)
 
         index = index.view(cls)
@@ -384,11 +385,11 @@ class DatetimeIndex(Int64Index):
         utc = _utc()
 
         if self.is_monotonic:
-            return lib.tz_convert(self.asi8, utc, self.tz)
+            return tslib.tz_convert(self.asi8, utc, self.tz)
         else:
             values = self.asi8
             indexer = values.argsort()
-            result = lib.tz_convert(values.take(indexer), utc, self.tz)
+            result = tslib.tz_convert(values.take(indexer), utc, self.tz)
 
             n = len(indexer)
             reverse = np.empty(n, dtype=np.int_)
@@ -471,7 +472,7 @@ class DatetimeIndex(Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return lib.ints_to_pydatetime(self.asi8, self.tz)
+        return tslib.ints_to_pydatetime(self.asi8, self.tz)
 
     def __repr__(self):
         from pandas.core.format import _format_datetime64
@@ -658,7 +659,7 @@ class DatetimeIndex(Int64Index):
         values = self.asi8
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
-        return lib.get_time_micros(values)
+        return tslib.get_time_micros(values)
 
     @property
     def asobject(self):
@@ -689,7 +690,7 @@ class DatetimeIndex(Int64Index):
         -------
         datetimes : ndarray
         """
-        return lib.ints_to_pydatetime(self.asi8, tz=self.tz)
+        return tslib.ints_to_pydatetime(self.asi8, tz=self.tz)
 
     def to_period(self, freq=None):
         """
@@ -1031,12 +1032,12 @@ class DatetimeIndex(Int64Index):
             t1 = Timestamp(datetime(parsed.year, 1, 1))
             t2 = Timestamp(datetime(parsed.year, 12, 31))
         elif reso == 'month':
-            d = lib.monthrange(parsed.year, parsed.month)[1]
+            d = tslib.monthrange(parsed.year, parsed.month)[1]
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
             t2 = Timestamp(datetime(parsed.year, parsed.month, d))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
-            d = lib.monthrange(parsed.year, qe)[1]   # at end of month
+            d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
             t2 = Timestamp(datetime(parsed.year, qe, d))
         else:
@@ -1208,7 +1209,7 @@ class DatetimeIndex(Int64Index):
         -------
         normalized : DatetimeIndex
         """
-        new_values = lib.date_normalize(self.asi8, self.tz)
+        new_values = tslib.date_normalize(self.asi8, self.tz)
         return DatetimeIndex(new_values, freq='infer', name=self.name,
                              tz=self.tz)
 
@@ -1252,7 +1253,7 @@ class DatetimeIndex(Int64Index):
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return lib.dates_normalized(self.asi8, self.tz)
+        return tslib.dates_normalized(self.asi8, self.tz)
 
     def equals(self, other):
         """
@@ -1273,7 +1274,7 @@ class DatetimeIndex(Int64Index):
         if self.tz is not None:
             if other.tz is None:
                 return False
-            same_zone = lib.get_timezone(self.tz) == lib.get_timezone(other.tz)
+            same_zone = tslib.get_timezone(self.tz) == tslib.get_timezone(other.tz)
         else:
             if other.tz is not None:
                 return False
@@ -1340,7 +1341,7 @@ class DatetimeIndex(Int64Index):
         tz = tools._maybe_get_tz(tz)
 
         # Convert to UTC
-        new_dates = lib.tz_localize_to_utc(self.asi8, tz)
+        new_dates = tslib.tz_localize_to_utc(self.asi8, tz)
         new_dates = new_dates.view(_NS_DTYPE)
 
         return self._simple_new(new_dates, self.name, self.offset, tz)
@@ -1566,7 +1567,7 @@ def _to_m8(key):
         # this also converts strings
         key = Timestamp(key)
 
-    return np.int64(lib.pydt_to_i8(key)).view(_NS_DTYPE)
+    return np.int64(tslib.pydt_to_i8(key)).view(_NS_DTYPE)
 
 
 def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):

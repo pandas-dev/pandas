@@ -31,8 +31,6 @@ from pandas.tools.merge import concat
 import pandas.lib as lib
 from contextlib import contextmanager
 
-import pandas._pytables as pylib
-
 # reading and writing the full object in one go
 _TYPE_MAP = {
     Series: 'series',
@@ -1444,7 +1442,7 @@ class LegacyTable(Table):
 
         # get our function
         try:
-            func = getattr(pylib,"create_hdf_rows_%sd" % self.ndim)
+            func = getattr(lib,"create_hdf_rows_%sd" % self.ndim)
             args.append(mask)
             args.append(values)
             rows = func(*args)

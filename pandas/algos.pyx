@@ -1,5 +1,6 @@
 from numpy cimport *
 cimport numpy as np
+import numpy as np
 
 cimport cython
 
@@ -1707,6 +1708,83 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
 #----------------------------------------------------------------------
 # group operations
 
+@cython.boundscheck(False)
+def groupby_indices(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] labels, counts, arr, seen
+        int64_t loc
+        dict ids = {}
+        object val
+        int64_t k
+
+    ids, labels, counts = group_labels(values)
+    seen = np.zeros_like(counts)
+
+    # try not to get in trouble here...
+    cdef int64_t **vecs = <int64_t **> malloc(len(ids) * sizeof(int64_t*))
+    result = {}
+    for i from 0 <= i < len(counts):
+        arr = np.empty(counts[i], dtype=np.int64)
+        result[ids[i]] = arr
+        vecs[i] = <int64_t *> arr.data
+
+    for i from 0 <= i < n:
+        k = labels[i]
+
+        # was NaN
+        if k == -1:
+            continue
+
+        loc = seen[k]
+        vecs[k][loc] = i
+        seen[k] = loc + 1
+
+    free(vecs)
+
+    return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def group_labels(ndarray[object] values):
+    '''
+    Compute label vector from input values and associated useful data
+
+    Returns
+    -------
+    '''
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] counts = np.empty(n, dtype=np.int64)
+        dict ids = {}, reverse = {}
+        int64_t idx
+        object val
+        int64_t count = 0
+
+    for i from 0 <= i < n:
+        val = values[i]
+
+        # is NaN
+        if val != val:
+            labels[i] = -1
+            continue
+
+        # for large number of groups, not doing try: except: makes a big
+        # difference
+        if val in ids:
+            idx = ids[val]
+            labels[i] = idx
+            counts[idx] = counts[idx] + 1
+        else:
+            ids[val] = count
+            reverse[count] = val
+            labels[i] = count
+            counts[count] = 1
+            count += 1
+
+    return reverse, labels, counts[:count].copy()
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -2943,3 +3021,4 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
                              (ct * ct - ct))
 
 include "join.pyx"
+include "generated.pyx"

@@ -29,8 +29,10 @@ import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
-import pandas.lib as lib
 from pandas.util.decorators import Appender, Substitution, cache_readonly
+
+import pandas.lib as lib
+import pandas.index as _index
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.core.config import get_option
@@ -140,7 +142,7 @@ def _comp_method(op, name):
                           index=self.index, name=self.name)
         else:
             values = self.values
-            other = lib.convert_scalar(values, other)
+            other = _index.convert_scalar(values, other)
 
             if issubclass(values.dtype.type, np.datetime64):
                 values = values.view('i8')
@@ -697,7 +699,7 @@ copy : boolean, default False
 
     def _set_values(self, key, value):
         values = self.values
-        values[key] = lib.convert_scalar(values, value)
+        values[key] = _index.convert_scalar(values, value)
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__

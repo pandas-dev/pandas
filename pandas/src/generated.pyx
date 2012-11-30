@@ -14,8 +14,6 @@ cimport cpython
 
 import numpy as np
 isnan = np.isnan
-cdef double NaN = <double> np.NaN
-cdef double nan = NaN
 
 from datetime import datetime as pydatetime
 
@@ -23,9 +21,6 @@ from datetime import datetime as pydatetime
 from datetime cimport *
 
 from khash cimport *
-
-cdef inline int int_max(int a, int b): return a if a >= b else b
-cdef inline int int_min(int a, int b): return a if a <= b else b
 
 ctypedef unsigned char UChar
 

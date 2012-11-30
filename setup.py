@@ -562,13 +562,8 @@ else:
 
 common_include = [np.get_include(), 'pandas/src/klib', 'pandas/src']
 
-algos_ext = Extension('pandas._algos',
-                      sources=[srcpath('generated', suffix=suffix)],
-                      include_dirs=common_include,
-                      )
-
 def pxd(name):
-    return os.path.abspath(pjoin('pandas/src', name+'.pxd'))
+    return os.path.abspath(pjoin('pandas', name+'.pxd'))
 
 
 lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
@@ -589,16 +584,27 @@ ext_data = dict(
          'depends': lib_depends},
     hashtable={'pyxfile': 'hashtable',
                'pxdfiles': ['hashtable']},
-    _stats={'pyxfile': 'stats'}
+    tslib={'pyxfile': 'tslib',
+           'depends': tseries_depends,
+           'sources': ['pandas/src/datetime/np_datetime.c',
+                       'pandas/src/datetime/np_datetime_strings.c',
+                       'pandas/src/period.c']},
+    index={'pyxfile': 'index',
+           'sources': ['pandas/src/datetime/np_datetime.c',
+                       'pandas/src/datetime/np_datetime_strings.c']},
+    algos={'pyxfile': 'algos',
+           'depends': [srcpath('generated', suffix='.pyx')]},
 )
 
 extensions = []
 
 for name, data in ext_data.iteritems():
-    sources = [srcpath(data['pyxfile'], suffix=suffix)]
+    sources = [srcpath(data['pyxfile'], suffix=suffix, subdir='')]
     pxds = [pxd(x) for x in data.get('pxdfiles', [])]
     if suffix == '.pyx' and pxds:
         sources.extend(pxds)
+
+    sources.extend(data.get('sources', []))
 
     include = data.get('include', common_include)
 
@@ -609,21 +615,6 @@ for name, data in ext_data.iteritems():
 
     extensions.append(obj)
 
-
-index_ext = Extension('pandas._index',
-                     sources=[srcpath('engines', suffix=suffix),
-                              'pandas/src/datetime/np_datetime.c',
-                              'pandas/src/datetime/np_datetime_strings.c'],
-                     include_dirs=common_include)
-
-
-tseries_ext = Extension('pandas._tseries',
-                        depends=tseries_depends,
-                        sources=[srcpath('tseries', suffix=suffix),
-                                 'pandas/src/datetime/np_datetime.c',
-                                 'pandas/src/datetime/np_datetime_strings.c',
-                                 'pandas/src/period.c'],
-                        include_dirs=common_include)
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
@@ -646,23 +637,12 @@ sandbox_ext = Extension('pandas._sandbox',
                         include_dirs=common_include)
 
 
-pytables_ext = Extension('pandas._pytables',
-                         sources=[srcpath('pytables', suffix=suffix)],
-                         include_dirs=[np.get_include()],
-                         libraries=libraries)
-
-
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions.extend([algos_ext,
-                   tseries_ext,
-                   index_ext,
-                   sparse_ext,
-                   pytables_ext,
-                   parser_ext])
+extensions.extend([sparse_ext, parser_ext])
 
 # if not ISRELEASED:
 #     extensions.extend([sandbox_ext])

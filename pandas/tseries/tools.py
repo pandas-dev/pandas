@@ -5,6 +5,7 @@ import sys
 import numpy as np
 
 import pandas.lib as lib
+import pandas.tslib as tslib
 import pandas.core.common as com
 
 try:
@@ -26,7 +27,7 @@ def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            assert(lib.get_timezone(tz) == lib.get_timezone(b.tzinfo))
+            assert(tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo))
         return tz
     tz = None
     if start is not None:
@@ -70,14 +71,14 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
         arg = com._ensure_object(arg)
 
         try:
-            result = lib.array_to_datetime(arg, raise_=errors == 'raise',
-                                           utc=utc, dayfirst=dayfirst)
+            result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
+                                             utc=utc, dayfirst=dayfirst)
             if com.is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz='utc' if utc else None)
             return result
         except ValueError, e:
             try:
-                values, tz = lib.datetime_to_datetime64(arg)
+                values, tz = tslib.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, None, tz=tz)
             except (ValueError, TypeError):
                 raise e
@@ -99,7 +100,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
                     return DatetimeIndex(arg, tz='utc' if utc else None)
                 except ValueError, e:
                     try:
-                        values, tz = lib.datetime_to_datetime64(arg)
+                        values, tz = tslib.datetime_to_datetime64(arg)
                         return DatetimeIndex._simple_new(values, None, tz=tz)
                     except (ValueError, TypeError):
                         raise e
@@ -275,7 +276,7 @@ def _try_parse_monthly(arg):
     return ret
 
 
-normalize_date = lib.normalize_date
+normalize_date = tslib.normalize_date
 
 
 def format(dt):

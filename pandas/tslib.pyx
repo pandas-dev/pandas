@@ -14,8 +14,6 @@ from datetime cimport *
 from khash cimport *
 cimport cython
 
-import _algos
-
 import numpy as np
 from datetime import timedelta, datetime
 from dateutil.parser import parse as parse_date

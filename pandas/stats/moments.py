@@ -10,7 +10,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.api import DataFrame, Series, notnull
-import pandas.lib as lib
+import pandas.algos as algos
 
 from pandas.util.decorators import Substitution, Appender
 
@@ -310,7 +310,7 @@ def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None,
     arg = _conv_timerule(arg, freq, time_rule)
 
     def _ewma(v):
-        result = lib.ewma(v, com, int(adjust))
+        result = algos.ewma(v, com, int(adjust))
         first_index = _first_valid_index(v)
         result[first_index : first_index + min_periods] = NaN
         return result
@@ -459,20 +459,20 @@ def _rolling_func(func, desc, check_minp=_use_window):
 
     return f
 
-rolling_max = _rolling_func(lib.roll_max2, 'Moving maximum')
-rolling_min = _rolling_func(lib.roll_min2, 'Moving minimum')
-rolling_sum = _rolling_func(lib.roll_sum, 'Moving sum')
-rolling_mean = _rolling_func(lib.roll_mean, 'Moving mean')
-rolling_median = _rolling_func(lib.roll_median_cython, 'Moving median')
+rolling_max = _rolling_func(algos.roll_max2, 'Moving maximum')
+rolling_min = _rolling_func(algos.roll_min2, 'Moving minimum')
+rolling_sum = _rolling_func(algos.roll_sum, 'Moving sum')
+rolling_mean = _rolling_func(algos.roll_mean, 'Moving mean')
+rolling_median = _rolling_func(algos.roll_median_cython, 'Moving median')
 
-_ts_std = lambda *a, **kw: _zsqrt(lib.roll_var(*a, **kw))
+_ts_std = lambda *a, **kw: _zsqrt(algos.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
                             check_minp=_require_min_periods(1))
-rolling_var = _rolling_func(lib.roll_var, 'Unbiased moving variance',
+rolling_var = _rolling_func(algos.roll_var, 'Unbiased moving variance',
                             check_minp=_require_min_periods(1))
-rolling_skew = _rolling_func(lib.roll_skew, 'Unbiased moving skewness',
+rolling_skew = _rolling_func(algos.roll_skew, 'Unbiased moving skewness',
                              check_minp=_require_min_periods(3))
-rolling_kurt = _rolling_func(lib.roll_kurt, 'Unbiased moving kurtosis',
+rolling_kurt = _rolling_func(algos.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_require_min_periods(4))
 
 
@@ -497,7 +497,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
 
     def call_cython(arg, window, minp):
         minp = _use_window(minp, window)
-        return lib.roll_quantile(arg, window, minp, quantile)
+        return algos.roll_quantile(arg, window, minp, quantile)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, time_rule=time_rule)
 
@@ -523,7 +523,7 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     """
     def call_cython(arg, window, minp):
         minp = _use_window(minp, window)
-        return lib.roll_generic(arg, window, minp, func)
+        return algos.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, time_rule=time_rule)
 
@@ -543,20 +543,20 @@ def _expanding_func(func, desc, check_minp=_use_window):
 
     return f
 
-expanding_max = _expanding_func(lib.roll_max2, 'Expanding maximum')
-expanding_min = _expanding_func(lib.roll_min2, 'Expanding minimum')
-expanding_sum = _expanding_func(lib.roll_sum, 'Expanding sum')
-expanding_mean = _expanding_func(lib.roll_mean, 'Expanding mean')
-expanding_median = _expanding_func(lib.roll_median_cython, 'Expanding median')
+expanding_max = _expanding_func(algos.roll_max2, 'Expanding maximum')
+expanding_min = _expanding_func(algos.roll_min2, 'Expanding minimum')
+expanding_sum = _expanding_func(algos.roll_sum, 'Expanding sum')
+expanding_mean = _expanding_func(algos.roll_mean, 'Expanding mean')
+expanding_median = _expanding_func(algos.roll_median_cython, 'Expanding median')
 
 expanding_std = _expanding_func(_ts_std,
                                 'Unbiased expanding standard deviation',
                                 check_minp=_require_min_periods(2))
-expanding_var = _expanding_func(lib.roll_var, 'Unbiased expanding variance',
+expanding_var = _expanding_func(algos.roll_var, 'Unbiased expanding variance',
                             check_minp=_require_min_periods(2))
-expanding_skew = _expanding_func(lib.roll_skew, 'Unbiased expanding skewness',
+expanding_skew = _expanding_func(algos.roll_skew, 'Unbiased expanding skewness',
                              check_minp=_require_min_periods(3))
-expanding_kurt = _expanding_func(lib.roll_kurt, 'Unbiased expanding kurtosis',
+expanding_kurt = _expanding_func(algos.roll_kurt, 'Unbiased expanding kurtosis',
                              check_minp=_require_min_periods(4))
 
 

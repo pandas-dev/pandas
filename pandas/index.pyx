@@ -13,11 +13,11 @@ cimport util
 
 import numpy as np
 
-import _algos
+import algos
 
-cimport _tseries
-from _tseries import Timestamp
-import _tseries
+cimport tslib
+from tslib import Timestamp
+import tslib
 
 from hashtable cimport *
 import hashtable as _hash
@@ -273,15 +273,15 @@ cdef class Int64Engine(IndexEngine):
         return _hash.Int64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _algos.pad_int64(self._get_index_values(), other,
-                                  limit=limit)
+        return algos.pad_int64(self._get_index_values(), other,
+                               limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _algos.backfill_int64(self._get_index_values(), other,
-                                       limit=limit)
+        return algos.backfill_int64(self._get_index_values(), other,
+                                    limit=limit)
 
     cdef _check_type(self, object val):
         hash(val)
@@ -329,14 +329,14 @@ cdef class Float64Engine(IndexEngine):
         return _hash.Float64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_float64(values)
+        return algos.is_monotonic_float64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _algos.pad_float64(self._get_index_values(), other,
+        return algos.pad_float64(self._get_index_values(), other,
                                     limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _algos.backfill_float64(self._get_index_values(), other,
+        return algos.backfill_float64(self._get_index_values(), other,
                                          limit=limit)
 
 
@@ -366,15 +366,15 @@ cdef Py_ssize_t _bin_search(ndarray values, object val):
         return mid + 1
 
 _pad_functions = {
-    'object' : _algos.pad_object,
-    'int64' : _algos.pad_int64,
-    'float64' : _algos.pad_float64
+    'object' : algos.pad_object,
+    'int64' : algos.pad_int64,
+    'float64' : algos.pad_float64
 }
 
 _backfill_functions = {
-    'object': _algos.backfill_object,
-    'int64': _algos.backfill_int64,
-    'float64': _algos.backfill_float64
+    'object': algos.backfill_object,
+    'int64': algos.backfill_int64,
+    'float64': algos.backfill_float64
 }
 
 cdef class ObjectEngine(IndexEngine):
@@ -383,14 +383,14 @@ cdef class ObjectEngine(IndexEngine):
         return _hash.PyObjectHashTable(n)
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_object(values)
+        return algos.is_monotonic_object(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _algos.pad_object(self._get_index_values(), other,
+        return algos.pad_object(self._get_index_values(), other,
                                    limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _algos.backfill_object(self._get_index_values(), other,
+        return algos.backfill_object(self._get_index_values(), other,
                                         limit=limit)
 
 
@@ -412,7 +412,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -466,18 +466,18 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _algos.pad_int64(self._get_index_values(), other,
+        return algos.pad_int64(self._get_index_values(), other,
                                 limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _algos.backfill_int64(self._get_index_values(), other,
+        return algos.backfill_int64(self._get_index_values(), other,
                                      limit=limit)
 
 
-cdef convert_scalar(ndarray arr, object value):
+cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
         if isinstance(value, Timestamp):
             return value.value

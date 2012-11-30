@@ -6,7 +6,7 @@ from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas.lib as lib
-import pandas._algos as algos
+import pandas.algos as algos
 from datetime import datetime
 
 class TestTseriesUtil(unittest.TestCase):
@@ -78,7 +78,7 @@ def test_left_outer_join_bug():
     right = np.array([3, 1], dtype=np.int64)
     max_groups = 4
 
-    lidx, ridx = lib.left_outer_join(left, right, max_groups, sort=False)
+    lidx, ridx = algos.left_outer_join(left, right, max_groups, sort=False)
 
     exp_lidx = np.arange(len(left))
     exp_ridx = -np.ones(len(left))
@@ -219,7 +219,7 @@ def test_is_lexsorted():
        21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,
         4,  3,  2,  1,  0])]
 
-    assert(not lib.is_lexsorted(failure))
+    assert(not algos.is_lexsorted(failure))
 
 # def test_get_group_index():
 #     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype=np.int64)
@@ -234,7 +234,7 @@ def test_groupsort_indexer():
     a = np.random.randint(0, 1000, 100).astype(np.int64)
     b = np.random.randint(0, 1000, 100).astype(np.int64)
 
-    result = lib.groupsort_indexer(a, 1000)[0]
+    result = algos.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
     expected = np.argsort(a, kind='mergesort')
@@ -242,7 +242,7 @@ def test_groupsort_indexer():
 
     # compare with lexsort
     key = a * 1000 + b
-    result = lib.groupsort_indexer(key, 1000000)[0]
+    result = algos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
     assert(np.array_equal(result, expected))
 
@@ -313,7 +313,7 @@ def test_rank():
     def _check(arr):
         mask = -np.isfinite(arr)
         arr = arr.copy()
-        result = lib.rank_1d_float64(arr)
+        result = algos.rank_1d_float64(arr)
         arr[mask] = np.inf
         exp = rankdata(arr)
         exp[mask] = nan
@@ -482,7 +482,7 @@ def test_group_ohlc():
     out  = np.zeros((3, 4), np.float64)
     counts = np.zeros(len(out), dtype=np.int64)
 
-    lib.group_ohlc(out, counts, obj[:, None], bins)
+    algos.group_ohlc(out, counts, obj[:, None], bins)
 
     def _ohlc(group):
         if isnull(group).all():
@@ -496,7 +496,7 @@ def test_group_ohlc():
     assert_almost_equal(counts, [6, 6, 8])
 
     obj[:6] = nan
-    lib.group_ohlc(out, counts, obj[:, None], bins)
+    algos.group_ohlc(out, counts, obj[:, None], bins)
     expected[0] = nan
     assert_almost_equal(out, expected)
 

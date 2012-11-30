@@ -14,7 +14,9 @@ from pandas.util.compat import OrderedDict
 from pandas.util.decorators import Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
+
 import pandas.lib as lib
+import pandas.algos as _algos
 
 _agg_doc = """Aggregate using input function or dict of {column -> function}
 
@@ -706,21 +708,21 @@ class Grouper(object):
     # Aggregation functions
 
     _cython_functions = {
-        'add': lib.group_add,
-        'prod': lib.group_prod,
-        'min': lib.group_min,
-        'max': lib.group_max,
-        'mean': lib.group_mean,
-        'median': lib.group_median,
-        'var': lib.group_var,
-        'std': lib.group_var,
-        'first': lambda a, b, c, d: lib.group_nth(a, b, c, d, 1),
-        'last': lib.group_last
+        'add': _algos.group_add,
+        'prod': _algos.group_prod,
+        'min': _algos.group_min,
+        'max': _algos.group_max,
+        'mean': _algos.group_mean,
+        'median': _algos.group_median,
+        'var': _algos.group_var,
+        'std': _algos.group_var,
+        'first': lambda a, b, c, d: _algos.group_nth(a, b, c, d, 1),
+        'last': _algos.group_last
     }
 
     _cython_object_functions = {
-        'first': lambda a, b, c, d: lib.group_nth_object(a, b, c, d, 1),
-        'last': lib.group_last_object
+        'first': lambda a, b, c, d: _algos.group_nth_object(a, b, c, d, 1),
+        'last': _algos.group_last_object
     }
 
     _cython_transforms = {
@@ -830,7 +832,7 @@ class Grouper(object):
 
         # avoids object / Series creation overhead
         dummy = obj[:0].copy()
-        indexer = lib.groupsort_indexer(group_index, ngroups)[0]
+        indexer = _algos.groupsort_indexer(group_index, ngroups)[0]
         obj = obj.take(indexer)
         group_index = com.ndtake(group_index, indexer)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
@@ -970,21 +972,21 @@ class BinGrouper(Grouper):
     # cython aggregation
 
     _cython_functions = {
-        'add': lib.group_add_bin,
-        'prod': lib.group_prod_bin,
-        'mean': lib.group_mean_bin,
-        'min': lib.group_min_bin,
-        'max': lib.group_max_bin,
-        'var': lib.group_var_bin,
-        'std': lib.group_var_bin,
-        'ohlc': lib.group_ohlc,
-        'first': lambda a, b, c, d: lib.group_nth_bin(a, b, c, d, 1),
-        'last': lib.group_last_bin
+        'add': _algos.group_add_bin,
+        'prod': _algos.group_prod_bin,
+        'mean': _algos.group_mean_bin,
+        'min': _algos.group_min_bin,
+        'max': _algos.group_max_bin,
+        'var': _algos.group_var_bin,
+        'std': _algos.group_var_bin,
+        'ohlc': _algos.group_ohlc,
+        'first': lambda a, b, c, d: _algos.group_nth_bin(a, b, c, d, 1),
+        'last': _algos.group_last_bin
     }
 
     _cython_object_functions = {
-        'first': lambda a, b, c, d: lib.group_nth_bin_object(a, b, c, d, 1),
-        'last': lib.group_last_bin_object
+        'first': lambda a, b, c, d: _algos.group_nth_bin_object(a, b, c, d, 1),
+        'last': _algos.group_last_bin_object
     }
 
     _name_functions = {
@@ -2020,7 +2022,7 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
     """
     group_index = com._ensure_int64(group_index)
 
-    indexer = lib.groupsort_indexer(group_index, ngroups)[0]
+    indexer = _algos.groupsort_indexer(group_index, ngroups)[0]
     group_index = com.ndtake(group_index, indexer)
 
     if isinstance(data, BlockManager):
@@ -2119,7 +2121,7 @@ def _indexer_from_factorized(labels, shape, compress=True):
         comp_ids = group_index
         max_group = np.prod(shape)
 
-    indexer, _ = lib.groupsort_indexer(comp_ids.astype(np.int64), max_group)
+    indexer, _ = _algos.groupsort_indexer(comp_ids.astype(np.int64), max_group)
 
     return indexer
 
@@ -2134,7 +2136,7 @@ def _lexsort_indexer(keys, orders=None):
         orders = [True] * len(keys)
 
     for key, order in zip(keys, orders):
-        rizer = lib.Factorizer(len(key))
+        rizer = _hash.Factorizer(len(key))
 
         if not key.dtype == np.object_:
             key = key.astype('O')
@@ -2162,7 +2164,7 @@ class _KeyMapper(object):
         self.comp_ids = comp_ids.astype(np.int64)
 
         self.k = len(labels)
-        self.tables = [lib.Int64HashTable(ngroups) for _ in range(self.k)]
+        self.tables = [_hash.Int64HashTable(ngroups) for _ in range(self.k)]
 
         self._populate_tables()
 
@@ -2179,8 +2181,8 @@ def _get_indices_dict(label_list, keys):
     shape = [len(x) for x in keys]
     group_index = get_group_index(label_list, shape)
 
-    sorter, _ = lib.groupsort_indexer(com._ensure_int64(group_index),
-                                      np.prod(shape))
+    sorter, _ = _algos.groupsort_indexer(com._ensure_int64(group_index),
+                                         np.prod(shape))
 
     sorter_int = com._ensure_platform_int(sorter)
 
@@ -2200,7 +2202,7 @@ def _compress_group_index(group_index, sort=True):
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
 
-    table = lib.Int64HashTable(min(1000000, len(group_index)))
+    table = _hash.Int64HashTable(min(1000000, len(group_index)))
 
     group_index = com._ensure_int64(group_index)
 
@@ -2263,7 +2265,7 @@ def _intercept_cython(func):
 
 
 def _groupby_indices(values):
-    return lib.groupby_indices(com._ensure_object(values))
+    return _algos.groupby_indices(com._ensure_object(values))
 
 
 def numpy_groupby(data, labels, axis=0):
