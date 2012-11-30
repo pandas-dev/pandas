@@ -1850,6 +1850,24 @@ a,b,c
         expected.columns = ['foo', 'bar']
         tm.assert_frame_equal(result, expected)
 
+        data = """\
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
+        result = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                               header=None, usecols=[1, 2])
+
+        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                 header=None)
+        expected = expected[['b', 'c']]
+        tm.assert_frame_equal(result, expected)
+
+        # length conflict, passed names and usecols disagree
+        self.assertRaises(ValueError, self.read_csv, StringIO(data),
+                          names=['a', 'b'], usecols=[1], header=None)
+
+
     def test_pure_python_failover(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
 

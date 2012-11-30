@@ -923,12 +923,12 @@ class CParserWrapper(ParserBase):
 
             index = MultiIndex.from_arrays(arrays)
 
+            if self.usecols is not None:
+                names = self._filter_usecols(names)
+
             # rename dict keys
             data = sorted(data.items())
             data = dict((k, v) for k, (i, v) in zip(names, data))
-
-            if self._reader.names is None:
-                names = self._filter_usecols(names)
 
             names, data = self._do_date_conversions(names, data)
 
@@ -939,7 +939,7 @@ class CParserWrapper(ParserBase):
             # ugh, mutation
             names = list(self.orig_names)
 
-            if self._reader.names is None:
+            if self.usecols is not None:
                 names = self._filter_usecols(names)
 
             # columns as list
@@ -953,7 +953,8 @@ class CParserWrapper(ParserBase):
         return index, names, data
 
     def _filter_usecols(self, names):
-        if self.usecols is not None:
+        # hackish
+        if self.usecols is not None and len(names) != len(self.usecols):
             names = [name for i, name in enumerate(names)
                      if i in self.usecols or name in self.usecols]
         return names
