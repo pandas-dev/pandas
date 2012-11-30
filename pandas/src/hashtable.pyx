@@ -1,4 +1,4 @@
-from cpython cimport PyObject, Py_INCREF
+from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
 from khash cimport *
 from numpy cimport *
@@ -9,6 +9,25 @@ cimport util
 import numpy as np
 
 ONAN = np.nan
+
+cimport cython
+cimport numpy as cnp
+
+cnp.import_array()
+cnp.import_ufunc()
+
+cdef int64_t iNaT = util.get_nat()
+
+import _algos
+
+cdef extern from "datetime.h":
+    bint PyDateTime_Check(object o)
+    void PyDateTime_IMPORT()
+
+PyDateTime_IMPORT
+
+cdef extern from "Python.h":
+    int PySlice_Check(object)
 
 
 def list_to_object_array(list obj):
@@ -349,15 +368,13 @@ cdef class Int32HashTable(HashTable):
         # return None
         return reverse, labels
 
-cdef class Int64HashTable(HashTable):
-    cdef kh_int64_t *table
+cdef class Int64HashTable: #(HashTable):
+    # cdef kh_int64_t *table
 
-    def __init__(self, size_hint=1):
+    def __cinit__(self, size_hint=1):
+        self.table = kh_init_int64()
         if size_hint is not None:
             kh_resize_int64(self.table, size_hint)
-
-    def __cinit__(self):
-        self.table = kh_init_int64()
 
     def __dealloc__(self):
         kh_destroy_int64(self.table)
@@ -369,11 +386,6 @@ cdef class Int64HashTable(HashTable):
 
     def __len__(self):
         return self.table.size
-
-    cdef inline bint has_key(self, int64_t val):
-        cdef khiter_t k
-        k = kh_get_int64(self.table, val)
-        return k != self.table.n_buckets
 
     cpdef get_item(self, int64_t val):
         cdef khiter_t k
@@ -535,14 +547,12 @@ cdef class Int64HashTable(HashTable):
 
 
 cdef class Float64HashTable(HashTable):
-    cdef kh_float64_t *table
+    # cdef kh_float64_t *table
 
-    def __init__(self, size_hint=1):
+    def __cinit__(self, size_hint=1):
+        self.table = kh_init_float64()
         if size_hint is not None:
             kh_resize_float64(self.table, size_hint)
-
-    def __cinit__(self):
-        self.table = kh_init_float64()
 
     def __len__(self):
         return self.table.size
@@ -555,7 +565,7 @@ cdef class Float64HashTable(HashTable):
         labels = self.get_labels(values, uniques, 0, -1)
         return uniques.to_array(), labels
 
-    cpdef get_labels(self, ndarray[float64_t] values,
+    def get_lables(self, ndarray[float64_t] values,
                      Float64Vector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
@@ -642,7 +652,7 @@ cdef class Float64HashTable(HashTable):
         return uniques.to_array()
 
 cdef class PyObjectHashTable(HashTable):
-    cdef kh_pymap_t *table
+    # cdef kh_pymap_t *table
 
     def __init__(self, size_hint=1):
         self.table = kh_init_pymap()
@@ -661,7 +671,7 @@ cdef class PyObjectHashTable(HashTable):
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
 
-    cpdef destroy(self):
+    def destroy(self):
         kh_destroy_pymap(self.table)
         self.table = NULL
 
@@ -769,7 +779,7 @@ cdef class PyObjectHashTable(HashTable):
 
         return result
 
-    cpdef get_labels(self, ndarray[object] values, ObjectVector uniques,
+    def get_lables(self, ndarray[object] values, ObjectVector uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -872,3 +882,36 @@ cdef class Int64Factorizer:
         return labels
 
 
+
+def value_count_int64(ndarray[int64_t] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        kh_int64_t *table
+        int ret = 0
+        list uniques = []
+
+    table = kh_init_int64()
+    kh_resize_int64(table, n)
+
+    for i in range(n):
+        val = values[i]
+        k = kh_get_int64(table, val)
+        if k != table.n_buckets:
+            table.vals[k] += 1
+        else:
+            k = kh_put_int64(table, val, &ret)
+            table.vals[k] = 1
+
+    # for (k = kh_begin(h); k != kh_end(h); ++k)
+    # 	if (kh_exist(h, k)) kh_value(h, k) = 1;
+    i = 0
+    result_keys = np.empty(table.n_occupied, dtype=np.int64)
+    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
+    for k in range(table.n_buckets):
+        if kh_exist_int64(table, k):
+            result_keys[i] = table.keys[k]
+            result_counts[i] = table.vals[k]
+            i += 1
+    kh_destroy_int64(table)
+
+    return result_keys, result_counts

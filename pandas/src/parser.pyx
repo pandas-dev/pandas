@@ -42,7 +42,7 @@ cdef bint PY3 = (sys.version_info[0] >= 3)
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef extern from "stdint.h":
+cdef extern from "headers/stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX
     enum: UINT32_MAX

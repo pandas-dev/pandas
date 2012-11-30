@@ -4,7 +4,7 @@ from cpython cimport PyObject
 from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
 
 
-cdef extern from "stdint.h":
+cdef extern from "headers/stdint.h":
     enum: INT64_MIN
     enum: INT32_MIN
 
@@ -116,6 +116,9 @@ cdef extern from "datetime/np_datetime_strings.h":
 
     # int parse_python_string(object obj, pandas_datetimestruct *out) except -1
 
+
+
+
 cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
     cdef int result
     cdef char *tmp
@@ -140,3 +143,47 @@ cdef inline int _cstring_to_dts(char *val, int length,
                                      NPY_UNSAFE_CASTING,
                                      dts, &islocal, &out_bestunit, &special)
     return result
+
+
+cdef inline object _datetime64_to_datetime(int64_t val):
+    cdef pandas_datetimestruct dts
+    pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
+    return _dts_to_pydatetime(&dts)
+
+cdef inline object _dts_to_pydatetime(pandas_datetimestruct *dts):
+    return <object> PyDateTime_FromDateAndTime(dts.year, dts.month,
+                                               dts.day, dts.hour,
+                                               dts.min, dts.sec, dts.us)
+
+cdef inline int64_t _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = PyDateTime_DATE_GET_HOUR(val)
+    dts.min = PyDateTime_DATE_GET_MINUTE(val)
+    dts.sec = PyDateTime_DATE_GET_SECOND(val)
+    dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
+    dts.ps = dts.as = 0
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+
+cdef inline int64_t _dtlike_to_datetime64(object val,
+                                          pandas_datetimestruct *dts):
+    dts.year = val.year
+    dts.month = val.month
+    dts.day = val.day
+    dts.hour = val.hour
+    dts.min = val.minute
+    dts.sec = val.second
+    dts.us = val.microsecond
+    dts.ps = dts.as = 0
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+
+cdef inline int64_t _date_to_datetime64(object val,
+                                        pandas_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = dts.min = dts.sec = dts.us = 0
+    dts.ps = dts.as = 0
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+

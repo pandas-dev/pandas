@@ -1,6 +1,52 @@
+from numpy cimport *
+cimport numpy as np
+
+cimport cython
+
+import_array()
+
 cdef float64_t FP_ERR = 1e-13
 
 cimport util
+
+from libc.stdlib cimport malloc, free
+
+from numpy cimport NPY_INT32 as NPY_int32
+from numpy cimport NPY_INT64 as NPY_int64
+from numpy cimport NPY_FLOAT32 as NPY_float32
+from numpy cimport NPY_FLOAT64 as NPY_float64
+
+int32 = np.dtype(np.int32)
+int64 = np.dtype(np.int64)
+float32 = np.dtype(np.float32)
+float64 = np.dtype(np.float64)
+
+cdef np.int32_t MINint32 = np.iinfo(np.int32).min
+cdef np.int64_t MINint64 = np.iinfo(np.int64).min
+cdef np.float32_t MINfloat32 = np.NINF
+cdef np.float64_t MINfloat64 = np.NINF
+
+cdef np.int32_t MAXint32 = np.iinfo(np.int32).max
+cdef np.int64_t MAXint64 = np.iinfo(np.int64).max
+cdef np.float32_t MAXfloat32 = np.inf
+cdef np.float64_t MAXfloat64 = np.inf
+
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+
+cdef inline int int_max(int a, int b): return a if a >= b else b
+cdef inline int int_min(int a, int b): return a if a <= b else b
+
+
+cdef extern from "math.h":
+    double sqrt(double x)
+    double fabs(double)
+
+import lib
+
+include "skiplist.pyx"
+
 
 cdef:
     int TIEBREAK_AVERAGE = 0
@@ -384,7 +430,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
     else:
         nan_value = NegInfinity()
 
-    mask = isnullobj(values)
+    mask = lib.isnullobj(values)
     np.putmask(values, mask, nan_value)
 
     n = len(values)
@@ -498,7 +544,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
     else:
         nan_value = NegInfinity()
 
-    mask = isnullobj2d(values)
+    mask = lib.isnullobj2d(values)
     np.putmask(values, mask, nan_value)
 
     n, k = (<object> values).shape
@@ -700,3 +746,2200 @@ def diff_2d_int32(ndarray[int64_t, ndim=2] arr,
             for i in range(sx):
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
+
+
+# Cython implementations of rolling sum, mean, variance, skewness,
+# other statistical moment functions
+#
+# Misc implementation notes
+# -------------------------
+#
+# - In Cython x * x is faster than x ** 2 for C types, this should be
+#   periodically revisited to see if it's still true.
+#
+# -
+
+def _check_minp(win, minp, N):
+    if minp > win:
+        raise ValueError('min_periods (%d) must be <= window (%d)'
+                        % (minp, win))
+    elif minp > N:
+        minp = N + 1
+    elif minp == 0:
+        minp = 1
+    elif minp < 0:
+        raise ValueError('min_periods must be >= 0')
+    return minp
+
+# original C implementation by N. Devillard.
+# This code in public domain.
+# Function :   kth_smallest()
+# In       :   array of elements, # of elements in the array, rank k
+# Out      :   one element
+# Job      :   find the kth smallest element in the array
+
+#             Reference:
+
+#               Author: Wirth, Niklaus
+#                Title: Algorithms + data structures = programs
+#            Publisher: Englewood Cliffs: Prentice-Hall, 1976
+# Physical description: 366 p.
+#               Series: Prentice-Hall Series in Automatic Computation
+
+def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
+    cdef:
+        Py_ssize_t i,j,l,m,n
+        double_t x, t
+
+    n = len(a)
+
+    l = 0
+    m = n-1
+    while (l<m):
+        x = a[k]
+        i = l
+        j = m
+
+        while 1:
+            while a[i] < x: i += 1
+            while x < a[j]: j -= 1
+            if i <= j:
+                t = a[i]
+                a[i] = a[j]
+                a[j] = t
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return a[k]
+
+cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
+    cdef:
+        Py_ssize_t i,j,l,m
+        double_t x, t
+
+    l = 0
+    m = n-1
+    while (l<m):
+        x = a[k]
+        i = l
+        j = m
+
+        while 1:
+            while a[i] < x: i += 1
+            while x < a[j]: j -= 1
+            if i <= j:
+                t = a[i]
+                a[i] = a[j]
+                a[j] = t
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return a[k]
+
+
+def median(ndarray arr):
+    '''
+    A faster median
+    '''
+    cdef int n = len(arr)
+
+    if len(arr) == 0:
+        return np.NaN
+
+    arr = arr.copy()
+
+    if n % 2:
+        return kth_smallest(arr, n / 2)
+    else:
+        return (kth_smallest(arr, n / 2) +
+                kth_smallest(arr, n / 2 - 1)) / 2
+
+
+# -------------- Min, Max subsequence
+
+def max_subseq(ndarray[double_t] arr):
+    cdef:
+        Py_ssize_t i=0,s=0,e=0,T,n
+        double m, S
+
+    n = len(arr)
+
+    if len(arr) == 0:
+        return (-1,-1,None)
+
+    m = arr[0]
+    S = m
+    T = 0
+
+    for i in range(1, n):
+        # S = max { S + A[i], A[i] )
+        if (S > 0):
+            S = S + arr[i]
+        else:
+            S = arr[i]
+            T = i
+        if S > m:
+            s = T
+            e = i
+            m = S
+
+    return (s, e, m)
+
+def min_subseq(ndarray[double_t] arr):
+    cdef:
+        Py_ssize_t s, e
+        double m
+
+    (s, e, m) = max_subseq(-arr)
+
+    return (s, e, -m)
+
+#-------------------------------------------------------------------------------
+# Rolling sum
+
+def roll_sum(ndarray[double_t] input, int win, int minp):
+    cdef double val, prev, sum_x = 0
+    cdef int nobs = 0, i
+    cdef int N = len(input)
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            sum_x += val
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = input[i]
+
+        if val == val:
+            nobs += 1
+            sum_x += val
+
+        if i > win - 1:
+            prev = input[i - win]
+            if prev == prev:
+                sum_x -= prev
+                nobs -= 1
+
+        if nobs >= minp:
+            output[i] = sum_x
+        else:
+            output[i] = NaN
+
+    return output
+
+#-------------------------------------------------------------------------------
+# Rolling mean
+
+def roll_mean(ndarray[double_t] input,
+               int win, int minp):
+    cdef double val, prev, sum_x = 0
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            sum_x += val
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = input[i]
+
+        if val == val:
+            nobs += 1
+            sum_x += val
+
+        if i > win - 1:
+            prev = input[i - win]
+            if prev == prev:
+                sum_x -= prev
+                nobs -= 1
+
+        if nobs >= minp:
+            output[i] = sum_x / nobs
+        else:
+            output[i] = NaN
+
+    return output
+
+#-------------------------------------------------------------------------------
+# Exponentially weighted moving average
+
+def ewma(ndarray[double_t] input, double_t com, int adjust):
+    '''
+    Compute exponentially-weighted moving average using center-of-mass.
+
+    Parameters
+    ----------
+    input : ndarray (float64 type)
+    com : float64
+
+    Returns
+    -------
+    y : ndarray
+    '''
+
+    cdef double cur, prev, neww, oldw, adj
+    cdef Py_ssize_t i
+    cdef Py_ssize_t N = len(input)
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    if N == 0:
+        return output
+
+    neww = 1. / (1. + com)
+    oldw = 1. - neww
+    adj = oldw
+
+    if adjust:
+        output[0] = neww * input[0]
+    else:
+        output[0] = input[0]
+
+    for i from 1 <= i < N:
+        cur = input[i]
+        prev = output[i - 1]
+
+        if cur == cur:
+            if prev == prev:
+                output[i] = oldw * prev + neww * cur
+            else:
+                output[i] = neww * cur
+        else:
+            output[i] = prev
+
+    if adjust:
+        for i from 0 <= i < N:
+            cur = input[i]
+
+            if cur == cur:
+                output[i] = output[i] / (1. - adj)
+                adj *= oldw
+            else:
+                if i >= 1:
+                    output[i] = output[i - 1]
+
+    return output
+
+#----------------------------------------------------------------------
+# Pairwise correlation/covariance
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, minp=None):
+    cdef:
+        Py_ssize_t i, j, xi, yi, N, K
+        ndarray[float64_t, ndim=2] result
+        ndarray[uint8_t, ndim=2] mask
+        int64_t nobs = 0
+        float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
+
+    N, K = (<object> mat).shape
+
+    if minp is None:
+        minp = 1
+
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat).view(np.uint8)
+
+    for xi in range(K):
+        for yi in range(xi + 1):
+            nobs = sumxx = sumyy = sumx = sumy = 0
+            for i in range(N):
+                if mask[i, xi] and mask[i, yi]:
+                    vx = mat[i, xi]
+                    vy = mat[i, yi]
+                    nobs += 1
+                    sumx += vx
+                    sumy += vy
+
+            if nobs < minp:
+                result[xi, yi] = result[yi, xi] = np.NaN
+            else:
+                meanx = sumx / nobs
+                meany = sumy / nobs
+
+                # now the cov numerator
+                sumx = 0
+
+                for i in range(N):
+                    if mask[i, xi] and mask[i, yi]:
+                        vx = mat[i, xi] - meanx
+                        vy = mat[i, yi] - meany
+
+                        sumx += vx * vy
+                        sumxx += vx * vx
+                        sumyy += vy * vy
+
+                divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
+
+                if divisor != 0:
+                    result[xi, yi] = result[yi, xi] = sumx / divisor
+                else:
+                    result[xi, yi] = result[yi, xi] = np.NaN
+
+    return result
+
+#----------------------------------------------------------------------
+# Rolling variance
+
+def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
+    cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
+    cdef Py_ssize_t i
+    cdef Py_ssize_t N = len(input)
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            sum_x += val
+            sum_xx += val * val
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = input[i]
+
+        if val == val:
+            nobs += 1
+            sum_x += val
+            sum_xx += val * val
+
+        if i > win - 1:
+            prev = input[i - win]
+            if prev == prev:
+                sum_x -= prev
+                sum_xx -= prev * prev
+                nobs -= 1
+
+        if nobs >= minp:
+            # pathological case
+            if nobs == 1:
+                output[i] = 0
+                continue
+
+            val = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
+            if val < 0:
+                val = 0
+
+            output[i] = val
+        else:
+            output[i] = NaN
+
+    return output
+
+#-------------------------------------------------------------------------------
+# Rolling skewness
+
+def roll_skew(ndarray[double_t] input, int win, int minp):
+    cdef double val, prev
+    cdef double x = 0, xx = 0, xxx = 0
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    # 3 components of the skewness equation
+    cdef double A, B, C, R
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            x += val
+            xx += val * val
+            xxx += val * val * val
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = input[i]
+
+        if val == val:
+            nobs += 1
+            x += val
+            xx += val * val
+            xxx += val * val * val
+
+        if i > win - 1:
+            prev = input[i - win]
+            if prev == prev:
+                x -= prev
+                xx -= prev * prev
+                xxx -= prev * prev * prev
+
+                nobs -= 1
+
+        if nobs >= minp:
+            A = x / nobs
+            B = xx / nobs - A * A
+            C = xxx / nobs - A * A * A - 3 * A * B
+
+            R = sqrt(B)
+
+            output[i] = ((sqrt(nobs * (nobs - 1.)) * C) /
+                         ((nobs-2) * R * R * R))
+        else:
+            output[i] = NaN
+
+    return output
+
+#-------------------------------------------------------------------------------
+# Rolling kurtosis
+
+
+def roll_kurt(ndarray[double_t] input,
+               int win, int minp):
+    cdef double val, prev
+    cdef double x = 0, xx = 0, xxx = 0, xxxx = 0
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    # 5 components of the kurtosis equation
+    cdef double A, B, C, D, R, K
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+
+            # seriously don't ask me why this is faster
+            x += val
+            xx += val * val
+            xxx += val * val * val
+            xxxx += val * val * val * val
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = input[i]
+
+        if val == val:
+            nobs += 1
+            x += val
+            xx += val * val
+            xxx += val * val * val
+            xxxx += val * val * val * val
+
+        if i > win - 1:
+            prev = input[i - win]
+            if prev == prev:
+                x -= prev
+                xx -= prev * prev
+                xxx -= prev * prev * prev
+                xxxx -= prev * prev * prev * prev
+
+                nobs -= 1
+
+        if nobs >= minp:
+            A = x / nobs
+            R = A * A
+            B = xx / nobs - R
+            R = R * A
+            C = xxx / nobs - R - 3 * A * B
+            R = R * A
+            D = xxxx / nobs - R - 6*B*A*A - 4*C*A
+
+            K = (nobs * nobs - 1.)*D/(B*B) - 3*((nobs-1.)**2)
+            K = K / ((nobs - 2.)*(nobs-3.))
+
+            output[i] = K
+        else:
+            output[i] = NaN
+
+    return output
+
+#-------------------------------------------------------------------------------
+# Rolling median, min, max
+
+ctypedef double_t (* skiplist_f)(object sl, int n, int p)
+
+cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
+    cdef ndarray[double_t] input = arg
+    cdef double val, prev, midpoint
+    cdef IndexableSkiplist skiplist
+    cdef Py_ssize_t nobs = 0, i
+
+    cdef Py_ssize_t N = len(input)
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    skiplist = IndexableSkiplist(win)
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            skiplist.insert(val)
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = input[i]
+
+        if i > win - 1:
+            prev = input[i - win]
+
+            if prev == prev:
+                skiplist.remove(prev)
+                nobs -= 1
+
+        if val == val:
+            nobs += 1
+            skiplist.insert(val)
+
+        output[i] = op(skiplist, nobs, minp)
+
+    return output
+
+from skiplist cimport *
+
+def roll_median_c(ndarray[float64_t] arg, int win, int minp):
+    cdef double val, res, prev
+    cdef:
+        int ret=0
+        skiplist_t *sl
+        Py_ssize_t midpoint, nobs = 0, i
+
+
+    cdef Py_ssize_t N = len(arg)
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    sl = skiplist_init(win)
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = arg[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            skiplist_insert(sl, val)
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = arg[i]
+
+        if i > win - 1:
+            prev = arg[i - win]
+
+            if prev == prev:
+                skiplist_remove(sl, prev)
+                nobs -= 1
+
+        if val == val:
+            nobs += 1
+            skiplist_insert(sl, val)
+
+        if nobs >= minp:
+            midpoint = nobs / 2
+            if nobs % 2:
+                res = skiplist_get(sl, midpoint, &ret)
+            else:
+                res = (skiplist_get(sl, midpoint, &ret) +
+                       skiplist_get(sl, (midpoint - 1), &ret)) / 2
+        else:
+            res = NaN
+
+        output[i] = res
+
+    skiplist_destroy(sl)
+
+    return output
+
+def roll_median_cython(ndarray input, int win, int minp):
+    '''
+    O(N log(window)) implementation using skip list
+    '''
+    return _roll_skiplist_op(input, win, minp, _get_median)
+
+# Unfortunately had to resort to some hackery here, would like for
+# Cython to be able to get this right.
+
+cdef double_t _get_median(object sl, int nobs, int minp):
+    cdef Py_ssize_t midpoint
+    cdef IndexableSkiplist skiplist = <IndexableSkiplist> sl
+    if nobs >= minp:
+        midpoint = nobs / 2
+        if nobs % 2:
+            return skiplist.get(midpoint)
+        else:
+            return (skiplist.get(midpoint) +
+                    skiplist.get(midpoint - 1)) / 2
+    else:
+        return NaN
+
+#----------------------------------------------------------------------
+
+# Moving maximum / minimum code taken from Bottleneck under the terms
+# of its Simplified BSD license
+# https://github.com/kwgoodman/bottleneck
+
+cdef struct pairs:
+    double value
+    int death
+
+from libc cimport stdlib
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def roll_max2(ndarray[float64_t] a, int window, int minp):
+    "Moving max of 1d array of dtype=float64 along axis=0 ignoring NaNs."
+    cdef np.float64_t ai, aold
+    cdef Py_ssize_t count
+    cdef pairs* ring
+    cdef pairs* minpair
+    cdef pairs* end
+    cdef pairs* last
+    cdef Py_ssize_t i0
+    cdef np.npy_intp *dim
+    dim = PyArray_DIMS(a)
+    cdef Py_ssize_t n0 = dim[0]
+    cdef np.npy_intp *dims = [n0]
+    cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
+		NPY_float64, 0)
+
+    if window < 1:
+        raise ValueError('Invalid window size %d'
+                         % (window))
+
+    if minp > window:
+        raise ValueError('Invalid min_periods size %d greater than window %d'
+                        % (minp, window))
+
+    minp = _check_minp(window, minp, n0)
+
+    window = min(window, n0)
+
+    ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
+    end = ring + window
+    last = ring
+
+    minpair = ring
+    ai = a[0]
+    if ai == ai:
+        minpair.value = ai
+    else:
+        minpair.value = MINfloat64
+    minpair.death = window
+
+    count = 0
+    for i0 in range(n0):
+        ai = a[i0]
+        if ai == ai:
+            count += 1
+        else:
+            ai = MINfloat64
+        if i0 >= window:
+            aold = a[i0 - window]
+            if aold == aold:
+                count -= 1
+        if minpair.death == i0:
+            minpair += 1
+            if minpair >= end:
+                minpair = ring
+        if ai >= minpair.value:
+            minpair.value = ai
+            minpair.death = i0 + window
+            last = minpair
+        else:
+            while last.value <= ai:
+                if last == ring:
+                    last = end
+                last -= 1
+            last += 1
+            if last == end:
+                last = ring
+            last.value = ai
+            last.death = i0 + window
+        if count >= minp:
+            y[i0] = minpair.value
+        else:
+            y[i0] = NaN
+
+    for i0 in range(minp - 1):
+        y[i0] = NaN
+
+    stdlib.free(ring)
+    return y
+
+def roll_max(ndarray input, int win, int minp):
+    '''
+    O(N log(window)) implementation using skip list
+    '''
+    return _roll_skiplist_op(input, win, minp, _get_max)
+
+
+cdef double_t _get_max(object skiplist, int nobs, int minp):
+    if nobs >= minp:
+        return <IndexableSkiplist> skiplist.get(nobs - 1)
+    else:
+        return NaN
+
+def roll_min(ndarray input, int win, int minp):
+    '''
+    O(N log(window)) implementation using skip list
+    '''
+    return _roll_skiplist_op(input, win, minp, _get_min)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
+    "Moving min of 1d array of dtype=float64 along axis=0 ignoring NaNs."
+    cdef np.float64_t ai, aold
+    cdef Py_ssize_t count
+    cdef pairs* ring
+    cdef pairs* minpair
+    cdef pairs* end
+    cdef pairs* last
+    cdef Py_ssize_t i0
+    cdef np.npy_intp *dim
+    dim = PyArray_DIMS(a)
+    cdef Py_ssize_t n0 = dim[0]
+    cdef np.npy_intp *dims = [n0]
+    cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
+		NPY_float64, 0)
+
+    if window < 1:
+        raise ValueError('Invalid window size %d'
+                         % (window))
+
+    if minp > window:
+        raise ValueError('Invalid min_periods size %d greater than window %d'
+                        % (minp, window))
+
+    window = min(window, n0)
+
+    minp = _check_minp(window, minp, n0)
+
+    ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
+    end = ring + window
+    last = ring
+
+    minpair = ring
+    ai = a[0]
+    if ai == ai:
+        minpair.value = ai
+    else:
+        minpair.value = MAXfloat64
+    minpair.death = window
+
+    count = 0
+    for i0 in range(n0):
+        ai = a[i0]
+        if ai == ai:
+            count += 1
+        else:
+            ai = MAXfloat64
+        if i0 >= window:
+            aold = a[i0 - window]
+            if aold == aold:
+                count -= 1
+        if minpair.death == i0:
+            minpair += 1
+            if minpair >= end:
+                minpair = ring
+        if ai <= minpair.value:
+            minpair.value = ai
+            minpair.death = i0 + window
+            last = minpair
+        else:
+            while last.value >= ai:
+                if last == ring:
+                    last = end
+                last -= 1
+            last += 1
+            if last == end:
+                last = ring
+            last.value = ai
+            last.death = i0 + window
+        if count >= minp:
+            y[i0] = minpair.value
+        else:
+            y[i0] = NaN
+
+    for i0 in range(minp - 1):
+        y[i0] = NaN
+
+    stdlib.free(ring)
+    return y
+
+cdef double_t _get_min(object skiplist, int nobs, int minp):
+    if nobs >= minp:
+        return <IndexableSkiplist> skiplist.get(0)
+    else:
+        return NaN
+
+def roll_quantile(ndarray[float64_t, cast=True] input, int win,
+                  int minp, double quantile):
+    '''
+    O(N log(window)) implementation using skip list
+    '''
+    cdef double val, prev, midpoint
+    cdef IndexableSkiplist skiplist
+    cdef Py_ssize_t nobs = 0, i
+    cdef Py_ssize_t N = len(input)
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    skiplist = IndexableSkiplist(win)
+
+    minp = _check_minp(win, minp, N)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        # Not NaN
+        if val == val:
+            nobs += 1
+            skiplist.insert(val)
+
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        val = input[i]
+
+        if i > win - 1:
+            prev = input[i - win]
+
+            if prev == prev:
+                skiplist.remove(prev)
+                nobs -= 1
+
+        if val == val:
+            nobs += 1
+            skiplist.insert(val)
+
+        if nobs >= minp:
+            idx = int((quantile / 1.) * (nobs - 1))
+            output[i] = skiplist.get(idx)
+        else:
+            output[i] = NaN
+
+    return output
+
+def roll_generic(ndarray[float64_t, cast=True] input, int win,
+                 int minp, object func):
+    cdef ndarray[double_t] output, counts, bufarr
+    cdef Py_ssize_t i, n
+    cdef float64_t *buf, *oldbuf
+
+    if not input.flags.c_contiguous:
+        input = input.copy('C')
+
+    buf = <float64_t*> input.data
+
+    n = len(input)
+    if n == 0:
+        return input
+
+    minp = _check_minp(win, minp, n)
+    output = np.empty(n, dtype=float)
+    counts = roll_sum(np.isfinite(input).astype(float), win, minp)
+
+    bufarr = np.empty(win, dtype=float)
+    oldbuf = <float64_t*> bufarr.data
+
+    n = len(input)
+    for i from 0 <= i < int_min(win, n):
+        if counts[i] >= minp:
+            output[i] = func(input[int_max(i - win + 1, 0) : i + 1])
+        else:
+            output[i] = NaN
+
+    for i from win <= i < n:
+        buf = buf + 1
+        bufarr.data = <char*> buf
+        if counts[i] >= minp:
+            output[i] = func(bufarr)
+        else:
+            output[i] = NaN
+
+    bufarr.data = <char*> oldbuf
+
+    return output
+
+
+#----------------------------------------------------------------------
+# group operations
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
+    cdef:
+        Py_ssize_t i, loc, label, n
+        ndarray[int64_t] counts, where, result
+
+    # count group sizes, location 0 for NA
+    counts = np.zeros(ngroups + 1, dtype=np.int64)
+    n = len(index)
+    for i from 0 <= i < n:
+        counts[index[i] + 1] += 1
+
+    # mark the start of each contiguous group of like-indexed data
+    where = np.zeros(ngroups + 1, dtype=np.int64)
+    for i from 1 <= i < ngroups + 1:
+        where[i] = where[i - 1] + counts[i - 1]
+
+    # this is our indexer
+    result = np.zeros(n, dtype=np.int64)
+    for i from 0 <= i < n:
+        label = index[i] + 1
+        result[where[label]] = i
+        where[label] += 1
+
+    return result, counts
+
+# TODO: aggregate multiple columns in single pass
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_add(ndarray[float64_t, ndim=2] out,
+              ndarray[int64_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_prod(ndarray[float64_t, ndim=2] out,
+               ndarray[int64_t] counts,
+               ndarray[float64_t, ndim=2] values,
+               ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] prodx, nobs
+
+    nobs = np.zeros_like(out)
+    prodx = np.ones_like(out)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    prodx[lab, j] *= val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                prodx[lab, 0] *= val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = prodx[i, j]
+
+#----------------------------------------------------------------------
+# first, nth, last
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_nth(ndarray[float64_t, ndim=2] out,
+              ndarray[int64_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int64_t] labels, int64_t rank):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] resx
+        ndarray[int64_t, ndim=2] nobs
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty_like(out)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                if nobs[lab, j] == rank:
+                    resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_nth_object(ndarray[object, ndim=2] out,
+                     ndarray[int64_t] counts,
+                     ndarray[object, ndim=2] values,
+                     ndarray[int64_t] labels,
+                     int64_t rank):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        object val
+        float64_t count
+        ndarray[int64_t, ndim=2] nobs
+        ndarray[object, ndim=2] resx
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty((<object> out).shape, dtype=object)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                if nobs[lab, j] == rank:
+                    resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = <object> nan
+            else:
+                out[i, j] = resx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_nth_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int64_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int64_t] bins, int64_t rank):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] resx, nobs
+
+    nobs = np.zeros_like(out)
+    resx = np.empty_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[b, j] += 1
+                if nobs[b, j] == rank:
+                    resx[b, j] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_nth_bin_object(ndarray[object, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[object, ndim=2] values,
+                         ndarray[int64_t] bins, int64_t rank):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        object val
+        float64_t count
+        ndarray[object, ndim=2] resx
+        ndarray[float64_t, ndim=2] nobs
+
+    nobs = np.zeros((<object> out).shape, dtype=np.float64)
+    resx = np.empty((<object> out).shape, dtype=object)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[b, j] += 1
+                if nobs[b, j] == rank:
+                    resx[b, j] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_last(ndarray[float64_t, ndim=2] out,
+               ndarray[int64_t] counts,
+               ndarray[float64_t, ndim=2] values,
+               ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] resx
+        ndarray[int64_t, ndim=2] nobs
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty_like(out)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_last_object(ndarray[object, ndim=2] out,
+                      ndarray[int64_t] counts,
+                      ndarray[object, ndim=2] values,
+                      ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        object val
+        float64_t count
+        ndarray[object, ndim=2] resx
+        ndarray[int64_t, ndim=2] nobs
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty((<object> out).shape, dtype=object)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_last_bin(ndarray[float64_t, ndim=2] out,
+                   ndarray[int64_t] counts,
+                   ndarray[float64_t, ndim=2] values,
+                   ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] resx, nobs
+
+    nobs = np.zeros_like(out)
+    resx = np.empty_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[b, j] += 1
+                resx[b, j] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_last_bin_object(ndarray[object, ndim=2] out,
+                          ndarray[int64_t] counts,
+                          ndarray[object, ndim=2] values,
+                          ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        object val
+        float64_t count
+        ndarray[object, ndim=2] resx
+        ndarray[float64_t, ndim=2] nobs
+
+    nobs = np.zeros((<object> out).shape, dtype=np.float64)
+    resx = np.empty((<object> out).shape, dtype=object)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    for i in range(N):
+        while b < ngroups - 1 and i >= bins[b]:
+            b += 1
+
+        counts[b] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[b, j] += 1
+                resx[b, j] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+#----------------------------------------------------------------------
+# group_min, group_max
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_min(ndarray[float64_t, ndim=2] out,
+              ndarray[int64_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] minx, nobs
+
+    nobs = np.zeros_like(out)
+
+    minx = np.empty_like(out)
+    minx.fill(np.inf)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    if val < minx[lab, j]:
+                        minx[lab, j] = val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                if val < minx[lab, 0]:
+                    minx[lab, 0] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = minx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_max(ndarray[float64_t, ndim=2] out,
+              ndarray[int64_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] maxx, nobs
+
+    nobs = np.zeros_like(out)
+
+    maxx = np.empty_like(out)
+    maxx.fill(-np.inf)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    if val > maxx[lab, j]:
+                        maxx[lab, j] = val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                if val > maxx[lab, 0]:
+                    maxx[lab, 0] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = maxx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_mean(ndarray[float64_t, ndim=2] out,
+               ndarray[int64_t] counts,
+               ndarray[float64_t, ndim=2] values,
+               ndarray[int64_t] labels):
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            count = nobs[i, j]
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j] / count
+
+
+def group_median(ndarray[float64_t, ndim=2] out,
+                 ndarray[int64_t] counts,
+                 ndarray[float64_t, ndim=2] values,
+                 ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, size
+        ndarray[int64_t] _counts
+        ndarray data
+        float64_t* ptr
+
+    from pandas._algos import take_2d_axis1_float64
+
+    ngroups = len(counts)
+    N, K = (<object> values).shape
+
+    indexer, _counts = groupsort_indexer(labels, ngroups)
+    counts[:] = _counts[1:]
+
+    data = np.empty((K, N), dtype=np.float64)
+    ptr = <float64_t*> data.data
+
+    take_2d_axis1_float64(values.T, indexer, out=data)
+
+    for i in range(K):
+        # exclude NA group
+        ptr += _counts[0]
+        for j in range(ngroups):
+            size = _counts[j + 1]
+            out[j, i] = _median_linear(ptr, size)
+            ptr += size
+
+
+cdef inline float64_t _median_linear(float64_t* a, int n):
+    cdef int i, j, na_count = 0
+    cdef float64_t result
+    cdef float64_t* tmp
+
+    # count NAs
+    for i in range(n):
+        if a[i] != a[i]:
+            na_count += 1
+
+    if na_count:
+        if na_count == n:
+            return NaN
+
+        tmp = <float64_t*> malloc((n - na_count) * sizeof(float64_t))
+
+        j = 0
+        for i in range(n):
+            if a[i] == a[i]:
+                tmp[j] = a[i]
+                j += 1
+
+        a = tmp
+        n -= na_count
+
+
+    if n % 2:
+        result = kth_smallest_c(a, n / 2, n)
+    else:
+        result = (kth_smallest_c(a, n / 2, n) +
+                  kth_smallest_c(a, n / 2 - 1, n)) / 2
+
+    if na_count:
+        free(a)
+
+    return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_var(ndarray[float64_t, ndim=2] out,
+              ndarray[int64_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int64_t] labels):
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, ct
+        ndarray[float64_t, ndim=2] nobs, sumx, sumxx
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+    sumxx = np.zeros_like(out)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+                    sumxx[lab, j] += val * val
+    else:
+        for i in range(N):
+
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
+                sumxx[lab, 0] += val * val
+
+
+    for i in range(len(counts)):
+        for j in range(K):
+            ct = nobs[i, j]
+            if ct < 2:
+                out[i, j] = nan
+            else:
+                out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
+                             (ct * ct - ct))
+# add passing bin edges, instead of labels
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_add_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int64_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b, nbins
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    sumx[b, j] += val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                sumx[b, 0] += val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_prod_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int64_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] prodx, nobs
+
+    nobs = np.zeros_like(out)
+    prodx = np.ones_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    prodx[b, j] *= val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                prodx[b, 0] *= val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = prodx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_min_bin(ndarray[float64_t, ndim=2] out,
+                   ndarray[int64_t] counts,
+                   ndarray[float64_t, ndim=2] values,
+                   ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] minx, nobs
+
+    nobs = np.zeros_like(out)
+
+    minx = np.empty_like(out)
+    minx.fill(np.inf)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    if val < minx[b, j]:
+                        minx[b, j] = val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                if val < minx[b, 0]:
+                    minx[b, 0] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = minx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_max_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int64_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] maxx, nobs
+
+    nobs = np.zeros_like(out)
+    maxx = np.empty_like(out)
+    maxx.fill(-np.inf)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    if val > maxx[b, j]:
+                        maxx[b, j] = val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                if val > maxx[b, 0]:
+                    maxx[b, 0] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = maxx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_ohlc(ndarray[float64_t, ndim=2] out,
+                  ndarray[int64_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int64_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        float64_t vopen, vhigh, vlow, vclose, NA
+        bint got_first = 0
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    if out.shape[1] != 4:
+        raise ValueError('Output array must have 4 columns')
+
+    NA = np.nan
+
+    b = 0
+    if K > 1:
+        raise NotImplementedError
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                if not got_first:
+                    out[b, 0] = NA
+                    out[b, 1] = NA
+                    out[b, 2] = NA
+                    out[b, 3] = NA
+                else:
+                    out[b, 0] = vopen
+                    out[b, 1] = vhigh
+                    out[b, 2] = vlow
+                    out[b, 3] = vclose
+                b += 1
+                got_first = 0
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                if not got_first:
+                    got_first = 1
+                    vopen = val
+                    vlow = val
+                    vhigh = val
+                else:
+                    if val < vlow:
+                        vlow = val
+                    if val > vhigh:
+                        vhigh = val
+                vclose = val
+
+        if not got_first:
+            out[b, 0] = NA
+            out[b, 1] = NA
+            out[b, 2] = NA
+            out[b, 3] = NA
+        else:
+            out[b, 0] = vopen
+            out[b, 1] = vhigh
+            out[b, 2] = vlow
+            out[b, 3] = vclose
+
+
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+def group_mean_bin(ndarray[float64_t, ndim=2] out,
+                   ndarray[int64_t] counts,
+                   ndarray[float64_t, ndim=2] values,
+                   ndarray[int64_t] bins):
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object> values).shape
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    sumx[b, j] += val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                sumx[b, 0] += val
+
+    for i in range(ngroups):
+        for j in range(K):
+            count = nobs[i, j]
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j] / count
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_var_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int64_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int64_t] bins):
+
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, ct
+        ndarray[float64_t, ndim=2] nobs, sumx, sumxx
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+    sumxx = np.zeros_like(out)
+
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    sumx[b, j] += val
+                    sumxx[b, j] += val * val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                sumx[b, 0] += val
+                sumxx[b, 0] += val * val
+
+    for i in range(ngroups):
+        for j in range(K):
+            ct = nobs[i, j]
+            if ct < 2:
+                out[i, j] = nan
+            else:
+                out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
+                             (ct * ct - ct))
+
+include "join.pyx"

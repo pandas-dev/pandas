@@ -1,6 +1,7 @@
 from numpy cimport *
 import numpy as np
 
+
 cdef class Reducer:
     '''
     Performs generic reduction operation on a C or Fortran-contiguous ndarray
@@ -106,6 +107,7 @@ cdef class Reducer:
             raise ValueError('function does not reduce')
         return result
 
+
 cdef class SeriesBinGrouper:
     '''
     Performs grouping operation according to bin edges, rather than labels
@@ -155,7 +157,7 @@ cdef class SeriesBinGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
-            IndexEngine gin
+            object gin
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -174,7 +176,7 @@ cdef class SeriesBinGrouper:
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
 
-        gin = <IndexEngine> self.dummy.index._engine
+        gin = self.dummy.index._engine
 
         try:
             for i in range(self.ngroups):
@@ -216,6 +218,7 @@ cdef class SeriesBinGrouper:
         except Exception:
             raise ValueError('function does not reduce')
         return result
+
 
 cdef class SeriesGrouper:
     '''
@@ -263,7 +266,7 @@ cdef class SeriesGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
-            IndexEngine gin
+            object gin
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
@@ -274,7 +277,7 @@ cdef class SeriesGrouper:
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
 
-        gin = <IndexEngine> self.dummy.index._engine
+        gin = self.dummy.index._engine
         try:
             for i in range(n):
                 group_size += 1
@@ -328,6 +331,7 @@ cdef class SeriesGrouper:
             raise ValueError('function does not reduce')
         return result
 
+
 cdef class Slider:
     '''
     Only handles contiguous data for now
@@ -364,6 +368,7 @@ cdef class Slider:
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
         self.buf.strides[0] = self.orig_stride
+
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
     if labels._has_complex_internals:

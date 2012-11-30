@@ -1,5 +1,6 @@
 from cpython cimport PyDict_Contains, PyDict_GetItem, PyDict_GetItem
 
+
 cdef class cache_readonly(object):
 
     cdef readonly:

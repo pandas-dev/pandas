@@ -547,52 +547,89 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] =  build_ext
 
-tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'reduce', 'stats', 'datetime',
-                   'hashtable', 'inference', 'properties', 'join', 'engines']
+lib_depends = ['reindex', 'groupby',
+               'reduce', 'inference', 'properties']
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
 if suffix == '.pyx':
-    tseries_depends = [srcpath(f, suffix='.pyx')
-                       for f in tseries_depends]
-    tseries_depends.append('pandas/src/util.pxd')
+    lib_depends = [srcpath(f, suffix='.pyx') for f in lib_depends]
+    lib_depends.append('pandas/src/util.pxd')
 else:
-    tseries_depends = []
+    lib_depends = []
     plib_depends = []
 
-common_include = [np.get_include(), 'pandas/src/klib']
+common_include = [np.get_include(), 'pandas/src/klib', 'pandas/src']
 
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
                       include_dirs=common_include,
                       )
 
-lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
-                                 'pandas/src/parse_helper.h',
-                                 'pandas/src/datetime/np_datetime.h',
-                                 'pandas/src/datetime/np_datetime_strings.h',
-                                 'pandas/src/period.h']
+def pxd(name):
+    return os.path.abspath(pjoin('pandas/src', name+'.pxd'))
+
+
+lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
+                             'pandas/src/parse_helper.h']
+
+
+tseries_depends = ['pandas/src/datetime/np_datetime.h',
+                   'pandas/src/datetime/np_datetime_strings.h',
+                   'pandas/src/period.h']
+
 
 # some linux distros require it
 libraries = ['m'] if 'win32' not in sys.platform else []
 
-lib_ext = Extension('pandas.lib',
-                    depends=lib_depends,
-                    sources=[srcpath('tseries', suffix=suffix),
-                             'pandas/src/datetime/np_datetime.c',
-                             'pandas/src/datetime/np_datetime_strings.c',
-                             'pandas/src/period.c'],
-                    include_dirs=common_include,
-                    # pyrex_gdb=True,
-                    # extra_compile_args=['-Wconversion']
-                    )
+ext_data = dict(
+    lib={'pyxfile': 'lib',
+         'pxdfiles': [],
+         'depends': lib_depends},
+    hashtable={'pyxfile': 'hashtable',
+               'pxdfiles': ['hashtable']},
+    _stats={'pyxfile': 'stats'}
+)
+
+extensions = []
+
+for name, data in ext_data.iteritems():
+    sources = [srcpath(data['pyxfile'], suffix=suffix)]
+    pxds = [pxd(x) for x in data.get('pxdfiles', [])]
+    if suffix == '.pyx' and pxds:
+        sources.extend(pxds)
+
+    include = data.get('include', common_include)
+
+    obj = Extension('pandas.%s' % name,
+                    sources=sources,
+                    depends=data.get('depends', []),
+                    include_dirs=include)
+
+    extensions.append(obj)
+
+
+index_ext = Extension('pandas._index',
+                     sources=[srcpath('engines', suffix=suffix),
+                              'pandas/src/datetime/np_datetime.c',
+                              'pandas/src/datetime/np_datetime_strings.c'],
+                     include_dirs=common_include)
+
+
+tseries_ext = Extension('pandas._tseries',
+                        depends=tseries_depends,
+                        sources=[srcpath('tseries', suffix=suffix),
+                                 'pandas/src/datetime/np_datetime.c',
+                                 'pandas/src/datetime/np_datetime_strings.c',
+                                 'pandas/src/period.c'],
+                        include_dirs=common_include)
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()],
                        libraries=libraries)
+
 
 parser_ext = Extension('pandas._parser',
                        depends=['pandas/src/parser/tokenizer.h',
@@ -602,28 +639,30 @@ parser_ext = Extension('pandas._parser',
                                 'pandas/src/parser/tokenizer.c',
                                 'pandas/src/parser/io.c',
                                 ],
-                       #extra_compile_args=['-O3'],
                        include_dirs=common_include)
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=common_include)
 
+
 pytables_ext = Extension('pandas._pytables',
                          sources=[srcpath('pytables', suffix=suffix)],
                          include_dirs=[np.get_include()],
                          libraries=libraries)
+
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext,
-              lib_ext,
-              sparse_ext,
-              pytables_ext,
-              parser_ext]
+extensions.extend([algos_ext,
+                   tseries_ext,
+                   index_ext,
+                   sparse_ext,
+                   pytables_ext,
+                   parser_ext])
 
 # if not ISRELEASED:
 #     extensions.extend([sandbox_ext])

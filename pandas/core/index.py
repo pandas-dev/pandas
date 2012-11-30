@@ -14,6 +14,7 @@ import pandas._algos as _algos
 from pandas.lib import Timestamp
 from pandas.util import py3compat
 from pandas.core.config import get_option
+import pandas._hash as _hash
 
 __all__ = ['Index']
 
@@ -78,7 +79,7 @@ class Index(np.ndarray):
     name = None
     asi8 = None
 
-    _engine_type = lib.ObjectEngine
+    _engine_type = _hash.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
@@ -1201,7 +1202,7 @@ class Int64Index(Index):
     _inner_indexer = _algos.inner_join_indexer_int64
     _outer_indexer = _algos.outer_join_indexer_int64
 
-    _engine_type = lib.Int64Engine
+    _engine_type = _hash.Int64Engine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):

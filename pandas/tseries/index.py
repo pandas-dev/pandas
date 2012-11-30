@@ -19,6 +19,7 @@ import pandas.tseries.tools as tools
 from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas._algos as _algos
+import pandas._hash as _hash
 
 
 def _utc():
@@ -134,7 +135,7 @@ class DatetimeIndex(Int64Index):
     # structured array cache for datetime fields
     _sarr_cache = None
 
-    _engine_type = lib.DatetimeEngine
+    _engine_type = _hash.DatetimeEngine
 
     offset = None
 
