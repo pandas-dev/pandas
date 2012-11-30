@@ -28,7 +28,7 @@ def curpath():
     return pth
 
 class TestDataFrameFormatting(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.frame = _frame.copy()
 
@@ -843,7 +843,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.frame.to_latex()
 
 class TestSeriesFormatting(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.ts = tm.makeTimeSeries()
 
@@ -958,7 +958,7 @@ class TestSeriesFormatting(unittest.TestCase):
         self.assertTrue('2012-01-01' in result)
 
 class TestEngFormatter(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_eng_float_formatter(self):
         df = DataFrame({'A' : [1.41, 141., 14100, 1410000.]})
 

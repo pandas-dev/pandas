@@ -20,7 +20,7 @@ def assert_sp_array_equal(left, right):
 
 
 class TestSparseArray(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.arr = SparseArray(self.arr_data)

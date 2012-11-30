@@ -14,6 +14,8 @@ def assert_sp_list_equal(left, right):
 
 class TestSparseList(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         self.na_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.zero_data = np.array([0, 0, 1, 2, 3, 0, 4, 5, 0, 6])

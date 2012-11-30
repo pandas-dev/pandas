@@ -22,6 +22,8 @@ import pandas.core.strings as strings
 
 class TestStringMethods(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def test_cat(self):
         one = ['a', 'a', 'b', 'b', 'c', NA]
         two = ['a', NA, 'b', 'd', 'foo', NA]

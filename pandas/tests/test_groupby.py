@@ -43,6 +43,8 @@ def commonSetUp(self):
 
 class TestGroupBy(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         self.ts = tm.makeTimeSeries()
 

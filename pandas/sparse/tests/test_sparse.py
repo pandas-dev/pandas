@@ -110,7 +110,7 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
 
 class TestSparseSeries(TestCase,
                        test_series.CheckNameIntegration):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         arr, index = _test_data1()
 
@@ -686,7 +686,7 @@ class TestSparseTimeSeries(TestCase):
 
 class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
     klass = SparseDataFrame
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.data = {'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
@@ -851,7 +851,37 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         tmp = sys.stderr
         sys.stderr = buf
         try:
-            self._check_all(self._check_frame_ops)
+            self._check_frame_ops(self.frame)
+        finally:
+            sys.stderr = tmp
+
+    def test_sparse_series_ops_i(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
+        try:
+            self._check_frame_ops(self.iframe)
+        finally:
+            sys.stderr = tmp
+
+    def test_sparse_series_ops_z(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
+        try:
+            self._check_frame_ops(self.zframe)
+        finally:
+            sys.stderr = tmp
+
+    def test_sparse_series_ops_fill(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
+        try:
+            self._check_frame_ops(self.fill_frame)
         finally:
             sys.stderr = tmp
 
@@ -1406,7 +1436,7 @@ def panel_data3():
 class TestSparsePanel(TestCase,
                       test_panel.SafeForLongAndSparse,
                       test_panel.SafeForSparse):
-
+    _multiprocess_can_split_ = True
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_sp_panel_equal(x, y)
