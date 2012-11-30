@@ -73,7 +73,7 @@ class SeriesFormatter(object):
         self.header = header
 
         if float_format is None:
-            float_format = get_option("print_config.float_format")
+            float_format = get_option("print.float_format")
         self.float_format = float_format
 
     def _get_footer(self):
@@ -148,7 +148,7 @@ def _encode_diff_func():
     if py3compat.PY3:  # pragma: no cover
         _encode_diff = lambda x: 0
     else:
-        encoding = get_option("print_config.encoding")
+        encoding = get_option("print.encoding")
         def _encode_diff(x):
             return len(x) - len(x.decode(encoding))
 
@@ -159,7 +159,7 @@ def _strlen_func():
     if py3compat.PY3:  # pragma: no cover
         _strlen = len
     else:
-        encoding = get_option("print_config.encoding")
+        encoding = get_option("print.encoding")
         def _strlen(x):
             try:
                 return len(x.decode(encoding))
@@ -191,7 +191,7 @@ class DataFrameFormatter(object):
         self.show_index_names = index_names
 
         if sparsify is None:
-            sparsify = get_option("print_config.multi_sparse")
+            sparsify = get_option("print.multi_sparse")
 
         self.sparsify = sparsify
 
@@ -203,7 +203,7 @@ class DataFrameFormatter(object):
         self.index = index
 
         if justify is None:
-            self.justify = get_option("print_config.colheader_justify")
+            self.justify = get_option("print.colheader_justify")
         else:
             self.justify = justify
 
@@ -930,13 +930,13 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = GenericArrayFormatter
 
     if space is None:
-        space = get_option("print_config.column_space")
+        space = get_option("print.column_space")
 
     if float_format is None:
-        float_format = get_option("print_config.float_format")
+        float_format = get_option("print.float_format")
 
     if digits is None:
-        digits = get_option("print_config.precision")
+        digits = get_option("print.precision")
 
     fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
                         float_format=float_format,
@@ -964,9 +964,9 @@ class GenericArrayFormatter(object):
 
     def _format_strings(self):
         if self.float_format is None:
-            float_format = get_option("print_config.float_format")
+            float_format = get_option("print.float_format")
             if float_format is None:
-                fmt_str = '%% .%dg' % get_option("print_config.precision")
+                fmt_str = '%% .%dg' % get_option("print.precision")
                 float_format = lambda x: fmt_str % x
         else:
             float_format = self.float_format
@@ -1091,7 +1091,7 @@ def _make_fixed_width(strings, justify='right', minimum=None):
     if minimum is not None:
         max_len = max(minimum, max_len)
 
-    conf_max = get_option("print_config.max_colwidth")
+    conf_max = get_option("print.max_colwidth")
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
@@ -1205,35 +1205,35 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     warnings.warn("set_printoptions is deprecated, use set_option instead",
                           FutureWarning)
     if precision is not None:
-        set_option("print_config.precision", precision)
+        set_option("print.precision", precision)
     if column_space is not None:
-        set_option("print_config.column_space", column_space)
+        set_option("print.column_space", column_space)
     if max_rows is not None:
-        set_option("print_config.max_rows", max_rows)
+        set_option("print.max_rows", max_rows)
     if max_colwidth is not None:
-        set_option("print_config.max_colwidth", max_colwidth)
+        set_option("print.max_colwidth", max_colwidth)
     if max_columns is not None:
-        set_option("print_config.max_columns", max_columns)
+        set_option("print.max_columns", max_columns)
     if colheader_justify is not None:
-        set_option("print_config.colheader_justify", colheader_justify)
+        set_option("print.colheader_justify", colheader_justify)
     if notebook_repr_html is not None:
-        set_option("print_config.notebook_repr_html", notebook_repr_html)
+        set_option("print.notebook_repr_html", notebook_repr_html)
     if date_dayfirst is not None:
-        set_option("print_config.date_dayfirst", date_dayfirst)
+        set_option("print.date_dayfirst", date_dayfirst)
     if date_yearfirst is not None:
-        set_option("print_config.date_yearfirst", date_yearfirst)
+        set_option("print.date_yearfirst", date_yearfirst)
     if pprint_nest_depth is not None:
-        set_option("print_config.pprint_nest_depth", pprint_nest_depth)
+        set_option("print.pprint_nest_depth", pprint_nest_depth)
     if multi_sparse is not None:
-        set_option("print_config.multi_sparse", multi_sparse)
+        set_option("print.multi_sparse", multi_sparse)
     if encoding is not None:
-        set_option("print_config.encoding", encoding)
+        set_option("print.encoding", encoding)
 
 def reset_printoptions():
     import warnings
     warnings.warn("reset_printoptions is deprecated, use reset_option instead",
                           FutureWarning)
-    reset_option("^print_config\.")
+    reset_option("^print\.")
 
 def detect_console_encoding():
     """
@@ -1365,8 +1365,8 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
                       "being renamed to 'accuracy'", FutureWarning)
         accuracy = precision
 
-    set_option("print_config.float_format", EngFormatter(accuracy, use_eng_prefix))
-    set_option("print_config.column_space", max(12, accuracy + 9))
+    set_option("print.float_format", EngFormatter(accuracy, use_eng_prefix))
+    set_option("print.column_space", max(12, accuracy + 9))
 
 def _put_lines(buf, lines):
     if any(isinstance(x, unicode) for x in lines):
