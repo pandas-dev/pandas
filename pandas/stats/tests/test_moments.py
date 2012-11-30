@@ -8,7 +8,9 @@ from numpy.random import randn
 import numpy as np
 
 from pandas import Series, DataFrame, bdate_range, isnull, notnull
-from pandas.util.testing import assert_almost_equal, assert_series_equal
+from pandas.util.testing import (
+    assert_almost_equal, assert_series_equal, assert_frame_equal
+    )
 from pandas.util.py3compat import PY3
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
@@ -40,7 +42,8 @@ class TestMoments(unittest.TestCase):
         counter = lambda x: np.isfinite(x).astype(float).sum()
         self._check_moment_func(mom.rolling_count, counter,
                                 has_min_periods=False,
-                                preserve_nan=False)
+                                preserve_nan=False,
+                                fill_value=0)
 
     def test_rolling_mean(self):
         self._check_moment_func(mom.rolling_mean, np.mean)
@@ -76,10 +79,11 @@ class TestMoments(unittest.TestCase):
             return values[int(idx)]
 
         for q in qs:
-            def f(x, window, min_periods=None, freq=None):
+            def f(x, window, min_periods=None, freq=None, center=False):
                 return mom.rolling_quantile(x, window, q,
-                                                min_periods=min_periods,
-                                                freq=freq)
+                                            min_periods=min_periods,
+                                            freq=freq,
+                                            center=center)
             def alt(x):
                 return scoreatpercentile(x, q)
 
@@ -89,11 +93,12 @@ class TestMoments(unittest.TestCase):
         ser = Series([])
         assert_series_equal(ser, mom.rolling_apply(ser, 10, lambda x:x.mean()))
 
-        def roll_mean(x, window, min_periods=None, freq=None):
+        def roll_mean(x, window, min_periods=None, freq=None, center=False):
             return mom.rolling_apply(x, window,
-                                         lambda x: x[np.isfinite(x)].mean(),
-                                         min_periods=min_periods,
-                                         freq=freq)
+                                     lambda x: x[np.isfinite(x)].mean(),
+                                     min_periods=min_periods,
+                                     freq=freq,
+                                     center=center)
         self._check_moment_func(roll_mean, np.mean)
 
     def test_rolling_apply_out_of_bounds(self):
@@ -185,20 +190,28 @@ class TestMoments(unittest.TestCase):
 
     def _check_moment_func(self, func, static_comp, window=50,
                            has_min_periods=True,
+                           has_center=True,
                            has_time_rule=True,
-                           preserve_nan=True):
+                           preserve_nan=True,
+                           fill_value=None):
 
         self._check_ndarray(func, static_comp, window=window,
                             has_min_periods=has_min_periods,
-                            preserve_nan=preserve_nan)
+                            preserve_nan=preserve_nan,
+                            has_center=has_center,
+                            fill_value=fill_value)
 
         self._check_structures(func, static_comp,
                                has_min_periods=has_min_periods,
-                               has_time_rule=has_time_rule)
+                               has_time_rule=has_time_rule,
+                               fill_value=fill_value,
+                               has_center=has_center)
 
     def _check_ndarray(self, func, static_comp, window=50,
                        has_min_periods=True,
-                       preserve_nan=True):
+                       preserve_nan=True,
+                       has_center=True,
+                       fill_value=None):
 
         result = func(self.arr, window)
         assert_almost_equal(result[-1],
@@ -237,8 +250,30 @@ class TestMoments(unittest.TestCase):
             result = func(arr, 50)
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))
 
+
+        if has_center:
+            if has_min_periods:
+                result = func(arr, 20, min_periods=15, center=True)
+                expected = func(arr, 20, min_periods=15)
+            else:
+                result = func(arr, 20, center=True)
+                expected = func(arr, 20)
+
+            assert_almost_equal(result[0], expected[10])
+            if fill_value is None:
+                self.assert_(np.isnan(result[-10:]).all())
+            else:
+                self.assert_((result[-10:] == 0).all())
+            if has_min_periods:
+                self.assert_(np.isnan(expected[23]))
+                self.assert_(np.isnan(result[13]))
+                self.assert_(np.isnan(expected[-5]))
+                self.assert_(np.isnan(result[-15]))
+
     def _check_structures(self, func, static_comp,
-                          has_min_periods=True, has_time_rule=True):
+                          has_min_periods=True, has_time_rule=True,
+                          has_center=True,
+                          fill_value=None):
 
         series_result = func(self.series, 50)
         self.assert_(isinstance(series_result, Series))
@@ -270,6 +305,31 @@ class TestMoments(unittest.TestCase):
 
             assert_almost_equal(frame_result.xs(last_date),
                                 trunc_frame.apply(static_comp))
+
+        if has_center:
+            if has_min_periods:
+                minp = 10
+                series_xp = func(self.series, 25, min_periods=minp).shift(-13)
+                frame_xp = func(self.frame, 25, min_periods=minp).shift(-13)
+
+                series_rs = func(self.series, 25, min_periods=minp,
+                                 center=True)
+                frame_rs = func(self.frame, 25, min_periods=minp,
+                                center=True)
+
+            else:
+                series_xp = func(self.series, 25).shift(-13)
+                frame_xp = func(self.frame, 25).shift(-13)
+
+                series_rs = func(self.series, 25, center=True)
+                frame_rs = func(self.frame, 25, center=True)
+
+            if fill_value is not None:
+                series_xp = series_xp.fillna(fill_value)
+                frame_xp = frame_xp.fillna(fill_value)
+            assert_series_equal(series_xp, series_rs)
+            assert_frame_equal(frame_xp, frame_rs)
+
 
     def test_legacy_time_rule_arg(self):
         from StringIO import StringIO

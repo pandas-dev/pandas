@@ -36,7 +36,8 @@ pandas 0.10.0
     for both Series and DataFrame (#2002)
   - Add ``duplicated`` and ``drop_duplicates`` functions to Series (#1923)
   - Add docs for ``HDFStore table`` format
-  - 'density' property in `SparseSeries` (#2384)
+  - 'density' property in ``SparseSeries`` (#2384)
+  - Centered moving window functions via ``center`` keyword (#1270)
 
 **API Changes**
 
