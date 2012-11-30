@@ -4188,7 +4188,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
                           xlsx_style.alignment.horizontal)
 
-    def test_to_excel_header_styling(self):
+    def test_to_excel_header_styling_xls(self):
 
         import StringIO
         s = StringIO.StringIO(
@@ -4210,9 +4210,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                              cols=["Date", "type"])
 
         try:
+            import xlwt
             import xlrd
-            import openpyxl
-            from openpyxl.cell import get_column_letter
         except ImportError:
             raise nose.SkipTest
 
@@ -4239,6 +4238,38 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 self.assertEquals(2, cell_xf.alignment.hor_align)
 
         os.remove(filename)
+
+
+    def test_to_excel_header_styling_xlsx(self):
+
+        import StringIO
+        s = StringIO.StringIO(
+        """Date,ticker,type,value
+        2001-01-01,x,close,12.2
+        2001-01-01,x,open ,12.1
+        2001-01-01,y,close,12.2
+        2001-01-01,y,open ,12.1
+        2001-02-01,x,close,12.2
+        2001-02-01,x,open ,12.1
+        2001-02-01,y,close,12.2
+        2001-02-01,y,open ,12.1
+        2001-03-01,x,close,12.2
+        2001-03-01,x,open ,12.1
+        2001-03-01,y,close,12.2
+        2001-03-01,y,open ,12.1""")
+        df = read_csv(s, parse_dates=["Date"])
+        pdf = df.pivot_table(values="value", rows=["ticker"],
+                                             cols=["Date", "type"])
+
+        try:
+            import openpyxl
+            from openpyxl.cell import get_column_letter
+        except ImportError:
+            raise nose.SkipTest
+
+        if openpyxl.__version__ < '1.6.1':
+            raise nose.SkipTest
+
         # test xlsx_styling
         filename = '__tmp__.xlsx'
         pdf.to_excel(filename, 'test1')
