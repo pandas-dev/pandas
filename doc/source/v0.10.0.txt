@@ -130,6 +130,10 @@ API changes
        import pandas as pd
        pd.get_option("print_config.max_rows")
 
+
+  - to_string() methods now always return unicode strings  (GH2224_).
+
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
@@ -138,3 +142,4 @@ on GitHub for a complete list.
 .. _GH1996: https://github.com/pydata/pandas/issues/1996
 .. _GH2316: https://github.com/pydata/pandas/issues/2316
 .. _GH2097: https://github.com/pydata/pandas/issues/2097
+.. _GH2224: https://github.com/pydata/pandas/issues/2224
