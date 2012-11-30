@@ -2427,8 +2427,12 @@ class TestTimestamp(unittest.TestCase):
         self.assertRaises(Exception, b.__lt__, a)
         self.assertRaises(Exception, b.__gt__, a)
 
-        self.assertRaises(Exception, a.__eq__, b.to_pydatetime())
-        self.assertRaises(Exception, a.to_pydatetime().__eq__, b)
+        if sys.version_info < (3,3):
+            self.assertRaises(Exception, a.__eq__, b.to_pydatetime())
+            self.assertRaises(Exception, a.to_pydatetime().__eq__, b)
+        else:
+            self.assertFalse(a == b.to_pydatetime())
+            self.assertFalse(a.to_pydatetime() == b)
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123L)
