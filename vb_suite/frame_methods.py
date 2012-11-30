@@ -88,3 +88,13 @@ frame_iteritems = Benchmark('f()', setup,
 
 frame_iteritems_cached = Benchmark('g()', setup,
                                    start_date=datetime(2010, 6, 1))
+
+#----------------------------------------------------------------------
+# to_string
+
+setup = common_setup + """
+df = DataFrame(randn(100, 10))
+"""
+
+frame_to_string_floats = Benchmark('df.to_string()', setup,
+                                   start_date=datetime(2010, 6, 1))

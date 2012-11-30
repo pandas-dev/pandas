@@ -71,8 +71,11 @@ class TestDataFrameFormatting(unittest.TestCase):
                      max_len + 1)) for i in range(10)]})
         r = repr(df)
         r = r[r.find('\n') + 1:]
+
+        _strlen = fmt._strlen_func()
+
         for line, value in zip(r.split('\n'), df['B']):
-            if fmt._strlen(value) + 1 > max_len:
+            if _strlen(value) + 1 > max_len:
                 self.assert_('...' in line)
             else:
                 self.assert_('...' not in line)

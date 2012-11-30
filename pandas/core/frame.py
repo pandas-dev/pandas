@@ -586,7 +586,7 @@ class DataFrame(NDFrame):
         """
 
         if com.in_qtconsole():
-            terminal_width, terminal_height = 10, 100
+            terminal_width, terminal_height = 100, 100
         else:
             terminal_width, terminal_height = get_terminal_size()
         max_rows = (terminal_height if get_option("print_config.max_rows") == 0
@@ -666,6 +666,9 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
+        if com.in_qtconsole():
+            raise ValueError('Disable HTML output in QtConsole')
+
         if get_option("print_config.notebook_repr_html"):
             if self._need_info_repr_():
                 return None

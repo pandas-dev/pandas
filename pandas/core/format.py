@@ -124,6 +124,8 @@ class SeriesFormatter(object):
         maxlen = max(len(x) for x in fmt_index)
         pad_space = min(maxlen, 60)
 
+        _encode_diff = _encode_diff_func()
+
         result = ['%s   %s'] * len(fmt_values)
         for i, (k, v) in enumerate(izip(fmt_index[1:], fmt_values)):
             try:
@@ -141,19 +143,30 @@ class SeriesFormatter(object):
 
         return unicode(u'\n'.join(result))
 
-if py3compat.PY3:  # pragma: no cover
-    _encode_diff = lambda x: 0
 
-    _strlen = len
-else:
-    def _encode_diff(x):
-        return len(x) - len(x.decode(get_option("print_config.encoding")))
+def _encode_diff_func():
+    if py3compat.PY3:  # pragma: no cover
+        _encode_diff = lambda x: 0
+    else:
+        encoding = get_option("print_config.encoding")
+        def _encode_diff(x):
+            return len(x) - len(x.decode(encoding))
 
-    def _strlen(x):
-        try:
-            return len(x.decode(get_option("print_config.encoding")))
-        except UnicodeError:
-            return len(x)
+    return _encode_diff
+
+
+def _strlen_func():
+    if py3compat.PY3:  # pragma: no cover
+        _strlen = len
+    else:
+        encoding = get_option("print_config.encoding")
+        def _strlen(x):
+            try:
+                return len(x.decode(encoding))
+            except UnicodeError:
+                return len(x)
+
+    return _strlen
 
 
 class DataFrameFormatter(object):
@@ -217,17 +230,20 @@ class DataFrameFormatter(object):
 
         stringified = []
 
+        _strlen = _strlen_func()
+
         for i, c in enumerate(self.columns):
             if self.header:
                 fmt_values = self._format_col(i)
                 cheader = str_columns[i]
 
-                max_colwidth = max(self.col_space or 0, *(_strlen(x) for x in cheader))
+                max_colwidth = max(self.col_space or 0,
+                                   *(_strlen(x) for x in cheader))
 
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=max_colwidth)
 
-                max_len = max(max(_strlen(x) for x in fmt_values),
+                max_len = max(np.max([_strlen(x) for x in fmt_values]),
                               max_colwidth)
                 if self.justify == 'left':
                     cheader = [x.ljust(max_len) for x in cheader]
@@ -1067,7 +1083,10 @@ def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0:
         return strings
 
-    max_len = max(_strlen(x) for x in strings)
+    _strlen = _strlen_func()
+    _encode_diff = _encode_diff_func()
+
+    max_len = np.max([_strlen(x) for x in strings])
 
     if minimum is not None:
         max_len = max(minimum, max_len)
