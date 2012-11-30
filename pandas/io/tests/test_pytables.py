@@ -450,7 +450,7 @@ class TestHDFStore(unittest.TestCase):
 
     def test_sparse_panel(self):
         items = ['x', 'y', 'z']
-        p = Panel(dict((i, tm.makeDataFrame()) for i in items))
+        p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))
         sp = p.to_sparse()
 
         self._check_double_roundtrip(sp, tm.assert_panel_equal,

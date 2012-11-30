@@ -55,6 +55,8 @@ def get_dt_ex(cols=['h']):
 
 class TestBlock(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         self.fblock = get_float_ex()
         self.cblock = get_complex_ex()
@@ -193,6 +195,8 @@ class TestBlock(unittest.TestCase):
 
 
 class TestBlockManager(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.blocks = [get_float_ex(),

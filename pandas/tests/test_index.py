@@ -25,7 +25,7 @@ import pandas as pd
 from pandas.lib import Timestamp
 
 class TestIndex(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.unicodeIndex = tm.makeUnicodeIndex(100)
         self.strIndex = tm.makeStringIndex(100)
@@ -509,7 +509,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(not isinstance(res, Index))
 
 class TestInt64Index(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.index = Int64Index(np.arange(0, 20, 2))
 
@@ -872,7 +872,7 @@ class TestInt64Index(unittest.TestCase):
             str(idx)
 
 class TestMultiIndex(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
         minor_axis = Index(['one', 'two'])
