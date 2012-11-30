@@ -6,7 +6,6 @@ import re
 from itertools import izip
 from urlparse import urlparse
 import csv
-import xlwt
 
 import numpy as np
 
@@ -1934,6 +1933,7 @@ class CellStyleConverter(object):
         ----------
         style_dict: style dictionary to convert
         """
+        import xlwt
         def style_to_xlwt(item, firstlevel=True, field_sep=',', line_sep=';'):
             """helper wich recursively generate an xlwt easy style string
             for example:
