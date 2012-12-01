@@ -1,5 +1,3 @@
-from __future__ import with_statement # support python 2.5
-
 import pandas.core.config as cf
 from pandas.core.config import is_int,is_bool,is_text,is_float
 from pandas.core.format import detect_console_encoding
@@ -18,7 +16,7 @@ module is imported, register them here rather then in the module.
 
 
 ###########################################
-# options from the "print_config" namespace
+# options from the "print" namespace
 
 pc_precision_doc="""
 : int
@@ -79,7 +77,7 @@ pc_encoding_doc="""
     these are generally strings meant to be displayed on the console.
 """
 
-with cf.config_prefix('print_config'):
+with cf.config_prefix('print'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('digits', 7, validator=is_int)
     cf.register_option('float_format', None)

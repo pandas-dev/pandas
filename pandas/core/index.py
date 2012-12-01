@@ -1583,7 +1583,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            sparsify = get_option("print_config.multi_sparse")
+            sparsify = get_option("print.multi_sparse")
 
         if sparsify:
             # little bit of a kludge job for #1217

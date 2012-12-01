@@ -13,19 +13,19 @@ class TestConfig(unittest.TestCase):
 
         from copy import deepcopy
         self.cf = pd.core.config
-        self.gc=deepcopy(getattr(self.cf, '__global_config'))
-        self.do=deepcopy(getattr(self.cf, '__deprecated_options'))
-        self.ro=deepcopy(getattr(self.cf, '__registered_options'))
+        self.gc=deepcopy(getattr(self.cf, '_global_config'))
+        self.do=deepcopy(getattr(self.cf, '_deprecated_options'))
+        self.ro=deepcopy(getattr(self.cf, '_registered_options'))
 
     def setUp(self):
-        setattr(self.cf, '__global_config', {})
-        setattr(self.cf, '__deprecated_options', {})
-        setattr(self.cf, '__registered_options', {})
+        setattr(self.cf, '_global_config', {})
+        setattr(self.cf, '_deprecated_options', {})
+        setattr(self.cf, '_registered_options', {})
 
     def tearDown(self):
-        setattr(self.cf, '__global_config',self.gc)
-        setattr(self.cf, '__deprecated_options', self.do)
-        setattr(self.cf, '__registered_options', self.ro)
+        setattr(self.cf, '_global_config',self.gc)
+        setattr(self.cf, '_deprecated_options', self.do)
+        setattr(self.cf, '_registered_options', self.ro)
 
     def test_api(self):
 

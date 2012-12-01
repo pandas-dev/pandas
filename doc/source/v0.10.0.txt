@@ -135,13 +135,17 @@ API changes
     - ``reset_option`` - reset one or more options to their default value. Partial names are accepted.
     - ``describe_option`` - print a description of one or more options. When called  with no arguments. print all registered options.
 
-    Note: ``set_printoptions`` is now deprecated (but functioning), the print options now live under "print_config.XYZ". For example:
+    Note: ``set_printoptions``/ ``reset_printoptions``  are now deprecated (but functioning), the print options now live under "print.XYZ". For example:
 
 
     .. ipython:: python
 
        import pandas as pd
-       pd.get_option("print_config.max_rows")
+       pd.get_option("print.max_rows")
+
+
+  - to_string() methods now always return unicode strings  (GH2224_).
+
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -151,3 +155,4 @@ on GitHub for a complete list.
 .. _GH1996: https://github.com/pydata/pandas/issues/1996
 .. _GH2316: https://github.com/pydata/pandas/issues/2316
 .. _GH2097: https://github.com/pydata/pandas/issues/2097
+.. _GH2224: https://github.com/pydata/pandas/issues/2224

@@ -77,6 +77,8 @@ Optional dependencies
      * Needed for parts of :mod:`pandas.stats`
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support with ``DateRange``
+  * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
+     * Needed for Excel I/O
 
 Installation from sources
 =========================
