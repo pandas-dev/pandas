@@ -58,8 +58,9 @@ class TestHDFStore(unittest.TestCase):
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
-        self.assertEquals(len(self.store), 4)
-        self.assert_(set(self.store.keys()) == set(['a', 'b', 'c', 'd']))
+        self.store['foo/bar'] = tm.makePanel()
+        self.assertEquals(len(self.store), 5)
+        self.assert_(set(self.store.keys()) == set(['a', 'b', 'c', 'd', 'foo/bar']))
 
     def test_repr(self):
         repr(self.store)
@@ -67,6 +68,7 @@ class TestHDFStore(unittest.TestCase):
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
+        self.store['foo/bar'] = tm.makePanel()
         self.store.append('e', tm.makePanel())
         repr(self.store)
         str(self.store)
@@ -74,9 +76,11 @@ class TestHDFStore(unittest.TestCase):
     def test_contains(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeDataFrame()
+        self.store['foo/bar'] = tm.makeDataFrame()
         self.assert_('a' in self.store)
         self.assert_('b' in self.store)
         self.assert_('c' not in self.store)
+        self.assert_('foo/bar' in self.store)
 
     def test_reopen_handle(self):
         self.store['a'] = tm.makeTimeSeries()
@@ -94,6 +98,10 @@ class TestHDFStore(unittest.TestCase):
         right = self.store['a']
         tm.assert_series_equal(left, right)
 
+        left = self.store.get('/a')
+        right = self.store['/a']
+        tm.assert_series_equal(left, right)
+
         self.assertRaises(KeyError, self.store.get, 'b')
 
     def test_put(self):
@@ -101,6 +109,7 @@ class TestHDFStore(unittest.TestCase):
         df = tm.makeTimeDataFrame()
         self.store['a'] = ts
         self.store['b'] = df[:10]
+        self.store['foo/bar/bah'] = df[:10]
         self.store.put('c', df[:10], table=True)
 
         # not OK, not a table
@@ -294,6 +303,19 @@ class TestHDFStore(unittest.TestCase):
 
         self.store.remove('b')
         self.assertEquals(len(self.store), 0)
+
+        # pathing
+        self.store['a'] = ts
+        self.store['b/foo'] = df
+        self.store.remove('foo')
+        self.store.remove('b/foo')
+        self.assertEquals(len(self.store), 1)
+
+        self.store['a'] = ts
+        self.store['b/foo'] = df
+        self.store.remove('b')
+        self.assertEquals(len(self.store), 1)
+
 
         # __delitem__
         self.store['a'] = ts

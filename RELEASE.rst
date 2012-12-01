@@ -68,6 +68,7 @@ pandas 0.10.0
   - Add ``normalize`` option to Series/DataFrame.asfreq (#2137)
   - SparseSeries and SparseDataFrame construction from empty and scalar
     values now no longer create dense ndarrays unnecessarily (#2322)
+  - ``HDFStore`` now supports hierarchial keys (#2397)
   - Support multiple query selection formats for ``HDFStore tables`` (#1996)
   - Support ``del store['df']`` syntax to delete HDFStores
   - Add multi-dtype support for ``HDFStore tables``
