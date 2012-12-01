@@ -39,6 +39,9 @@ pandas 0.10.0
   - 'density' property in `SparseSeries` (#2384)
   - Add ``ffill`` and ``bfill`` convenience functions for forward- and
     backfilling time series data (#2284)
+  - New option configuration system and functions `set_option`, `get_option`,
+    and `describe_option`. Deprecate `get_printoptions` and `set_printoptions`
+    (#2393)
 
 **API Changes**
 
