@@ -24,6 +24,8 @@ from distutils.version import LooseVersion
 _default_compressor = LooseVersion(tables.__version__) >= '2.2' \
                       and 'blosc' or 'zlib'
 
+_multiprocess_can_split_ = False
+
 class TestHDFStore(unittest.TestCase):
     path = '__test__.h5'
     scratchpath = '__scratch__.h5'
