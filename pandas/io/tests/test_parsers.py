@@ -17,7 +17,7 @@ import numpy as np
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               ExcelFile, TextFileReader, TextParser)
+                               TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal, network)
 import pandas.util.testing as tm
@@ -30,23 +30,8 @@ from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
 
 from numpy.testing.decorators import slow
-from pandas.io.date_converters import (
-    parse_date_time, parse_date_fields, parse_all_fields
-)
 
 from pandas._parser import OverflowError
-
-def _skip_if_no_xlrd():
-    try:
-        import xlrd
-    except ImportError:
-        raise nose.SkipTest('xlrd not installed, skipping')
-
-def _skip_if_no_openpyxl():
-    try:
-        import openpyxl
-    except ImportError:
-        raise nose.SkipTest('openpyxl not installed, skipping')
 
 
 class ParserTests(object):
@@ -728,85 +713,6 @@ baz,7,8,9
                                               Timestamp)))
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         tm.assert_frame_equal(df, df2)
-
-    def test_parse_cols_int(self):
-        _skip_if_no_openpyxl()
-        _skip_if_no_xlrd()
-
-        suffix = ['', 'x']
-
-        for s in suffix:
-            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
-            xls = ExcelFile(pth)
-            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
-                            parse_cols=3)
-            df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
-            df2 = df2.reindex(columns=['A', 'B', 'C'])
-            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
-                            parse_dates=True, parse_cols=3)
-            tm.assert_frame_equal(df, df2)
-            tm.assert_frame_equal(df3, df2)
-
-    def test_parse_cols_list(self):
-        _skip_if_no_openpyxl()
-        _skip_if_no_xlrd()
-
-        suffix = ['', 'x']
-
-        for s in suffix:
-            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
-            xls = ExcelFile(pth)
-            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
-                            parse_cols=[0, 2, 3])
-            df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
-            df2 = df2.reindex(columns=['B', 'C'])
-            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
-                             parse_dates=True,
-                             parse_cols=[0, 2, 3])
-            tm.assert_frame_equal(df, df2)
-            tm.assert_frame_equal(df3, df2)
-
-    def test_parse_cols_str(self):
-        _skip_if_no_openpyxl()
-        _skip_if_no_xlrd()
-
-        suffix = ['', 'x']
-
-        for s in suffix:
-
-            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
-            xls = ExcelFile(pth)
-
-            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
-                            parse_cols='A:D')
-            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
-            df2 = df2.reindex(columns=['A', 'B', 'C'])
-            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
-                            parse_dates=True, parse_cols='A:D')
-            tm.assert_frame_equal(df, df2)
-            tm.assert_frame_equal(df3, df2)
-            del df, df2, df3
-
-            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
-                            parse_cols='A,C,D')
-            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
-            df2 = df2.reindex(columns=['B', 'C'])
-            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
-                             parse_dates=True,
-                             parse_cols='A,C,D')
-            tm.assert_frame_equal(df, df2)
-            tm.assert_frame_equal(df3, df2)
-            del df, df2, df3
-
-            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
-                            parse_cols='A,C:D')
-            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
-            df2 = df2.reindex(columns=['B', 'C'])
-            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
-                             parse_dates=True,
-                             parse_cols='A,C:D')
-            tm.assert_frame_equal(df, df2)
-            tm.assert_frame_equal(df3, df2)
 
     def test_read_table_unicode(self):
         fin = BytesIO(u'\u0141aski, Jan;1'.encode('utf-8'))
@@ -1620,73 +1526,6 @@ eight,1,2,3"""
                                   na_values=[-1,'',None])
         tm.assert_frame_equal(result, result2)
 
-    def test_excel_stop_iterator(self):
-        _skip_if_no_xlrd()
-
-        excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
-        parsed = excel_data.parse('Sheet1')
-        expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
-        tm.assert_frame_equal(parsed, expected)
-
-    def test_excel_cell_error_na(self):
-        _skip_if_no_xlrd()
-
-        excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
-        parsed = excel_data.parse('Sheet1')
-        expected = DataFrame([[np.nan]], columns=['Test'])
-        tm.assert_frame_equal(parsed, expected)
-
-    def test_excel_table(self):
-        _skip_if_no_xlrd()
-
-        pth = os.path.join(self.dirpath, 'test.xls')
-        xls = ExcelFile(pth)
-        df = xls.parse('Sheet1', index_col=0, parse_dates=True)
-        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
-        df3 = xls.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
-        tm.assert_frame_equal(df, df2)
-        tm.assert_frame_equal(df3, df2)
-
-        df4 = xls.parse('Sheet1', index_col=0, parse_dates=True,
-                        skipfooter=1)
-        df5 = xls.parse('Sheet1', index_col=0, parse_dates=True,
-                        skip_footer=1)
-        tm.assert_frame_equal(df4, df.ix[:-1])
-        tm.assert_frame_equal(df4, df5)
-
-    def test_excel_read_buffer(self):
-        _skip_if_no_xlrd()
-        _skip_if_no_openpyxl()
-
-        pth = os.path.join(self.dirpath, 'test.xls')
-        f = open(pth, 'rb')
-        xls = ExcelFile(f)
-        # it works
-        xls.parse('Sheet1', index_col=0, parse_dates=True)
-
-        pth = os.path.join(self.dirpath, 'test.xlsx')
-        f = open(pth, 'rb')
-        xl = ExcelFile(f)
-        df = xl.parse('Sheet1', index_col=0, parse_dates=True)
-
-    def test_xlsx_table(self):
-        _skip_if_no_openpyxl()
-
-        pth = os.path.join(self.dirpath, 'test.xlsx')
-        xlsx = ExcelFile(pth)
-        df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
-        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
-        df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
-        tm.assert_frame_equal(df, df2)
-        tm.assert_frame_equal(df3, df2)
-
-        df4 = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
-                         skipfooter=1)
-        df5 = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
-                         skip_footer=1)
-        tm.assert_frame_equal(df4, df.ix[:-1])
-        tm.assert_frame_equal(df4, df5)
-
     def test_unicode_encoding(self):
         pth = psplit(psplit(curpath())[0])[0]
         pth = os.path.join(pth, 'tests/data/unicode_series.csv')
@@ -1700,8 +1539,6 @@ eight,1,2,3"""
         self.assertEquals(got, expected)
 
     def test_iteration_open_handle(self):
-        import itertools
-
         if PY3:
             raise nose.SkipTest
 
@@ -2016,6 +1853,5 @@ def curpath():
     return pth
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

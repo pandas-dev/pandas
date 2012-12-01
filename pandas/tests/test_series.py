@@ -222,12 +222,14 @@ class TestNanops(unittest.TestCase):
 class SafeForSparse(object):
     pass
 
+_ts = tm.makeTimeSeries()
+
 class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        self.ts = tm.makeTimeSeries()
+        self.ts = _ts.copy()
         self.ts.name = 'ts'
 
         self.series = tm.makeStringSeries()

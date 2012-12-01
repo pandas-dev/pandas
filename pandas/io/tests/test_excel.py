@@ -1,0 +1,795 @@
+# pylint: disable=E1101
+
+from pandas.util.py3compat import StringIO, BytesIO, PY3
+from datetime import datetime
+from os.path import split as psplit
+import csv
+import os
+import sys
+import re
+import unittest
+
+import nose
+
+from numpy import nan
+import numpy as np
+
+from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
+import pandas.io.parsers as parsers
+from pandas.io.parsers import (read_csv, read_table, read_fwf,
+                               ExcelFile, TextFileReader, TextParser)
+from pandas.util.testing import (assert_almost_equal,
+                                 assert_series_equal, network)
+import pandas.util.testing as tm
+import pandas as pd
+
+import pandas.lib as lib
+from pandas.util import py3compat
+from pandas.lib import Timestamp
+from pandas.tseries.index import date_range
+import pandas.tseries.tools as tools
+
+from numpy.testing.decorators import slow
+
+from pandas._parser import OverflowError
+
+from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
+
+def _skip_if_no_xlrd():
+    try:
+        import xlrd
+    except ImportError:
+        raise nose.SkipTest('xlrd not installed, skipping')
+
+def _skip_if_no_xlwt():
+    try:
+        import xlwt
+    except ImportError:
+        raise nose.SkipTest('xlwt not installed, skipping')
+
+def _skip_if_no_openpyxl():
+    try:
+        import openpyxl
+    except ImportError:
+        raise nose.SkipTest('openpyxl not installed, skipping')
+
+def _skip_if_no_excelsuite():
+    _skip_if_no_xlrd()
+    _skip_if_no_xlwt()
+    _skip_if_no_openpyxl()
+
+
+def curpath():
+    pth, _ = os.path.split(os.path.abspath(__file__))
+    return pth
+
+_seriesd = tm.getSeriesData()
+_tsd = tm.getTimeSeriesData()
+_frame = DataFrame(_seriesd)[:10]
+_frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])[:10]
+_tsframe = tm.makeTimeDataFrame()[:5]
+_mixed_frame = _frame.copy()
+_mixed_frame['foo'] = 'bar'
+
+
+class ExcelTests(unittest.TestCase):
+
+    def setUp(self):
+        self.dirpath = curpath()
+        self.csv1 = os.path.join(self.dirpath, 'test1.csv')
+        self.csv2 = os.path.join(self.dirpath, 'test2.csv')
+        self.xls1 = os.path.join(self.dirpath, 'test.xls')
+        self.frame = _frame.copy()
+        self.frame2 = _frame2.copy()
+        self.tsframe = _tsframe.copy()
+        self.mixed_frame = _mixed_frame.copy()
+
+    def test_parse_cols_int(self):
+        _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xls = ExcelFile(pth)
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=3)
+            df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['A', 'B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                            parse_dates=True, parse_cols=3)
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
+
+    def test_parse_cols_list(self):
+        _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xls = ExcelFile(pth)
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=[0, 2, 3])
+            df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols=[0, 2, 3])
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
+
+    def test_parse_cols_str(self):
+        _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xls = ExcelFile(pth)
+
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols='A:D')
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['A', 'B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                            parse_dates=True, parse_cols='A:D')
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
+            del df, df2, df3
+
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols='A,C,D')
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols='A,C,D')
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
+            del df, df2, df3
+
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols='A,C:D')
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols='A,C:D')
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
+
+    def test_excel_stop_iterator(self):
+        _skip_if_no_xlrd()
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
+        parsed = excel_data.parse('Sheet1')
+        expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
+        tm.assert_frame_equal(parsed, expected)
+
+    def test_excel_cell_error_na(self):
+        _skip_if_no_xlrd()
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
+        parsed = excel_data.parse('Sheet1')
+        expected = DataFrame([[np.nan]], columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+    def test_excel_table(self):
+        _skip_if_no_xlrd()
+
+        pth = os.path.join(self.dirpath, 'test.xls')
+        xls = ExcelFile(pth)
+        df = xls.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xls.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
+        tm.assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df3, df2)
+
+        df4 = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                        skipfooter=1)
+        df5 = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                        skip_footer=1)
+        tm.assert_frame_equal(df4, df.ix[:-1])
+        tm.assert_frame_equal(df4, df5)
+
+    def test_excel_read_buffer(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_openpyxl()
+
+        pth = os.path.join(self.dirpath, 'test.xls')
+        f = open(pth, 'rb')
+        xls = ExcelFile(f)
+        # it works
+        xls.parse('Sheet1', index_col=0, parse_dates=True)
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        f = open(pth, 'rb')
+        xl = ExcelFile(f)
+        df = xl.parse('Sheet1', index_col=0, parse_dates=True)
+
+    def test_xlsx_table(self):
+        _skip_if_no_openpyxl()
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        xlsx = ExcelFile(pth)
+        df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
+        tm.assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df3, df2)
+
+        df4 = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
+                         skipfooter=1)
+        df5 = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
+                         skip_footer=1)
+        tm.assert_frame_equal(df4, df.ix[:-1])
+        tm.assert_frame_equal(df4, df5)
+
+    def read_csv(self, *args, **kwds):
+        kwds = kwds.copy()
+        kwds['engine'] = 'python'
+        return read_csv(*args, **kwds)
+
+
+    def test_excel_roundtrip_xls(self):
+        _skip_if_no_excelsuite()
+        self._check_extension('xls')
+
+    def test_excel_roundtrip_xlsx(self):
+        _skip_if_no_excelsuite()
+        self._check_extension('xlsx')
+
+    def _check_extension(self, ext):
+        path = '__tmp_to_excel_from_excel__.' + ext
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        # test roundtrip
+        self.frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=0, has_index_names=True)
+        tm.assert_frame_equal(self.frame, recons)
+
+        self.frame.to_excel(path,'test1', index=False)
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=None)
+        recons.index = self.frame.index
+        tm.assert_frame_equal(self.frame, recons)
+
+        self.frame.to_excel(path,'test1',na_rep='NA')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=0, na_values=['NA'],
+                              has_index_names=True)
+        tm.assert_frame_equal(self.frame, recons)
+
+        os.remove(path)
+
+    def test_excel_roundtrip_xls_mixed(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
+
+        self._check_extension_mixed('xls')
+
+    def test_excel_roundtrip_xlsx_mixed(self):
+        _skip_if_no_openpyxl()
+
+        self._check_extension_mixed('xlsx')
+
+    def _check_extension_mixed(self, ext):
+        path = '__tmp_to_excel_from_excel_mixed__.' + ext
+
+        self.mixed_frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=0, has_index_names=True)
+        tm.assert_frame_equal(self.mixed_frame, recons)
+
+        os.remove(path)
+
+    def test_excel_roundtrip_xls_tsframe(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
+
+        self._check_extension_tsframe('xls')
+
+    def test_excel_roundtrip_xlsx_tsframe(self):
+        _skip_if_no_openpyxl()
+        self._check_extension_tsframe('xlsx')
+
+    def _check_extension_tsframe(self, ext):
+        path = '__tmp_to_excel_from_excel_tsframe__.' + ext
+
+        df = tm.makeTimeDataFrame()[:5]
+
+        df.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1')
+        tm.assert_frame_equal(df, recons)
+
+        os.remove(path)
+
+    def test_excel_roundtrip_xls_int64(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_int64('xls')
+
+    def test_excel_roundtrip_xlsx_int64(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_int64('xlsx')
+
+    def _check_extension_int64(self, ext):
+        path = '__tmp_to_excel_from_excel_int64__.' + ext
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        #Test np.int64, values read come back as float
+        frame = DataFrame(np.random.randint(-10,10,size=(10,2)))
+        frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1').astype(np.int64)
+        tm.assert_frame_equal(frame, recons)
+
+        os.remove(path)
+
+    def test_excel_roundtrip_xls_bool(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_bool('xls')
+
+    def test_excel_roundtrip_xlsx_bool(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_bool('xlsx')
+
+
+    def _check_extension_bool(self, ext):
+        path = '__tmp_to_excel_from_excel_bool__.' + ext
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        #Test reading/writing np.bool8, roundtrip only works for xlsx
+        frame = (DataFrame(np.random.randn(10,2)) >= 0)
+        frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1').astype(np.bool8)
+        tm.assert_frame_equal(frame, recons)
+
+        os.remove(path)
+
+    def test_excel_roundtrip_xls_sheets(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_sheets('xls')
+
+    def test_excel_roundtrip_xlsx_sheets(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_sheets('xlsx')
+
+
+    def _check_extension_sheets(self, ext):
+        path = '__tmp_to_excel_from_excel_sheets__.' + ext
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        # Test writing to separate sheets
+        writer = ExcelWriter(path)
+        self.frame.to_excel(writer,'test1')
+        self.tsframe.to_excel(writer,'test2')
+        writer.save()
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0, has_index_names=True)
+        tm.assert_frame_equal(self.frame, recons)
+        recons = reader.parse('test2',index_col=0)
+        tm.assert_frame_equal(self.tsframe, recons)
+        np.testing.assert_equal(2, len(reader.sheet_names))
+        np.testing.assert_equal('test1', reader.sheet_names[0])
+        np.testing.assert_equal('test2', reader.sheet_names[1])
+
+        os.remove(path)
+
+    def test_excel_roundtrip_xls_colaliases(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_colaliases('xls')
+
+    def test_excel_roundtrip_xlsx_colaliases(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_colaliases('xlsx')
+
+    def _check_extension_colaliases(self, ext):
+        path = '__tmp_to_excel_from_excel_aliases__.' + ext
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        # column aliases
+        col_aliases = Index(['AA', 'X', 'Y', 'Z'])
+        self.frame2.to_excel(path, 'test1', header=col_aliases)
+        reader = ExcelFile(path)
+        rs = reader.parse('test1', index_col=0, has_index_names=True)
+        xp = self.frame2.copy()
+        xp.columns = col_aliases
+        tm.assert_frame_equal(xp, rs)
+
+        os.remove(path)
+
+    def test_excel_roundtrip_xls_indexlabels(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_indexlabels('xls')
+
+    def test_excel_roundtrip_xlsx_indexlabels(self):
+        _skip_if_no_excelsuite()
+        self._check_extension_indexlabels('xlsx')
+
+    def _check_extension_indexlabels(self, ext):
+        path = '__tmp_to_excel_from_excel_indexlabels__.' + ext
+
+        self.frame['A'][:5] = nan
+
+        self.frame.to_excel(path,'test1')
+        self.frame.to_excel(path,'test1', cols=['A', 'B'])
+        self.frame.to_excel(path,'test1', header=False)
+        self.frame.to_excel(path,'test1', index=False)
+
+        # test index_label
+        frame = (DataFrame(np.random.randn(10,2)) >= 0)
+        frame.to_excel(path, 'test1', index_label=['test'])
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=0,
+                              has_index_names=True).astype(np.int64)
+        frame.index.names = ['test']
+        self.assertEqual(frame.index.names, recons.index.names)
+
+        frame = (DataFrame(np.random.randn(10,2)) >= 0)
+        frame.to_excel(path, 'test1', index_label=['test', 'dummy', 'dummy2'])
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=0,
+                              has_index_names=True).astype(np.int64)
+        frame.index.names = ['test']
+        self.assertEqual(frame.index.names, recons.index.names)
+
+        frame = (DataFrame(np.random.randn(10,2)) >= 0)
+        frame.to_excel(path, 'test1', index_label='test')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=0,
+                              has_index_names=True).astype(np.int64)
+        frame.index.names = ['test']
+        self.assertEqual(frame.index.names, recons.index.names)
+
+        #test index_labels in same row as column names
+        self.frame.to_excel('/tmp/tests.xls', 'test1',
+                            cols=['A', 'B', 'C', 'D'], index=False)
+        #take 'A' and 'B' as indexes (they are in same row as cols 'C', 'D')
+        df = self.frame.copy()
+        df = df.set_index(['A', 'B'])
+
+        reader = ExcelFile('/tmp/tests.xls')
+        recons = reader.parse('test1', index_col=[0, 1])
+        tm.assert_frame_equal(df, recons)
+
+        os.remove(path)
+
+    def test_excel_roundtrip_datetime(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
+        # datetime.date, not sure what to test here exactly
+        path = '__tmp_excel_roundtrip_datetime__.xls'
+        tsf = self.tsframe.copy()
+        tsf.index = [x.date() for x in self.tsframe.index]
+        tsf.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1')
+        tm.assert_frame_equal(self.tsframe, recons)
+        os.remove(path)
+
+    def test_excel_roundtrip_bool(self):
+        _skip_if_no_openpyxl()
+
+        #Test roundtrip np.bool8, does not seem to work for xls
+        path = '__tmp_excel_roundtrip_bool__.xlsx'
+        frame = (DataFrame(np.random.randn(10,2)) >= 0)
+        frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1')
+        tm.assert_frame_equal(frame, recons)
+        os.remove(path)
+
+    def test_to_excel_periodindex(self):
+        _skip_if_no_excelsuite()
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp_to_excel_periodindex__.' + ext
+            frame = self.tsframe
+            xp = frame.resample('M', kind='period')
+            xp.to_excel(path, 'sht1')
+
+            reader = ExcelFile(path)
+            rs = reader.parse('sht1', index_col=0, parse_dates=True)
+            tm.assert_frame_equal(xp, rs.to_period('M'))
+            os.remove(path)
+
+    def test_to_excel_multiindex(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
+
+        self._check_excel_multiindex('xls')
+
+    def test_to_excel_multiindex_xlsx(self):
+        _skip_if_no_openpyxl()
+        self._check_excel_multiindex('xlsx')
+
+    def _check_excel_multiindex(self, ext):
+        path = '__tmp_to_excel_multiindex__' + ext + '__.'+ext
+
+        frame = self.frame
+        old_index = frame.index
+        arrays = np.arange(len(old_index)*2).reshape(2,-1)
+        new_index = MultiIndex.from_arrays(arrays,
+                                           names=['first', 'second'])
+        frame.index = new_index
+        frame.to_excel(path, 'test1', header=False)
+        frame.to_excel(path, 'test1', cols=['A', 'B'])
+
+        # round trip
+        frame.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        df = reader.parse('test1', index_col=[0,1], parse_dates=False,
+                          has_index_names=True)
+        tm.assert_frame_equal(frame, df)
+        self.assertEqual(frame.index.names, df.index.names)
+        self.frame.index = old_index # needed if setUP becomes a classmethod
+
+        os.remove(path)
+
+    def test_to_excel_multiindex_dates(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
+        self._check_excel_multiindex_dates('xls')
+
+    def test_to_excel_multiindex_xlsx_dates(self):
+        _skip_if_no_openpyxl()
+        self._check_excel_multiindex_dates('xlsx')
+
+    def _check_excel_multiindex_dates(self, ext):
+        path = '__tmp_to_excel_multiindex_dates__' + ext + '__.' + ext
+
+        # try multiindex with dates
+        tsframe = self.tsframe
+        old_index = tsframe.index
+        new_index = [old_index, np.arange(len(old_index))]
+        tsframe.index = MultiIndex.from_arrays(new_index)
+
+        tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
+        reader = ExcelFile(path)
+        recons = reader.parse('test1', index_col=[0,1], has_index_names=True)
+        tm.assert_frame_equal(tsframe, recons)
+
+        # infer index
+        tsframe.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1')
+        tm.assert_frame_equal(tsframe, recons)
+
+        self.tsframe.index = old_index # needed if setUP becomes classmethod
+
+        os.remove(path)
+
+    def test_to_excel_float_format(self):
+        _skip_if_no_excelsuite()
+        for ext in ['xls', 'xlsx']:
+            filename = '__tmp_to_excel_float_format__.' + ext
+            df = DataFrame([[0.123456, 0.234567, 0.567567],
+                            [12.32112, 123123.2, 321321.2]],
+                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            df.to_excel(filename, 'test1', float_format='%.2f')
+
+            reader = ExcelFile(filename)
+            rs = reader.parse('test1', index_col=None)
+            xp = DataFrame([[0.12, 0.23, 0.57],
+                            [12.32, 123123.20, 321321.20]],
+                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            tm.assert_frame_equal(rs, xp)
+            os.remove(filename)
+
+    def test_to_excel_unicode_filename(self):
+        _skip_if_no_excelsuite()
+
+        for ext in ['xls', 'xlsx']:
+            filename = u'\u0192u.' + ext
+
+            try:
+                f = open(filename, 'wb')
+            except UnicodeEncodeError:
+                raise nose.SkipTest('no unicode file names on this system')
+            else:
+                f.close()
+
+            df = DataFrame([[0.123456, 0.234567, 0.567567],
+                            [12.32112, 123123.2, 321321.2]],
+                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            df.to_excel(filename, 'test1', float_format='%.2f')
+
+            reader = ExcelFile(filename)
+            rs = reader.parse('test1', index_col=None)
+            xp = DataFrame([[0.12, 0.23, 0.57],
+                            [12.32, 123123.20, 321321.20]],
+                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            tm.assert_frame_equal(rs, xp)
+            os.remove(filename)
+
+    def test_to_excel_styleconverter(self):
+        from pandas.io.parsers import CellStyleConverter
+
+        try:
+            import xlwt
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        hstyle = {"font": {"bold": True},
+              "borders": {"top": "thin",
+                        "right": "thin",
+                        "bottom": "thin",
+                        "left": "thin"},
+              "alignment": {"horizontal": "center"}}
+        xls_style = CellStyleConverter.to_xls(hstyle)
+        self.assertTrue(xls_style.font.bold)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.top)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.right)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.bottom)
+        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.left)
+        self.assertEquals(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
+
+        xlsx_style = CellStyleConverter.to_xlsx(hstyle)
+        self.assertTrue(xlsx_style.font.bold)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.top.border_style)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.right.border_style)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.bottom.border_style)
+        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                          xlsx_style.borders.left.border_style)
+        self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
+                          xlsx_style.alignment.horizontal)
+
+    def test_to_excel_header_styling_xls(self):
+
+        import StringIO
+        s = StringIO.StringIO(
+        """Date,ticker,type,value
+        2001-01-01,x,close,12.2
+        2001-01-01,x,open ,12.1
+        2001-01-01,y,close,12.2
+        2001-01-01,y,open ,12.1
+        2001-02-01,x,close,12.2
+        2001-02-01,x,open ,12.1
+        2001-02-01,y,close,12.2
+        2001-02-01,y,open ,12.1
+        2001-03-01,x,close,12.2
+        2001-03-01,x,open ,12.1
+        2001-03-01,y,close,12.2
+        2001-03-01,y,open ,12.1""")
+        df = read_csv(s, parse_dates=["Date"])
+        pdf = df.pivot_table(values="value", rows=["ticker"],
+                                             cols=["Date", "type"])
+
+        try:
+            import xlwt
+            import xlrd
+        except ImportError:
+            raise nose.SkipTest
+
+        filename = '__tmp_to_excel_header_styling_xls__.xls'
+        pdf.to_excel(filename, 'test1')
+
+
+        wbk = xlrd.open_workbook(filename,
+                                 formatting_info=True)
+        self.assertEquals(["test1"], wbk.sheet_names())
+        ws = wbk.sheet_by_name('test1')
+        self.assertEquals([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
+                          ws.merged_cells)
+        for i in range(0, 2):
+            for j in range(0, 7):
+                xfx = ws.cell_xf_index(0, 0)
+                cell_xf = wbk.xf_list[xfx]
+                font = wbk.font_list
+                self.assertEquals(1, font[cell_xf.font_index].bold)
+                self.assertEquals(1, cell_xf.border.top_line_style)
+                self.assertEquals(1, cell_xf.border.right_line_style)
+                self.assertEquals(1, cell_xf.border.bottom_line_style)
+                self.assertEquals(1, cell_xf.border.left_line_style)
+                self.assertEquals(2, cell_xf.alignment.hor_align)
+
+        os.remove(filename)
+
+
+    def test_to_excel_header_styling_xlsx(self):
+
+        import StringIO
+        s = StringIO.StringIO(
+        """Date,ticker,type,value
+        2001-01-01,x,close,12.2
+        2001-01-01,x,open ,12.1
+        2001-01-01,y,close,12.2
+        2001-01-01,y,open ,12.1
+        2001-02-01,x,close,12.2
+        2001-02-01,x,open ,12.1
+        2001-02-01,y,close,12.2
+        2001-02-01,y,open ,12.1
+        2001-03-01,x,close,12.2
+        2001-03-01,x,open ,12.1
+        2001-03-01,y,close,12.2
+        2001-03-01,y,open ,12.1""")
+        df = read_csv(s, parse_dates=["Date"])
+        pdf = df.pivot_table(values="value", rows=["ticker"],
+                                             cols=["Date", "type"])
+
+        try:
+            import openpyxl
+            from openpyxl.cell import get_column_letter
+        except ImportError:
+            raise nose.SkipTest
+
+        if openpyxl.__version__ < '1.6.1':
+            raise nose.SkipTest
+
+        # test xlsx_styling
+        filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
+        pdf.to_excel(filename, 'test1')
+
+        wbk = openpyxl.load_workbook(filename)
+        self.assertEquals(["test1"], wbk.get_sheet_names())
+        ws = wbk.get_sheet_by_name('test1')
+
+        xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
+        xlsaddrs += ["A%s" % i for i in range(1, 6)]
+        xlsaddrs += ["B1", "D1", "F1"]
+        for xlsaddr in xlsaddrs:
+            cell = ws.cell(xlsaddr)
+            self.assertTrue(cell.style.font.bold)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.top.border_style)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.right.border_style)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.bottom.border_style)
+            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+                              cell.style.borders.left.border_style)
+            self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
+                              cell.style.alignment.horizontal)
+
+        mergedcells_addrs = ["C1", "E1", "G1"]
+        for maddr in mergedcells_addrs:
+            self.assertTrue(ws.cell(maddr).merged)
+
+        os.remove(filename)
+
+
+if __name__ == '__main__':
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                   exit=False)
+

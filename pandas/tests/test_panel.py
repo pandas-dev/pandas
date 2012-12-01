@@ -659,6 +659,9 @@ class CheckIndexing(object):
         res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
         self.assert_(com.is_float_dtype(res3['ItemE'].values))
 
+_panel = tm.makePanel()
+tm.add_nans(_panel)
+
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
@@ -668,8 +671,10 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(x, y)
 
     def setUp(self):
-        self.panel = tm.makePanel()
-        tm.add_nans(self.panel)
+        self.panel = _panel.copy()
+        self.panel.major_axis.name = None
+        self.panel.minor_axis.name = None
+        self.panel.items.name = None
 
     def test_constructor(self):
         # with BlockManager
