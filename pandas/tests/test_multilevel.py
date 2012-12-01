@@ -314,6 +314,16 @@ class TestMultiLevel(unittest.TestCase):
         expected = df.ix[2000, 1, 6][['A', 'B', 'C']]
         assert_series_equal(result, expected)
 
+    def test_getitem_multilevel_index_tuple_unsorted(self):
+        index_columns = list("abc")
+        df = DataFrame([[0, 1, 0, "x"], [0, 0, 1, "y"]] ,
+                       columns=index_columns + ["data"])
+        df = df.set_index(index_columns)
+        query_index = df.index[:1]
+        rs = df.ix[query_index, "data"]
+        xp = Series(['x'], index=MultiIndex.from_tuples([(0, 1, 0)]))
+        assert_series_equal(rs, xp)
+
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
         xs2 = self.frame.ix[('bar', 'two')]
