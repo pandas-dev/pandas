@@ -389,7 +389,7 @@ class HDFStore(object):
         if group is not None:
 
             # remove the node
-            if where is None:
+            if where is None or not len(where):
                 group = self.get_node(key)
                 group._f_remove(recursive=True)
             
@@ -468,19 +468,17 @@ class HDFStore(object):
 
             # recursively create the groups
             path = '/'
-            if len(paths) > 1:
-                for p in paths[:-1]:
-                    new_path = path
-                    if not path.endswith('/'):
-                        new_path += '/'
-                    new_path += p
-                    group = self.get_node(new_path)
-                    if group is None:
-                        group = self.handle.createGroup(path, p)
-                    path  = new_path
-
-            # create the required group
-            group = self.handle.createGroup(path, paths[-1])
+            for p in paths:
+                if not len(p):
+                    continue
+                new_path = path
+                if not path.endswith('/'):
+                    new_path += '/'
+                new_path += p
+                group = self.get_node(new_path)
+                if group is None:
+                    group = self.handle.createGroup(path, p)
+                path  = new_path
 
         kind = _TYPE_MAP[type(value)]
         if table or (append and _is_table_type(group)):
