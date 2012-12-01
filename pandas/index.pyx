@@ -1,6 +1,7 @@
 from numpy cimport ndarray
 
-from numpy cimport float64_t, int32_t, int64_t, uint8_t
+from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
+                    NPY_DATETIME)
 cimport cython
 
 cimport numpy as cnp
@@ -12,13 +13,26 @@ cimport util
 
 import numpy as np
 
-import _algos
+import algos
 
-# include "hashtable.pyx"
+cimport tslib
+from tslib import Timestamp
+import tslib
+
+from hashtable cimport *
+import hashtable as _hash
+
+from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
+                       pandas_datetimestruct)
+
+from cpython cimport PyTuple_Check, PyList_Check
 
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
     void PyDateTime_IMPORT()
+
+cdef int64_t iNaT = util.get_nat()
+
 
 PyDateTime_IMPORT
 
@@ -252,34 +266,22 @@ cdef class IndexEngine:
 
 
 
-# @cache_readonly
-# def _monotonicity_check(self):
-#     try:
-#         f = self._algos['is_monotonic']
-#         # wrong buffer type raises ValueError
-#         return f(self.values)
-#     except TypeError:
-#         return False, None
-
-
 
 cdef class Int64Engine(IndexEngine):
 
-    # cdef Int64HashTable mapping
-
     cdef _make_hash_table(self, n):
-        return Int64HashTable(n)
+        return _hash.Int64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _algos.pad_int64(self._get_index_values(), other,
-                                  limit=limit)
+        return algos.pad_int64(self._get_index_values(), other,
+                               limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _algos.backfill_int64(self._get_index_values(), other,
-                                       limit=limit)
+        return algos.backfill_int64(self._get_index_values(), other,
+                                    limit=limit)
 
     cdef _check_type(self, object val):
         hash(val)
@@ -323,20 +325,18 @@ cdef class Int64Engine(IndexEngine):
 
 cdef class Float64Engine(IndexEngine):
 
-    # cdef Float64HashTable mapping
-
     cdef _make_hash_table(self, n):
-        return Float64HashTable(n)
+        return _hash.Float64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_float64(values)
+        return algos.is_monotonic_float64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _algos.pad_float64(self._get_index_values(), other,
+        return algos.pad_float64(self._get_index_values(), other,
                                     limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _algos.backfill_float64(self._get_index_values(), other,
+        return algos.backfill_float64(self._get_index_values(), other,
                                          limit=limit)
 
 
@@ -366,33 +366,31 @@ cdef Py_ssize_t _bin_search(ndarray values, object val):
         return mid + 1
 
 _pad_functions = {
-    'object' : _algos.pad_object,
-    'int64' : _algos.pad_int64,
-    'float64' : _algos.pad_float64
+    'object' : algos.pad_object,
+    'int64' : algos.pad_int64,
+    'float64' : algos.pad_float64
 }
 
 _backfill_functions = {
-    'object': _algos.backfill_object,
-    'int64': _algos.backfill_int64,
-    'float64': _algos.backfill_float64
+    'object': algos.backfill_object,
+    'int64': algos.backfill_int64,
+    'float64': algos.backfill_float64
 }
 
 cdef class ObjectEngine(IndexEngine):
 
-    # cdef PyObjectHashTable mapping
-
     cdef _make_hash_table(self, n):
-        return PyObjectHashTable(n)
+        return _hash.PyObjectHashTable(n)
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_object(values)
+        return algos.is_monotonic_object(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _algos.pad_object(self._get_index_values(), other,
+        return algos.pad_object(self._get_index_values(), other,
                                    limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _algos.backfill_object(self._get_index_values(), other,
+        return algos.backfill_object(self._get_index_values(), other,
                                         limit=limit)
 
 
@@ -414,7 +412,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
-        return _algos.is_monotonic_int64(values)
+        return algos.is_monotonic_int64(values)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -468,21 +466,21 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _algos.pad_int64(self._get_index_values(), other,
+        return algos.pad_int64(self._get_index_values(), other,
                                 limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _algos.backfill_int64(self._get_index_values(), other,
+        return algos.backfill_int64(self._get_index_values(), other,
                                      limit=limit)
 
 
 cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
-        if isinstance(value, _Timestamp):
-            return (<_Timestamp> value).value
+        if isinstance(value, Timestamp):
+            return value.value
         elif value is None or value != value:
             return iNaT
         else:
@@ -505,64 +503,3 @@ cdef inline _to_i8(object val):
             return _pydatetime_to_dts(val, &dts)
         return val
 
-
-# ctypedef fused idxvalue_t:
-#     object
-#     int
-#     float64_t
-#     int32_t
-#     int64_t
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def is_monotonic(ndarray[idxvalue_t] arr):
-#     '''
-#     Returns
-#     -------
-#     is_monotonic, is_unique
-#     '''
-#     cdef:
-#         Py_ssize_t i, n
-#         idxvalue_t prev, cur
-#         bint is_unique = 1
-
-#     n = len(arr)
-
-#     if n < 2:
-#         return True, True
-
-#     prev = arr[0]
-#     for i in range(1, n):
-#         cur = arr[i]
-#         if cur < prev:
-#             return False, None
-#         elif cur == prev:
-#             is_unique = 0
-#         prev = cur
-#     return True, is_unique
-
-
-# @cython.wraparound(False)
-# @cython.boundscheck(False)
-# def groupby_index(ndarray[idxvalue_t] index, ndarray labels):
-#     cdef dict result = {}
-#     cdef Py_ssize_t i, length
-#     cdef list members
-#     cdef object idx, key
-
-#     length = len(index)
-
-#     for i in range(length):
-#         key = util.get_value_1d(labels, i)
-
-#         if util._checknull(key):
-#             continue
-
-#         idx = index[i]
-#         if key in result:
-#             members = result[key]
-#             members.append(idx)
-#         else:
-#             result[key] = [idx]
-
-#     return result

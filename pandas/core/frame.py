@@ -42,7 +42,10 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
+
 import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.algos as _algos
 
 from pandas.core.config import get_option
 
@@ -380,7 +383,7 @@ class DataFrame(NDFrame):
             mask = ma.getmaskarray(data)
             datacopy = ma.copy(data)
             if issubclass(data.dtype.type, np.datetime64):
-                datacopy[mask] = lib.iNaT
+                datacopy[mask] = tslib.iNaT
             else:
                 datacopy = com._maybe_upcast(datacopy)
                 datacopy[mask] = NA
@@ -582,7 +585,10 @@ class DataFrame(NDFrame):
         particular DataFrame.
         """
 
-        terminal_width, terminal_height = get_terminal_size()
+        if com.in_qtconsole():
+            terminal_width, terminal_height = 100, 100
+        else:
+            terminal_width, terminal_height = get_terminal_size()
         max_rows = (terminal_height if get_option("print_config.max_rows") == 0
                     else get_option("print_config.max_rows"))
         max_columns = get_option("print_config.max_columns")
@@ -660,6 +666,9 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
+        if com.in_qtconsole():
+            raise ValueError('Disable HTML output in QtConsole')
+
         if get_option("print_config.notebook_repr_html"):
             if self._need_info_repr_():
                 return None
@@ -1226,7 +1235,7 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csvexcel(self, writer, na_rep=None, cols=None,
+    def _helper_csv(self, writer, na_rep=None, cols=None,
                          header=True, index=True,
                          index_label=None, float_format=None):
         if cols is None:
@@ -1305,7 +1314,8 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
-               mode='w', nanRep=None, encoding=None, quoting=None):
+               mode='w', nanRep=None, encoding=None, quoting=None,
+               line_terminator='\n'):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1336,6 +1346,9 @@ class DataFrame(NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
+        line_terminator: string, default '\n'
+            The newline character or character sequence to use in the output
+            file
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1355,13 +1368,13 @@ class DataFrame(NDFrame):
 
         try:
             if encoding is not None:
-                csvout = com.UnicodeWriter(f, lineterminator='\n',
+                csvout = com.UnicodeWriter(f, lineterminator=line_terminator,
                                            delimiter=sep, encoding=encoding,
                                            quoting=quoting)
             else:
-                csvout = csv.writer(f, lineterminator='\n', delimiter=sep,
-                                    quoting=quoting)
-            self._helper_csvexcel(csvout, na_rep=na_rep,
+                csvout = csv.writer(f, lineterminator=line_terminator,
+                                    delimiter=sep, quoting=quoting)
+            self._helper_csv(csvout, na_rep=na_rep,
                                   float_format=float_format, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label)
@@ -1372,7 +1385,7 @@ class DataFrame(NDFrame):
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None):
+                 index_label=None, startrow=0, startcol=0):
         """
         Write DataFrame to a excel sheet
 
@@ -1397,6 +1410,9 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
+        startow : upper left cell row to dump data frame
+        startcol : upper left cell column to dump data frame
+
 
         Notes
         -----
@@ -1413,11 +1429,17 @@ class DataFrame(NDFrame):
         if isinstance(excel_writer, basestring):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
-        excel_writer.cur_sheet = sheet_name
-        self._helper_csvexcel(excel_writer, na_rep=na_rep,
-                              float_format=float_format, cols=cols,
-                              header=header, index=index,
-                              index_label=index_label)
+
+        formatter = fmt.ExcelFormatter(self,
+                                       na_rep=na_rep,
+                                       cols=cols,
+                                       header=header,
+                                       float_format=float_format,
+                                       index=index,
+                                       index_label=index_label)
+        formatted_cells = formatter.get_formatted_cells()
+        excel_writer.write_cells(formatted_cells, sheet_name,
+                                 startrow=startrow, startcol=startcol)
         if need_save:
             excel_writer.save()
 
@@ -1431,8 +1453,8 @@ class DataFrame(NDFrame):
         """
         import warnings
         if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no effect",
-                          FutureWarning)
+            warnings.warn("force_unicode is deprecated, it will have no "
+                          "effect", FutureWarning)
 
         if nanRep is not None:  # pragma: no cover
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -2386,7 +2408,8 @@ class DataFrame(NDFrame):
         if fill_na:
             return (left_result.fillna(fill_value, method=method, limit=limit,
                                        axis=fill_axis),
-                    right_result.fillna(fill_value, method=method, limit=limit))
+                    right_result.fillna(fill_value, method=method,
+                                        limit=limit))
         else:
             return left_result, right_result
 
@@ -3147,7 +3170,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', axis=0, inplace=False,
+    def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None):
         """
         Fill NA/NaN values using the specified method
@@ -3184,7 +3207,11 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         if value is None:
+            if method is None:
+                raise ValueError('must specify a fill method or value')
             if self._is_mixed_type and axis == 1:
+                if inplace:
+                    raise NotImplementedError()
                 return self.T.fillna(method=method, limit=limit).T
 
             new_blocks = []
@@ -3199,6 +3226,8 @@ class DataFrame(NDFrame):
 
             new_data = BlockManager(new_blocks, self._data.axes)
         else:
+            if method is not None:
+                raise ValueError('cannot specify both a fill method and value')
             # Float type values
             if len(self.columns) == 0:
                 return self
@@ -3222,6 +3251,14 @@ class DataFrame(NDFrame):
             return self
         else:
             return self._constructor(new_data)
+
+    def ffill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='ffill', axis=axis, inplace=inplace,
+                           limit=limit)
+
+    def bfill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='bfill', axis=axis, inplace=inplace,
+                           limit=limit)
 
     def replace(self, to_replace, value=None, method='pad', axis=0,
                 inplace=False, limit=None):
@@ -4292,7 +4329,8 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(com._ensure_float64(mat), minp=min_periods)
+            correl = _algos.nancorr(com._ensure_float64(mat),
+                                    minp=min_periods)
         else:
             if min_periods is None:
                 min_periods = 1
@@ -4343,8 +4381,8 @@ class DataFrame(NDFrame):
             else:
                 baseCov = np.cov(mat.T)
         else:
-            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True,
-                                  minp=min_periods)
+            baseCov = _algos.nancorr(com._ensure_float64(mat), cov=True,
+                                     minp=min_periods)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 

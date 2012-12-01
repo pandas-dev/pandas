@@ -1,7 +1,7 @@
 clean:
 	-rm -rf build dist
 
-tseries: pandas/src/tseries.pyx
+tseries: pandas/lib.pyx pandas/tslib.pyx pandas/hashtable.pyx
 	python setup.py build_ext --inplace
 
 sparse: pandas/src/sparse.pyx

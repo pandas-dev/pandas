@@ -5,6 +5,8 @@ import numpy as np
 from pandas.core.common import isnull, notnull
 import pandas.core.common as com
 import pandas.lib as lib
+import pandas.algos as algos
+import pandas.hashtable as _hash
 
 try:
     import bottleneck as bn
@@ -121,7 +123,7 @@ def _nanmedian(values, axis=None, skipna=True):
         mask = notnull(x)
         if not skipna and not mask.all():
             return np.nan
-        return lib.median(x[mask])
+        return algos.median(x[mask])
 
     if values.dtype != np.float64:
         values = values.astype('f8')
@@ -494,17 +496,17 @@ def unique1d(values):
     Hash table-based unique
     """
     if np.issubdtype(values.dtype, np.floating):
-        table = lib.Float64HashTable(len(values))
+        table = _hash.Float64HashTable(len(values))
         uniques = np.array(table.unique(com._ensure_float64(values)),
                            dtype=np.float64)
     elif np.issubdtype(values.dtype, np.datetime64):
-        table = lib.Int64HashTable(len(values))
+        table = _hash.Int64HashTable(len(values))
         uniques = table.unique(com._ensure_int64(values))
         uniques = uniques.view('M8[ns]')
     elif np.issubdtype(values.dtype, np.integer):
-        table = lib.Int64HashTable(len(values))
+        table = _hash.Int64HashTable(len(values))
         uniques = table.unique(com._ensure_int64(values))
     else:
-        table = lib.PyObjectHashTable(len(values))
+        table = _hash.PyObjectHashTable(len(values))
         uniques = table.unique(com._ensure_object(values))
     return uniques

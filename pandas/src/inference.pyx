@@ -294,20 +294,6 @@ def is_period_array(ndarray[object] values):
             return False
     return True
 
-def extract_ordinals(ndarray[object] values, freq):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
-        object p
-
-    for i in range(n):
-        p = values[i]
-        ordinals[i] = p.ordinal
-        if p.freq != freq:
-            raise ValueError("%s is wrong freq" % p)
-
-    return ordinals
-
 
 cdef extern from "parse_helper.h":
     inline int floatify(object, double *result) except -1
@@ -421,7 +407,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen_float = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
-                idatetimes[i] = convert_to_tsobject(val).value
+                idatetimes[i] = convert_to_tsobject(val, None).value
                 seen_datetime = 1
             else:
                 seen_object = 1
@@ -438,7 +424,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
             if convert_datetime:
                 seen_datetime = 1
-                idatetimes[i] = convert_to_tsobject(val).value
+                idatetimes[i] = convert_to_tsobject(val, None).value
             else:
                 seen_object = 1
         elif try_float and not util.is_string_object(val):
@@ -634,13 +620,18 @@ def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
 
     return result
 
-def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
-    ndarray[object] days, ndarray[object] hours, ndarray[object] minutes,
-    ndarray[object] seconds):
+def try_parse_datetime_components(ndarray[object] years,
+                                  ndarray[object] months,
+                                  ndarray[object] days,
+                                  ndarray[object] hours,
+                                  ndarray[object] minutes,
+                                  ndarray[object] seconds):
 
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
+        int secs
+        double micros
 
     from datetime import datetime
 
@@ -651,8 +642,15 @@ def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
     result = np.empty(n, dtype='O')
 
     for i from 0 <= i < n:
+        secs = int(seconds[i])
+
+        micros = seconds[i] - secs
+        if micros > 0:
+            micros = micros * 1000000
+
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
-                             int(hours[i]), int(minutes[i]), int(seconds[i]))
+                             int(hours[i]), int(minutes[i]), int(secs),
+                             int(micros))
 
     return result
 

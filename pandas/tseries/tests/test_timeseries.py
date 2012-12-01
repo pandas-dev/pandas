@@ -24,8 +24,12 @@ import pandas.util.testing as tm
 
 from pandas.util.py3compat import StringIO
 
-from pandas.lib import NaT, iNaT
+from pandas.tslib import NaT, iNaT
 import pandas.lib as lib
+import pandas.tslib as tslib
+
+import pandas.index as _index
+
 import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
@@ -58,6 +62,11 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
     def test_index_unique(self):
         uniques = self.dups.index.unique()
         self.assert_(uniques.dtype == 'M8[ns]') # sanity
+
+    def test_index_dupes_contains(self):
+        d = datetime(2011, 12, 5, 20, 30)
+        ix=DatetimeIndex([d,d])
+        self.assertTrue(d in ix)
 
     def test_duplicate_dates_indexing(self):
         ts = self.dups
@@ -105,9 +114,9 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         import datetime
         # #1821
 
-        old_cutoff = lib._SIZE_CUTOFF
+        old_cutoff = _index._SIZE_CUTOFF
         try:
-            lib._SIZE_CUTOFF = 1000
+            _index._SIZE_CUTOFF = 1000
 
             # create large list of non periodic datetime
             dates = []
@@ -139,7 +148,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
             df.ix[timestamp]
             self.assert_(len(df.ix[[timestamp]]) > 0)
         finally:
-            lib._SIZE_CUTOFF = old_cutoff
+            _index._SIZE_CUTOFF = old_cutoff
 
 def assert_range_equal(left, right):
     assert(left.equals(right))
@@ -495,7 +504,7 @@ class TestTimeSeries(unittest.TestCase):
 
         idx = Index(arr)
 
-        self.assert_((idx.values == lib.cast_to_nanoseconds(arr)).all())
+        self.assert_((idx.values == tslib.cast_to_nanoseconds(arr)).all())
 
     def test_index_astype_datetime64(self):
         idx = Index([datetime(2012, 1, 1)], dtype=object)
@@ -593,7 +602,7 @@ class TestTimeSeries(unittest.TestCase):
             else:
                 expected[i] = parse(val)
 
-        result = lib.array_to_datetime(strings)
+        result = tslib.array_to_datetime(strings)
         assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
@@ -1066,6 +1075,38 @@ class TestTimeSeries(unittest.TestCase):
 
         pts = ts.to_period('M')
         self.assert_(pts.index.equals(exp.index.asfreq('M')))
+
+    def test_to_period_tz(self):
+        _skip_if_no_pytz()
+        from dateutil.tz import tzlocal
+        from pandas.tseries.period import period_range
+        from pytz import utc as UTC
+
+        xp = date_range('1/1/2000', '4/1/2000').to_period()
+
+        ts = date_range('1/1/2000', '4/1/2000', tz='US/Eastern')
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=UTC)
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
+
+        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+
+        result = ts.to_period()[0]
+        expected = ts[0].to_period()
+
+        self.assert_(result == expected)
+        self.assert_(ts.to_period().equals(xp))
 
     def test_frame_to_period(self):
         K = 5
@@ -2205,7 +2246,8 @@ class TestDatetime64(unittest.TestCase):
     def test_slice_locs_indexerror(self):
         times = [datetime(2000, 1, 1) + timedelta(minutes=i) for i in range(1000000)]
         s = Series(range(1000000), times)
-        s.ix[datetime(1900,1,1):datetime(2100,1,1)]
+        s.ix[datetime(1900,1,1)
+:datetime(2100,1,1)]
 
 
 class TestSeriesDatetime64(unittest.TestCase):
@@ -2253,16 +2295,16 @@ class TestSeriesDatetime64(unittest.TestCase):
 
     def test_set_none_nan(self):
         self.series[3] = None
-        self.assert_(self.series[3] is lib.NaT)
+        self.assert_(self.series[3] is NaT)
 
         self.series[3:5] = None
-        self.assert_(self.series[4] is lib.NaT)
+        self.assert_(self.series[4] is NaT)
 
         self.series[5] = np.nan
-        self.assert_(self.series[5] is lib.NaT)
+        self.assert_(self.series[5] is NaT)
 
         self.series[5:7] = np.nan
-        self.assert_(self.series[6] is lib.NaT)
+        self.assert_(self.series[6] is NaT)
 
     def test_intercept_astype_object(self):
         # Work around NumPy 1.6 bugs
@@ -2385,8 +2427,12 @@ class TestTimestamp(unittest.TestCase):
         self.assertRaises(Exception, b.__lt__, a)
         self.assertRaises(Exception, b.__gt__, a)
 
-        self.assertRaises(Exception, a.__eq__, b.to_pydatetime())
-        self.assertRaises(Exception, a.to_pydatetime().__eq__, b)
+        if sys.version_info < (3,3):
+            self.assertRaises(Exception, a.__eq__, b.to_pydatetime())
+            self.assertRaises(Exception, a.to_pydatetime().__eq__, b)
+        else:
+            self.assertFalse(a == b.to_pydatetime())
+            self.assertFalse(a.to_pydatetime() == b)
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123L)

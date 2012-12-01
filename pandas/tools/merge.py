@@ -20,6 +20,8 @@ from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
 import pandas.lib as lib
+import pandas.algos as algos
+import pandas.hashtable as _hash
 
 
 @Substitution('\nleft : DataFrame')
@@ -464,8 +466,8 @@ class _OrderedMerge(_MergeOperation):
         ldata, rdata = self._get_merge_data()
 
         if self.fill_method == 'ffill':
-            left_join_indexer = lib.ffill_indexer(left_indexer)
-            right_join_indexer = lib.ffill_indexer(right_indexer)
+            left_join_indexer = algos.ffill_indexer(left_indexer)
+            right_join_indexer = algos.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -498,9 +500,9 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
                         sort=False)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(com._ensure_int64(left_group_key),
-                            com._ensure_int64(right_group_key),
-                            max_groups, sort=False)
+        algos.left_outer_join(com._ensure_int64(left_group_key),
+                              com._ensure_int64(right_group_key),
+                              max_groups, sort=False)
 
     return left_indexer, right_indexer
 
@@ -509,9 +511,9 @@ def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(com._ensure_int64(left_key),
-                            com._ensure_int64(right_key),
-                            count, sort=sort)
+        algos.left_outer_join(com._ensure_int64(left_key),
+                              com._ensure_int64(right_key),
+                              count, sort=sort)
 
     return left_indexer, right_indexer
 
@@ -543,24 +545,24 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = algos.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner': lib.inner_join,
-    'left': lib.left_outer_join,
+    'inner': algos.inner_join,
+    'left': algos.left_outer_join,
     'right': _right_outer_join,
-    'outer': lib.full_outer_join,
+    'outer': algos.full_outer_join,
 }
 
 
 def _factorize_keys(lk, rk, sort=True):
     if com._is_int_or_datetime_dtype(lk) and com._is_int_or_datetime_dtype(rk):
-        klass = lib.Int64Factorizer
+        klass = _hash.Int64Factorizer
         lk = com._ensure_int64(lk)
         rk = com._ensure_int64(rk)
     else:
-        klass = lib.Factorizer
+        klass = _hash.Factorizer
         lk = com._ensure_object(lk)
         rk = com._ensure_object(rk)
 

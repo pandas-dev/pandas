@@ -18,14 +18,14 @@ import pandas.tseries.offsets as offsets
 
 from nose.tools import assert_raises
 
-import pandas.lib as lib
+from pandas.tslib import monthrange
 from pandas.lib import Timestamp
 
 def test_monthrange():
     import calendar
     for y in range(2000,2013):
         for m in range(1,13):
-            assert lib.monthrange(y,m) == calendar.monthrange(y,m)
+            assert monthrange(y,m) == calendar.monthrange(y,m)
 
 ####
 ## Misc function tests

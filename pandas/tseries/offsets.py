@@ -5,6 +5,7 @@ from pandas.tseries.tools import to_datetime
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
 import pandas.lib as lib
+import pandas.tslib as tslib
 
 __all__ = ['Day', 'BusinessDay', 'BDay',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
@@ -363,7 +364,7 @@ class MonthEnd(DateOffset, CacheableOffset):
         other = datetime(other.year, other.month, other.day)
 
         n = self.n
-        _, days_in_month = lib.monthrange(other.year, other.month)
+        _, days_in_month = tslib.monthrange(other.year, other.month)
         if other.day != days_in_month:
             other = other + relativedelta(months=-1, day=31)
             if n <= 0:
@@ -373,7 +374,7 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     @classmethod
     def onOffset(cls, dt):
-        days_in_month = lib.monthrange(dt.year, dt.month)[1]
+        days_in_month = tslib.monthrange(dt.year, dt.month)[1]
         return dt.day == days_in_month
 
     @property
@@ -413,7 +414,7 @@ class BusinessMonthEnd(CacheableOffset, DateOffset):
 
         n = self.n
 
-        wkday, days_in_month = lib.monthrange(other.year, other.month)
+        wkday, days_in_month = tslib.monthrange(other.year, other.month)
         lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         if n > 0 and not other.day >= lastBDay:
@@ -437,7 +438,7 @@ class BusinessMonthBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, _ = lib.monthrange(other.year, other.month)
+        wkday, _ = tslib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
 
         if other.day > first and n <= 0:
@@ -448,14 +449,14 @@ class BusinessMonthBegin(DateOffset, CacheableOffset):
             n -= 1
 
         other = other + relativedelta(months=n)
-        wkday, _ = lib.monthrange(other.year, other.month)
+        wkday, _ = tslib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
         result = datetime(other.year, other.month, first)
         return result
 
     @classmethod
     def onOffset(cls, dt):
-        first_weekday, _ = lib.monthrange(dt.year, dt.month)
+        first_weekday, _ = tslib.monthrange(dt.year, dt.month)
         if first_weekday == 5:
             return dt.day == 3
         elif first_weekday == 6:
@@ -628,7 +629,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = lib.monthrange(other.year, other.month)
+        wkday, days_in_month = tslib.monthrange(other.year, other.month)
         lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
@@ -689,7 +690,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, _ = lib.monthrange(other.year, other.month)
+        wkday, _ = tslib.monthrange(other.year, other.month)
 
         first = _get_firstbday(wkday)
 
@@ -707,7 +708,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
 
         # get the first bday for result
         other = other + relativedelta(months=3 * n - monthsSince)
-        wkday, _ = lib.monthrange(other.year, other.month)
+        wkday, _ = tslib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
         result = datetime(other.year, other.month, first,
                           other.hour, other.minute, other.second,
@@ -741,7 +742,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = lib.monthrange(other.year, other.month)
+        wkday, days_in_month = tslib.monthrange(other.year, other.month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -780,7 +781,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = lib.monthrange(other.year, other.month)
+        wkday, days_in_month = tslib.monthrange(other.year, other.month)
 
         monthsSince = (other.month - self.startingMonth) % 3
 
@@ -816,7 +817,7 @@ class BYearEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = lib.monthrange(other.year, self.month)
+        wkday, days_in_month = tslib.monthrange(other.year, self.month)
         lastBDay = (days_in_month -
                     max(((wkday + days_in_month - 1) % 7) - 4, 0))
 
@@ -832,7 +833,7 @@ class BYearEnd(DateOffset, CacheableOffset):
 
         other = other + relativedelta(years=years)
 
-        _, days_in_month = lib.monthrange(other.year, self.month)
+        _, days_in_month = tslib.monthrange(other.year, self.month)
         result = datetime(other.year, self.month, days_in_month,
                           other.hour, other.minute, other.second,
                           other.microsecond)
@@ -863,7 +864,7 @@ class BYearBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = lib.monthrange(other.year, self.month)
+        wkday, days_in_month = tslib.monthrange(other.year, self.month)
 
         first = _get_firstbday(wkday)
 
@@ -880,7 +881,7 @@ class BYearBegin(DateOffset, CacheableOffset):
 
         # set first bday for result
         other = other + relativedelta(years=years)
-        wkday, days_in_month = lib.monthrange(other.year, self.month)
+        wkday, days_in_month = tslib.monthrange(other.year, self.month)
         first = _get_firstbday(wkday)
         return datetime(other.year, self.month, first)
 
@@ -904,7 +905,7 @@ class YearEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         def _increment(date):
             if date.month == self.month:
-                _, days_in_month = lib.monthrange(date.year, self.month)
+                _, days_in_month = tslib.monthrange(date.year, self.month)
                 if date.day != days_in_month:
                     year = date.year
                 else:
@@ -913,21 +914,21 @@ class YearEnd(DateOffset, CacheableOffset):
                 year = date.year
             else:
                 year = date.year + 1
-            _, days_in_month = lib.monthrange(year, self.month)
+            _, days_in_month = tslib.monthrange(year, self.month)
             return datetime(year, self.month, days_in_month,
                             date.hour, date.minute, date.second,
                             date.microsecond)
 
         def _decrement(date):
             year = date.year if date.month > self.month else date.year - 1
-            _, days_in_month = lib.monthrange(year, self.month)
+            _, days_in_month = tslib.monthrange(year, self.month)
             return datetime(year, self.month, days_in_month,
                             date.hour, date.minute, date.second,
                             date.microsecond)
 
         def _rollf(date):
             if (date.month != self.month or
-                date.day < lib.monthrange(date.year, date.month)[1]):
+                date.day < tslib.monthrange(date.year, date.month)[1]):
                 date = _increment(date)
             return date
 
@@ -948,7 +949,7 @@ class YearEnd(DateOffset, CacheableOffset):
         return result
 
     def onOffset(self, dt):
-        wkday, days_in_month = lib.monthrange(dt.year, self.month)
+        wkday, days_in_month = tslib.monthrange(dt.year, self.month)
         return self.month == dt.month and dt.day == days_in_month
 
     @property

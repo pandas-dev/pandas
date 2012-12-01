@@ -37,6 +37,8 @@ pandas 0.10.0
   - Add ``duplicated`` and ``drop_duplicates`` functions to Series (#1923)
   - Add docs for ``HDFStore table`` format
   - 'density' property in `SparseSeries` (#2384)
+  - Add ``ffill`` and ``bfill`` convenience functions for forward- and
+    backfilling time series data (#2284)
 
 **API Changes**
 
@@ -52,6 +54,9 @@ pandas 0.10.0
   - Values like YES/NO/yes/no will not be considered as boolean by default any
     longer in the file parsers. This can be customized using the new
     ``true_values`` and ``false_values`` options (#2360)
+  - `obj.fillna()` is no longer valid; make `method='pad'` no longer the
+    default option, to be more explicit about what kind of filling to
+    perform. Add `ffill/bfill` convenience functions per above (#2284)
 
 **Improvements to existing features**
 
@@ -68,6 +73,7 @@ pandas 0.10.0
   - Add multi-dtype support for ``HDFStore tables``
   - ``min_itemsize`` parameter can be specified in ``HDFStore table`` creation
   - Indexing support in ``HDFStore tables`` (#698)
+  - Add `line_terminator` option to DataFrame.to_csv (#2383)
 
 **Bug fixes**
 
@@ -94,7 +100,8 @@ pandas 0.10.0
   - Raise/handle int64 overflows in parsers (#2247)
   - Deleting of consecutive rows in ``HDFStore tables``` is much faster than before
   - Appending on a HDFStore would fail if the table was not first created via ``put``
-
+  - Use `col_space` argument as minimum column width in DataFrame.to_html (#2328)
+  - Fix tz-aware DatetimeIndex.to_period (#2232)
 
 pandas 0.9.1
 ============

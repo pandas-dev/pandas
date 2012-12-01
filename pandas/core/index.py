@@ -6,14 +6,19 @@ from itertools import izip
 
 import numpy as np
 
+import pandas.tslib as tslib
+import pandas.lib as lib
+import pandas.algos as _algos
+import pandas.hashtable as _hash
+import pandas.index as _index
+from pandas.lib import Timestamp
+
 from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
-import pandas.lib as lib
-import pandas._algos as _algos
-from pandas.lib import Timestamp
 from pandas.util import py3compat
 from pandas.core.config import get_option
+
 
 __all__ = ['Index']
 
@@ -40,8 +45,9 @@ _o_dtype = np.dtype(object)
 
 
 def _shouldbe_timestamp(obj):
-    return (lib.is_datetime_array(obj) or lib.is_datetime64_array(obj)
-            or lib.is_timestamp_array(obj))
+    return (tslib.is_datetime_array(obj)
+            or tslib.is_datetime64_array(obj)
+            or tslib.is_timestamp_array(obj))
 
 
 class Index(np.ndarray):
@@ -78,7 +84,7 @@ class Index(np.ndarray):
     name = None
     asi8 = None
 
-    _engine_type = lib.ObjectEngine
+    _engine_type = _index.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
@@ -113,7 +119,7 @@ class Index(np.ndarray):
                 return Int64Index(subarr.astype('i8'), name=name)
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
-                    lib.is_timestamp_array(subarr)):
+                    tslib.is_timestamp_array(subarr)):
                     from pandas.tseries.index import DatetimeIndex
                     return DatetimeIndex(subarr, copy=copy, name=name)
 
@@ -721,7 +727,7 @@ class Index(np.ndarray):
                 raise
 
             try:
-                return lib.get_value_box(series, key)
+                return tslib.get_value_box(series, key)
             except IndexError:
                 raise
             except TypeError:
@@ -1201,7 +1207,7 @@ class Int64Index(Index):
     _inner_indexer = _algos.inner_join_indexer_int64
     _outer_indexer = _algos.outer_join_indexer_int64
 
-    _engine_type = lib.Int64Engine
+    _engine_type = _index.Int64Engine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):
@@ -1520,7 +1526,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return lib.get_value_at(series, key)
+                return _index.get_value_at(series, key)
             except IndexError:
                 raise
             except TypeError:

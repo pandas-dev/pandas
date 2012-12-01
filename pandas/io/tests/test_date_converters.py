@@ -93,6 +93,22 @@ year, month, day, hour, minute, second, a, b
         self.assert_('ymdHMS' in df)
         self.assert_(df.ymdHMS.ix[0] == datetime(2001, 1, 5, 10, 0, 0))
 
+    def test_datetime_fractional_seconds(self):
+        data = """\
+year, month, day, hour, minute, second, a, b
+2001, 01, 05, 10, 00, 0.123456, 0.0, 10.
+2001, 01, 5, 10, 0, 0.500000, 1., 11.
+"""
+        datecols = {'ymdHMS': [0, 1, 2, 3, 4, 5]}
+        df = read_table(StringIO(data), sep=',', header=0,
+                        parse_dates=datecols,
+                        date_parser=conv.parse_all_fields)
+        self.assert_('ymdHMS' in df)
+        self.assert_(df.ymdHMS.ix[0] == datetime(2001, 1, 5, 10, 0, 0,
+                                                 microsecond=123456))
+        self.assert_(df.ymdHMS.ix[1] == datetime(2001, 1, 5, 10, 0, 0,
+                                                 microsecond=500000))
+
     def test_generic(self):
         data = "year, month, day, a\n 2001, 01, 10, 10.\n 2001, 02, 1, 11."
         datecols = {'ym': [0, 1]}
