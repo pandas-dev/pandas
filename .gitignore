@@ -23,3 +23,5 @@ scikits
 pandas.egg-info
 *\#*\#
 .tox
+pandas/io/*.dat
+pandas/io/*.json
