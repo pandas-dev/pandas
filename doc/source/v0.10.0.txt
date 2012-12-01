@@ -90,7 +90,7 @@ Updated PyTables Support
 
        - performance improvments on table writing
        - support for arbitrarily indexed dimensions
-	   - ``SparseSeries`` now has a ``density`` property (#2384)
+       - ``SparseSeries`` now has a ``density`` property (#2384)
 
   **Bug Fixes**
 

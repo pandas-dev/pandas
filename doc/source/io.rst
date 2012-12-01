@@ -877,6 +877,9 @@ Keys to a store can be specified as a string. These can be in a hierarchical pat
    store.append('food/apple',  df)
    store
 
+   # a list of keys are returned
+   store.keys()
+
    # remove all nodes under this level
    store.remove('food')
    store	

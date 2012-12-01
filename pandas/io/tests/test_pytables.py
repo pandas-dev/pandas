@@ -53,14 +53,14 @@ class TestHDFStore(unittest.TestCase):
 
         os.remove(self.scratchpath)
 
-    def test_len_keys(self):
+    def test_keys(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
         self.store['foo/bar'] = tm.makePanel()
         self.assertEquals(len(self.store), 5)
-        self.assert_(set(self.store.keys()) == set(['a', 'b', 'c', 'd', 'foo/bar']))
+        self.assert_(set(self.store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
 
     def test_repr(self):
         repr(self.store)
@@ -81,6 +81,9 @@ class TestHDFStore(unittest.TestCase):
         self.assert_('b' in self.store)
         self.assert_('c' not in self.store)
         self.assert_('foo/bar' in self.store)
+        self.assert_('/foo/bar' in self.store)
+        self.assert_('/foo/b' not in self.store)
+        self.assert_('bar' not in self.store)
 
     def test_reopen_handle(self):
         self.store['a'] = tm.makeTimeSeries()
