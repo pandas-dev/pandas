@@ -11,6 +11,7 @@ MANIFEST
 *.cpp
 *.so
 *.pyd
+*.h5
 pandas/version.py
 doc/source/generated
 doc/source/_static
