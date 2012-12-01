@@ -597,7 +597,7 @@ ext_data = dict(
 
 extensions = []
 
-for name, data in ext_data.iteritems():
+for name, data in ext_data.items():
     sources = [srcpath(data['pyxfile'], suffix=suffix, subdir='')]
     pxds = [pxd(x) for x in data.get('pxdfiles', [])]
     if suffix == '.pyx' and pxds:

@@ -7,9 +7,7 @@ from datetime import datetime
 import numpy as np
 
 try:
-    import hashtable
-    import tslib
-    import lib
+    from . import hashtable, tslib, lib
 except Exception:  # pragma: no cover
     import sys
     e = sys.exc_info()[1] # Py25 and Py3 current exception syntax conflict
