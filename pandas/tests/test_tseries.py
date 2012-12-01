@@ -10,7 +10,7 @@ import pandas.algos as algos
 from datetime import datetime
 
 class TestTseriesUtil(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_combineFunc(self):
         pass
 
@@ -387,7 +387,7 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 class TestBinGroupers(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.obj = np.random.randn(10, 1)
         self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
@@ -511,7 +511,7 @@ def test_try_parse_dates():
 
 
 class TestTypeInference(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
         self.assertEqual(result, 'empty')
@@ -636,4 +636,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

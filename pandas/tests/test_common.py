@@ -14,6 +14,8 @@ import numpy as np
 from pandas.tslib import iNaT
 from pandas.util import py3compat
 
+_multiprocess_can_split_ = True
+
 def test_is_sequence():
     is_seq=com._is_sequence
     assert(is_seq((1,2)))
@@ -245,6 +247,8 @@ def test_pprint_thing():
     assert not "\t" in pp_t("a\tb")
 
 class TestTake(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def test_1d_with_out(self):
         def _test_dtype(dtype):

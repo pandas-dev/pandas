@@ -21,6 +21,8 @@ from nose.tools import assert_raises
 from pandas.tslib import monthrange
 from pandas.lib import Timestamp
 
+_multiprocess_can_split_ = True
+
 def test_monthrange():
     import calendar
     for y in range(2000,2013):
@@ -72,7 +74,7 @@ def test_to_m8():
 #####
 
 class TestDateOffset(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.d = Timestamp(datetime(2008, 1, 2))
 
@@ -110,7 +112,7 @@ class TestDateOffset(unittest.TestCase):
         self.assert_(not (offset1 == offset2))
 
 class TestBusinessDay(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.d = datetime(2008, 1, 1)
 
@@ -1474,4 +1476,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

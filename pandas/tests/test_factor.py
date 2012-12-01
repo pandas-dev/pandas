@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 
 
 class TestCategorical(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.factor = Categorical.from_array(['a', 'b', 'b', 'a',
                                          'a', 'c', 'c', 'c'])
@@ -115,5 +115,3 @@ if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                          # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
-
-

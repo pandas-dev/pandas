@@ -10,7 +10,7 @@ import pandas.util.testing as tm
 
 
 class TestMatch(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_ints(self):
         values = np.array([0, 2, 1])
         to_match = np.array([0, 1, 2, 2, 0, 1, 3, 0])
@@ -29,7 +29,7 @@ class TestMatch(unittest.TestCase):
 
 
 class TestUnique(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_ints(self):
         arr = np.random.randint(0, 100, size=50)
 
@@ -70,4 +70,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

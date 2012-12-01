@@ -42,7 +42,7 @@ from numpy.testing.decorators import slow
 
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         dates = [datetime(2000, 1, 2), datetime(2000, 1, 2),
                  datetime(2000, 1, 2), datetime(2000, 1, 3),
@@ -164,7 +164,7 @@ def _skip_if_no_pytz():
 
 
 class TestTimeSeries(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_dti_slicing(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
         dti2 = dti[[1,3,5]]
@@ -1372,7 +1372,7 @@ def _simple_ts(start, end, freq='D'):
 
 
 class TestDatetimeIndex(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_append_join_nondatetimeindex(self):
         rng = date_range('1/1/2000', periods=10)
         idx = Index(['a', 'b', 'c', 'd'])
@@ -1618,7 +1618,7 @@ class TestDatetimeIndex(unittest.TestCase):
         i2.union(i1) # Fails with "AttributeError: can't set attribute"
 
 class TestLegacySupport(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     @classmethod
     def setUpClass(cls):
         if py3compat.PY3:

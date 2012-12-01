@@ -17,6 +17,8 @@ import numpy as np
 from pandas.core.reshape import melt, convert_dummies, lreshape
 import pandas.util.testing as tm
 
+_multiprocess_can_split_ = True
+
 def test_melt():
     df = tm.makeTimeDataFrame()[:10]
     df['id1'] = (df['A'] > 0).astype(int)

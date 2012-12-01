@@ -36,7 +36,7 @@ class PanelTests(object):
         assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
 
 class SafeForLongAndSparse(object):
-
+    _multiprocess_can_split_ = True
     def test_repr(self):
         foo = repr(self.panel)
 
@@ -143,7 +143,7 @@ class SafeForLongAndSparse(object):
         self.assertRaises(Exception, f, axis=obj.ndim)
 
 class SafeForSparse(object):
-
+    _multiprocess_can_split_ = True
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
@@ -346,7 +346,7 @@ class SafeForSparse(object):
 
 class CheckIndexing(object):
 
-
+    _multiprocess_can_split_ = True
     def test_getitem(self):
         self.assertRaises(Exception, self.panel.__getitem__, 'ItemQ')
 
@@ -662,7 +662,7 @@ class CheckIndexing(object):
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
-
+    _multiprocess_can_split_ = True
     @classmethod
     def assert_panel_equal(cls,x, y):
         assert_panel_equal(x, y)
@@ -1353,7 +1353,7 @@ class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...
     """
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         panel = tm.makePanel()
         tm.add_nans(panel)
