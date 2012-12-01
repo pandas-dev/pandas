@@ -589,9 +589,9 @@ class DataFrame(NDFrame):
             terminal_width, terminal_height = 100, 100
         else:
             terminal_width, terminal_height = get_terminal_size()
-        max_rows = (terminal_height if get_option("print_config.max_rows") == 0
-                    else get_option("print_config.max_rows"))
-        max_columns = get_option("print_config.max_columns")
+        max_rows = (terminal_height if get_option("print.max_rows") == 0
+                    else get_option("print.max_rows"))
+        max_columns = get_option("print.max_columns")
 
         if max_columns > 0:
             if len(self.index) <= max_rows and \
@@ -669,7 +669,7 @@ class DataFrame(NDFrame):
         if com.in_qtconsole():
             raise ValueError('Disable HTML output in QtConsole')
 
-        if get_option("print_config.notebook_repr_html"):
+        if get_option("print.notebook_repr_html"):
             if self._need_info_repr_():
                 return None
             else:
