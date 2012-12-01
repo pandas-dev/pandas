@@ -1,6 +1,5 @@
 import unittest
 import nose
-import httplib2
 from datetime import datetime
 
 import pandas as pd
@@ -17,6 +16,7 @@ class TestGoogle(unittest.TestCase):
     @network
     def test_getdata(self):
         try:
+            import httplib2
             from pandas.io.ga import GAnalytics, read_ga
             from pandas.io.auth import AuthenticationConfigError
         except ImportError:
@@ -72,6 +72,7 @@ class TestGoogle(unittest.TestCase):
     @network
     def test_iterator(self):
         try:
+            import httplib2
             from pandas.io.ga import GAnalytics, read_ga
             from pandas.io.auth import AuthenticationConfigError
         except ImportError:
