@@ -33,7 +33,7 @@ install:
 
 script:
    - python setup.py build_ext install
-   - 'if [ x"$VBENCH" != x"true" ]; then nosetests --exe -w /tmp -A "not slow" pandas; fi'
+   - 'if [ x"$VBENCH" != x"true" ]; then nosetests --exe -w /tmp -A "not slow" pandas --processes=4; fi'
    - pwd
    - 'if [ x"$VBENCH" == x"true" ]; then pip install sqlalchemy git+git://github.com/pydata/vbench.git; python vb_suite/perf_HEAD.py; fi'
    - python -c "import numpy;print(numpy.version.version)"
