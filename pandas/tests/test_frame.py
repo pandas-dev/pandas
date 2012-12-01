@@ -4219,6 +4219,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_excel_roundtrip_datetime(self):
+        try:
+            import xlwt
+            import xlrd
+        except ImportError:
+            raise nose.SkipTest
+
         # datetime.date, not sure what to test here exactly
         path = '__tmp_excel_roundtrip_datetime__.xls'
         tsf = self.tsframe.copy()
@@ -4230,6 +4236,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_excel_roundtrip_bool(self):
+        try:
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
         #Test roundtrip np.bool8, does not seem to work for xls
         path = '__tmp_excel_roundtrip_bool__.xlsx'
         frame = (DataFrame(np.random.randn(10,2)) >= 0)
