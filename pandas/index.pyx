@@ -13,14 +13,11 @@ cimport util
 
 import numpy as np
 
-import algos
-
 cimport tslib
-from tslib import Timestamp
-import tslib
-
 from hashtable cimport *
-import hashtable as _hash
+from . import algos, tslib, hashtable as _hash
+from .tslib import Timestamp
+
 
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)

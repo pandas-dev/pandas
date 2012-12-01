@@ -18,8 +18,6 @@ cnp.import_ufunc()
 
 cdef int64_t iNaT = util.get_nat()
 
-from . import algos
-
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
     void PyDateTime_IMPORT()

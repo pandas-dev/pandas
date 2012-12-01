@@ -18,6 +18,14 @@ from pandas.tseries.resample import DatetimeIndex
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
+
+def _skip_if_no_scipy():
+    try:
+        import scipy
+    except ImportError:
+        raise nose.SkipTest
+
+
 class TestTSPlot(unittest.TestCase):
 
     @classmethod
@@ -530,6 +538,8 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_secondary_kde(self):
+        _skip_if_no_scipy()
+
         import matplotlib.pyplot as plt
         plt.close('all')
         ser = Series(np.random.randn(10))

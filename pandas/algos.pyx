@@ -44,7 +44,7 @@ cdef extern from "math.h":
     double sqrt(double x)
     double fabs(double)
 
-import lib
+from . import lib
 
 include "skiplist.pyx"
 

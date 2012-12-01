@@ -1,8 +1,10 @@
 # cython: profile=False
-cimport numpy as np
 
+cimport numpy as np
 from numpy cimport (int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME)
+import numpy as np
+
 from cpython cimport *
 
 from libc.stdlib cimport free
@@ -14,7 +16,6 @@ from datetime cimport *
 from khash cimport *
 cimport cython
 
-import numpy as np
 from datetime import timedelta, datetime
 from dateutil.parser import parse as parse_date
 
