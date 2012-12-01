@@ -1355,6 +1355,9 @@ class LegacyTable(Table):
     _indexables = [Col(name = 'index'),Col(name = 'column', index_kind = 'columns_kind'), DataCol(name = 'fields', cname = 'values', kind_attr = 'fields') ]
     table_type = 'legacy'
 
+    def write(self, **kwargs):
+        raise Exception("write operations are not allowed on legacy tables!")
+
     def read(self, where=None):
         """ we have 2 indexable columns, with an arbitrary number of data axes """
 
@@ -1428,6 +1431,21 @@ class LegacyTable(Table):
             wp = wp.reindex(minor=new_minor, copy = False)
 
         return wp
+
+class LegacyFrameTable(LegacyTable):
+    """ support the legacy frame table """
+    table_type = 'legacy_frame'
+    def read(self, *args, **kwargs):
+        return super(LegacyFrameTable, self).read(*args, **kwargs)['value']
+
+class LegacyPanelTable(LegacyTable):
+    """ support the legacy panel table """
+    table_type = 'legacy_panel'
+
+class AppendableTable(LegacyTable):
+    """ suppor the new appendable table formats """
+    _indexables = None
+    table_type = 'appendable'
 
     def write(self, axes_to_index, obj, append=False, compression=None,
               complevel=None, min_itemsize = None, **kwargs):
@@ -1536,22 +1554,6 @@ class LegacyTable(Table):
 
         # return the number of rows removed
         return ln
-
-
-class LegacyFrameTable(LegacyTable):
-    """ support the legacy frame table """
-    table_type = 'legacy_frame'
-    def read(self, *args, **kwargs):
-        return super(LegacyFrameTable, self).read(*args, **kwargs)['value']
-
-class LegacyPanelTable(LegacyTable):
-    """ support the legacy panel table """
-    table_type = 'legacy_panel'
-
-class AppendableTable(LegacyTable):
-    """ suppor the new appendable table formats """
-    _indexables = None
-    table_type = 'appendable'
 
 class AppendableFrameTable(AppendableTable):
     """ suppor the new appendable table formats """

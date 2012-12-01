@@ -898,6 +898,19 @@ class TestHDFStore(unittest.TestCase):
         store.select('wp1')
         store.close()
 
+    def test_legacy_table_write(self):
+        # legacy table types
+        pth = curpath()
+        df = tm.makeDataFrame()
+        wp = tm.makePanel()
+
+        store = HDFStore(os.path.join(pth, 'legacy_table.h5'), 'a')
+
+        self.assertRaises(Exception, store.append, 'df1', df)
+        self.assertRaises(Exception, store.append, 'wp1', wp)
+
+        store.close()
+
     def test_store_datetime_fractional_secs(self):
         dt = datetime(2012, 1, 2, 3, 4, 5, 123456)
         series = Series([0], [dt])
