@@ -113,6 +113,8 @@ class TestHDFStore(unittest.TestCase):
         self.store['a'] = ts
         self.store['b'] = df[:10]
         self.store['foo/bar/bah'] = df[:10]
+        self.store['foo'] = df[:10]
+        self.store['/foo'] = df[:10]
         self.store.put('c', df[:10], table=True)
 
         # not OK, not a table
@@ -169,6 +171,19 @@ class TestHDFStore(unittest.TestCase):
             store.put('df2', df[:10], table=True)
             store.append('df2', df[10:])
             tm.assert_frame_equal(store['df2'], df)
+
+            store.append('/df3', df[:10])
+            store.append('/df3', df[10:])
+            tm.assert_frame_equal(store['df3'], df)
+
+            # this is allowed by almost always don't want to do it
+            import warnings
+            import tables
+            warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+            store.append('/df3 foo', df[:10])
+            store.append('/df3 foo', df[10:])
+            tm.assert_frame_equal(store['df3 foo'], df)
+            warnings.filterwarnings('always', category=tables.NaturalNameWarning)
 
             wp = tm.makePanel()
             store.append('wp1', wp.ix[:,:10,:])
@@ -319,7 +334,6 @@ class TestHDFStore(unittest.TestCase):
         self.store.remove('b')
         self.assertEquals(len(self.store), 1)
 
-
         # __delitem__
         self.store['a'] = ts
         self.store['b'] = df
@@ -341,6 +355,17 @@ class TestHDFStore(unittest.TestCase):
         rs = self.store.select('wp')
         expected = wp.reindex(minor_axis = ['B','C'])
         tm.assert_panel_equal(rs,expected)
+
+        # empty where
+        self.store.remove('wp')
+        self.store.put('wp', wp, table=True)
+        self.store.remove('wp', [])
+
+        # non - empty where
+        self.store.remove('wp')
+        self.store.put('wp', wp, table=True)
+        self.assertRaises(Exception, self.store.remove,
+                          'wp', ['foo'])
 
         # selectin non-table with a where
         self.store.put('wp2', wp, table=False)
