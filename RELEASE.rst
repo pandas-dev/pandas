@@ -57,6 +57,7 @@ pandas 0.10.0
   - `obj.fillna()` is no longer valid; make `method='pad'` no longer the
     default option, to be more explicit about what kind of filling to
     perform. Add `ffill/bfill` convenience functions per above (#2284)
+  - `HDFStore.keys()` now returns an absolute path-name for each key
 
 **Improvements to existing features**
 

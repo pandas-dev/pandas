@@ -211,7 +211,14 @@ class HDFStore(object):
         return self.remove(key)
 
     def __contains__(self, key):
-        return hasattr(self.root, key)
+        """ check for existance of this key
+              can match the exact pathname or the pathnm w/o the leading '/'
+        """
+        node = self.get_node(key)
+        if node is not None:
+            name = node._v_pathname
+            return re.search(key,name) is not None
+        return False
 
     def __len__(self):
         return len(self.groups())
@@ -228,14 +235,14 @@ class HDFStore(object):
 
                 keys.append(str(n._v_pathname))
 
-                # a group
-                if kind is None:
-                    values.append('')
-
                 # a table
-                elif _is_table_type(v):
+                if _is_table_type(n):
                     values.append(str(create_table(self, n)))
                 
+                # a group
+                elif kind is None:
+                    values.append('unknown type')
+
                 # another type of pandas object
                 else:
                     values.append(_NAME_MAP[kind])
@@ -249,9 +256,9 @@ class HDFStore(object):
     def keys(self):
         """
         Return a (potentially unordered) list of the keys corresponding to the
-        objects stored in the HDFStore
+        objects stored in the HDFStore. These are ABSOLUTE path-names (e.g. have the leading '/'
         """
-        return [ n._v_pathname[1:] for n in self.groups() ]
+        return [ n._v_pathname for n in self.groups() ]
 
     def open(self, mode='a', warn=True):
         """
