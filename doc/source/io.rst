@@ -865,6 +865,22 @@ after data is already in the table (this may become automatic in the future or a
    store.create_table_index('df')
    store.handle.root.df.table
 
+Hierarchical Keys
+~~~~~~~~~~~~~~~~~
+
+Keys to a store can be specified as a string. These can be in a hierarchical path-name like format (e.g. ``foo/bar/bah``), which will generate a hierarchy of sub-stores (or ``Groups`` in PyTables parlance). Keys can be specified with out the leading '/' and are ALWAYS absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove everying in the sub-store and BELOW, so be *careful*.
+
+.. ipython:: python
+
+   store.put('foo/bar/bah', df)
+   store.append('food/orange', df)
+   store.append('food/apple',  df)
+   store
+
+   # remove all nodes under this level
+   store.remove('food')
+   store	
+
 Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

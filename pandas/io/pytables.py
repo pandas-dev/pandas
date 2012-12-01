@@ -90,7 +90,6 @@ def _tables():
 
     return _table_mod
 
-
 @contextmanager
 def get_store(path, mode='a', complevel=None, complib=None,
               fletcher32=False):
@@ -197,6 +196,11 @@ class HDFStore(object):
         self.filters = None
         self.open(mode=mode, warn=False)
 
+    @property
+    def root(self):
+        """ return the root node """
+        return self.handle.root
+
     def __getitem__(self, key):
         return self.get(key)
 
@@ -207,26 +211,32 @@ class HDFStore(object):
         return self.remove(key)
 
     def __contains__(self, key):
-        return hasattr(self.handle.root, key)
+        return hasattr(self.root, key)
 
     def __len__(self):
-        return len(self.handle.root._v_children)
+        return len(self.groups())
 
     def __repr__(self):
         output = '%s\nFile path: %s\n' % (type(self), self.path)
 
-        if len(self) > 0:
-            keys = []
+        groups = self.groups()
+        if len(groups) > 0:
+            keys   = []
             values = []
-            for k, v in sorted(self.handle.root._v_children.iteritems()):
-                kind = getattr(v._v_attrs,'pandas_type',None)
+            for n in sorted(groups, key = lambda x: x._v_name):
+                kind = getattr(n._v_attrs,'pandas_type',None)
 
-                keys.append(str(k))
+                keys.append(str(n._v_pathname))
 
+                # a group
                 if kind is None:
-                    values.append('unknown type')
+                    values.append('')
+
+                # a table
                 elif _is_table_type(v):
-                    values.append(str(create_table(self, v)))
+                    values.append(str(create_table(self, n)))
+                
+                # another type of pandas object
                 else:
                     values.append(_NAME_MAP[kind])
 
@@ -241,7 +251,7 @@ class HDFStore(object):
         Return a (potentially unordered) list of the keys corresponding to the
         objects stored in the HDFStore
         """
-        return self.handle.root._v_children.keys()
+        return [ n._v_pathname[1:] for n in self.groups() ]
 
     def open(self, mode='a', warn=True):
         """
@@ -304,12 +314,10 @@ class HDFStore(object):
         -------
         obj : type of object stored in file
         """
-        exc_type = _tables().NoSuchNodeError
-        try:
-            group = getattr(self.handle.root, key)
-            return self._read_group(group)
-        except (exc_type, AttributeError):
+        group = self.get_node(key)
+        if group is None:
             raise KeyError('No object named %s in the file' % key)
+        return self._read_group(group)
 
     def select(self, key, where=None):
         """
@@ -322,11 +330,12 @@ class HDFStore(object):
         where : list of Term (or convertable) objects, optional
 
         """
-        group = getattr(self.handle.root, key, None)
+        group = self.get_node(key)
+        if group is None:
+            raise KeyError('No object named %s in the file' % key)
         if where is not None and not _is_table_type(group):
             raise Exception('can only select with where on objects written as tables')
-        if group is not None:
-            return self._read_group(group, where)
+        return self._read_group(group, where)
 
     def put(self, key, value, table=False, append=False,
             compression=None, **kwargs):
@@ -352,9 +361,6 @@ class HDFStore(object):
         self._write_to_group(key, value, table=table, append=append,
                              comp=compression, **kwargs)
 
-    def _get_handler(self, op, kind):
-        return getattr(self, '_%s_%s' % (op, kind))
-
     def remove(self, key, where=None):
         """
         Remove pandas object partially by specifying the where condition
@@ -372,15 +378,21 @@ class HDFStore(object):
         number of rows removed (or None if not a Table)
 
         """
-        if where is None:
-            self.handle.removeNode(self.handle.root, key, recursive=True)
-        else:
-            group = getattr(self.handle.root, key, None)
-            if group is not None:
+        group = self.get_node(key)
+        if group is not None:
+
+            # remove the node
+            if where is None:
+                group = self.get_node(key)
+                group._f_remove(recursive=True)
+            
+            # delete from the table
+            else:
                 if not _is_table_type(group):
                     raise Exception('can only remove with where on objects written as tables')
                 t = create_table(self, group)
                 return t.delete(where)
+
         return None
 
     def append(self, key, value, **kwargs):
@@ -416,20 +428,52 @@ class HDFStore(object):
         if not _table_supports_index:
             raise("PyTables >= 2.3 is required for table indexing")
 
-        group = getattr(self.handle.root, key, None)
+        group = self.get_node(key)
         if group is None: return
 
         if not _is_table_type(group):
             raise Exception("cannot create table index on a non-table")
         create_table(self, group).create_index(**kwargs)
 
+    def groups(self):
+        """ return a list of all the groups (that are not themselves a pandas storage object) """
+        return [ g for g in self.handle.walkGroups() if getattr(g._v_attrs,'pandas_type',None) ]
+
+    def get_node(self, key):
+        """ return the node with the key or None if it does not exist """
+        try:
+            if not key.startswith('/'):
+                key = '/' + key
+            return self.handle.getNode(self.root,key)
+        except:
+            return None
+
+    ###### private methods ######
+
+    def _get_handler(self, op, kind):
+        return getattr(self, '_%s_%s' % (op, kind))
+
     def _write_to_group(self, key, value, table=False, append=False,
                         comp=None, **kwargs):
-        root = self.handle.root
-        if key not in root._v_children:
-            group = self.handle.createGroup(root, key)
-        else:
-            group = getattr(root, key)
+        group = self.get_node(key)
+        if group is None:
+            paths = key.split('/')
+
+            # recursively create the groups
+            path = '/'
+            if len(paths) > 1:
+                for p in paths[:-1]:
+                    new_path = path
+                    if not path.endswith('/'):
+                        new_path += '/'
+                    new_path += p
+                    group = self.get_node(new_path)
+                    if group is None:
+                        group = self.handle.createGroup(path, p)
+                    path  = new_path
+
+            # create the required group
+            group = self.handle.createGroup(path, paths[-1])
 
         kind = _TYPE_MAP[type(value)]
         if table or (append and _is_table_type(group)):

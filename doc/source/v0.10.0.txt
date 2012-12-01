@@ -63,6 +63,19 @@ Updated PyTables Support
 
   **Enhancements**
 
+       - added ability to hierarchical keys
+
+          .. ipython:: python
+
+            store.put('foo/bar/bah', df)
+            store.append('food/orange', df)
+            store.append('food/apple',  df)
+            store
+
+            # remove all nodes under this level
+            store.remove('food')
+	    store	
+
        - added mixed-dtype support!
 
           .. ipython:: python
