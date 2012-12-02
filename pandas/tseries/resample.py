@@ -35,11 +35,26 @@ class TimeGrouper(CustomGrouper):
     Use begin, end, nperiods to generate intervals that cannot be derived
     directly from the associated object
     """
-    def __init__(self, freq='Min', closed='right', label='right', how='mean',
+    def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0):
         self.freq = to_offset(freq)
+
+        end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
+        rule = self.freq.rule_code
+        if (rule in end_types or
+            ('-' in rule and rule[:rule.find('-')])):
+            if closed is None:
+                closed = 'right'
+            if label is None:
+                label = 'right'
+        else:
+            if closed is None:
+                closed = 'left'
+            if label is None:
+                label = 'left'
+
         self.closed = closed
         self.label = label
         self.nperiods = nperiods
