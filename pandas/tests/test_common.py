@@ -5,7 +5,7 @@ import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
-from pandas.core.common import notnull, isnull
+from pandas.core.common import notnull, isnull, use_inf_as_null
 import pandas.core.common as com
 import pandas.util.testing as tm
 
@@ -28,8 +28,16 @@ def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
     assert not notnull(np.NaN)
+
+    use_inf_as_null(False)
+    assert notnull(np.inf)
+    assert notnull(-np.inf)
+
+    use_inf_as_null(True)
     assert not notnull(np.inf)
     assert not notnull(-np.inf)
+
+    
 
     float_series = Series(np.random.randn(5))
     obj_series = Series(np.random.randn(5), dtype=object)
@@ -40,8 +48,8 @@ def test_isnull():
     assert not isnull(1.)
     assert isnull(None)
     assert isnull(np.NaN)
-    assert isnull(np.inf)
-    assert isnull(-np.inf)
+    assert not isnull(np.inf)
+    assert not isnull(-np.inf)
 
     float_series = Series(np.random.randn(5))
     obj_series = Series(np.random.randn(5), dtype=object)
