@@ -7,6 +7,11 @@ import random
 import numpy as np
 
 try:
+    import pandas._tseries as lib
+except:
+    import pandas.lib as lib
+
+try:
     Panel = WidePanel
 except Exception:
     pass

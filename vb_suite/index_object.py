@@ -12,7 +12,10 @@ common_setup = """from pandas_vb_common import *
 
 setup = common_setup + """
 rng = DateRange('1/1/2000', periods=10000, offset=datetools.Minute())
-rng = rng.view(Index)
+if rng.dtype == object:
+    rng = rng.view(Index)
+else:
+    rng = rng.asobject
 rng2 = rng[:-1]
 """
 

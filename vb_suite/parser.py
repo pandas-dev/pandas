@@ -34,22 +34,6 @@ read_csv_thou_vb = Benchmark("read_csv('test.csv', sep='|', thousands=',')",
                              start_date=datetime(2012, 5, 7))
 
 setup = common_setup + """
-import os
-N = 10000
-K = 8
-format = lambda x: '%f' % x
-df = DataFrame(np.random.randn(N, K) * np.random.randint(100, 10000, (N, K)))
-df = df.applymap(format)
-df.ix[:5, 0] = '#'
-df.to_csv('test.csv', sep='|')
-"""
-
-read_csv_comment = Benchmark("read_csv('test.csv', sep='|', comment='#')",
-                             setup,
-                             cleanup="os.remove('test.csv')",
-                             start_date=datetime(2012, 5, 7))
-
-setup = common_setup + """
 data = ['A,B,C']
 data = data + ['1,2,3 # comment'] * 100000
 data = '\\n'.join(data)

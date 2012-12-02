@@ -3,7 +3,7 @@ from datetime import datetime
 
 common_setup = """from pandas_vb_common import *
 from datetime import timedelta
-import pandas._tseries as lib
+
 N = 1000000
 
 try:
