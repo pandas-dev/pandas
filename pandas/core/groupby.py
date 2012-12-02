@@ -316,7 +316,15 @@ class GroupBy(object):
         -------
         applied : type depending on grouped object and function
         """
-        return self._python_apply_general(func, *args, **kwargs)
+        func = _intercept_function(func)
+        f = lambda g: func(g, *args, **kwargs)
+        return self._python_apply_general(f)
+
+    def _python_apply_general(self, f):
+        keys, values, mutated = self.grouper.apply(f, self.obj, self.axis)
+
+        return self._wrap_applied_output(keys, values,
+                                         not_indexed_same=mutated)
 
     def aggregate(self, func, *args, **kwargs):
         raise NotImplementedError
@@ -433,19 +441,19 @@ class GroupBy(object):
 
     def _python_agg_general(self, func, *args, **kwargs):
         func = _intercept_function(func)
-        agg_func = lambda x: func(x, *args, **kwargs)
+        f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
         output = {}
         for name, obj in self._iterate_slices():
             try:
-                result, counts = self.grouper.agg_series(obj, agg_func)
+                result, counts = self.grouper.agg_series(obj, f)
                 output[name] = result
             except TypeError:
                 continue
 
         if len(output) == 0:
-            return self._python_apply_general(func, *args, **kwargs)
+            return self._python_apply_general(f)
 
         if self.grouper._filter_empty_groups:
             mask = counts.ravel() > 0
@@ -453,30 +461,6 @@ class GroupBy(object):
                 output[name] = result[mask]
 
         return self._wrap_aggregated_output(output)
-
-    def _python_apply_general(self, func, *args, **kwargs):
-        func = _intercept_function(func)
-
-        result_keys = []
-        result_values = []
-
-        not_indexed_same = False
-        for key, group in self:
-            object.__setattr__(group, 'name', key)
-
-            # group might be modified
-            group_axes = _get_axes(group)
-
-            res = func(group, *args, **kwargs)
-
-            if not _is_indexed_like(res, group_axes):
-                not_indexed_same = True
-
-            result_keys.append(key)
-            result_values.append(res)
-
-        return self._wrap_applied_output(result_keys, result_values,
-                                         not_indexed_same=not_indexed_same)
 
     def _wrap_applied_output(self, *args, **kwargs):
         raise NotImplementedError
@@ -502,17 +486,6 @@ class GroupBy(object):
             result = concat(values, axis=self.axis)
 
         return result
-
-
-def _generate_groups(obj, group_index, ngroups, axis=0):
-    if isinstance(obj, NDFrame) and not isinstance(obj, DataFrame):
-        factory = obj._constructor
-        obj = obj._data
-    else:
-        factory = None
-
-    return generate_groups(obj, group_index, ngroups,
-                           axis=axis, factory=factory)
 
 
 @Appender(GroupBy.__doc__)
@@ -567,7 +540,7 @@ class Grouper(object):
     def nkeys(self):
         return len(self.groupings)
 
-    def get_iterator(self, data, axis=0):
+    def get_iterator(self, data, axis=0, keep_internal=True):
         """
         Groupby iterator
 
@@ -576,29 +549,43 @@ class Grouper(object):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if len(self.groupings) == 1:
-            indices = self.indices
-            groups = indices.keys()
-            try:
-                groups = sorted(groups)
-            except Exception:  # pragma: no cover
-                pass
+        comp_ids, _, ngroups = self.group_info
+        splitter = get_splitter(data, comp_ids, ngroups, axis=axis,
+                                keep_internal=keep_internal)
 
-            for name in groups:
-                inds = indices[name]
-                group = data.take(inds, axis=axis)
-                yield name, group
+        if len(self.groupings) == 1:
+            levels = self.groupings[0].group_index
+            for i, group in splitter:
+                yield levels[i], group
         else:
             # provide "flattened" iterator for multi-group setting
-            comp_ids, _, ngroups = self.group_info
-            label_list = self.labels
-            level_list = self.levels
-            mapper = _KeyMapper(comp_ids, ngroups, label_list, level_list)
-
-            for label, group in _generate_groups(data, comp_ids, ngroups,
-                                                 axis=axis):
-                key = mapper.get_key(label)
+            mapper = _KeyMapper(comp_ids, ngroups, self.labels, self.levels)
+            for i, group in splitter:
+                key = mapper.get_key(i)
                 yield key, group
+
+    def apply(self, f, data, axis=0):
+        result_keys = []
+        result_values = []
+
+        mutated = False
+        splitter = self.get_iterator(data, axis=axis)
+
+        for key, group in splitter:
+            object.__setattr__(group, 'name', key)
+
+            # group might be modified
+            group_axes = _get_axes(group)
+
+            res = f(group)
+
+            if not _is_indexed_like(res, group_axes):
+                mutated = True
+
+            result_keys.append(key)
+            result_values.append(res)
+
+        return result_keys, result_values, mutated
 
     @cache_readonly
     def indices(self):
@@ -848,8 +835,9 @@ class Grouper(object):
 
         group_index, _, ngroups = self.group_info
 
-        for label, group in _generate_groups(obj, group_index, ngroups,
-                                             axis=self.axis):
+        splitter = get_splitter(obj, group_index, ngroups, axis=self.axis)
+
+        for label, group in splitter:
             res = func(group)
             if result is None:
                 if isinstance(res, np.ndarray) or isinstance(res, list):
@@ -1925,30 +1913,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return result
 
-    def _python_apply_general(self, func, *args, **kwargs):
-        func = _intercept_function(func)
-
-        result_keys = []
-        result_values = []
-
-        not_indexed_same = False
-        for key, group in self:
-            object.__setattr__(group, 'name', key)
-
-            # group might be modified
-            group_axes = _get_axes(group)
-
-            res = func(group, *args, **kwargs)
-
-            if not _is_indexed_like(res, group_axes):
-                not_indexed_same = True
-
-            result_keys.append(key)
-            result_values.append(res)
-
-        return self._wrap_applied_output(result_keys, result_values,
-                                         not_indexed_same=not_indexed_same)
-
 
 from pandas.tools.plotting import boxplot_frame_groupby
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
@@ -2038,7 +2002,7 @@ class NDArrayGroupBy(GroupBy):
 
 class DataSplitter(object):
 
-    def __init__(self, data, labels, ngroups, axis=0):
+    def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
         self.data = data
         self.labels = com._ensure_int64(labels)
         self.ngroups = ngroups
@@ -2051,7 +2015,10 @@ class DataSplitter(object):
     def __iter__(self):
         sdata = self._get_sorted_data()
 
-        starts, ends = lib.generate_slices(self.sort_idx, self.ngroups)
+        if self.ngroups == 0:
+            raise StopIteration
+
+        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         for i, (start, end) in enumerate(zip(starts, ends)):
             # Since I'm now compressing the group ids, it's now not "possible"
@@ -2066,9 +2033,9 @@ class DataSplitter(object):
         return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj):
-        raise NotImplementedError
+        return sdata[slice_obj]
 
-    def apply(self, f, keep_internal=False):
+    def apply(self, f):
         raise NotImplementedError
 
 
@@ -2079,65 +2046,55 @@ class ArraySplitter(DataSplitter):
 class SeriesSplitter(DataSplitter):
 
     def _chop(self, sdata, slice_obj):
-        return sdata._get_values(slob)
-
+        return sdata._get_values(slice_obj)
 
 class FrameSplitter(DataSplitter):
-    pass
+
+    def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
+        DataSplitter.__init__(self, data, labels, ngroups, axis=axis,
+                              keep_internal=keep_internal)
+
+    def _chop(self, sdata, slice_obj):
+        if self.axis == 0:
+            return sdata[slice_obj]
+        else:
+            return sdata._slice(slice_obj, axis=1) # ix[:, slice_obj]
+
+class NDFrameSplitter(DataSplitter):
+
+    def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
+        DataSplitter.__init__(self, data, labels, ngroups, axis=axis,
+                              keep_internal=keep_internal)
+
+        self.factory = data._constructor
+
+    def _get_sorted_data(self):
+        # this is the BlockManager
+        data = self.data._data
+
+        # this is sort of wasteful but...
+        sorted_axis = data.axes[self.axis].take(self.sort_idx)
+        sorted_data = data.reindex_axis(sorted_axis, axis=self.axis)
+
+        return sorted_data
+
+    def _chop(self, sdata, slice_obj):
+        return self.factory(sdata.get_slice(slice_obj, axis=self.axis))
+
+
+def get_splitter(data, *args, **kwargs):
+    if isinstance(data, Series):
+        klass = SeriesSplitter
+    elif isinstance(data, DataFrame):
+        klass = FrameSplitter
+    else:
+        klass = NDFrameSplitter
+
+    return klass(data, *args, **kwargs)
+
 
 #----------------------------------------------------------------------
-# Grouping generator for BlockManager
-
-def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
-    """
-    Parameters
-    ----------
-    data : BlockManager
-
-    Returns
-    -------
-    generator
-    """
-    group_index = com._ensure_int64(group_index)
-    indexer = _algos.groupsort_indexer(group_index, ngroups)[0]
-    group_index = com.ndtake(group_index, indexer)
-
-    if isinstance(data, BlockManager):
-        # this is sort of wasteful but...
-        sorted_axis = data.axes[axis].take(indexer)
-        sorted_data = data.reindex_axis(sorted_axis, axis=axis)
-    if isinstance(data, Series):
-        sorted_axis = data.index.take(indexer)
-        sorted_data = data.reindex(sorted_axis)
-    elif isinstance(data, DataFrame):
-        sorted_data = data.take(indexer, axis=axis)
-
-    if isinstance(sorted_data, DataFrame):
-        def _get_slice(slob):
-            if axis == 0:
-                return sorted_data[slob]
-            else:
-                return sorted_data.ix[:, slob]
-    elif isinstance(sorted_data, BlockManager):
-        def _get_slice(slob):
-            return factory(sorted_data.get_slice(slob, axis=axis))
-    elif isinstance(sorted_data, Series):
-        def _get_slice(slob):
-            return sorted_data._get_values(slob)
-    else:  # pragma: no cover
-        def _get_slice(slob):
-            return sorted_data[slob]
-
-    starts, ends = lib.generate_slices(group_index, ngroups)
-
-    for i, (start, end) in enumerate(zip(starts, ends)):
-        # Since I'm now compressing the group ids, it's now not "possible" to
-        # produce empty slices because such groups would not be observed in the
-        # data
-        if start >= end:
-            raise AssertionError('Start %s must be less than end %s'
-                                 % (str(start), str(end)))
-        yield i, _get_slice(slice(start, end))
+# Misc utilities
 
 
 def get_group_index(label_list, shape):
@@ -2254,6 +2211,7 @@ class _KeyMapper(object):
                      for table, level in zip(self.tables, self.levels))
 
 
+
 def _get_indices_dict(label_list, keys):
     shape = [len(x) for x in keys]
     group_index = get_group_index(label_list, shape)
@@ -2267,6 +2225,7 @@ def _get_indices_dict(label_list, keys):
     group_index = group_index.take(sorter_int)
 
     return lib.indices_fast(sorter, group_index, keys, sorted_labels)
+
 
 #----------------------------------------------------------------------
 # sorting levels...cleverly?

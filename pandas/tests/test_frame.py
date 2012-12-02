@@ -3690,13 +3690,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_from_csv_w_some_infs(self):
-        import tempfile
-        path = tempfile.mktemp()
-        path += '__tmp__'
+        path = '__%s__' % tm.rands(10)
 
         # test roundtrip with inf, -inf, nan, as full columns and mix
         self.frame['G'] = np.nan
-        self.frame['H'] = self.frame.index.map(lambda x: [np.inf, np.nan][np.random.rand() < .5])
+        f = lambda x: [np.inf, np.nan][np.random.rand() < .5]
+        self.frame['H'] = self.frame.index.map(f)
 
         self.frame.to_csv(path)
         recons = DataFrame.from_csv(path)
@@ -3704,7 +3703,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(self.frame, recons)
         assert_frame_equal(np.isinf(self.frame), np.isinf(recons))
 
-        os.remove(path)
+        try:
+            os.remove(path)
+        except os.error:
+            pass
 
     def test_to_csv_from_csv_w_all_infs(self):
         import tempfile

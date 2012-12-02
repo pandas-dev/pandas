@@ -226,7 +226,7 @@ groupby_simple_compress_timing = \
 
 setup = common_setup + """
 N = 10000
-labels = np.random.randint(0, 1000, size=N)
+labels = np.random.randint(0, 2000, size=N)
 labels2 = np.random.randint(0, 3, size=N)
 df = DataFrame({'key': labels,
                 'key2': labels2,
