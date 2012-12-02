@@ -23,6 +23,24 @@ class FreqGroup(object):
     FR_MIN = 8000
     FR_SEC = 9000
 
+class Resolution(object):
+
+    RESO_US = 0
+    RESO_SEC = 1
+    RESO_MIN = 2
+    RESO_HR = 3
+    RESO_DAY = 4
+
+    @classmethod
+    def get_str(cls, reso):
+        return {RESO_US : 'microsecond',
+                RESO_SEC : 'second',
+                RESO_MIN : 'minute',
+                RESO_HR : 'hour',
+                RESO_DAY : 'day'}.get(reso, 'day')
+
+def get_reso_string(reso):
+    return Resolution.get_str(reso)
 
 def get_to_timestamp_base(base):
     if base <= FreqGroup.FR_WK:

@@ -1982,3 +1982,100 @@ def extract_ordinals(ndarray[object] values, freq):
             raise ValueError("%s is wrong freq" % p)
 
     return ordinals
+
+cpdef resolution(ndarray[int64_t] stamps, tz=None):
+    cdef:
+        Py_ssize_t i, n = len(stamps)
+        pandas_datetimestruct dts
+        int reso = D_RESO, curr_reso
+
+    if tz is not None:
+        if isinstance(tz, basestring):
+            tz = pytz.timezone(tz)
+        return _reso_local(stamps, tz)
+    else:
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                continue
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            curr_reso = _reso_stamp(&dts)
+            if curr_reso < reso:
+                reso = curr_reso
+        return reso
+
+US_RESO = 0
+S_RESO = 1
+T_RESO = 2
+H_RESO = 3
+D_RESO = 4
+
+cdef inline int _reso_stamp(pandas_datetimestruct *dts):
+    if dts.us != 0:
+        return US_RESO
+    elif dts.sec != 0:
+        return S_RESO
+    elif dts.min != 0:
+        return T_RESO
+    elif dts.hour != 0:
+        return H_RESO
+    return D_RESO
+
+cdef _reso_local(ndarray[int64_t] stamps, object tz):
+    cdef:
+        Py_ssize_t n = len(stamps)
+        int reso = D_RESO, curr_reso
+        ndarray[int64_t] trans, deltas, pos
+        pandas_datetimestruct dts
+
+    if _is_utc(tz):
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                continue
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
+            curr_reso = _reso_stamp(&dts)
+            if curr_reso < reso:
+                reso = curr_reso
+    elif _is_tzlocal(tz):
+        for i in range(n):
+            if stamps[i] == NPY_NAT:
+                continue
+            pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns,
+                                              &dts)
+            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, tz)
+            delta = int(total_seconds(_get_utcoffset(tz, dt))) * 1000000000
+            pandas_datetime_to_datetimestruct(stamps[i] + delta,
+                                              PANDAS_FR_ns, &dts)
+            curr_reso = _reso_stamp(&dts)
+            if curr_reso < reso:
+                reso = curr_reso
+    else:
+        # Adjust datetime64 timestamp, recompute datetimestruct
+        trans = _get_transitions(tz)
+        deltas = _get_deltas(tz)
+        _pos = trans.searchsorted(stamps, side='right') - 1
+        if _pos.dtype != np.int64:
+            _pos = _pos.astype(np.int64)
+        pos = _pos
+
+        # statictzinfo
+        if not hasattr(tz, '_transition_info'):
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    continue
+                pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
+                                                  PANDAS_FR_ns, &dts)
+                curr_reso = _reso_stamp(&dts)
+                if curr_reso < reso:
+                    reso = curr_reso
+        else:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    continue
+                pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
+                                                  PANDAS_FR_ns, &dts)
+                curr_reso = _reso_stamp(&dts)
+                if curr_reso < reso:
+                    reso = curr_reso
+
+    return reso

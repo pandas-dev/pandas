@@ -8,7 +8,8 @@ import numpy as np
 
 from pandas.core.common import isnull
 from pandas.core.index import Index, Int64Index
-from pandas.tseries.frequencies import infer_freq, to_offset, get_period_alias
+from pandas.tseries.frequencies import (infer_freq, to_offset, get_period_alias,
+                                        Resolution, get_reso_string)
 from pandas.tseries.offsets import DateOffset, generate_range, Tick
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -1040,6 +1041,23 @@ class DatetimeIndex(Int64Index):
             d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
             t2 = Timestamp(datetime(parsed.year, qe, d))
+        elif reso == 'day' and self._resolution < Resolution.RESO_DAY:
+            st = datetime(parsed.year, parsed.month, parsed.day)
+            t1 = Timestamp(st)
+            t2 = st + offsets.Day()
+            t2 = Timestamp(Timestamp(t2).value - 1)
+        elif (reso == 'hour' and
+              self._resolution < Resolution.RESO_HR):
+            st = datetime(parsed.year, parsed.month, parsed.day,
+                          hour=parsed.hour)
+            t1 = Timestamp(st)
+            t2 = Timestamp(Timestamp(st + offsets.Hour()).value - 1)
+        elif (reso == 'minute' and
+              self._resolution < Resolution.RESO_MIN):
+            st = datetime(parsed.year, parsed.month, parsed.day,
+                          hour=parsed.hour, minute=parsed.minute)
+            t1 = Timestamp(st)
+            t2 = Timestamp(Timestamp(st + offsets.Minute()).value - 1)
         else:
             raise KeyError
 
@@ -1254,6 +1272,18 @@ class DatetimeIndex(Int64Index):
         Returns True if all of the dates are at midnight ("no time")
         """
         return tslib.dates_normalized(self.asi8, self.tz)
+
+    @cache_readonly
+    def resolution(self):
+        """
+        Returns day, hour, minute, second, or microsecond
+        """
+        reso = self._resolution
+        return get_reso_string(reso)
+
+    @cache_readonly
+    def _resolution(self):
+        return lib.resolution(self.asi8, self.tz)
 
     def equals(self, other):
         """

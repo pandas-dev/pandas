@@ -10,7 +10,7 @@ import pandas.core.common as com
 
 try:
     import dateutil
-    from dateutil.parser import parse
+    from dateutil.parser import parse, DEFAULTPARSER
     from dateutil.relativedelta import relativedelta
 
     # raise exception if dateutil 2.0 install on 2.x platform
@@ -132,6 +132,7 @@ qpat2full = re.compile(r'(\d\d\d\d)Q(\d)')
 qpat1 = re.compile(r'(\d)Q(\d\d)')
 qpat2 = re.compile(r'(\d\d)Q(\d)')
 ypat = re.compile(r'(\d\d\d\d)$')
+has_time = re.compile('(.+)([\s]|T)+(.+)')
 
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
@@ -227,25 +228,61 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
         yearfirst = get_option("print.date_yearfirst")
 
     try:
-        parsed = parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)
+        parsed, reso = dateutil_parse(arg, default, dayfirst=dayfirst,
+                                      yearfirst=yearfirst)
     except Exception, e:
         raise DateParseError(e)
 
     if parsed is None:
         raise DateParseError("Could not parse %s" % arg)
 
-    repl = {}
-    reso = 'year'
+    return parsed, parsed, reso  # datetime, resolution
 
+def dateutil_parse(timestr, default,
+                   ignoretz=False, tzinfos=None,
+                   **kwargs):
+    """ lifted from dateutil to get resolution"""
+    res = DEFAULTPARSER._parse(timestr, **kwargs)
+
+    if res is None:
+        raise ValueError, "unknown string format"
+
+    repl = {}
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
-        value = getattr(parsed, attr)
-        if value is not None and value != 0:  # or attr in can_be_zero):
+        value = getattr(res, attr)
+        if value is not None:
             repl[attr] = value
             reso = attr
-    ret = default.replace(**repl)
-    return ret, parsed, reso  # datetime, resolution
+    if reso == 'microsecond' and repl['microsecond'] == 0:
+        reso = 'second'
 
+    ret = default.replace(**repl)
+    if res.weekday is not None and not res.day:
+        ret = ret+relativedelta.relativedelta(weekday=res.weekday)
+    if not ignoretz:
+        if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
+            if callable(tzinfos):
+                tzdata = tzinfos(res.tzname, res.tzoffset)
+            else:
+                tzdata = tzinfos.get(res.tzname)
+            if isinstance(tzdata, datetime.tzinfo):
+                tzinfo = tzdata
+            elif isinstance(tzdata, basestring):
+                tzinfo = tz.tzstr(tzdata)
+            elif isinstance(tzdata, int):
+                tzinfo = tz.tzoffset(res.tzname, tzdata)
+            else:
+                raise ValueError, "offset must be tzinfo subclass, " \
+                                  "tz string, or int offset"
+            ret = ret.replace(tzinfo=tzinfo)
+        elif res.tzname and res.tzname in time.tzname:
+            ret = ret.replace(tzinfo=tz.tzlocal())
+        elif res.tzoffset == 0:
+            ret = ret.replace(tzinfo=tz.tzutc())
+        elif res.tzoffset:
+            ret = ret.replace(tzinfo=tz.tzoffset(res.tzname, res.tzoffset))
+    return ret, reso
 
 def _attempt_monthly(val):
     pats = ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']
