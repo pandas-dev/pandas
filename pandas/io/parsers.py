@@ -1145,9 +1145,11 @@ class PythonParser(ParserBase):
 
             if self.encoding is not None:
                 reader = com.UnicodeReader(f, dialect=dia,
-                                           encoding=self.encoding)
+                                           encoding=self.encoding,
+                                           strict=True)
             else:
-                reader = csv.reader(f, dialect=dia)
+                reader = csv.reader(f, dialect=dia,
+                                    strict=True)
         else:
             reader = (re.split(sep, line.strip()) for line in f)
 
