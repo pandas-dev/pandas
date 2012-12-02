@@ -9,6 +9,7 @@ import os
 import sys
 import unittest
 from textwrap import dedent
+import warnings
 
 from numpy import nan
 from numpy.random import randn
@@ -30,11 +31,15 @@ def curpath():
 class TestDataFrameFormatting(unittest.TestCase):
     _multiprocess_can_split_ = True
     def setUp(self):
-        import warnings
-        self.frame = _frame.copy()
+        self.warn_filters = warnings.filters
         warnings.filterwarnings('ignore',
                                 category=FutureWarning,
                                 module=".*format")
+
+        self.frame = _frame.copy()
+
+    def tearDown(self):
+        warnings.filters = self.warn_filters
 
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[('err', object)])

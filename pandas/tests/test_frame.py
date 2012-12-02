@@ -2934,6 +2934,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_repr_unsortable(self):
         # columns are not sortable
+        import warnings
+        warn_filters = warnings.filters
+        warnings.filterwarnings('ignore',
+                                category=FutureWarning,
+                                module=".*format")
 
         unsortable = DataFrame({'foo' : [1] * 50,
                                 datetime.today() : [1] * 50,
@@ -2952,6 +2957,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         repr(self.frame)
 
         fmt.reset_printoptions()
+
+        warnings.filters = warn_filters
 
     def test_repr_unicode(self):
         uval = u'\u03c3\u03c3\u03c3\u03c3'

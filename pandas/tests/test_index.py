@@ -1319,6 +1319,11 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(result[3], '1  0  0  0')
 
     def test_format_sparse_config(self):
+        import warnings
+        warn_filters = warnings.filters
+        warnings.filterwarnings('ignore',
+                                category=FutureWarning,
+                                module=".*format")
         # #1538
         pd.set_printoptions(multi_sparse=False)
 
@@ -1326,6 +1331,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(result[1], 'foo  two')
 
         pd.reset_printoptions()
+
+        warnings.filters = warn_filters
 
     def test_bounds(self):
         self.index._bounds
