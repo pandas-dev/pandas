@@ -45,6 +45,9 @@ pandas 0.10.0
 
 **API Changes**
 
+  - inf/-inf are no longer considered as NA by isnull/notnull. To be cler, this
+    is legacy cruft from early pandas. This behavior can be globally re-enabled
+    using pandas.core.common.use_inf_as_na (#2050, #1919)
   - ``pandas.merge`` will now default to ``sort=False``. For many use cases
     sorting the join keys is not necessary, and doing it by default is wasteful
   - ``names`` handling in file parsing: if explicit column `names` passed,

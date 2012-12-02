@@ -122,6 +122,7 @@ key2 = np.array([rands(10) for _ in xrange(N)], dtype='O').repeat(K)
 
 df = DataFrame({'key1' : key1, 'key2' : key2,
                 'value' : np.random.randn(N * K)})
+col_array_list = list(df.values.T)
 """
 statement = "df.sort_index(by=['key1', 'key2'])"
 frame_sort_index_by_columns = Benchmark(statement, setup,
@@ -137,7 +138,7 @@ statement = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
 frame_drop_dup_inplace = Benchmark(statement, setup,
                                   start_date=datetime(2012, 5, 16))
 
-lib_fast_zip = Benchmark('lib.fast_zip(df.values.T)', setup,
+lib_fast_zip = Benchmark('lib.fast_zip(col_array_list)', setup,
                          name='lib_fast_zip',
                          start_date=datetime(2012, 1, 1))
 
@@ -148,7 +149,7 @@ statement2 = "df.drop_duplicates(['key1', 'key2'])"
 frame_drop_duplicates_na = Benchmark(statement2, setup,
                                      start_date=datetime(2012, 5, 15))
 
-lib_fast_zip_fillna = Benchmark('lib.fast_zip_fillna(df.values.T)', setup,
+lib_fast_zip_fillna = Benchmark('lib.fast_zip_fillna(col_array_list)', setup,
                                 start_date=datetime(2012, 5, 15))
 
 statement2 = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
