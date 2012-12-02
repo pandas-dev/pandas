@@ -7,6 +7,7 @@ import numpy as np
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
+from pandas.util.py3compat import StringIO
 
 try:
     import dateutil
@@ -242,7 +243,7 @@ def dateutil_parse(timestr, default,
                    ignoretz=False, tzinfos=None,
                    **kwargs):
     """ lifted from dateutil to get resolution"""
-    res = DEFAULTPARSER._parse(timestr, **kwargs)
+    res = DEFAULTPARSER._parse(StringIO(timestr), **kwargs)
 
     if res is None:
         raise ValueError, "unknown string format"
