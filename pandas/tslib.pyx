@@ -92,11 +92,11 @@ class Timestamp(_Timestamp):
         cdef _TSObject ts
         cdef _Timestamp ts_base
 
-        if isinstance(ts_input, float):
+        if PyFloat_Check(ts_input):
             # to do, do we want to support this, ie with fractional seconds?
             raise TypeError("Cannot convert a float to datetime")
 
-        if isinstance(ts_input, basestring):
+        if util.is_string_object(ts_input):
             try:
                 ts_input = parse_date(ts_input)
             except Exception:
@@ -303,9 +303,6 @@ NaT = NaTType()
 iNaT = util.get_nat()
 
 
-cdef inline bint is_timestamp(object o):
-    return isinstance(o, Timestamp)
-
 def is_timestamp_array(ndarray[object] values):
     cdef int i, n = len(values)
     if n == 0:
@@ -510,6 +507,13 @@ cdef class _Timestamp(datetime):
     cpdef _get_field(self, field):
         out = get_date_field(np.array([self.value], dtype=np.int64), field)
         return out[0]
+
+
+cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
+
+
+cdef inline bint is_timestamp(object o):
+    return Py_TYPE(o) == ts_type # isinstance(o, Timestamp)
 
 
 cdef class _NaT(_Timestamp):
@@ -768,7 +772,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                                          'utc=True')
                 else:
                     iresult[i] = _pydatetime_to_dts(val, &dts)
-                    if isinstance(val, _Timestamp):
+                    if is_timestamp(val):
                         iresult[i] += (<_Timestamp>val).nanosecond
                     _check_dts_bounds(iresult[i], &dts)
             elif PyDate_Check(val):

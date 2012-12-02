@@ -2286,10 +2286,10 @@ class TestDatetime64(unittest.TestCase):
 
     @slow
     def test_slice_locs_indexerror(self):
-        times = [datetime(2000, 1, 1) + timedelta(minutes=i) for i in range(1000000)]
-        s = Series(range(1000000), times)
-        s.ix[datetime(1900,1,1)
-:datetime(2100,1,1)]
+        times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
+                 for i in range(100000)]
+        s = Series(range(100000), times)
+        s.ix[datetime(1900,1,1):datetime(2100,1,1)]
 
 
 class TestSeriesDatetime64(unittest.TestCase):

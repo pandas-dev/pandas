@@ -181,3 +181,26 @@ df = DataFrame(values)
 frame_fillna_many_columns_pad = Benchmark("df.fillna(method='pad')",
                                           setup,
                                           start_date=datetime(2011, 3, 1))
+
+#----------------------------------------------------------------------
+# blog "pandas escaped the zoo"
+
+setup = common_setup + """
+n = 50000
+indices = Index([rands(10) for _ in xrange(n)])
+
+def sample(values, k):
+    from random import shuffle
+    sampler = np.arange(len(values))
+    shuffle(sampler)
+    return values.take(sampler[:k])
+
+subsample_size = 40000
+
+x = Series(np.random.randn(50000), indices)
+y = Series(np.random.randn(subsample_size),
+           index=sample(indices, subsample_size))
+"""
+
+series_align_irregular_string = Benchmark("x + y", setup,
+                                          start_date=datetime(2010, 6, 1))
