@@ -30,7 +30,11 @@ def curpath():
 class TestDataFrameFormatting(unittest.TestCase):
     _multiprocess_can_split_ = True
     def setUp(self):
+        import warnings
         self.frame = _frame.copy()
+        warnings.filterwarnings('ignore',
+                                category=FutureWarning,
+                                module=".*format")
 
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[('err', object)])
