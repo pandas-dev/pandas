@@ -37,7 +37,7 @@ def test_notnull():
     assert not notnull(np.inf)
     assert not notnull(-np.inf)
 
-    
+    use_inf_as_null(False)
 
     float_series = Series(np.random.randn(5))
     obj_series = Series(np.random.randn(5), dtype=object)
