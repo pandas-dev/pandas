@@ -291,6 +291,21 @@ class TestMultiLevel(unittest.TestCase):
         cp['a'] = cp['b'].values
         assert_frame_equal(cp['a'], cp['b'])
 
+        #----------------------------------------
+        # #1803
+        columns = MultiIndex.from_tuples([('A', '1'), ('A', '2'), ('B', '1')])
+        df = DataFrame(index=[1, 3, 5], columns=columns)
+
+        # Works, but adds a column instead of updating the two existing ones
+        df['A'] = 0.0 # Doesn't work
+        self.assertTrue((df['A'].values == 0).all())
+
+        # it broadcasts
+        df['B', '1'] = [1, 2, 3]
+        df['A'] = df['B', '1']
+        assert_almost_equal(df['A', '1'], df['B', '1'])
+        assert_almost_equal(df['A', '2'], df['B', '1'])
+
     def test_getitem_tuple_plus_slice(self):
         # GH #671
         df = DataFrame({'a' : range(10),

@@ -2092,14 +2092,30 @@ class DataFrame(NDFrame):
                     value = value.copy().T
                 else:
                     value = value.copy()
+
+            # Broadcasting funtimes
+            if key in self.columns and value.ndim == 1:
+                existing_piece = self[key]
+                if isinstance(existing_piece, DataFrame):
+                    value = np.tile(value, (len(existing_piece.columns), 1))
         else:
-            value = np.repeat(value, len(self.index))
             if key in self.columns:
-                existing_column = self[key]
-                # special case for now
-                if (com.is_float_dtype(existing_column) and
-                    com.is_integer_dtype(value)):
-                    value = value.astype(np.float64)
+                existing_piece = self[key]
+
+                # transpose hack
+                if isinstance(existing_piece, DataFrame):
+                    shape = (len(existing_piece.columns), len(self.index))
+                    value = np.repeat(value, np.prod(shape)).reshape(shape)
+                else:
+                    value = np.repeat(value, len(self.index))
+
+                    # special case for now
+                    if (com.is_float_dtype(existing_piece) and
+                        com.is_integer_dtype(value)):
+                        value = value.astype(np.float64)
+
+            else:
+                value = np.repeat(value, len(self.index))
 
         return np.atleast_2d(np.asarray(value))
 

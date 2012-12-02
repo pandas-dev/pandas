@@ -108,6 +108,9 @@ pandas 0.10.0
   - Use `col_space` argument as minimum column width in DataFrame.to_html (#2328)
   - Fix tz-aware DatetimeIndex.to_period (#2232)
   - Fix DataFrame row indexing case with MultiIndex (#2314)
+  - Fix to_excel exporting issues with Timestamp objects in index (#2294)
+  - Fixes assigning scalars and array to hierarchical column chunk (#1803)
+
 
 pandas 0.9.1
 ============
