@@ -661,7 +661,7 @@ class ParserBase(object):
                 return (j in self.parse_dates) or (name in self.parse_dates)
 
     def _make_index(self, data, alldata, columns):
-        if self.index_col is None:
+        if self.index_col is None or len(self.index_col) == 0:
             index = None
 
         elif not self._has_complex_date_col:

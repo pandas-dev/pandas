@@ -1582,6 +1582,42 @@ eight,1,2,3"""
                                header=None, skipinitialspace=True)
         self.assertTrue(pd.isnull(result.ix[0, 29]))
 
+    def test_utf16_bom_skiprows(self):
+        # #2298
+        data = u"""skip this
+skip this too
+A\tB\tC
+1\t2\t3
+4\t5\t6"""
+
+        data2 = u"""skip this
+skip this too
+A,B,C
+1,2,3
+4,5,6"""
+
+        path = '__%s__.csv' % tm.rands(10)
+
+        for sep, dat in [('\t', data), (',', data2)]:
+            for enc in ['utf-16', 'utf-16le', 'utf-16be']:
+                bytes = dat.encode(enc)
+                with open(path, 'wb') as f:
+                    f.write(bytes)
+
+                result = self.read_csv(path, encoding=enc, skiprows=2,
+                                       sep=sep)
+                expected = self.read_csv(StringIO(dat.encode('utf-8')),
+                                         encoding='utf-8', skiprows=2,
+                                         sep=sep)
+
+                tm.assert_frame_equal(result, expected)
+
+        try:
+            os.remove(path)
+        except os.error:
+            pass
+
+
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):

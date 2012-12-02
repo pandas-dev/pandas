@@ -1874,6 +1874,48 @@ class TestLegacySupport(unittest.TestCase):
         expected = s[:'20060228']
         assert_series_equal(result, expected)
 
+        result = s['2005-1-1']
+        self.assert_(result == s.irow(0))
+
+        self.assertRaises(Exception, s.__getitem__, '2004-12-31')
+
+    def test_partial_slice_daily(self):
+        rng = DatetimeIndex(freq='H', start=datetime(2005,1,31), periods=500)
+        s = Series(np.arange(len(rng)), index=rng)
+
+        result = s['2005-1-31']
+        assert_series_equal(result, s.ix[:24])
+
+        self.assertRaises(Exception, s.__getitem__, '2004-12-31 00')
+
+    def test_partial_slice_hourly(self):
+        rng = DatetimeIndex(freq='T', start=datetime(2005,1,1,20,0,0),
+                            periods=500)
+        s = Series(np.arange(len(rng)), index=rng)
+
+        result = s['2005-1-1']
+        assert_series_equal(result, s.ix[:60*4])
+
+        result = s['2005-1-1 20']
+        assert_series_equal(result, s.ix[:60])
+
+        self.assert_(s['2005-1-1 20:00'] == s.ix[0])
+        self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:15')
+
+    def test_partial_slice_minutely(self):
+        rng = DatetimeIndex(freq='S', start=datetime(2005,1,1,23,59,0),
+                            periods=500)
+        s = Series(np.arange(len(rng)), index=rng)
+
+        result = s['2005-1-1 23:59']
+        assert_series_equal(result, s.ix[:60])
+
+        result = s['2005-1-1']
+        assert_series_equal(result, s.ix[:60])
+
+        self.assert_(s['2005-1-1 23:59:00'] == s.ix[0])
+        self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:00:00')
+
     def test_partial_not_monotonic(self):
         rng = date_range(datetime(2005,1,1), periods=20, freq='M')
         ts = Series(np.arange(len(rng)), index=rng)
@@ -2244,10 +2286,10 @@ class TestDatetime64(unittest.TestCase):
 
     @slow
     def test_slice_locs_indexerror(self):
-        times = [datetime(2000, 1, 1) + timedelta(minutes=i) for i in range(1000000)]
-        s = Series(range(1000000), times)
-        s.ix[datetime(1900,1,1)
-:datetime(2100,1,1)]
+        times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
+                 for i in range(100000)]
+        s = Series(range(100000), times)
+        s.ix[datetime(1900,1,1):datetime(2100,1,1)]
 
 
 class TestSeriesDatetime64(unittest.TestCase):

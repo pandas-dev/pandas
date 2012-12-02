@@ -657,6 +657,8 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
 if _have_setuptools:
     setuptools_kwargs["test_suite"] = "nose.collector"
 
+options = {'bdist_wininst': {'user-access-control': 'auto'}}
+
 write_version_py()
 setup(name=DISTNAME,
       version=FULLVERSION,
@@ -700,4 +702,5 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
+      options=options,
       **setuptools_kwargs)

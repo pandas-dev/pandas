@@ -19,6 +19,7 @@ import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
+import pandas.core.panel4d as panel4d
 
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
@@ -28,6 +29,7 @@ Index = index.Index
 Series = series.Series
 DataFrame = frame.DataFrame
 Panel = panel.Panel
+Panel4D = panel4d.Panel4D
 
 N = 30
 K = 4
@@ -199,6 +201,18 @@ def assert_panel_equal(left, right, check_panel_type=False):
     for col in right:
         assert(col in left)
 
+def assert_panel4d_equal(left, right):
+    assert(left.labels.equals(right.labels))
+    assert(left.items.equals(right.items))
+    assert(left.major_axis.equals(right.major_axis))
+    assert(left.minor_axis.equals(right.minor_axis))
+
+    for col, series in left.iterkv():
+        assert(col in right)
+        assert_panel_equal(series, right[col])
+
+    for col in right:
+        assert(col in left)
 
 def assert_contains_all(iterable, dic):
     for k in iterable:
@@ -317,6 +331,8 @@ def makePanel():
     data = dict((c, makeTimeDataFrame()) for c in cols)
     return Panel.fromDict(data)
 
+def makePanel4D():
+    return Panel4D(dict(l1 = makePanel(), l2 = makePanel(), l3 = makePanel()))
 
 def add_nans(panel):
     I, J, N = panel.shape
@@ -325,6 +341,10 @@ def add_nans(panel):
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
 
+def add_nans_panel4d(panel4d):
+    for l, label in enumerate(panel4d.labels):
+        panel = panel4d[label]
+        add_nans(panel)
 
 class TestSubDict(dict):
     def __init__(self, *args, **kwargs):
