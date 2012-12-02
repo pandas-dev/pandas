@@ -11,7 +11,6 @@ from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 from pandas.util.compat import OrderedDict
-from pandas.util.decorators import Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 
@@ -1926,6 +1925,31 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return result
 
+    def _python_apply_general(self, func, *args, **kwargs):
+        func = _intercept_function(func)
+
+        result_keys = []
+        result_values = []
+
+        not_indexed_same = False
+        for key, group in self:
+            object.__setattr__(group, 'name', key)
+
+            # group might be modified
+            group_axes = _get_axes(group)
+
+            res = func(group, *args, **kwargs)
+
+            if not _is_indexed_like(res, group_axes):
+                not_indexed_same = True
+
+            result_keys.append(key)
+            result_values.append(res)
+
+        return self._wrap_applied_output(result_keys, result_values,
+                                         not_indexed_same=not_indexed_same)
+
+
 from pandas.tools.plotting import boxplot_frame_groupby
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
 
@@ -2009,6 +2033,59 @@ class NDArrayGroupBy(GroupBy):
 
 
 #----------------------------------------------------------------------
+# Splitting / application
+
+
+class DataSplitter(object):
+
+    def __init__(self, data, labels, ngroups, axis=0):
+        self.data = data
+        self.labels = com._ensure_int64(labels)
+        self.ngroups = ngroups
+
+        self.sort_idx = _algos.groupsort_indexer(self.labels,
+                                                 self.ngroups)[0]
+        self.slabels = com.ndtake(self.labels, self.sort_idx)
+        self.axis = axis
+
+    def __iter__(self):
+        sdata = self._get_sorted_data()
+
+        starts, ends = lib.generate_slices(self.sort_idx, self.ngroups)
+
+        for i, (start, end) in enumerate(zip(starts, ends)):
+            # Since I'm now compressing the group ids, it's now not "possible"
+            # to produce empty slices because such groups would not be observed
+            # in the data
+            # if start >= end:
+            #     raise AssertionError('Start %s must be less than end %s'
+            #                          % (str(start), str(end)))
+            yield i, self._chop(sdata, slice(start, end))
+
+    def _get_sorted_data(self):
+        return self.data.take(self.sort_idx, axis=self.axis)
+
+    def _chop(self, sdata, slice_obj):
+        raise NotImplementedError
+
+    def apply(self, f, keep_internal=False):
+        raise NotImplementedError
+
+
+class ArraySplitter(DataSplitter):
+    pass
+
+
+class SeriesSplitter(DataSplitter):
+
+    def _chop(self, sdata, slice_obj):
+        return sdata._get_values(slob)
+
+
+class FrameSplitter(DataSplitter):
+    pass
+
+#----------------------------------------------------------------------
 # Grouping generator for BlockManager
 
 def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
@@ -2022,7 +2099,6 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
     generator
     """
     group_index = com._ensure_int64(group_index)
-
     indexer = _algos.groupsort_indexer(group_index, ngroups)[0]
     group_index = com.ndtake(group_index, indexer)
 

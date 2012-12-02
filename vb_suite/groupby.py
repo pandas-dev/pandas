@@ -220,3 +220,24 @@ groupby_simple_compress_timing = \
     Benchmark('df.groupby(labels).mean()', setup,
               start_date=datetime(2011, 8, 1))
 
+
+#----------------------------------------------------------------------
+# DataFrame Apply overhead
+
+setup = common_setup + """
+N = 10000
+labels = np.random.randint(0, 1000, size=N)
+labels2 = np.random.randint(0, 3, size=N)
+df = DataFrame({'key': labels,
+                'key2': labels2,
+                'value1': randn(N),
+                'value2': ['foo', 'bar', 'baz', 'qux'] * (N / 4)})
+def f(g):
+    return g
+"""
+
+groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,
+                                         start_date=datetime(2011, 10, 1))
+
+groupbym_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
+                                 start_date=datetime(2011, 10, 1))
