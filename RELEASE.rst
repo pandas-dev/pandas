@@ -40,8 +40,8 @@ pandas 0.10.0
   - Add ``ffill`` and ``bfill`` convenience functions for forward- and
     backfilling time series data (#2284)
   - New option configuration system and functions `set_option`, `get_option`,
-    and `describe_option`. Deprecate `get_printoptions` and `set_printoptions`
-    (#2393)
+    `describe_option`, and `reset_option`. Deprecate `get_printoptions`,
+    `set_printoptions`, and `reset_printoptions` (#2393)
 
 **API Changes**
 
@@ -107,6 +107,7 @@ pandas 0.10.0
   - Appending on a HDFStore would fail if the table was not first created via ``put``
   - Use `col_space` argument as minimum column width in DataFrame.to_html (#2328)
   - Fix tz-aware DatetimeIndex.to_period (#2232)
+  - Fix DataFrame row indexing case with MultiIndex (#2314)
 
 pandas 0.9.1
 ============
