@@ -3683,7 +3683,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_from_csv_w_some_infs(self):
-        path = '__tmp__'
+        import tempfile
+        path = tempfile.mktemp()
+        path += '__tmp__'
 
         # test roundtrip with inf, -inf, nan, as full columns and mix
         self.frame['G'] = np.nan
@@ -3698,7 +3700,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_from_csv_w_all_infs(self):
-        path = '__tmp__'
+        import tempfile
+        path = tempfile.mktemp()
+        path += '__tmp__'
 
         # test roundtrip with inf, -inf, nan, as full columns and mix
         self.frame['E'] = np.inf
