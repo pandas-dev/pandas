@@ -36,7 +36,7 @@ class PanelTests(object):
         assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
 
 class SafeForLongAndSparse(object):
-
+    _multiprocess_can_split_ = True
     def test_repr(self):
         foo = repr(self.panel)
 
@@ -143,7 +143,7 @@ class SafeForLongAndSparse(object):
         self.assertRaises(Exception, f, axis=obj.ndim)
 
 class SafeForSparse(object):
-
+    _multiprocess_can_split_ = True
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
@@ -346,7 +346,7 @@ class SafeForSparse(object):
 
 class CheckIndexing(object):
 
-
+    _multiprocess_can_split_ = True
     def test_getitem(self):
         self.assertRaises(Exception, self.panel.__getitem__, 'ItemQ')
 
@@ -659,17 +659,22 @@ class CheckIndexing(object):
         res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
         self.assert_(com.is_float_dtype(res3['ItemE'].values))
 
+_panel = tm.makePanel()
+tm.add_nans(_panel)
+
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
-
+    _multiprocess_can_split_ = True
     @classmethod
     def assert_panel_equal(cls,x, y):
         assert_panel_equal(x, y)
 
     def setUp(self):
-        self.panel = tm.makePanel()
-        tm.add_nans(self.panel)
+        self.panel = _panel.copy()
+        self.panel.major_axis.name = None
+        self.panel.minor_axis.name = None
+        self.panel.items.name = None
 
     def test_constructor(self):
         # with BlockManager
@@ -949,6 +954,15 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         empty = self.panel.reindex(items=[])
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)
+
+        self.assertRaises(ValueError, self.panel.fillna)
+        self.assertRaises(ValueError, self.panel.fillna, 5, method='ffill')
+
+    def test_ffill_bfill(self):
+        assert_panel_equal(self.panel.ffill(),
+                           self.panel.fillna(method='ffill'))
+        assert_panel_equal(self.panel.bfill(),
+                           self.panel.fillna(method='bfill'))
 
     def test_truncate_fillna_bug(self):
         # #1823
@@ -1344,7 +1358,7 @@ class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...
     """
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         panel = tm.makePanel()
         tm.add_nans(panel)

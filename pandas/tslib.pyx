@@ -1,21 +1,26 @@
 # cython: profile=False
+
 cimport numpy as np
+from numpy cimport (int32_t, int64_t, import_array, ndarray,
+                    NPY_INT64, NPY_DATETIME)
 import numpy as np
 
-from numpy cimport int32_t, int64_t, import_array, ndarray
 from cpython cimport *
 
 from libc.stdlib cimport free
-# this is our datetime.pxd
-from datetime cimport *
-from util cimport is_integer_object, is_datetime64_object
 
-from datetime import timedelta
-from dateutil.parser import parse as parse_date
+from util cimport is_integer_object, is_datetime64_object
 cimport util
 
+from datetime cimport *
 from khash cimport *
-import cython
+cimport cython
+
+from datetime import timedelta, datetime
+from dateutil.parser import parse as parse_date
+
+cdef extern from "Python.h":
+    int PySlice_Check(object)
 
 # initialize numpy
 import_array()
@@ -26,6 +31,9 @@ PyDateTime_IMPORT
 
 # in numpy 1.7, will prob need the following:
 # numpy_pydatetime_import
+
+cdef int64_t NPY_NAT = util.get_nat()
+
 
 try:
     basestring
@@ -317,7 +325,7 @@ cpdef object get_value_box(ndarray arr, object loc):
         if casted == loc:
             loc = casted
     i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
+    sz = np.PyArray_SIZE(arr)
 
     if i < 0 and sz > 0:
         i += sz
@@ -554,7 +562,7 @@ cpdef _get_utcoffset(tzinfo, obj):
         return tzinfo.utcoffset(obj)
 
 # helper to extract datetime and int64 from several different possibilities
-cpdef convert_to_tsobject(object ts, object tz=None):
+cdef convert_to_tsobject(object ts, object tz):
     """
     Extract datetime and int64 from any of:
         - np.int64
@@ -692,49 +700,6 @@ cdef inline _check_dts_bounds(int64_t value, pandas_datetimestruct *dts):
 #     obj.value = _dtlike_to_datetime64(ts, &obj.dts)
 #     obj.dtval = _dts_to_pydatetime(&obj.dts)
 
-cdef inline object _datetime64_to_datetime(int64_t val):
-    cdef pandas_datetimestruct dts
-    pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
-    return _dts_to_pydatetime(&dts)
-
-cdef inline object _dts_to_pydatetime(pandas_datetimestruct *dts):
-    return <object> PyDateTime_FromDateAndTime(dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec, dts.us)
-
-cdef inline int64_t _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
-    dts.year = PyDateTime_GET_YEAR(val)
-    dts.month = PyDateTime_GET_MONTH(val)
-    dts.day = PyDateTime_GET_DAY(val)
-    dts.hour = PyDateTime_DATE_GET_HOUR(val)
-    dts.min = PyDateTime_DATE_GET_MINUTE(val)
-    dts.sec = PyDateTime_DATE_GET_SECOND(val)
-    dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
-    dts.ps = dts.as = 0
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
-
-cdef inline int64_t _dtlike_to_datetime64(object val,
-                                          pandas_datetimestruct *dts):
-    dts.year = val.year
-    dts.month = val.month
-    dts.day = val.day
-    dts.hour = val.hour
-    dts.min = val.minute
-    dts.sec = val.second
-    dts.us = val.microsecond
-    dts.ps = dts.as = 0
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
-
-cdef inline int64_t _date_to_datetime64(object val,
-                                        pandas_datetimestruct *dts):
-    dts.year = PyDateTime_GET_YEAR(val)
-    dts.month = PyDateTime_GET_MONTH(val)
-    dts.day = PyDateTime_GET_DAY(val)
-    dts.hour = dts.min = dts.sec = dts.us = 0
-    dts.ps = dts.as = 0
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
-
-
 def datetime_to_datetime64(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -757,7 +722,7 @@ def datetime_to_datetime64(ndarray[object] values):
                 else:
                     inferred_tz = _get_zone(val.tzinfo)
 
-                _ts = convert_to_tsobject(val)
+                _ts = convert_to_tsobject(val, None)
                 iresult[i] = _ts.value
                 _check_dts_bounds(iresult[i], &_ts.dts)
             else:
@@ -794,7 +759,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             elif PyDateTime_Check(val):
                 if val.tzinfo is not None:
                     if utc_convert:
-                        _ts = convert_to_tsobject(val)
+                        _ts = convert_to_tsobject(val, None)
                         iresult[i] = _ts.value
                         _check_dts_bounds(iresult[i], &_ts.dts)
                     else:
@@ -909,7 +874,7 @@ def pydt_to_i8(object pydt):
     cdef:
         _TSObject ts
 
-    ts = convert_to_tsobject(pydt)
+    ts = convert_to_tsobject(pydt, None)
 
     return ts.value
 
@@ -1405,7 +1370,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         for i in range(count):
             if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
-            ts = convert_to_tsobject(dtindex[i])
+            ts = convert_to_tsobject(dtindex[i], None)
             out[i] = ts_dayofweek(ts)
         return out
 
@@ -1432,7 +1397,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
 
 cdef inline int m8_weekday(int64_t val):
-    ts = convert_to_tsobject(val)
+    ts = convert_to_tsobject(val, None)
     return ts_dayofweek(ts)
 
 cdef int64_t DAY_NS = 86400000000000LL
@@ -2002,3 +1967,18 @@ cdef accessor _get_accessor_func(int code):
         return &pweekday
     else:
         raise ValueError('Unrecognized code: %s' % code)
+
+
+def extract_ordinals(ndarray[object] values, freq):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
+        object p
+
+    for i in range(n):
+        p = values[i]
+        ordinals[i] = p.ordinal
+        if p.freq != freq:
+            raise ValueError("%s is wrong freq" % p)
+
+    return ordinals

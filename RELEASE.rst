@@ -37,6 +37,11 @@ pandas 0.10.0
   - Add ``duplicated`` and ``drop_duplicates`` functions to Series (#1923)
   - Add docs for ``HDFStore table`` format
   - 'density' property in `SparseSeries` (#2384)
+  - Add ``ffill`` and ``bfill`` convenience functions for forward- and
+    backfilling time series data (#2284)
+  - New option configuration system and functions `set_option`, `get_option`,
+    and `describe_option`. Deprecate `get_printoptions` and `set_printoptions`
+    (#2393)
 
 **API Changes**
 
@@ -52,6 +57,10 @@ pandas 0.10.0
   - Values like YES/NO/yes/no will not be considered as boolean by default any
     longer in the file parsers. This can be customized using the new
     ``true_values`` and ``false_values`` options (#2360)
+  - `obj.fillna()` is no longer valid; make `method='pad'` no longer the
+    default option, to be more explicit about what kind of filling to
+    perform. Add `ffill/bfill` convenience functions per above (#2284)
+  - `HDFStore.keys()` now returns an absolute path-name for each key
 
 **Improvements to existing features**
 
@@ -63,6 +72,7 @@ pandas 0.10.0
   - Add ``normalize`` option to Series/DataFrame.asfreq (#2137)
   - SparseSeries and SparseDataFrame construction from empty and scalar
     values now no longer create dense ndarrays unnecessarily (#2322)
+  - ``HDFStore`` now supports hierarchial keys (#2397)
   - Support multiple query selection formats for ``HDFStore tables`` (#1996)
   - Support ``del store['df']`` syntax to delete HDFStores
   - Add multi-dtype support for ``HDFStore tables``

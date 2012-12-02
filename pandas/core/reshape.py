@@ -14,6 +14,7 @@ from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
 import pandas.lib as lib
+import pandas.algos as algos
 
 
 from pandas.core.index import MultiIndex
@@ -87,7 +88,7 @@ class _Unstacker(object):
         comp_index, obs_ids = _compress_group_index(group_index)
         ngroups = len(obs_ids)
 
-        indexer = lib.groupsort_indexer(comp_index, ngroups)[0]
+        indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
         indexer = _ensure_platform_int(indexer)
 
         self.sorted_values = com.take_2d(self.values, indexer, axis=0)

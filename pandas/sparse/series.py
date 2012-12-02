@@ -451,7 +451,7 @@ to sparse
                             fill_value=self.fill_value)
 
     @Appender(Series.fillna.__doc__)
-    def fillna(self, value=None, method='pad', inplace=False, limit=None):
+    def fillna(self, value=None, method=None, inplace=False, limit=None):
         dense = self.to_dense()
         filled = dense.fillna(value=value, method=method, limit=limit)
         result = filled.to_sparse(kind=self.kind,

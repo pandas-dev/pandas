@@ -30,7 +30,7 @@ def _skip_if_no_pytz():
 
 
 class TestResample(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         dti = DatetimeIndex(start=datetime(2005,1,1),
                             end=datetime(2005,1,10), freq='Min')
@@ -587,7 +587,7 @@ from pandas.util.compat import product
 
 
 class TestResamplePeriodIndex(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_basic_downsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec')

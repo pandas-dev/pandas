@@ -62,7 +62,7 @@ class FixedOffset(tzinfo):
 fixed_off = FixedOffset(-420, '-07:00')
 
 class TestTimeZoneSupport(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         _skip_if_no_pytz()
 
@@ -540,7 +540,7 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(series.index.tz, tzinfo)
 
 class TestTimeZones(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         _skip_if_no_pytz()
 

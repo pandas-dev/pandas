@@ -42,7 +42,7 @@ cdef bint PY3 = (sys.version_info[0] >= 3)
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef extern from "stdint.h":
+cdef extern from "headers/stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX
     enum: UINT32_MAX
@@ -556,13 +556,6 @@ cdef class TextReader:
             data_line = self.parser.header + 1
 
             if self.names is not None:
-                if self.has_usecols and len(self.names) != len(self.usecols):
-                    raise CParserError('Number of passed names do not match'
-                                       ' usecols length.')
-                # elif not self.has_usecols:
-                #     lead = len(self.names) < self.table_width
-                #     self.leading_cols = lead
-
                 header = self.names
 
         elif self.names is not None:
@@ -572,6 +565,11 @@ cdef class TextReader:
 
             header = self.names
             data_line = 0
+
+            if self.parser.lines < 1:
+                field_count = len(header)
+            else:
+                field_count = self.parser.line_fields[data_line]
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
@@ -595,7 +593,10 @@ cdef class TextReader:
             self.leading_cols = field_count - passed_count
         else:
             # TODO: some better check here
-            pass
+            # field_count = len(header)
+            n = len(header)
+            if n != field_count and n != len(self.usecols):
+                raise ValueError('Passed header names mismatches usecols')
 
         return header, field_count
 

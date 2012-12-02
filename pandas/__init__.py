@@ -2,12 +2,8 @@
 
 __docformat__ = 'restructuredtext'
 
-from datetime import datetime
-
-import numpy as np
-
 try:
-    import pandas.lib as lib
+    from . import hashtable, tslib, lib
 except Exception:  # pragma: no cover
     import sys
     e = sys.exc_info()[1] # Py25 and Py3 current exception syntax conflict
@@ -18,6 +14,9 @@ except Exception:  # pragma: no cover
                           'directory')
     else:
         raise
+
+from datetime import datetime
+import numpy as np
 
 from pandas.version import version as __version__
 from pandas.info import __doc__

@@ -14,7 +14,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
-import pandas.lib as lib
+import pandas.algos as algos
 import pandas.util.testing as tm
 
 a_ = np.array
@@ -68,7 +68,7 @@ class TestMerge(unittest.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        ls, rs = lib.left_outer_join(left, right, max_group)
+        ls, rs = algos.left_outer_join(left, right, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
@@ -92,7 +92,7 @@ class TestMerge(unittest.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        rs, ls  = lib.left_outer_join(right, left, max_group)
+        rs, ls  = algos.left_outer_join(right, left, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
@@ -118,7 +118,7 @@ class TestMerge(unittest.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
-        ls, rs = lib.inner_join(left, right, max_group)
+        ls, rs = algos.inner_join(left, right, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')

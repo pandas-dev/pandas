@@ -42,7 +42,10 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
+
 import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.algos as _algos
 
 from pandas.core.config import get_option
 
@@ -380,7 +383,7 @@ class DataFrame(NDFrame):
             mask = ma.getmaskarray(data)
             datacopy = ma.copy(data)
             if issubclass(data.dtype.type, np.datetime64):
-                datacopy[mask] = lib.iNaT
+                datacopy[mask] = tslib.iNaT
             else:
                 datacopy = com._maybe_upcast(datacopy)
                 datacopy[mask] = NA
@@ -582,10 +585,13 @@ class DataFrame(NDFrame):
         particular DataFrame.
         """
 
-        terminal_width, terminal_height = get_terminal_size()
-        max_rows = (terminal_height if get_option("print_config.max_rows") == 0
-                    else get_option("print_config.max_rows"))
-        max_columns = get_option("print_config.max_columns")
+        if com.in_qtconsole():
+            terminal_width, terminal_height = 100, 100
+        else:
+            terminal_width, terminal_height = get_terminal_size()
+        max_rows = (terminal_height if get_option("print.max_rows") == 0
+                    else get_option("print.max_rows"))
+        max_columns = get_option("print.max_columns")
 
         if max_columns > 0:
             if len(self.index) <= max_rows and \
@@ -660,7 +666,10 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
-        if get_option("print_config.notebook_repr_html"):
+        if com.in_qtconsole():
+            raise ValueError('Disable HTML output in QtConsole')
+
+        if get_option("print.notebook_repr_html"):
             if self._need_info_repr_():
                 return None
             else:
@@ -3161,7 +3170,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', axis=0, inplace=False,
+    def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None):
         """
         Fill NA/NaN values using the specified method
@@ -3198,7 +3207,11 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         if value is None:
+            if method is None:
+                raise ValueError('must specify a fill method or value')
             if self._is_mixed_type and axis == 1:
+                if inplace:
+                    raise NotImplementedError()
                 return self.T.fillna(method=method, limit=limit).T
 
             new_blocks = []
@@ -3213,6 +3226,8 @@ class DataFrame(NDFrame):
 
             new_data = BlockManager(new_blocks, self._data.axes)
         else:
+            if method is not None:
+                raise ValueError('cannot specify both a fill method and value')
             # Float type values
             if len(self.columns) == 0:
                 return self
@@ -3236,6 +3251,14 @@ class DataFrame(NDFrame):
             return self
         else:
             return self._constructor(new_data)
+
+    def ffill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='ffill', axis=axis, inplace=inplace,
+                           limit=limit)
+
+    def bfill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='bfill', axis=axis, inplace=inplace,
+                           limit=limit)
 
     def replace(self, to_replace, value=None, method='pad', axis=0,
                 inplace=False, limit=None):
@@ -4306,7 +4329,8 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(com._ensure_float64(mat), minp=min_periods)
+            correl = _algos.nancorr(com._ensure_float64(mat),
+                                    minp=min_periods)
         else:
             if min_periods is None:
                 min_periods = 1
@@ -4357,8 +4381,8 @@ class DataFrame(NDFrame):
             else:
                 baseCov = np.cov(mat.T)
         else:
-            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True,
-                                  minp=min_periods)
+            baseCov = _algos.nancorr(com._ensure_float64(mat), cov=True,
+                                     minp=min_periods)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 

@@ -8,10 +8,12 @@ import unittest
 import pandas.io.data as pd
 import nose
 from pandas.util.testing import network
+from numpy.testing.decorators import slow
 import urllib2
 
 class TestYahoo(unittest.TestCase):
 
+    @slow
     @network
     def test_yahoo(self):
         # asserts that yahoo is minimally working and that it throws

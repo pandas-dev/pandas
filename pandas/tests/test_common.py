@@ -11,7 +11,10 @@ import pandas.util.testing as tm
 
 import numpy as np
 
+from pandas.tslib import iNaT
 from pandas.util import py3compat
+
+_multiprocess_can_split_ = True
 
 def test_is_sequence():
     is_seq=com._is_sequence
@@ -76,9 +79,8 @@ def test_isnull_datetime():
     idx = date_range('1/1/1990', periods=20)
     assert(notnull(idx).all())
 
-    import pandas.lib as lib
     idx = np.asarray(idx)
-    idx[0] = lib.iNaT
+    idx[0] = iNaT
     idx = DatetimeIndex(idx)
     mask = isnull(idx)
     assert(mask[0])
@@ -245,6 +247,8 @@ def test_pprint_thing():
     assert not "\t" in pp_t("a\tb")
 
 class TestTake(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def test_1d_with_out(self):
         def _test_dtype(dtype):

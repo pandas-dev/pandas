@@ -372,11 +372,15 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     import random
     import matplotlib
     import matplotlib.pyplot as plt
-    data = series.values
+
+    # random.sample(ndarray, int) fails on python 3.3, sigh
+    data = list(series.values)
     samplings = [random.sample(data, size) for _ in range(samples)]
+
     means = np.array([np.mean(sampling) for sampling in samplings])
     medians = np.array([np.median(sampling) for sampling in samplings])
-    midranges = np.array([(min(sampling) + max(sampling)) * 0.5 for sampling in samplings])
+    midranges = np.array([(min(sampling) + max(sampling)) * 0.5
+                          for sampling in samplings])
     if fig == None:
         fig = plt.figure()
     x = range(samples)

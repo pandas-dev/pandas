@@ -14,6 +14,14 @@ from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
+
+def _skip_if_no_scipy():
+    try:
+        import scipy
+    except ImportError:
+        raise nose.SkipTest
+
+
 class TestSeriesPlots(unittest.TestCase):
 
     @classmethod
@@ -136,6 +144,7 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_kde(self):
+        _skip_if_no_scipy()
         _check_plot_works(self.ts.plot, kind='kde')
         _check_plot_works(self.ts.plot, kind='density')
         ax = self.ts.plot(kind='kde', logy=True)
@@ -380,6 +389,7 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_kde(self):
+        _skip_if_no_scipy()
         df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.plot, kind='kde')
         _check_plot_works(df.plot, kind='kde', subplots=True)
@@ -435,6 +445,8 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_scatter(self):
+        _skip_if_no_scipy()
+
         df = DataFrame(np.random.randn(100, 4))
         import pandas.tools.plotting as plt
         def scat(**kwds):

@@ -17,7 +17,11 @@ import pandas.util.testing as tm
 from pandas.util.compat import product as cart_product
 import pandas as pd
 
+import pandas.index as _index
+
 class TestMultiLevel(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -311,6 +315,16 @@ class TestMultiLevel(unittest.TestCase):
         result = df.ix[(2000, 1, 6), ['A', 'B', 'C']]
         expected = df.ix[2000, 1, 6][['A', 'B', 'C']]
         assert_series_equal(result, expected)
+
+    def test_getitem_multilevel_index_tuple_unsorted(self):
+        index_columns = list("abc")
+        df = DataFrame([[0, 1, 0, "x"], [0, 0, 1, "y"]] ,
+                       columns=index_columns + ["data"])
+        df = df.set_index(index_columns)
+        query_index = df.index[:1]
+        rs = df.ix[query_index, "data"]
+        xp = Series(['x'], index=MultiIndex.from_tuples([(0, 1, 0)]))
+        assert_series_equal(rs, xp)
 
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
@@ -1591,9 +1605,8 @@ Thur,Lunch,Yes,51.51,17"""
     def test_indexing_over_hashtable_size_cutoff(self):
         n = 10000
 
-        import pandas.lib as lib
-        old_cutoff = lib._SIZE_CUTOFF
-        lib._SIZE_CUTOFF = 20000
+        old_cutoff = _index._SIZE_CUTOFF
+        _index._SIZE_CUTOFF = 20000
 
         s = Series(np.arange(n),
                    MultiIndex.from_arrays((["a"] * n, np.arange(n))))
@@ -1603,7 +1616,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEquals(s[("a", 6)], 6)
         self.assertEquals(s[("a", 7)], 7)
 
-        lib._SIZE_CUTOFF = old_cutoff
+        _index._SIZE_CUTOFF = old_cutoff
 
     def test_xs_mixed_no_copy(self):
         index = MultiIndex.from_arrays([['a','a', 'b', 'b'], [1,2,1,2]],

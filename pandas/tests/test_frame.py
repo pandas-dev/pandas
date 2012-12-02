@@ -22,7 +22,7 @@ import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex, DatetimeIndex)
-from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
+from pandas.io.parsers import read_csv
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -31,6 +31,8 @@ from pandas.util import py3compat
 
 import pandas.util.testing as tm
 import pandas.lib as lib
+
+from numpy.testing.decorators import slow
 
 def _skip_if_no_scipy():
     try:
@@ -44,6 +46,8 @@ def _skip_if_no_scipy():
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 class CheckIndexing(object):
+
+    _multiprocess_can_split_ = True
 
     def test_getitem(self):
         # slicing
@@ -182,7 +186,6 @@ class CheckIndexing(object):
 
     def test_boolean_index_empty_corner(self):
         # #2096
-        from pandas import DatetimeIndex
         blah = DataFrame(np.empty([0, 1]), columns=['A'],
                          index=DatetimeIndex([]))
 
@@ -1370,6 +1373,8 @@ _mixed_frame['foo'] = 'bar'
 
 class SafeForSparse(object):
 
+    _multiprocess_can_split_ = True
+
     def test_getitem_pop_assign_name(self):
         s = self.frame['A']
         self.assertEqual(s.name, 'A')
@@ -1492,6 +1497,8 @@ class SafeForSparse(object):
 class TestDataFrame(unittest.TestCase, CheckIndexing,
                     SafeForSparse):
     klass = DataFrame
+
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.frame = _frame.copy()
@@ -2868,7 +2875,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         del df['A']
         self.assertFalse(df.empty)
 
-    def test_repr(self):
+    def test_repr_empty(self):
         buf = StringIO()
 
         # empty
@@ -2878,23 +2885,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = DataFrame(index=np.arange(1000))
         foo = repr(frame)
 
-        # small one
-        foo = repr(self.frame)
-        self.frame.info(verbose=False, buf=buf)
-
-        # even smaller
-        self.frame.reindex(columns=['A']).info(verbose=False, buf=buf)
-        self.frame.reindex(columns=['A', 'B']).info(verbose=False, buf=buf)
-
-        # big one
-        biggie = DataFrame(np.zeros((200, 4)), columns=range(4),
-                            index=range(200))
-        foo = repr(biggie)
+    def test_repr_mixed(self):
+        buf = StringIO()
 
         # mixed
         foo = repr(self.mixed_frame)
         self.mixed_frame.info(verbose=False, buf=buf)
 
+    @slow
+    def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame({'A' : randn(200),
                              'B' : tm.makeStringIndex(200)},
@@ -2903,6 +2902,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         biggie['B'][:20] = nan
 
         foo = repr(biggie)
+
+    def test_repr(self):
+        buf = StringIO()
+
+        # small one
+        foo = repr(self.frame)
+        self.frame.info(verbose=False, buf=buf)
+
+        # even smaller
+        self.frame.reindex(columns=['A']).info(verbose=False, buf=buf)
+        self.frame.reindex(columns=['A', 'B']).info(verbose=False, buf=buf)
 
         # exhausting cases in DataFrame.info
 
@@ -2913,6 +2923,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # no columns or index
         self.empty.info(buf=buf)
 
+    @slow
+    def test_repr_big(self):
+        buf = StringIO()
+
+        # big one
+        biggie = DataFrame(np.zeros((200, 4)), columns=range(4),
+                           index=range(200))
+        foo = repr(biggie)
+
+    def test_repr_unsortable(self):
         # columns are not sortable
 
         unsortable = DataFrame({'foo' : [1] * 50,
@@ -3599,7 +3619,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(TypeError, df.__eq__, None)
 
     def test_to_csv_from_csv(self):
-        path = '__tmp__'
+        path = '__tmp_to_csv_from_csv__'
 
         self.frame['A'][:5] = nan
 
@@ -3663,7 +3683,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_multiindex(self):
-        path = '__tmp__'
+        path = '__tmp_to_csv_multiindex__'
 
         frame = self.frame
         old_index = frame.index
@@ -3713,11 +3733,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(recons.columns.equals(exp.columns))
         self.assert_(len(recons) == 0)
 
+        os.remove(path)
+
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))
         df[1] = np.nan
 
-        pth = '__tmp__.csv'
+        pth = '__tmp_to_csv_float32_nanrep__.csv'
         df.to_csv(pth, na_rep=999)
 
         lines = open(pth).readlines()
@@ -3726,7 +3748,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_to_csv_withcommas(self):
 
-        path = '__tmp__'
+        path = '__tmp_to_csv_withcommas__'
         # Commas inside fields should be correctly escaped when saving as CSV.
 
         df = DataFrame({'A':[1,2,3], 'B':['5,6','7,8','9,0']})
@@ -3737,7 +3759,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_bug(self):
-        path = '__tmp__.csv'
+        path = '__tmp_to_csv_bug__.csv'
         f1 = StringIO('a,1.0\nb,2.0')
         df = DataFrame.from_csv(f1,header=None)
         newdf = DataFrame({'t': df[df.columns[0]]})
@@ -3749,7 +3771,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_unicode(self):
-        path = '__tmp__.csv'
+        path = '__tmp_to_csv_unicode__.csv'
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         df.to_csv(path, encoding='UTF-8')
         df2 = pan.read_csv(path, index_col=0, encoding='UTF-8')
@@ -3781,7 +3803,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(recons, self.frame)
 
     def test_to_csv_float_format(self):
-        filename = '__tmp__.csv'
+        filename = '__tmp_to_csv_float_format__.csv'
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
                        index=['A', 'B'], columns=['X', 'Y', 'Z'])
@@ -3858,448 +3880,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     'two,2,5\n'
                     'three,3,6\n')
         self.assertEqual(buf.getvalue(), expected)
-
-
-
-
-    def test_to_excel_from_excel(self):
-        try:
-            import xlwt
-            import xlrd
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
-
-        for ext in ['xls', 'xlsx']:
-            path = '__tmp__.' + ext
-
-            self.frame['A'][:5] = nan
-
-            self.frame.to_excel(path,'test1')
-            self.frame.to_excel(path,'test1', cols=['A', 'B'])
-            self.frame.to_excel(path,'test1', header=False)
-            self.frame.to_excel(path,'test1', index=False)
-
-            # test roundtrip
-            self.frame.to_excel(path,'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, has_index_names=True)
-            assert_frame_equal(self.frame, recons)
-
-            self.frame.to_excel(path,'test1', index=False)
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=None)
-            recons.index = self.frame.index
-            assert_frame_equal(self.frame, recons)
-
-            # self.frame.to_excel(path,'test1')
-            # reader = ExcelFile(path)
-            # recons = reader.parse('test1', index_col=0, skiprows=[2], has_index_names=True)
-            # assert_frame_equal(self.frame.ix[1:], recons)
-
-            self.frame.to_excel(path,'test1',na_rep='NA')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, na_values=['NA'], has_index_names=True)
-            assert_frame_equal(self.frame, recons)
-
-            self.mixed_frame.to_excel(path,'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, has_index_names=True)
-            assert_frame_equal(self.mixed_frame, recons)
-
-            self.tsframe.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1')
-            assert_frame_equal(self.tsframe, recons)
-
-            #Test np.int64, values read come back as float
-            frame = DataFrame(np.random.randint(-10,10,size=(10,2)))
-            frame.to_excel(path,'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1').astype(np.int64)
-            assert_frame_equal(frame, recons)
-
-            #Test reading/writing np.bool8, roundtrip only works for xlsx
-            frame = (DataFrame(np.random.randn(10,2)) >= 0)
-            frame.to_excel(path,'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1').astype(np.bool8)
-            assert_frame_equal(frame, recons)
-
-            # Test writing to separate sheets
-            writer = ExcelWriter(path)
-            self.frame.to_excel(writer,'test1')
-            self.tsframe.to_excel(writer,'test2')
-            writer.save()
-            reader = ExcelFile(path)
-            recons = reader.parse('test1',index_col=0, has_index_names=True)
-            assert_frame_equal(self.frame, recons)
-            recons = reader.parse('test2',index_col=0)
-            assert_frame_equal(self.tsframe, recons)
-            np.testing.assert_equal(2, len(reader.sheet_names))
-            np.testing.assert_equal('test1', reader.sheet_names[0])
-            np.testing.assert_equal('test2', reader.sheet_names[1])
-
-            # column aliases
-            col_aliases = Index(['AA', 'X', 'Y', 'Z'])
-            self.frame2.to_excel(path, 'test1', header=col_aliases)
-            reader = ExcelFile(path)
-            rs = reader.parse('test1', index_col=0, has_index_names=True)
-            xp = self.frame2.copy()
-            xp.columns = col_aliases
-            assert_frame_equal(xp, rs)
-
-            # test index_label
-            frame = (DataFrame(np.random.randn(10,2)) >= 0)
-            frame.to_excel(path, 'test1', index_label=['test'])
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, has_index_names=True).astype(np.int64)
-            frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
-
-            frame = (DataFrame(np.random.randn(10,2)) >= 0)
-            frame.to_excel(path, 'test1', index_label=['test', 'dummy', 'dummy2'])
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, has_index_names=True).astype(np.int64)
-            frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
-
-            frame = (DataFrame(np.random.randn(10,2)) >= 0)
-            frame.to_excel(path, 'test1', index_label='test')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, has_index_names=True).astype(np.int64)
-            frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
-
-            #test index_labels in same row as column names
-            self.frame.to_excel('/tmp/tests.xls', 'test1', cols=['A', 'B', 'C', 'D'], index=False)
-            #take 'A' and 'B' as indexes (they are in same row as cols 'C', 'D')
-            df = self.frame.copy()
-            df = df.set_index(['A', 'B'])
-
-
-            reader = ExcelFile('/tmp/tests.xls')
-            recons = reader.parse('test1', index_col=[0, 1])
-            assert_frame_equal(df, recons)
-
-
-
-            os.remove(path)
-
-        # datetime.date, not sure what to test here exactly
-        path = '__tmp__.xls'
-        tsf = self.tsframe.copy()
-        tsf.index = [x.date() for x in self.tsframe.index]
-        tsf.to_excel(path, 'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1')
-        assert_frame_equal(self.tsframe, recons)
-        os.remove(path)
-
-        #Test roundtrip np.bool8, does not seem to work for xls
-        path = '__tmp__.xlsx'
-        frame = (DataFrame(np.random.randn(10,2)) >= 0)
-        frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1')
-        assert_frame_equal(frame, recons)
-        os.remove(path)
-
-    def test_to_excel_periodindex(self):
-        try:
-            import xlwt
-            import xlrd
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
-
-        for ext in ['xls', 'xlsx']:
-            path = '__tmp__.' + ext
-            frame = self.tsframe
-            xp = frame.resample('M', kind='period')
-            xp.to_excel(path, 'sht1')
-
-            reader = ExcelFile(path)
-            rs = reader.parse('sht1', index_col=0, parse_dates=True)
-            assert_frame_equal(xp, rs.to_period('M'))
-            os.remove(path)
-
-    def test_to_excel_multiindex(self):
-        try:
-            import xlwt
-            import xlrd
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
-
-        for ext in ['xls', 'xlsx']:
-            path = '__tmp__.' + ext
-
-            frame = self.frame
-            old_index = frame.index
-            arrays = np.arange(len(old_index)*2).reshape(2,-1)
-            new_index = MultiIndex.from_arrays(arrays,
-                                               names=['first', 'second'])
-            frame.index = new_index
-            frame.to_excel(path, 'test1', header=False)
-            frame.to_excel(path, 'test1', cols=['A', 'B'])
-
-            # round trip
-            frame.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            df = reader.parse('test1', index_col=[0,1], parse_dates=False, has_index_names=True)
-            assert_frame_equal(frame, df)
-            self.assertEqual(frame.index.names, df.index.names)
-            self.frame.index = old_index # needed if setUP becomes a classmethod
-
-            # try multiindex with dates
-            tsframe = self.tsframe
-            old_index = tsframe.index
-            new_index = [old_index, np.arange(len(old_index))]
-            tsframe.index = MultiIndex.from_arrays(new_index)
-
-            tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=[0,1], has_index_names=True)
-            assert_frame_equal(tsframe, recons)
-
-            # infer index
-            tsframe.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1')
-            assert_frame_equal(tsframe, recons)
-
-
-            # no index
-            #TODO : mention this does not make sence anymore
-            #with  the new formatting as we are not alligning colnames and indexlabels
-            #on the same row
-
-            # tsframe.index.names = ['first', 'second']
-            # tsframe.to_excel(path, 'test1')
-            # reader = ExcelFile(path)
-            # recons = reader.parse('test1')
-            # assert_almost_equal(tsframe.values,
-            #                     recons.ix[:, tsframe.columns].values)
-            # self.assertEqual(len(tsframe.columns) + 2, len(recons.columns))
-
-            # tsframe.index.names = [None, None]
-
-            # # no index
-            # tsframe.to_excel(path, 'test1', index=False)
-            # reader = ExcelFile(path)
-            # recons = reader.parse('test1', index_col=None)
-            # assert_almost_equal(recons.values, self.tsframe.values)
-
-            self.tsframe.index = old_index # needed if setUP becomes classmethod
-
-            # write a big DataFrame
-            df = DataFrame(np.random.randn(1005, 1))
-            df.to_excel(path, 'test1')
-
-            os.remove(path)
-
-    def test_to_excel_float_format(self):
-        try:
-            import xlrd
-            import xlwt
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
-
-        for ext in ['xls', 'xlsx']:
-            filename = '__tmp__.' + ext
-            df = DataFrame([[0.123456, 0.234567, 0.567567],
-                            [12.32112, 123123.2, 321321.2]],
-                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
-            df.to_excel(filename, 'test1', float_format='%.2f')
-
-            reader = ExcelFile(filename)
-            rs = reader.parse('test1', index_col=None)
-            xp = DataFrame([[0.12, 0.23, 0.57],
-                            [12.32, 123123.20, 321321.20]],
-                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
-            assert_frame_equal(rs, xp)
-            os.remove(filename)
-
-    def test_to_excel_unicode_filename(self):
-        try:
-            import xlwt
-            import xlrd
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
-
-        for ext in ['xls', 'xlsx']:
-            filename = u'\u0192u.' + ext
-
-            try:
-                f = open(filename, 'wb')
-            except UnicodeEncodeError:
-                raise nose.SkipTest('no unicode file names on this system')
-            else:
-                f.close()
-
-            df = DataFrame([[0.123456, 0.234567, 0.567567],
-                            [12.32112, 123123.2, 321321.2]],
-                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
-            df.to_excel(filename, 'test1', float_format='%.2f')
-
-            reader = ExcelFile(filename)
-            rs = reader.parse('test1', index_col=None)
-            xp = DataFrame([[0.12, 0.23, 0.57],
-                            [12.32, 123123.20, 321321.20]],
-                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
-            assert_frame_equal(rs, xp)
-            os.remove(filename)
-
-    def test_to_excel_styleconverter(self):
-        from pandas.io.parsers import CellStyleConverter
-        try:
-            import xlwt
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
-
-        hstyle = {"font": {"bold": True},
-              "borders": {"top": "thin",
-                        "right": "thin",
-                        "bottom": "thin",
-                        "left": "thin"},
-              "alignment": {"horizontal": "center"}}
-        xls_style = CellStyleConverter.to_xls(hstyle)
-        self.assertTrue(xls_style.font.bold)
-        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.top)
-        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.right)
-        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.bottom)
-        self.assertEquals(xlwt.Borders.THIN, xls_style.borders.left)
-        self.assertEquals(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
-
-        xlsx_style = CellStyleConverter.to_xlsx(hstyle)
-        self.assertTrue(xlsx_style.font.bold)
-        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.top.border_style)
-        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.right.border_style)
-        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.bottom.border_style)
-        self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                          xlsx_style.borders.left.border_style)
-        self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-                          xlsx_style.alignment.horizontal)
-
-    def test_to_excel_header_styling_xls(self):
-
-        import StringIO
-        s = StringIO.StringIO(
-        """Date,ticker,type,value
-        2001-01-01,x,close,12.2
-        2001-01-01,x,open ,12.1
-        2001-01-01,y,close,12.2
-        2001-01-01,y,open ,12.1
-        2001-02-01,x,close,12.2
-        2001-02-01,x,open ,12.1
-        2001-02-01,y,close,12.2
-        2001-02-01,y,open ,12.1
-        2001-03-01,x,close,12.2
-        2001-03-01,x,open ,12.1
-        2001-03-01,y,close,12.2
-        2001-03-01,y,open ,12.1""")
-        df = read_csv(s, parse_dates=["Date"])
-        pdf = df.pivot_table(values="value", rows=["ticker"],
-                                             cols=["Date", "type"])
-
-        try:
-            import xlwt
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest
-
-        filename = '__tmp__.xls'
-        pdf.to_excel(filename, 'test1')
-
-
-        wbk = xlrd.open_workbook(filename,
-                                 formatting_info=True)
-        self.assertEquals(["test1"], wbk.sheet_names())
-        ws = wbk.sheet_by_name('test1')
-        self.assertEquals([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
-                          ws.merged_cells)
-        for i in range(0, 2):
-            for j in range(0, 7):
-                xfx = ws.cell_xf_index(0, 0)
-                cell_xf = wbk.xf_list[xfx]
-                font = wbk.font_list
-                self.assertEquals(1, font[cell_xf.font_index].bold)
-                self.assertEquals(1, cell_xf.border.top_line_style)
-                self.assertEquals(1, cell_xf.border.right_line_style)
-                self.assertEquals(1, cell_xf.border.bottom_line_style)
-                self.assertEquals(1, cell_xf.border.left_line_style)
-                self.assertEquals(2, cell_xf.alignment.hor_align)
-
-        os.remove(filename)
-
-
-    def test_to_excel_header_styling_xlsx(self):
-
-        import StringIO
-        s = StringIO.StringIO(
-        """Date,ticker,type,value
-        2001-01-01,x,close,12.2
-        2001-01-01,x,open ,12.1
-        2001-01-01,y,close,12.2
-        2001-01-01,y,open ,12.1
-        2001-02-01,x,close,12.2
-        2001-02-01,x,open ,12.1
-        2001-02-01,y,close,12.2
-        2001-02-01,y,open ,12.1
-        2001-03-01,x,close,12.2
-        2001-03-01,x,open ,12.1
-        2001-03-01,y,close,12.2
-        2001-03-01,y,open ,12.1""")
-        df = read_csv(s, parse_dates=["Date"])
-        pdf = df.pivot_table(values="value", rows=["ticker"],
-                                             cols=["Date", "type"])
-
-        try:
-            import openpyxl
-            from openpyxl.cell import get_column_letter
-        except ImportError:
-            raise nose.SkipTest
-
-        if openpyxl.__version__ < '1.6.1':
-            raise nose.SkipTest
-
-        # test xlsx_styling
-        filename = '__tmp__.xlsx'
-        pdf.to_excel(filename, 'test1')
-
-        wbk = openpyxl.load_workbook(filename)
-        self.assertEquals(["test1"], wbk.get_sheet_names())
-        ws = wbk.get_sheet_by_name('test1')
-
-        xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
-        xlsaddrs += ["A%s" % i for i in range(1, 6)]
-        xlsaddrs += ["B1", "D1", "F1"]
-        for xlsaddr in xlsaddrs:
-            cell = ws.cell(xlsaddr)
-            self.assertTrue(cell.style.font.bold)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.top.border_style)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.right.border_style)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.bottom.border_style)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.left.border_style)
-            self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-                              cell.style.alignment.horizontal)
-
-        mergedcells_addrs = ["C1", "E1", "G1"]
-        for maddr in mergedcells_addrs:
-            self.assertTrue(ws.cell(maddr).merged)
-
-        os.remove(filename)
 
 
 
@@ -4485,29 +4065,49 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     #     self.assert_(self.frame.columns.name is None)
 
-    def test_corr(self):
+    def _check_method(self, method='pearson', check_minp=False):
+        if not check_minp:
+            correls = self.frame.corr(method=method)
+            exp = self.frame['A'].corr(self.frame['C'], method=method)
+            assert_almost_equal(correls['A']['C'], exp)
+        else:
+            result = self.frame.corr(min_periods=len(self.frame) - 8)
+            expected = self.frame.corr()
+            expected.ix['A', 'B'] = expected.ix['B', 'A'] = nan
+
+    def test_corr_pearson(self):
         _skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
-        def _check_method(method='pearson', check_minp=False):
-            if not check_minp:
-                correls = self.frame.corr(method=method)
-                exp = self.frame['A'].corr(self.frame['C'], method=method)
-                assert_almost_equal(correls['A']['C'], exp)
-            else:
-                result = self.frame.corr(min_periods=len(self.frame) - 8)
-                expected = self.frame.corr()
-                expected.ix['A', 'B'] = expected.ix['B', 'A'] = nan
+        self._check_method('pearson')
 
-        _check_method('pearson')
-        _check_method('kendall')
-        _check_method('spearman')
+    def test_corr_kendall(self):
+        _skip_if_no_scipy()
+        self.frame['A'][:5] = nan
+        self.frame['B'][5:10] = nan
+
+        self._check_method('kendall')
+
+    def test_corr_spearman(self):
+        _skip_if_no_scipy()
+        self.frame['A'][:5] = nan
+        self.frame['B'][5:10] = nan
+
+        self._check_method('spearman')
+
+    def test_corr_non_numeric(self):
+        _skip_if_no_scipy()
+        self.frame['A'][:5] = nan
+        self.frame['B'][5:10] = nan
 
         # exclude non-numeric types
         result = self.mixed_frame.corr()
         expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].corr()
         assert_frame_equal(result, expected)
+
+    def test_corr_nooverlap(self):
+        _skip_if_no_scipy()
 
         # nothing in common
         for meth in ['pearson', 'kendall', 'spearman']:
@@ -4519,6 +4119,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assert_(rs.ix['A', 'A'] == 1)
             self.assert_(rs.ix['B', 'B'] == 1)
 
+    def test_corr_constant(self):
+        _skip_if_no_scipy()
+
         # constant --> all NA
 
         for meth in ['pearson', 'spearman']:
@@ -4527,6 +4130,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             rs = df.corr(meth)
             self.assert_(isnull(rs.values).all())
 
+    def test_corr_int(self):
         # dtypes other than float64 #1761
         df3 = DataFrame({"a":[1,2,3,4], "b":[1,2,3,4]})
 
@@ -4901,6 +4505,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.mixed_frame.fillna(value=0)
 
+        self.assertRaises(ValueError, self.tsframe.fillna)
+        self.assertRaises(ValueError, self.tsframe.fillna, 5, method='ffill')
+
+    def test_ffill(self):
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+
+        assert_frame_equal(self.tsframe.ffill(),
+                           self.tsframe.fillna(method='ffill'))
+
+    def test_bfill(self):
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+
+        assert_frame_equal(self.tsframe.bfill(),
+                           self.tsframe.fillna(method='bfill'))
+
     def test_fillna_skip_certain_blocks(self):
         # don't try to fill boolean, int blocks
 
@@ -4923,10 +4544,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df[1][:4] = np.nan
         df[3][-4:] = np.nan
-        expected = df.fillna()
+        expected = df.fillna(method='ffill')
         self.assert_(expected is not df)
 
-        df2 = df.fillna(inplace=True)
+        df2 = df.fillna(method='ffill', inplace=True)
         self.assert_(df2 is df)
         assert_frame_equal(df2, expected)
 
@@ -4957,13 +4578,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.randn(10, 10))
         df.values[:, ::2] = np.nan
 
-        result = df.fillna(axis=1)
+        result = df.fillna(method='ffill', axis=1)
         expected = df.T.fillna(method='pad').T
         assert_frame_equal(result, expected)
 
         df.insert(6, 'foo', 5)
-        result = df.fillna(axis=1)
-        expected = df.astype(float).fillna(axis=1)
+        result = df.fillna(method='ffill', axis=1)
+        expected = df.astype(float).fillna(method='ffill', axis=1)
         assert_frame_equal(result, expected)
 
     def test_fillna_invalid_method(self):
@@ -5545,61 +5166,80 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, self.frame.align, af.ix[0,:3],
                           join='inner', axis=2)
 
-    def test_align_fill_method(self):
-        def _check_align(a, b, axis, fill_axis, how, method, limit=None):
-            aa, ab = a.align(b, axis=axis, join=how, method=method, limit=limit,
-                             fill_axis=fill_axis)
+    def _check_align(self, a, b, axis, fill_axis, how, method, limit=None):
+        aa, ab = a.align(b, axis=axis, join=how, method=method, limit=limit,
+                         fill_axis=fill_axis)
 
-            join_index, join_columns = None, None
+        join_index, join_columns = None, None
 
-            ea, eb = a, b
-            if axis is None or axis == 0:
-                join_index = a.index.join(b.index, how=how)
-                ea = ea.reindex(index=join_index)
-                eb = eb.reindex(index=join_index)
+        ea, eb = a, b
+        if axis is None or axis == 0:
+            join_index = a.index.join(b.index, how=how)
+            ea = ea.reindex(index=join_index)
+            eb = eb.reindex(index=join_index)
 
-            if axis is None or axis == 1:
-                join_columns  = a.columns.join(b.columns, how=how)
-                ea = ea.reindex(columns=join_columns)
-                eb = eb.reindex(columns=join_columns)
+        if axis is None or axis == 1:
+            join_columns  = a.columns.join(b.columns, how=how)
+            ea = ea.reindex(columns=join_columns)
+            eb = eb.reindex(columns=join_columns)
 
-            ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
-            eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
+        ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
+        eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
 
-            assert_frame_equal(aa, ea)
-            assert_frame_equal(ab, eb)
+        assert_frame_equal(aa, ea)
+        assert_frame_equal(ab, eb)
 
-        for kind in JOIN_TYPES:
-            for meth in ['pad', 'bfill']:
-                for ax in [0, 1, None]:
-                    for fax in [0, 1]:
-                        left = self.frame.ix[0:4, :10]
-                        right = self.frame.ix[2:, 6:]
-                        empty = self.frame.ix[:0, :0]
+    def test_align_fill_method_inner(self):
+        for meth in ['pad', 'bfill']:
+            for ax in [0, 1, None]:
+                for fax in [0, 1]:
+                    self._check_align_fill('inner', meth, ax, fax)
 
-                        _check_align(left, right, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth)
-                        _check_align(left, right, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth, limit=1)
+    def test_align_fill_method_outer(self):
+        for meth in ['pad', 'bfill']:
+            for ax in [0, 1, None]:
+                for fax in [0, 1]:
+                    self._check_align_fill('outer', meth, ax, fax)
 
-                        # empty left
-                        _check_align(empty, right, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth)
-                        _check_align(empty, right, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth, limit=1)
+    def test_align_fill_method_left(self):
+        for meth in ['pad', 'bfill']:
+            for ax in [0, 1, None]:
+                for fax in [0, 1]:
+                    self._check_align_fill('left', meth, ax, fax)
 
+    def test_align_fill_method_right(self):
+        for meth in ['pad', 'bfill']:
+            for ax in [0, 1, None]:
+                for fax in [0, 1]:
+                    self._check_align_fill('right', meth, ax, fax)
 
-                        # empty right
-                        _check_align(left, empty, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth)
-                        _check_align(left, empty, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth, limit=1)
+    def _check_align_fill(self, kind, meth, ax, fax):
+        left = self.frame.ix[0:4, :10]
+        right = self.frame.ix[2:, 6:]
+        empty = self.frame.ix[:0, :0]
 
-                        # both empty
-                        _check_align(empty, empty, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth)
-                        _check_align(empty, empty, axis=ax, fill_axis=fax,
-                                     how=kind, method=meth, limit=1)
+        self._check_align(left, right, axis=ax, fill_axis=fax,
+                          how=kind, method=meth)
+        self._check_align(left, right, axis=ax, fill_axis=fax,
+                          how=kind, method=meth, limit=1)
+
+        # empty left
+        self._check_align(empty, right, axis=ax, fill_axis=fax,
+                          how=kind, method=meth)
+        self._check_align(empty, right, axis=ax, fill_axis=fax,
+                          how=kind, method=meth, limit=1)
+
+        # empty right
+        self._check_align(left, empty, axis=ax, fill_axis=fax,
+                          how=kind, method=meth)
+        self._check_align(left, empty, axis=ax, fill_axis=fax,
+                          how=kind, method=meth, limit=1)
+
+        # both empty
+        self._check_align(empty, empty, axis=ax, fill_axis=fax,
+                          how=kind, method=meth)
+        self._check_align(empty, empty, axis=ax, fill_axis=fax,
+                          how=kind, method=meth, limit=1)
 
 
     def test_align_int_fill_bug(self):
@@ -7654,7 +7294,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
         data = np.random.rand(20, 5)
         df = DataFrame(index=range(20), columns=cols, data=data)
-        self.assert_(df.columns.tolist() == df.fillna().columns.tolist())
+        filled = df.fillna(method='ffill')
+        self.assert_(df.columns.tolist() == filled.columns.tolist())
 
     def test_take(self):
         # homogeneous

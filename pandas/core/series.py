@@ -29,8 +29,11 @@ import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
-import pandas.lib as lib
 from pandas.util.decorators import Appender, Substitution, cache_readonly
+
+import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.index as _index
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.core.config import get_option
@@ -140,7 +143,7 @@ def _comp_method(op, name):
                           index=self.index, name=self.name)
         else:
             values = self.values
-            other = lib.convert_scalar(values, other)
+            other = _index.convert_scalar(values, other)
 
             if issubclass(values.dtype.type, np.datetime64):
                 values = values.view('i8')
@@ -697,7 +700,7 @@ copy : boolean, default False
 
     def _set_values(self, key, value):
         values = self.values
-        values[key] = lib.convert_scalar(values, value)
+        values[key] = _index.convert_scalar(values, value)
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
@@ -806,7 +809,7 @@ copy : boolean, default False
         value : scalar (int) or Series (slice, sequence)
         """
         try:
-            return lib.get_value_at(self, i)
+            return _index.get_value_at(self, i)
         except IndexError:
             raise
         except:
@@ -817,7 +820,7 @@ copy : boolean, default False
                 if isinstance(label, Index):
                     return self.reindex(label)
                 else:
-                    return lib.get_value_at(self, i)
+                    return _index.get_value_at(self, i)
 
     iget = iget_value
     irow = iget_value
@@ -945,8 +948,8 @@ copy : boolean, default False
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
         """
         width, height = get_terminal_size()
-        max_rows = (height if get_option("print_config.max_rows") == 0
-                    else get_option("print_config.max_rows"))
+        max_rows = (height if get_option("print.max_rows") == 0
+                    else get_option("print.max_rows"))
         if len(self.index) > (max_rows or 1000):
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
@@ -2378,7 +2381,7 @@ copy : boolean, default False
 
     truncate = generic.truncate
 
-    def fillna(self, value=None, method='pad', inplace=False,
+    def fillna(self, value=None, method=None, inplace=False,
                limit=None):
         """
         Fill NA/NaN values using the specified method
@@ -2410,12 +2413,14 @@ copy : boolean, default False
             return self.copy() if not inplace else self
 
         if value is not None:
+            if method is not None:
+                raise ValueError('Cannot specify both a fill value and method')
             result = self.copy() if not inplace else self
             mask = isnull(self.values)
             np.putmask(result, mask, value)
         else:
             if method is None:  # pragma: no cover
-                raise ValueError('must specify a fill method')
+                raise ValueError('must specify a fill method or value')
 
             fill_f = _get_fill_func(method)
 
@@ -2432,6 +2437,12 @@ copy : boolean, default False
                 result = Series(values, index=self.index, name=self.name)
 
         return result
+
+    def ffill(self, inplace=False, limit=None):
+        return self.fillna(method='ffill', inplace=inplace, limit=limit)
+
+    def bfill(self, inplace=False, limit=None):
+        return self.fillna(method='bfill', inplace=inplace, limit=limit)
 
     def replace(self, to_replace, value=None, method='pad', inplace=False,
                 limit=None):
@@ -2984,7 +2995,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     not com.is_datetime64_dtype(dtype)):
                     if dtype == object:
                         ints = np.asarray(data).view('i8')
-                        subarr = lib.ints_to_pydatetime(ints)
+                        subarr = tslib.ints_to_pydatetime(ints)
                     elif raise_cast_failure:
                         raise TypeError('Cannot cast datetime64 to %s' % dtype)
                 else:

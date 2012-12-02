@@ -24,6 +24,8 @@ from distutils.version import LooseVersion
 _default_compressor = LooseVersion(tables.__version__) >= '2.2' \
                       and 'blosc' or 'zlib'
 
+_multiprocess_can_split_ = False
+
 class TestHDFStore(unittest.TestCase):
     path = '__test__.h5'
     scratchpath = '__scratch__.h5'
@@ -51,13 +53,14 @@ class TestHDFStore(unittest.TestCase):
 
         os.remove(self.scratchpath)
 
-    def test_len_keys(self):
+    def test_keys(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
-        self.assertEquals(len(self.store), 4)
-        self.assert_(set(self.store.keys()) == set(['a', 'b', 'c', 'd']))
+        self.store['foo/bar'] = tm.makePanel()
+        self.assertEquals(len(self.store), 5)
+        self.assert_(set(self.store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
 
     def test_repr(self):
         repr(self.store)
@@ -65,6 +68,7 @@ class TestHDFStore(unittest.TestCase):
         self.store['b'] = tm.makeStringSeries()
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
+        self.store['foo/bar'] = tm.makePanel()
         self.store.append('e', tm.makePanel())
         repr(self.store)
         str(self.store)
@@ -72,9 +76,14 @@ class TestHDFStore(unittest.TestCase):
     def test_contains(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeDataFrame()
+        self.store['foo/bar'] = tm.makeDataFrame()
         self.assert_('a' in self.store)
         self.assert_('b' in self.store)
         self.assert_('c' not in self.store)
+        self.assert_('foo/bar' in self.store)
+        self.assert_('/foo/bar' in self.store)
+        self.assert_('/foo/b' not in self.store)
+        self.assert_('bar' not in self.store)
 
     def test_reopen_handle(self):
         self.store['a'] = tm.makeTimeSeries()
@@ -92,6 +101,10 @@ class TestHDFStore(unittest.TestCase):
         right = self.store['a']
         tm.assert_series_equal(left, right)
 
+        left = self.store.get('/a')
+        right = self.store['/a']
+        tm.assert_series_equal(left, right)
+
         self.assertRaises(KeyError, self.store.get, 'b')
 
     def test_put(self):
@@ -99,6 +112,9 @@ class TestHDFStore(unittest.TestCase):
         df = tm.makeTimeDataFrame()
         self.store['a'] = ts
         self.store['b'] = df[:10]
+        self.store['foo/bar/bah'] = df[:10]
+        self.store['foo'] = df[:10]
+        self.store['/foo'] = df[:10]
         self.store.put('c', df[:10], table=True)
 
         # not OK, not a table
@@ -155,6 +171,19 @@ class TestHDFStore(unittest.TestCase):
             store.put('df2', df[:10], table=True)
             store.append('df2', df[10:])
             tm.assert_frame_equal(store['df2'], df)
+
+            store.append('/df3', df[:10])
+            store.append('/df3', df[10:])
+            tm.assert_frame_equal(store['df3'], df)
+
+            # this is allowed by almost always don't want to do it
+            import warnings
+            import tables
+            warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+            store.append('/df3 foo', df[:10])
+            store.append('/df3 foo', df[10:])
+            tm.assert_frame_equal(store['df3 foo'], df)
+            warnings.filterwarnings('always', category=tables.NaturalNameWarning)
 
             wp = tm.makePanel()
             store.append('wp1', wp.ix[:,:10,:])
@@ -293,6 +322,18 @@ class TestHDFStore(unittest.TestCase):
         self.store.remove('b')
         self.assertEquals(len(self.store), 0)
 
+        # pathing
+        self.store['a'] = ts
+        self.store['b/foo'] = df
+        self.store.remove('foo')
+        self.store.remove('b/foo')
+        self.assertEquals(len(self.store), 1)
+
+        self.store['a'] = ts
+        self.store['b/foo'] = df
+        self.store.remove('b')
+        self.assertEquals(len(self.store), 1)
+
         # __delitem__
         self.store['a'] = ts
         self.store['b'] = df
@@ -314,6 +355,17 @@ class TestHDFStore(unittest.TestCase):
         rs = self.store.select('wp')
         expected = wp.reindex(minor_axis = ['B','C'])
         tm.assert_panel_equal(rs,expected)
+
+        # empty where
+        self.store.remove('wp')
+        self.store.put('wp', wp, table=True)
+        self.store.remove('wp', [])
+
+        # non - empty where
+        self.store.remove('wp')
+        self.store.put('wp', wp, table=True)
+        self.assertRaises(Exception, self.store.remove,
+                          'wp', ['foo'])
 
         # selectin non-table with a where
         self.store.put('wp2', wp, table=False)
@@ -450,7 +502,7 @@ class TestHDFStore(unittest.TestCase):
 
     def test_sparse_panel(self):
         items = ['x', 'y', 'z']
-        p = Panel(dict((i, tm.makeDataFrame()) for i in items))
+        p = Panel(dict((i, tm.makeDataFrame().ix[:2, :2]) for i in items))
         sp = p.to_sparse()
 
         self._check_double_roundtrip(sp, tm.assert_panel_equal,
@@ -844,6 +896,19 @@ class TestHDFStore(unittest.TestCase):
         store.select('df1')
         store.select('df2')
         store.select('wp1')
+        store.close()
+
+    def test_legacy_table_write(self):
+        # legacy table types
+        pth = curpath()
+        df = tm.makeDataFrame()
+        wp = tm.makePanel()
+
+        store = HDFStore(os.path.join(pth, 'legacy_table.h5'), 'a')
+
+        self.assertRaises(Exception, store.append, 'df1', df)
+        self.assertRaises(Exception, store.append, 'wp1', wp)
+
         store.close()
 
     def test_store_datetime_fractional_secs(self):

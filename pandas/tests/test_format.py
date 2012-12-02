@@ -28,7 +28,7 @@ def curpath():
     return pth
 
 class TestDataFrameFormatting(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.frame = _frame.copy()
 
@@ -65,22 +65,25 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_repr_truncation(self):
         max_len = 20
-        set_option("print_config.max_colwidth", max_len)
+        set_option("print.max_colwidth", max_len)
         df = DataFrame({'A': np.random.randn(10),
                  'B': [tm.rands(np.random.randint(max_len - 1,
                      max_len + 1)) for i in range(10)]})
         r = repr(df)
         r = r[r.find('\n') + 1:]
+
+        _strlen = fmt._strlen_func()
+
         for line, value in zip(r.split('\n'), df['B']):
-            if fmt._strlen(value) + 1 > max_len:
+            if _strlen(value) + 1 > max_len:
                 self.assert_('...' in line)
             else:
                 self.assert_('...' not in line)
 
-        set_option("print_config.max_colwidth", 999999)
+        set_option("print.max_colwidth", 999999)
         self.assert_('...' not in repr(df))
 
-        set_option("print_config.max_colwidth", max_len + 2)
+        set_option("print.max_colwidth", max_len + 2)
         self.assert_('...' not in repr(df))
 
     def test_repr_should_return_str (self):
@@ -450,7 +453,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         assert(df_s == expected)
 
         fmt.reset_printoptions()
-        self.assertEqual(get_option("print_config.precision"), 7)
+        self.assertEqual(get_option("print.precision"), 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
@@ -782,6 +785,21 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         fmt.reset_printoptions()
 
+    def test_fake_qtconsole_repr_html(self):
+        def get_ipython():
+            return {'config' :
+                        {'KernelApp' :
+                             {'parent_appname' : 'ipython-qtconsole'}}}
+
+        repstr = self.frame._repr_html_()
+        self.assert_(repstr is not None)
+
+        fmt.set_printoptions(max_rows=5, max_columns=2)
+
+        self.assert_(self.frame._repr_html_() is None)
+
+        fmt.reset_printoptions()
+
     def test_to_html_with_classes(self):
         df = pandas.DataFrame()
         result = df.to_html(classes="sortable draggable")
@@ -825,7 +843,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.frame.to_latex()
 
 class TestSeriesFormatting(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.ts = tm.makeTimeSeries()
 
@@ -940,7 +958,7 @@ class TestSeriesFormatting(unittest.TestCase):
         self.assertTrue('2012-01-01' in result)
 
 class TestEngFormatter(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def test_eng_float_formatter(self):
         df = DataFrame({'A' : [1.41, 141., 14100, 1410000.]})
 

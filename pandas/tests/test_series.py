@@ -40,6 +40,8 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 class CheckNameIntegration(object):
 
+    _multiprocess_can_split_ = True
+
     def test_scalarop_preserve_name(self):
         result = self.ts * 2
         self.assertEquals(result.name, self.ts.name)
@@ -150,13 +152,13 @@ class CheckNameIntegration(object):
         self.assert_(not "Name:" in repr(s))
 
     def test_pickle_preserve_name(self):
-        unpickled = self._pickle_roundtrip(self.ts)
+        unpickled = self._pickle_roundtrip_name(self.ts)
         self.assertEquals(unpickled.name, self.ts.name)
 
-    def _pickle_roundtrip(self, obj):
-        obj.save('__tmp__')
-        unpickled = Series.load('__tmp__')
-        os.remove('__tmp__')
+    def _pickle_roundtrip_name(self, obj):
+        obj.save('__tmp_name__')
+        unpickled = Series.load('__tmp_name__')
+        os.remove('__tmp_name__')
         return unpickled
 
     def test_argsort_preserve_name(self):
@@ -172,6 +174,8 @@ class CheckNameIntegration(object):
         self.assertEquals(result.name, self.ts.name)
 
 class TestNanops(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def test_comparisons(self):
         left = np.random.randn(10)
@@ -218,10 +222,14 @@ class TestNanops(unittest.TestCase):
 class SafeForSparse(object):
     pass
 
+_ts = tm.makeTimeSeries()
+
 class TestSeries(unittest.TestCase, CheckNameIntegration):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
-        self.ts = tm.makeTimeSeries()
+        self.ts = _ts.copy()
         self.ts.name = 'ts'
 
         self.series = tm.makeStringSeries()
@@ -492,9 +500,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(unp_ts, self.ts)
 
     def _pickle_roundtrip(self, obj):
-        obj.save('__tmp__')
-        unpickled = Series.load('__tmp__')
-        os.remove('__tmp__')
+        obj.save('__tmp_pickle_roundtrip__')
+        unpickled = Series.load('__tmp_pickle_roundtrip__')
+        os.remove('__tmp_pickle_roundtrip__')
         return unpickled
 
     def test_getitem_get(self):
@@ -2128,28 +2136,29 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(iranks, exp)
 
     def test_from_csv(self):
-        self.ts.to_csv('_foo')
-        ts = Series.from_csv('_foo')
+        path = '_foo_from_csv'
+        self.ts.to_csv(path)
+        ts = Series.from_csv(path)
         assert_series_equal(self.ts, ts)
 
-        self.series.to_csv('_foo')
-        series = Series.from_csv('_foo')
+        self.series.to_csv(path)
+        series = Series.from_csv(path)
         self.assert_(series.name is None)
         self.assert_(series.index.name is None)
         assert_series_equal(self.series, series)
 
-        outfile = open('_foo', 'w')
+        outfile = open(path, 'w')
         outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
         outfile.close()
-        series = Series.from_csv('_foo',sep='|')
+        series = Series.from_csv(path, sep='|')
         checkseries = Series({datetime(1998,1,1): 1.0, datetime(1999,1,1): 2.0})
         assert_series_equal(checkseries, series)
 
-        series = Series.from_csv('_foo',sep='|',parse_dates=False)
+        series = Series.from_csv(path, sep='|',parse_dates=False)
         checkseries = Series({'1998-01-01': 1.0, '1999-01-01': 2.0})
         assert_series_equal(checkseries, series)
 
-        os.remove('_foo')
+        os.remove(path)
 
     def test_to_csv(self):
         self.ts.to_csv('_foo')
@@ -2929,8 +2938,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
-        self.assert_(s.fillna(inplace=True) is s)
-        assert_series_equal(s.fillna(inplace=False), s)
+        self.assert_(s.fillna(method='ffill', inplace=True) is s)
+        assert_series_equal(s.fillna(method='ffill', inplace=False), s)
 
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
@@ -2938,15 +2947,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_fillna(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 
-        self.assert_(np.array_equal(ts, ts.fillna()))
+        self.assert_(np.array_equal(ts, ts.fillna(method='ffill')))
 
         ts[2] = np.NaN
 
-        self.assert_(np.array_equal(ts.fillna(), [0., 1., 1., 3., 4.]))
+        self.assert_(np.array_equal(ts.fillna(method='ffill'), [0., 1., 1., 3., 4.]))
         self.assert_(np.array_equal(ts.fillna(method='backfill'),
                                     [0., 1., 3., 3., 4.]))
 
         self.assert_(np.array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.]))
+
+        self.assertRaises(ValueError, ts.fillna)
+        self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
 
     def test_fillna_bug(self):
         x = Series([nan, 1., nan, 3., nan],['z','a','b','c','d'])
@@ -2973,6 +2985,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             self.ts.fillna(method='ffil')
         except ValueError, inst:
             self.assert_('ffil' in str(inst))
+
+    def test_ffill(self):
+        ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
+        ts[2] = np.NaN
+        assert_series_equal(ts.ffill(), ts.fillna(method='ffill'))
+
+    def test_bfill(self):
+        ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
+        ts[2] = np.NaN
+        assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     def test_replace(self):
         N = 100
@@ -3206,6 +3228,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = np.unique(self.ts)
 
 class TestSeriesNonUnique(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         pass

@@ -281,7 +281,7 @@ class _NDFrameIndexer(object):
                 # slices are unhashable
                 pass
             except Exception, e1:
-                if isinstance(tup[0], slice):
+                if isinstance(tup[0], (slice, Index)):
                     raise IndexingError
                 try:
                     loc = ax0.get_loc(tup[0])
