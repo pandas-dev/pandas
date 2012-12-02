@@ -1283,7 +1283,7 @@ class DatetimeIndex(Int64Index):
 
     @cache_readonly
     def _resolution(self):
-        return lib.resolution(self.asi8, self.tz)
+        return tslib.resolution(self.asi8, self.tz)
 
     def equals(self, other):
         """
