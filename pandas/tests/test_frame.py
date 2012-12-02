@@ -2934,6 +2934,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_repr_unsortable(self):
         # columns are not sortable
+        import warnings
+        warn_filters = warnings.filters
+        warnings.filterwarnings('ignore',
+                                category=FutureWarning,
+                                module=".*format")
 
         unsortable = DataFrame({'foo' : [1] * 50,
                                 datetime.today() : [1] * 50,
@@ -2952,6 +2957,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         repr(self.frame)
 
         fmt.reset_printoptions()
+
+        warnings.filters = warn_filters
 
     def test_repr_unicode(self):
         uval = u'\u03c3\u03c3\u03c3\u03c3'
@@ -3679,6 +3686,40 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertRaises(ValueError, self.frame2.to_csv, path,
                           header=['AA', 'X'])
+
+        os.remove(path)
+
+    def test_to_csv_from_csv_w_some_infs(self):
+        import tempfile
+        path = tempfile.mktemp()
+        path += '__tmp__'
+
+        # test roundtrip with inf, -inf, nan, as full columns and mix
+        self.frame['G'] = np.nan
+        self.frame['H'] = self.frame.index.map(lambda x: [np.inf, np.nan][np.random.rand() < .5])
+
+        self.frame.to_csv(path)
+        recons = DataFrame.from_csv(path)
+
+        assert_frame_equal(self.frame, recons)
+        assert_frame_equal(np.isinf(self.frame), np.isinf(recons))
+
+        os.remove(path)
+
+    def test_to_csv_from_csv_w_all_infs(self):
+        import tempfile
+        path = tempfile.mktemp()
+        path += '__tmp__'
+
+        # test roundtrip with inf, -inf, nan, as full columns and mix
+        self.frame['E'] = np.inf
+        self.frame['F'] = -np.inf
+
+        self.frame.to_csv(path)
+        recons = DataFrame.from_csv(path)
+
+        assert_frame_equal(self.frame, recons)
+        assert_frame_equal(np.isinf(self.frame), np.isinf(recons))
 
         os.remove(path)
 

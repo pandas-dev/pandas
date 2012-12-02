@@ -68,9 +68,19 @@ join_dataframe_index_multi = \
 
 #----------------------------------------------------------------------
 # Joins on integer keys
+setup = common_setup + """
+df = DataFrame({'key1': np.tile(np.arange(500).repeat(10), 2),
+                'key2': np.tile(np.arange(250).repeat(10), 4),
+                'value': np.random.randn(10000)})
+df2 = DataFrame({'key1': np.arange(500), 'value2': randn(500)})
+df3 = df[:5000]
+"""
 
-join_dataframe_integer_key = Benchmark("merge(df, df2, on='key')", setup,
+
+join_dataframe_integer_key = Benchmark("merge(df, df2, on='key1')", setup,
                                        start_date=datetime(2011, 10, 20))
+join_dataframe_integer_2key = Benchmark("merge(df, df3)", setup,
+                                        start_date=datetime(2011, 10, 20))
 
 #----------------------------------------------------------------------
 # DataFrame joins on index

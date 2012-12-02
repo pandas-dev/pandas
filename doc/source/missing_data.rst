@@ -57,11 +57,11 @@ to handling missing data. While ``NaN`` is the default missing value marker for
 reasons of computational speed and convenience, we need to be able to easily
 detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
-arise and we wish to also consider that "missing" or "null". Lastly, for legacy
-reasons ``inf`` and ``-inf`` are also considered to be "null" in
-computations. Since in NumPy divide-by-zero generates ``inf`` or ``-inf`` and
-not ``NaN``, I think you will find this is a worthwhile trade-off (Zen of
-Python: "practicality beats purity").
+arise and we wish to also consider that "missing" or "null".
+
+Until recently, for legacy reasons ``inf`` and ``-inf`` were also
+considered to be "null" in computations. This is no longer the case by
+default; use the :func: `~pandas.core.common.use_inf_as_null` function to recover it.
 
 .. _missing.isnull:
 
@@ -76,8 +76,9 @@ pandas provides the :func:`~pandas.core.common.isnull` and
    isnull(df2['one'])
    df2['four'].notnull()
 
-**Summary:** ``NaN``, ``inf``, ``-inf``, and ``None`` (in object arrays) are
-all considered missing by the ``isnull`` and ``notnull`` functions.
+**Summary:** ``NaN`` and ``None`` (in object arrays) are considered
+missing by the ``isnull`` and ``notnull`` functions. ``inf`` and
+``-inf`` are no longer considered missing by default.
 
 Calculations with missing data
 ------------------------------

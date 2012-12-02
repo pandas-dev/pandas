@@ -65,6 +65,59 @@ def isnull(obj):
         return _isnull_ndarraylike(obj)
     else:
         return obj is None
+isnull_new = isnull
+
+def isnull_old(obj):
+    '''
+    Replacement for numpy.isnan / -numpy.isfinite which is suitable
+    for use on object arrays.  Treat None, NaN, INF, -INF as null.
+
+    Parameters
+    ----------
+    arr: ndarray or object value
+
+    Returns
+    -------
+    boolean ndarray or boolean
+    '''
+    if lib.isscalar(obj):
+        return lib.checknull_old(obj)
+
+    from pandas.core.generic import PandasObject
+    if isinstance(obj, np.ndarray):
+        return _isnull_ndarraylike_old(obj)
+    elif isinstance(obj, PandasObject):
+        # TODO: optimize for DataFrame, etc.
+        return obj.apply(isnull_old)
+    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+        return _isnull_ndarraylike_old(obj)
+    else:
+        return obj is None
+
+def use_inf_as_null(flag):
+    '''
+    Choose which replacement for numpy.isnan / -numpy.isfinite is used.
+
+    Parameters
+    ----------
+    flag: bool
+        True means treat None, NaN, INF, -INF as null (old way),
+        False means None and NaN are null, but INF, -INF are not null
+        (new way).
+
+    Notes
+    -----
+    This approach to setting global module values is discussed and
+    approved here:
+
+    * http://stackoverflow.com/questions/4859217/
+      programmatically-creating-variables-in-python/4859312#4859312
+    '''
+    if flag == True:
+        globals()['isnull'] = isnull_old
+    else:
+        globals()['isnull'] = isnull_new
+
 
 
 def _isnull_ndarraylike(obj):
@@ -93,6 +146,30 @@ def _isnull_ndarraylike(obj):
         result = -np.isfinite(obj)
     return result
 
+
+def _isnull_ndarraylike_old(obj):
+    from pandas import Series
+    values = np.asarray(obj)
+
+    if values.dtype.kind in ('O', 'S', 'U'):
+        # Working around NumPy ticket 1542
+        shape = values.shape
+
+        if values.dtype.kind in ('S', 'U'):
+            result = np.zeros(values.shape, dtype=bool)
+        else:
+            result = np.empty(shape, dtype=bool)
+            vec = lib.isnullobj_old(values.ravel())
+            result[:] = vec.reshape(shape)
+
+        if isinstance(obj, Series):
+            result = Series(result, index=obj.index, copy=False)
+    elif values.dtype == np.dtype('M8[ns]'):
+        # this is the NaT pattern
+        result = values.view('i8') == tslib.iNaT
+    else:
+        result = -np.isfinite(obj)
+    return result
 
 def notnull(obj):
     '''

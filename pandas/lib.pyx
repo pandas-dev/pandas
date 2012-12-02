@@ -165,6 +165,18 @@ cdef double NEGINF = -INF
 
 cpdef checknull(object val):
     if util.is_float_object(val) or util.is_complex_object(val):
+        return val != val # and val != INF and val != NEGINF
+    elif util.is_datetime64_object(val):
+        return get_datetime64_value(val) == NPY_NAT
+    elif val is NaT:
+        return True
+    elif is_array(val):
+        return False
+    else:
+        return util._checknull(val)
+
+cpdef checknull_old(object val):
+    if util.is_float_object(val) or util.is_complex_object(val):
         return val != val or val == INF or val == NEGINF
     elif util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
@@ -192,6 +204,19 @@ def isnullobj(ndarray[object] arr):
         result[i] = util._checknull(arr[i])
     return result.view(np.bool_)
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def isnullobj_old(ndarray[object] arr):
+    cdef Py_ssize_t i, n
+    cdef object val
+    cdef ndarray[uint8_t] result
+
+    n = len(arr)
+    result = np.zeros(n, dtype=np.uint8)
+    for i from 0 <= i < n:
+        result[i] = util._checknull_old(arr[i])
+    return result.view(np.bool_)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -206,6 +231,36 @@ def isnullobj2d(ndarray[object, ndim=2] arr):
         for j from 0 <= j < m:
             val = arr[i, j]
             if checknull(val):
+                result[i, j] = 1
+    return result.view(np.bool_)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def isnullobj_old(ndarray[object] arr):
+    cdef Py_ssize_t i, n
+    cdef object val
+    cdef ndarray[uint8_t] result
+
+    n = len(arr)
+    result = np.zeros(n, dtype=np.uint8)
+    for i from 0 <= i < n:
+        result[i] = util._checknull_old(arr[i])
+    return result.view(np.bool_)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def isnullobj2d_old(ndarray[object, ndim=2] arr):
+    cdef Py_ssize_t i, j, n, m
+    cdef object val
+    cdef ndarray[uint8_t, ndim=2] result
+
+    n, m = (<object> arr).shape
+    result = np.zeros((n, m), dtype=np.uint8)
+    for i from 0 <= i < n:
+        for j from 0 <= j < m:
+            val = arr[i, j]
+            if checknull_old(val):
                 result[i, j] = 1
     return result.view(np.bool_)
 

@@ -1,1 +1,1 @@
-cloc pandas --force-lang=Python,pyx --not-match-f="parser.c|tseries.c|sandbox.c|engines.c|sparse.c|generated.c|plib.c"
+cloc pandas --force-lang=Python,pyx --not-match-f="parser.c|lib.c|tslib.c|sandbox.c|hashtable.c|sparse.c|algos.c|index.c"

@@ -1323,6 +1323,8 @@ class DataFrame(NDFrame):
         ----------
         path_or_buf : string or file handle / StringIO
             File path
+        sep : character, default ","
+            Field delimiter for the output file.
         na_rep : string, default ''
             Missing data representation
         float_format : string, default None
@@ -1340,15 +1342,16 @@ class DataFrame(NDFrame):
             sequence should be given if the DataFrame uses MultiIndex.  If
             False do not print fields for index names. Use index_label=False
             for easier importing in R
+        nanRep : deprecated, use na_rep
         mode : Python write mode, default 'w'
-        sep : character, default ","
-            Field delimiter for the output file.
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
         line_terminator: string, default '\n'
             The newline character or character sequence to use in the output
             file
+        quoting : optional constant from csv module
+            defaults to csv.QUOTE_MINIMAL
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -2092,14 +2095,30 @@ class DataFrame(NDFrame):
                     value = value.copy().T
                 else:
                     value = value.copy()
+
+            # Broadcasting funtimes
+            if key in self.columns and value.ndim == 1:
+                existing_piece = self[key]
+                if isinstance(existing_piece, DataFrame):
+                    value = np.tile(value, (len(existing_piece.columns), 1))
         else:
-            value = np.repeat(value, len(self.index))
             if key in self.columns:
-                existing_column = self[key]
-                # special case for now
-                if (com.is_float_dtype(existing_column) and
-                    com.is_integer_dtype(value)):
-                    value = value.astype(np.float64)
+                existing_piece = self[key]
+
+                # transpose hack
+                if isinstance(existing_piece, DataFrame):
+                    shape = (len(existing_piece.columns), len(self.index))
+                    value = np.repeat(value, np.prod(shape)).reshape(shape)
+                else:
+                    value = np.repeat(value, len(self.index))
+
+                    # special case for now
+                    if (com.is_float_dtype(existing_piece) and
+                        com.is_integer_dtype(value)):
+                        value = value.astype(np.float64)
+
+            else:
+                value = np.repeat(value, len(self.index))
 
         return np.atleast_2d(np.asarray(value))
 
