@@ -3,37 +3,50 @@ language: python
 python:
   - 2.6
   - 2.7
-  - 3.1
+  - 3.1 # travis will soon EOL this
   - 3.2
   - 3.3
+
+env:
+  global:
+    - # need at least this so travis page will show env column
 
 matrix:
   include:
     - python: 2.7
       env: VBENCH=true
+    - python: 2.7
+      env: FULL_DEPS=true
+    - python: 3.2
+      env: FULL_DEPS=true
 
   allow_failures:
-    - python: 3.3 # until travis upgrade to 1.8.4
     - python: 2.7
       env: VBENCH=true
+    - python: 3.2
+      env: FULL_DEPS=true
+
+# allow importing from site-packages,
+# so apt-get python-x works for system pythons
+# That's 2.7/3.2 on Ubuntu 12.04
+virtualenv:
+  system_site_packages: true
+
+before_install:
+  - echo "Waldo1"
+  - echo $VIRTUAL_ENV
+  - date
+  - export PIP_ARGS=-q # comment this this to debug travis install issues
+  - export APT_ARGS=-qq # comment this to debug travis install issues
+  # - set -x # enable this to see bash commands
+  - source ci/before_install.sh # we need to source this to bring in the env
+  - python -V
 
 install:
-  - virtualenv --version
-  - date
-  - whoami
-  - pwd
-  - echo $VBENCH
-  # install 1.7.0b2 for 3.3, and pull a version of numpy git master
-  # with a alternate fix for detach bug as a temporary workaround
-  # for the others.
-  - 'if [ $TRAVIS_PYTHON_VERSION == "3.3" ]; then pip uninstall numpy; pip install https://github.com/numpy/numpy/archive/v1.7.0b2.tar.gz; fi'
-  - 'if [ $TRAVIS_PYTHON_VERSION == "3.2" ] || [ $TRAVIS_PYTHON_VERSION == "3.1" ]; then pip install https://github.com/y-p/numpy/archive/1.6.2_with_travis_fix.tar.gz; fi'
-  - 'if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then pip install numpy; fi' # should be nop if pre-installed
-  - pip install --use-mirrors cython nose pytz python-dateutil xlrd openpyxl;
+  - echo "Waldo2"
+  - ci/install.sh
+  - ci/print_versions.py
 
 script:
-   - python setup.py build_ext install
-   - 'if [ x"$VBENCH" != x"true" ]; then nosetests --exe -w /tmp -A "not slow" pandas; fi'
-   - pwd
-   - 'if [ x"$VBENCH" == x"true" ]; then pip install sqlalchemy git+git://github.com/pydata/vbench.git; python vb_suite/perf_HEAD.py; fi'
-   - python -c "import numpy;print(numpy.version.version)"
+  - echo "Waldo3"
+  - ci/script.sh
