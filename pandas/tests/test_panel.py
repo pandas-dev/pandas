@@ -664,11 +664,23 @@ class CheckIndexing(object):
         p1 = tm.makePanel()
         p2 = tm.makePanel()
 
+        tp = p1.reindex(items = p1.items + ['foo'])
+        df = p1[p1.items[0]]
+
         def test_comp(func):
+
+            # versus same index
             result = func(p1, p2)
             self.assert_(np.array_equal(result.values,
                                         func(p1.values, p2.values)))
 
+            # versus non-indexed same objs
+            self.assertRaises(Exception, func, p1, tp)
+
+            # versus different objs
+            self.assertRaises(Exception, func, p1, df)
+
+            # versus scalar
             result3 = func(self.panel, 0)
             self.assert_(np.array_equal(result3.values,
                                         func(self.panel.values, 0)))

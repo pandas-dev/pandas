@@ -13,6 +13,7 @@ from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.util import py3compat
@@ -152,6 +153,8 @@ def _comp_method(func, name):
     def f(self, other):
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, func)
+        elif isinstance(other, (self._constructor_sliced, DataFrame, Series)):
+            raise Exception("input needs alignment for this object [%s]" % self._constructor)
         else:
             return self._combine_const(other, na_op)
 
@@ -443,6 +446,10 @@ class Panel(NDFrame):
         return all([ getattr(self,a).equals(getattr(other,a)) for a in self._AXIS_ORDERS ])
   
     def _compare_constructor(self, other, func):
+        if not self._indexed_same(other):
+            raise Exception('Can only compare identically-labeled '
+                            'same type objects')
+
         new_data = {}
         for col in getattr(self,self._info_axis):
             new_data[col] = func(self[col], other[col])
