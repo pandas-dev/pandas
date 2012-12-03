@@ -99,6 +99,7 @@ class SeriesFormatter(object):
     def _get_formatted_index(self):
         index = self.series.index
         is_multi = isinstance(index, MultiIndex)
+
         if is_multi:
             have_header = any(name for name in index.names)
             fmt_index = index.format(names=True)
@@ -391,11 +392,13 @@ class DataFrameFormatter(object):
         show_index_names = self.show_index_names and self.has_index_names
         show_col_names = (self.show_index_names and self.has_column_names)
 
+        fmt = self.formatters.get('__index__', None)
         if isinstance(index, MultiIndex):
             fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
-                                     names=show_index_names)
+                                     names=show_index_names,
+                                     formatter=fmt)
         else:
-            fmt_index = [index.format(name=show_index_names)]
+            fmt_index = [index.format(name=show_index_names, formatter=fmt)]
 
         adjoined = adjoin(1, *fmt_index).split('\n')
 

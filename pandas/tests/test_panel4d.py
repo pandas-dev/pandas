@@ -145,6 +145,8 @@ class SafeForLongAndSparse(object):
 
 class SafeForSparse(object):
 
+    _multiprocess_can_split_ = True
+
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
@@ -192,37 +194,6 @@ class SafeForSparse(object):
         self.assertEqual(self.panel4d._get_axis_name(1), 'items')
         self.assertEqual(self.panel4d._get_axis_name(2), 'major_axis')
         self.assertEqual(self.panel4d._get_axis_name(3), 'minor_axis')
-
-    #def test_get_plane_axes(self):
-    #    # what to do here?
-
-    #    index, columns = self.panel._get_plane_axes('items')
-    #    index, columns = self.panel._get_plane_axes('major_axis')
-    #    index, columns = self.panel._get_plane_axes('minor_axis')
-    #    index, columns = self.panel._get_plane_axes(0)
-
-    def test_truncate(self):
-        raise nose.SkipTest
-
-        #dates = self.panel.major_axis
-        #start, end = dates[1], dates[5]
-
-        #trunced = self.panel.truncate(start, end, axis='major')
-        #expected = self.panel['ItemA'].truncate(start, end)
-
-        #assert_frame_equal(trunced['ItemA'], expected)
-
-        #trunced = self.panel.truncate(before=start, axis='major')
-        #expected = self.panel['ItemA'].truncate(before=start)
-
-        #assert_frame_equal(trunced['ItemA'], expected)
-
-        #trunced = self.panel.truncate(after=end, axis='major')
-        #expected = self.panel['ItemA'].truncate(after=end)
-
-        #assert_frame_equal(trunced['ItemA'], expected)
-
-        # XXX test other axes
 
     def test_arith(self):
         self._test_op(self.panel4d, operator.add)
@@ -317,6 +288,7 @@ class SafeForSparse(object):
 
 class CheckIndexing(object):
 
+    _multiprocess_can_split_ = True
 
     def test_getitem(self):
         self.assertRaises(Exception, self.panel4d.__getitem__, 'ItemQ')
@@ -395,22 +367,6 @@ class CheckIndexing(object):
         # boolean dtype
         self.panel4d['lP'] = self.panel4d['l1'] > 0
         self.assert_(self.panel4d['lP'].values.dtype == np.bool_)
-
-    def test_setitem_ndarray(self):
-        raise nose.SkipTest
-    #    from pandas import DateRange, datetools
-
-    #    timeidx = DateRange(start=datetime(2009,1,1),
-    #                        end=datetime(2009,12,31),
-    #                        offset=datetools.MonthEnd())
-    #    lons_coarse = np.linspace(-177.5, 177.5, 72)
-    #    lats_coarse = np.linspace(-87.5, 87.5, 36)
-    #    P = Panel(items=timeidx, major_axis=lons_coarse, minor_axis=lats_coarse)
-    #    data = np.random.randn(72*36).reshape((72,36))
-    #    key = datetime(2009,2,28)
-    #    P[key] = data#
-
-    #    assert_almost_equal(P[key].values, data)
 
     def test_major_xs(self):
         ref = self.panel4d['l1']['ItemA']
@@ -514,38 +470,6 @@ class CheckIndexing(object):
         #self.assertRaises(NotImplementedError, self.panel4d.major_xs)
         #self.assertRaises(NotImplementedError, self.panel4d.minor_xs)
 
-    def test_getitem_fancy_xs_check_view(self):
-        raise nose.SkipTest
-    #    item = 'ItemB'
-    #    date = self.panel.major_axis[5]
-    #    col = 'C'
-
-    #    # make sure it's always a view
-    #    NS = slice(None, None)
-
-    #    # DataFrames
-    #    comp = assert_frame_equal
-    #    self._check_view(item, comp)
-    #    self._check_view((item, NS), comp)
-    #    self._check_view((item, NS, NS), comp)
-    #    self._check_view((NS, date), comp)
-    #    self._check_view((NS, date, NS), comp)
-    #    self._check_view((NS, NS, 'C'), comp)
-
-    #    # Series
-    #    comp = assert_series_equal
-    #    self._check_view((item, date), comp)
-    #    self._check_view((item, date, NS), comp)
-    #    self._check_view((item, NS, 'C'), comp)
-    #    self._check_view((NS, date, 'C'), comp)#
-
-    #def _check_view(self, indexer, comp):
-    #    cp = self.panel.copy()
-    #    obj = cp.ix[indexer]
-    #    obj.values[:] = 0
-    #    self.assert_((obj.values == 0).all())
-    #    comp(cp.ix[indexer].reindex_like(obj), obj)
-
     def test_get_value(self):
         for label in self.panel4d.labels:
             for item in self.panel4d.items:
@@ -573,6 +497,8 @@ class CheckIndexing(object):
         self.assert_(com.is_float_dtype(res3['l4'].values))
 
 class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse, SafeForLongAndSparse):
+
+    _multiprocess_can_split_ = True
 
     @classmethod
     def assert_panel4d_equal(cls,x, y):
