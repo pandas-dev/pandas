@@ -74,7 +74,7 @@ Updated PyTables Support
 
             # remove all nodes under this level
             store.remove('food')
-	    store	
+	    store
 
        - added mixed-dtype support!
 
@@ -109,6 +109,8 @@ Updated PyTables Support
        store.close()
        import os
        os.remove('store.h5')
+
+- Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (GH2411_)
 
 API changes
 ~~~~~~~~~~~
@@ -156,3 +158,4 @@ on GitHub for a complete list.
 .. _GH2316: https://github.com/pydata/pandas/issues/2316
 .. _GH2097: https://github.com/pydata/pandas/issues/2097
 .. _GH2224: https://github.com/pydata/pandas/issues/2224
+.. _GH2411: https://github.com/pydata/pandas/issues/2411
