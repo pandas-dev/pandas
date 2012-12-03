@@ -539,6 +539,7 @@ class TestStringMethods(unittest.TestCase):
         exp = Series(['  aa', ' bb', NA, 'cc'])
         tm.assert_series_equal(result, exp)
 
+    def test_strip_lstrip_rstrip_mixed(self):
         #mixed
         mixed = Series(['  aa  ', NA, ' bb \t\n', True, datetime.today(),
                         None, 1, 2.])
@@ -564,6 +565,7 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+    def test_strip_lstrip_rstrip_unicode(self):
         #unicode
         values = Series([u'  aa   ', u' bb \n', NA, u'cc  '])
 
@@ -578,6 +580,36 @@ class TestStringMethods(unittest.TestCase):
         result = values.str.rstrip()
         exp = Series([u'  aa', u' bb', NA, u'cc'])
         tm.assert_series_equal(result, exp)
+
+    def test_strip_lstrip_rstrip_args(self):
+        values = Series(['xxABCxx', 'xx BNSD', 'LDFJH xx'])
+
+        rs = values.str.strip('x')
+        xp = Series(['ABC', ' BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.lstrip('x')
+        xp = Series(['ABCxx', ' BNSD', 'LDFJH xx'])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.rstrip('x')
+        xp = Series(['xxABC', 'xx BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
+
+    def test_strip_lstrip_rstrip_args_unicode(self):
+        values = Series([u'xxABCxx', u'xx BNSD', u'LDFJH xx'])
+
+        rs = values.str.strip(u'x')
+        xp = Series(['ABC', ' BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.lstrip(u'x')
+        xp = Series(['ABCxx', ' BNSD', 'LDFJH xx'])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.rstrip(u'x')
+        xp = Series(['xxABC', 'xx BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
 
     def test_wrap(self):
         pass

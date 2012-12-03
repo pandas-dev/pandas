@@ -82,6 +82,7 @@ pandas 0.10.0
   - ``min_itemsize`` parameter can be specified in ``HDFStore table`` creation
   - Indexing support in ``HDFStore tables`` (#698)
   - Add `line_terminator` option to DataFrame.to_csv (#2383)
+  - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (#2411)
 
 **Bug fixes**
 
