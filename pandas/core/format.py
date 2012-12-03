@@ -622,7 +622,7 @@ class HTMLFormatter(object):
 
         if '__index__' in self.fmt.formatters:
             f = self.fmt.formatters['__index__']
-            index_values = self.frame.index.values.map(f)
+            index_values = self.frame.index.map(f)
         else:
             index_values = self.frame.index.format()
 
