@@ -110,8 +110,8 @@ Updated PyTables Support
        import os
        os.remove('store.h5')
 
-NDim Panels (Experimental)
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+N Dimensional Panels (Experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
 :ref:`Docs <dsintro-panel4d>` for NDim. Here is a taste of what to expect.

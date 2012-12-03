@@ -495,9 +495,9 @@ class Panel(NDFrame):
         return self._ix
 
     def _wrap_array(self, arr, axes, copy=False):
-        items, major, minor = axes
-        return self._constructor(arr, items=items, major_axis=major,
-                                 minor_axis=minor, copy=copy)
+        d    = dict([ (a,ax) for a,ax in zip(self._AXIS_ORDERS,axes) ])
+        d['copy'] = False
+        return self._constructor(arr, **d)
 
     fromDict = from_dict
 
@@ -1433,8 +1433,8 @@ class Panel(NDFrame):
             contain data in the same place.
         """
 
-        if not isinstance(other, Panel):
-            other = Panel(other)
+        if not isinstance(other, self._constructor):
+            other = self._constructor(other)
 
         other = other.reindex(items=self.items)
 

@@ -814,7 +814,9 @@ containers.
 
 
 ``Panel4D`` is a sub-class of ``Panel``, so most methods that work on Panels are
-applicable to Panel4D.
+applicable to Panel4D. The following methods are disabled:
+
+  - ``join , to_frame , to_excel , to_sparse , groupby``
 
 Construction of Panel4D works in a very similar manner to a ``Panel``
 
@@ -897,7 +899,8 @@ Here we slice to a Panel4D.
     Panel5D = panelnd.create_nd_panel_factory(
         klass_name   = 'Panel5D', 
         axis_orders  = [ 'cool', 'labels','items','major_axis','minor_axis'], 
-        axis_slices  = { 'labels' : 'labels', 'items' : 'items', 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
+        axis_slices  = { 'labels' : 'labels', 'items' : 'items', 
+	                 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
         slicer       = Panel4D,
         axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
         stat_axis    = 2)
@@ -911,6 +914,6 @@ Here we slice to a Panel4D.
     # transpose it
     p5d.transpose(1,2,3,4,0)
 
-    # look at the values & dim
-    p5d.values.shape
-    p5d.values.ndim
+    # look at the shape & dim
+    p5d.shape
+    p5d.ndim
