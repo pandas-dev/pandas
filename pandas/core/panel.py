@@ -280,7 +280,6 @@ class Panel(NDFrame):
 
         # shallow copy
         arrays = []
-        reshaped_data = data.copy()
         haxis_shape = [ len(a) for a in raxes ]
         for h in haxis:
             v = values = data.get(h)
