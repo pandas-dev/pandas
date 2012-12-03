@@ -111,6 +111,8 @@ Updated PyTables Support
        import os
        os.remove('store.h5')
 
+  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace (GH2412_)
+
 API changes
 ~~~~~~~~~~~
 
@@ -157,3 +159,4 @@ on GitHub for a complete list.
 .. _GH2097: https://github.com/pydata/pandas/issues/2097
 .. _GH2224: https://github.com/pydata/pandas/issues/2224
 .. _GH2431: https://github.com/pydata/pandas/issues/2431
+.. _GH2412: https://github.com/pydata/pandas/issues/2412
