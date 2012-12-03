@@ -1430,6 +1430,24 @@ class TestGroupBy(unittest.TestCase):
         result = self.df.groupby(cats).D.apply(get_stats)
         self.assertEquals(result.index.names[0], 'C')
 
+    def test_apply_corner_cases(self):
+        # #535, can't use sliding iterator
+
+        N = 1000
+        labels = np.random.randint(0, 100, size=N)
+        df = DataFrame({'key': labels,
+                        'value1': np.random.randn(N),
+                        'value2': ['foo', 'bar', 'baz', 'qux'] * (N / 4)})
+
+        grouped = df.groupby('key')
+
+        def f(g):
+            g['value3'] = g['value1'] * 2
+            return g
+
+        result = grouped.apply(f)
+        self.assertTrue('value3' in result)
+
     def test_transform_mixed_type(self):
         index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
                                         [1, 2, 3, 1, 2, 3]])

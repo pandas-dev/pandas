@@ -22,6 +22,13 @@ from pandas.util.testing import (assert_panel_equal,
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
+
+
 class PanelTests(object):
     panel = None
 
