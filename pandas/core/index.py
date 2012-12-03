@@ -421,7 +421,7 @@ class Index(np.ndarray):
         taken = self.view(np.ndarray).take(indexer)
         return self._constructor(taken, name=self.name)
 
-    def format(self, name=False):
+    def format(self, name=False, formatter=None):
         """
         Render a string representation of the Index
         """
@@ -429,7 +429,11 @@ class Index(np.ndarray):
 
         header = []
         if name:
-            header.append(com.pprint_thing(self.name) if self.name is not None else '')
+            header.append(com.pprint_thing(self.name)
+                          if self.name is not None else '')
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
 
         if self.is_all_dates:
             zero_time = time(0, 0)
@@ -1559,14 +1563,14 @@ class MultiIndex(Index):
         return unique_vals.take(labels)
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
-               na_rep='NaN'):
+               na_rep='NaN', formatter=None):
         if len(self) == 0:
             return []
 
         stringified_levels = []
         for lev, lab in zip(self.levels, self.labels):
             if len(lev) > 0:
-                formatted = lev.take(lab).format()
+                formatted = lev.take(lab).format(formatter=formatter)
             else:
                 # weird all NA case
                 formatted = [com.pprint_thing(x) for x in com.take_1d(lev.values, lab)]
