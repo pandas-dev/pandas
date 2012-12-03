@@ -482,7 +482,7 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
-    __slots__ = ['axes', 'blocks']
+    __slots__ = ['axes', 'blocks', '_known_consolidated', '_is_consolidated']
 
     def __init__(self, blocks, axes, do_integrity_check=True):
         self.axes = [_ensure_index(ax) for ax in axes]
@@ -498,6 +498,8 @@ class BlockManager(object):
 
         if do_integrity_check:
             self._verify_integrity()
+
+        self._consolidate_check()
 
     @classmethod
     def make_empty(self):
@@ -602,8 +604,14 @@ class BlockManager(object):
         """
         Return True if more than one block with the same dtype
         """
+        if not self._known_consolidated:
+            self._consolidate_check()
+        return self._is_consolidated
+
+    def _consolidate_check(self):
         dtypes = [blk.dtype.type for blk in self.blocks]
-        return len(dtypes) == len(set(dtypes))
+        self._is_consolidated = len(dtypes) == len(set(dtypes))
+        self._known_consolidated = True
 
     def get_numeric_data(self, copy=False, type_list=None):
         """
@@ -848,6 +856,8 @@ class BlockManager(object):
 
     def _consolidate_inplace(self):
         self.blocks = _consolidate(self.blocks, self.items)
+        self._is_consolidated = true
+        self._known_consolidated = True
 
     def get(self, item):
         _, block = self._find_block(item)
@@ -902,6 +912,7 @@ class BlockManager(object):
         new_items = self.items.delete(loc)
 
         self.set_items_norename(new_items)
+        self._known_consolidated = False
 
     def set(self, item, value):
         """
@@ -937,6 +948,8 @@ class BlockManager(object):
             # insert at end
             self.insert(len(self.items), item, value)
 
+        self._known_consolidated = False
+
     def insert(self, loc, item, value):
         if item in self.items:
             raise Exception('cannot insert %s, already exists' % item)
@@ -949,6 +962,8 @@ class BlockManager(object):
 
         if len(self.blocks) > 100:
             self._consolidate_inplace()
+
+        self._known_consolidated = False
 
     def set_items_norename(self, value):
         value = _ensure_index(value)

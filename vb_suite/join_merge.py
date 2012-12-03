@@ -181,6 +181,13 @@ pieces = pieces * 50
 concat_series_axis1 = Benchmark('concat(pieces, axis=1)', setup,
                                 start_date=datetime(2012, 2, 27))
 
+setup = common_setup + """
+df = DataFrame(randn(5, 4))
+"""
+
+concat_small_frames = Benchmark('concat([df] * 1000)', setup,
+                                start_date=datetime(2012, 1, 1))
+
 #----------------------------------------------------------------------
 # Ordered merge
 
