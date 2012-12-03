@@ -1606,7 +1606,7 @@ A,B,C
 
                 result = self.read_csv(path, encoding=enc, skiprows=2,
                                        sep=sep)
-                expected = self.read_csv(StringIO(dat.encode('utf-8')),
+                expected = self.read_csv(BytesIO(dat.encode('utf-8')),
                                          encoding='utf-8', skiprows=2,
                                          sep=sep)
 
