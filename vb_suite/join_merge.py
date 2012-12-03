@@ -107,7 +107,7 @@ right = DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
 merge_2intkey_nosort = Benchmark('merge(left, right, sort=False)', setup,
                                  start_date=datetime(2011, 10, 20))
 
-merge_2intkey_sort = Benchmark('merge(left, right)', setup,
+merge_2intkey_sort = Benchmark('merge(left, right, sort=True)', setup,
                                start_date=datetime(2011, 10, 20))
 
 #----------------------------------------------------------------------

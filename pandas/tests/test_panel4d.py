@@ -29,6 +29,13 @@ def add_nans(panel4d):
         panel = panel4d[label]
         tm.add_nans(panel)
 
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
+
+
 class SafeForLongAndSparse(object):
 
     _multiprocess_can_split_ = True
@@ -67,6 +74,7 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('max', np.max)
 
     def test_skew(self):
+        _skip_if_no_scipy()
         from scipy.stats import skew
         def this_skew(x):
             if len(x) < 3:
