@@ -434,14 +434,14 @@ class Panel(NDFrame):
         class_name = str(self.__class__)
 
         shape = self.shape
-        dims = 'Dimensions: %s' % ' x '.join([ "%d (%s)" % (s, a) for a,s in zip(self._AXIS_ORDERS,shape) ])
+        dims = u'Dimensions: %s' % ' x '.join([ "%d (%s)" % (s, a) for a,s in zip(self._AXIS_ORDERS,shape) ])
 
         def axis_pretty(a):
             v = getattr(self,a)
             if len(v) > 0:
-                return '%s axis: %s to %s' % (a.capitalize(),v[0],v[-1])
+                return u'%s axis: %s to %s' % (a.capitalize(),com.pprint_thing(v[0]),com.pprint_thing(v[-1]))
             else:
-                return '%s axis: None' % a.capitalize()
+                return u'%s axis: None' % a.capitalize()
 
 
         output = '\n'.join([class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
