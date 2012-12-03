@@ -16,7 +16,8 @@ import pandas as pd
 import unittest
 import nose
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import (assert_series_equal, assert_almost_equal,
+                                 assert_frame_equal)
 import pandas.util.testing as tm
 
 bday = BDay()
@@ -893,6 +894,33 @@ class TestResamplePeriodIndex(unittest.TestCase):
     #     result = ts.resample('D', convention='span')
 
     #     assert_series_equal(result, expected)
+
+    def test_default_right_closed_label(self):
+        end_freq = ['D', 'Q', 'M', 'D']
+        end_types = ['M', 'A', 'Q', 'W']
+
+        for from_freq, to_freq in zip(end_freq, end_types):
+            idx = DatetimeIndex(start='8/15/2012', periods=100,
+                                freq=from_freq)
+            df = DataFrame(np.random.randn(len(idx), 2), idx)
+
+            resampled = df.resample(to_freq)
+            assert_frame_equal(resampled, df.resample(to_freq, closed='right',
+                                                      label='right'))
+
+    def test_default_left_closed_label(self):
+        others = ['MS', 'AS', 'QS', 'D', 'H']
+        others_freq = ['D', 'Q', 'M', 'H', 'T']
+
+        for from_freq, to_freq in zip(others_freq, others):
+            idx = DatetimeIndex(start='8/15/2012', periods=100,
+                                freq=from_freq)
+            df = DataFrame(np.random.randn(len(idx), 2), idx)
+
+            resampled = df.resample(to_freq)
+            assert_frame_equal(resampled, df.resample(to_freq, closed='left',
+                                                      label='left'))
+
 
 class TestTimeGrouper(unittest.TestCase):
 

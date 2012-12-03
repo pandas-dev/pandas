@@ -44,7 +44,7 @@ class TimeGrouper(CustomGrouper):
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
         rule = self.freq.rule_code
         if (rule in end_types or
-            ('-' in rule and rule[:rule.find('-')])):
+            ('-' in rule and rule[:rule.find('-')] in end_types)):
             if closed is None:
                 closed = 'right'
             if label is None:
