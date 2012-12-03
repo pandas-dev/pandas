@@ -464,12 +464,10 @@ class Panel(NDFrame):
     __xor__ = _arith_method(operator.xor, '__xor__')
 
     def __neg__(self):
-        arr = operator.neg(self.values)
-        return self._wrap_array(arr, self.axes, copy=False)
+        return -1 * self
 
     def __invert__(self):
-        arr = operator.inv(self.values)
-        return self._wrap_array(arr, self.axes, copy=False)
+        return -1 * self
     
     # Comparison methods
     __eq__ = _comp_method(operator.eq, '__eq__')
