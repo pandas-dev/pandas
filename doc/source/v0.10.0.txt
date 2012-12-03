@@ -130,6 +130,8 @@ Adding experimental support for Panel4D and factory functions to create n-dimens
 
 
 
+- Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (GH2411_)
+
 API changes
 ~~~~~~~~~~~
 
@@ -177,3 +179,4 @@ on GitHub for a complete list.
 .. _GH2224: https://github.com/pydata/pandas/issues/2224
 .. _GH2431: https://github.com/pydata/pandas/issues/2431
 .. _GH2412: https://github.com/pydata/pandas/issues/2412
+.. _GH2411: https://github.com/pydata/pandas/issues/2411

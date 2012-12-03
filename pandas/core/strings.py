@@ -450,39 +450,51 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
     raise NotImplementedError
 
 
-def str_strip(arr):
+def str_strip(arr, to_strip=None):
     """
     Strip whitespace (including newlines) from each string in the array
+
+    Parameters
+    ----------
+    to_strip : str or unicode
 
     Returns
     -------
     stripped : array
     """
-    return _na_map(lambda x: x.strip(), arr)
+    return _na_map(lambda x: x.strip(to_strip), arr)
 
 
-def str_lstrip(arr):
+def str_lstrip(arr, to_strip=None):
     """
     Strip whitespace (including newlines) from left side of each string in the
     array
 
+    Parameters
+    ----------
+    to_strip : str or unicode
+
     Returns
     -------
     stripped : array
     """
-    return _na_map(lambda x: x.lstrip(), arr)
+    return _na_map(lambda x: x.lstrip(to_strip), arr)
 
 
-def str_rstrip(arr):
+def str_rstrip(arr, to_strip=None):
     """
     Strip whitespace (including newlines) from right side of each string in the
     array
 
+    Parameters
+    ----------
+    to_strip : str or unicode
+
     Returns
     -------
     stripped : array
     """
-    return _na_map(lambda x: x.rstrip(), arr)
+    return _na_map(lambda x: x.rstrip(to_strip), arr)
 
 
 def str_wrap(arr, width=80):
@@ -685,6 +697,21 @@ class StringMethods(object):
         result = str_encode(self.series, encoding, errors)
         return self._wrap_result(result)
 
+    @copy(str_strip)
+    def strip(self, to_strip=None):
+        result = str_strip(self.series, to_strip)
+        return self._wrap_result(result)
+
+    @copy(str_lstrip)
+    def lstrip(self, to_strip=None):
+        result = str_lstrip(self.series, to_strip)
+        return self._wrap_result(result)
+
+    @copy(str_rstrip)
+    def rstrip(self, to_strip=None):
+        result = str_rstrip(self.series, to_strip)
+        return self._wrap_result(result)
+
     count = _pat_wrapper(str_count, flags=True)
     startswith = _pat_wrapper(str_startswith, na=True)
     endswith = _pat_wrapper(str_endswith, na=True)
@@ -692,8 +719,5 @@ class StringMethods(object):
     match = _pat_wrapper(str_match, flags=True)
 
     len = _noarg_wrapper(str_len)
-    strip = _noarg_wrapper(str_strip)
-    rstrip = _noarg_wrapper(str_rstrip)
-    lstrip = _noarg_wrapper(str_lstrip)
     lower = _noarg_wrapper(str_lower)
     upper = _noarg_wrapper(str_upper)

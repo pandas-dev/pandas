@@ -99,6 +99,7 @@ pandas 0.10.0
   - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace
     (#2412)
   - Added boolean comparison operators to Panel
+  - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (#2411)
 
 **Bug fixes**
 
