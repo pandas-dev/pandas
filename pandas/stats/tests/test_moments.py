@@ -48,6 +48,75 @@ class TestMoments(unittest.TestCase):
     def test_rolling_mean(self):
         self._check_moment_func(mom.rolling_mean, np.mean)
 
+    def test_cmov_mean(self):
+        try:
+            from scikits.timeseries.lib import cmov_mean
+        except ImportError:
+            raise nose.SkipTest
+
+        vals = np.random.randn(10)
+        xp = cmov_mean(vals, 5)
+
+        rs = mom.rolling_mean(vals, 5, center=True)
+        assert_almost_equal(xp.compressed(), rs[2:-2])
+        assert_almost_equal(xp.mask, np.isnan(rs))
+
+        xp = Series(rs)
+        rs = mom.rolling_mean(Series(vals), 5, center=True)
+        assert_series_equal(xp, rs)
+
+    def test_cmov_window(self):
+        try:
+            from scikits.timeseries.lib import cmov_window
+        except ImportError:
+            raise nose.SkipTest
+
+        vals = np.random.randn(10)
+        xp = cmov_window(vals, 5, 'boxcar')
+
+        rs = mom.rolling_window(vals, 5, center=True)
+        assert_almost_equal(xp.compressed(), rs[2:-2])
+        assert_almost_equal(xp.mask, np.isnan(rs))
+
+        xp = Series(rs)
+        rs = mom.rolling_window(Series(vals), 5, center=True)
+        assert_series_equal(xp, rs)
+
+    def test_cmov_window_types(self):
+        try:
+            from scikits.timeseries.lib import cmov_window
+        except ImportError:
+            raise nose.SkipTest
+
+        win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
+                     'blackmanharris', 'nuttall', 'barthann']
+        for wt in win_types:
+            vals = np.random.randn(10)
+            xp = cmov_window(vals, 5, wt)
+
+            rs = mom.rolling_window(vals, 5, window_type=wt, center=True)
+            assert_almost_equal(xp.compressed(), rs[2:-2])
+            assert_almost_equal(xp.mask, np.isnan(rs))
+
+    def test_cmov_special(self):
+        try:
+            from scikits.timeseries.lib import cmov_window
+        except ImportError:
+            raise nose.SkipTest
+
+        win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
+        kwds = [{'beta' : 1.}, {'std' : 1.}, {'power' : 2., 'width' : 2.},
+                {'width' : 2.}]
+
+        for wt, k in zip(win_types, kwds):
+            vals = np.random.randn(10)
+            xp = cmov_window(vals, 5, (wt,) + tuple(k.values()))
+
+            rs = mom.rolling_window(vals, 5, window_type=wt, center=True,
+                                    **k)
+            assert_almost_equal(xp.compressed(), rs[2:-2])
+            assert_almost_equal(xp.mask, np.isnan(rs))
+
     def test_rolling_median(self):
         self._check_moment_func(mom.rolling_median, np.median)
 
@@ -259,16 +328,16 @@ class TestMoments(unittest.TestCase):
                 result = func(arr, 20, center=True)
                 expected = func(arr, 20)
 
-            assert_almost_equal(result[0], expected[10])
+            assert_almost_equal(result[1], expected[10])
             if fill_value is None:
-                self.assert_(np.isnan(result[-10:]).all())
+                self.assert_(np.isnan(result[-9:]).all())
             else:
-                self.assert_((result[-10:] == 0).all())
+                self.assert_((result[-9:] == 0).all())
             if has_min_periods:
                 self.assert_(np.isnan(expected[23]))
-                self.assert_(np.isnan(result[13]))
+                self.assert_(np.isnan(result[14]))
                 self.assert_(np.isnan(expected[-5]))
-                self.assert_(np.isnan(result[-15]))
+                self.assert_(np.isnan(result[-14]))
 
     def _check_structures(self, func, static_comp,
                           has_min_periods=True, has_time_rule=True,
@@ -309,8 +378,8 @@ class TestMoments(unittest.TestCase):
         if has_center:
             if has_min_periods:
                 minp = 10
-                series_xp = func(self.series, 25, min_periods=minp).shift(-13)
-                frame_xp = func(self.frame, 25, min_periods=minp).shift(-13)
+                series_xp = func(self.series, 25, min_periods=minp).shift(-12)
+                frame_xp = func(self.frame, 25, min_periods=minp).shift(-12)
 
                 series_rs = func(self.series, 25, min_periods=minp,
                                  center=True)
@@ -318,8 +387,8 @@ class TestMoments(unittest.TestCase):
                                 center=True)
 
             else:
-                series_xp = func(self.series, 25).shift(-13)
-                frame_xp = func(self.frame, 25).shift(-13)
+                series_xp = func(self.series, 25).shift(-12)
+                frame_xp = func(self.frame, 25).shift(-12)
 
                 series_rs = func(self.series, 25, center=True)
                 frame_rs = func(self.frame, 25, center=True)

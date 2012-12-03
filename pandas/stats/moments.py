@@ -18,7 +18,7 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
            'rolling_quantile', 'rolling_median', 'rolling_apply',
-           'rolling_corr_pairwise',
+           'rolling_corr_pairwise', 'rolling_window',
            'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov',
            'expanding_count', 'expanding_max', 'expanding_min',
            'expanding_sum', 'expanding_mean', 'expanding_std',
@@ -285,11 +285,10 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     return rs
 
 def _center_window(rs, window, axis):
+    offset = int((window - 1) / 2.)
     if isinstance(rs, (Series, DataFrame, Panel)):
-        rs = rs.shift(-int((window + 1) / 2.), axis=axis)
+        rs = rs.shift(-offset, axis=axis)
     else:
-        offset = int((window + 1) / 2.)
-
         rs_indexer = [slice(None)] * rs.ndim
         rs_indexer[axis] = slice(None, -offset)
 
@@ -572,6 +571,71 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         return lib.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, center=center, time_rule=time_rule)
+
+def rolling_window(arg, window, window_type='boxcar', min_periods=None,
+                   freq=None, center=False, time_rule=None, **kwargs):
+    """
+    Applies a centered moving window of type ``window_type`` and size ``window``
+    on the data.
+
+    Parameters
+    ----------
+    data : Series, DataFrame
+    window : int
+        Size of the filtering window.
+    window_type : str, default 'boxcar'
+        Window type (see Notes)
+
+    min_periods : int
+        Minimum number of observations in window required to have a value
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
+
+    Returns
+    -------
+    y : type of input argument
+
+    Notes
+    -----
+    The recognized window types are:
+
+    * ``boxcar``
+    * ``triang``
+    * ``blackman``
+    * ``hamming``
+    * ``bartlett``
+    * ``parzen``
+    * ``bohman``
+    * ``blackmanharris``
+    * ``nuttall``
+    * ``barthann``
+    * ``kaiser`` (needs beta)
+    * ``gaussian`` (needs std)
+    * ``general_gaussian`` (needs power, width)
+    * ``slepian`` (needs width).
+    """
+    from scipy.signal import convolve, get_window
+
+    data = marray(data, copy=True, subok=True)
+    if data._mask is nomask:
+        data._mask = np.zeros(data.shape, bool_)
+    window = get_window(window_type, span, fftbins=False)
+    (n, k) = (len(data), span//2)
+    #
+    if data.ndim == 1:
+        data._data.flat = convolve(data._data, window)[k:n+k] / float(span)
+        data._mask[:] = ((convolve(getmaskarray(data), window) > 0)[k:n+k])
+    elif data.ndim == 2:
+        for i in range(data.shape[-1]):
+            _data = data._data[:,i]
+            _data.flat = convolve(_data, window)[k:n+k] / float(span)
+            data._mask[:,i] = (convolve(data._mask[:,i], window) > 0)[k:n+k]
+    else:
+        raise ValueError, "Data should be at most 2D"
+    data._mask[:k] = data._mask[-k:] = True
+    return data
 
 
 def _expanding_func(func, desc, check_minp=_use_window):
