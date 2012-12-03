@@ -328,6 +328,46 @@ class TestDataFrameFormatting(unittest.TestCase):
 </table>"""
         self.assertEquals(result, expected)
 
+    def test_to_html_index_formatter(self):
+        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
+                       columns=['foo', None], index=range(4))
+
+        f = lambda x: 'abcd'[x]
+        result = df.to_html(formatters={'__index__': f})
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>foo</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>a</strong></td>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <td><strong>b</strong></td>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <td><strong>c</strong></td>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <td><strong>d</strong></td>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEquals(result, expected)
+
 
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
@@ -538,6 +578,19 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '2  25\n'
                     '3 -35')
         self.assertEqual(output, expected)
+
+    def test_to_string_index_formatter(self):
+        df = DataFrame([range(5), range(5, 10), range(10, 15)])
+
+        rs = df.to_string(formatters={'__index__': lambda x: 'abc'[x]})
+
+        xp = """\
+    0   1   2   3   4
+a   0   1   2   3   4
+b   5   6   7   8   9
+c  10  11  12  13  14\
+"""
+        self.assertEqual(rs, xp)
 
     def test_to_string_left_justify_cols(self):
         fmt.reset_printoptions()
