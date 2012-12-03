@@ -528,29 +528,34 @@ def melt(frame, id_vars=None, value_vars=None):
     b 3 4
     c 5 6
 
-    >>> melt(df, id_vars=['A'])
+    >>> melt(df, id_vars=['A'], value_vars=['B'])
     A variable value
     a B        1
     b B        3
     c B        5
-    a C        2
-    b C        4
-    c C        6
     """
     # TODO: what about the existing index?
-
-    N, K = frame.shape
-
-    mdata = {}
-
     if id_vars is not None:
-        id_vars = list(id_vars)
-        frame = frame.copy()
-        K -= len(id_vars)
-        for col in id_vars:
-            mdata[col] = np.tile(frame.pop(col).values, K)
+        if not isinstance(id_vars, (tuple, list, np.ndarray)):
+            id_vars = [id_vars]
+        else:
+            id_vars = list(id_vars)
     else:
         id_vars = []
+
+    if value_vars is not None:
+        if not isinstance(value_vars, (tuple, list, np.ndarray)):
+            value_vars = [value_vars]
+        frame = frame.ix[:, id_vars + value_vars]
+    else:
+        frame = frame.copy()
+
+    N, K = frame.shape
+    K -= len(id_vars)
+
+    mdata = {}
+    for col in id_vars:
+        mdata[col] = np.tile(frame.pop(col).values, K)
 
     mcolumns = id_vars + ['variable', 'value']
 
