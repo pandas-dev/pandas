@@ -31,6 +31,9 @@ pc_colspace_doc="""
 
 pc_max_rows_doc="""
 : int
+    This sets the maximum number of rows pandas should output when printing
+    out various output. For example, this value determines whether the repr()
+    for a dataframe prints out fully or just an summary repr.
 """
 
 pc_max_cols_doc="""
@@ -77,15 +80,36 @@ pc_encoding_doc="""
     these are generally strings meant to be displayed on the console.
 """
 
+float_format_doc="""
+: callable
+    The callable should accept a floating point number and return
+    a string with the desired format of the number. This is used
+    in some places like SeriesFormatter.
+    See core.format.EngFormatter for an example.
+
+"""
+
+max_colwidth_doc="""
+: int
+    The maximum width in characters of a column in the repr of
+    a pandas data structure. When the column overflows, a "..."
+    placeholder is embedded in the output.
+"""
+
+colheader_justify_doc="""
+: 'left'/'right'
+    Controls the justification of column headers. used by DataFrameFormatter.
+"""
+
 with cf.config_prefix('print'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('digits', 7, validator=is_int)
-    cf.register_option('float_format', None)
+    cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)
     cf.register_option('max_rows', 200, pc_max_rows_doc, validator=is_int)
-    cf.register_option('max_colwidth', 50, validator=is_int)
+    cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 0, pc_max_cols_doc, validator=is_int)
-    cf.register_option('colheader_justify', 'right',
+    cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
                        validator=is_bool)
