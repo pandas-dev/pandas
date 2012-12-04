@@ -1333,18 +1333,25 @@ baz|7|8|9
                               sep=None, skiprows=2)
         tm.assert_frame_equal(data, data3)
 
-        # can't get this to work on Python 3
-        if not py3compat.PY3:
-            text = u"""ignore this
+
+        text = u"""ignore this
 ignore this too
 index|A|B|C
 foo|1|2|3
 bar|4|5|6
 baz|7|8|9
 """.encode('utf-8')
-            data4 = self.read_csv(BytesIO(text), index_col=0, sep=None, skiprows=2,
-                             encoding='utf-8')
-            tm.assert_frame_equal(data, data4)
+
+        s = BytesIO(text)
+        if py3compat.PY3:
+            # somewhat False since the code never sees bytes
+            from io import TextIOWrapper
+            s =TextIOWrapper(s, encoding='utf-8')
+
+
+        data4 = self.read_csv(s, index_col=0, sep=None, skiprows=2,
+                         encoding='utf-8')
+        tm.assert_frame_equal(data, data4)
 
     def test_regex_separator(self):
         data = """   A   B   C   D
@@ -1604,10 +1611,11 @@ A,B,C
                 with open(path, 'wb') as f:
                     f.write(bytes)
 
+                s = BytesIO(dat.encode('utf-8'))
                 if py3compat.PY3:
-                    s = BytesIO(dat.encode('utf-8'))
-                else:
-                    s = StringIO(dat.encode('utf-8'))
+                    # somewhat False since the code never sees bytes
+                    from io import TextIOWrapper
+                    s =TextIOWrapper(s, encoding='utf-8')
 
                 result = self.read_csv(path, encoding=enc, skiprows=2,
                                        sep=sep)
