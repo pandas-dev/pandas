@@ -238,6 +238,26 @@ be possible to insert some logic to check whether a passed sequence is all
 contained in the index, that logic would exact a very high cost in large data
 sets.
 
+Reindex potentially changes underlying Series dtype
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The use of ``reindex_like`` can potentially change the dtype of a ``Series``.
+
+.. code-block:: python
+
+   series = pandas.Series([1, 2, 3])
+   x = pandas.Series([True])
+   x.dtype
+   x = pandas.Series([True]).reindex_like(series)
+   x.dtype
+
+This is because ``reindex_like`` silently inserts ``NaNs`` and the ``dtype``
+changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
+such as ``numpy.logical_and``.
+
+See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
+detailed discussion.
+
 Timestamp limitations
 ---------------------
 
