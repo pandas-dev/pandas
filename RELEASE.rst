@@ -45,7 +45,7 @@ pandas 0.10.0
 
 **API Changes**
 
-  - inf/-inf are no longer considered as NA by isnull/notnull. To be cler, this
+  - inf/-inf are no longer considered as NA by isnull/notnull. To be clear, this
     is legacy cruft from early pandas. This behavior can be globally re-enabled
     using pandas.core.common.use_inf_as_na (#2050, #1919)
   - ``pandas.merge`` will now default to ``sort=False``. For many use cases
@@ -64,6 +64,7 @@ pandas 0.10.0
     default option, to be more explicit about what kind of filling to
     perform. Add `ffill/bfill` convenience functions per above (#2284)
   - `HDFStore.keys()` now returns an absolute path-name for each key
+  - `to_string()` now always returns a unicode string. (#2224)
 
 **Improvements to existing features**
 
@@ -82,6 +83,8 @@ pandas 0.10.0
   - ``min_itemsize`` parameter can be specified in ``HDFStore table`` creation
   - Indexing support in ``HDFStore tables`` (#698)
   - Add `line_terminator` option to DataFrame.to_csv (#2383)
+  - added implementation of str(x)/unicode(x)/bytes(x) to major pandas data
+    structures, which should do the right thing on both py2.x and py3.x. (#2224)
 
 **Bug fixes**
 
@@ -113,7 +116,12 @@ pandas 0.10.0
   - Fix DataFrame row indexing case with MultiIndex (#2314)
   - Fix to_excel exporting issues with Timestamp objects in index (#2294)
   - Fixes assigning scalars and array to hierarchical column chunk (#1803)
-
+  - Escape tabs in data and labels when constructing repr() (#2038)
+  - Fixed a UnicdeDecodeError with series tidy_repr (#2225)
+  - The repr() of pandas data structures now ignore terminal width when
+    not in an interactive shell. (#2241)
+  - Fixes issues with duplicate keys in an index (#2228, #2218, #2219, #2347, #2380)
+  - Fixed issues related to Hash randomization, on by default starting with 3.3 (#2331)
 
 pandas 0.9.1
 ============
