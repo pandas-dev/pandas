@@ -40,8 +40,8 @@ pandas 0.10.0
   - Add ``ffill`` and ``bfill`` convenience functions for forward- and
     backfilling time series data (#2284)
   - New option configuration system and functions `set_option`, `get_option`,
-    `describe_option`, and `reset_option`. Deprecate `get_printoptions`,
-    `set_printoptions`, and `reset_printoptions` (#2393)
+    `describe_option`, and `reset_option`. Deprecate `set_printoptions` and
+    `reset_printoptions` (#2393)
 
 **API Changes**
 
