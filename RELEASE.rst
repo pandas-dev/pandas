@@ -88,7 +88,7 @@ pandas 0.10.0
 
 **Bug fixes**
 
-  - Fix major performance regression in DataFrame.iteritems (#
+  - Fix major performance regression in DataFrame.iteritems (#2273)
   - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
   - Escape tabs in console output to avoid alignment issues (#2038)
   - Properly box datetime64 values when retrieving cross-section from
@@ -116,11 +116,8 @@ pandas 0.10.0
   - Fix DataFrame row indexing case with MultiIndex (#2314)
   - Fix to_excel exporting issues with Timestamp objects in index (#2294)
   - Fixes assigning scalars and array to hierarchical column chunk (#1803)
-  - Escape tabs in data and labels when constructing repr() (#2038)
   - Fixed a UnicdeDecodeError with series tidy_repr (#2225)
-  - The repr() of pandas data structures now ignore terminal width when
-    not in an interactive shell. (#2241)
-  - Fixes issues with duplicate keys in an index (#2228, #2218, #2219, #2347, #2380)
+  - Fixed issued with duplicate keys in an index (#2347, #2380)
   - Fixed issues related to Hash randomization, on by default starting with 3.3 (#2331)
 
 pandas 0.9.1
