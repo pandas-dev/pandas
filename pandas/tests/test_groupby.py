@@ -1437,7 +1437,7 @@ class TestGroupBy(unittest.TestCase):
         labels = np.random.randint(0, 100, size=N)
         df = DataFrame({'key': labels,
                         'value1': np.random.randn(N),
-                        'value2': ['foo', 'bar', 'baz', 'qux'] * (N / 4)})
+                        'value2': ['foo', 'bar', 'baz', 'qux'] * (N // 4)})
 
         grouped = df.groupby('key')
 
