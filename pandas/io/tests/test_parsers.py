@@ -1604,10 +1604,14 @@ A,B,C
                 with open(path, 'wb') as f:
                     f.write(bytes)
 
+                if py3compat.PY3:
+                    s = BytesIO(dat.encode('utf-8'))
+                else:
+                    s = StringIO(dat.encode('utf-8'))
+
                 result = self.read_csv(path, encoding=enc, skiprows=2,
                                        sep=sep)
-                expected = self.read_csv(BytesIO(dat.encode('utf-8')),
-                                         encoding='utf-8', skiprows=2,
+                expected = self.read_csv(s,encoding='utf-8', skiprows=2,
                                          sep=sep)
 
                 tm.assert_frame_equal(result, expected)
