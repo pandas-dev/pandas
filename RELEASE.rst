@@ -40,12 +40,12 @@ pandas 0.10.0
   - Add ``ffill`` and ``bfill`` convenience functions for forward- and
     backfilling time series data (#2284)
   - New option configuration system and functions `set_option`, `get_option`,
-    `describe_option`, and `reset_option`. Deprecate `get_printoptions`,
-    `set_printoptions`, and `reset_printoptions` (#2393)
+    `describe_option`, and `reset_option`. Deprecate `set_printoptions` and
+    `reset_printoptions` (#2393)
 
 **API Changes**
 
-  - inf/-inf are no longer considered as NA by isnull/notnull. To be cler, this
+  - inf/-inf are no longer considered as NA by isnull/notnull. To be clear, this
     is legacy cruft from early pandas. This behavior can be globally re-enabled
     using pandas.core.common.use_inf_as_na (#2050, #1919)
   - ``pandas.merge`` will now default to ``sort=False``. For many use cases
@@ -64,6 +64,7 @@ pandas 0.10.0
     default option, to be more explicit about what kind of filling to
     perform. Add `ffill/bfill` convenience functions per above (#2284)
   - `HDFStore.keys()` now returns an absolute path-name for each key
+  - `to_string()` now always returns a unicode string. (#2224)
 
 **Improvements to existing features**
 
@@ -82,10 +83,12 @@ pandas 0.10.0
   - ``min_itemsize`` parameter can be specified in ``HDFStore table`` creation
   - Indexing support in ``HDFStore tables`` (#698)
   - Add `line_terminator` option to DataFrame.to_csv (#2383)
+  - added implementation of str(x)/unicode(x)/bytes(x) to major pandas data
+    structures, which should do the right thing on both py2.x and py3.x. (#2224)
 
 **Bug fixes**
 
-  - Fix major performance regression in DataFrame.iteritems (#
+  - Fix major performance regression in DataFrame.iteritems (#2273)
   - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
   - Escape tabs in console output to avoid alignment issues (#2038)
   - Properly box datetime64 values when retrieving cross-section from
@@ -113,7 +116,9 @@ pandas 0.10.0
   - Fix DataFrame row indexing case with MultiIndex (#2314)
   - Fix to_excel exporting issues with Timestamp objects in index (#2294)
   - Fixes assigning scalars and array to hierarchical column chunk (#1803)
-
+  - Fixed a UnicdeDecodeError with series tidy_repr (#2225)
+  - Fixed issued with duplicate keys in an index (#2347, #2380)
+  - Fixed issues related to Hash randomization, on by default starting with 3.3 (#2331)
 
 pandas 0.9.1
 ============
