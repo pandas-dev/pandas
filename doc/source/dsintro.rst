@@ -825,8 +825,8 @@ From 4D ndarray with optional axis labels
 
 .. ipython:: python
 
-   p4d = Panel4D(randn(2, 2, 5, 4), 
-              labels=['Label1','Label2'], 
+   p4d = Panel4D(randn(2, 2, 5, 4),
+              labels=['Label1','Label2'],
               items=['Item1', 'Item2'],
               major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
@@ -842,7 +842,7 @@ From dict of Panel objects
             'Label2' : Panel({ 'Item2' : DataFrame(randn(4, 2)) }) }
    Panel4D(data)
 
-Note that the values in the dict need only be **convertible to Panels**. 
+Note that the values in the dict need only be **convertible to Panels**.
 Thus, they can be any of the other valid inputs to Panel as per above.
 
 Slicing
@@ -897,9 +897,9 @@ Here we slice to a Panel4D.
 
     from pandas.core import panelnd
     Panel5D = panelnd.create_nd_panel_factory(
-        klass_name   = 'Panel5D', 
-        axis_orders  = [ 'cool', 'labels','items','major_axis','minor_axis'], 
-        axis_slices  = { 'labels' : 'labels', 'items' : 'items', 
+        klass_name   = 'Panel5D',
+        axis_orders  = [ 'cool', 'labels','items','major_axis','minor_axis'],
+        axis_slices  = { 'labels' : 'labels', 'items' : 'items',
 	                 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
         slicer       = Panel4D,
         axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
