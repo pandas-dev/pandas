@@ -74,7 +74,7 @@ Updated PyTables Support
 
             # remove all nodes under this level
             store.remove('food')
-	    store	
+	    store
 
        - added mixed-dtype support!
 
@@ -140,8 +140,7 @@ API changes
 
     .. ipython:: python
 
-       import pandas as pd
-       pd.get_option("print.max_rows")
+       get_option("print.max_rows")
 
 
   - to_string() methods now always return unicode strings  (GH2224_).
