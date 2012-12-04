@@ -43,6 +43,11 @@ pandas 0.10.0
     `describe_option`, and `reset_option`. Deprecate `set_printoptions` and
     `reset_printoptions` (#2393)
 
+**Experimental Features**
+  - Add support for Panel4D, a named 4 Dimensional stucture
+  - Add support for ndpanel factory functions, to create custom, domain-specific
+     N Dimensional containers
+
 **API Changes**
 
   - inf/-inf are no longer considered as NA by isnull/notnull. To be clear, this
@@ -85,6 +90,7 @@ pandas 0.10.0
   - Add `line_terminator` option to DataFrame.to_csv (#2383)
   - added implementation of str(x)/unicode(x)/bytes(x) to major pandas data
     structures, which should do the right thing on both py2.x and py3.x. (#2224)
+  - Added boolean comparison operators to Panel
 
 **Bug fixes**
 

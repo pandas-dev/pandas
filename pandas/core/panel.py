@@ -13,6 +13,7 @@ from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.util import py3compat
@@ -104,7 +105,7 @@ def _arith_method(func, name):
 
 def _panel_arith_method(op, name):
     @Substitution(op)
-    def f(self, other, axis='items'):
+    def f(self, other, axis = 0):
         """
         Wrapper method for %s
 
@@ -123,6 +124,44 @@ def _panel_arith_method(op, name):
     f.__name__ = name
     return f
 
+def _comp_method(func, name):
+
+    def na_op(x, y):
+        try:
+            result = func(x, y)
+        except TypeError:
+            xrav = x.ravel()
+            result = np.empty(x.size, dtype=x.dtype)
+            if isinstance(y, np.ndarray):
+                yrav = y.ravel()
+                mask = notnull(xrav) & notnull(yrav)
+                result[mask] = func(np.array(list(xrav[mask])),
+                                  np.array(list(yrav[mask])))
+            else:
+                mask = notnull(xrav)
+                result[mask] = func(np.array(list(xrav[mask])), y)
+
+            if func == operator.ne:  # pragma: no cover
+                np.putmask(result, -mask, True)
+            else:
+                np.putmask(result, -mask, False)
+            result = result.reshape(x.shape)
+
+        return result
+
+    @Appender('Wrapper for comparison method %s' % name)
+    def f(self, other):
+        if isinstance(other, self._constructor):
+            return self._compare_constructor(other, func)
+        elif isinstance(other, (self._constructor_sliced, DataFrame, Series)):
+            raise Exception("input needs alignment for this object [%s]" % self._constructor)
+        else:
+            return self._combine_const(other, na_op)
+
+
+    f.__name__ = name
+
+    return f
 
 _agg_doc = """
 Return %(desc)s over requested axis
@@ -280,7 +319,6 @@ class Panel(NDFrame):
 
         # shallow copy
         arrays = []
-        reshaped_data = data.copy()
         haxis_shape = [ len(a) for a in raxes ]
         for h in haxis:
             v = values = data.get(h)
@@ -402,6 +440,51 @@ class Panel(NDFrame):
         return self._constructor(result, **d)
 
     #----------------------------------------------------------------------
+    # Comparison methods
+
+    def _indexed_same(self, other):
+        return all([ getattr(self,a).equals(getattr(other,a)) for a in self._AXIS_ORDERS ])
+  
+    def _compare_constructor(self, other, func):
+        if not self._indexed_same(other):
+            raise Exception('Can only compare identically-labeled '
+                            'same type objects')
+
+        new_data = {}
+        for col in getattr(self,self._info_axis):
+            new_data[col] = func(self[col], other[col])
+
+        d = self._construct_axes_dict()
+        d['copy'] = False
+        return self._constructor(data=new_data, **d)
+
+    # boolean operators
+    __and__ = _arith_method(operator.and_, '__and__')
+    __or__ = _arith_method(operator.or_, '__or__')
+    __xor__ = _arith_method(operator.xor, '__xor__')
+
+    def __neg__(self):
+        return -1 * self
+
+    def __invert__(self):
+        return -1 * self
+    
+    # Comparison methods
+    __eq__ = _comp_method(operator.eq, '__eq__')
+    __ne__ = _comp_method(operator.ne, '__ne__')
+    __lt__ = _comp_method(operator.lt, '__lt__')
+    __gt__ = _comp_method(operator.gt, '__gt__')
+    __le__ = _comp_method(operator.le, '__le__')
+    __ge__ = _comp_method(operator.ge, '__ge__')
+
+    eq = _comp_method(operator.eq, 'eq')
+    ne = _comp_method(operator.ne, 'ne')
+    gt = _comp_method(operator.gt, 'gt')
+    lt = _comp_method(operator.lt, 'lt')
+    ge = _comp_method(operator.ge, 'ge')
+    le = _comp_method(operator.le, 'le')
+
+    #----------------------------------------------------------------------
     # Magic methods
 
     def __str__(self):
@@ -435,14 +518,14 @@ class Panel(NDFrame):
         class_name = str(self.__class__)
 
         shape = self.shape
-        dims = 'Dimensions: %s' % ' x '.join([ "%d (%s)" % (s, a) for a,s in zip(self._AXIS_ORDERS,shape) ])
+        dims = u'Dimensions: %s' % ' x '.join([ "%d (%s)" % (s, a) for a,s in zip(self._AXIS_ORDERS,shape) ])
 
         def axis_pretty(a):
             v = getattr(self,a)
             if len(v) > 0:
-                return '%s axis: %s to %s' % (a.capitalize(),v[0],v[-1])
+                return u'%s axis: %s to %s' % (a.capitalize(),com.pprint_thing(v[0]),com.pprint_thing(v[-1]))
             else:
-                return '%s axis: None' % a.capitalize()
+                return u'%s axis: None' % a.capitalize()
 
 
         output = '\n'.join([class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -496,9 +579,9 @@ class Panel(NDFrame):
         return self._ix
 
     def _wrap_array(self, arr, axes, copy=False):
-        items, major, minor = axes
-        return self._constructor(arr, items=items, major_axis=major,
-                                 minor_axis=minor, copy=copy)
+        d    = dict([ (a,ax) for a,ax in zip(self._AXIS_ORDERS,axes) ])
+        d['copy'] = False
+        return self._constructor(arr, **d)
 
     fromDict = from_dict
 
@@ -742,7 +825,10 @@ class Panel(NDFrame):
         if (method is None and not self._is_mixed_type and al <= 3):
             items = kwargs.get('items')
             if com._count_not_none(items, major, minor) == 3:
-                return self._reindex_multi(items, major, minor)
+                try:
+                    return self._reindex_multi(items, major, minor)
+                except:
+                    pass
 
         if major is not None:
             result = result._reindex_axis(major, method, al-2, copy)
@@ -874,12 +960,12 @@ class Panel(NDFrame):
         elif isinstance(other, DataFrame):
             return self._combine_frame(other, func, axis=axis)
         elif np.isscalar(other):
-            new_values = func(self.values, other)
-            d = self._construct_axes_dict()
-            return self._constructor(new_values, **d)
+            return self._combine_const(other, func)
 
-    def __neg__(self):
-        return -1 * self
+    def _combine_const(self, other, func):
+        new_values = func(self.values, other)
+        d = self._construct_axes_dict()
+        return self._constructor(new_values, **d)
 
     def _combine_frame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
@@ -1434,8 +1520,8 @@ class Panel(NDFrame):
             contain data in the same place.
         """
 
-        if not isinstance(other, Panel):
-            other = Panel(other)
+        if not isinstance(other, self._constructor):
+            other = self._constructor(other)
 
         other = other.reindex(items=self.items)
 
