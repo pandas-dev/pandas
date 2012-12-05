@@ -8,6 +8,11 @@
 void *new_file_source(char *fname, size_t buffer_size) {
     file_source *fs = (file_source *) malloc(sizeof(file_source));
     fs->fp = fopen(fname, "rb");
+
+    if (fs->fp == NULL) {
+        free(fs);
+        return NULL;
+    }
     setbuf(fs->fp, NULL);
 
     fs->initial_file_pos = ftell(fs->fp);
@@ -59,6 +64,8 @@ void* new_rd_source(PyObject *obj) {
 
 int del_file_source(void *fs) {
     // fseek(FS(fs)->fp, FS(fs)->initial_file_pos, SEEK_SET);
+    if (fs == NULL)
+        return 0;
 
     /* allocated on the heap */
     free(FS(fs)->buffer);

@@ -85,6 +85,8 @@ pandas 0.10.0
   - Add `line_terminator` option to DataFrame.to_csv (#2383)
   - added implementation of str(x)/unicode(x)/bytes(x) to major pandas data
     structures, which should do the right thing on both py2.x and py3.x. (#2224)
+  - Reduce groupby.apply overhead substantially by low-level manipulation of
+    internal NumPy arrays in DataFrames (#535)
 
 **Bug fixes**
 
@@ -119,6 +121,7 @@ pandas 0.10.0
   - Fixed a UnicdeDecodeError with series tidy_repr (#2225)
   - Fixed issued with duplicate keys in an index (#2347, #2380)
   - Fixed issues related to Hash randomization, on by default starting with 3.3 (#2331)
+  - Fixed issue with missing attributes after loading a pickled dataframe (#2431)
 
 pandas 0.9.1
 ============

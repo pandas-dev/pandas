@@ -169,6 +169,10 @@ void set_array_owndata(PyArrayObject *ao) {
     ao->flags |= NPY_OWNDATA;
 }
 
+void set_array_not_contiguous(PyArrayObject *ao) {
+    ao->flags &= ~(NPY_C_CONTIGUOUS | NPY_F_CONTIGUOUS);
+}
+
 
 // PANDAS_INLINE PyObject*
 // get_base_ndarray(PyObject* ap) {

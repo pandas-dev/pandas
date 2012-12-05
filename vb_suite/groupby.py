@@ -233,7 +233,7 @@ df = DataFrame({'key': labels,
                 'value1': randn(N),
                 'value2': ['foo', 'bar', 'baz', 'qux'] * (N / 4)})
 def f(g):
-    return g
+    return 1
 """
 
 groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,

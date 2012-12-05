@@ -552,6 +552,9 @@ class BlockManager(object):
         self.axes = [_ensure_index(ax) for ax in ax_arrays]
         self.axes = _handle_legacy_indexes(self.axes)
 
+        self._is_consolidated = False
+        self._known_consolidated = False
+
         blocks = []
         for values, items in zip(bvalues, bitems):
             blk = make_block(values, items, self.axes[0])
