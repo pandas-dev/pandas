@@ -552,40 +552,53 @@ class Grouper(object):
         comp_ids, _, ngroups = self.group_info
         splitter = get_splitter(data, comp_ids, ngroups, axis=axis,
                                 keep_internal=keep_internal)
+        splitter = self._get_splitter(data, axis=axis,
+                                      keep_internal=keep_internal)
+        keys = self._get_group_keys()
+        for key, (i, group) in izip(keys, splitter):
+            yield key, group
 
+    def _get_splitter(self, data, axis=0, keep_internal=True):
+        comp_ids, _, ngroups = self.group_info
+        return get_splitter(data, comp_ids, ngroups, axis=axis,
+                            keep_internal=keep_internal)
+
+
+    def _get_group_keys(self):
         if len(self.groupings) == 1:
-            levels = self.groupings[0].group_index
-            for i, group in splitter:
-                yield levels[i], group
+            return self.levels[0]
         else:
+            comp_ids, _, ngroups = self.group_info
             # provide "flattened" iterator for multi-group setting
             mapper = _KeyMapper(comp_ids, ngroups, self.labels, self.levels)
-            for i, group in splitter:
-                key = mapper.get_key(i)
-                yield key, group
+            return [mapper.get_key(i) for i in range(ngroups)]
 
-    def apply(self, f, data, axis=0):
-        result_keys = []
-        result_values = []
-
+    def apply(self, f, data, axis=0, keep_internal=False):
         mutated = False
-        splitter = self.get_iterator(data, axis=axis)
+        splitter = self._get_splitter(data, axis=axis,
+                                      keep_internal=keep_internal)
+        group_keys = self._get_group_keys()
 
-        for key, group in splitter:
+        # oh boy
+        if hasattr(splitter, 'fast_apply') and axis == 0:
+            try:
+                values, mutated = splitter.fast_apply(f, group_keys)
+                return group_keys, values, mutated
+            except lib.InvalidApply:
+                pass
+
+        result_values = []
+        for key, (i, group) in izip(group_keys, splitter):
             object.__setattr__(group, 'name', key)
 
             # group might be modified
             group_axes = _get_axes(group)
-
             res = f(group)
-
             if not _is_indexed_like(res, group_axes):
                 mutated = True
-
-            result_keys.append(key)
             result_values.append(res)
 
-        return result_keys, result_values, mutated
+        return group_keys, result_values, mutated
 
     @cache_readonly
     def indices(self):
@@ -685,7 +698,7 @@ class Grouper(object):
             recons_labels = decons_group_index(obs_ids, self.shape)
 
         name_list = []
-        for ping, labels in zip(self.groupings, recons_labels):
+        for ping, labels in izip(self.groupings, recons_labels):
             labels = com._ensure_platform_int(labels)
             name_list.append(ping.group_index.take(labels))
 
@@ -933,12 +946,30 @@ class BinGrouper(Grouper):
             raise NotImplementedError
 
         start = 0
-        for edge, label in zip(self.bins, self.binlabels):
+        for edge, label in izip(self.bins, self.binlabels):
             yield label, data[start:edge]
             start = edge
 
         if edge < len(data):
             yield self.binlabels[-1], data[edge:]
+
+    def apply(self, f, data, axis=0, keep_internal=False):
+        result_keys = []
+        result_values = []
+        mutated = False
+        for key, group in self.get_iterator(data, axis=axis):
+            object.__setattr__(group, 'name', key)
+
+            # group might be modified
+            group_axes = _get_axes(group)
+            res = f(group)
+            if not _is_indexed_like(res, group_axes):
+                mutated = True
+
+            result_keys.append(key)
+            result_values.append(res)
+
+        return result_keys, result_values, mutated
 
     @cache_readonly
     def ngroups(self):
@@ -1190,7 +1221,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     groupings = []
     exclusions = []
-    for i, (gpr, level) in enumerate(zip(keys, levels)):
+    for i, (gpr, level) in enumerate(izip(keys, levels)):
         name = None
         try:
             obj._data.items.get_loc(gpr)
@@ -2007,10 +2038,17 @@ class DataSplitter(object):
         self.labels = com._ensure_int64(labels)
         self.ngroups = ngroups
 
-        self.sort_idx = _algos.groupsort_indexer(self.labels,
-                                                 self.ngroups)[0]
-        self.slabels = com.ndtake(self.labels, self.sort_idx)
         self.axis = axis
+
+    @cache_readonly
+    def slabels(self):
+        # Sorted labels
+        return com.ndtake(self.labels, self.sort_idx)
+
+    @cache_readonly
+    def sort_idx(self):
+        # Counting sort indexer
+        return _algos.groupsort_indexer(self.labels, self.ngroups)[0]
 
     def __iter__(self):
         sdata = self._get_sorted_data()
@@ -2020,7 +2058,7 @@ class DataSplitter(object):
 
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
-        for i, (start, end) in enumerate(zip(starts, ends)):
+        for i, (start, end) in enumerate(izip(starts, ends)):
             # Since I'm now compressing the group ids, it's now not "possible"
             # to produce empty slices because such groups would not be observed
             # in the data
@@ -2053,6 +2091,19 @@ class FrameSplitter(DataSplitter):
     def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
         DataSplitter.__init__(self, data, labels, ngroups, axis=axis,
                               keep_internal=keep_internal)
+
+    def fast_apply(self, f, names):
+        # must return keys::list, values::list, mutated::bool
+        try:
+            starts, ends = lib.generate_slices(self.slabels, self.ngroups)
+        except:
+            # fails when all -1
+            return [], True
+
+        sdata = self._get_sorted_data()
+        results, mutated = lib.apply_frame_axis0(sdata, f, names, starts, ends)
+
+        return results, mutated
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:
@@ -2169,7 +2220,7 @@ def _lexsort_indexer(keys, orders=None):
     elif orders is None:
         orders = [True] * len(keys)
 
-    for key, order in zip(keys, orders):
+    for key, order in izip(keys, orders):
         rizer = _hash.Factorizer(len(key))
 
         if not key.dtype == np.object_:
@@ -2203,12 +2254,12 @@ class _KeyMapper(object):
         self._populate_tables()
 
     def _populate_tables(self):
-        for labs, table in zip(self.labels, self.tables):
+        for labs, table in izip(self.labels, self.tables):
             table.map(self.comp_ids, labs.astype(np.int64))
 
     def get_key(self, comp_id):
         return tuple(level[table.get_item(comp_id)]
-                     for table, level in zip(self.tables, self.levels))
+                     for table, level in izip(self.tables, self.levels))
 
 
 

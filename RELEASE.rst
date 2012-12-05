@@ -85,6 +85,8 @@ pandas 0.10.0
   - Add `line_terminator` option to DataFrame.to_csv (#2383)
   - added implementation of str(x)/unicode(x)/bytes(x) to major pandas data
     structures, which should do the right thing on both py2.x and py3.x. (#2224)
+  - Reduce groupby.apply overhead substantially by low-level manipulation of
+    internal NumPy arrays in DataFrames (#535)
 
 **Bug fixes**
 
