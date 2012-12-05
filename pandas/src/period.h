@@ -9,7 +9,7 @@
 
 #include <Python.h>
 #include "numpy/ndarraytypes.h"
-#include "stdint.h"
+#include "headers/stdint.h"
 #include "limits.h"
 
 /*
