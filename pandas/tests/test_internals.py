@@ -272,6 +272,14 @@ class TestBlockManager(unittest.TestCase):
         # share ref_items
         self.assert_(mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items)
 
+        # GH2431
+        self.assertTrue(hasattr(mgr2,"_is_consolidated"))
+        self.assertTrue(hasattr(mgr2,"_known_consolidated"))
+
+        # reset to False on load
+        self.assertFalse(mgr2._is_consolidated)
+        self.assertFalse(mgr2._known_consolidated)
+
     def test_get(self):
         pass
 
