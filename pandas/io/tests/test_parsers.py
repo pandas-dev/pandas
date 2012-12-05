@@ -1297,6 +1297,10 @@ False,NA,True"""
 
         tm.assert_frame_equal(result, expected)
 
+    def test_nonexistent_path(self):
+        # don't segfault pls #2428
+        path = '%s.csv' % tm.rands(10)
+        self.assertRaises(Exception, self.read_csv, path)
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 
