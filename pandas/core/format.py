@@ -295,21 +295,23 @@ class DataFrameFormatter(object):
         strcols = list(strcols)
         if self.index:
             idx = strcols.pop(0)
-            lwidth -= len(idx[0])
+            lwidth -= np.array([len(x) for x in idx]).max()
 
-        col_widths = [len(col[0]) if len(col) > 0 else 0
+        col_widths = [np.array([len(x) for x in col]).max()
+                      if len(col) > 0 else 0
                       for col in strcols]
         col_bins = _binify(col_widths, lwidth)
+
         str_lst = []
         st = 0
         for ed in col_bins:
             row = strcols[st:ed]
             row.insert(0, idx)
-            if ed < len(strcols):
+            if ed <= len(strcols):
                 row.append([' \\'] + ['  '] * (len(self.frame) - 1))
             str_lst.append(adjoin(1, *row))
             st = ed
-        return '\n'.join(str_lst)
+        return '\n\n'.join(str_lst)
 
     def to_latex(self, force_unicode=None, column_format=None):
         """
@@ -1406,10 +1408,10 @@ def _binify(cols, width):
     curr_width = 0
     for i, w in enumerate(cols):
         curr_width += w
-        if curr_width >= width:
-            bins.append(i + 1)
-            curr_width = 0
-        if i + 1== len(cols):
+        if curr_width + 2 > width:
+            bins.append(i)
+            curr_width = w
+        elif i + 1== len(cols):
             bins.append(i + 1)
     return bins
 

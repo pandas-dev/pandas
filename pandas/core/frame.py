@@ -618,9 +618,6 @@ class DataFrame(NDFrame):
                 else:
                     return False
 
-    def _repr_width(self):
-        pass
-
     def __str__(self):
         """
         Return a string representation for a particular DataFrame
@@ -652,12 +649,44 @@ class DataFrame(NDFrame):
         if self._need_info_repr_():
             self.info(buf=buf, verbose=self._verbose_info)
         else:
-            self.to_string(buf=buf)
+            is_wide = self._need_wide_repr()
+            line_width = None
+            if is_wide:
+                line_width = get_option('print.line_width')
+            self.to_string(buf=buf, line_width=line_width)
 
         value = buf.getvalue()
         assert type(value) == unicode
 
         return value
+
+    def _need_wide_repr(self):
+        if com.in_qtconsole():
+            terminal_width, terminal_height = 100, 100
+        else:
+            terminal_width, terminal_height = get_terminal_size()
+        max_columns = get_option("print.max_columns")
+        expand_repr = get_option("print.expand_frame_repr")
+
+        if max_columns > 0:
+            if len(self.columns) > max_columns and expand_repr:
+                return True
+        else:
+            # save us
+            if (com.in_interactive_session() and
+                len(self.columns) > terminal_width // 2 and
+                expand_repr):
+                return True
+            else:
+                buf = StringIO()
+                self.to_string(buf=buf)
+                value = buf.getvalue()
+                if (max([len(l) for l in value.split('\n')]) > terminal_width
+                    and com.in_interactive_session()
+                    and expand_repr):
+                    return True
+
+        return False
 
     def __repr__(self):
         """

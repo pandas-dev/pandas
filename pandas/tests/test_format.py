@@ -400,6 +400,22 @@ class TestDataFrameFormatting(unittest.TestCase):
         repr(df.T)
         fmt.set_printoptions(max_rows=200)
 
+    def test_wide_repr(self):
+        set_option('test.interactive', True)
+        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+        df = DataFrame([col(20, 25) for _ in range(10)])
+        rep_str = repr(df)
+        set_option('print.expand_frame_repr', True)
+        wide_repr = repr(df)
+        self.assert_(rep_str != wide_repr)
+
+        set_option('print.line_width', 120)
+        wider_repr = repr(df)
+        self.assert_(len(wider_repr) < len(wide_repr))
+
+        set_option('print.expand_frame_repr', False)
+        set_option('test.interactive', False)
+
     def test_to_string(self):
         from pandas import read_table
         import re
