@@ -24,7 +24,7 @@ See LICENSE for the license
 #define ERROR_MINUS_SIGN     4
 
 #if defined(_MSC_VER)
-#include "../ms_stdint.h"
+#include "../headers/ms_stdint.h"
 #else
 #include <stdint.h>
 #endif
