@@ -101,6 +101,7 @@ Updated PyTables Support
          (the previous implementation would set the column size based on the first append)
        - indexing support via ``create_table_index`` (requires PyTables >= 2.3) (GH698_).
        - appending on a store would fail if the table was not first created via ``put``
+       - fixed issue with missing attributes after loading a pickled dataframe (GH2431)
        - minor change to select and remove: require a table ONLY if where is also provided (and not None)
 
     .. ipython:: python
@@ -155,3 +156,4 @@ on GitHub for a complete list.
 .. _GH2316: https://github.com/pydata/pandas/issues/2316
 .. _GH2097: https://github.com/pydata/pandas/issues/2097
 .. _GH2224: https://github.com/pydata/pandas/issues/2224
+.. _GH2431: https://github.com/pydata/pandas/issues/2431
