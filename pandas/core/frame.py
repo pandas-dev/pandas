@@ -592,10 +592,11 @@ class DataFrame(NDFrame):
         max_rows = (terminal_height if get_option("print.max_rows") == 0
                     else get_option("print.max_rows"))
         max_columns = get_option("print.max_columns")
+        expand_repr = get_option("print.expand_frame_repr")
 
         if max_columns > 0:
             if len(self.index) <= max_rows and \
-                    len(self.columns) <= max_columns:
+                    (len(self.columns) <= max_columns or expand_repr):
                 return False
             else:
                 return True
@@ -603,17 +604,22 @@ class DataFrame(NDFrame):
             # save us
             if (len(self.index) > max_rows or
                 (com.in_interactive_session() and
-                len(self.columns) > terminal_width // 2)):
+                 len(self.columns) > terminal_width // 2 and
+                 not expand_repr)):
                 return True
             else:
                 buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
-                if (max([len(l) for l in value.split('\n')]) > terminal_width and
-                    com.in_interactive_session()):
+                if (max([len(l) for l in value.split('\n')]) > terminal_width
+                    and com.in_interactive_session()
+                    and not expand_repr):
                     return True
                 else:
                     return False
+
+    def _repr_width(self):
+        pass
 
     def __str__(self):
         """
@@ -1450,7 +1456,8 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, nanRep=None,
-                  index_names=True, justify=None, force_unicode=None):
+                  index_names=True, justify=None, force_unicode=None,
+                  line_width=None):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -1476,7 +1483,8 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify,
                                            justify=justify,
                                            index_names=index_names,
-                                           header=header, index=index)
+                                           header=header, index=index,
+                                           line_width=line_width)
         formatter.to_string()
 
         if buf is None:

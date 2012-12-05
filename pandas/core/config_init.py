@@ -77,6 +77,14 @@ pc_encoding_doc="""
     these are generally strings meant to be displayed on the console.
 """
 
+pc_expand_repr_doc="""
+: boolean
+    Default False
+    Whether to print out the full DataFrame repr for wide DataFrames
+    across multiple lines.
+    If False, the summary representation is shown.
+"""
+
 with cf.config_prefix('print'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('digits', 7, validator=is_int)
@@ -99,3 +107,4 @@ with cf.config_prefix('print'):
                        validator=is_bool)
     cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
                     validator=is_text)
+    cf.register_option('expand_frame_repr', False, pc_expand_repr_doc)
