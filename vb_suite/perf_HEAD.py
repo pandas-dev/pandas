@@ -75,11 +75,11 @@ def get_vbench_log(build_url):
         return
 
     s=json.loads(r.read())
-    s=[x for x in s['matrix'] if x['config'].get('env')]
+    s=[x for x in s['matrix'] if x['config'].get('env',{}).get('VBENCH')]
             #s=[x for x in s['matrix']]
     if not s:
         return
-    id=s[0]['id']
+    id=s[0]['id'] # should be just one for now
     r2=urllib2.urlopen("https://api.travis-ci.org/jobs/%s" % id)
     if (not 200 <= r.getcode() < 300):
         return
