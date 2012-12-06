@@ -841,6 +841,12 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
+        if 'utf-16' in (kwds.get('encoding') or ''):
+            if isinstance(src, basestring):
+                src = open(src, 'rb')
+            src = com.UTF8Recoder(src, kwds['encoding'])
+            kwds['encoding'] = 'utf-8'
+
         self._reader = _parser.TextReader(src, **kwds)
 
         # XXX
@@ -1078,11 +1084,11 @@ class PythonParser(ParserBase):
 
 
         if isinstance(f, basestring):
-            try:
+            if self.encoding is None:
                 # universal newline mode
-                f = com._get_handle(f, 'U', encoding=self.encoding)
-            except Exception: # pragma: no cover
-                f = com._get_handle(f, 'r', encoding=self.encoding)
+                f = com._get_handle(f, 'U')
+            else:
+                f = com._get_handle(f, 'rb', encoding=self.encoding)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -1150,6 +1156,7 @@ class PythonParser(ParserBase):
             else:
                 reader = csv.reader(f, dialect=dia,
                                     strict=True)
+
         else:
             reader = (re.split(sep, line.strip()) for line in f)
 
