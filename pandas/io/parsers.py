@@ -21,6 +21,8 @@ from pandas.util.decorators import Appender
 import pandas.lib as lib
 import pandas._parser as _parser
 from pandas.tseries.period import Period
+import json
+
 
 class DateConversionError(Exception):
     pass
@@ -2125,13 +2127,23 @@ class ExcelWriter(object):
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
 
+        style_dict = {}
+
         for cell in cells:
             val = _conv_value(cell.val)
-            style = CellStyleConverter.to_xls(cell.style)
+
+            stylekey = json.dumps(cell.style)
+            if stylekey in style_dict:
+                style = style_dict[stylekey]
+            else:
+                style = CellStyleConverter.to_xls(cell.style)
+                style_dict[stylekey] = style
+
             if isinstance(val, datetime.datetime):
                 style.num_format_str = "YYYY-MM-DD HH:MM:SS"
             elif isinstance(val, datetime.date):
                 style.num_format_str = "YYYY-MM-DD"
+
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.write_merge(startrow + cell.row,
