@@ -1066,6 +1066,8 @@ def load(path):
         f.close()
 
 
+
+
 class UTF8Recoder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
@@ -1075,6 +1077,12 @@ class UTF8Recoder:
 
     def __iter__(self):
         return self
+
+    def read(self, bytes=-1):
+        return self.reader.read(bytes).encode('utf-8')
+
+    def readline(self):
+        return self.reader.readline().encode('utf-8')
 
     def next(self):
         return self.reader.next().encode("utf-8")
@@ -1088,6 +1096,8 @@ def _get_handle(path, mode, encoding=None):
             f = open(path, mode, errors='replace')
     else:
         f = open(path, mode)
+        if encoding is not None and 'r' in mode:
+            f = UTF8Recoder(f, encoding)
     return f
 
 if py3compat.PY3:  # pragma: no cover
@@ -1108,7 +1118,7 @@ else:
         """
 
         def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            f = UTF8Recoder(f, encoding)
+            # f = UTF8Recoder(f, encoding)
             self.reader = csv.reader(f, dialect=dialect, **kwds)
 
         def next(self):

@@ -1633,6 +1633,12 @@ A,B,C
         except os.error:
             pass
 
+    def test_utf16_example(self):
+        path = os.path.join(self.dirpath, 'utf16_ex.txt')
+
+        # it works! and is the right length
+        result = self.read_table(path, encoding='utf-16')
+        self.assertEquals(len(result), 50)
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
