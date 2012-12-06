@@ -1640,6 +1640,10 @@ A,B,C
         result = self.read_table(path, encoding='utf-16')
         self.assertEquals(len(result), 50)
 
+        buf = BytesIO(open(path, 'rb').read())
+        result = self.read_table(buf, encoding='utf-16')
+        self.assertEquals(len(result), 50)
+
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):

@@ -1096,8 +1096,6 @@ def _get_handle(path, mode, encoding=None):
             f = open(path, mode, errors='replace')
     else:
         f = open(path, mode)
-        if encoding is not None and 'r' in mode:
-            f = UTF8Recoder(f, encoding)
     return f
 
 if py3compat.PY3:  # pragma: no cover
@@ -1118,7 +1116,7 @@ else:
         """
 
         def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            # f = UTF8Recoder(f, encoding)
+            f = UTF8Recoder(f, encoding)
             self.reader = csv.reader(f, dialect=dialect, **kwds)
 
         def next(self):
