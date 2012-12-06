@@ -30,6 +30,7 @@ cimport util
 import pandas.lib as lib
 
 import time
+import os
 
 cnp.import_array()
 
@@ -485,6 +486,8 @@ cdef class TextReader:
                 self.parser.cb_cleanup = &del_file_source
 
             if ptr == NULL:
+                if not os.path.exists(source):
+                    raise Exception('File %s does not exist' % source)
                 raise Exception('Initializing from file failed')
 
             self.parser.source = ptr

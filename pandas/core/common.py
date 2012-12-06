@@ -1066,6 +1066,8 @@ def load(path):
         f.close()
 
 
+
+
 class UTF8Recoder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
@@ -1075,6 +1077,12 @@ class UTF8Recoder:
 
     def __iter__(self):
         return self
+
+    def read(self, bytes=-1):
+        return self.reader.read(bytes).encode('utf-8')
+
+    def readline(self):
+        return self.reader.readline().encode('utf-8')
 
     def next(self):
         return self.reader.next().encode("utf-8")
