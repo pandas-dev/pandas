@@ -103,7 +103,6 @@ colheader_justify_doc="""
 
 with cf.config_prefix('print'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
-    cf.register_option('digits', 7, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)
     cf.register_option('max_rows', 200, pc_max_rows_doc, validator=is_int)
