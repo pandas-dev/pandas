@@ -1082,9 +1082,7 @@ containers for the axis labels:
 The motivation for having an ``Index`` class in the first place was to enable
 different implementations of indexing. This means that it's possible for you,
 the user, to implement a custom ``Index`` subclass that may be better suited to
-a particular application than the ones provided in pandas. For example, we plan
-to add a more efficient datetime index which leverages the new
-``numpy.datetime64`` dtype in the relatively near future.
+a particular application than the ones provided in pandas.
 
 From an internal implementation point of view, the relevant methods that an
 ``Index`` must define are one or more of the following (depending on how
