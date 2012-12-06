@@ -257,7 +257,7 @@ class ExcelTests(unittest.TestCase):
         # test roundtrip
         self.frame.to_excel(path,'test1')
         reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0, has_index_names=True)
+        recons = reader.parse('test1', index_col=0)
         tm.assert_frame_equal(self.frame, recons)
 
         self.frame.to_excel(path,'test1', index=False)
@@ -268,8 +268,7 @@ class ExcelTests(unittest.TestCase):
 
         self.frame.to_excel(path,'test1',na_rep='NA')
         reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0, na_values=['NA'],
-                              has_index_names=True)
+        recons = reader.parse('test1', index_col=0, na_values=['NA'])
         tm.assert_frame_equal(self.frame, recons)
 
         os.remove(path)
@@ -290,7 +289,7 @@ class ExcelTests(unittest.TestCase):
 
         self.mixed_frame.to_excel(path,'test1')
         reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0, has_index_names=True)
+        recons = reader.parse('test1', index_col=0)
         tm.assert_frame_equal(self.mixed_frame, recons)
 
         os.remove(path)
@@ -397,7 +396,7 @@ class ExcelTests(unittest.TestCase):
         self.tsframe.to_excel(writer,'test2')
         writer.save()
         reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0, has_index_names=True)
+        recons = reader.parse('test1',index_col=0)
         tm.assert_frame_equal(self.frame, recons)
         recons = reader.parse('test2',index_col=0)
         tm.assert_frame_equal(self.tsframe, recons)
@@ -429,7 +428,7 @@ class ExcelTests(unittest.TestCase):
         col_aliases = Index(['AA', 'X', 'Y', 'Z'])
         self.frame2.to_excel(path, 'test1', header=col_aliases)
         reader = ExcelFile(path)
-        rs = reader.parse('test1', index_col=0, has_index_names=True)
+        rs = reader.parse('test1', index_col=0)
         xp = self.frame2.copy()
         xp.columns = col_aliases
         tm.assert_frame_equal(xp, rs)
@@ -458,24 +457,21 @@ class ExcelTests(unittest.TestCase):
         frame = (DataFrame(np.random.randn(10,2)) >= 0)
         frame.to_excel(path, 'test1', index_label=['test'])
         reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0,
-                              has_index_names=True).astype(np.int64)
+        recons = reader.parse('test1', index_col=0).astype(np.int64)
         frame.index.names = ['test']
         self.assertEqual(frame.index.names, recons.index.names)
 
         frame = (DataFrame(np.random.randn(10,2)) >= 0)
         frame.to_excel(path, 'test1', index_label=['test', 'dummy', 'dummy2'])
         reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0,
-                              has_index_names=True).astype(np.int64)
+        recons = reader.parse('test1', index_col=0).astype(np.int64)
         frame.index.names = ['test']
         self.assertEqual(frame.index.names, recons.index.names)
 
         frame = (DataFrame(np.random.randn(10,2)) >= 0)
         frame.to_excel(path, 'test1', index_label='test')
         reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0,
-                              has_index_names=True).astype(np.int64)
+        recons = reader.parse('test1', index_col=0).astype(np.int64)
         frame.index.names = ['test']
         self.assertEqual(frame.index.names, recons.index.names)
 
@@ -555,8 +551,7 @@ class ExcelTests(unittest.TestCase):
         # round trip
         frame.to_excel(path, 'test1')
         reader = ExcelFile(path)
-        df = reader.parse('test1', index_col=[0,1], parse_dates=False,
-                          has_index_names=True)
+        df = reader.parse('test1', index_col=[0,1], parse_dates=False)
         tm.assert_frame_equal(frame, df)
         self.assertEqual(frame.index.names, df.index.names)
         self.frame.index = old_index # needed if setUP becomes a classmethod
@@ -583,7 +578,7 @@ class ExcelTests(unittest.TestCase):
 
         tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
         reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=[0,1], has_index_names=True)
+        recons = reader.parse('test1', index_col=[0,1])
         tm.assert_frame_equal(tsframe, recons)
 
         # infer index

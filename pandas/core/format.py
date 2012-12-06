@@ -890,9 +890,14 @@ class ExcelFormatter(object):
                 index_label = self.df.index.names[0]
 
             if index_label:
-                yield ExcelCell(self.rowcounter, 0,
+                # add to same level as column names
+                if isinstance(self.df.columns, MultiIndex):
+                    yield ExcelCell(self.rowcounter, 0,
                                 index_label, header_style)
-                self.rowcounter += 1
+                    self.rowcounter += 1
+                else:
+                    yield ExcelCell(self.rowcounter - 1, 0,
+                                index_label, header_style)
 
             #write index_values
             index_values = self.df.index
@@ -922,6 +927,10 @@ class ExcelFormatter(object):
 
             #if index labels are not empty go ahead and dump
             if filter(lambda x: x is not None, index_labels):
+                if isinstance(self.df.columns, MultiIndex):
+                    self.rowcounter += 1
+                else:
+                    self.rowcounter -= 1
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter, cidx,
                                     name, header_style)
