@@ -462,8 +462,6 @@ def diff(arr, n, axis=0):
 
     out_arr = np.empty(arr.shape, dtype=dtype)
 
-    get_slice = lambda x: slice(None, x) if n >= 0 else slice(x, None)
-
     na_indexer = [slice(None)] * arr.ndim
     na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
     out_arr[tuple(na_indexer)] = np.nan
@@ -776,7 +774,7 @@ def iterpairs(seq):
     # input may not be sliceable
     seq_it = iter(seq)
     seq_it_next = iter(seq)
-    _ = next(seq_it_next)
+    next(seq_it_next)
 
     return itertools.izip(seq_it, seq_it_next)
 

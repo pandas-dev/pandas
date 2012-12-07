@@ -7,7 +7,8 @@ import operator
 import sys
 import numpy as np
 from pandas.core.common import (PandasError, _mut_exclusive,
-                                _try_sort, _default_index, _infer_dtype)
+                                _try_sort, _default_index, _infer_dtype,
+                                notnull)
 from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
@@ -444,7 +445,7 @@ class Panel(NDFrame):
 
     def _indexed_same(self, other):
         return all([ getattr(self,a).equals(getattr(other,a)) for a in self._AXIS_ORDERS ])
-  
+
     def _compare_constructor(self, other, func):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
@@ -468,7 +469,7 @@ class Panel(NDFrame):
 
     def __invert__(self):
         return -1 * self
-    
+
     # Comparison methods
     __eq__ = _comp_method(operator.eq, '__eq__')
     __ne__ = _comp_method(operator.ne, '__ne__')

@@ -2002,7 +2002,6 @@ class PanelGroupBy(NDFrameGroupBy):
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         obj = self._obj_with_exclusions
         result = {}
-        cannot_agg = []
 
         if self.axis > 0:
             for item in obj:

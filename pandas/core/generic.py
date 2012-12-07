@@ -1,11 +1,9 @@
 # pylint: disable=W0231,E1101
-from datetime import timedelta
 
 import numpy as np
 
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.offsets import DateOffset
 import pandas.core.common as com
 import pandas.lib as lib
 

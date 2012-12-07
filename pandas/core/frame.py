@@ -2899,8 +2899,6 @@ class DataFrame(NDFrame):
                                        subset=subset, axis=ax)
             return result
 
-        axis_name = self._get_axis_name(axis)
-
         if axis == 0:
             agg_axis = 1
         elif axis == 1:
@@ -4495,7 +4493,6 @@ class DataFrame(NDFrame):
 
         for column in numdata.columns:
             series = self[column]
-            ser_desc = series.describe()
             destat.append([series.count(), series.mean(), series.std(),
                            series.min(), series.quantile(lb), series.median(),
                            series.quantile(ub), series.max()])

@@ -13,7 +13,6 @@ from pandas.core.common import notnull, _ensure_platform_int
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
-import pandas.lib as lib
 import pandas.algos as algos
 
 
@@ -560,6 +559,7 @@ def melt(frame, id_vars=None, value_vars=None):
     mcolumns = id_vars + ['variable', 'value']
 
     mdata['value'] = frame.values.ravel('F')
+
     mdata['variable'] = np.asarray(frame.columns).repeat(N)
     return DataFrame(mdata, columns=mcolumns)
 

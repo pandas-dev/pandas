@@ -9,7 +9,6 @@ import numpy as np
 import pandas.tslib as tslib
 import pandas.lib as lib
 import pandas.algos as _algos
-import pandas.hashtable as _hash
 import pandas.index as _index
 from pandas.lib import Timestamp
 
@@ -140,12 +139,6 @@ class Index(np.ndarray):
 
     def _shallow_copy(self):
         return self.view()
-
-    def __repr__(self):
-        if len(self) > 6 and len(self) > np.get_printoptions()['threshold']:
-            data = self[:3].tolist() + ["..."] + self[-3:].tolist()
-        else:
-            data = self
 
     def __str__(self):
         """
