@@ -51,11 +51,15 @@ except ImportError:
 setuptools_kwargs = {}
 if sys.version_info[0] >= 3:
 
+    min_numpy_ver = 1.6
+    if sys.version_info[1] >= 3: # 3.3 needs numpy 1.7+
+        min_numpy_ver = 1.7
+
     setuptools_kwargs = {'use_2to3': True,
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'pytz',
-                                              'numpy >= 1.4'],
+                                              'numpy >= %s' % min_numpy_ver],
                          'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
                                                     ],
                         }
