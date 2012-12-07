@@ -642,6 +642,56 @@ class CheckIndexing(object):
         self.assert_((obj.values == 0).all())
         comp(cp.ix[indexer].reindex_like(obj), obj)
 
+    def test_logical_with_nas(self):
+        d = Panel({ 'ItemA' : {'a': [np.nan, False] }, 'ItemB' : { 'a': [True, True] } })
+
+        result = d['ItemA'] | d['ItemB']
+        expected = DataFrame({ 'a' : [np.nan, True] })
+        assert_frame_equal(result, expected)
+
+        result = d['ItemA'].fillna(False) | d['ItemB']
+        expected = DataFrame({ 'a' : [True, True] }, dtype=object)
+        assert_frame_equal(result, expected)
+
+    def test_neg(self):
+        # what to do?
+        assert_panel_equal(-self.panel, -1 * self.panel)
+
+    def test_invert(self):
+        assert_panel_equal(-(self.panel < 0), ~(self.panel <0))
+
+    def test_comparisons(self):
+        p1 = tm.makePanel()
+        p2 = tm.makePanel()
+
+        tp = p1.reindex(items = p1.items + ['foo'])
+        df = p1[p1.items[0]]
+
+        def test_comp(func):
+
+            # versus same index
+            result = func(p1, p2)
+            self.assert_(np.array_equal(result.values,
+                                        func(p1.values, p2.values)))
+
+            # versus non-indexed same objs
+            self.assertRaises(Exception, func, p1, tp)
+
+            # versus different objs
+            self.assertRaises(Exception, func, p1, df)
+
+            # versus scalar
+            result3 = func(self.panel, 0)
+            self.assert_(np.array_equal(result3.values,
+                                        func(self.panel.values, 0)))
+
+        test_comp(operator.eq)
+        test_comp(operator.ne)
+        test_comp(operator.lt)
+        test_comp(operator.gt)
+        test_comp(operator.ge)
+        test_comp(operator.le)
+
     def test_get_value(self):
         for item in self.panel.items:
             for mjr in self.panel.major_axis[::2]:

@@ -43,6 +43,11 @@ pandas 0.10.0
     `describe_option`, and `reset_option`. Deprecate `set_printoptions` and
     `reset_printoptions` (#2393)
 
+**Experimental Features**
+  - Add support for Panel4D, a named 4 Dimensional stucture
+  - Add support for ndpanel factory functions, to create custom, domain-specific
+     N Dimensional containers
+
 **API Changes**
 
   - The default binning/labeling behavior for ``resample`` has been changed to
@@ -91,7 +96,9 @@ pandas 0.10.0
     structures, which should do the right thing on both py2.x and py3.x. (#2224)
   - Reduce groupby.apply overhead substantially by low-level manipulation of
     internal NumPy arrays in DataFrames (#535)
-  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace (#2412)
+  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace
+    (#2412)
+  - Added boolean comparison operators to Panel
 
 **Bug fixes**
 
