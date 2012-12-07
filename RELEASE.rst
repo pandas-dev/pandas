@@ -140,6 +140,7 @@ pandas 0.10.0
   - Fix GroupBy.apply issue when using BinGrouper to do ts binning (#2300)
   - Fix issues resulting from datetime.datetime columns being converted to
     datetime64 when calling DataFrame.apply. (#2374)
+  - Raise exception when calling to_panel on non uniquely-indexed frame (#2441)
 
 
 pandas 0.9.1

@@ -1128,6 +1128,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         panel = df.to_panel()
         self.assert_(isnull(panel[0].ix[1, [0, 1]]).all())
 
+    def test_to_panel_duplicates(self):
+        # #2441
+        df = DataFrame({'a': [0, 0, 1], 'b': [1, 1, 1], 'c': [1, 2, 3]})
+        idf = df.set_index(['a', 'b'])
+        self.assertRaises(Exception, idf.to_panel)
+
     def test_filter(self):
         pass
 

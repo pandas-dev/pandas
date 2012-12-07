@@ -1200,6 +1200,10 @@ class DataFrame(NDFrame):
             len(self.index.levels) != 2):
             raise AssertionError('Must have 2-level MultiIndex')
 
+        if not self.index.is_unique:
+            raise Exception("Can't convert non-uniquely indexed "
+                            "DataFrame to Panel")
+
         self._consolidate_inplace()
 
         # minor axis must be sorted
