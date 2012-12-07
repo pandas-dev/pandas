@@ -649,6 +649,11 @@ class TestTimeSeries(unittest.TestCase):
         exp = Timestamp('2012-10-01')
         self.assert_(result[0] == exp)
 
+    def test_to_datetime_default(self):
+        rs = to_datetime('2001')
+        xp = datetime(2001,1,1)
+        self.assert_(rs, xp)
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
