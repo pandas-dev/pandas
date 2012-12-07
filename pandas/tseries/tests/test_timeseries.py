@@ -2043,6 +2043,19 @@ class TestLegacySupport(unittest.TestCase):
         s = Series.from_array(arr['Date'], Index([0]))
         self.assertEqual(s[0], dates[0][0])
 
+    def test_get_level_values_box(self):
+        from pandas import MultiIndex
+
+        dates = date_range('1/1/2000', periods=4)
+        levels = [dates, [0, 1]]
+        labels = [[0, 0, 1, 1, 2, 2, 3, 3],
+                  [0, 1, 0, 1, 0, 1, 0, 1]]
+
+        index = MultiIndex(levels=levels, labels=labels)
+
+        self.assertTrue(isinstance(index.get_level_values(0)[0], Timestamp))
+
+
 class TestLegacyCompat(unittest.TestCase):
 
     def setUp(self):
