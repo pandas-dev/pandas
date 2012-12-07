@@ -539,6 +539,10 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         self.assertEquals(series.index.tz, tzinfo)
 
+        # it works! #2443
+        repr(series.index[0])
+
+
 class TestTimeZones(unittest.TestCase):
     _multiprocess_can_split_ = True
     def setUp(self):

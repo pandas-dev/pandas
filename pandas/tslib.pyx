@@ -126,13 +126,13 @@ class Timestamp(_Timestamp):
             result += self.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += self.strftime(' %%Z, tz=%s' % zone)
+                result += _tz_format(self, zone)
         except ValueError:
             year2000 = self.replace(year=2000)
             result += year2000.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += year2000.strftime(' %%Z, tz=%s' % zone)
+                result += _tz_format(year2000, zone)
 
         return '<Timestamp: %s>' % result
 
@@ -302,6 +302,11 @@ NaT = NaTType()
 
 iNaT = util.get_nat()
 
+cdef _tz_format(object obj, object zone):
+    try:
+        return obj.strftime(' %%Z, tz=%s' % zone)
+    except:
+        return ', tz=%s' % zone
 
 def is_timestamp_array(ndarray[object] values):
     cdef int i, n = len(values)

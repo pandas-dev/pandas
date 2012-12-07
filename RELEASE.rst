@@ -44,9 +44,10 @@ pandas 0.10.0
     `reset_printoptions` (#2393)
 
 **Experimental Features**
+
   - Add support for Panel4D, a named 4 Dimensional stucture
-  - Add support for ndpanel factory functions, to create custom, domain-specific
-     N Dimensional containers
+  - Add support for ndpanel factory functions, to create custom,
+    domain-specific N-Dimensional containers
 
 **API Changes**
 
@@ -135,6 +136,7 @@ pandas 0.10.0
   - Fixed issued with duplicate keys in an index (#2347, #2380)
   - Fixed issues related to Hash randomization, on by default starting with 3.3 (#2331)
   - Fixed issue with missing attributes after loading a pickled dataframe (#2431)
+  - Fix Timestamp formatting with tzoffset time zone in dateutil 2.1 (#2443)
 
 pandas 0.9.1
 ============
