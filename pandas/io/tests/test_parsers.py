@@ -720,10 +720,11 @@ baz,7,8,9
         self.assert_(isinstance(df1['X0'].values[0], unicode))
 
     def test_read_table_wrong_num_columns(self):
+        # too few!
         data = """A,B,C,D,E,F
-1,2,3,4,5
-6,7,8,9,10
-11,12,13,14,15
+1,2,3,4,5,6
+6,7,8,9,10,11,12
+11,12,13,14,15,16
 """
         self.assertRaises(Exception, self.read_csv, StringIO(data))
 
@@ -1302,6 +1303,15 @@ False,NA,True"""
         path = '%s.csv' % tm.rands(10)
         self.assertRaises(Exception, self.read_csv, path)
 
+    def test_missing_trailing_delimiters(self):
+        data = """A,B,C,D
+1,2,3,4
+1,3,3,
+1,4,5"""
+        result = self.read_csv(StringIO(data))
+        self.assertTrue(result['D'].isnull()[1:].all())
+
+
 class TestPythonParser(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
@@ -1644,6 +1654,7 @@ A,B,C
             buf = BytesIO(open(path, 'rb').read())
             result = self.read_table(buf, encoding='utf-16')
             self.assertEquals(len(result), 50)
+
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 

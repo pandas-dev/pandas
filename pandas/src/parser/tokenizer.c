@@ -447,7 +447,7 @@ static int end_line(parser_t *self) {
         }
     }
 
-    if (!(self->lines <= self->header + 1) && fields != ex_fields) {
+    if (!(self->lines <= self->header + 1) && fields > ex_fields) {
         // increment file line count
         self->file_lines++;
 
@@ -478,7 +478,16 @@ static int end_line(parser_t *self) {
                 free(msg);
             }
         }
-    } else {
+    }
+    else {
+        /* missing trailing delimiters */
+        if (self->lines >= self->header + 1 && self->lines > 0) {
+            while (fields < ex_fields){
+                end_field(self);
+                fields++;
+            }
+        }
+
         // increment both line counts
         self->file_lines++;
 
