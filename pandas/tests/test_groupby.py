@@ -1539,7 +1539,7 @@ class TestGroupBy(unittest.TestCase):
 
         def convert_force_pure(x):
             # base will be length 0
-            assert(len(x.base) == len(x))
+            assert(len(x.base) > 0)
             return Decimal(str(x.mean()))
 
         grouped = s.groupby(labels)

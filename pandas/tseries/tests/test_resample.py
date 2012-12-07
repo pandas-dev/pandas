@@ -961,6 +961,9 @@ class TestTimeGrouper(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
+    def test_apply_iteration(self):
+        # #2300
+        pass
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

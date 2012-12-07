@@ -1084,11 +1084,13 @@ class PythonParser(ParserBase):
 
 
         if isinstance(f, basestring):
-            if self.encoding is None:
-                # universal newline mode
-                f = com._get_handle(f, 'U')
-            else:
-                f = com._get_handle(f, 'rb', encoding=self.encoding)
+            f = com._get_handle(f, 'r', encoding=self.encoding)
+
+            # if self.encoding is None:
+            #     # universal newline mode
+            #     f = com._get_handle(f, 'U')
+            # else:
+            #     f = com._get_handle(f, 'rb', encoding=self.encoding)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
