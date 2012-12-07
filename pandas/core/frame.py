@@ -1594,7 +1594,7 @@ class DataFrame(NDFrame):
     def dtypes(self):
         return self.apply(lambda x: x.dtype)
 
-    def convert_objects(self):
+    def convert_objects(self, convert_dates=True):
         """
         Attempt to infer better dtype for object columns
 
@@ -1603,7 +1603,8 @@ class DataFrame(NDFrame):
         converted : DataFrame
         """
         new_data = {}
-        convert_f = lambda x: lib.maybe_convert_objects(x, convert_datetime=1)
+        convert_f = lambda x: lib.maybe_convert_objects(
+            x, convert_datetime=convert_dates)
 
         # TODO: could be more efficient taking advantage of the block
         for col, s in self.iteritems():
@@ -4123,7 +4124,7 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects()
+            result = result.convert_objects(convert_dates=False)
 
             return result
         else:

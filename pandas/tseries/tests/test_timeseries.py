@@ -2055,6 +2055,14 @@ class TestLegacySupport(unittest.TestCase):
 
         self.assertTrue(isinstance(index.get_level_values(0)[0], Timestamp))
 
+    def test_frame_apply_dont_convert_datetime64(self):
+        from pandas.tseries.offsets import BDay
+        df = DataFrame({'x1': [datetime(1996,1,1)]})
+        df = df.applymap(lambda x: x+BDay())
+        df = df.applymap(lambda x: x+BDay())
+
+        self.assertTrue(df.x1.dtype == object)
+
 
 class TestLegacyCompat(unittest.TestCase):
 

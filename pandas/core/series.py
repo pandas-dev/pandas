@@ -745,7 +745,7 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
-    def convert_objects(self):
+    def convert_objects(self, convert_dates=True):
         """
         Attempt to infer better dtype
 
@@ -754,8 +754,8 @@ copy : boolean, default False
         converted : Series
         """
         if self.dtype == np.object_:
-            return Series(lib.maybe_convert_objects(self, convert_datetime=1),
-                          self.index)
+            return Series(lib.maybe_convert_objects(
+                    self, convert_datetime=convert_dates), self.index)
         return self
 
     def repeat(self, reps):
