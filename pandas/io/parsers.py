@@ -1945,7 +1945,7 @@ class CellStyleConverter(object):
     """
 
     @staticmethod
-    def to_xls(style_dict):
+    def to_xls(style_dict, num_format_str=None):
         """
         converts a style_dict to an xlwt style object
         Parameters
@@ -1987,9 +1987,13 @@ class CellStyleConverter(object):
 
         if style_dict:
             xlwt_stylestr = style_to_xlwt(style_dict)
-            return xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
+            style = xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
         else:
-            return xlwt.XFStyle()
+            style = xlwt.XFStyle()
+        if num_format_str is not None:
+            style.num_format_str = num_format_str
+
+        return style
 
     @staticmethod
     def to_xlsx(style_dict):
@@ -2132,18 +2136,21 @@ class ExcelWriter(object):
         for cell in cells:
             val = _conv_value(cell.val)
 
+            num_format_str = None
+            if isinstance(cell.val, datetime.datetime):
+                num_format_str = "YYYY-MM-DD HH:MM:SS"
+            if isinstance(cell.val, datetime.date):
+                num_format_str = "YYYY-MM-DD"
+
             stylekey = json.dumps(cell.style)
+            if num_format_str:
+                stylekey += num_format_str
+
             if stylekey in style_dict:
                 style = style_dict[stylekey]
             else:
-                style = CellStyleConverter.to_xls(cell.style)
+                style = CellStyleConverter.to_xls(cell.style, num_format_str)
                 style_dict[stylekey] = style
-
-            if isinstance(val, datetime.datetime):
-                style.num_format_str = "YYYY-MM-DD HH:MM:SS"
-            elif isinstance(val, datetime.date):
-                style.num_format_str = "YYYY-MM-DD"
-
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.write_merge(startrow + cell.row,
