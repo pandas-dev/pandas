@@ -1179,7 +1179,7 @@ def in_interactive_session():
     returns True if running under python/ipython interactive shell
     """
     import __main__ as main
-    return not hasattr(main, '__file__')
+    return not hasattr(main, '__file__') or get_option('test.interactive')
 
 def in_qtconsole():
     """

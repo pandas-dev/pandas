@@ -186,7 +186,7 @@ class DataFrameFormatter(object):
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
-                 index_names=True, **kwds):
+                 index_names=True, line_width=None, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -202,6 +202,7 @@ class DataFrameFormatter(object):
         self.col_space = col_space
         self.header = header
         self.index = index
+        self.line_width = line_width
 
         if justify is None:
             self.justify = get_option("print.colheader_justify")
@@ -282,9 +283,35 @@ class DataFrameFormatter(object):
             text = info_line
         else:
             strcols = self._to_str_columns()
-            text = adjoin(1, *strcols)
+            if self.line_width is None:
+                text = adjoin(1, *strcols)
+            else:
+                text = self._join_multiline(*strcols)
 
         self.buf.writelines(text)
+
+    def _join_multiline(self, *strcols):
+        lwidth = self.line_width
+        strcols = list(strcols)
+        if self.index:
+            idx = strcols.pop(0)
+            lwidth -= np.array([len(x) for x in idx]).max()
+
+        col_widths = [np.array([len(x) for x in col]).max()
+                      if len(col) > 0 else 0
+                      for col in strcols]
+        col_bins = _binify(col_widths, lwidth)
+
+        str_lst = []
+        st = 0
+        for ed in col_bins:
+            row = strcols[st:ed]
+            row.insert(0, idx)
+            if ed <= len(strcols):
+                row.append([' \\'] + ['  '] * (len(self.frame) - 1))
+            str_lst.append(adjoin(1, *row))
+            st = ed
+        return '\n\n'.join(str_lst)
 
     def to_latex(self, force_unicode=None, column_format=None):
         """
@@ -1376,6 +1403,17 @@ def _put_lines(buf, lines):
         lines = [unicode(x) for x in lines]
     buf.write('\n'.join(lines))
 
+def _binify(cols, width):
+    bins = []
+    curr_width = 0
+    for i, w in enumerate(cols):
+        curr_width += w
+        if curr_width + 2 > width:
+            bins.append(i)
+            curr_width = w
+        elif i + 1== len(cols):
+            bins.append(i + 1)
+    return bins
 
 if __name__ == '__main__':
     arr = np.array([746.03, 0.00, 5620.00, 1592.36])

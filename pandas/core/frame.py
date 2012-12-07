@@ -592,10 +592,11 @@ class DataFrame(NDFrame):
         max_rows = (terminal_height if get_option("print.max_rows") == 0
                     else get_option("print.max_rows"))
         max_columns = get_option("print.max_columns")
+        expand_repr = get_option("print.expand_frame_repr")
 
         if max_columns > 0:
             if len(self.index) <= max_rows and \
-                    len(self.columns) <= max_columns:
+                    (len(self.columns) <= max_columns or expand_repr):
                 return False
             else:
                 return True
@@ -603,14 +604,16 @@ class DataFrame(NDFrame):
             # save us
             if (len(self.index) > max_rows or
                 (com.in_interactive_session() and
-                len(self.columns) > terminal_width // 2)):
+                 len(self.columns) > terminal_width // 2 and
+                 not expand_repr)):
                 return True
             else:
                 buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
-                if (max([len(l) for l in value.split('\n')]) > terminal_width and
-                    com.in_interactive_session()):
+                if (max([len(l) for l in value.split('\n')]) > terminal_width
+                    and com.in_interactive_session()
+                    and not expand_repr):
                     return True
                 else:
                     return False
@@ -646,12 +649,44 @@ class DataFrame(NDFrame):
         if self._need_info_repr_():
             self.info(buf=buf, verbose=self._verbose_info)
         else:
-            self.to_string(buf=buf)
+            is_wide = self._need_wide_repr()
+            line_width = None
+            if is_wide:
+                line_width = get_option('print.line_width')
+            self.to_string(buf=buf, line_width=line_width)
 
         value = buf.getvalue()
         assert type(value) == unicode
 
         return value
+
+    def _need_wide_repr(self):
+        if com.in_qtconsole():
+            terminal_width, terminal_height = 100, 100
+        else:
+            terminal_width, terminal_height = get_terminal_size()
+        max_columns = get_option("print.max_columns")
+        expand_repr = get_option("print.expand_frame_repr")
+
+        if max_columns > 0:
+            if len(self.columns) > max_columns and expand_repr:
+                return True
+        else:
+            # save us
+            if (com.in_interactive_session() and
+                len(self.columns) > terminal_width // 2 and
+                expand_repr):
+                return True
+            else:
+                buf = StringIO()
+                self.to_string(buf=buf)
+                value = buf.getvalue()
+                if (max([len(l) for l in value.split('\n')]) > terminal_width
+                    and com.in_interactive_session()
+                    and expand_repr):
+                    return True
+
+        return False
 
     def __repr__(self):
         """
@@ -1454,7 +1489,8 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, nanRep=None,
-                  index_names=True, justify=None, force_unicode=None):
+                  index_names=True, justify=None, force_unicode=None,
+                  line_width=None):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
@@ -1480,7 +1516,8 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify,
                                            justify=justify,
                                            index_names=index_names,
-                                           header=header, index=index)
+                                           header=header, index=index,
+                                           line_width=line_width)
         formatter.to_string()
 
         if buf is None:

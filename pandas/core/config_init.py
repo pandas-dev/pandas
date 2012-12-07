@@ -101,6 +101,20 @@ colheader_justify_doc="""
     Controls the justification of column headers. used by DataFrameFormatter.
 """
 
+pc_expand_repr_doc="""
+: boolean
+    Default False
+    Whether to print out the full DataFrame repr for wide DataFrames
+    across multiple lines.
+    If False, the summary representation is shown.
+"""
+
+pc_line_width_doc="""
+: int
+    Default 80
+    When printing wide DataFrames, this is the width of each line.
+"""
+
 with cf.config_prefix('print'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
@@ -122,3 +136,13 @@ with cf.config_prefix('print'):
                        validator=is_bool)
     cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
                     validator=is_text)
+    cf.register_option('expand_frame_repr', False, pc_expand_repr_doc)
+    cf.register_option('line_width', 80, pc_line_width_doc)
+
+tc_interactive_doc="""
+: boolean
+    Default False
+    Whether to simulate interactive mode for purposes of testing
+"""
+with cf.config_prefix('test'):
+    cf.register_option('interactive', False, tc_interactive_doc)
