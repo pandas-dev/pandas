@@ -2183,6 +2183,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         assert_series_equal(s, s2)
 
+    def test_tolist(self):
+        rs = self.ts.tolist()
+        xp = self.ts.values.tolist()
+        assert_almost_equal(rs, xp)
+
+        #datetime64
+        s = Series(self.ts.index)
+        rs = s.tolist()
+        xp = s.astype(object).values.tolist()
+        assert_almost_equal(rs, xp)
+        self.assertEqual(self.ts.index[0], rs[0])
+
     def test_to_dict(self):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
 

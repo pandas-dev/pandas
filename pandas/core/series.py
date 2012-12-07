@@ -1141,6 +1141,15 @@ copy : boolean, default False
         return Series(self.values.copy(order), index=self.index,
                       name=self.name)
 
+    def tolist(self):
+        """
+        Convert Series to a nested list
+        Overrides numpy.ndarray.tolist
+        """
+        if com.is_datetime64_dtype(self):
+            return self.astype(object).values.tolist()
+        return self.values.tolist()
+
     def to_dict(self):
         """
         Convert Series to {label -> value} dict
