@@ -203,7 +203,7 @@ class PandasObject(object):
             raise TypeError('Index must be DatetimeIndex')
 
     def resample(self, rule, how=None, axis=0, fill_method=None,
-                 closed='right', label='right', convention='start',
+                 closed=None, label=None, convention='start',
                  kind=None, loffset=None, limit=None, base=0):
         """
         Convenience method for frequency conversion and resampling of regular
@@ -216,9 +216,9 @@ class PandasObject(object):
               downsampling
         fill_method : string, fill_method for upsampling, default None
         axis : int, optional, default 0
-        closed : {'right', 'left'}, default 'right'
+        closed : {'right', 'left'}, default None
             Which side of bin interval is closed
-        label : {'right', 'left'}, default 'right'
+        label : {'right', 'left'}, default None
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
         loffset : timedelta
