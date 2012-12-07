@@ -69,16 +69,18 @@ Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `Cython <http://www.cython.org>`__: Only necessary to build development
-    version
+    version. Version 0.17.1 or higher.
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-  * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
+  * `statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`
   * `pytz <http://pytz.sourceforge.net/>`__
-     * Needed for time zone support with ``DateRange``
+     * Needed for time zone support with ``date_range``
   * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
+     * openpyxl version 1.6.1 or higher
      * Needed for Excel I/O
+
 
 Installation from sources
 =========================
