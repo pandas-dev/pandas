@@ -963,7 +963,22 @@ class TestTimeGrouper(unittest.TestCase):
 
     def test_apply_iteration(self):
         # #2300
-        pass
+        N = 1000
+        ind = pd.date_range(start="2000-01-01", freq="D", periods=N)
+        df = DataFrame({'open':1, 'close':2}, index=ind)
+        tg = TimeGrouper('M')
+
+        grouper = tg.get_grouper(df)
+
+        # Errors
+
+        grouped = df.groupby(grouper, group_keys=False)
+        f = lambda df: df['close'] / df['open']
+
+        # it works!
+        result = grouped.apply(f)
+        self.assertTrue(result.index.equals(df.index))
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

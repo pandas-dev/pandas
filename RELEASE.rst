@@ -134,9 +134,10 @@ pandas 0.10.0
   - Fixes assigning scalars and array to hierarchical column chunk (#1803)
   - Fixed a UnicdeDecodeError with series tidy_repr (#2225)
   - Fixed issued with duplicate keys in an index (#2347, #2380)
-  - Fixed issues related to Hash randomization, on by default starting with 3.3 (#2331)
+  - Fixed issues re: Hash randomization, default on starting w/ py3.3 (#2331)
   - Fixed issue with missing attributes after loading a pickled dataframe (#2431)
   - Fix Timestamp formatting with tzoffset time zone in dateutil 2.1 (#2443)
+  - Fix GroupBy.apply issue when using BinGrouper to do ts binning (#2300)
 
 pandas 0.9.1
 ============
