@@ -20,7 +20,8 @@ import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas
 import pandas as pd
-from pandas.core.config import set_option,get_option
+from pandas.core.config import (set_option, get_option,
+                                reset_option)
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -404,6 +405,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         set_option('test.interactive', True)
         col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
         df = DataFrame([col(20, 25) for _ in range(10)])
+        set_option('print.expand_frame_repr', False)
         rep_str = repr(df)
         set_option('print.expand_frame_repr', True)
         wide_repr = repr(df)
@@ -413,7 +415,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         wider_repr = repr(df)
         self.assert_(len(wider_repr) < len(wide_repr))
 
-        set_option('print.expand_frame_repr', False)
+        reset_option('print.expand_frame_repr')
         set_option('test.interactive', False)
         set_option('print.line_width', 80)
 
@@ -422,6 +424,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
         df = DataFrame([col(20, 25) for _ in range(10)])
         df.index.name = 'DataFrame Index'
+        set_option('print.expand_frame_repr', False)
+
         rep_str = repr(df)
         set_option('print.expand_frame_repr', True)
         wide_repr = repr(df)
@@ -434,7 +438,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         for line in wide_repr.splitlines()[1::13]:
             self.assert_('DataFrame Index' in line)
 
-        set_option('print.expand_frame_repr', False)
+        reset_option('print.expand_frame_repr')
         set_option('test.interactive', False)
         set_option('print.line_width', 80)
 
@@ -446,6 +450,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame([col(20, 25) for _ in range(10)],
                        index=midx)
         df.index.names = ['Level 0', 'Level 1']
+        set_option('print.expand_frame_repr', False)
         rep_str = repr(df)
         set_option('print.expand_frame_repr', True)
         wide_repr = repr(df)
@@ -458,7 +463,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         for line in wide_repr.splitlines()[1::13]:
             self.assert_('Level 0 Level 1' in line)
 
-        set_option('print.expand_frame_repr', False)
+        reset_option('print.expand_frame_repr')
         set_option('test.interactive', False)
         set_option('print.line_width', 80)
 
@@ -472,6 +477,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame([col(20, 25) for _ in range(10)],
                        index=midx, columns=mcols)
         df.index.names = ['Level 0', 'Level 1']
+        set_option('print.expand_frame_repr', False)
         rep_str = repr(df)
         set_option('print.expand_frame_repr', True)
         wide_repr = repr(df)
@@ -483,7 +489,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         self.assert_(len(wide_repr.splitlines()) == 14 * 10 - 1)
 
-        set_option('print.expand_frame_repr', False)
+        reset_option('print.expand_frame_repr')
         set_option('test.interactive', False)
         set_option('print.line_width', 80)
 
@@ -491,6 +497,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         set_option('test.interactive', True)
         col = lambda l, k: [tm.randu(k) for _ in xrange(l)]
         df = DataFrame([col(20, 25) for _ in range(10)])
+        set_option('print.expand_frame_repr', False)
         rep_str = repr(df)
         set_option('print.expand_frame_repr', True)
         wide_repr = repr(df)
@@ -500,7 +507,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         wider_repr = repr(df)
         self.assert_(len(wider_repr) < len(wide_repr))
 
-        set_option('print.expand_frame_repr', False)
+        reset_option('print.expand_frame_repr')
         set_option('test.interactive', False)
         set_option('print.line_width', 80)
 

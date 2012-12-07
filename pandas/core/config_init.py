@@ -119,9 +119,9 @@ with cf.config_prefix('print'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)
-    cf.register_option('max_rows', 200, pc_max_rows_doc, validator=is_int)
+    cf.register_option('max_rows', 100, pc_max_rows_doc, validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
-    cf.register_option('max_columns', 0, pc_max_cols_doc, validator=is_int)
+    cf.register_option('max_columns', 20, pc_max_cols_doc, validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
@@ -136,7 +136,7 @@ with cf.config_prefix('print'):
                        validator=is_bool)
     cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
                     validator=is_text)
-    cf.register_option('expand_frame_repr', False, pc_expand_repr_doc)
+    cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('line_width', 80, pc_line_width_doc)
 
 tc_interactive_doc="""

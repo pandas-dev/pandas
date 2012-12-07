@@ -595,8 +595,8 @@ class DataFrame(NDFrame):
         expand_repr = get_option("print.expand_frame_repr")
 
         if max_columns > 0:
-            if len(self.index) <= max_rows and \
-                    (len(self.columns) <= max_columns or expand_repr):
+            if (len(self.index) <= max_rows and
+                (len(self.columns) <= max_columns and expand_repr)):
                 return False
             else:
                 return True
@@ -661,32 +661,8 @@ class DataFrame(NDFrame):
         return value
 
     def _need_wide_repr(self):
-        if com.in_qtconsole():
-            terminal_width, terminal_height = 100, 100
-        else:
-            terminal_width, terminal_height = get_terminal_size()
-        max_columns = get_option("print.max_columns")
-        expand_repr = get_option("print.expand_frame_repr")
-
-        if max_columns > 0:
-            if len(self.columns) > max_columns and expand_repr:
-                return True
-        else:
-            # save us
-            if (com.in_interactive_session() and
-                len(self.columns) > terminal_width // 2 and
-                expand_repr):
-                return True
-            else:
-                buf = StringIO()
-                self.to_string(buf=buf)
-                value = buf.getvalue()
-                if (max([len(l) for l in value.split('\n')]) > terminal_width
-                    and com.in_interactive_session()
-                    and expand_repr):
-                    return True
-
-        return False
+        return (get_option("print.expand_frame_repr")
+                and com.in_interactive_session())
 
     def __repr__(self):
         """
