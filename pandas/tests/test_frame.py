@@ -1798,6 +1798,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(not self.frame._is_mixed_type)
         self.assert_(self.mixed_frame._is_mixed_type)
 
+    def test_constructor_ordereddict(self):
+        from pandas.util.compat import OrderedDict
+        import random
+        nitems = 100
+        nums = range(nitems)
+        random.shuffle(nums)
+        expected=['A%d' %i for i in nums]
+        df=DataFrame(OrderedDict(zip(expected,[[0]]*nitems)))
+        self.assertEqual(expected,list(df.columns))
+
     def test_constructor_dict(self):
         frame = DataFrame({'col1' : self.ts1,
                             'col2' : self.ts2})
