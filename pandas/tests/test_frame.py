@@ -7595,6 +7595,28 @@ starting,ending,measure
                 self.assert_(r0.all())
                 self.assert_(r1.all())
 
+    def test_strange_column_corruption_issue(self):
+        df = DataFrame(index=[0,1])
+        df[0] = nan
+        wasCol = {}
+        # uncommenting these makes the results match
+        #for col in xrange(100, 200):
+        #    wasCol[col] = 1
+        #    df[col] = nan
+
+        for i, dt in enumerate(df.index):
+            for col in xrange(100, 200):
+                if not col in wasCol:
+                    wasCol[col] = 1
+                    df[col] = nan
+                df[col][dt] = i
+
+        myid = 100
+
+        first = len(df.ix[isnull(df[myid]), [myid]])
+        second = len(df.ix[isnull(df[myid]), [myid]])
+        self.assertTrue(first == second == 0)
+
 
 if __name__ == '__main__':
     # unittest.main()
