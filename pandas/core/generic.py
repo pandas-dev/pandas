@@ -623,7 +623,6 @@ class NDFrame(PandasObject):
         """
         if inplace:
             self._consolidate_inplace()
-            return self
         else:
             cons_data = self._data.consolidate()
             if cons_data is self._data:

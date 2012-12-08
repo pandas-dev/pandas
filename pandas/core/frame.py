@@ -643,7 +643,8 @@ class DataFrame(NDFrame):
         """
         Return a string representation for a particular DataFrame
 
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
         """
         buf = StringIO(u"")
         if self._need_info_repr_():
@@ -2717,7 +2718,7 @@ class DataFrame(NDFrame):
         index._cleanup()
 
         frame.index = index
-        return frame
+        return frame if not inplace else None
 
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):
@@ -2813,7 +2814,7 @@ class DataFrame(NDFrame):
             new_obj.insert(0, name, _maybe_cast(values))
 
         new_obj.index = new_index
-        return new_obj
+        return new_obj if not inplace else None
 
     delevel = deprecate('delevel', reset_index)
 
@@ -2971,7 +2972,6 @@ class DataFrame(NDFrame):
             inds, = (-duplicated).nonzero()
             self._data = self._data.take(inds)
             self._clear_item_cache()
-            return self
         else:
             return self[-duplicated]
 
@@ -3113,7 +3113,6 @@ class DataFrame(NDFrame):
                 self._data = self._data.take(indexer)
 
             self._clear_item_cache()
-            return self
         else:
             return self.take(indexer, axis=axis)
 
@@ -3155,7 +3154,6 @@ class DataFrame(NDFrame):
                 self._data = self._data.take(indexer)
 
             self._clear_item_cache()
-            return self
         else:
             return self.take(indexer, axis=axis)
 
@@ -3283,7 +3281,6 @@ class DataFrame(NDFrame):
 
         if inplace:
             self._data = new_data
-            return self
         else:
             return self._constructor(new_data)
 
@@ -3363,7 +3360,7 @@ class DataFrame(NDFrame):
 
                 if inplace:
                     self._data = new_data
-                    return self
+                    return None
                 else:
                     return self._constructor(new_data)
             else:
@@ -3374,7 +3371,7 @@ class DataFrame(NDFrame):
                                                   inplace=inplace)
                     if inplace:
                         self._data = new_data
-                        return self
+                        return None
                     else:
                         return self._constructor(new_data)
 
@@ -3397,7 +3394,7 @@ class DataFrame(NDFrame):
                 if k in rs:
                     rs[k].replace(v, method=method, limit=limit,
                                   inplace=True)
-            return rs
+            return rs if not inplace else None
 
         else:
             new_blocks = []
@@ -3410,7 +3407,6 @@ class DataFrame(NDFrame):
 
             if inplace:
                 self._data = new_data
-                return self
             else:
                 return self._constructor(new_data)
 
@@ -3419,21 +3415,21 @@ class DataFrame(NDFrame):
         for k, v in value.iteritems():
             if k in rs:
                 rs[k].replace(to_replace, v, inplace=True)
-        return rs
+        return rs if not inplace else None
 
     def _replace_src_dict(self, to_replace, value, inplace):
         rs = self if inplace else self.copy()
         for k, src in to_replace.iteritems():
             if k in rs:
                 rs[k].replace(src, value, inplace=True)
-        return rs
+        return rs if not inplace else None
 
     def _replace_both_dict(self, to_replace, value, inplace):
         rs = self if inplace else self.copy()
         for c, src in to_replace.iteritems():
             if c in value and c in rs:
                 rs[c].replace(src, value[c], inplace=True)
-        return rs
+        return rs if not inplace else None
 
     #----------------------------------------------------------------------
     # Rename
@@ -3482,7 +3478,7 @@ class DataFrame(NDFrame):
         if columns is not None:
             result._rename_columns_inplace(columns_f)
 
-        return result
+        return result if not inplace else None
 
     def _rename_index_inplace(self, mapper):
         self._data = self._data.rename_axis(mapper, axis=1)
@@ -5142,10 +5138,9 @@ class DataFrame(NDFrame):
 
         if inplace:
             np.putmask(self.values, cond, other)
-            return self
-
-        rs = np.where(cond, self, other)
-        return self._constructor(rs, self.index, self.columns)
+        else:
+            rs = np.where(cond, self, other)
+            return self._constructor(rs, self.index, self.columns)
 
     def mask(self, cond):
         """
