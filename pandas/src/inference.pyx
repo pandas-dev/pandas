@@ -651,7 +651,7 @@ def try_parse_datetime_components(ndarray[object] years,
             micros = micros * 1000000
 
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
-                             int(hours[i]), int(minutes[i]), int(secs),
+                             int(hours[i]), int(minutes[i]), secs,
                              int(micros))
 
     return result
