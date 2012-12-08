@@ -795,7 +795,7 @@ Objects can be written to the file just like adding key-value pairs to a dict:
               major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
-   # store.put('s', s') is an equivalent method
+   # store.put('s', s) is an equivalent method
    store['s'] = s
 
    store['df'] = df
@@ -853,15 +853,19 @@ after data is already in the table (this may become automatic in the future or a
    store = HDFStore('store.h5')
    df1 = df[0:4]
    df2 = df[4:]
+
+   # append data (creates a table automatically)
    store.append('df', df1)
    store.append('df', df2)
    store
 
+   # select the entire object
    store.select('df')
 
    # the type of stored data
    store.handle.root.df._v_attrs.pandas_type
 
+   # create an index
    store.create_table_index('df')
    store.handle.root.df.table
 
