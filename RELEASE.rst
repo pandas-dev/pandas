@@ -106,6 +106,8 @@ pandas 0.10.0
     (#2412)
   - Added boolean comparison operators to Panel
   - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (#2411)
+  - The DataFrame ctor now respects column ordering when given
+    an OrderedDict (#2455)
 
 **Bug fixes**
 
