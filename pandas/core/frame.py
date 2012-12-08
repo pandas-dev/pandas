@@ -467,6 +467,7 @@ class DataFrame(NDFrame):
         Segregate Series based on type and coerce into matrices.
         Needs to handle a lot of exceptional cases.
         """
+        from pandas.util.compat import OrderedDict
         if dtype is not None:
             dtype = np.dtype(dtype)
 
@@ -503,7 +504,10 @@ class DataFrame(NDFrame):
                 data_names.append(k)
                 arrays.append(v)
         else:
-            columns = data_names = Index(_try_sort(data.keys()))
+            keys = data.keys()
+            if not isinstance(data, OrderedDict):
+                keys = _try_sort(data.keys())
+            columns = data_names = Index(keys)
             arrays = [data[k] for k in columns]
 
         return _arrays_to_mgr(arrays, data_names, index, columns,
