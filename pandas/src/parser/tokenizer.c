@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2012, Lambda Foundry, Inc.
+Copyright (c) 2012, Lambda Foundry, Inc., except where noted
+
+Incorporates components of WarrenWeckesser/textreader, licensed under 3-clause
+BSD
 
 See LICENSE for the license
 
