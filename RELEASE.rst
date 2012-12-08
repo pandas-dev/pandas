@@ -58,6 +58,8 @@ pandas 0.10.0
     `closed='left', label='left'` for daily and lower frequencies. This had
     been a large source of confusion for users. See "what's new" page for more
     on this. (#2410)
+  - Methods with ``inplace`` option now return None instead of the calling
+    (modified) object (#1893)
   - inf/-inf are no longer considered as NA by isnull/notnull. To be clear, this
     is legacy cruft from early pandas. This behavior can be globally re-enabled
     using pandas.core.common.use_inf_as_na (#2050, #1919)
