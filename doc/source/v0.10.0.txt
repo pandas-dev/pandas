@@ -90,7 +90,6 @@ Updated PyTables Support
 
        - performance improvments on table writing
        - support for arbitrarily indexed dimensions
-       - ``SparseSeries`` now has a ``density`` property (#2384)
 
   **Bug Fixes**
 
@@ -111,8 +110,6 @@ Updated PyTables Support
        import os
        os.remove('store.h5')
 
-  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace (GH2412_)
-
 N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -130,8 +127,6 @@ Adding experimental support for Panel4D and factory functions to create n-dimens
 
 
 
-- Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (GH2411_)
-
 API changes
 ~~~~~~~~~~~
 
@@ -142,14 +137,14 @@ API changes
         def f(x):
 	        return Series([ x, x**2 ], index = ['x', 'x^s'])
         s = Series(np.random.rand(5))
-	    s
+        s
         s.apply(f)
 
-    This is conceptually similar to the following.
+  - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (GH2411_)
 
-    .. ipython:: python
+  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace (GH2412_)
 
-        concat([ f(y) for x, y in s.iteritems() ], axis=1).T
+  - ``SparseSeries`` now has a ``density`` property (#2384)
 
   - New API functions for working with pandas options (GH2097_):
 
