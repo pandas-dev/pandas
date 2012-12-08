@@ -317,6 +317,7 @@ class TestGroupBy(unittest.TestCase):
             self.assert_((self.df.ix[v]['B'] == k[1]).all())
 
     def test_aggregate_str_func(self):
+        from pandas.util.compat import OrderedDict
         def _check_results(grouped):
             # single series
             result = grouped['A'].agg('std')
@@ -329,10 +330,10 @@ class TestGroupBy(unittest.TestCase):
             assert_frame_equal(result, expected)
 
             # group frame by function dict
-            result = grouped.agg({'A' : 'var', 'B' : 'std', 'C' : 'mean'})
-            expected = DataFrame({'A' : grouped['A'].var(),
-                                  'B' : grouped['B'].std(),
-                                  'C' : grouped['C'].mean()})
+            result = grouped.agg(OrderedDict([['A' , 'var'], ['B' , 'std'], ['C' , 'mean']]))
+            expected = DataFrame(OrderedDict([['A', grouped['A'].var()],
+                                  ['B', grouped['B'].std()],
+                                  ['C', grouped['C'].mean()]]))
             assert_frame_equal(result, expected)
 
         by_weekday = self.tsframe.groupby(lambda x: x.weekday())
