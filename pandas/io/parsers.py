@@ -50,8 +50,8 @@ index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
 names : array-like
-    List of column names to use. If header=True, replace existing header,
-    otherwise this ignores the header=0 default
+    List of column names to use. If file contains no header row, then you
+    should explicitly pass header=None
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values

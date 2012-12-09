@@ -82,8 +82,8 @@ data into a DataFrame object. They can take a number of arguments:
     it will number the rows without using any column, unless there is one more
     data column than there are headers, in which case the first column is taken
     as the index.
-  - ``names``: List of column names to use. If passed, header will be
-    implicitly set to None.
+  - ``names``: List of column names to use. If file contains no header row,
+    then you should explicitly pass header=None (behavior changed in v0.10.0).
   - ``na_values``: optional list of strings to recognize as NaN (missing
     values), either in addition to or in lieu of the default set.
   - ``keep_default_na``: whether to include the default set of missing values
@@ -882,7 +882,7 @@ Keys to a store can be specified as a string. These can be in a hierarchical pat
 
    # remove all nodes under this level
    store.remove('food')
-   store	
+   store
 
 Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -891,14 +891,14 @@ Storing mixed-dtype data is supported. Strings are store as a fixed-width using 
 Passing ``min_itemsize = { column_name : size }`` as a paremeter to append will set a larger minimum for the column. Storing ``floats, strings, ints, bools`` are currently supported.
 
 .. ipython:: python
-       
-    df_mixed             = df.copy()     
+
+    df_mixed             = df.copy()
     df_mixed['string']   = 'string'
     df_mixed['int']      = 1
     df_mixed['bool']     = True
 
     store.append('df_mixed',df_mixed)
-    df_mixed1 = store.select('df_mixed')	    
+    df_mixed1 = store.select('df_mixed')
     df_mixed1
     df_mixed1.get_dtype_counts()
 
@@ -909,12 +909,12 @@ Querying a Table
 ``select`` and ``delete`` operations have an optional criteria that can be specified to select/delete only
 a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
 
-A query is specified using the ``Term`` class under the hood. 
+A query is specified using the ``Term`` class under the hood.
 
-   - 'index' and 'column' are supported indexers of a DataFrame 
+   - 'index' and 'column' are supported indexers of a DataFrame
    - 'major_axis' and 'minor_axis' are supported indexers of the Panel
 
-Valid terms can be created from ``dict, list, tuple, or string``. Objects can be embeded as values. Allowed operations are: ``<, <=, >, >=, =``. ``=`` will be inferred as an implicit set operation (e.g. if 2 or more values are provided). The following are all valid terms. 
+Valid terms can be created from ``dict, list, tuple, or string``. Objects can be embeded as values. Allowed operations are: ``<, <=, >, >=, =``. ``=`` will be inferred as an implicit set operation (e.g. if 2 or more values are provided). The following are all valid terms.
 
        - ``dict(field = 'index', op = '>', value = '20121114')``
        - ``('index', '>', '20121114')``
@@ -924,7 +924,7 @@ Valid terms can be created from ``dict, list, tuple, or string``. Objects can be
        - ``('major', '=', Timestamp('2012/11/14'))``
        - ``('minor_axis', ['A','B'])``
 
-Queries are built up using a list of ``Terms`` (currently only **anding** of terms is supported). An example query for a panel might be specified as follows. 
+Queries are built up using a list of ``Terms`` (currently only **anding** of terms is supported). An example query for a panel might be specified as follows.
 ``['major_axis>20000102', ('minor_axis', '=', ['A','B']) ]``. This is roughly translated to: `major_axis must be greater than the date 20000102 and the minor_axis must be A or B`
 
 .. ipython:: python
