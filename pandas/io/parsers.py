@@ -106,6 +106,16 @@ encoding : string, default None
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 
+**Dialect options**
+
+lineterminator : string (length 1), default None
+    Character to break file into lines. Only valid with C parser
+quotechar : string
+quoting : string
+skipinitialspace : boolean, default False
+    Skip spaces after delimiter
+escapechar : string
+
 Returns
 -------
 result : DataFrame or TextParser
@@ -205,6 +215,7 @@ _parser_defaults = {
     'quotechar': '"',
     'quoting': csv.QUOTE_MINIMAL,
     'skipinitialspace': False,
+    'lineterminator': None,
 
     'header': 0,
     'index_col': None,
@@ -275,6 +286,7 @@ def _make_parser_function(name, sep=','):
                  quotechar='"',
                  quoting=csv.QUOTE_MINIMAL,
                  skipinitialspace=False,
+                 lineterminator=None,
 
                  header=0,
                  index_col=None,
@@ -335,6 +347,7 @@ def _make_parser_function(name, sep=','):
                     quotechar=quotechar,
                     quoting=quoting,
                     skipinitialspace=skipinitialspace,
+                    lineterminator=lineterminator,
 
                     header=header,
                     index_col=index_col,
@@ -1090,7 +1103,9 @@ class PythonParser(ParserBase):
         self.escapechar = kwds['escapechar']
         self.doublequote = kwds['doublequote']
         self.skipinitialspace = kwds['skipinitialspace']
+        self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
+
         self.has_index_names = False
         if 'has_index_names' in kwds:
             self.has_index_names = kwds['has_index_names']
@@ -1134,6 +1149,10 @@ class PythonParser(ParserBase):
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
+            if self.lineterminator:
+                raise ValueError('Custom line terminators not supported in '
+                                 'python parser (yet)')
+
             class MyDialect(csv.Dialect):
                 delimiter = self.delimiter
                 quotechar = self.quotechar

@@ -1875,6 +1875,18 @@ No,No,No"""
         self.assert_(df2['Number2'].dtype == float)
         self.assert_(df2['Number3'].dtype == float)
 
+    def test_custom_lineterminator(self):
+        data = 'a,b,c~1,2,3~4,5,6'
+
+        result = self.read_csv(StringIO(data), lineterminator='~')
+        expected = self.read_csv(StringIO(data.replace('~', '\n')))
+
+        tm.assert_frame_equal(result, expected)
+
+        data2 = data.replace('~', '~~')
+        result = self.assertRaises(ValueError, read_csv, StringIO(data2),
+                                   lineterminator='~~')
+
 
 class TestParseSQL(unittest.TestCase):
 

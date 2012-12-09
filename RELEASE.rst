@@ -52,6 +52,7 @@ pandas 0.10.0
     - Substantially improved performance in the parsing of integers with
       thousands markers and lines with comments
     - Easy of European (and other) decimal formats (`decimal` option)
+    - Custom line terminators (e.g. lineterminator='~') (#2457)
 
   - Add error handling to Series.str.encode/decode (#2276)
   - Add ``where`` and ``mask`` to Series (#2337)
@@ -93,6 +94,11 @@ pandas 0.10.0
     `header` argument will be respected. If there is an existing header column,
     this can rename the columns. To fix legacy code, put ``header=None`` when
     passing ``names``
+  - Default column names for header-less parsed files (yielded by read_csv,
+    etc.) are now the integers 0, 1, .... A new argument `prefix` has been
+    added; to get the v0.9.x behavior specify ``prefix='X'`` (#2034). This API
+    change was made to make the default column names more consistent with the
+    DataFrame constructor's default column names when none are specified.
   - DataFrame selection using a boolean frame now preserves input shape
   - If function passed to Series.apply yields a Series, result will be a
     DataFrame (#2316)

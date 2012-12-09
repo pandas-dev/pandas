@@ -120,6 +120,7 @@ cdef extern from "parser/tokenizer.h":
         int delim_whitespace       # consume tabs / spaces instead
         char quotechar             # quote character */
         char escapechar            # escape character */
+        char lineterminator
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
 
@@ -270,6 +271,8 @@ cdef class TextReader:
                   doublequote=True,
                   quotechar=b'"',
                   quoting=0,
+                  lineterminator=None,
+
                   encoding=None,
 
                   comment=None,
@@ -322,6 +325,11 @@ cdef class TextReader:
 
         self.parser.doublequote = doublequote
         self.parser.skipinitialspace = skipinitialspace
+
+        if lineterminator is not None:
+            if len(lineterminator) != 1:
+                raise ValueError('Only length-1 line terminators supported')
+            self.parser.lineterminator = ord(lineterminator)
 
         if len(decimal) != 1:
             raise ValueError('Only length-1 decimal markers supported')
