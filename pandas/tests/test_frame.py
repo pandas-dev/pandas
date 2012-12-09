@@ -5888,6 +5888,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(filtered.columns), 2)
         self.assert_('AA' in filtered)
 
+        # like with ints in column names
+        df = DataFrame(0., index=[0,1,2], columns=[0,1,'_A','_B'])
+        filtered = df.filter(like='_')
+        self.assertEqual(len(filtered.columns), 2)
+
         # pass in None
         self.assertRaises(Exception, self.frame.filter, items=None)
 
