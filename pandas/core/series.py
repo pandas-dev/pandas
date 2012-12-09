@@ -368,6 +368,10 @@ class Series(np.ndarray, generic.PandasObject):
 
         return subarr
 
+    def _make_time_series(self):
+        # oh boy #2139
+        self.__class__ = TimeSeries
+
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False):
         """

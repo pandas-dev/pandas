@@ -155,6 +155,10 @@ class SparseSeries(SparseArray, Series):
         output.name = name
         return output
 
+    def _make_time_series(self):
+        # oh boy #2139
+        self.__class__ = SparseTimeSeries
+
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False,fill_value=None):
         """

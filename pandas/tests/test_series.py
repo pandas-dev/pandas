@@ -3345,6 +3345,14 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assert_(rs.index.equals(Index(index.get_level_values(1))))
         self.assert_(isinstance(rs, Series))
 
+    def test_set_index_makes_timeseries(self):
+        idx = tm.makeDateIndex(10)
+
+        s = Series(range(10))
+        s.index = idx
+
+        self.assertTrue(isinstance(s, TimeSeries))
+
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
