@@ -1006,8 +1006,11 @@ cdef object _false_values = [b'False', b'FALSE', b'false']
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if not PyBytes_Check(x):
+        if PyUnicode_Check(x):
             x = PyUnicode_AsUTF8String(x)
+        elif not PyBytes_Check(x):
+            x = bytes(x)
+
         result.append(x)
     return result
 

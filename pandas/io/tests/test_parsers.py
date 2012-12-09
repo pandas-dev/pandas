@@ -1312,6 +1312,143 @@ False,NA,True"""
         self.assertTrue(result['D'].isnull()[1:].all())
 
 
+    def test_skipinitialspace(self):
+        s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
+             '1.00361,  1.12551, 330.65659, 0355626618.16711,  73.48821, '
+             '314.11625,  1917.09447,   179.71425,  80.000, 240.000, -350,  '
+             '70.06056, 344.98370, 1,   1, -0.689265, -0.692787,  '
+             '0.212036,    14.7674,   41.605,   -9999.0,   -9999.0,   '
+             '-9999.0,   -9999.0,   -9999.0,  -9999.0, 000, 012, 128')
+
+        sfile = StringIO(s)
+        # it's 33 columns
+        result = self.read_csv(sfile, names=range(33), na_values=['-9999.0'],
+                               header=None, skipinitialspace=True)
+        self.assertTrue(pd.isnull(result.ix[0, 29]))
+
+    def test_utf16_bom_skiprows(self):
+        # #2298
+        data = u"""skip this
+skip this too
+A\tB\tC
+1\t2\t3
+4\t5\t6"""
+
+        data2 = u"""skip this
+skip this too
+A,B,C
+1,2,3
+4,5,6"""
+
+        path = '__%s__.csv' % tm.rands(10)
+
+        for sep, dat in [('\t', data), (',', data2)]:
+            for enc in ['utf-16', 'utf-16le', 'utf-16be']:
+                bytes = dat.encode(enc)
+                with open(path, 'wb') as f:
+                    f.write(bytes)
+
+                s = BytesIO(dat.encode('utf-8'))
+                if py3compat.PY3:
+                    # somewhat False since the code never sees bytes
+                    from io import TextIOWrapper
+                    s =TextIOWrapper(s, encoding='utf-8')
+
+                result = self.read_csv(path, encoding=enc, skiprows=2,
+                                       sep=sep)
+                expected = self.read_csv(s,encoding='utf-8', skiprows=2,
+                                         sep=sep)
+
+                tm.assert_frame_equal(result, expected)
+
+        try:
+            os.remove(path)
+        except os.error:
+            pass
+
+    def test_utf16_example(self):
+        path = os.path.join(self.dirpath, 'utf16_ex.txt')
+
+        # it works! and is the right length
+        result = self.read_table(path, encoding='utf-16')
+        self.assertEquals(len(result), 50)
+
+        if not py3compat.PY3:
+            buf = BytesIO(open(path, 'rb').read())
+            result = self.read_table(buf, encoding='utf-16')
+            self.assertEquals(len(result), 50)
+
+
+    def test_converters_corner_with_nas(self):
+      # skip aberration observed on Win64 Python 3.2.2
+        if hash(np.int64(-1)) != -2:
+            raise nose.SkipTest
+
+        import StringIO
+        csv = """id,score,days
+1,2,12
+2,2-5,
+3,,14+
+4,6-12,2"""
+
+        def convert_days(x):
+           x = x.strip()
+           if not x: return np.nan
+
+           is_plus = x.endswith('+')
+           if is_plus:
+               x = int(x[:-1]) + 1
+           else:
+               x = int(x)
+           return x
+
+        def convert_days_sentinel(x):
+           x = x.strip()
+           if not x: return np.nan
+
+           is_plus = x.endswith('+')
+           if is_plus:
+               x = int(x[:-1]) + 1
+           else:
+               x = int(x)
+           return x
+
+        def convert_score(x):
+           x = x.strip()
+           if not x: return np.nan
+           if x.find('-')>0:
+               valmin, valmax = map(int, x.split('-'))
+               val = 0.5*(valmin + valmax)
+           else:
+               val = float(x)
+
+           return val
+
+        fh = StringIO.StringIO(csv)
+        result = self.read_csv(fh, converters={'score':convert_score,
+                                                 'days':convert_days},
+                               na_values=['',None])
+        self.assert_(pd.isnull(result['days'][1]))
+
+        fh = StringIO.StringIO(csv)
+        result2 = self.read_csv(fh, converters={'score':convert_score,
+                                                  'days':convert_days_sentinel},
+                                na_values=['',None])
+        tm.assert_frame_equal(result, result2)
+
+    def test_unicode_encoding(self):
+        pth = psplit(psplit(curpath())[0])[0]
+        pth = os.path.join(pth, 'tests/data/unicode_series.csv')
+
+        result = self.read_csv(pth, header=None, encoding='latin-1')
+        result = result.set_index('X0')
+
+        got = result['X1'][1632]
+        expected = u'\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
+
+        self.assertEquals(got, expected)
+
+
 class TestPythonParser(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
@@ -1490,75 +1627,6 @@ eight,1,2,3"""
         finally:
             sys.stdout = sys.__stdout__
 
-    def test_converters_corner_with_nas(self):
-      # skip aberration observed on Win64 Python 3.2.2
-        if hash(np.int64(-1)) != -2:
-            raise nose.SkipTest
-
-        import StringIO
-        csv = """id,score,days
-1,2,12
-2,2-5,
-3,,14+
-4,6-12,2"""
-
-        def convert_days(x):
-           x = x.strip()
-           if not x: return np.nan
-
-           is_plus = x.endswith('+')
-           if is_plus:
-               x = int(x[:-1]) + 1
-           else:
-               x = int(x)
-           return x
-
-        def convert_days_sentinel(x):
-           x = x.strip()
-           if not x: return -1
-
-           is_plus = x.endswith('+')
-           if is_plus:
-               x = int(x[:-1]) + 1
-           else:
-               x = int(x)
-           return x
-
-        def convert_score(x):
-           x = x.strip()
-           if not x: return np.nan
-           if x.find('-')>0:
-               valmin, valmax = map(int, x.split('-'))
-               val = 0.5*(valmin + valmax)
-           else:
-               val = float(x)
-
-           return val
-
-        fh = StringIO.StringIO(csv)
-        result = self.read_csv(fh, converters={'score':convert_score,
-                                                 'days':convert_days},
-                                 na_values=[-1,'',None])
-        self.assert_(pd.isnull(result['days'][1]))
-
-        fh = StringIO.StringIO(csv)
-        result2 = self.read_csv(fh, converters={'score':convert_score,
-                                                  'days':convert_days_sentinel},
-                                  na_values=[-1,'',None])
-        tm.assert_frame_equal(result, result2)
-
-    def test_unicode_encoding(self):
-        pth = psplit(psplit(curpath())[0])[0]
-        pth = os.path.join(pth, 'tests/data/unicode_series.csv')
-
-        result = self.read_csv(pth, header=None, encoding='latin-1')
-        result = result.set_index('X0')
-
-        got = result['X1'][1632]
-        expected = u'\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
-
-        self.assertEquals(got, expected)
-
     def test_iteration_open_handle(self):
         if PY3:
             raise nose.SkipTest
@@ -1588,72 +1656,6 @@ eight,1,2,3"""
             os.remove('__foo__.txt')
         except os.error:
             pass
-
-    def test_skipinitialspace(self):
-        s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
-             '1.00361,  1.12551, 330.65659, 0355626618.16711,  73.48821, '
-             '314.11625,  1917.09447,   179.71425,  80.000, 240.000, -350,  '
-             '70.06056, 344.98370, 1,   1, -0.689265, -0.692787,  '
-             '0.212036,    14.7674,   41.605,   -9999.0,   -9999.0,   '
-             '-9999.0,   -9999.0,   -9999.0,  -9999.0, 000, 012, 128')
-
-        sfile = StringIO(s)
-        # it's 33 columns
-        result = self.read_csv(sfile, names=range(33), na_values=['-9999.0'],
-                               header=None, skipinitialspace=True)
-        self.assertTrue(pd.isnull(result.ix[0, 29]))
-
-    def test_utf16_bom_skiprows(self):
-        # #2298
-        data = u"""skip this
-skip this too
-A\tB\tC
-1\t2\t3
-4\t5\t6"""
-
-        data2 = u"""skip this
-skip this too
-A,B,C
-1,2,3
-4,5,6"""
-
-        path = '__%s__.csv' % tm.rands(10)
-
-        for sep, dat in [('\t', data), (',', data2)]:
-            for enc in ['utf-16', 'utf-16le', 'utf-16be']:
-                bytes = dat.encode(enc)
-                with open(path, 'wb') as f:
-                    f.write(bytes)
-
-                s = BytesIO(dat.encode('utf-8'))
-                if py3compat.PY3:
-                    # somewhat False since the code never sees bytes
-                    from io import TextIOWrapper
-                    s =TextIOWrapper(s, encoding='utf-8')
-
-                result = self.read_csv(path, encoding=enc, skiprows=2,
-                                       sep=sep)
-                expected = self.read_csv(s,encoding='utf-8', skiprows=2,
-                                         sep=sep)
-
-                tm.assert_frame_equal(result, expected)
-
-        try:
-            os.remove(path)
-        except os.error:
-            pass
-
-    def test_utf16_example(self):
-        path = os.path.join(self.dirpath, 'utf16_ex.txt')
-
-        # it works! and is the right length
-        result = self.read_table(path, encoding='utf-16')
-        self.assertEquals(len(result), 50)
-
-        if not py3compat.PY3:
-            buf = BytesIO(open(path, 'rb').read())
-            result = self.read_table(buf, encoding='utf-16')
-            self.assertEquals(len(result), 50)
 
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
@@ -1854,6 +1856,18 @@ No,No,No"""
 
         self.assertRaises(OverflowError, read_csv, StringIO(data),
                           dtype='i8')
+
+    def test_euro_decimal_format(self):
+        data = """Id;Number1;Number2;Text1;Text2;Number3
+1;1521,1541;187101,9543;ABC;poi;4,738797819
+2;121,12;14897,76;DEF;uyt;0,377320872
+3;878,158;108013,434;GHI;rez;2,735694704"""
+
+        df2 = self.read_csv(StringIO(data), sep=';', decimal=',')
+        self.assert_(df2['Number1'].dtype == float)
+        self.assert_(df2['Number2'].dtype == float)
+        self.assert_(df2['Number3'].dtype == float)
+
 
 class TestParseSQL(unittest.TestCase):
 

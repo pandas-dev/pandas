@@ -80,6 +80,8 @@ thousands : str, default None
 comment : str, default None
     Indicates remainder of line should not be parsed
     Does not support line commenting (will return empty line)
+decimal : str, default '.'
+    Character to recognize as decimal point. E.g. use ',' for European data
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
@@ -243,7 +245,8 @@ _c_parser_defaults = {
     'factorize': True,
     'dtype': None,
     'usecols': None,
-    'compression': None
+    'compression': None,
+    'decimal': b'.'
 }
 
 _fwf_defaults = {
@@ -296,6 +299,7 @@ def _make_parser_function(name, sep=','):
                  keep_default_na=True,
                  thousands=None,
                  comment=None,
+                 decimal=b'.',
 
                  parse_dates=False,
                  keep_date_col=False,
@@ -336,6 +340,7 @@ def _make_parser_function(name, sep=','):
                     keep_default_na=keep_default_na,
                     thousands=thousands,
                     comment=comment,
+                    decimal=decimal,
 
                     parse_dates=parse_dates,
                     keep_date_col=keep_date_col,

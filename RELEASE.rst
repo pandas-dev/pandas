@@ -104,6 +104,8 @@ pandas 0.10.0
     perform. Add `ffill/bfill` convenience functions per above (#2284)
   - `HDFStore.keys()` now returns an absolute path-name for each key
   - `to_string()` now always returns a unicode string. (#2224)
+  - File parsers will not handle NA sentinel values arising from passed
+    converter functions
 
 **Improvements to existing features**
 
