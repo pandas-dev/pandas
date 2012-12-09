@@ -412,7 +412,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     # convert tuples to index
     if nentries == 1:
-        index = Index.from_tuples(tuples[0], name=names[0])
+        index = Index(tuples[0], name=names[0])
     else:
         index = MultiIndex.from_tuples(tuples, names=names)
     return index
