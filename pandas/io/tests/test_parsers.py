@@ -1783,10 +1783,13 @@ a,b,c
         expected = expected[['b', 'c']]
         tm.assert_frame_equal(result, expected)
 
+        result2 = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                header=None, usecols=['b', 'c'])
+        tm.assert_frame_equal(result2, result)
+
         # length conflict, passed names and usecols disagree
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           names=['a', 'b'], usecols=[1], header=None)
-
 
     def test_pure_python_failover(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
@@ -1951,13 +1954,16 @@ class TestParseSQL(unittest.TestCase):
         expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
         assert_same_values_and_dtype(result, expected)
 
+
 def assert_same_values_and_dtype(res, exp):
     assert(res.dtype == exp.dtype)
     assert_almost_equal(res, exp)
 
+
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
