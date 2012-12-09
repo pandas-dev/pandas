@@ -148,6 +148,7 @@ pandas 0.10.0
   - Fix issues resulting from datetime.datetime columns being converted to
     datetime64 when calling DataFrame.apply. (#2374)
   - Raise exception when calling to_panel on non uniquely-indexed frame (#2441)
+  - Improved detection of console encoding on IPython zmq frontends (#2458)
 
 
 pandas 0.9.1
