@@ -29,6 +29,30 @@ pandas 0.10.0
 
 **New features**
 
+  - Brand new high-performance delimited file parsing engine written in C and
+    Cython. 50% or better performance in many standard use cases with a
+    fraction as much memory usage. (#407, #821)
+  - Many new file parser (read_csv, read_table) features:
+
+    - Support for on-the-fly gzip or bz2 decompression (`compression` option)
+    - Ability to get back numpy.recarray instead of DataFrame
+      (`as_recarray=True`)
+    - `dtype` option: explicit column dtypes
+    - `usecols` option: specify list of columns to be read from a file. Good
+      for reading very wide files with many irrelevant columns
+    - Enhanced unicode decoding support via `encoding` option
+    - `skipinitialspace` dialect option
+    - Can specify strings to be recognized as True (`true_values`) or False
+      (`false_values`)
+    - High-performance `delim_whitespace` option for whitespace-delimited
+      files; a preferred alternative to the '\s+' regular expression delimiter
+    - Option to skip "bad" lines (wrong number of fields) that would otherwise
+      have caused an error in the past (`error_bad_lines` and `warn_bad_lines`
+      options)
+    - Substantially improved performance in the parsing of integers with
+      thousands markers and lines with comments
+    - Easy of European (and other) decimal formats (`decimal` option)
+
   - Add error handling to Series.str.encode/decode (#2276)
   - Add ``where`` and ``mask`` to Series (#2337)
   - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
