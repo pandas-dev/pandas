@@ -301,14 +301,19 @@ class DataFrameFormatter(object):
                       if len(col) > 0 else 0
                       for col in strcols]
         col_bins = _binify(col_widths, lwidth)
+        nbins = len(col_bins)
 
         str_lst = []
         st = 0
-        for ed in col_bins:
+        for i, ed in enumerate(col_bins):
             row = strcols[st:ed]
             row.insert(0, idx)
-            if ed <= len(strcols):
-                row.append([' \\'] + ['  '] * (len(self.frame) - 1))
+            if nbins > 1:
+                if ed <= len(strcols) and i < nbins - 1:
+                    row.append([' \\'] + ['  '] * (len(self.frame) - 1))
+                else:
+                    row.append([' '] * len(self.frame))
+
             str_lst.append(adjoin(1, *row))
             st = ed
         return '\n\n'.join(str_lst)

@@ -111,6 +111,13 @@ class TestDataFrameFormatting(unittest.TestCase):
         df=DataFrame(data,columns=cols,index=index1)
         self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
 
+    def test_repr_no_backslash(self):
+        pd.set_option('test.interactive', True)
+        df = DataFrame(np.random.randn(10, 4))
+
+        self.assertTrue('\\' not in repr(df))
+        pd.reset_option('test.interactive')
+
     def test_to_string_repr_unicode(self):
         buf = StringIO()
 
