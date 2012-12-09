@@ -476,17 +476,37 @@ class ExcelTests(unittest.TestCase):
         self.assertEqual(frame.index.names, recons.index.names)
 
         #test index_labels in same row as column names
-        self.frame.to_excel('/tmp/tests.xls', 'test1',
+        path = '%s.xls' % tm.rands(10)
+        self.frame.to_excel(path, 'test1',
                             cols=['A', 'B', 'C', 'D'], index=False)
         #take 'A' and 'B' as indexes (they are in same row as cols 'C', 'D')
         df = self.frame.copy()
         df = df.set_index(['A', 'B'])
 
-        reader = ExcelFile('/tmp/tests.xls')
+        reader = ExcelFile(path)
         recons = reader.parse('test1', index_col=[0, 1])
         tm.assert_frame_equal(df, recons)
 
         os.remove(path)
+
+    def test_excel_roundtrip_indexname(self):
+        path = '%s.xls' % tm.rands(10)
+
+        df = DataFrame(np.random.randn(10, 4))
+        df.index.name = 'foo'
+
+        df.to_excel(path)
+
+        xf = ExcelFile(path)
+        result = xf.parse(xf.sheet_names[0], index_col=0)
+
+        tm.assert_frame_equal(result, df)
+        self.assertEqual(result.index.name, 'foo')
+
+        try:
+            os.remove(path)
+        except os.error:
+            pass
 
     def test_excel_roundtrip_datetime(self):
         _skip_if_no_xlrd()
