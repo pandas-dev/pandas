@@ -2619,7 +2619,7 @@ copy : boolean, default False
         df = DataFrame.from_csv(path, header=header, index_col=index_col,
                                 sep=sep, parse_dates=parse_dates,
                                 encoding=encoding)
-        result = df.ix[:, 0]
+        result = df.icol(0)
         result.index.name = result.name = None
         return result
 

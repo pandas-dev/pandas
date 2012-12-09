@@ -178,6 +178,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 
         df = self.read_csv(StringIO(data), header=None,
                            date_parser=func,
+                           prefix='X',
                            parse_dates={'nominal' : [1, 2],
                                         'actual' : [1,3]})
         self.assert_('nominal' in df)
@@ -197,9 +198,9 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assert_('nominal' in df)
         self.assert_('actual' in df)
 
-        self.assert_('X1' in df)
-        self.assert_('X2' in df)
-        self.assert_('X3' in df)
+        self.assert_(1 in df)
+        self.assert_(2 in df)
+        self.assert_(3 in df)
 
         data = """\
 KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -210,6 +211,7 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
         df = read_csv(StringIO(data), header=None,
+                      prefix='X',
                       parse_dates=[[1, 2], [1,3]])
 
         self.assert_('X1_X2' in df)
@@ -224,11 +226,11 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         df = read_csv(StringIO(data), header=None,
                       parse_dates=[[1, 2], [1,3]], keep_date_col=True)
 
-        self.assert_('X1_X2' in df)
-        self.assert_('X1_X3' in df)
-        self.assert_('X1' in df)
-        self.assert_('X2' in df)
-        self.assert_('X3' in df)
+        self.assert_('1_2' in df)
+        self.assert_('1_3' in df)
+        self.assert_(1 in df)
+        self.assert_(2 in df)
+        self.assert_(3 in df)
 
         data = '''\
 KORD,19990127 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -506,12 +508,11 @@ ignore,this,row
                               index_col=0, parse_dates=True)
 
         expected = DataFrame(np.arange(1., 10.).reshape((3,3)),
-                             columns=['X1', 'X2', 'X3'],
+                             columns=[1, 2, 3],
                              index=[datetime(2000, 1, 1), datetime(2000, 1, 2),
                                     datetime(2000, 1, 3)])
         tm.assert_frame_equal(data, expected)
         tm.assert_frame_equal(data, data2)
-
 
     def test_detect_string_na(self):
         data = """A,B
@@ -666,6 +667,9 @@ c,4,5
 11,12,13,14,15
 """
         df = self.read_table(StringIO(data), sep=',', header=None)
+        df_pref = self.read_table(StringIO(data), sep=',', prefix='X',
+                                  header=None)
+
         names = ['foo', 'bar', 'baz', 'quux', 'panda']
         df2 = self.read_table(StringIO(data), sep=',', header=None,
                               names=names)
@@ -674,8 +678,11 @@ c,4,5
                     [11,12,13,14,15]]
         assert_almost_equal(df.values, expected)
         assert_almost_equal(df.values, df2.values)
-        self.assert_(np.array_equal(df.columns,
+
+        self.assert_(np.array_equal(df_pref.columns,
                                     ['X0', 'X1', 'X2', 'X3', 'X4']))
+        self.assert_(np.array_equal(df.columns, range(5)))
+
         self.assert_(np.array_equal(df2.columns, names))
 
     def test_header_with_index_col(self):
@@ -717,7 +724,7 @@ baz,7,8,9
     def test_read_table_unicode(self):
         fin = BytesIO(u'\u0141aski, Jan;1'.encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
-        self.assert_(isinstance(df1['X0'].values[0], unicode))
+        self.assert_(isinstance(df1[0].values[0], unicode))
 
     def test_read_table_wrong_num_columns(self):
         # too few!
@@ -1053,7 +1060,7 @@ c,4,5,01/03/2009
         f = lambda x: x.strip()
         converter = {0: f}
         df = self.read_csv(StringIO(data), header=None, converters=converter)
-        self.assert_(df.X0.dtype == object)
+        self.assert_(df[0].dtype == object)
 
     def test_converters_euro_decimal_format(self):
         data = """Id;Number1;Number2;Text1;Text2;Number3
@@ -1096,8 +1103,8 @@ qux foo
 foo
 bar"""
         df = read_csv(StringIO(text), header=None)
-        expected = DataFrame({'X0' : ['foo', 'bar baz', 'qux foo',
-                                      'foo', 'bar']})
+        expected = DataFrame({0 : ['foo', 'bar baz', 'qux foo',
+                                   'foo', 'bar']})
         tm.assert_frame_equal(df, expected)
 
     def test_parse_dates_custom_euroformat(self):
@@ -1441,9 +1448,9 @@ A,B,C
         pth = os.path.join(pth, 'tests/data/unicode_series.csv')
 
         result = self.read_csv(pth, header=None, encoding='latin-1')
-        result = result.set_index('X0')
+        result = result.set_index(0)
 
-        got = result['X1'][1632]
+        got = result[1][1632]
         expected = u'\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
 
         self.assertEquals(got, expected)

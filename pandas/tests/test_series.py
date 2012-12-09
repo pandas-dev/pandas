@@ -2143,6 +2143,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.ts.to_csv(path)
         ts = Series.from_csv(path)
         assert_series_equal(self.ts, ts)
+        self.assertTrue(ts.index.name is None)
 
         self.series.to_csv(path)
         series = Series.from_csv(path)

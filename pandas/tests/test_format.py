@@ -392,7 +392,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         filepath = os.path.join(pth, 'data', 'unicode_series.csv')
         df = pandas.read_csv(filepath, header=None,encoding='latin1')
         repr(df)
-        repr(df['X1'])
+        repr(df[1])
 
     def test_repr_corner(self):
         # representing infs poses no problems

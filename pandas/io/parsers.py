@@ -54,6 +54,8 @@ index_col : int or sequence, default None
 names : array-like
     List of column names to use. If file contains no header row, then you
     should explicitly pass header=None
+prefix : string or None (default)
+    Prefix to add to column numbers when no header, e.g 'X' for X0, X1, ...
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
@@ -207,6 +209,7 @@ _parser_defaults = {
     'header': 0,
     'index_col': None,
     'names': None,
+    'prefix': None,
     'skiprows': None,
     'na_values': None,
     'true_values': None,
@@ -276,6 +279,7 @@ def _make_parser_function(name, sep=','):
                  header=0,
                  index_col=None,
                  names=None,
+                 prefix=None,
                  skiprows=None,
                  skipfooter=None,
                  skip_footer=0,
@@ -335,6 +339,7 @@ def _make_parser_function(name, sep=','):
                     header=header,
                     index_col=index_col,
                     names=names,
+                    prefix=prefix,
                     skiprows=skiprows,
                     na_values=na_values,
                     true_values=true_values,
@@ -630,6 +635,7 @@ class ParserBase(object):
     def __init__(self, kwds):
         self.names = kwds.get('names')
         self.orig_names = None
+        self.prefix = kwds.pop('prefix', None)
 
         self.index_col = kwds.pop('index_col', None)
         self.index_names = None
@@ -845,7 +851,6 @@ class CParserWrapper(ParserBase):
         kwds = kwds.copy()
 
         self.as_recarray = kwds.get('as_recarray', False)
-
         ParserBase.__init__(self, kwds)
 
         if 'utf-16' in (kwds.get('encoding') or ''):
@@ -859,14 +864,19 @@ class CParserWrapper(ParserBase):
         # XXX
         self.usecols = self._reader.usecols
 
+        passed_names = self.names is None
+
         if self._reader.header is None:
             self.names = None
         else:
             self.names = list(self._reader.header)
 
         if self.names is None:
-            self.names = ['X%d' % i
-                          for i in range(self._reader.table_width)]
+            if self.prefix:
+                self.names = ['X%d' % i
+                              for i in range(self._reader.table_width)]
+            else:
+                self.names = range(self._reader.table_width)
 
         # XXX
         self._set_noconvert_columns()
@@ -879,6 +889,9 @@ class CParserWrapper(ParserBase):
                 (self.index_names, self.names,
                  self.index_col) = _clean_index_names(self.names,
                                                       self.index_col)
+
+            if self._reader.header is None and not passed_names:
+                self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 
@@ -1266,7 +1279,10 @@ class PythonParser(ParserBase):
 
             ncols = len(line)
             if not names:
-                columns = ['X%d' % i for i in range(ncols)]
+                if self.prefix:
+                    columns = ['X%d' % i for i in range(ncols)]
+                else:
+                    columns = range(ncols)
             else:
                 columns = names
 
@@ -1552,11 +1568,13 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
     for c in colspec:
         if c in colset:
-            colnames.append(str(c))
-        elif isinstance(c, int):
+            colnames.append(c)
+        elif isinstance(c, int) and c not in columns:
             colnames.append(str(columns[c]))
+        else:
+            colnames.append(c)
 
-    new_name = '_'.join(colnames)
+    new_name = '_'.join([str(x) for x in colnames])
     to_parse = [data_dict[c] for c in colnames if c in data_dict]
 
     try:
@@ -1610,7 +1628,7 @@ def _clean_index_names(columns, index_col):
             index_names.append(name)
 
     # hack
-    if index_names[0] is not None and 'Unnamed' in index_names[0]:
+    if isinstance(index_names[0], basestring) and 'Unnamed' in index_names[0]:
         index_names[0] = None
 
     return index_names, columns, index_col
