@@ -1017,10 +1017,17 @@ def _ensure_encoded(list lst):
         if PyUnicode_Check(x):
             x = PyUnicode_AsUTF8String(x)
         elif not PyBytes_Check(x):
-            x = bytes(x)
+            x = asbytes(x)
 
         result.append(x)
     return result
+
+cdef asbytes(object o):
+    if PY3:
+        return str(o).encode('utf-8')
+    else:
+        return str(o)
+
 
 def _is_file_like(obj):
     if PY3:

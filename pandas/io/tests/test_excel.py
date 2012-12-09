@@ -490,6 +490,8 @@ class ExcelTests(unittest.TestCase):
         os.remove(path)
 
     def test_excel_roundtrip_indexname(self):
+        _skip_if_no_excelsuite()
+
         path = '%s.xls' % tm.rands(10)
 
         df = DataFrame(np.random.randn(10, 4))
