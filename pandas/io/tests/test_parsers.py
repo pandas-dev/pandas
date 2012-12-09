@@ -1799,11 +1799,13 @@ a,b,c
         tm.assert_frame_equal(result, expected)
 
     def test_decompression(self):
+        try:
+            import gzip, bz2
+        except ImportError:
+            raise nose.SkipTest
+
         data = open(self.csv1, 'rb').read()
-
         expected = self.read_csv(self.csv1)
-
-        import gzip, bz2
 
         try:
             tmp = gzip.GzipFile('__tmp__', mode='wb')
