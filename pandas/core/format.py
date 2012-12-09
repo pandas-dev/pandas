@@ -1274,11 +1274,11 @@ def detect_console_encoding():
 
     encoding = None
     try:
-        encoding=sys.stdin.encoding
+        encoding = sys.stdout.encoding or sys.stdin.encoding
     except AttributeError:
         pass
 
-    if not encoding or encoding =='ascii': # try again for something better
+    if not encoding or encoding == 'ascii': # try again for something better
         try:
             encoding = locale.getpreferredencoding()
         except Exception:
