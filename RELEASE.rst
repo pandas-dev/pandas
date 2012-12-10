@@ -70,12 +70,14 @@ pandas 0.10.0
   - Wide DataFrames can be viewed more easily in the console with new
     `expand_frame_repr` and `line_width` configuration options. This is on by
     default now (#2436)
+  - Centered moving window functions via ``center`` keyword (#1270)
 
 **Experimental Features**
 
   - Add support for Panel4D, a named 4 Dimensional stucture
   - Add support for ndpanel factory functions, to create custom,
     domain-specific N-Dimensional containers
+  - 'density' property in `SparseSeries` (#2384)
 
 **API Changes**
 

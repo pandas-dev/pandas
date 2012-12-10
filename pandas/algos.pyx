@@ -1705,6 +1705,74 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     return output
 
 
+def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
+                ndarray[float64_t, ndim=1, cast=True] weights,
+                int minp, bint avg=True, bint avg_wgt=False):
+    """
+    Assume len(weights) << len(input)
+    """
+    cdef:
+        ndarray[double_t] output, tot_wgt
+        ndarray[int64_t] counts
+        Py_ssize_t in_i, win_i, win_n, win_k, in_n, in_k
+        float64_t val_in, val_win, c, w
+
+    in_n = len(input)
+    win_n = len(weights)
+    output = np.zeros(in_n, dtype=float)
+    counts = np.zeros(in_n, dtype=int)
+    if avg:
+        tot_wgt = np.zeros(in_n, dtype=float)
+
+    minp = _check_minp(len(weights), minp, in_n)
+
+    if avg_wgt:
+        for win_i from 0 <= win_i < win_n:
+            val_win = weights[win_i]
+            if val_win != val_win:
+                continue
+
+            for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
+                val_in = input[in_i]
+                if val_in == val_in:
+                    output[in_i + (win_n - win_i) - 1] += val_in * val_win
+                    counts[in_i + (win_n - win_i) - 1] += 1
+                    tot_wgt[in_i + (win_n - win_i) - 1] += val_win
+
+        for in_i from 0 <= in_i < in_n:
+            c = counts[in_i]
+            if c < minp:
+                output[in_i] = NaN
+            else:
+                w = tot_wgt[in_i]
+                if w == 0:
+                    output[in_i] = NaN
+                else:
+                    output[in_i] /= tot_wgt[in_i]
+
+    else:
+        for win_i from 0 <= win_i < win_n:
+            val_win = weights[win_i]
+            if val_win != val_win:
+                continue
+
+            for in_i from 0 <= in_i < in_n - (win_n - win_i) + 1:
+                val_in = input[in_i]
+
+                if val_in == val_in:
+                    output[in_i + (win_n - win_i) - 1] += val_in * val_win
+                    counts[in_i + (win_n - win_i) - 1] += 1
+
+        for in_i from 0 <= in_i < in_n:
+            c = counts[in_i]
+            if c < minp:
+                output[in_i] = NaN
+            elif avg:
+                output[in_i] /= c
+
+    return output
+
+
 #----------------------------------------------------------------------
 # group operations
 
