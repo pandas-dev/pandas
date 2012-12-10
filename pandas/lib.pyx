@@ -807,11 +807,11 @@ def create_hdf_rows_3d(ndarray index, ndarray columns,
 
                 tup = PyTuple_New(tup_size)
 
-                val  = columns[c]
+                val  = index[i]
                 PyTuple_SET_ITEM(tup, 0, val)
                 Py_INCREF(val)
 
-                val  = index[i]
+                val  = columns[c]
                 PyTuple_SET_ITEM(tup, 1, val)
                 Py_INCREF(val)
 
