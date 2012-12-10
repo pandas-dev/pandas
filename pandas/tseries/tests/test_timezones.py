@@ -705,6 +705,26 @@ class TestTimeZones(unittest.TestCase):
         ts_result = ts1.append(ts2)
         self.assertEqual(utc, ts_result.index.tz)
 
+    def test_append_aware_naive(self):
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assert_(ts_result.index.equals(
+                ts1.index.asobject.append(ts2.index.asobject)))
+
+        #mixed
+
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
+        rng2 = range(100)
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assert_(ts_result.index.equals(
+                ts1.index.asobject.append(ts2.index)))
+
     def test_equal_join_ensure_utc(self):
         rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
         ts = Series(np.random.randn(len(rng)), index=rng)

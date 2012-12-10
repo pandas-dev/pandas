@@ -861,7 +861,7 @@ class DatetimeIndex(Int64Index):
         to_concat = self._ensure_compat_concat(to_concat)
         to_concat, factory = _process_concat_data(to_concat, name)
 
-        return factory(com._concat_compat(to_concat))
+        return factory(to_concat)
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """
@@ -1636,29 +1636,50 @@ def _time_to_micros(time):
 def _process_concat_data(to_concat, name):
     klass = Index
     kwargs = {}
+    concat = np.concatenate
 
     all_dti = True
     need_utc_convert = False
+    has_naive = False
     tz = None
+
     for x in to_concat:
         if not isinstance(x, DatetimeIndex):
             all_dti = False
         else:
             if tz is None:
                 tz = x.tz
-            elif x.tz != tz:
+
+            if x.tz is None:
+                has_naive = True
+
+            if x.tz != tz:
                 need_utc_convert = True
                 tz = 'UTC'
 
-    if need_utc_convert:
-        to_concat = [x.tz_convert('UTC') for x in to_concat]
-
     if all_dti:
-        klass = DatetimeIndex
-        kwargs = {'tz' : tz}
+        need_obj_convert = False
+        if has_naive and tz is not None:
+            need_obj_convert = True
 
-    to_concat = [x.values if isinstance(x, Index) else x
-                 for x in to_concat]
+        if need_obj_convert:
+            to_concat = [x.asobject.values for x in to_concat]
 
-    factory_func = lambda x: klass(x, name=name, **kwargs)
+        else:
+            if need_utc_convert:
+                to_concat = [x.tz_convert('UTC').values for x in to_concat]
+            else:
+                to_concat = [x.values for x in to_concat]
+
+            klass = DatetimeIndex
+            kwargs = {'tz' : tz}
+            concat = com._concat_compat
+    else:
+        for i, x in enumerate(to_concat):
+            if isinstance(x, DatetimeIndex):
+                to_concat[i] = x.asobject.values
+            elif isinstance(x, Index):
+                to_concat[i] = x.values
+
+    factory_func = lambda x: klass(concat(x), name=name, **kwargs)
     return to_concat, factory_func
