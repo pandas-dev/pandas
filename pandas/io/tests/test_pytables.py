@@ -207,14 +207,14 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_panel_equal(self.store['s1'], expected)
 
         # test dict format
-        self.store.append('s2', wp, min_itemsize = { 'column' : 20 })
+        self.store.append('s2', wp, min_itemsize = { 'minor_axis' : 20 })
         self.store.append('s2', wp2)
         expected = concat([ wp, wp2], axis = 2)
         expected = expected.reindex(minor_axis = sorted(expected.minor_axis))
         tm.assert_panel_equal(self.store['s2'], expected)
 
         # apply the wrong field (similar to #1)
-        self.store.append('s3', wp, min_itemsize = { 'index' : 20 })
+        self.store.append('s3', wp, min_itemsize = { 'major_axis' : 20 })
         self.assertRaises(Exception, self.store.append, 's3')
 
         # test truncation of bigger strings
@@ -226,8 +226,8 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('p5', wp)
         self.store.create_table_index('p5')
 
-        assert(self.store.handle.root.p5.table.cols.index.is_indexed == True)
-        assert(self.store.handle.root.p5.table.cols.column.is_indexed == False)
+        assert(self.store.handle.root.p5.table.cols.major_axis.is_indexed == True)
+        assert(self.store.handle.root.p5.table.cols.minor_axis.is_indexed == False)
 
         df = tm.makeTimeDataFrame()
         self.store.append('f', df[:10])
