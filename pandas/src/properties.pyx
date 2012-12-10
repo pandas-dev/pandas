@@ -57,7 +57,11 @@ cdef class SeriesIndex(object):
     def __set__(self, obj, value):
         if len(obj) != len(value):
             raise AssertionError('Index length did not match values')
-        obj._index = self._check_type(value)
+        obj._index = val = self._check_type(value)
+        if hasattr(val, 'tz'):
+            # hack for #2139
+            obj._make_time_series()
+
 
 cdef class ValuesProperty(object):
 

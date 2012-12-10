@@ -46,7 +46,7 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
     for i, a in enumerate(axis_orders):
         setattr(klass,a,lib.AxisProperty(i))
 
-    # define the __init__
+    #### define the methods ####
     def __init__(self, *args, **kwargs):
         if not (kwargs.get('data') or len(args)):
             raise Exception("must supply at least a data argument to [%s]" % klass_name)
@@ -57,8 +57,8 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
         self._init_data( *args, **kwargs)
     klass.__init__ = __init__
 
-    # define _get_place_axes
     def _get_plane_axes(self, axis):
+
         axis   = self._get_axis_name(axis)
         index  = self._AXIS_ORDERS.index(axis)
 
@@ -66,18 +66,40 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
         if index:
             planes.extend(self._AXIS_ORDERS[0:index])
         if index != self._AXIS_LEN:
-            planes.extend(self._AXIS_ORDERS[index:])
+            planes.extend(self._AXIS_ORDERS[index+1:])
 
-        return planes
-    klass._get_plane_axes
+        return [ getattr(self,p) for p in planes ]
+    klass._get_plane_axes = _get_plane_axes
 
-    # remove these operations
-    def to_frame(self, *args, **kwargs):
-        raise NotImplementedError
-    klass.to_frame = to_frame
-    def to_excel(self, *args, **kwargs):
-        raise NotImplementedError
-    klass.to_excel = to_excel
+    def _combine(self, other, func, axis=0):
+        if isinstance(other, klass):
+            return self._combine_with_constructor(other, func)
+        return super(klass, self)._combine(other, func, axis=axis)
+    klass._combine = _combine
+
+    def _combine_with_constructor(self, other, func):
+
+        # combine labels to form new axes
+        new_axes = []
+        for a in self._AXIS_ORDERS:
+            new_axes.append(getattr(self,a) + getattr(other,a))
+
+        # reindex: could check that everything's the same size, but forget it
+        d = dict([ (a,ax) for a,ax in zip(self._AXIS_ORDERS,new_axes) ])
+        d['copy'] = False
+        this = self.reindex(**d)
+        other = other.reindex(**d)
+    
+        result_values = func(this.values, other.values)
+
+        return self._constructor(result_values, **d)
+    klass._combine_with_constructor = _combine_with_constructor
+
+    # set as NonImplemented operations which we don't support
+    for f in ['to_frame','to_excel','to_sparse','groupby','join','_get_join_index']:
+        def func(self, *args, **kwargs):
+            raise NotImplementedError
+        setattr(klass,f,func)
 
     return klass
 

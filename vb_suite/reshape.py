@@ -49,3 +49,14 @@ idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
 unstack_sparse_keyspace = Benchmark('idf.unstack()', setup,
                                     start_date=datetime(2011, 10, 1))
 
+# Melt
+
+setup = common_setup + """
+from pandas.core.reshape import melt
+df = DataFrame(np.random.randn(10000, 3), columns=['A', 'B', 'C'])
+df['id1'] = np.random.randint(0, 10, 10000)
+df['id2'] = np.random.randint(100, 1000, 10000)
+"""
+
+melt_dataframe = Benchmark("melt(df, id_vars=['id1', 'id2'])", setup,
+                           start_date=datetime(2012, 8, 1))

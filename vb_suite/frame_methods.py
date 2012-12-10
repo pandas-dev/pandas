@@ -98,3 +98,18 @@ df = DataFrame(randn(100, 10))
 
 frame_to_string_floats = Benchmark('df.to_string()', setup,
                                    start_date=datetime(2010, 6, 1))
+
+# insert many columns
+
+setup = common_setup + """
+N = 1000
+
+def f(K=500):
+    df = DataFrame(index=range(N))
+    new_col = np.random.randn(N)
+    for i in range(K):
+        df[i] = new_col
+"""
+
+frame_insert_500_columns = Benchmark('f()', setup,
+                                     start_date=datetime(2011, 1, 1))

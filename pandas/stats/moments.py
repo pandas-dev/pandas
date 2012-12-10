@@ -9,8 +9,9 @@ from functools import wraps
 from numpy import NaN
 import numpy as np
 
-from pandas.core.api import DataFrame, Series, notnull
+from pandas.core.api import DataFrame, Series, Panel, notnull
 import pandas.algos as algos
+import pandas.core.common as com
 
 from pandas.util.decorators import Substitution, Appender
 
@@ -18,7 +19,7 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
            'rolling_quantile', 'rolling_median', 'rolling_apply',
-           'rolling_corr_pairwise',
+           'rolling_corr_pairwise', 'rolling_window',
            'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov',
            'expanding_count', 'expanding_max', 'expanding_min',
            'expanding_sum', 'expanding_mean', 'expanding_std',
@@ -124,7 +125,7 @@ _bias_doc = r"""bias : boolean, default False
 """
 
 
-def rolling_count(arg, window, freq=None, time_rule=None):
+def rolling_count(arg, window, freq=None, center=False, time_rule=None):
     """
     Rolling count of number of non-NaN observations inside provided window.
 
@@ -134,6 +135,8 @@ def rolling_count(arg, window, freq=None, time_rule=None):
     window : Number of observations used for calculating statistic
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
 
     Returns
     -------
@@ -146,7 +149,7 @@ def rolling_count(arg, window, freq=None, time_rule=None):
 
     converted = np.isfinite(values).astype(float)
     result = rolling_sum(converted, window, min_periods=1,
-                         time_rule=time_rule)
+                         center=center) # already converted
 
     # putmask here?
     result[np.isnan(result)] = 0
@@ -156,22 +159,37 @@ def rolling_count(arg, window, freq=None, time_rule=None):
 
 @Substitution("Unbiased moving covariance", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
-def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
+def rolling_cov(arg1, arg2, window, min_periods=None, freq=None,
+                center=False, time_rule=None):
+    arg1 = _conv_timerule(arg1, freq, time_rule)
+    arg2 = _conv_timerule(arg2, freq, time_rule)
+    window = min(window, len(arg1), len(arg2))
     def _get_cov(X, Y):
-        mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
-        count = rolling_count(X + Y, window, time_rule)
+        mean = lambda x: rolling_mean(x, window, min_periods)
+        count = rolling_count(X + Y, window)
         bias_adj = count / (count - 1)
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
-    return _flex_binary_moment(arg1, arg2, _get_cov)
-
+    rs = _flex_binary_moment(arg1, arg2, _get_cov)
+    if center:
+        if isinstance(rs, (Series, DataFrame, Panel)):
+            rs = rs.shift(-int((window + 1) / 2.))
+        else:
+            offset = int((window + 1) / 2.)
+            rs[:-offset] = rs[offset:]
+            rs[-offset:] = np.nan
+    return rs
 
 @Substitution("Moving sample correlation", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
-def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
+def rolling_corr(arg1, arg2, window, min_periods=None, freq=None,
+                 center=False, time_rule=None):
     def _get_corr(a, b):
-        num = rolling_cov(a, b, window, min_periods, time_rule)
-        den = (rolling_std(a, window, min_periods, time_rule) *
-                rolling_std(b, window, min_periods, time_rule))
+        num = rolling_cov(a, b, window, min_periods, freq=freq,
+                          center=center, time_rule=time_rule)
+        den = (rolling_std(a, window, min_periods, freq=freq,
+                           center=center, time_rule=time_rule) *
+                rolling_std(b, window, min_periods, freq=freq,
+                            center=center, time_rule=time_rule))
         return num / den
     return _flex_binary_moment(arg1, arg2, _get_corr)
 
@@ -234,7 +252,7 @@ def rolling_corr_pairwise(df, window, min_periods=None):
 
 
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
-                    time_rule=None, **kwargs):
+                    center=False, time_rule=None, **kwargs):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -249,6 +267,8 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     axis : int, default 0
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
 
     Returns
     -------
@@ -260,8 +280,28 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     # actually calculate the moment. Faster way to do this?
     result = np.apply_along_axis(calc, axis, values)
 
-    return return_hook(result)
+    rs = return_hook(result)
+    if center:
+        rs = _center_window(rs, window, axis)
+    return rs
 
+def _center_window(rs, window, axis):
+    offset = int((window - 1) / 2.)
+    if isinstance(rs, (Series, DataFrame, Panel)):
+        rs = rs.shift(-offset, axis=axis)
+    else:
+        rs_indexer = [slice(None)] * rs.ndim
+        rs_indexer[axis] = slice(None, -offset)
+
+        lead_indexer = [slice(None)] * rs.ndim
+        lead_indexer[axis] = slice(offset, None)
+
+        na_indexer = [slice(None)] * rs.ndim
+        na_indexer[axis] = slice(-offset, None)
+
+        rs[rs_indexer] = rs[lead_indexer]
+        rs[na_indexer] = np.nan
+    return rs
 
 def _process_data_structure(arg, kill_inf=True):
     if isinstance(arg, DataFrame):
@@ -450,12 +490,14 @@ def _rolling_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _type_of_input)
     @Appender(_doc_template)
     @wraps(func)
-    def f(arg, window, min_periods=None, freq=None, time_rule=None, **kwargs):
+    def f(arg, window, min_periods=None, freq=None, center=False,
+          time_rule=None, **kwargs):
         def call_cython(arg, window, minp, **kwds):
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods,
-                               freq=freq, time_rule=time_rule, **kwargs)
+                               freq=freq, center=center,
+                               time_rule=time_rule, **kwargs)
 
     return f
 
@@ -477,7 +519,7 @@ rolling_kurt = _rolling_func(algos.roll_kurt, 'Unbiased moving kurtosis',
 
 
 def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
-                     time_rule=None):
+                     center=False, time_rule=None):
     """Moving quantile
 
     Parameters
@@ -489,6 +531,8 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
         Minimum number of observations in window required to have a value
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
 
     Returns
     -------
@@ -499,11 +543,11 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
         minp = _use_window(minp, window)
         return algos.roll_quantile(arg, window, minp, quantile)
     return _rolling_moment(arg, window, call_cython, min_periods,
-                           freq=freq, time_rule=time_rule)
+                           freq=freq, center=center, time_rule=time_rule)
 
 
 def rolling_apply(arg, window, func, min_periods=None, freq=None,
-                  time_rule=None):
+                  center=False, time_rule=None):
     """Generic moving function application
 
     Parameters
@@ -516,6 +560,8 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         Minimum number of observations in window required to have a value
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
 
     Returns
     -------
@@ -525,21 +571,120 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         minp = _use_window(minp, window)
         return algos.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
-                           freq=freq, time_rule=time_rule)
+                           freq=freq, center=center, time_rule=time_rule)
+
+def rolling_window(arg, window=None, win_type=None, min_periods=None,
+                   freq=None, center=False, mean=True, time_rule=None,
+                   axis=0, **kwargs):
+    """
+    Applies a centered moving window of type ``window_type`` and size ``window``
+    on the data.
+
+    Parameters
+    ----------
+    arg : Series, DataFrame
+    window : int or ndarray
+        Filtering window specification. If the window is an integer, then it is
+        treated as the window length and win_type is required
+    win_type : str, default None
+        Window type (see Notes)
+    min_periods : int
+        Minimum number of observations in window required to have a value.
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
+    mean : boolean, default True
+        If True computes weighted mean, else weighted sum
+
+    Returns
+    -------
+    y : type of input argument
+
+    Notes
+    -----
+    The recognized window types are:
+
+    * ``boxcar``
+    * ``triang``
+    * ``blackman``
+    * ``hamming``
+    * ``bartlett``
+    * ``parzen``
+    * ``bohman``
+    * ``blackmanharris``
+    * ``nuttall``
+    * ``barthann``
+    * ``kaiser`` (needs beta)
+    * ``gaussian`` (needs std)
+    * ``general_gaussian`` (needs power, width)
+    * ``slepian`` (needs width).
+    """
+    if isinstance(window, (list, tuple, np.ndarray)):
+        if win_type is not None:
+            raise ValueError(('Do not specify window type if using custom '
+                              'weights'))
+        window = com._asarray_tuplesafe(window).astype(float)
+    elif com.is_integer(window): #window size
+        if win_type is None:
+            raise ValueError('Must specify window type')
+        try:
+            import scipy.signal as sig
+        except ImportError:
+            raise ImportError('Please install scipy to generate window weight')
+        win_type = _validate_win_type(win_type, kwargs) # may pop from kwargs
+        window = sig.get_window(win_type, window).astype(float)
+    else:
+        raise ValueError('Invalid window %s' % str(window))
+
+    minp = _use_window(min_periods, len(window))
+
+    arg = _conv_timerule(arg, freq, time_rule)
+    return_hook, values = _process_data_structure(arg)
+
+    f = lambda x: algos.roll_window(x, window, minp, avg=mean)
+    result = np.apply_along_axis(f, axis, values)
+
+    rs = return_hook(result)
+    if center:
+        rs = _center_window(rs, len(window), axis)
+    return rs
+
+def _validate_win_type(win_type, kwargs):
+    # may pop from kwargs
+    arg_map = {'kaiser' : ['beta'],
+               'gaussian' : ['std'],
+               'general_gaussian' : ['power', 'width'],
+               'slepian' : ['width']}
+    if win_type in arg_map:
+        return tuple([win_type] +
+                     _pop_args(win_type, arg_map[win_type], kwargs))
+    return win_type
+
+def _pop_args(win_type, arg_names, kwargs):
+    msg = '%s window requires %%s' % win_type
+    all_args = []
+    for n in arg_names:
+        if n not in kwargs:
+            raise ValueError(msg % n)
+        all_args.append(kwargs.pop(n))
+    return all_args
 
 
 def _expanding_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _type_of_input)
     @Appender(_expanding_doc)
     @wraps(func)
-    def f(arg, min_periods=1, freq=None, time_rule=None, **kwargs):
+    def f(arg, min_periods=1, freq=None, center=False, time_rule=None,
+          **kwargs):
         window = len(arg)
 
         def call_cython(arg, window, minp, **kwds):
             minp = check_minp(minp, window)
             return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods,
-                               freq=freq, time_rule=time_rule, **kwargs)
+                               freq=freq, center=center,
+                               time_rule=time_rule, **kwargs)
 
     return f
 
@@ -560,7 +705,7 @@ expanding_kurt = _expanding_func(algos.roll_kurt, 'Unbiased expanding kurtosis',
                              check_minp=_require_min_periods(4))
 
 
-def expanding_count(arg, freq=None, time_rule=None):
+def expanding_count(arg, freq=None, center=False, time_rule=None):
     """
     Expanding count of number of non-NaN observations.
 
@@ -569,16 +714,19 @@ def expanding_count(arg, freq=None, time_rule=None):
     arg :  DataFrame or numpy ndarray-like
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
 
     Returns
     -------
     expanding_count : type of caller
     """
-    return rolling_count(arg, len(arg), freq=freq, time_rule=time_rule)
+    return rolling_count(arg, len(arg), freq=freq, center=center,
+                         time_rule=time_rule)
 
 
 def expanding_quantile(arg, quantile, min_periods=1, freq=None,
-                     time_rule=None):
+                       center=False, time_rule=None):
     """Expanding quantile
 
     Parameters
@@ -589,29 +737,35 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
         Minimum number of observations in window required to have a value
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
 
     Returns
     -------
     y : type of input argument
     """
     return rolling_quantile(arg, len(arg), quantile, min_periods=min_periods,
-                            freq=freq, time_rule=time_rule)
+                            freq=freq, center=center, time_rule=time_rule)
 
 
 @Substitution("Unbiased expanding covariance", _binary_arg_flex, _flex_retval)
 @Appender(_expanding_doc)
-def expanding_cov(arg1, arg2, min_periods=1, time_rule=None):
+def expanding_cov(arg1, arg2, min_periods=1, freq=None, center=False,
+                  time_rule=None):
     window = max(len(arg1), len(arg2))
     return rolling_cov(arg1, arg2, window,
-                       min_periods=min_periods, time_rule=time_rule)
+                       min_periods=min_periods, freq=freq,
+                       center=center, time_rule=time_rule)
 
 
 @Substitution("Expanding sample correlation", _binary_arg_flex, _flex_retval)
 @Appender(_expanding_doc)
-def expanding_corr(arg1, arg2, min_periods=1, time_rule=None):
+def expanding_corr(arg1, arg2, min_periods=1, freq=None, center=False,
+                   time_rule=None):
     window = max(len(arg1), len(arg2))
     return rolling_corr(arg1, arg2, window,
-                        min_periods=min_periods, time_rule=time_rule)
+                        min_periods=min_periods,
+                        freq=freq, center=center, time_rule=time_rule)
 
 
 def expanding_corr_pairwise(df, min_periods=1):
@@ -634,7 +788,8 @@ def expanding_corr_pairwise(df, min_periods=1):
     return rolling_corr_pairwise(df, window, min_periods=min_periods)
 
 
-def expanding_apply(arg, func, min_periods=1, freq=None, time_rule=None):
+def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
+                    time_rule=None):
     """Generic expanding function application
 
     Parameters
@@ -646,6 +801,8 @@ def expanding_apply(arg, func, min_periods=1, freq=None, time_rule=None):
         Minimum number of observations in window required to have a value
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
+    center : boolean, default False
+        Whether the label should correspond with center of window
 
     Returns
     -------
@@ -653,4 +810,4 @@ def expanding_apply(arg, func, min_periods=1, freq=None, time_rule=None):
     """
     window = len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
-                         time_rule=time_rule)
+                         center=center, time_rule=time_rule)

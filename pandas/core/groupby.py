@@ -1720,7 +1720,7 @@ class NDFrameGroupBy(GroupBy):
         if isinstance(values[0], DataFrame):
             return self._concat_objects(keys, values,
                                         not_indexed_same=not_indexed_same)
-        else:
+        elif hasattr(self.grouper, 'groupings'):
             if len(self.grouper.groupings) > 1:
                 key_index = MultiIndex.from_tuples(keys, names=key_names)
             else:
@@ -1757,6 +1757,10 @@ class NDFrameGroupBy(GroupBy):
                                  columns=columns)
             else:
                 return Series(values, index=key_index)
+        else:
+            # Handle cases like BinGrouper
+            return self._concat_objects(keys, values,
+                                        not_indexed_same=not_indexed_same)
 
     def transform(self, func, *args, **kwargs):
         """
@@ -2002,7 +2006,6 @@ class PanelGroupBy(NDFrameGroupBy):
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         obj = self._obj_with_exclusions
         result = {}
-        cannot_agg = []
 
         if self.axis > 0:
             for item in obj:

@@ -617,6 +617,21 @@ class TestTSPlot(unittest.TestCase):
             self.assert_(PeriodIndex(data=l.get_xdata()).freq == 'D')
 
     @slow
+    def test_mixed_freq_alignment(self):
+        import matplotlib.pyplot as plt
+        ts_ind = date_range('2012-01-01 13:00', '2012-01-02', freq='H')
+        ts_data = np.random.randn(12)
+
+        ts = Series(ts_data, index=ts_ind)
+        ts2 = ts.asfreq('T').interpolate()
+
+        plt.close('all')
+        ax = ts.plot()
+        ts2.plot(style='r')
+
+        self.assert_(ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0])
+
+    @slow
     def test_mixed_freq_lf_first(self):
         import matplotlib.pyplot as plt
         plt.close('all')

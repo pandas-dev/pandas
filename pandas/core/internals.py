@@ -859,7 +859,7 @@ class BlockManager(object):
 
     def _consolidate_inplace(self):
         self.blocks = _consolidate(self.blocks, self.items)
-        self._is_consolidated = true
+        self._is_consolidated = True
         self._known_consolidated = True
 
     def get(self, item):

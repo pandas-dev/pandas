@@ -368,6 +368,51 @@ class CheckIndexing(object):
         self.panel4d['lP'] = self.panel4d['l1'] > 0
         self.assert_(self.panel4d['lP'].values.dtype == np.bool_)
 
+    def test_comparisons(self):
+        p1 = tm.makePanel4D()
+        p2 = tm.makePanel4D()
+
+        tp = p1.reindex(labels = p1.labels + ['foo'])
+        p  = p1[p1.labels[0]]
+
+        def test_comp(func):
+            result = func(p1, p2)
+            self.assert_(np.array_equal(result.values,
+                                        func(p1.values, p2.values)))
+
+            # versus non-indexed same objs
+            self.assertRaises(Exception, func, p1, tp)
+
+            # versus different objs
+            self.assertRaises(Exception, func, p1, p)
+
+            result3 = func(self.panel4d, 0)
+            self.assert_(np.array_equal(result3.values,
+                                        func(self.panel4d.values, 0)))
+
+        test_comp(operator.eq)
+        test_comp(operator.ne)
+        test_comp(operator.lt)
+        test_comp(operator.gt)
+        test_comp(operator.ge)
+        test_comp(operator.le)
+
+    def test_setitem_ndarray(self):
+        raise nose.SkipTest
+    #    from pandas import DateRange, datetools
+
+    #    timeidx = DateRange(start=datetime(2009,1,1),
+    #                        end=datetime(2009,12,31),
+    #                        offset=datetools.MonthEnd())
+    #    lons_coarse = np.linspace(-177.5, 177.5, 72)
+    #    lats_coarse = np.linspace(-87.5, 87.5, 36)
+    #    P = Panel(items=timeidx, major_axis=lons_coarse, minor_axis=lats_coarse)
+    #    data = np.random.randn(72*36).reshape((72,36))
+    #    key = datetime(2009,2,28)
+    #    P[key] = data#
+
+    #    assert_almost_equal(P[key].values, data)
+
     def test_major_xs(self):
         ref = self.panel4d['l1']['ItemA']
 

@@ -51,11 +51,15 @@ except ImportError:
 setuptools_kwargs = {}
 if sys.version_info[0] >= 3:
 
+    min_numpy_ver = 1.6
+    if sys.version_info[1] >= 3: # 3.3 needs numpy 1.7+
+        min_numpy_ver = "1.7.0b2"
+
     setuptools_kwargs = {'use_2to3': True,
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'pytz',
-                                              'numpy >= 1.4'],
+                                              'numpy >= %s' % min_numpy_ver],
                          'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
                                                     ],
                         }
@@ -657,9 +661,6 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
 if _have_setuptools:
     setuptools_kwargs["test_suite"] = "nose.collector"
 
-# options = {'bdist_wininst': {'user-access-control': 'auto'}}
-options = {}
-
 write_version_py()
 setup(name=DISTNAME,
       version=FULLVERSION,
@@ -704,5 +705,4 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
-      options=options,
       **setuptools_kwargs)

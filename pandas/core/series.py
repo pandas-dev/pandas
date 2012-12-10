@@ -368,6 +368,10 @@ class Series(np.ndarray, generic.PandasObject):
 
         return subarr
 
+    def _make_time_series(self):
+        # oh boy #2139
+        self.__class__ = TimeSeries
+
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False):
         """
@@ -594,7 +598,7 @@ copy : boolean, default False
         ser = self if inplace else self.copy()
         if not isinstance(other, (list, tuple, np.ndarray)):
             ser._set_with(~cond, other)
-            return ser
+            return None if inplace else ser
 
         if isinstance(other, Series):
             other = other.reindex(ser.index)
@@ -603,7 +607,7 @@ copy : boolean, default False
 
         np.putmask(ser, ~cond, other)
 
-        return ser
+        return None if inplace else ser
 
     def mask(self, cond):
         """
@@ -745,7 +749,7 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
-    def convert_objects(self):
+    def convert_objects(self, convert_dates=True):
         """
         Attempt to infer better dtype
 
@@ -754,8 +758,8 @@ copy : boolean, default False
         converted : Series
         """
         if self.dtype == np.object_:
-            return Series(lib.maybe_convert_objects(self, convert_datetime=1),
-                          self.index)
+            return Series(lib.maybe_convert_objects(
+                    self, convert_datetime=convert_dates), self.index)
         return self
 
     def repeat(self, reps):
@@ -903,7 +907,7 @@ copy : boolean, default False
                 self.index = new_index
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
-                return self
+                return
             else:
                 return Series(self.values.copy(), index=new_index,
                               name=self.name)
@@ -1140,6 +1144,15 @@ copy : boolean, default False
         """
         return Series(self.values.copy(order), index=self.index,
                       name=self.name)
+
+    def tolist(self):
+        """
+        Convert Series to a nested list
+        Overrides numpy.ndarray.tolist
+        """
+        if com.is_datetime64_dtype(self):
+            return self.astype(object).values.tolist()
+        return self.values.tolist()
 
     def to_dict(self):
         """
@@ -2237,7 +2250,7 @@ copy : boolean, default False
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,
-              fill_value=None, method=None, inplace=False, limit=None):
+              fill_value=None, method=None, limit=None):
         """
         Align two Series object with the specified join method
 
@@ -2410,7 +2423,7 @@ copy : boolean, default False
         filled : Series
         """
         if not self._can_hold_na:
-            return self.copy() if not inplace else self
+            return self.copy() if not inplace else None
 
         if value is not None:
             if method is not None:
@@ -2436,7 +2449,7 @@ copy : boolean, default False
             else:
                 result = Series(values, index=self.index, name=self.name)
 
-        return result
+        return result if not inplace else None
 
     def ffill(self, inplace=False, limit=None):
         return self.fillna(method='ffill', inplace=inplace, limit=limit)
@@ -2483,7 +2496,6 @@ copy : boolean, default False
         def _rep_one(s, to_rep, v):  # replace single value
             mask = com.mask_missing(s.values, to_rep)
             np.putmask(s.values, mask, v)
-            return s
 
         def _rep_dict(rs, to_rep):  # replace {[src] -> dest}
 
@@ -2504,26 +2516,24 @@ copy : boolean, default False
             else:  # if no risk of clobbering then simple
                 for d, sset in dd.iteritems():
                     _rep_one(rs, sset, d)
-            return rs
 
         if np.isscalar(to_replace):
             to_replace = [to_replace]
 
         if isinstance(to_replace, dict):
-            return _rep_dict(result, to_replace)
-
-        if isinstance(to_replace, (list, np.ndarray)):
+            _rep_dict(result, to_replace)
+        elif isinstance(to_replace, (list, np.ndarray)):
 
             if isinstance(value, (list, np.ndarray)):  # check same length
                 vl, rl = len(value), len(to_replace)
                 if vl == rl:
-                    return _rep_dict(result, dict(zip(to_replace, value)))
-                raise ValueError('Got %d to replace but %d values' % (rl, vl))
+                    _rep_dict(result, dict(zip(to_replace, value)))
+                else:
+                    raise ValueError('Got %d to replace but %d values'
+                                     % (rl, vl))
 
             elif value is not None:  # otherwise all replaced with same value
-
-                return _rep_one(result, to_replace, value)
-
+                _rep_one(result, to_replace, value)
             else:  # method
                 if method is None:  # pragma: no cover
                     raise ValueError('must specify a fill method')
@@ -2535,10 +2545,11 @@ copy : boolean, default False
                 if not inplace:
                     result = Series(result.values, index=self.index,
                                     name=self.name)
-                return result
+        else:
+            raise ValueError('Unrecognized to_replace type %s' %
+                             type(to_replace))
 
-        raise ValueError('Unrecognized to_replace type %s' %
-                         type(to_replace))
+        return result if not inplace else None
 
     def isin(self, values):
         """
@@ -2612,7 +2623,7 @@ copy : boolean, default False
         df = DataFrame.from_csv(path, header=header, index_col=index_col,
                                 sep=sep, parse_dates=parse_dates,
                                 encoding=encoding)
-        result = df.ix[:, 0]
+        result = df.icol(0)
         result.index.name = result.name = None
         return result
 
@@ -2886,7 +2897,7 @@ copy : boolean, default False
         result = self if inplace else self.copy()
         result.index = [mapper_f(x) for x in self.index]
 
-        return result
+        return result if not inplace else None
 
     @property
     def weekday(self):

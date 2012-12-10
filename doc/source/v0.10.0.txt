@@ -90,7 +90,6 @@ Updated PyTables Support
 
        - performance improvments on table writing
        - support for arbitrarily indexed dimensions
-       - ``SparseSeries`` now has a ``density`` property (#2384)
 
   **Bug Fixes**
 
@@ -111,6 +110,23 @@ Updated PyTables Support
        import os
        os.remove('store.h5')
 
+N Dimensional Panels (Experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
+:ref:`Docs <dsintro-panel4d>` for NDim. Here is a taste of what to expect.
+
+     .. ipython:: python
+
+        p4d = Panel4D(randn(2, 2, 5, 4),
+              labels=['Label1','Label2'],
+              items=['Item1', 'Item2'],
+              major_axis=date_range('1/1/2000', periods=5),
+              minor_axis=['A', 'B', 'C', 'D'])
+        p4d
+
+
+
 API changes
 ~~~~~~~~~~~
 
@@ -121,14 +137,14 @@ API changes
         def f(x):
 	        return Series([ x, x**2 ], index = ['x', 'x^s'])
         s = Series(np.random.rand(5))
-	    s
+        s
         s.apply(f)
 
-    This is conceptually similar to the following.
+  - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (GH2411_)
 
-    .. ipython:: python
+  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace (GH2412_)
 
-        concat([ f(y) for x, y in s.iteritems() ], axis=1).T
+  - ``SparseSeries`` now has a ``density`` property (#2384)
 
   - New API functions for working with pandas options (GH2097_):
 
@@ -157,3 +173,5 @@ on GitHub for a complete list.
 .. _GH2097: https://github.com/pydata/pandas/issues/2097
 .. _GH2224: https://github.com/pydata/pandas/issues/2224
 .. _GH2431: https://github.com/pydata/pandas/issues/2431
+.. _GH2412: https://github.com/pydata/pandas/issues/2412
+.. _GH2411: https://github.com/pydata/pandas/issues/2411

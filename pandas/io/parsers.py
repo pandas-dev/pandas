@@ -21,6 +21,8 @@ from pandas.util.decorators import Appender
 import pandas.lib as lib
 import pandas._parser as _parser
 from pandas.tseries.period import Period
+import json
+
 
 class DateConversionError(Exception):
     pass
@@ -50,8 +52,10 @@ index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
 names : array-like
-    List of column names to use. If header=True, replace existing header,
-    otherwise this ignores the header=0 default
+    List of column names to use. If file contains no header row, then you
+    should explicitly pass header=None
+prefix : string or None (default)
+    Prefix to add to column numbers when no header, e.g 'X' for X0, X1, ...
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
@@ -80,6 +84,8 @@ thousands : str, default None
 comment : str, default None
     Indicates remainder of line should not be parsed
     Does not support line commenting (will return empty line)
+decimal : str, default '.'
+    Character to recognize as decimal point. E.g. use ',' for European data
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
@@ -99,6 +105,16 @@ encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
+
+**Dialect options**
+
+lineterminator : string (length 1), default None
+    Character to break file into lines. Only valid with C parser
+quotechar : string
+quoting : string
+skipinitialspace : boolean, default False
+    Skip spaces after delimiter
+escapechar : string
 
 Returns
 -------
@@ -199,10 +215,12 @@ _parser_defaults = {
     'quotechar': '"',
     'quoting': csv.QUOTE_MINIMAL,
     'skipinitialspace': False,
+    'lineterminator': None,
 
     'header': 0,
     'index_col': None,
     'names': None,
+    'prefix': None,
     'skiprows': None,
     'na_values': None,
     'true_values': None,
@@ -243,7 +261,8 @@ _c_parser_defaults = {
     'factorize': True,
     'dtype': None,
     'usecols': None,
-    'compression': None
+    'compression': None,
+    'decimal': b'.'
 }
 
 _fwf_defaults = {
@@ -267,10 +286,12 @@ def _make_parser_function(name, sep=','):
                  quotechar='"',
                  quoting=csv.QUOTE_MINIMAL,
                  skipinitialspace=False,
+                 lineterminator=None,
 
                  header=0,
                  index_col=None,
                  names=None,
+                 prefix=None,
                  skiprows=None,
                  skipfooter=None,
                  skip_footer=0,
@@ -296,6 +317,7 @@ def _make_parser_function(name, sep=','):
                  keep_default_na=True,
                  thousands=None,
                  comment=None,
+                 decimal=b'.',
 
                  parse_dates=False,
                  keep_date_col=False,
@@ -325,10 +347,12 @@ def _make_parser_function(name, sep=','):
                     quotechar=quotechar,
                     quoting=quoting,
                     skipinitialspace=skipinitialspace,
+                    lineterminator=lineterminator,
 
                     header=header,
                     index_col=index_col,
                     names=names,
+                    prefix=prefix,
                     skiprows=skiprows,
                     na_values=na_values,
                     true_values=true_values,
@@ -336,6 +360,7 @@ def _make_parser_function(name, sep=','):
                     keep_default_na=keep_default_na,
                     thousands=thousands,
                     comment=comment,
+                    decimal=decimal,
 
                     parse_dates=parse_dates,
                     keep_date_col=keep_date_col,
@@ -623,6 +648,7 @@ class ParserBase(object):
     def __init__(self, kwds):
         self.names = kwds.get('names')
         self.orig_names = None
+        self.prefix = kwds.pop('prefix', None)
 
         self.index_col = kwds.pop('index_col', None)
         self.index_names = None
@@ -838,7 +864,6 @@ class CParserWrapper(ParserBase):
         kwds = kwds.copy()
 
         self.as_recarray = kwds.get('as_recarray', False)
-
         ParserBase.__init__(self, kwds)
 
         if 'utf-16' in (kwds.get('encoding') or ''):
@@ -852,14 +877,19 @@ class CParserWrapper(ParserBase):
         # XXX
         self.usecols = self._reader.usecols
 
+        passed_names = self.names is None
+
         if self._reader.header is None:
             self.names = None
         else:
             self.names = list(self._reader.header)
 
         if self.names is None:
-            self.names = ['X%d' % i
-                          for i in range(self._reader.table_width)]
+            if self.prefix:
+                self.names = ['X%d' % i
+                              for i in range(self._reader.table_width)]
+            else:
+                self.names = range(self._reader.table_width)
 
         # XXX
         self._set_noconvert_columns()
@@ -872,6 +902,9 @@ class CParserWrapper(ParserBase):
                 (self.index_names, self.names,
                  self.index_col) = _clean_index_names(self.names,
                                                       self.index_col)
+
+            if self._reader.header is None and not passed_names:
+                self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
 
@@ -1070,7 +1103,9 @@ class PythonParser(ParserBase):
         self.escapechar = kwds['escapechar']
         self.doublequote = kwds['doublequote']
         self.skipinitialspace = kwds['skipinitialspace']
+        self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
+
         self.has_index_names = False
         if 'has_index_names' in kwds:
             self.has_index_names = kwds['has_index_names']
@@ -1084,11 +1119,13 @@ class PythonParser(ParserBase):
 
 
         if isinstance(f, basestring):
-            if self.encoding is None:
-                # universal newline mode
-                f = com._get_handle(f, 'U')
-            else:
-                f = com._get_handle(f, 'rb', encoding=self.encoding)
+            f = com._get_handle(f, 'r', encoding=self.encoding)
+
+            # if self.encoding is None:
+            #     # universal newline mode
+            #     f = com._get_handle(f, 'U')
+            # else:
+            #     f = com._get_handle(f, 'rb', encoding=self.encoding)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -1112,6 +1149,10 @@ class PythonParser(ParserBase):
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
+            if self.lineterminator:
+                raise ValueError('Custom line terminators not supported in '
+                                 'python parser (yet)')
+
             class MyDialect(csv.Dialect):
                 delimiter = self.delimiter
                 quotechar = self.quotechar
@@ -1257,7 +1298,10 @@ class PythonParser(ParserBase):
 
             ncols = len(line)
             if not names:
-                columns = ['X%d' % i for i in range(ncols)]
+                if self.prefix:
+                    columns = ['X%d' % i for i in range(ncols)]
+                else:
+                    columns = range(ncols)
             else:
                 columns = names
 
@@ -1543,11 +1587,13 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
     for c in colspec:
         if c in colset:
-            colnames.append(str(c))
-        elif isinstance(c, int):
+            colnames.append(c)
+        elif isinstance(c, int) and c not in columns:
             colnames.append(str(columns[c]))
+        else:
+            colnames.append(c)
 
-    new_name = '_'.join(colnames)
+    new_name = '_'.join([str(x) for x in colnames])
     to_parse = [data_dict[c] for c in colnames if c in data_dict]
 
     try:
@@ -1601,7 +1647,7 @@ def _clean_index_names(columns, index_col):
             index_names.append(name)
 
     # hack
-    if index_names[0] is not None and 'Unnamed' in index_names[0]:
+    if isinstance(index_names[0], basestring) and 'Unnamed' in index_names[0]:
         index_names[0] = None
 
     return index_names, columns, index_col
@@ -1936,7 +1982,7 @@ class CellStyleConverter(object):
     """
 
     @staticmethod
-    def to_xls(style_dict):
+    def to_xls(style_dict, num_format_str=None):
         """
         converts a style_dict to an xlwt style object
         Parameters
@@ -1978,9 +2024,13 @@ class CellStyleConverter(object):
 
         if style_dict:
             xlwt_stylestr = style_to_xlwt(style_dict)
-            return xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
+            style = xlwt.easyxf(xlwt_stylestr, field_sep=',', line_sep=';')
         else:
-            return xlwt.XFStyle()
+            style = xlwt.XFStyle()
+        if num_format_str is not None:
+            style.num_format_str = num_format_str
+
+        return style
 
     @staticmethod
     def to_xlsx(style_dict):
@@ -2118,13 +2168,26 @@ class ExcelWriter(object):
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
 
+        style_dict = {}
+
         for cell in cells:
             val = _conv_value(cell.val)
-            style = CellStyleConverter.to_xls(cell.style)
-            if isinstance(val, datetime.datetime):
-                style.num_format_str = "YYYY-MM-DD HH:MM:SS"
-            elif isinstance(val, datetime.date):
-                style.num_format_str = "YYYY-MM-DD"
+
+            num_format_str = None
+            if isinstance(cell.val, datetime.datetime):
+                num_format_str = "YYYY-MM-DD HH:MM:SS"
+            if isinstance(cell.val, datetime.date):
+                num_format_str = "YYYY-MM-DD"
+
+            stylekey = json.dumps(cell.style)
+            if num_format_str:
+                stylekey += num_format_str
+
+            if stylekey in style_dict:
+                style = style_dict[stylekey]
+            else:
+                style = CellStyleConverter.to_xls(cell.style, num_format_str)
+                style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.write_merge(startrow + cell.row,
