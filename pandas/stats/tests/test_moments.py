@@ -118,6 +118,11 @@ class TestMoments(unittest.TestCase):
         assert_frame_equal(DataFrame(xp), rs)
 
     def test_cmov_window_na_min_periods(self):
+        try:
+            from scikits.timeseries.lib import cmov_window
+        except ImportError:
+            raise nose.SkipTest
+
         # min_periods
         vals = Series(np.random.randn(10))
         vals[4] = np.nan

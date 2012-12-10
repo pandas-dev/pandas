@@ -628,7 +628,10 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
     elif com.is_integer(window): #window size
         if win_type is None:
             raise ValueError('Must specify window type')
-        import scipy.signal as sig
+        try:
+            import scipy.signal as sig
+        except ImportError:
+            raise ImportError('Please install scipy to generate window weight')
         win_type = _validate_win_type(win_type, kwargs) # may pop from kwargs
         window = sig.get_window(win_type, window).astype(float)
     else:
