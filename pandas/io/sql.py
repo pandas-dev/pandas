@@ -305,3 +305,83 @@ def sequence2dict(seq):
     for k,v in zip(range(1, 1 + len(seq)), seq):
         d[str(k)] = v
     return d
+<<<<<<< HEAD
+=======
+
+def test_sqlite(name, testdf):
+    print '\nsqlite, using detect_types=sqlite3.PARSE_DECLTYPES for datetimes'
+    import sqlite3
+    with sqlite3.connect('test.db', detect_types=sqlite3.PARSE_DECLTYPES) as conn:
+        #conn.row_factory = sqlite3.Row
+        write_frame(testdf, name, con=conn, flavor='sqlite', if_exists='replace')
+        df_sqlite = read_db('select * from '+name, con=conn)    
+        print 'loaded dataframe from sqlite', len(df_sqlite)   
+    print 'done with sqlite'
+
+
+def test_oracle(name, testdf):
+    print '\nOracle'
+    import cx_Oracle
+    with cx_Oracle.connect('YOURCONNECTION') as ora_conn:
+        testdf['d64'] = np.datetime64( testdf['hire_date'] )
+        write_frame(testdf, name, con=ora_conn, flavor='oracle', if_exists='replace')    
+        df_ora2 = read_db('select * from '+name, con=ora_conn)    
+
+    print 'done with oracle'
+    return df_ora2
+   
+    
+def test_postgresql(name, testdf):
+    #from pg8000 import DBAPI as pg
+    import psycopg2 as pg
+    print '\nPostgresQL, Greenplum'    
+    pgcn = pg.connect(YOURCONNECTION)
+    print 'df frame_query'
+    try:
+        write_frame(testdf, name, con=pgcn, flavor='postgresql', if_exists='replace')   
+        print 'pg copy_from'    
+        postgresql_copy_from(testdf, name, con=pgcn)    
+        df_gp = read_db('select * from '+name, con=pgcn)    
+        print 'loaded dataframe from greenplum', len(df_gp)
+    finally:
+        pgcn.commit()
+        pgcn.close()
+    print 'done with greenplum'
+
+ 
+def test_mysql(name, testdf):
+    import MySQLdb
+    print '\nmysql'
+    cn= MySQLdb.connect(YOURCONNECTION)    
+    try:
+        write_frame(testdf, name='test_df', con=cn, flavor='mysql', if_exists='replace')
+        df_mysql = read_db('select * from '+name, con=cn)    
+        print 'loaded dataframe from mysql', len(df_mysql)
+    finally:
+        cn.close()
+    print 'mysql done'
+
+
+##############################################################################
+
+if __name__=='__main__':
+
+    print """sqlite should work out of the box. For the other test, you must
+             install the driver and provide a connection string."""
+    
+    test_data = {
+        "name": [ 'Joe', 'Bob', 'Jim', 'Suzy', 'Cathy', 'Sarah' ],
+        "hire_date": [ datetime(2012,1,1), datetime(2012,2,1), datetime(2012,3,1), datetime(2012,4,1), datetime(2012,5,1), datetime(2012,6,1) ],
+        "erank": [ 1,   2,   3,   4,   5,   6  ],
+        "score": [ 1.1, 2.2, 3.1, 2.5, 3.6, 1.8]
+    }
+    df = DataFrame(test_data)
+
+    name='test_df'
+    test_sqlite(name, df)
+    #test_oracle(name, df)
+    #test_postgresql(name, df)    
+    #test_mysql(name, df)        
+    
+    print 'done'
+>>>>>>> by default, only sqlite tests are run
