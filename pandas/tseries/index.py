@@ -605,37 +605,6 @@ class DatetimeIndex(Int64Index):
 
         return result
 
-    def append(self, other):
-        """
-        Append a collection of Index options together
-
-        Parameters
-        ----------
-        other : Index or list/tuple of indices
-
-        Returns
-        -------
-        appended : Index
-        """
-        name = self.name
-        to_concat = [self]
-
-        if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
-        else:
-            to_concat.append(other)
-
-        for obj in to_concat:
-            if isinstance(obj, Index) and obj.name != name:
-                name = None
-                break
-
-        to_concat = self._ensure_compat_concat(to_concat)
-        to_concat = [x.values if isinstance(x, Index) else x
-                     for x in to_concat]
-
-        return Index(com._concat_compat(to_concat), name=name)
-
     def get_duplicates(self):
         values = Index.get_duplicates(self)
         return DatetimeIndex(values)
@@ -863,6 +832,36 @@ class DatetimeIndex(Int64Index):
         if this.freq is None:
             this.offset = to_offset(this.inferred_freq)
         return this
+
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        name = self.name
+        to_concat = [self]
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if isinstance(obj, Index) and obj.name != name:
+                name = None
+                break
+
+        to_concat = self._ensure_compat_concat(to_concat)
+        to_concat, factory = _process_concat_data(to_concat, name)
+
+        return factory(com._concat_compat(to_concat))
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """
@@ -1633,3 +1632,33 @@ def _in_range(start, end, rng_start, rng_end):
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
+
+def _process_concat_data(to_concat, name):
+    klass = Index
+    kwargs = {}
+
+    all_dti = True
+    need_utc_convert = False
+    tz = None
+    for x in to_concat:
+        if not isinstance(x, DatetimeIndex):
+            all_dti = False
+        else:
+            if tz is None:
+                tz = x.tz
+            elif x.tz != tz:
+                need_utc_convert = True
+                tz = 'UTC'
+
+    if need_utc_convert:
+        to_concat = [x.tz_convert('UTC') for x in to_concat]
+
+    if all_dti:
+        klass = DatetimeIndex
+        kwargs = {'tz' : tz}
+
+    to_concat = [x.values if isinstance(x, Index) else x
+                 for x in to_concat]
+
+    factory_func = lambda x: klass(x, name=name, **kwargs)
+    return to_concat, factory_func
