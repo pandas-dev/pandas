@@ -98,6 +98,14 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(result.hour, expected.hour)
         self.assertEquals(result, expected)
 
+    def test_timestamp_to_datetime_tzoffset(self):
+        #tzoffset
+        from dateutil.tz import tzoffset
+        tzinfo = tzoffset(None, 7200)
+        expected = Timestamp('3/11/2012 04:00', tz=tzinfo)
+        result = Timestamp(expected.to_datetime())
+        self.assertEquals(expected, result)
+
     def test_timedelta_push_over_dst_boundary(self):
         # #1389
 
@@ -529,6 +537,14 @@ class TestTimeZoneSupport(unittest.TestCase):
         # it works
         DataFrame.from_records([rec], index='begin_time')
 
+    def test_frame_reset_index(self):
+        dr = date_range('2012-06-02', periods=10, tz='US/Eastern')
+        df = DataFrame(np.random.randn(len(dr)), dr)
+        roundtripped = df.reset_index().set_index('index')
+        xp = df.index.tz
+        rs = roundtripped.index.tz
+        self.assertEquals(xp, rs)
+
     def test_dateutil_tzoffset_support(self):
         from dateutil.tz import tzoffset
         values = [188.5, 328.25]
@@ -538,6 +554,10 @@ class TestTimeZoneSupport(unittest.TestCase):
         series = Series(data=values, index=index)
 
         self.assertEquals(series.index.tz, tzinfo)
+
+        # it works! #2443
+        repr(series.index[0])
+
 
 class TestTimeZones(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -663,6 +683,55 @@ class TestTimeZones(unittest.TestCase):
         new1, new2 = df1.align(df2)
         self.assertEqual(df1.index.tz, new1.index.tz)
         self.assertEqual(df2.index.tz, new2.index.tz)
+
+    def test_append_aware(self):
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assertEqual(ts_result.index.tz, rng1.tz)
+
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
+                          tz='UTC')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='UTC')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        utc = rng1.tz
+        self.assertEqual(utc, ts_result.index.tz)
+
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='US/Central')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assertEqual(utc, ts_result.index.tz)
+
+    def test_append_aware_naive(self):
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assert_(ts_result.index.equals(
+                ts1.index.asobject.append(ts2.index.asobject)))
+
+        #mixed
+
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
+        rng2 = range(100)
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assert_(ts_result.index.equals(
+                ts1.index.asobject.append(ts2.index)))
 
     def test_equal_join_ensure_utc(self):
         rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')

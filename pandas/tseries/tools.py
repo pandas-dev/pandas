@@ -116,7 +116,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     try:
         if not arg:
             return arg
-        return parse(arg, dayfirst=dayfirst)
+        default = datetime(1,1,1)
+        return parse(arg, dayfirst=dayfirst, default=default)
     except Exception:
         if errors == 'raise':
             raise

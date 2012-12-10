@@ -1,6 +1,9 @@
 /*
 
-Copyright (c) 2012, Lambda Foundry, Inc.
+Copyright (c) 2012, Lambda Foundry, Inc., except where noted
+
+Incorporates components of WarrenWeckesser/textreader, licensed under 3-clause
+BSD
 
 See LICENSE for the license
 
@@ -169,6 +172,7 @@ typedef struct parser_t {
     int delim_whitespace;       /* delimit by consuming space/tabs instead */
     char quotechar;             /* quote character */
     char escapechar;            /* escape character */
+    char lineterminator;
     int skipinitialspace;       /* ignore spaces following delimiter? */
     int quoting;                /* style of quoting to write */
 

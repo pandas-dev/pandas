@@ -20,7 +20,8 @@ import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas
 import pandas as pd
-from pandas.core.config import set_option,get_option
+from pandas.core.config import (set_option, get_option,
+                                reset_option)
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -109,6 +110,13 @@ class TestDataFrameFormatting(unittest.TestCase):
         cols=[u"\u03c8"]
         df=DataFrame(data,columns=cols,index=index1)
         self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
+
+    def test_repr_no_backslash(self):
+        pd.set_option('test.interactive', True)
+        df = DataFrame(np.random.randn(10, 4))
+
+        self.assertTrue('\\' not in repr(df))
+        pd.reset_option('test.interactive')
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -384,7 +392,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         filepath = os.path.join(pth, 'data', 'unicode_series.csv')
         df = pandas.read_csv(filepath, header=None,encoding='latin1')
         repr(df)
-        repr(df['X1'])
+        repr(df[1])
 
     def test_repr_corner(self):
         # representing infs poses no problems
@@ -399,6 +407,116 @@ class TestDataFrameFormatting(unittest.TestCase):
         repr(df)
         repr(df.T)
         fmt.set_printoptions(max_rows=200)
+
+    def test_wide_repr(self):
+        set_option('test.interactive', True)
+        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+        df = DataFrame([col(20, 25) for _ in range(10)])
+        set_option('print.expand_frame_repr', False)
+        rep_str = repr(df)
+        set_option('print.expand_frame_repr', True)
+        wide_repr = repr(df)
+        self.assert_(rep_str != wide_repr)
+
+        set_option('print.line_width', 120)
+        wider_repr = repr(df)
+        self.assert_(len(wider_repr) < len(wide_repr))
+
+        reset_option('print.expand_frame_repr')
+        set_option('test.interactive', False)
+        set_option('print.line_width', 80)
+
+    def test_wide_repr_named(self):
+        set_option('test.interactive', True)
+        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+        df = DataFrame([col(20, 25) for _ in range(10)])
+        df.index.name = 'DataFrame Index'
+        set_option('print.expand_frame_repr', False)
+
+        rep_str = repr(df)
+        set_option('print.expand_frame_repr', True)
+        wide_repr = repr(df)
+        self.assert_(rep_str != wide_repr)
+
+        set_option('print.line_width', 120)
+        wider_repr = repr(df)
+        self.assert_(len(wider_repr) < len(wide_repr))
+
+        for line in wide_repr.splitlines()[1::13]:
+            self.assert_('DataFrame Index' in line)
+
+        reset_option('print.expand_frame_repr')
+        set_option('test.interactive', False)
+        set_option('print.line_width', 80)
+
+    def test_wide_repr_multiindex(self):
+        set_option('test.interactive', True)
+        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+        midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
+                                              np.array(col(10, 5))])
+        df = DataFrame([col(20, 25) for _ in range(10)],
+                       index=midx)
+        df.index.names = ['Level 0', 'Level 1']
+        set_option('print.expand_frame_repr', False)
+        rep_str = repr(df)
+        set_option('print.expand_frame_repr', True)
+        wide_repr = repr(df)
+        self.assert_(rep_str != wide_repr)
+
+        set_option('print.line_width', 120)
+        wider_repr = repr(df)
+        self.assert_(len(wider_repr) < len(wide_repr))
+
+        for line in wide_repr.splitlines()[1::13]:
+            self.assert_('Level 0 Level 1' in line)
+
+        reset_option('print.expand_frame_repr')
+        set_option('test.interactive', False)
+        set_option('print.line_width', 80)
+
+    def test_wide_repr_multiindex_cols(self):
+        set_option('test.interactive', True)
+        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+        midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
+                                              np.array(col(10, 5))])
+        mcols = pandas.MultiIndex.from_arrays([np.array(col(20, 3)),
+                                               np.array(col(20, 3))])
+        df = DataFrame([col(20, 25) for _ in range(10)],
+                       index=midx, columns=mcols)
+        df.index.names = ['Level 0', 'Level 1']
+        set_option('print.expand_frame_repr', False)
+        rep_str = repr(df)
+        set_option('print.expand_frame_repr', True)
+        wide_repr = repr(df)
+        self.assert_(rep_str != wide_repr)
+
+        set_option('print.line_width', 120)
+        wider_repr = repr(df)
+        self.assert_(len(wider_repr) < len(wide_repr))
+
+        self.assert_(len(wide_repr.splitlines()) == 14 * 10 - 1)
+
+        reset_option('print.expand_frame_repr')
+        set_option('test.interactive', False)
+        set_option('print.line_width', 80)
+
+    def test_wide_repr_unicode(self):
+        set_option('test.interactive', True)
+        col = lambda l, k: [tm.randu(k) for _ in xrange(l)]
+        df = DataFrame([col(20, 25) for _ in range(10)])
+        set_option('print.expand_frame_repr', False)
+        rep_str = repr(df)
+        set_option('print.expand_frame_repr', True)
+        wide_repr = repr(df)
+        self.assert_(rep_str != wide_repr)
+
+        set_option('print.line_width', 120)
+        wider_repr = repr(df)
+        self.assert_(len(wider_repr) < len(wide_repr))
+
+        reset_option('print.expand_frame_repr')
+        set_option('test.interactive', False)
+        set_option('print.line_width', 80)
 
     def test_to_string(self):
         from pandas import read_table

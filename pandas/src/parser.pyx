@@ -120,6 +120,7 @@ cdef extern from "parser/tokenizer.h":
         int delim_whitespace       # consume tabs / spaces instead
         char quotechar             # quote character */
         char escapechar            # escape character */
+        char lineterminator
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
 
@@ -270,6 +271,8 @@ cdef class TextReader:
                   doublequote=True,
                   quotechar=b'"',
                   quoting=0,
+                  lineterminator=None,
+
                   encoding=None,
 
                   comment=None,
@@ -322,6 +325,11 @@ cdef class TextReader:
 
         self.parser.doublequote = doublequote
         self.parser.skipinitialspace = skipinitialspace
+
+        if lineterminator is not None:
+            if len(lineterminator) != 1:
+                raise ValueError('Only length-1 line terminators supported')
+            self.parser.lineterminator = ord(lineterminator)
 
         if len(decimal) != 1:
             raise ValueError('Only length-1 decimal markers supported')
@@ -985,7 +993,10 @@ cdef class TextReader:
 
     cdef _get_column_name(self, Py_ssize_t i, Py_ssize_t nused):
         if self.has_usecols and self.names is not None:
-            return self.names[nused]
+            if len(self.names) == len(self.usecols):
+                return self.names[nused]
+            else:
+                return self.names[i]
         else:
             if self.header is not None:
                 return self.header[i - self.leading_cols]
@@ -1006,10 +1017,20 @@ cdef object _false_values = [b'False', b'FALSE', b'false']
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if not PyBytes_Check(x):
+        if PyUnicode_Check(x):
             x = PyUnicode_AsUTF8String(x)
+        elif not PyBytes_Check(x):
+            x = asbytes(x)
+
         result.append(x)
     return result
+
+cdef asbytes(object o):
+    if PY3:
+        return str(o).encode('utf-8')
+    else:
+        return str(o)
+
 
 def _is_file_like(obj):
     if PY3:

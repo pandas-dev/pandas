@@ -186,7 +186,7 @@ class DataFrameFormatter(object):
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
-                 index_names=True, **kwds):
+                 index_names=True, line_width=None, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -202,6 +202,7 @@ class DataFrameFormatter(object):
         self.col_space = col_space
         self.header = header
         self.index = index
+        self.line_width = line_width
 
         if justify is None:
             self.justify = get_option("print.colheader_justify")
@@ -282,9 +283,40 @@ class DataFrameFormatter(object):
             text = info_line
         else:
             strcols = self._to_str_columns()
-            text = adjoin(1, *strcols)
+            if self.line_width is None:
+                text = adjoin(1, *strcols)
+            else:
+                text = self._join_multiline(*strcols)
 
         self.buf.writelines(text)
+
+    def _join_multiline(self, *strcols):
+        lwidth = self.line_width
+        strcols = list(strcols)
+        if self.index:
+            idx = strcols.pop(0)
+            lwidth -= np.array([len(x) for x in idx]).max()
+
+        col_widths = [np.array([len(x) for x in col]).max()
+                      if len(col) > 0 else 0
+                      for col in strcols]
+        col_bins = _binify(col_widths, lwidth)
+        nbins = len(col_bins)
+
+        str_lst = []
+        st = 0
+        for i, ed in enumerate(col_bins):
+            row = strcols[st:ed]
+            row.insert(0, idx)
+            if nbins > 1:
+                if ed <= len(strcols) and i < nbins - 1:
+                    row.append([' \\'] + ['  '] * (len(self.frame) - 1))
+                else:
+                    row.append([' '] * len(self.frame))
+
+            str_lst.append(adjoin(1, *row))
+            st = ed
+        return '\n\n'.join(str_lst)
 
     def to_latex(self, force_unicode=None, column_format=None):
         """
@@ -781,25 +813,35 @@ class ExcelFormatter(object):
         return val
 
     def _format_header_mi(self):
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
+        if not(has_aliases or self.header):
+            return
+
         levels = self.columns.format(sparsify=True, adjoin=False,
                                    names=False)
-        level_lenghts = _get_level_lengths(levels)
-        coloffset = 0
+        # level_lenghts = _get_level_lengths(levels)
+        coloffset = 1
         if isinstance(self.df.index, MultiIndex):
-            coloffset = len(self.df.index[0]) - 1
+            coloffset = len(self.df.index[0])
 
-        for lnum, (records, values) in enumerate(zip(level_lenghts,
-                                                     levels)):
-            name = self.columns.names[lnum]
-            yield ExcelCell(lnum, coloffset, name, header_style)
-            for i in records:
-                if records[i] > 1:
-                    yield ExcelCell(lnum,coloffset + i + 1, values[i],
-                            header_style, lnum, coloffset + i + records[i])
-                else:
-                    yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
+        # for lnum, (records, values) in enumerate(zip(level_lenghts,
+        #                                              levels)):
+        #     name = self.columns.names[lnum]
+        #     yield ExcelCell(lnum, coloffset, name, header_style)
+        #     for i in records:
+        #         if records[i] > 1:
+        #             yield ExcelCell(lnum,coloffset + i + 1, values[i],
+        #                     header_style, lnum, coloffset + i + records[i])
+        #         else:
+        #             yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
 
-            self.rowcounter = lnum
+        #     self.rowcounter = lnum
+        lnum=0
+        for i,  values in enumerate(zip(*levels)):
+            v = ".".join(map(com.pprint_thing,values))
+            yield ExcelCell(lnum, coloffset + i, v, header_style)
+
+        self.rowcounter = lnum
 
     def _format_header_regular(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
@@ -846,7 +888,9 @@ class ExcelFormatter(object):
             return self._format_regular_rows()
 
     def _format_regular_rows(self):
-        self.rowcounter += 1
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
+        if has_aliases or self.header:
+            self.rowcounter += 1
 
         coloffset = 0
         #output index and index_label?
@@ -862,10 +906,15 @@ class ExcelFormatter(object):
             else:
                 index_label = self.df.index.names[0]
 
-            if index_label:
-                yield ExcelCell(self.rowcounter, 0,
-                                index_label, header_style)
-                self.rowcounter += 1
+            if index_label and self.header != False:
+                # add to same level as column names
+                # if isinstance(self.df.columns, MultiIndex):
+                #     yield ExcelCell(self.rowcounter, 0,
+                #                 index_label, header_style)
+                #     self.rowcounter += 1
+                # else:
+                yield ExcelCell(self.rowcounter - 1, 0,
+                            index_label, header_style)
 
             #write index_values
             index_values = self.df.index
@@ -882,7 +931,9 @@ class ExcelFormatter(object):
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
 
     def _format_hierarchical_rows(self):
-        self.rowcounter += 1
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
+        if has_aliases or self.header:
+            self.rowcounter += 1
 
         gcolidx = 0
         #output index and index_label?
@@ -894,7 +945,11 @@ class ExcelFormatter(object):
                 index_labels = self.index_label
 
             #if index labels are not empty go ahead and dump
-            if filter(lambda x: x is not None, index_labels):
+            if filter(lambda x: x is not None, index_labels) and self.header != False:
+                # if isinstance(self.df.columns, MultiIndex):
+                #     self.rowcounter += 1
+                # else:
+                self.rowcounter -= 1
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter, cidx,
                                     name, header_style)
@@ -912,8 +967,8 @@ class ExcelFormatter(object):
                 yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
 
     def get_formatted_cells(self):
-        for cell in itertools.chain(self._format_header(),
-                                    self._format_body()):
+        for cell in itertools.chain(self._format_header(),self._format_body()
+                                    ):
             cell.val = self._format_value(cell.val)
             yield cell
 
@@ -1247,11 +1302,11 @@ def detect_console_encoding():
 
     encoding = None
     try:
-        encoding=sys.stdin.encoding
+        encoding = sys.stdout.encoding or sys.stdin.encoding
     except AttributeError:
         pass
 
-    if not encoding or encoding =='ascii': # try again for something better
+    if not encoding or encoding == 'ascii': # try again for something better
         try:
             encoding = locale.getpreferredencoding()
         except Exception:
@@ -1376,6 +1431,17 @@ def _put_lines(buf, lines):
         lines = [unicode(x) for x in lines]
     buf.write('\n'.join(lines))
 
+def _binify(cols, width):
+    bins = []
+    curr_width = 0
+    for i, w in enumerate(cols):
+        curr_width += w
+        if curr_width + 2 > width:
+            bins.append(i)
+            curr_width = w
+        elif i + 1== len(cols):
+            bins.append(i + 1)
+    return bins
 
 if __name__ == '__main__':
     arr = np.array([746.03, 0.00, 5620.00, 1592.36])

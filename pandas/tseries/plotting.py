@@ -89,7 +89,7 @@ def _maybe_resample(series, ax, freq, plotf, kwargs):
     if ax_freq is not None and freq != ax_freq:
         if frequencies.is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
-            series.index = series.index.asfreq(ax_freq)
+            series.index = series.index.asfreq(ax_freq, how='s')
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop('how', 'last')
@@ -157,7 +157,7 @@ def _replot_ax(ax, freq, plotf, kwargs):
     if data is not None:
         for series, kwds in data:
             series = series.copy()
-            idx = series.index.asfreq(freq)
+            idx = series.index.asfreq(freq, how='S')
             series.index = idx
             ax._plot_data.append(series)
             args = _maybe_mask(series)

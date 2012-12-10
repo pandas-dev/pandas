@@ -126,13 +126,13 @@ class Timestamp(_Timestamp):
             result += self.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += self.strftime(' %%Z, tz=%s' % zone)
+                result += _tz_format(self, zone)
         except ValueError:
             year2000 = self.replace(year=2000)
             result += year2000.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += year2000.strftime(' %%Z, tz=%s' % zone)
+                result += _tz_format(year2000, zone)
 
         return '<Timestamp: %s>' % result
 
@@ -302,6 +302,11 @@ NaT = NaTType()
 
 iNaT = util.get_nat()
 
+cdef _tz_format(object obj, object zone):
+    try:
+        return obj.strftime(' %%Z, tz=%s' % zone)
+    except:
+        return ', tz=%s' % zone
 
 def is_timestamp_array(ndarray[object] values):
     cdef int i, n = len(values)
@@ -599,11 +604,24 @@ cdef convert_to_tsobject(object ts, object tz):
         if tz is not None:
             # sort of a temporary hack
             if ts.tzinfo is not None:
-                ts = tz.normalize(ts)
-                obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.tzinfo = ts.tzinfo
+                if hasattr(tz, 'normalize'):
+                    ts = tz.normalize(ts)
+                    obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                    obj.tzinfo = ts.tzinfo
+                else: #tzoffset
+                    ts_offset = _get_utcoffset(ts.tzinfo, ts)
+                    obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                    obj.value -= _delta_to_nanoseconds(ts_offset)
+                    tz_offset = _get_utcoffset(tz, ts)
+                    obj.value += _delta_to_nanoseconds(tz_offset)
+
+                    obj.tzinfo = tz
             elif not _is_utc(tz):
-                ts = tz.localize(ts)
+                try:
+                    ts = tz.localize(ts)
+                except AttributeError:
+                    ts = ts.replace(tzinfo=tz)
+
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
                 offset = _get_utcoffset(ts.tzinfo, ts)
                 obj.value -= _delta_to_nanoseconds(offset)

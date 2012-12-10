@@ -771,7 +771,9 @@ class CheckIndexing(object):
         out = b.ix[:3]
         assert_frame_equal(out, b)
 
-        b.sort_index(inplace=True)
+        res = b.sort_index(inplace=True)
+        self.assertTrue(res is None)
+
         df = df_orig.copy()
         df.ix[[0, 1, 2]] = b
         out = df.ix[[0, 1, 2]].reindex(b.index)
@@ -1580,11 +1582,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # inplace, single
         df2 = df.copy()
-        df2.set_index('C', inplace=True)
+
+        res = df2.set_index('C', inplace=True)
+        self.assertTrue(res is None)
+
         assert_frame_equal(df2, expected)
 
         df3 = df.copy()
-        df3.set_index('C', drop=False, inplace=True)
+        res = df3.set_index('C', drop=False, inplace=True)
+        self.assertTrue(res is None)
+
         assert_frame_equal(df3, expected_nodrop)
 
         # create new object, multi-column
@@ -1790,6 +1797,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_is_mixed_type(self):
         self.assert_(not self.frame._is_mixed_type)
         self.assert_(self.mixed_frame._is_mixed_type)
+
+    def test_constructor_ordereddict(self):
+        from pandas.util.compat import OrderedDict
+        import random
+        nitems = 100
+        nums = range(nitems)
+        random.shuffle(nums)
+        expected=['A%d' %i for i in nums]
+        df=DataFrame(OrderedDict(zip(expected,[[0]]*nitems)))
+        self.assertEqual(expected,list(df.columns))
 
     def test_constructor_dict(self):
         frame = DataFrame({'col1' : self.ts1,
@@ -4478,7 +4495,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # single column
         df = orig.copy()
-        df.drop_duplicates('A', inplace=True)
+        res = df.drop_duplicates('A', inplace=True)
+        self.assertTrue(res is None)
+
         expected = orig[:2]
         result = df
         assert_frame_equal(result, expected)
@@ -4491,7 +4510,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # multi column
         df = orig.copy()
-        df.drop_duplicates(['A', 'B'], inplace=True)
+        res = df.drop_duplicates(['A', 'B'], inplace=True)
+        self.assertTrue(res is None)
         expected = orig.ix[[0, 1, 2, 3]]
         result = df
         assert_frame_equal(result, expected)
@@ -4581,18 +4601,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.fillna(value=0)
         self.assert_(expected is not df)
 
-        df2 = df.fillna(value=0, inplace=True)
-        self.assert_(df2 is df)
-        assert_frame_equal(df2, expected)
+        res = df.fillna(value=0, inplace=True)
+        self.assert_(res is None)
+        assert_frame_equal(df, expected)
 
         df[1][:4] = np.nan
         df[3][-4:] = np.nan
         expected = df.fillna(method='ffill')
         self.assert_(expected is not df)
 
-        df2 = df.fillna(method='ffill', inplace=True)
-        self.assert_(df2 is df)
-        assert_frame_equal(df2, expected)
+        res = df.fillna(method='ffill', inplace=True)
+        self.assert_(res is None)
+        assert_frame_equal(df, expected)
 
     def test_fillna_dict_series(self):
         df = DataFrame({'a': [nan, 1, 2, nan, nan],
@@ -4641,11 +4661,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.tsframe['A'][-5:] = nan
 
         tsframe = self.tsframe.copy()
-        tsframe.replace(nan, 0, inplace=True)
+        res = tsframe.replace(nan, 0, inplace=True)
+        self.assertTrue(res is None)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
         tsframe = self.tsframe.copy()
-        tsframe.replace(nan, method='pad', inplace=True)
+        res = tsframe.replace(nan, method='pad', inplace=True)
+        self.assertTrue(res is None)
         assert_frame_equal(tsframe, self.tsframe.fillna(method='pad'))
 
         # mixed type
@@ -4657,7 +4679,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         tsframe = self.tsframe.copy()
-        tsframe.replace([nan], [0], inplace=True)
+        res = tsframe.replace([nan], [0], inplace=True)
+        self.assertTrue(res is None)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
     def test_replace(self):
@@ -5336,7 +5359,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.randn(5, 3))
 
         expected = df.mask(df < 0)
-        df.where(df >= 0, np.nan, inplace=True)
+        res = df.where(df >= 0, np.nan, inplace=True)
+        self.assertTrue(res is None)
         assert_frame_equal(df, expected)
 
     def test_mask(self):
@@ -5430,7 +5454,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         c_id = id(self.frame['C'])
         frame = self.frame.copy()
-        frame.rename(columns={'C' : 'foo'}, inplace=True)
+        res = frame.rename(columns={'C' : 'foo'}, inplace=True)
+
+        self.assertTrue(res is None)
+
         self.assert_('C' not in frame)
         self.assert_('foo' in frame)
         self.assert_(id(frame['foo']) != c_id)
@@ -5599,6 +5626,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
         self.assert_(applied.index is self.frame.index) # want this
 
+        #invalid axis
+        df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+
+    def test_apply_empty(self):
         # empty
         applied = self.empty.apply(np.sqrt)
         self.assert_(applied.empty)
@@ -5616,9 +5648,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series(np.nan, index=self.frame.index)
         assert_series_equal(result, expected)
 
-        #invalid axis
-        df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
-        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+        #2476
+        xp = DataFrame(index=['a'])
+        rs = xp.apply(lambda x: x['a'], axis=1)
+        assert_frame_equal(xp, rs)
 
     def test_apply_standard_nonunique(self):
         df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
@@ -5861,12 +5894,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(filtered.columns), 2)
         self.assert_('AA' in filtered)
 
+        # like with ints in column names
+        df = DataFrame(0., index=[0,1,2], columns=[0,1,'_A','_B'])
+        filtered = df.filter(like='_')
+        self.assertEqual(len(filtered.columns), 2)
+
         # pass in None
         self.assertRaises(Exception, self.frame.filter, items=None)
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
         self.assert_('foo' in filtered)
+
+        # unicode columns, won't ascii-encode
+        df = self.frame.rename(columns={'B': u'\u2202'})
+        filtered = df.filter(like='C')
+        self.assertTrue('C' in filtered)
 
     def test_filter_regex_search(self):
         fcopy = self.frame.copy()
@@ -5990,7 +6033,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         unordered = frame.ix[[3, 2, 4, 1]]
         a_id = id(unordered['A'])
         df = unordered.copy()
-        df.sort_index(inplace=True)
+        res = df.sort_index(inplace=True)
+        self.assertTrue(res is None)
         expected = frame
         assert_frame_equal(df, expected)
         self.assert_(a_id != id(df['A']))
@@ -6008,7 +6052,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df, expected)
 
         df = unordered.copy()
-        df.sort_index(axis=1, ascending=False, inplace=True)
+        res = df.sort_index(axis=1, ascending=False, inplace=True)
+        self.assertTrue(res is None)
         expected = frame.ix[:, ::-1]
         assert_frame_equal(df, expected)
 
@@ -6046,7 +6091,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           columns=['A', 'B', 'C', 'D'])
 
         sorted_df = frame.copy()
-        sorted_df.sort(columns='A', inplace=True)
+        res = sorted_df.sort(columns='A', inplace=True)
+        self.assertTrue(res is None)
         expected = frame.sort_index(by='A')
         assert_frame_equal(sorted_df, expected)
 
@@ -6056,7 +6102,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort(columns=['A', 'B'], ascending=False, inplace=True)
+        res = sorted_df.sort(columns=['A', 'B'], ascending=False, inplace=True)
+        self.assertTrue(res is None)
         expected = frame.sort_index(by=['A', 'B'], ascending=False)
         assert_frame_equal(sorted_df, expected)
 
@@ -7126,7 +7173,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         #test resetting in place
         df = self.frame.copy()
         resetted = self.frame.reset_index()
-        df.reset_index(inplace=True)
+        res = df.reset_index(inplace=True)
+        self.assertTrue(res is None)
         assert_frame_equal(df, resetted)
 
         frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
@@ -7251,7 +7299,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.frame['F'] = 8.
         self.assert_(len(self.frame._data.blocks) == 3)
-        self.frame.consolidate(inplace=True)
+        res = self.frame.consolidate(inplace=True)
+        self.assertTrue(res is None)
         self.assert_(len(self.frame._data.blocks) == 1)
 
     def test_consolidate_inplace(self):
@@ -7594,6 +7643,28 @@ starting,ending,measure
             else:
                 self.assert_(r0.all())
                 self.assert_(r1.all())
+
+    def test_strange_column_corruption_issue(self):
+        df = DataFrame(index=[0,1])
+        df[0] = nan
+        wasCol = {}
+        # uncommenting these makes the results match
+        #for col in xrange(100, 200):
+        #    wasCol[col] = 1
+        #    df[col] = nan
+
+        for i, dt in enumerate(df.index):
+            for col in xrange(100, 200):
+                if not col in wasCol:
+                    wasCol[col] = 1
+                    df[col] = nan
+                df[col][dt] = i
+
+        myid = 100
+
+        first = len(df.ix[isnull(df[myid]), [myid]])
+        second = len(df.ix[isnull(df[myid]), [myid]])
+        self.assertTrue(first == second == 0)
 
 
 if __name__ == '__main__':

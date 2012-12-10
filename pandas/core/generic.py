@@ -1,11 +1,9 @@
 # pylint: disable=W0231,E1101
-from datetime import timedelta
 
 import numpy as np
 
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.offsets import DateOffset
 import pandas.core.common as com
 import pandas.lib as lib
 
@@ -203,7 +201,7 @@ class PandasObject(object):
             raise TypeError('Index must be DatetimeIndex')
 
     def resample(self, rule, how=None, axis=0, fill_method=None,
-                 closed='right', label='right', convention='start',
+                 closed=None, label=None, convention='start',
                  kind=None, loffset=None, limit=None, base=0):
         """
         Convenience method for frequency conversion and resampling of regular
@@ -216,9 +214,9 @@ class PandasObject(object):
               downsampling
         fill_method : string, fill_method for upsampling, default None
         axis : int, optional, default 0
-        closed : {'right', 'left'}, default 'right'
+        closed : {'right', 'left'}, default None
             Which side of bin interval is closed
-        label : {'right', 'left'}, default 'right'
+        label : {'right', 'left'}, default None
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
         loffset : timedelta
@@ -625,7 +623,6 @@ class NDFrame(PandasObject):
         """
         if inplace:
             self._consolidate_inplace()
-            return self
         else:
             cons_data = self._data.consolidate()
             if cons_data is self._data:

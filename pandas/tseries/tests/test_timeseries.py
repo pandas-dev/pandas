@@ -649,6 +649,11 @@ class TestTimeSeries(unittest.TestCase):
         exp = Timestamp('2012-10-01')
         self.assert_(result[0] == exp)
 
+    def test_to_datetime_default(self):
+        rs = to_datetime('2001')
+        xp = datetime(2001,1,1)
+        self.assert_(rs, xp)
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
@@ -2037,6 +2042,27 @@ class TestLegacySupport(unittest.TestCase):
 
         s = Series.from_array(arr['Date'], Index([0]))
         self.assertEqual(s[0], dates[0][0])
+
+    def test_get_level_values_box(self):
+        from pandas import MultiIndex
+
+        dates = date_range('1/1/2000', periods=4)
+        levels = [dates, [0, 1]]
+        labels = [[0, 0, 1, 1, 2, 2, 3, 3],
+                  [0, 1, 0, 1, 0, 1, 0, 1]]
+
+        index = MultiIndex(levels=levels, labels=labels)
+
+        self.assertTrue(isinstance(index.get_level_values(0)[0], Timestamp))
+
+    def test_frame_apply_dont_convert_datetime64(self):
+        from pandas.tseries.offsets import BDay
+        df = DataFrame({'x1': [datetime(1996,1,1)]})
+        df = df.applymap(lambda x: x+BDay())
+        df = df.applymap(lambda x: x+BDay())
+
+        self.assertTrue(df.x1.dtype == object)
+
 
 class TestLegacyCompat(unittest.TestCase):
 

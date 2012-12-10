@@ -114,7 +114,7 @@ class SparseDataFrame(DataFrame):
         # do nothing when DataFrame calls this method
         pass
 
-    def convert_objects(self):
+    def convert_objects(self, convert_dates=True):
         # XXX
         return self
 

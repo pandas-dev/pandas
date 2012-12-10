@@ -29,6 +29,31 @@ pandas 0.10.0
 
 **New features**
 
+  - Brand new high-performance delimited file parsing engine written in C and
+    Cython. 50% or better performance in many standard use cases with a
+    fraction as much memory usage. (#407, #821)
+  - Many new file parser (read_csv, read_table) features:
+
+    - Support for on-the-fly gzip or bz2 decompression (`compression` option)
+    - Ability to get back numpy.recarray instead of DataFrame
+      (`as_recarray=True`)
+    - `dtype` option: explicit column dtypes
+    - `usecols` option: specify list of columns to be read from a file. Good
+      for reading very wide files with many irrelevant columns
+    - Enhanced unicode decoding support via `encoding` option
+    - `skipinitialspace` dialect option
+    - Can specify strings to be recognized as True (`true_values`) or False
+      (`false_values`)
+    - High-performance `delim_whitespace` option for whitespace-delimited
+      files; a preferred alternative to the '\s+' regular expression delimiter
+    - Option to skip "bad" lines (wrong number of fields) that would otherwise
+      have caused an error in the past (`error_bad_lines` and `warn_bad_lines`
+      options)
+    - Substantially improved performance in the parsing of integers with
+      thousands markers and lines with comments
+    - Easy of European (and other) decimal formats (`decimal` option)
+    - Custom line terminators (e.g. lineterminator='~') (#2457)
+
   - Add error handling to Series.str.encode/decode (#2276)
   - Add ``where`` and ``mask`` to Series (#2337)
   - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
@@ -42,9 +67,26 @@ pandas 0.10.0
   - New option configuration system and functions `set_option`, `get_option`,
     `describe_option`, and `reset_option`. Deprecate `set_printoptions` and
     `reset_printoptions` (#2393)
+  - Wide DataFrames can be viewed more easily in the console with new
+    `expand_frame_repr` and `line_width` configuration options. This is on by
+    default now (#2436)
+  - Centered moving window functions via ``center`` keyword (#1270)
+
+**Experimental Features**
+
+  - Add support for Panel4D, a named 4 Dimensional stucture
+  - Add support for ndpanel factory functions, to create custom,
+    domain-specific N-Dimensional containers
+  - 'density' property in `SparseSeries` (#2384)
 
 **API Changes**
 
+  - The default binning/labeling behavior for ``resample`` has been changed to
+    `closed='left', label='left'` for daily and lower frequencies. This had
+    been a large source of confusion for users. See "what's new" page for more
+    on this. (#2410)
+  - Methods with ``inplace`` option now return None instead of the calling
+    (modified) object (#1893)
   - inf/-inf are no longer considered as NA by isnull/notnull. To be clear, this
     is legacy cruft from early pandas. This behavior can be globally re-enabled
     using pandas.core.common.use_inf_as_na (#2050, #1919)
@@ -54,6 +96,11 @@ pandas 0.10.0
     `header` argument will be respected. If there is an existing header column,
     this can rename the columns. To fix legacy code, put ``header=None`` when
     passing ``names``
+  - Default column names for header-less parsed files (yielded by read_csv,
+    etc.) are now the integers 0, 1, .... A new argument `prefix` has been
+    added; to get the v0.9.x behavior specify ``prefix='X'`` (#2034). This API
+    change was made to make the default column names more consistent with the
+    DataFrame constructor's default column names when none are specified.
   - DataFrame selection using a boolean frame now preserves input shape
   - If function passed to Series.apply yields a Series, result will be a
     DataFrame (#2316)
@@ -65,6 +112,8 @@ pandas 0.10.0
     perform. Add `ffill/bfill` convenience functions per above (#2284)
   - `HDFStore.keys()` now returns an absolute path-name for each key
   - `to_string()` now always returns a unicode string. (#2224)
+  - File parsers will not handle NA sentinel values arising from passed
+    converter functions
 
 **Improvements to existing features**
 
@@ -87,6 +136,13 @@ pandas 0.10.0
     structures, which should do the right thing on both py2.x and py3.x. (#2224)
   - Reduce groupby.apply overhead substantially by low-level manipulation of
     internal NumPy arrays in DataFrames (#535)
+  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace
+    (#2412)
+  - Added boolean comparison operators to Panel
+  - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (#2411)
+  - The DataFrame ctor now respects column ordering when given
+    an OrderedDict (#2455)
+  - Assigning DatetimeIndex to Series changes the class to TimeSeries (#2139)
 
 **Bug fixes**
 
@@ -120,8 +176,18 @@ pandas 0.10.0
   - Fixes assigning scalars and array to hierarchical column chunk (#1803)
   - Fixed a UnicdeDecodeError with series tidy_repr (#2225)
   - Fixed issued with duplicate keys in an index (#2347, #2380)
-  - Fixed issues related to Hash randomization, on by default starting with 3.3 (#2331)
+  - Fixed issues re: Hash randomization, default on starting w/ py3.3 (#2331)
   - Fixed issue with missing attributes after loading a pickled dataframe (#2431)
+  - Fix Timestamp formatting with tzoffset time zone in dateutil 2.1 (#2443)
+  - Fix GroupBy.apply issue when using BinGrouper to do ts binning (#2300)
+  - Fix issues resulting from datetime.datetime columns being converted to
+    datetime64 when calling DataFrame.apply. (#2374)
+  - Raise exception when calling to_panel on non uniquely-indexed frame (#2441)
+  - Improved detection of console encoding on IPython zmq frontends (#2458)
+  - Preserve time zone when .append-ing two time series (#2260)
+  - Box timestamps when calling reset_index on time-zone-aware index rather
+    than creating a tz-less datetime64 column (#2262)
+  - Enable searching non-string columns in DataFrame.filter(like=...) (#2467)
 
 pandas 0.9.1
 ============

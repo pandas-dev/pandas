@@ -137,12 +137,13 @@ class TestCParser(unittest.TestCase):
         tm.assert_almost_equal(result[0], expected)
 
     def test_skip_bad_lines(self):
+        # too many lines, see #2430 for why
         data = ('a:b:c\n'
                 'd:e:f\n'
                 'g:h:i\n'
-                'j:k\n'
+                'j:k:l:m\n'
                 'l:m:n\n'
-                'o:p')
+                'o:p:q:r')
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None)
