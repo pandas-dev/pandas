@@ -140,6 +140,7 @@ pandas 0.10.0
   - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (#2411)
   - The DataFrame ctor now respects column ordering when given
     an OrderedDict (#2455)
+  - Assigning DatetimeIndex to Series changes the class to TimeSeries (#2139)
 
 **Bug fixes**
 
