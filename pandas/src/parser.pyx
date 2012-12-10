@@ -463,6 +463,9 @@ cdef class TextReader:
             int status
             void *ptr
 
+        self.parser.cb_io = NULL
+        self.parser.cb_cleanup = NULL
+
         if isinstance(source, basestring) and self.compression:
             if self.compression == 'gzip':
                 import gzip

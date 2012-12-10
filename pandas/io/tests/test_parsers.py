@@ -1828,6 +1828,9 @@ a,b,c
 
             result = self.read_csv('__tmp__', compression='bz2')
             tm.assert_frame_equal(result, expected)
+
+            self.assertRaises(ValueError, self.read_csv,
+                              '__tmp__', compression='bz3')
         finally:
             try:
                 os.remove('__tmp__')
