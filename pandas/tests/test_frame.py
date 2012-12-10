@@ -5626,6 +5626,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
         self.assert_(applied.index is self.frame.index) # want this
 
+        #invalid axis
+        df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+
+    def test_apply_empty(self):
         # empty
         applied = self.empty.apply(np.sqrt)
         self.assert_(applied.empty)
@@ -5643,9 +5648,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series(np.nan, index=self.frame.index)
         assert_series_equal(result, expected)
 
-        #invalid axis
-        df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
-        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+        #2476
+        xp = DataFrame(index=['a'])
+        rs = xp.apply(lambda x: x['a'], axis=1)
+        assert_frame_equal(xp, rs)
 
     def test_apply_standard_nonunique(self):
         df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])

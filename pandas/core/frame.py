@@ -4048,8 +4048,14 @@ class DataFrame(NDFrame):
         else:
             if not broadcast:
                 if not all(self.shape):
-                    is_reduction = not isinstance(f(_EMPTY_SERIES),
-                                                  np.ndarray)
+                    # How to determine this better?
+                    is_reduction = False
+                    try:
+                        is_reduction = not isinstance(f(_EMPTY_SERIES),
+                                                      np.ndarray)
+                    except Exception:
+                        pass
+
                     if is_reduction:
                         return Series(NA, index=self._get_agg_axis(axis))
                     else:
