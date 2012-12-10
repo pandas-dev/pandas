@@ -749,26 +749,26 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def create_hdf_rows_2d(ndarray index, ndarray[np.uint8_t, ndim=1] mask,
+def create_hdf_rows_2d(ndarray indexer0, ndarray[np.uint8_t, ndim=1] mask,
                        list values):
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
-        unsigned int i, b, n_index, n_blocks, tup_size
+        unsigned int i, b, n_indexer0, n_blocks, tup_size
         ndarray v
         list l
         object tup, val
 
-    n_index   = index.shape[0]
-    n_blocks  = len(values)
-    tup_size  = n_blocks+1
+    n_indexer0 = indexer0.shape[0]
+    n_blocks   = len(values)
+    tup_size   = n_blocks+1
     l = []
-    for i from 0 <= i < n_index:
+    for i from 0 <= i < n_indexer0:
 
         if not mask[i]:
 
             tup = PyTuple_New(tup_size)
-            val  = index[i]
+            val  = indexer0[i]
             PyTuple_SET_ITEM(tup, 0, val)
             Py_INCREF(val)
 
@@ -784,40 +784,40 @@ def create_hdf_rows_2d(ndarray index, ndarray[np.uint8_t, ndim=1] mask,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def create_hdf_rows_3d(ndarray index, ndarray columns,
+def create_hdf_rows_3d(ndarray indexer0, ndarray indexer1,
                        ndarray[np.uint8_t, ndim=2] mask, list values):
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
-        unsigned int i, j, n_columns, n_index, n_blocks, tup_size
+        unsigned int i, j, b, n_indexer0, n_indexer1, n_blocks, tup_size
         ndarray v
         list l
         object tup, val
 
-    n_index   = index.shape[0]
-    n_columns = columns.shape[0]
-    n_blocks  = len(values)
-    tup_size  = n_blocks+2
+    n_indexer0 = indexer0.shape[0]
+    n_indexer1 = indexer1.shape[0]
+    n_blocks   = len(values)
+    tup_size   = n_blocks+2
     l = []
-    for i from 0 <= i < n_index:
+    for i from 0 <= i < n_indexer0:
 
-        for c from 0 <= c < n_columns:
+        for j from 0 <= j < n_indexer1:
 
-            if not mask[i, c]:
+            if not mask[i, j]:
 
                 tup = PyTuple_New(tup_size)
 
-                val  = index[i]
+                val  = indexer0[i]
                 PyTuple_SET_ITEM(tup, 0, val)
                 Py_INCREF(val)
 
-                val  = columns[c]
+                val  = indexer1[j]
                 PyTuple_SET_ITEM(tup, 1, val)
                 Py_INCREF(val)
 
                 for b from 0 <= b < n_blocks:
 
-                    v   = values[b][:, i, c]
+                    v   = values[b][:, i, j]
                     PyTuple_SET_ITEM(tup, b+2, v)
                     Py_INCREF(v)
 
