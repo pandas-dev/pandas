@@ -35,6 +35,7 @@ from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
 from pandas.tseries.period import PeriodIndex
+from pandas.tseries.index import DatetimeIndex
 
 import pandas.core.algorithms as algos
 import pandas.core.datetools as datetools
@@ -2812,6 +2813,9 @@ class DataFrame(NDFrame):
                     name_lst[lev_num] = name
                     name = tuple(name_lst)
             if isinstance(self.index, PeriodIndex):
+                values = self.index.asobject
+            elif (isinstance(self.index, DatetimeIndex) and
+                  self.index.tz is not None):
                 values = self.index.asobject
             else:
                 values = self.index.values
