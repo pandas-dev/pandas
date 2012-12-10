@@ -188,3 +188,19 @@ for i in range(100):
 
 dti_append_tz = \
     Benchmark('s1.append(slst)', setup, start_date=datetime(2012, 9 ,1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=100000, freq='H')
+df = DataFrame(np.random.randn(len(rng), 2), rng)
+"""
+
+dti_reset_index = \
+    Benchmark('df.reset_index()', setup, start_date=datetime(2012,9,1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=100000, freq='H')
+df = DataFrame(np.random.randn(len(rng), 2), rng, tz='US/Eastern')
+"""
+
+dti_reset_index_tz = \
+    Benchmark('df.reset_index()', setup, start_date=datetime(2012,9,1))
