@@ -2890,7 +2890,7 @@ class DataFrame(NDFrame):
         if items is not None:
             return self.reindex(columns=[r for r in items if r in self])
         elif like:
-            return self.select(lambda x: like in x, axis=1)
+            return self.select(lambda x: like in str(x), axis=1)
         elif regex:
             matcher = re.compile(regex)
             return self.select(lambda x: matcher.search(x) is not None, axis=1)
