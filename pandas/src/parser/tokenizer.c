@@ -179,6 +179,10 @@ int parser_clear_data_buffers(parser_t *self) {
 }
 
 int parser_cleanup(parser_t *self) {
+    if (self->cb_cleanup == NULL) {
+        return 0;
+    }
+
     if (self->cb_cleanup(self->source) < 0) {
         return -1;
     }
