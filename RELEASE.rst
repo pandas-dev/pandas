@@ -184,7 +184,9 @@ pandas 0.10.0
     datetime64 when calling DataFrame.apply. (#2374)
   - Raise exception when calling to_panel on non uniquely-indexed frame (#2441)
   - Improved detection of console encoding on IPython zmq frontends (#2458)
-
+  - Preserve time zone when .append-ing two time series (#2260)
+  - Box timestamps when calling reset_index on time-zone-aware index rather
+    than creating a tz-less datetime64 column (#2262)
 
 pandas 0.9.1
 ============
