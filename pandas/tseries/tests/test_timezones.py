@@ -529,6 +529,14 @@ class TestTimeZoneSupport(unittest.TestCase):
         # it works
         DataFrame.from_records([rec], index='begin_time')
 
+    def test_frame_reset_index(self):
+        dr = date_range('2012-06-02', periods=10, tz='US/Eastern')
+        df = DataFrame(np.random.randn(len(dr)), dr)
+        roundtripped = df.reset_index().set_index('index')
+        xp = df.index.tz
+        rs = roundtripped.index.tz
+        self.assertEquals(xp, rs)
+
     def test_dateutil_tzoffset_support(self):
         from dateutil.tz import tzoffset
         values = [188.5, 328.25]
