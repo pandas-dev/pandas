@@ -98,6 +98,14 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(result.hour, expected.hour)
         self.assertEquals(result, expected)
 
+    def test_timestamp_to_datetime_tzoffset(self):
+        #tzoffset
+        from dateutil.tz import tzoffset
+        tzinfo = tzoffset(None, 7200)
+        expected = Timestamp('3/11/2012 04:00', tz=tzinfo)
+        result = Timestamp(expected.to_datetime())
+        self.assertEquals(expected, result)
+
     def test_timedelta_push_over_dst_boundary(self):
         # #1389
 

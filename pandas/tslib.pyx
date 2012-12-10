@@ -604,11 +604,24 @@ cdef convert_to_tsobject(object ts, object tz):
         if tz is not None:
             # sort of a temporary hack
             if ts.tzinfo is not None:
-                ts = tz.normalize(ts)
-                obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.tzinfo = ts.tzinfo
+                if hasattr(tz, 'normalize'):
+                    ts = tz.normalize(ts)
+                    obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                    obj.tzinfo = ts.tzinfo
+                else: #tzoffset
+                    ts_offset = _get_utcoffset(ts.tzinfo, ts)
+                    obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                    obj.value -= _delta_to_nanoseconds(ts_offset)
+                    tz_offset = _get_utcoffset(tz, ts)
+                    obj.value += _delta_to_nanoseconds(tz_offset)
+
+                    obj.tzinfo = tz
             elif not _is_utc(tz):
-                ts = tz.localize(ts)
+                try:
+                    ts = tz.localize(ts)
+                except AttributeError:
+                    ts = ts.replace(tzinfo=tz)
+
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
                 offset = _get_utcoffset(ts.tzinfo, ts)
                 obj.value -= _delta_to_nanoseconds(offset)
