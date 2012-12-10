@@ -813,25 +813,35 @@ class ExcelFormatter(object):
         return val
 
     def _format_header_mi(self):
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
+        if not(has_aliases or self.header):
+            return
+
         levels = self.columns.format(sparsify=True, adjoin=False,
                                    names=False)
-        level_lenghts = _get_level_lengths(levels)
-        coloffset = 0
+        # level_lenghts = _get_level_lengths(levels)
+        coloffset = 1
         if isinstance(self.df.index, MultiIndex):
-            coloffset = len(self.df.index[0]) - 1
+            coloffset = len(self.df.index[0])
 
-        for lnum, (records, values) in enumerate(zip(level_lenghts,
-                                                     levels)):
-            name = self.columns.names[lnum]
-            yield ExcelCell(lnum, coloffset, name, header_style)
-            for i in records:
-                if records[i] > 1:
-                    yield ExcelCell(lnum,coloffset + i + 1, values[i],
-                            header_style, lnum, coloffset + i + records[i])
-                else:
-                    yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
+        # for lnum, (records, values) in enumerate(zip(level_lenghts,
+        #                                              levels)):
+        #     name = self.columns.names[lnum]
+        #     yield ExcelCell(lnum, coloffset, name, header_style)
+        #     for i in records:
+        #         if records[i] > 1:
+        #             yield ExcelCell(lnum,coloffset + i + 1, values[i],
+        #                     header_style, lnum, coloffset + i + records[i])
+        #         else:
+        #             yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
 
-            self.rowcounter = lnum
+        #     self.rowcounter = lnum
+        lnum=0
+        for i,  values in enumerate(zip(*levels)):
+            v = ".".join(map(com.pprint_thing,values))
+            yield ExcelCell(lnum, coloffset + i, v, header_style)
+
+        self.rowcounter = lnum
 
     def _format_header_regular(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
@@ -878,7 +888,9 @@ class ExcelFormatter(object):
             return self._format_regular_rows()
 
     def _format_regular_rows(self):
-        self.rowcounter += 1
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
+        if has_aliases or self.header:
+            self.rowcounter += 1
 
         coloffset = 0
         #output index and index_label?
@@ -894,15 +906,15 @@ class ExcelFormatter(object):
             else:
                 index_label = self.df.index.names[0]
 
-            if index_label:
+            if index_label and self.header != False:
                 # add to same level as column names
-                if isinstance(self.df.columns, MultiIndex):
-                    yield ExcelCell(self.rowcounter, 0,
-                                index_label, header_style)
-                    self.rowcounter += 1
-                else:
-                    yield ExcelCell(self.rowcounter - 1, 0,
-                                index_label, header_style)
+                # if isinstance(self.df.columns, MultiIndex):
+                #     yield ExcelCell(self.rowcounter, 0,
+                #                 index_label, header_style)
+                #     self.rowcounter += 1
+                # else:
+                yield ExcelCell(self.rowcounter - 1, 0,
+                            index_label, header_style)
 
             #write index_values
             index_values = self.df.index
@@ -919,7 +931,9 @@ class ExcelFormatter(object):
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
 
     def _format_hierarchical_rows(self):
-        self.rowcounter += 1
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray))
+        if has_aliases or self.header:
+            self.rowcounter += 1
 
         gcolidx = 0
         #output index and index_label?
@@ -931,11 +945,11 @@ class ExcelFormatter(object):
                 index_labels = self.index_label
 
             #if index labels are not empty go ahead and dump
-            if filter(lambda x: x is not None, index_labels):
-                if isinstance(self.df.columns, MultiIndex):
-                    self.rowcounter += 1
-                else:
-                    self.rowcounter -= 1
+            if filter(lambda x: x is not None, index_labels) and self.header != False:
+                # if isinstance(self.df.columns, MultiIndex):
+                #     self.rowcounter += 1
+                # else:
+                self.rowcounter -= 1
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter, cidx,
                                     name, header_style)
@@ -953,8 +967,8 @@ class ExcelFormatter(object):
                 yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
 
     def get_formatted_cells(self):
-        for cell in itertools.chain(self._format_header(),
-                                    self._format_body()):
+        for cell in itertools.chain(self._format_header(),self._format_body()
+                                    ):
             cell.val = self._format_value(cell.val)
             yield cell
 

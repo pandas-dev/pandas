@@ -693,119 +693,173 @@ class ExcelTests(unittest.TestCase):
         self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
                           xlsx_style.alignment.horizontal)
 
-    def test_to_excel_header_styling_xls(self):
+    # def test_to_excel_header_styling_xls(self):
 
-        import StringIO
-        s = StringIO.StringIO(
-        """Date,ticker,type,value
-        2001-01-01,x,close,12.2
-        2001-01-01,x,open ,12.1
-        2001-01-01,y,close,12.2
-        2001-01-01,y,open ,12.1
-        2001-02-01,x,close,12.2
-        2001-02-01,x,open ,12.1
-        2001-02-01,y,close,12.2
-        2001-02-01,y,open ,12.1
-        2001-03-01,x,close,12.2
-        2001-03-01,x,open ,12.1
-        2001-03-01,y,close,12.2
-        2001-03-01,y,open ,12.1""")
-        df = read_csv(s, parse_dates=["Date"])
-        pdf = df.pivot_table(values="value", rows=["ticker"],
-                                             cols=["Date", "type"])
+    #     import StringIO
+    #     s = StringIO.StringIO(
+    #     """Date,ticker,type,value
+    #     2001-01-01,x,close,12.2
+    #     2001-01-01,x,open ,12.1
+    #     2001-01-01,y,close,12.2
+    #     2001-01-01,y,open ,12.1
+    #     2001-02-01,x,close,12.2
+    #     2001-02-01,x,open ,12.1
+    #     2001-02-01,y,close,12.2
+    #     2001-02-01,y,open ,12.1
+    #     2001-03-01,x,close,12.2
+    #     2001-03-01,x,open ,12.1
+    #     2001-03-01,y,close,12.2
+    #     2001-03-01,y,open ,12.1""")
+    #     df = read_csv(s, parse_dates=["Date"])
+    #     pdf = df.pivot_table(values="value", rows=["ticker"],
+    #                                          cols=["Date", "type"])
 
+    #     try:
+    #         import xlwt
+    #         import xlrd
+    #     except ImportError:
+    #         raise nose.SkipTest
+
+    #     filename = '__tmp_to_excel_header_styling_xls__.xls'
+    #     pdf.to_excel(filename, 'test1')
+
+
+    #     wbk = xlrd.open_workbook(filename,
+    #                              formatting_info=True)
+    #     self.assertEquals(["test1"], wbk.sheet_names())
+    #     ws = wbk.sheet_by_name('test1')
+    #     self.assertEquals([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
+    #                       ws.merged_cells)
+    #     for i in range(0, 2):
+    #         for j in range(0, 7):
+    #             xfx = ws.cell_xf_index(0, 0)
+    #             cell_xf = wbk.xf_list[xfx]
+    #             font = wbk.font_list
+    #             self.assertEquals(1, font[cell_xf.font_index].bold)
+    #             self.assertEquals(1, cell_xf.border.top_line_style)
+    #             self.assertEquals(1, cell_xf.border.right_line_style)
+    #             self.assertEquals(1, cell_xf.border.bottom_line_style)
+    #             self.assertEquals(1, cell_xf.border.left_line_style)
+    #             self.assertEquals(2, cell_xf.alignment.hor_align)
+
+    #     os.remove(filename)
+
+
+    # def test_to_excel_header_styling_xlsx(self):
+
+    #     import StringIO
+    #     s = StringIO.StringIO(
+    #     """Date,ticker,type,value
+    #     2001-01-01,x,close,12.2
+    #     2001-01-01,x,open ,12.1
+    #     2001-01-01,y,close,12.2
+    #     2001-01-01,y,open ,12.1
+    #     2001-02-01,x,close,12.2
+    #     2001-02-01,x,open ,12.1
+    #     2001-02-01,y,close,12.2
+    #     2001-02-01,y,open ,12.1
+    #     2001-03-01,x,close,12.2
+    #     2001-03-01,x,open ,12.1
+    #     2001-03-01,y,close,12.2
+    #     2001-03-01,y,open ,12.1""")
+    #     df = read_csv(s, parse_dates=["Date"])
+    #     pdf = df.pivot_table(values="value", rows=["ticker"],
+    #                                          cols=["Date", "type"])
+
+    #     try:
+    #         import openpyxl
+    #         from openpyxl.cell import get_column_letter
+    #     except ImportError:
+    #         raise nose.SkipTest
+
+    #     if openpyxl.__version__ < '1.6.1':
+    #         raise nose.SkipTest
+
+    #     # test xlsx_styling
+    #     filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
+    #     pdf.to_excel(filename, 'test1')
+
+    #     wbk = openpyxl.load_workbook(filename)
+    #     self.assertEquals(["test1"], wbk.get_sheet_names())
+    #     ws = wbk.get_sheet_by_name('test1')
+
+    #     xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
+    #     xlsaddrs += ["A%s" % i for i in range(1, 6)]
+    #     xlsaddrs += ["B1", "D1", "F1"]
+    #     for xlsaddr in xlsaddrs:
+    #         cell = ws.cell(xlsaddr)
+    #         self.assertTrue(cell.style.font.bold)
+    #         self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+    #                           cell.style.borders.top.border_style)
+    #         self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+    #                           cell.style.borders.right.border_style)
+    #         self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+    #                           cell.style.borders.bottom.border_style)
+    #         self.assertEquals(openpyxl.style.Border.BORDER_THIN,
+    #                           cell.style.borders.left.border_style)
+    #         self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
+    #                           cell.style.alignment.horizontal)
+
+    #     mergedcells_addrs = ["C1", "E1", "G1"]
+    #     for maddr in mergedcells_addrs:
+    #         self.assertTrue(ws.cell(maddr).merged)
+
+    #     os.remove(filename)
+
+    def test_excel_010_hemstring(self):
         try:
             import xlwt
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest
-
-        filename = '__tmp_to_excel_header_styling_xls__.xls'
-        pdf.to_excel(filename, 'test1')
-
-
-        wbk = xlrd.open_workbook(filename,
-                                 formatting_info=True)
-        self.assertEquals(["test1"], wbk.sheet_names())
-        ws = wbk.sheet_by_name('test1')
-        self.assertEquals([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
-                          ws.merged_cells)
-        for i in range(0, 2):
-            for j in range(0, 7):
-                xfx = ws.cell_xf_index(0, 0)
-                cell_xf = wbk.xf_list[xfx]
-                font = wbk.font_list
-                self.assertEquals(1, font[cell_xf.font_index].bold)
-                self.assertEquals(1, cell_xf.border.top_line_style)
-                self.assertEquals(1, cell_xf.border.right_line_style)
-                self.assertEquals(1, cell_xf.border.bottom_line_style)
-                self.assertEquals(1, cell_xf.border.left_line_style)
-                self.assertEquals(2, cell_xf.alignment.hor_align)
-
-        os.remove(filename)
-
-
-    def test_to_excel_header_styling_xlsx(self):
-
-        import StringIO
-        s = StringIO.StringIO(
-        """Date,ticker,type,value
-        2001-01-01,x,close,12.2
-        2001-01-01,x,open ,12.1
-        2001-01-01,y,close,12.2
-        2001-01-01,y,open ,12.1
-        2001-02-01,x,close,12.2
-        2001-02-01,x,open ,12.1
-        2001-02-01,y,close,12.2
-        2001-02-01,y,open ,12.1
-        2001-03-01,x,close,12.2
-        2001-03-01,x,open ,12.1
-        2001-03-01,y,close,12.2
-        2001-03-01,y,open ,12.1""")
-        df = read_csv(s, parse_dates=["Date"])
-        pdf = df.pivot_table(values="value", rows=["ticker"],
-                                             cols=["Date", "type"])
-
-        try:
             import openpyxl
-            from openpyxl.cell import get_column_letter
         except ImportError:
             raise nose.SkipTest
 
-        if openpyxl.__version__ < '1.6.1':
-            raise nose.SkipTest
+        from pandas.util.testing import makeCustomDataframe as mkdf
+        # ensure limited functionality in 0.10
+        # override of #2370 until sorted out in 0.11
+        def roundtrip(df,header=True,parser_hdr=0):
+             path = '__tmp__test_xl_010_%s__.xls' % np.random.randint(1,10000)
+             df.to_excel(path,header=header)
+             xf = pd.ExcelFile(path)
+             try:
+                 res = xf.parse(xf.sheet_names[0],header=parser_hdr)
+                 return res
+             finally:
+                 os.remove(path)
 
-        # test xlsx_styling
-        filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
-        pdf.to_excel(filename, 'test1')
+        nrows = 5
+        ncols = 3
 
-        wbk = openpyxl.load_workbook(filename)
-        self.assertEquals(["test1"], wbk.get_sheet_names())
-        ws = wbk.get_sheet_by_name('test1')
+        for i in range(1,4): # row multindex upto nlevel=3
+            for j in range(1,4): # col ""
+                df = mkdf(nrows,ncols,r_idx_nlevels=i,c_idx_nlevels=j)
+                res = roundtrip(df)
+                # shape
+                self.assertEqual(res.shape,(nrows,ncols+i))
 
-        xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
-        xlsaddrs += ["A%s" % i for i in range(1, 6)]
-        xlsaddrs += ["B1", "D1", "F1"]
-        for xlsaddr in xlsaddrs:
-            cell = ws.cell(xlsaddr)
-            self.assertTrue(cell.style.font.bold)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.top.border_style)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.right.border_style)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.bottom.border_style)
-            self.assertEquals(openpyxl.style.Border.BORDER_THIN,
-                              cell.style.borders.left.border_style)
-            self.assertEquals(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-                              cell.style.alignment.horizontal)
+                # no nans
+                for r in range(len(res.index)):
+                    for c in range(len(res.columns)):
+                        self.assertTrue(res.ix[r,c] is not np.nan)
 
-        mergedcells_addrs = ["C1", "E1", "G1"]
-        for maddr in mergedcells_addrs:
-            self.assertTrue(ws.cell(maddr).merged)
+        for i in range(1,4): # row multindex upto nlevel=3
+            for j in range(1,4): # col ""
+                df = mkdf(nrows,ncols,r_idx_nlevels=i,c_idx_nlevels=j)
+                res = roundtrip(df,False)
+                # shape
+                self.assertEqual(res.shape,(nrows-1,ncols+i)) # first row taken as columns
 
-        os.remove(filename)
+                # no nans
+                for r in range(len(res.index)):
+                    for c in range(len(res.columns)):
+                        self.assertTrue(res.ix[r,c] is not np.nan)
 
+        res = roundtrip(DataFrame([0]))
+        self.assertEqual(res.shape,(1,1))
+        self.assertTrue(res.ix[0,0] is not np.nan)
+
+        res = roundtrip(DataFrame([0]),False,None)
+        self.assertEqual(res.shape,(1,2))
+        self.assertTrue(res.ix[0,0] is not np.nan)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
