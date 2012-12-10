@@ -236,6 +236,7 @@ cdef class TextReader:
 
     cdef public:
         int leading_cols, table_width, skip_footer, buffer_lines
+        object allow_leading_cols
         object delimiter, converters, delim_whitespace
         object na_values, true_values, false_values
         object memory_map
@@ -290,6 +291,7 @@ cdef class TextReader:
                   false_values=None,
 
                   compact_ints=False,
+                  allow_leading_cols=True,
                   use_unsigned=False,
                   low_memory=False,
                   buffer_lines=None,
@@ -422,6 +424,7 @@ cdef class TextReader:
         #----------------------------------------
         # header stuff
 
+        self.allow_leading_cols = allow_leading_cols
         self.leading_cols = 0
 
         # TODO: no header vs. header is not the first row
@@ -604,7 +607,9 @@ cdef class TextReader:
                                    'data has %d fields'
                                    % (passed_count, field_count))
 
-            self.leading_cols = field_count - passed_count
+            # oh boy, #2442
+            if self.allow_leading_cols:
+                self.leading_cols = field_count - passed_count
         else:
             # TODO: some better check here
             # field_count = len(header)
@@ -1002,7 +1007,12 @@ cdef class TextReader:
                 return self.names[i]
         else:
             if self.header is not None:
-                return self.header[i - self.leading_cols]
+                j = i - self.leading_cols
+                # hack for #2442
+                if j == len(self.header):
+                    return j
+                else:
+                    return self.header[j]
             else:
                 return None
 

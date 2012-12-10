@@ -48,9 +48,11 @@ header : int, default 0
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
-index_col : int or sequence, default None
-    Column to use as the row labels of the DataFrame. If a sequence is
-    given, a MultiIndex is used.
+index_col : int or sequence or False, default None
+    Column to use as the row labels of the DataFrame. If a sequence is given, a
+    MultiIndex is used. If you have a malformed file with delimiters at the end
+    of each line, you might consider index_col=False to force pandas to _not_
+    use the first column as the index (row names)
 names : array-like
     List of column names to use. If file contains no header row, then you
     should explicitly pass header=None
@@ -559,7 +561,7 @@ class TextFileReader(object):
         # really delete this one
         keep_default_na = result.pop('keep_default_na')
 
-        if index_col is not None:
+        if _is_index_col(index_col):
             if not isinstance(index_col, (list, tuple, np.ndarray)):
                 index_col = [index_col]
         result['index_col'] = index_col
@@ -642,6 +644,8 @@ class TextFileReader(object):
     get_chunk = read
 
 
+def _is_index_col(col):
+    return col is not None and col is not False
 
 class ParserBase(object):
 
@@ -687,7 +691,7 @@ class ParserBase(object):
                 return (j in self.parse_dates) or (name in self.parse_dates)
 
     def _make_index(self, data, alldata, columns):
-        if self.index_col is None or len(self.index_col) == 0:
+        if not _is_index_col(self.index_col) or len(self.index_col) == 0:
             index = None
 
         elif not self._has_complex_date_col:
@@ -872,6 +876,8 @@ class CParserWrapper(ParserBase):
             src = com.UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
 
+        # #2442
+        kwds['allow_leading_cols'] = self.index_col is not False
         self._reader = _parser.TextReader(src, **kwds)
 
         # XXX
@@ -897,7 +903,9 @@ class CParserWrapper(ParserBase):
         self.orig_names = self.names
 
         if not self._has_complex_date_col:
-            if self._reader.leading_cols == 0 and self.index_col is not None:
+            if (self._reader.leading_cols == 0 and
+                _is_index_col(self.index_col)):
+
                 self._name_processed = True
                 (self.index_names, self.names,
                  self.index_col) = _clean_index_names(self.names,
@@ -1390,7 +1398,10 @@ class PythonParser(ParserBase):
         # implicitly index_col=0 b/c 1 fewer column names
         implicit_first_cols = 0
         if line is not None:
-            implicit_first_cols = len(line) - len(columns)
+            # leave it 0, #2442
+            if self.index_col is not False:
+                implicit_first_cols = len(line) - len(columns)
+
             if next_line is not None:
                 if len(next_line) == len(line) + len(columns):
                     # column and index names on diff rows
@@ -1427,7 +1438,7 @@ class PythonParser(ParserBase):
 
         assert(self.skip_footer >= 0)
 
-        if col_len != zip_len:
+        if col_len != zip_len and self.index_col is not False:
             row_num = -1
             i = 0
             for (i, l) in enumerate(content):
@@ -1622,7 +1633,7 @@ def _clean_na_values(na_values, keep_default_na=True):
 
 
 def _clean_index_names(columns, index_col):
-    if index_col is None:
+    if not _is_index_col(index_col):
         return None, columns, index_col
 
     columns = list(columns)
