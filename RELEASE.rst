@@ -187,6 +187,7 @@ pandas 0.10.0
   - Preserve time zone when .append-ing two time series (#2260)
   - Box timestamps when calling reset_index on time-zone-aware index rather
     than creating a tz-less datetime64 column (#2262)
+  - Enable searching non-string columns in DataFrame.filter(like=...) (#2467)
 
 pandas 0.9.1
 ============

@@ -5900,6 +5900,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         filtered = self.mixed_frame.filter(like='foo')
         self.assert_('foo' in filtered)
 
+        # unicode columns, won't ascii-encode
+        df = self.frame.rename(columns={'B': u'\u2202'})
+        filtered = df.filter(like='C')
+        self.assertTrue('C' in filtered)
+
     def test_filter_regex_search(self):
         fcopy = self.frame.copy()
         fcopy['AA'] = 1
