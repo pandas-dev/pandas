@@ -490,7 +490,8 @@ class ExcelTests(unittest.TestCase):
         os.remove(path)
 
     def test_excel_roundtrip_indexname(self):
-        _skip_if_no_excelsuite()
+        _skip_if_no_xlrd()
+        _skip_if_no_xlwt()
 
         path = '%s.xls' % tm.rands(10)
 
@@ -809,4 +810,3 @@ class ExcelTests(unittest.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

@@ -175,3 +175,16 @@ rng = date_range('1/1/2000 9:30', periods=100000, freq='S', tz='US/Eastern')
 datetimeindex_normalize = \
     Benchmark('rng.normalize()', setup,
               start_date=datetime(2012, 9, 1))
+
+setup = common_setup + """
+from pandas.tseries.offsets import Second
+s1 = date_range('1/1/2000', periods=100, freq='S')
+curr = s1[-1]
+slst = []
+for i in range(100):
+    slst.append(curr + Second(), periods=100, freq='S')
+    curr = slst[-1][-1]
+"""
+
+dti_append_tz = \
+    Benchmark('s1.append(slst)', setup, start_date=datetime(2012, 9 ,1))

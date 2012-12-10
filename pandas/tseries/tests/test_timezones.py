@@ -668,6 +668,35 @@ class TestTimeZones(unittest.TestCase):
         self.assertEqual(df1.index.tz, new1.index.tz)
         self.assertEqual(df2.index.tz, new2.index.tz)
 
+    def test_append_aware(self):
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assertEqual(ts_result.index.tz, rng1.tz)
+
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
+                          tz='UTC')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='UTC')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        utc = rng1.tz
+        self.assertEqual(utc, ts_result.index.tz)
+
+        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
+                          tz='US/Eastern')
+        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
+                          tz='US/Central')
+        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
+        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
+        ts_result = ts1.append(ts2)
+        self.assertEqual(utc, ts_result.index.tz)
+
     def test_equal_join_ensure_utc(self):
         rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
         ts = Series(np.random.randn(len(rng)), index=rng)
