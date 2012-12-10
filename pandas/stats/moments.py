@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Series, notnull, Panel
 import pandas.lib as lib
+import pandas.core.common as com
 
 from pandas.util.decorators import Substitution, Appender
 
@@ -572,26 +573,29 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, center=center, time_rule=time_rule)
 
-def rolling_window(arg, window, window_type='boxcar', min_periods=None,
-                   freq=None, center=False, time_rule=None, **kwargs):
+def rolling_window(arg, window=None, win_type=None, min_periods=None,
+                   freq=None, center=False, mean=True, time_rule=None,
+                   axis=0, **kwargs):
     """
     Applies a centered moving window of type ``window_type`` and size ``window``
     on the data.
 
     Parameters
     ----------
-    data : Series, DataFrame
-    window : int
-        Size of the filtering window.
-    window_type : str, default 'boxcar'
+    arg : Series, DataFrame
+    window : int or ndarray
+        Filtering window specification. If the window is an integer, then it is
+        treated as the window length and win_type is required
+    win_type : str, default None
         Window type (see Notes)
-
     min_periods : int
-        Minimum number of observations in window required to have a value
+        Minimum number of observations in window required to have a value.
     freq : None or string alias / date offset object, default=None
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
+    mean : boolean, default True
+        If True computes weighted mean, else weighted sum
 
     Returns
     -------
@@ -616,26 +620,52 @@ def rolling_window(arg, window, window_type='boxcar', min_periods=None,
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
     """
-    from scipy.signal import convolve, get_window
-
-    data = marray(data, copy=True, subok=True)
-    if data._mask is nomask:
-        data._mask = np.zeros(data.shape, bool_)
-    window = get_window(window_type, span, fftbins=False)
-    (n, k) = (len(data), span//2)
-    #
-    if data.ndim == 1:
-        data._data.flat = convolve(data._data, window)[k:n+k] / float(span)
-        data._mask[:] = ((convolve(getmaskarray(data), window) > 0)[k:n+k])
-    elif data.ndim == 2:
-        for i in range(data.shape[-1]):
-            _data = data._data[:,i]
-            _data.flat = convolve(_data, window)[k:n+k] / float(span)
-            data._mask[:,i] = (convolve(data._mask[:,i], window) > 0)[k:n+k]
+    if isinstance(window, (list, tuple, np.ndarray)):
+        if win_type is not None:
+            raise ValueError(('Do not specify window type if using custom '
+                              'weights'))
+        window = com._asarray_tuplesafe(window).astype(float)
+    elif com.is_integer(window): #window size
+        if win_type is None:
+            raise ValueError('Must specify window type')
+        import scipy.signal as sig
+        win_type = _validate_win_type(win_type, kwargs) # may pop from kwargs
+        window = sig.get_window(win_type, window).astype(float)
     else:
-        raise ValueError, "Data should be at most 2D"
-    data._mask[:k] = data._mask[-k:] = True
-    return data
+        raise ValueError('Invalid window %s' % str(window))
+
+    minp = _use_window(min_periods, len(window))
+
+    arg = _conv_timerule(arg, freq, time_rule)
+    return_hook, values = _process_data_structure(arg)
+
+    f = lambda x: lib.roll_window(x, window, minp, avg=mean)
+    result = np.apply_along_axis(f, axis, values)
+
+    rs = return_hook(result)
+    if center:
+        rs = _center_window(rs, len(window), axis)
+    return rs
+
+def _validate_win_type(win_type, kwargs):
+    # may pop from kwargs
+    arg_map = {'kaiser' : ['beta'],
+               'gaussian' : ['std'],
+               'general_gaussian' : ['power', 'width'],
+               'slepian' : ['width']}
+    if win_type in arg_map:
+        return tuple([win_type] +
+                     _pop_args(win_type, arg_map[win_type], kwargs))
+    return win_type
+
+def _pop_args(win_type, arg_names, kwargs):
+    msg = '%s window requires %%s' % win_type
+    all_args = []
+    for n in arg_names:
+        if n not in kwargs:
+            raise ValueError(msg % n)
+        all_args.append(kwargs.pop(n))
+    return all_args
 
 
 def _expanding_func(func, desc, check_minp=_use_window):

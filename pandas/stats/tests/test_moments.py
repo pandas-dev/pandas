@@ -74,15 +74,66 @@ class TestMoments(unittest.TestCase):
         vals = np.random.randn(10)
         xp = cmov_window(vals, 5, 'boxcar')
 
-        rs = mom.rolling_window(vals, 5, center=True)
+        rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
         assert_almost_equal(xp.compressed(), rs[2:-2])
         assert_almost_equal(xp.mask, np.isnan(rs))
 
         xp = Series(rs)
-        rs = mom.rolling_window(Series(vals), 5, center=True)
+        rs = mom.rolling_window(Series(vals), 5, 'boxcar', center=True)
         assert_series_equal(xp, rs)
 
-    def test_cmov_window_types(self):
+    def test_cmov_window_corner(self):
+        try:
+            from scikits.timeseries.lib import cmov_window
+        except ImportError:
+            raise nose.SkipTest
+
+        # all nan
+        vals = np.empty(10, dtype=float)
+        vals.fill(np.nan)
+        rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
+        self.assert_(np.isnan(rs).all())
+
+        # empty
+        vals = np.array([])
+        rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
+        self.assert_(len(rs) == 0)
+
+        # shorter than window
+        vals = np.random.randn(5)
+        rs = mom.rolling_window(vals, 10, 'boxcar')
+        self.assert_(np.isnan(rs).all())
+        self.assert_(len(rs) == 5)
+
+    def test_cmov_window_frame(self):
+        try:
+            from scikits.timeseries.lib import cmov_window
+        except ImportError:
+            raise nose.SkipTest
+
+        # DataFrame
+        vals = np.random.randn(10, 2)
+        xp = cmov_window(vals, 5, 'boxcar')
+        rs = mom.rolling_window(DataFrame(vals), 5, 'boxcar', center=True)
+        assert_frame_equal(DataFrame(xp), rs)
+
+    def test_cmov_window_na_min_periods(self):
+        try:
+            from scikits.timeseries.lib import cmov_window
+        except ImportError:
+            raise nose.SkipTest
+
+        # min_periods
+        vals = Series(np.random.randn(10))
+        vals[4] = np.nan
+        vals[8] = np.nan
+
+        xp = mom.rolling_mean(vals, 5, min_periods=4, center=True)
+        rs = mom.rolling_window(vals, 5, 'boxcar', min_periods=4, center=True)
+
+        assert_series_equal(xp, rs)
+
+    def test_cmov_window_regular(self):
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
@@ -94,11 +145,10 @@ class TestMoments(unittest.TestCase):
             vals = np.random.randn(10)
             xp = cmov_window(vals, 5, wt)
 
-            rs = mom.rolling_window(vals, 5, window_type=wt, center=True)
-            assert_almost_equal(xp.compressed(), rs[2:-2])
-            assert_almost_equal(xp.mask, np.isnan(rs))
+            rs = mom.rolling_window(Series(vals), 5, wt, center=True)
+            assert_series_equal(Series(xp), rs)
 
-    def test_cmov_special(self):
+    def test_cmov_window_special(self):
         try:
             from scikits.timeseries.lib import cmov_window
         except ImportError:
@@ -106,16 +156,15 @@ class TestMoments(unittest.TestCase):
 
         win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
         kwds = [{'beta' : 1.}, {'std' : 1.}, {'power' : 2., 'width' : 2.},
-                {'width' : 2.}]
+                {'width' : 0.5}]
 
         for wt, k in zip(win_types, kwds):
             vals = np.random.randn(10)
             xp = cmov_window(vals, 5, (wt,) + tuple(k.values()))
 
-            rs = mom.rolling_window(vals, 5, window_type=wt, center=True,
+            rs = mom.rolling_window(Series(vals), 5, wt, center=True,
                                     **k)
-            assert_almost_equal(xp.compressed(), rs[2:-2])
-            assert_almost_equal(xp.mask, np.isnan(rs))
+            assert_series_equal(Series(xp), rs)
 
     def test_rolling_median(self):
         self._check_moment_func(mom.rolling_median, np.median)
