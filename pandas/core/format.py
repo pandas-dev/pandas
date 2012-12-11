@@ -86,7 +86,8 @@ class SeriesFormatter(object):
             if footer and self.series.name is not None:
                 footer += ', '
 
-            series_name = com.pprint_thing(self.series.name)
+            series_name = com.pprint_thing(self.series.name,
+                                           escape_chars=('\t','\r','\n'))
             footer += ("Name: %s" % series_name) if self.series.name is not None else ""
 
         if self.length:
@@ -1029,7 +1030,8 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        formatter = com.pprint_thing if self.formatter is None else self.formatter
+        formatter = (lambda x: com.pprint_thing(x,escape_chars=('\t','\r','\n'))) \
+                    if self.formatter is None else self.formatter
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):

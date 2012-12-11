@@ -2940,6 +2940,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # no columns or index
         self.empty.info(buf=buf)
 
+        df = DataFrame(["a\n\r\tb"],columns=["a\n\r\td"],index=["a\n\r\tf"])
+        self.assertFalse("\t" in repr(df))
+        self.assertFalse("\r" in repr(df))
+        self.assertFalse("a\n" in repr(df))
+
     @slow
     def test_repr_big(self):
         buf = StringIO()
