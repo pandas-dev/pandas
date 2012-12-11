@@ -352,7 +352,7 @@ class EmbeddedSphinxShell(object):
         self.cout.seek(0)
         output = self.cout.read()
         if not is_suppress and not is_semicolon:
-            ret.append(output)
+            ret.append(output.decode('utf-8'))
 
         if not is_okexcept and "Traceback" in output:
             sys.stdout.write(output)

@@ -518,6 +518,16 @@ class TestDataFrameFormatting(unittest.TestCase):
         set_option('test.interactive', False)
         set_option('print.line_width', 80)
 
+    def test_wide_repr_wide_long_columns(self):
+        set_option('test.interactive', True)
+
+        df = DataFrame({'a': ['a'*30, 'b'*30], 'b': ['c'*70, 'd'*80]})
+
+        result = repr(df)
+        self.assertTrue('ccccc' in result)
+        self.assertTrue('ddddd' in result)
+        set_option('test.interactive', False)
+
     def test_to_string(self):
         from pandas import read_table
         import re

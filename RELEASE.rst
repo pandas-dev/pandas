@@ -94,6 +94,9 @@ pandas 0.10.0
     on this. (#2410)
   - Methods with ``inplace`` option now return None instead of the calling
     (modified) object (#1893)
+  - The special case DataFrame - TimeSeries doing column-by-column broadcasting
+    has been deprecated. Users should explicitly do e.g. df.sub(ts, axis=0)
+    instead. This is a legacy hack and can lead to subtle bugs.
   - inf/-inf are no longer considered as NA by isnull/notnull. To be clear, this
     is legacy cruft from early pandas. This behavior can be globally re-enabled
     using pandas.core.common.use_inf_as_na (#2050, #1919)
