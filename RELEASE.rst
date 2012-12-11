@@ -39,7 +39,7 @@ pandas 0.10.0
       (`as_recarray=True`)
     - `dtype` option: explicit column dtypes
     - `usecols` option: specify list of columns to be read from a file. Good
-      for reading very wide files with many irrelevant columns
+      for reading very wide files with many irrelevant columns (#1216 #926, #2465)
     - Enhanced unicode decoding support via `encoding` option
     - `skipinitialspace` dialect option
     - Can specify strings to be recognized as True (`true_values`) or False
@@ -51,9 +51,16 @@ pandas 0.10.0
       options)
     - Substantially improved performance in the parsing of integers with
       thousands markers and lines with comments
-    - Easy of European (and other) decimal formats (`decimal` option)
+    - Easy of European (and other) decimal formats (`decimal` option) (#584, #2466)
     - Custom line terminators (e.g. lineterminator='~') (#2457)
+    - Handling of no trailing commas in CSV files (#2333)
+    - Ability to handle fractional seconds in date_converters (#2209)
+    - read_csv allow scalar arg to na_values (#1944)
+    - Explicit column dtype specification in read_* functions (#1858)
+    - Easier CSV dialect specification (#1743)
+    - Improve parser performance when handling special characters (#1204)
 
+  - Google Analytics API integration with easy oauth2 workflow (#2283)
   - Add error handling to Series.str.encode/decode (#2276)
   - Add ``where`` and ``mask`` to Series (#2337)
   - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
@@ -70,7 +77,7 @@ pandas 0.10.0
   - Wide DataFrames can be viewed more easily in the console with new
     `expand_frame_repr` and `line_width` configuration options. This is on by
     default now (#2436)
-  - Centered moving window functions via ``center`` keyword (#1270)
+  - Scikits.timeseries-like moving window functions via ``rolling_window`` (#1270)
 
 **Experimental Features**
 
@@ -144,6 +151,22 @@ pandas 0.10.0
     an OrderedDict (#2455)
   - Assigning DatetimeIndex to Series changes the class to TimeSeries (#2139)
   - Improve performance of .value_counts method on non-integer data (#2480)
+  - ``get_level_values`` method for MultiIndex return Index instead of ndarray (#2449)
+  - ``convert_to_r_dataframe`` conversion for datetime values (#2351)
+  - Allow ``DataFrame.to_csv`` to represent inf and nan differently (#2026)
+  - Add ``min_i`` argument to ``nancorr`` to specify minimum required observations (#2002)
+  - Add ``inplace`` option to ``sortlevel`` / ``sort`` functions on DataFrame (#1873)
+  - Enable DataFrame to accept scalar constructor values like Series (#1856)
+  - DataFrame.from_records now takes optional ``size`` parameter (#1794)
+  - include iris dataset (#1709)
+  - No datetime64 DataFrame column conversion of datetime.datetime with tzinfo (#1581)
+  - Micro-optimizations in DataFrame for tracking state of internal consolidation (#217)
+  - Format parameter in DataFrame.to_csv (#1525)
+  - Partial string slicing for ``DatetimeIndex`` for daily and higher frequencies (#2306)
+  - Implement ``col_space`` parameter in ``to_html`` and ``to_string`` in DataFrame (#1000)
+  - Override ``Series.tolist`` and box datetime64 types (#2447)
+  - Optimize ``unstack`` memory usage by compressing indices (#2278)
+  - Fix HTML repr in IPython qtconsole if opening window is small (#2275)
 
 **Bug fixes**
 
@@ -189,6 +212,19 @@ pandas 0.10.0
   - Box timestamps when calling reset_index on time-zone-aware index rather
     than creating a tz-less datetime64 column (#2262)
   - Enable searching non-string columns in DataFrame.filter(like=...) (#2467)
+  - Fixed issue with losing nanosecond precision upon conversion to DatetimeIndex(#2252)
+  - Handle timezones in Datetime.normalize (#2338)
+  - Fix test case where dtype specification with endianness causes
+    failures on big endian machines (#2318)
+  - Fix plotting bug where upsampling causes data to appear shifted in time (#2448)
+  - Fix ``read_csv`` failure for UTF-16 with BOM and skiprows(#2298)
+  - read_csv with names arg not implicitly setting header=None(#2459)
+  - Unrecognized compression mode causes segfault in read_csv(#2474)
+  - In read_csv, header=0 and passed names should discard first row(#2269)
+  - Correctly route to stdout/stderr in read_table (#2071)
+  - Fix exception when Timestamp.to_datetime is called on a Timestamp with tzoffset (#2471)
+  - Fixed unintentional conversion of datetime64 to long in groupby.first() (#2133)
+  - Union of empty DataFrames now return empty with concatenated index (#2307)
 
 pandas 0.9.1
 ============
