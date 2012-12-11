@@ -158,50 +158,108 @@ class TestHDFStore(unittest.TestCase):
         self._check_roundtrip(df, tm.assert_frame_equal)
 
     def test_append(self):
-        pth = '__test_append__.h5'
 
-        try:
-            store = HDFStore(pth)
+        df = tm.makeTimeDataFrame()
+        self.store.remove('df1')
+        self.store.append('df1', df[:10])
+        self.store.append('df1', df[10:])
+        tm.assert_frame_equal(self.store['df1'], df)
 
-            df = tm.makeTimeDataFrame()
-            store.append('df1', df[:10])
-            store.append('df1', df[10:])
-            tm.assert_frame_equal(store['df1'], df)
+        self.store.remove('df2')
+        self.store.put('df2', df[:10], table=True)
+        self.store.append('df2', df[10:])
+        tm.assert_frame_equal(self.store['df2'], df)
 
-            store.put('df2', df[:10], table=True)
-            store.append('df2', df[10:])
-            tm.assert_frame_equal(store['df2'], df)
+        self.store.remove('df3')
+        self.store.append('/df3', df[:10])
+        self.store.append('/df3', df[10:])
+        tm.assert_frame_equal(self.store['df3'], df)
 
-            store.append('/df3', df[:10])
-            store.append('/df3', df[10:])
-            tm.assert_frame_equal(store['df3'], df)
+        # this is allowed by almost always don't want to do it
+        import warnings
+        import tables
+        warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+        self.store.remove('/df3 foo')
+        self.store.append('/df3 foo', df[:10])
+        self.store.append('/df3 foo', df[10:])
+        tm.assert_frame_equal(self.store['df3 foo'], df)
+        warnings.filterwarnings('always', category=tables.NaturalNameWarning)
+        
+        # panel
+        wp = tm.makePanel()
+        self.store.remove('wp1')
+        self.store.append('wp1', wp.ix[:,:10,:])
+        self.store.append('wp1', wp.ix[:,10:,:])
+        tm.assert_panel_equal(self.store['wp1'], wp)
 
-            # this is allowed by almost always don't want to do it
-            import warnings
-            import tables
-            warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
-            store.append('/df3 foo', df[:10])
-            store.append('/df3 foo', df[10:])
-            tm.assert_frame_equal(store['df3 foo'], df)
-            warnings.filterwarnings('always', category=tables.NaturalNameWarning)
+        # ndim
+        p4d = tm.makePanel4D()
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:])
+        self.store.append('p4d', p4d.ix[:,:,10:,:])
+        tm.assert_panel4d_equal(self.store['p4d'], p4d)
 
-            # panel
-            wp = tm.makePanel()
-            store.append('wp1', wp.ix[:,:10,:])
-            store.append('wp1', wp.ix[:,10:,:])
-            tm.assert_panel_equal(store['wp1'], wp)
+        # test using axis labels
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=['items','major_axis','minor_axis'])
+        self.store.append('p4d', p4d.ix[:,:,10:,:], axes=['items','major_axis','minor_axis'])
+        tm.assert_panel4d_equal(self.store['p4d'], p4d)
 
-            # ndim
-            p4d = tm.makePanel4D()
-            store.append('p4d', p4d.ix[:,:,:10,:])
-            store.append('p4d', p4d.ix[:,:,10:,:])
-            tm.assert_panel4d_equal(store['p4d'], p4d)
+    def test_append_frame_column_oriented(self):
 
-        except:
-            raise
-        finally:
-            store.close()
-            os.remove(pth)
+        # column oriented
+        df = tm.makeTimeDataFrame()
+        self.store.remove('df1')
+        self.store.append('df1', df.ix[:,:2], axes = ['columns'])
+        self.store.append('df1', df.ix[:,2:])
+        tm.assert_frame_equal(self.store['df1'], df)
+
+        result = self.store.select('df1', 'columns=A')
+        expected = df.reindex(columns=['A'])
+        tm.assert_frame_equal(expected, result)
+
+        # this isn't supported
+        self.assertRaises(Exception, self.store.select, 'df1', ('columns=A', Term('index','>',df.index[4])))
+
+        # selection on the non-indexable
+        result = self.store.select('df1', ('columns=A', Term('index','=',df.index[0:4])))
+        expected = df.reindex(columns=['A'],index=df.index[0:4])
+        tm.assert_frame_equal(expected, result)
+
+    def test_ndim_indexables(self):
+        """ test using ndim tables in new ways"""
+
+        p4d = tm.makePanel4D()
+
+        # append then change (will take existing schema)
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=['items','major_axis','minor_axis'])
+        self.store.append('p4d', p4d.ix[:,:,10:,:], axes=['labels','items','major_axis'])
+
+        # pass incorrect number of axes
+        self.store.remove('p4d')
+        self.assertRaises(Exception, self.store.append, 'p4d', p4d.ix[:,:,:10,:], axes=['major_axis','minor_axis'])
+
+        # different than default indexables
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=[0,2,3])
+        self.store.append('p4d', p4d.ix[:,:,10:,:], axes=[0,2,3])
+        tm.assert_panel4d_equal(self.store['p4d'], p4d)
+
+        # partial selection
+        result = self.store.select('p4d',['labels=l1'])
+        expected = p4d.reindex(labels = ['l1'])
+        tm.assert_panel4d_equal(result, expected)
+
+        # partial selection2
+        result = self.store.select('p4d',[Term('labels=l1'), Term('items=ItemA'), Term('minor_axis=B')])
+        expected = p4d.reindex(labels = ['l1'], items = ['ItemA'], minor_axis = ['B'])
+        tm.assert_panel4d_equal(result, expected)
+
+        # non-existant partial selection
+        result = self.store.select('p4d',[Term('labels=l1'), Term('items=Item1'), Term('minor_axis=B')])
+        expected = p4d.reindex(labels = ['l1'], items = [], minor_axis = ['B'])
+        tm.assert_panel4d_equal(result, expected)
 
     def test_append_with_strings(self):
         wp = tm.makePanel()
@@ -317,6 +375,21 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('p1_mixed', p1)
         tm.assert_panel_equal(self.store.select('p1_mixed'), p1)
 
+        # ndim
+        def _make_one_p4d():
+            wp = tm.makePanel4D()
+            wp['obj1'] = 'foo'
+            wp['obj2'] = 'bar'
+            wp['bool1'] = wp['l1'] > 0
+            wp['bool2'] = wp['l2'] > 0
+            wp['int1'] = 1
+            wp['int2'] = 2
+            return wp.consolidate()
+
+        p4d = _make_one_p4d()
+        self.store.append('p4d_mixed', p4d)
+        tm.assert_panel4d_equal(self.store.select('p4d_mixed'), p4d)
+
     def test_remove(self):
         ts = tm.makeTimeSeries()
         df = tm.makeDataFrame()
@@ -366,7 +439,10 @@ class TestHDFStore(unittest.TestCase):
         # empty where
         self.store.remove('wp')
         self.store.put('wp', wp, table=True)
-        self.store.remove('wp', [])
+
+        # deleted number (entire table)
+        n = self.store.remove('wp', [])
+        assert(n == 120)
 
         # non - empty where
         self.store.remove('wp')
@@ -387,8 +463,14 @@ class TestHDFStore(unittest.TestCase):
 
         crit1 = Term('major_axis','>',date)
         crit2 = Term('minor_axis',['A', 'D'])
-        self.store.remove('wp', where=[crit1])
-        self.store.remove('wp', where=[crit2])
+        n = self.store.remove('wp', where=[crit1])
+
+        # deleted number
+        assert(n == 56)
+
+        n = self.store.remove('wp', where=[crit2])
+        assert(n == 32)
+
         result = self.store['wp']
         expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
         tm.assert_panel_equal(result, expected)
@@ -447,8 +529,8 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_panel_equal(result, expected)
 
         # p4d
-        result = self.store.select('p4d',[ Term('major_axis<20000108'), Term('minor_axis', '=', ['A','B']) ])
-        expected = p4d.truncate(after='20000108').reindex(minor=['A', 'B'])
+        result = self.store.select('p4d',[ Term('major_axis<20000108'), Term('minor_axis', '=', ['A','B']), Term('items', '=', ['ItemA','ItemB']) ])
+        expected = p4d.truncate(after='20000108').reindex(minor=['A', 'B'],items=['ItemA','ItemB'])
         tm.assert_panel4d_equal(result, expected)
 
         # valid terms
@@ -464,10 +546,21 @@ class TestHDFStore(unittest.TestCase):
             (('minor_axis', ['A','B']),),
             (('minor_axis', ['A','B']),),
             ((('minor_axis', ['A','B']),),),
+            (('items', ['ItemA','ItemB']),),
+            ('items=ItemA'),
             ]
 
         for t in terms:
            self.store.select('wp', t)
+           self.store.select('p4d', t)
+
+        # valid for p4d only
+        terms = [
+            (('labels', '=', ['l1','l2']),),
+            Term('labels', '=', ['l1','l2']),
+            ]
+
+        for t in terms:
            self.store.select('p4d', t)
 
     def test_series(self):

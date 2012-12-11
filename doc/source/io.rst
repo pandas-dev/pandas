@@ -1140,15 +1140,17 @@ Delete from a Table
 
 .. ipython:: python
 
+   # returns the number of rows deleted
    store.remove('wp', 'major_axis>20000102' )
    store.select('wp')
 
 Notes & Caveats
 ~~~~~~~~~~~~~~~
 
-   - Selection by items (the top level panel dimension) is not possible; you always get all of the items in the returned Panel
    - Once a ``table`` is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
    - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
+   - ``HDFStore`` is **not-threadsafe for writing**. The underlying ``PyTables`` only supports concurrent reads (via threading or processes). If you need reading and writing *at the same time*, you need to serialize these operations in a single thread in a single process. You will corrupt your data otherwise. See the issue <https://github.com/pydata/pandas/issues/2397> for more information.
+
    - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *column* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information). This is **ONLY** necessary for storing ``Panels`` (as the indexing column is stored directly in a column)
 
      .. ipython:: python
@@ -1182,6 +1184,27 @@ Performance
    - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
      use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
    - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+
+Experimental
+~~~~~~~~~~~~
+
+HDFStore supports ``Panel4D`` storage.
+
+.. ipython:: python
+
+   p4d = Panel4D({ 'l1' : wp })
+   p4d
+   store.append('p4d', p4d)
+   store
+
+These, by default, index the three axes ``items, major_axis, minor_axis``. On an ``AppendableTable`` it is possible to setup with the first append a different indexing scheme, depending on how you want to store your data. Pass the ``axes`` keyword with a list of dimension (currently must by exactly 1 less than the total dimensions of the object). This cannot be changed after table creation.
+
+.. ipython:: python
+
+   from pandas.io.pytables import Term
+   store.append('p4d2', p4d, axes = ['labels','major_axis','minor_axis'])
+   store
+   store.select('p4d2', [ Term('labels=l1'), Term('items=Item1'), Term('minor_axis=A_big_strings') ])
 
 .. ipython:: python
    :suppress:
