@@ -1015,7 +1015,7 @@ the index in-place (without creating a new object):
 .. ipython:: python
 
    data.set_index('c', drop=False)
-   df = data.set_index(['a', 'b'], inplace=True)
+   data.set_index(['a', 'b'], inplace=True)
    data
 
 Remove / reset the index,  ``reset_index``
@@ -1027,8 +1027,8 @@ integer index. This is the inverse operation to ``set_index``
 
 .. ipython:: python
 
-   df
-   df.reset_index()
+   data
+   data.reset_index()
 
 The output is more similar to a SQL table or a record array. The names for the
 columns derived from the index are the ones stored in the ``names`` attribute.
@@ -1055,7 +1055,7 @@ If you create an index yourself, you can just assign it to the ``index`` field:
 
 .. code-block:: python
 
-   df.index = index
+   data.index = index
 
 Indexing internal details
 -------------------------
