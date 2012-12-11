@@ -229,6 +229,8 @@ pandas 0.10.0
   - Fix exception when Timestamp.to_datetime is called on a Timestamp with tzoffset (#2471)
   - Fixed unintentional conversion of datetime64 to long in groupby.first() (#2133)
   - Union of empty DataFrames now return empty with concatenated index (#2307)
+  - DataFrame.sort_index raises more helpful exception if sorting by column
+    with duplicates (#2488)
 
 pandas 0.9.1
 ============
