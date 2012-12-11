@@ -185,10 +185,17 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_frame_equal(store['df3 foo'], df)
             warnings.filterwarnings('always', category=tables.NaturalNameWarning)
 
+            # panel
             wp = tm.makePanel()
             store.append('wp1', wp.ix[:,:10,:])
             store.append('wp1', wp.ix[:,10:,:])
             tm.assert_panel_equal(store['wp1'], wp)
+
+            # ndim
+            p4d = tm.makePanel4D()
+            store.append('p4d', p4d.ix[:,:,:10,:])
+            store.append('p4d', p4d.ix[:,:,10:,:])
+            tm.assert_panel4d_equal(store['p4d'], p4d)
 
         except:
             raise
@@ -351,7 +358,7 @@ class TestHDFStore(unittest.TestCase):
         # non-table ok (where = None)
         wp = tm.makePanel()
         self.store.put('wp', wp, table=True)
-        self.store.remove('wp', [('column', ['A', 'D'])])
+        self.store.remove('wp', [('minor_axis', ['A', 'D'])])
         rs = self.store.select('wp')
         expected = wp.reindex(minor_axis = ['B','C'])
         tm.assert_panel_equal(rs,expected)
@@ -378,8 +385,8 @@ class TestHDFStore(unittest.TestCase):
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
-        crit1 = Term('index','>',date)
-        crit2 = Term('column',['A', 'D'])
+        crit1 = Term('major_axis','>',date)
+        crit2 = Term('minor_axis',['A', 'D'])
         self.store.remove('wp', where=[crit1])
         self.store.remove('wp', where=[crit2])
         result = self.store['wp']
@@ -394,9 +401,9 @@ class TestHDFStore(unittest.TestCase):
         date2 = wp.major_axis[5]
         date3 = [wp.major_axis[7],wp.major_axis[9]]
 
-        crit1 = Term('index',date1)
-        crit2 = Term('index',date2)
-        crit3 = Term('index',date3)
+        crit1 = Term('major_axis',date1)
+        crit2 = Term('major_axis',date2)
+        crit3 = Term('major_axis',date3)
 
         self.store.remove('wp2', where=[crit1])
         self.store.remove('wp2', where=[crit2])
@@ -415,7 +422,9 @@ class TestHDFStore(unittest.TestCase):
     def test_terms(self):
 
         wp = tm.makePanel()
+        p4d = tm.makePanel4D()
         self.store.put('wp', wp, table=True)
+        self.store.put('p4d', p4d, table=True)
 
         # some invalid terms
         terms = [
@@ -432,28 +441,34 @@ class TestHDFStore(unittest.TestCase):
         self.assertRaises(Exception, Term.__init__, 'index', '==')
         self.assertRaises(Exception, Term.__init__, 'index', '>', 5)
 
+        # panel
         result = self.store.select('wp',[ Term('major_axis<20000108'), Term('minor_axis', '=', ['A','B']) ])
         expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
         tm.assert_panel_equal(result, expected)
 
+        # p4d
+        result = self.store.select('p4d',[ Term('major_axis<20000108'), Term('minor_axis', '=', ['A','B']) ])
+        expected = p4d.truncate(after='20000108').reindex(minor=['A', 'B'])
+        tm.assert_panel4d_equal(result, expected)
+
         # valid terms
         terms = [
-            dict(field = 'index', op = '>', value = '20121114'),
-            ('index', '20121114'),
-            ('index', '>', '20121114'),
-            (('index', ['20121114','20121114']),),
-            ('index', datetime(2012,11,14)),
-            'index>20121114',
-            'major>20121114',
+            dict(field = 'major_axis', op = '>', value = '20121114'),
+            ('major_axis', '20121114'),
+            ('major_axis', '>', '20121114'),
+            (('major_axis', ['20121114','20121114']),),
+            ('major_axis', datetime(2012,11,14)),
             'major_axis>20121114',
-            (('minor', ['A','B']),),
+            'major_axis>20121114',
+            'major_axis>20121114',
+            (('minor_axis', ['A','B']),),
             (('minor_axis', ['A','B']),),
             ((('minor_axis', ['A','B']),),),
-            (('column', ['A','B']),),
             ]
 
         for t in terms:
            self.store.select('wp', t)
+           self.store.select('p4d', t)
 
     def test_series(self):
         s = tm.makeStringSeries()
@@ -790,8 +805,8 @@ class TestHDFStore(unittest.TestCase):
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
-        crit1 = ('index','>=',date)
-        crit2 = ('column', '=', ['A', 'D'])
+        crit1 = ('major_axis','>=',date)
+        crit2 = ('minor_axis', '=', ['A', 'D'])
 
         result = self.store.select('wp', [crit1, crit2])
         expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
@@ -807,8 +822,8 @@ class TestHDFStore(unittest.TestCase):
         date = df.index[len(df) // 2]
 
         crit1 = ('index','>=',date)
-        crit2 = ('column',['A', 'D'])
-        crit3 = ('column','A')
+        crit2 = ('columns',['A', 'D'])
+        crit3 = ('columns','A')
 
         result = self.store.select('frame', [crit1, crit2])
         expected = df.ix[date:, ['A', 'D']]
@@ -829,7 +844,7 @@ class TestHDFStore(unittest.TestCase):
         df.columns = ['%.3d' % c for c in df.columns]
         self.store.put('frame', df, table=True)
 
-        crit = Term('column', df.columns[:75])
+        crit = Term('columns', df.columns[:75])
         result = self.store.select('frame', [crit])
         tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
 
