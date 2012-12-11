@@ -143,6 +143,7 @@ pandas 0.10.0
   - The DataFrame ctor now respects column ordering when given
     an OrderedDict (#2455)
   - Assigning DatetimeIndex to Series changes the class to TimeSeries (#2139)
+  - Improve performance of .value_counts method on non-integer data (#2480)
 
 **Bug fixes**
 

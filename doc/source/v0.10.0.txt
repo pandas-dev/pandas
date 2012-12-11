@@ -6,8 +6,128 @@ v0.10.0 (December ??, 2012)
 This is a major release from 0.9.1 and includes several new features and
 enhancements along with a large number of bug fixes.
 
+API changes
+~~~~~~~~~~~
+
+**Altered resample default behavior**
+
+The default time series ``resample`` binning behavior of daily ``D`` and
+*higher* frequencies has been changed to ``closed='left', label='left'``. Lower
+nfrequencies are unaffected. The prior defaults were causing a great deal of
+confusion for users, especially resampling data to daily frequency (which
+labeled the aggregated group with the end of the interval: the next day).
+
+Note:
+
+.. ipython:: python
+
+    import pandas as pd
+    dates = pd.date_range('1/1/2000', '1/5/2000', freq='4h')
+    series = Series(np.arange(len(dates)), index=dates)
+    series
+    series.resample('D', how='sum')
+    # old behavior
+    series.resample('D', how='sum', closed='right', label='right')
+
+- Methods with the ``inplace`` option now all return ``None`` instead of the
+  calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
+  may stop working.
+
+- ``pandas.merge`` no longer sorts the group keys (``sort=False``) by
+  default. This was done for performance reasons: the group-key sorting is
+  often one of the more expensive parts of the computation and is often
+  unnecessary.
+
+- The ``names`` argument in the file parsers no longer overrides the ``header``
+  option to ``None``. This means that you need to specify ``header=None`` in
+  cases where your file has no header row:
+
+.. ipython:: python
+
+    from StringIO import StringIO
+    data = '1,2,3\n4,5,6\n7,8,9'
+    print data
+    pd.read_csv(StringIO(data), names=['a', 'b', 'c'], header=None)
+
+- The default column names for a file with no header have been changed to the
+  integers ``0`` through ``N - 1``. This is to create consistency with the
+  DataFrame constructor with no columns specified. The v0.9.0 behavior (names
+  ``X0``, ``X1``, ...) can be reproduced by specifying ``prefix='X'``:
+
+.. ipython:: python
+
+    print data
+    pd.read_csv(StringIO(data), header=None)
+    pd.read_csv(StringIO(data), header=None, prefix='X')
+
+- Values like ``'Yes'`` and ``'No'`` are not interpreted as boolean by default,
+  though this can be controlled by new ``true_values`` and ``false_values``
+  arguments:
+
+.. ipython:: python
+
+    data= 'a,b,c\n1,Yes,2\n3,No,4'
+    print data
+    pd.read_csv(StringIO(data))
+    pd.read_csv(StringIO(data), true_values=['Yes'], false_values=['No'])
+
+- The file parsers will not recognize non-string values arising from a
+  converter function as NA if passed in the ``na_values`` argument. It's better
+  to do post-processing using the ``replace`` function instead.
+
+- Calling ``fillna`` on Series or DataFrame with no arguments is no longer
+  valid code. You must either specify a fill value or an interpolation method:
+
+.. ipython:: python
+
+   s = Series([np.nan, 1., 2., np.nan, 4])
+   s
+   s.fillna(0)
+   s.fillna(method='pad')
+
+Convenience methods ``ffill`` and  ``bfill`` have been added:
+
+.. ipython:: python
+
+   s.ffill()
+
+
+- ``Series.apply`` will now operate on a returned value from the applied
+  function, that is itself a series, and possibly upcast the result to a
+  DataFrame
+
+  .. ipython:: python
+
+      def f(x):
+          return Series([ x, x**2 ], index = ['x', 'x^s'])
+
+      s = Series(np.random.rand(5)) s s.apply(f)
+
+- New API functions for working with pandas options (GH2097_):
+
+  - ``get_option`` / ``set_option`` - get/set the value of an option. Partial
+    names are accepted.  - ``reset_option`` - reset one or more options to
+    their default value. Partial names are accepted.  - ``describe_option`` -
+    print a description of one or more options. When called with no
+    arguments. print all registered options.
+
+  Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but
+  functioning), the print options now live under "print.XYZ". For example:
+
+  .. ipython:: python
+
+     get_option("print.max_rows")
+
+- to_string() methods now always return unicode strings  (GH2224_).
+
 New features
 ~~~~~~~~~~~~
+
+- Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument
+  (GH2411_)
+- Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace
+  (GH2412_)
+- ``SparseSeries`` now has a ``density`` property (#2384)
 
 Updated PyTables Support
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,19 +194,17 @@ Updated PyTables Support
 
             # remove all nodes under this level
             store.remove('food')
-	    store
+        store
 
        - added mixed-dtype support!
 
           .. ipython:: python
 
              df['string'] = 'string'
-	     df['int']    = 1
-
+             df['int']    = 1
              store.append('df',df)
-	     df1 = store.select('df')
-	     df1
-	     df1.get_dtype_counts()
+             df1 = store.select('df') df1
+             df1.get_dtype_counts()
 
        - performance improvments on table writing
        - support for arbitrarily indexed dimensions
@@ -127,40 +245,6 @@ Adding experimental support for Panel4D and factory functions to create n-dimens
 
 
 
-API changes
-~~~~~~~~~~~
-
-  - ``Series.apply`` will now operate on a returned value from the applied function, that is itself a series, and possibly upcast the result to a DataFrame
-
-    .. ipython:: python
-
-        def f(x):
-	        return Series([ x, x**2 ], index = ['x', 'x^s'])
-        s = Series(np.random.rand(5))
-        s
-        s.apply(f)
-
-  - Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument (GH2411_)
-
-  - Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace (GH2412_)
-
-  - ``SparseSeries`` now has a ``density`` property (#2384)
-
-  - New API functions for working with pandas options (GH2097_):
-
-    - ``get_option`` / ``set_option`` - get/set the value of an option. Partial names are accepted.
-    - ``reset_option`` - reset one or more options to their default value. Partial names are accepted.
-    - ``describe_option`` - print a description of one or more options. When called  with no arguments. print all registered options.
-
-    Note: ``set_printoptions``/ ``reset_printoptions``  are now deprecated (but functioning), the print options now live under "print.XYZ". For example:
-
-
-    .. ipython:: python
-
-       get_option("print.max_rows")
-
-
-  - to_string() methods now always return unicode strings  (GH2224_).
 
 
 See the `full release notes
