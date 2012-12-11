@@ -254,6 +254,9 @@ def test_pprint_thing():
     # GH #2038
     assert not "\t" in pp_t("a\tb")
 
+    assert not "\n" in pp_t("a\nb")
+    assert "\n" in pp_t("a\nb",escape_chars=("\t",))
+
 class TestTake(unittest.TestCase):
 
     _multiprocess_can_split_ = True
