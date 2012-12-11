@@ -4,10 +4,36 @@ v0.10.0 (December ??, 2012)
 ---------------------------
 
 This is a major release from 0.9.1 and includes several new features and
-enhancements along with a large number of bug fixes.
+enhancements along with a large number of bug fixes. There are also a number of
+important API changes that long-time pandas users should pay close attention
+to.
 
 API changes
 ~~~~~~~~~~~
+
+**Deprecated DataFrame BINOP TimeSeries special case behavior**
+
+The default behavior of binary operations between a DataFrame and a Series has
+always been to align on the DataFrame's columns and broadcast down the rows,
+**except** in the special case that the DataFrame contains time series. Since
+there are now method for each binary operator enabling you to specify how you
+want to broadcast, we are phasing out this special case (Zen of Python:
+*Special cases aren't special enough to break the rules*). Here's what I'm
+talking about:
+
+.. ipython:: python
+
+   import pandas as pd
+   df = pd.DataFrame(np.random.randn(6, 4),
+                     index=pd.date_range('1/1/2000', periods=6))
+   df
+   # deprecated now
+   df - df[0]
+   # Change your code to
+   df.sub(df[0], axis=0) # align on axis 0 (rows)
+
+You will get a deprecation warning in the 0.10.x series, and the deprecated
+functionality will be removed in 0.11 or later.
 
 **Altered resample default behavior**
 
@@ -21,7 +47,6 @@ Note:
 
 .. ipython:: python
 
-    import pandas as pd
     dates = pd.date_range('1/1/2000', '1/5/2000', freq='4h')
     series = Series(np.arange(len(dates)), index=dates)
     series
@@ -31,7 +56,7 @@ Note:
 
 - Methods with the ``inplace`` option now all return ``None`` instead of the
   calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
-  may stop working.
+  may stop working. To fix, simply delete the unnecessary variable assignment.
 
 - ``pandas.merge`` no longer sorts the group keys (``sort=False``) by
   default. This was done for performance reasons: the group-key sorting is
@@ -99,9 +124,11 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   .. ipython:: python
 
       def f(x):
-          return Series([ x, x**2 ], index = ['x', 'x^s'])
+          return Series([ x, x**2 ], index = ['x', 'x^2'])
 
-      s = Series(np.random.rand(5)) s s.apply(f)
+      s = Series(np.random.rand(5))
+      s
+      s.apply(f)
 
 - New API functions for working with pandas options (GH2097_):
 
@@ -135,98 +162,101 @@ Updated PyTables Support
 :ref:`Docs <io-hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
 
 
-    .. ipython:: python
-       :suppress:
-       :okexcept:
+.. ipython:: python
+   :suppress:
+   :okexcept:
 
-       os.remove('store.h5')
+   os.remove('store.h5')
 
-    .. ipython:: python
+.. ipython:: python
 
-       store = HDFStore('store.h5')
-       df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
-                  columns=['A', 'B', 'C'])
-       df
+   store = HDFStore('store.h5')
+   df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
+              columns=['A', 'B', 'C'])
+   df
 
-       # appending data frames
-       df1 = df[0:4]
-       df2 = df[4:]
-       store.append('df', df1)
-       store.append('df', df2)
-       store
+   # appending data frames
+   df1 = df[0:4]
+   df2 = df[4:]
+   store.append('df', df1)
+   store.append('df', df2)
+   store
 
-       # selecting the entire store
-       store.select('df')
+   # selecting the entire store
+   store.select('df')
 
-    .. ipython:: python
+.. ipython:: python
 
-       from pandas.io.pytables import Term
-       wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=date_range('1/1/2000', periods=5),
-              minor_axis=['A', 'B', 'C', 'D'])
-       wp
+   from pandas.io.pytables import Term
+   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+          major_axis=date_range('1/1/2000', periods=5),
+          minor_axis=['A', 'B', 'C', 'D'])
+   wp
 
-       # storing a panel
-       store.append('wp',wp)
+   # storing a panel
+   store.append('wp',wp)
 
-       # selecting via A QUERY
-       store.select('wp',
-         [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
+   # selecting via A QUERY
+   store.select('wp',
+     [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
-       # removing data from tables
-       store.remove('wp', [ 'major_axis', '>', wp.major_axis[3] ])
-       store.select('wp')
+   # removing data from tables
+   store.remove('wp', [ 'major_axis', '>', wp.major_axis[3] ])
+   store.select('wp')
 
-       # deleting a store
-       del store['df']
-       store
+   # deleting a store
+   del store['df']
+   store
 
-  **Enhancements**
+**Enhancements**
 
-       - added ability to hierarchical keys
+- added ability to hierarchical keys
 
-          .. ipython:: python
+   .. ipython:: python
 
-            store.put('foo/bar/bah', df)
-            store.append('food/orange', df)
-            store.append('food/apple',  df)
-            store
+     store.put('foo/bar/bah', df)
+     store.append('food/orange', df)
+     store.append('food/apple',  df)
+     store
 
-            # remove all nodes under this level
-            store.remove('food')
-        store
+     # remove all nodes under this level
+     store.remove('food')
+ store
 
-       - added mixed-dtype support!
+- added mixed-dtype support!
 
-          .. ipython:: python
+   .. ipython:: python
 
-             df['string'] = 'string'
-             df['int']    = 1
-             store.append('df',df)
-             df1 = store.select('df') df1
-             df1.get_dtype_counts()
+      df['string'] = 'string'
+      df['int']    = 1
+      store.append('df',df)
+      df1 = store.select('df') df1
+      df1.get_dtype_counts()
 
-       - performance improvments on table writing
-       - support for arbitrarily indexed dimensions
+- performance improvments on table writing
+- support for arbitrarily indexed dimensions
 
-  **Bug Fixes**
+**Bug Fixes**
 
-       - added ``Term`` method of specifying where conditions (GH1996_).
-       - ``del store['df']`` now call ``store.remove('df')`` for store deletion
-       - deleting of consecutive rows is much faster than before
-       - ``min_itemsize`` parameter can be specified in table creation to force a minimum size for indexing columns
-         (the previous implementation would set the column size based on the first append)
-       - indexing support via ``create_table_index`` (requires PyTables >= 2.3) (GH698_).
-       - appending on a store would fail if the table was not first created via ``put``
-       - fixed issue with missing attributes after loading a pickled dataframe (GH2431)
-       - minor change to select and remove: require a table ONLY if where is also provided (and not None)
+- added ``Term`` method of specifying where conditions (GH1996_).
+- ``del store['df']`` now call ``store.remove('df')`` for store deletion
+- deleting of consecutive rows is much faster than before
+- ``min_itemsize`` parameter can be specified in table creation to force a
+  minimum size for indexing columns (the previous implementation would set the
+  column size based on the first append)
+- indexing support via ``create_table_index`` (requires PyTables >= 2.3)
+  (GH698_).
+- appending on a store would fail if the table was not first created via ``put``
+- fixed issue with missing attributes after loading a pickled dataframe (GH2431)
+- minor change to select and remove: require a table ONLY if where is also
+  provided (and not None)
 
-    .. ipython:: python
-       :suppress:
+.. ipython:: python
+   :suppress:
 
-       store.close()
-       import os
-       os.remove('store.h5')
+   store.close()
+   import os
+   os.remove('store.h5')
 
 N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
