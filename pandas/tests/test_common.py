@@ -252,7 +252,8 @@ def test_pprint_thing():
 
     # escape embedded tabs in string
     # GH #2038
-    assert not "\t" in pp_t("a\tb")
+    assert not "\t" in pp_t("a\tb",escape_chars=("\t",))
+
 
 class TestTake(unittest.TestCase):
 

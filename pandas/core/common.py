@@ -1221,13 +1221,13 @@ def in_qtconsole():
 #    working with straight ascii.
 
 
-def _pprint_seq(seq, _nest_lvl=0):
+def _pprint_seq(seq, _nest_lvl=0, **kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
     fmt = u"[%s]" if hasattr(seq, '__setitem__') else u"(%s)"
-    return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1) for e in seq)
+    return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1, **kwds) for e in seq)
 
 def _pprint_dict(seq, _nest_lvl=0):
     """
@@ -1243,7 +1243,7 @@ def _pprint_dict(seq, _nest_lvl=0):
     return fmt % ", ".join(pairs)
 
 
-def pprint_thing(thing, _nest_lvl=0):
+def pprint_thing(thing, _nest_lvl=0, escape_chars=None):
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -1274,7 +1274,7 @@ def pprint_thing(thing, _nest_lvl=0):
         result = _pprint_dict(thing, _nest_lvl)
     elif _is_sequence(thing) and _nest_lvl < \
 		get_option("print.pprint_nest_depth"):
-        result = _pprint_seq(thing, _nest_lvl)
+        result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars)
     else:
         # when used internally in the package, everything
         # should be unicode text. However as an aid to transition
@@ -1290,17 +1290,23 @@ def pprint_thing(thing, _nest_lvl=0):
             # either utf-8 or we replace errors
             result = str(thing).decode('utf-8', "replace")
 
-        result=result.replace("\t",r'\t') # escape tabs
+        translate = {'\t': r'\t',
+                     '\n': r'\n',
+                     '\r': r'\r',
+                     }
+        escape_chars = escape_chars or tuple()
+        for c in escape_chars:
+            result=result.replace(c,translate[c])
 
     return unicode(result)  # always unicode
 
 
-def pprint_thing_encoded(object, encoding='utf-8', errors='replace'):
+def pprint_thing_encoded(object, encoding='utf-8', errors='replace', **kwds):
     value = pprint_thing(object)  # get unicode representation of object
-    return value.encode(encoding, errors)
+    return value.encode(encoding, errors,**kwds)
 
 
-def console_encode(object):
+def console_encode(object, **kwds):
     """
     this is the sanctioned way to prepare something for
     sending *to the console*, it delegates to pprint_thing() to get

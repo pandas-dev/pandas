@@ -1097,6 +1097,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rep_str = repr(ser)
         self.assert_("Name: 0" in rep_str)
 
+        ser = Series(["a\n\r\tb"],name=["a\n\r\td"],index=["a\n\r\tf"])
+        self.assertFalse("\t" in repr(ser))
+        self.assertFalse("\r" in repr(ser))
+        self.assertFalse("a\n" in repr(ser))
+
     def test_tidy_repr(self):
         a=Series([u"\u05d0"]*1000)
         a.name= 'title1'
