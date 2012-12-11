@@ -416,21 +416,40 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
 
 def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
-                         **kwds):
+                         use_columns=False, xticks=None, **kwds):
     """Parallel coordinates plotting.
 
-    Parameters:
-    -----------
-    data: A DataFrame containing data to be plotted
-    class_column: Column name containing class names
-    cols: A list of column names to use, optional
-    ax: matplotlib axis object, optional
-    colors: A list or tuple of colors to use for the different classes, optional
-    kwds: A list of keywords for matplotlib plot method
+    Parameters
+    ----------
+    data: DataFrame
+        A DataFrame containing data to be plotted
+    class_column: str
+        Column name containing class names
+    cols: list, optional
+        A list of column names to use
+    ax: matplotlib.axis, optional
+        matplotlib axis object
+    colors: list or tuple, optional
+        Colors to use for the different classes
+    use_columns: bool, optional
+        If true, columns will be used as xticks
+    xticks: list or tuple, optional
+        A list of values to use for xticks
+    kwds: list, optional
+        A list of keywords for matplotlib plot method
 
-    Returns:
-    --------
+    Returns
+    -------
     ax: matplotlib axis object
+
+    Examples
+    --------
+    >>> from pandas import read_csv
+    >>> from pandas.tools.plotting import parallel_coordinates
+    >>> from matplotlib import pyplot as plt
+    >>> df = read_csv('https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv')
+    >>> parallel_coordinates(df, 'Name', colors=('#556270', '#4ECDC4', '#C7F464'))
+    >>> plt.show()
     """
     import matplotlib.pyplot as plt
     import random
@@ -450,7 +469,20 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     used_legends = set([])
 
     ncols = len(df.columns)
-    x = range(ncols)
+
+    # determine values to use for xticks
+    if use_columns is True:
+        if not np.all(np.isreal(list(df.columns))):
+            raise ValueError('Columns must be numeric to be used as xticks')
+        x = df.columns
+    elif xticks is not None:
+        if not np.all(np.isreal(xticks)):
+            raise ValueError('xticks specified must be numeric')
+        elif len(xticks) != ncols:
+            raise ValueError('Length of xticks must match number of columns')
+        x = xticks
+    else:
+        x = range(ncols)
 
     if ax == None:
         ax = plt.gca()
@@ -475,11 +507,12 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
         else:
             ax.plot(x, y, color=colors[kls], **kwds)
 
-    for i in range(ncols):
+    for i in x:
         ax.axvline(i, linewidth=1, color='black')
 
     ax.set_xticks(x)
     ax.set_xticklabels(df.columns)
+    ax.set_xlim(x[0], x[-1])
     ax.legend(loc='upper right')
     ax.grid()
     return ax
