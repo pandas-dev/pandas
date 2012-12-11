@@ -170,6 +170,7 @@ pandas 0.10.0
   - Override ``Series.tolist`` and box datetime64 types (#2447)
   - Optimize ``unstack`` memory usage by compressing indices (#2278)
   - Fix HTML repr in IPython qtconsole if opening window is small (#2275)
+  - Escape more special characters in console output (#2492)
 
 **Bug fixes**
 

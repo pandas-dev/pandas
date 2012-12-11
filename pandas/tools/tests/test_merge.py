@@ -1452,9 +1452,10 @@ class TestConcatenate(unittest.TestCase):
 
         result = concat([p1, p2], axis=3)
 
-        expected = p4d.copy()
-        expected['L5'] = expected['L5'].astype('O')
-        expected.ix['L5', :, :, :2] = 'baz'
+        p2['L5'] = np.nan
+        expected = concat([p1, p2], axis=3)
+        expected = expected.ix[result.labels]
+
         tm.assert_panel4d_equal(result, expected)
 
     def test_concat_series(self):
