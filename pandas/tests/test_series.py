@@ -2001,7 +2001,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         s = Series({})
         hist = s.value_counts()
-        expected = Series([])
+        expected = Series([], dtype=np.int64)
         assert_series_equal(hist, expected)
 
     def test_unique(self):

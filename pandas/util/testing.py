@@ -357,7 +357,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         if unspecified, string labels will be generated.
     """
 
-    from collections import Counter
+    from pandas.util.compat import Counter
     if ndupe_l is None:
         ndupe_l = [1] * nentries
     assert len(ndupe_l) <= nentries
