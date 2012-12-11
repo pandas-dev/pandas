@@ -122,7 +122,6 @@ class TestCut(unittest.TestCase):
         self.assert_(np.array_equal(labels, ex_levels))
 
     def test_qcut_bounds(self):
-        np.random.seed(12345)
         arr = np.random.randn(1000)
 
         factor = qcut(arr, 10, labels=False)
@@ -136,8 +135,6 @@ class TestCut(unittest.TestCase):
         self.assert_(factor.equals(expected))
 
     def test_cut_out_of_bounds(self):
-        np.random.seed(12345)
-
         arr = np.random.randn(100)
 
         result = cut(arr, [-1, 0, 1])
