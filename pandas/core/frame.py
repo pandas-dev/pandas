@@ -3101,11 +3101,23 @@ class DataFrame(NDFrame):
             if axis != 0:
                 raise AssertionError('Axis must be 0')
             if isinstance(by, (tuple, list)):
+                keys = []
+                for x in by:
+                    k = self[x].values
+                    if k.ndim == 2:
+                        raise ValueError('Cannot sort by duplicate column %s'
+                                         % str(x))
+                    keys.append(k)
+
                 keys = [self[x].values for x in by]
                 indexer = _lexsort_indexer(keys, orders=ascending)
                 indexer = com._ensure_platform_int(indexer)
             else:
-                indexer = self[by].values.argsort()
+                k = self[by].values
+                if k.ndim == 2:
+                    raise ValueError('Cannot sort by duplicate column %s'
+                                     % str(by))
+                indexer = k.argsort()
                 if not ascending:
                     indexer = indexer[::-1]
         elif isinstance(labels, MultiIndex):

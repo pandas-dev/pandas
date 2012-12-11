@@ -1,9 +1,9 @@
 """ Panel4D: a 4-d dict like collection of panels """
 
+from pandas.core.panelnd import create_nd_panel_factory
 from pandas.core.panel import Panel
-from pandas.core import panelnd
 
-Panel4D = panelnd.create_nd_panel_factory(
+Panel4D = create_nd_panel_factory(
     klass_name   = 'Panel4D',
     axis_orders  = [ 'labels','items','major_axis','minor_axis'],
     axis_slices  = { 'labels' : 'labels', 'items' : 'items',

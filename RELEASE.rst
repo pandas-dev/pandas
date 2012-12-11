@@ -170,6 +170,7 @@ pandas 0.10.0
   - Override ``Series.tolist`` and box datetime64 types (#2447)
   - Optimize ``unstack`` memory usage by compressing indices (#2278)
   - Fix HTML repr in IPython qtconsole if opening window is small (#2275)
+  - Escape more special characters in console output (#2492)
 
 **Bug fixes**
 
@@ -228,6 +229,8 @@ pandas 0.10.0
   - Fix exception when Timestamp.to_datetime is called on a Timestamp with tzoffset (#2471)
   - Fixed unintentional conversion of datetime64 to long in groupby.first() (#2133)
   - Union of empty DataFrames now return empty with concatenated index (#2307)
+  - DataFrame.sort_index raises more helpful exception if sorting by column
+    with duplicates (#2488)
 
 pandas 0.9.1
 ============

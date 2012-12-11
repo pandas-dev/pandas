@@ -1,7 +1,5 @@
 """ Factory methods to create N-D panels """
 
-import pandas
-from pandas.core.panel import Panel
 import pandas.lib as lib
 
 def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_aliases = None, stat_axis = 2):
@@ -27,6 +25,14 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
 
     """
 
+    # if slicer is a name, get the object
+    if isinstance(slicer,basestring):
+        import pandas
+        try:
+            slicer = getattr(pandas,slicer)
+        except:
+            raise Exception("cannot create this slicer [%s]" % slicer)
+
     # build the klass
     klass = type(klass_name, (slicer,),{}) 
 
@@ -40,6 +46,7 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
     klass._default_stat_axis = stat_axis
     klass._het_axis      = 0
     klass._info_axis     = axis_orders[klass._het_axis]
+
     klass._constructor_sliced = slicer
 
     # add the axes
@@ -96,49 +103,13 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
     klass._combine_with_constructor = _combine_with_constructor
 
     # set as NonImplemented operations which we don't support
-    for f in ['to_frame','to_excel','to_sparse','groupby','join','_get_join_index']:
+    for f in ['to_frame','to_excel','to_sparse','groupby','join','filter','dropna','shift','take']:
         def func(self, *args, **kwargs):
             raise NotImplementedError
         setattr(klass,f,func)
 
+    # add the aggregate operations
+    klass._add_aggregate_operations()
+
     return klass
 
-
-if __name__ == '__main__':
-
-    # create a sample
-    from pandas.util import testing
-    print pandas.__version__
-
-    # create a 4D
-    Panel4DNew = create_nd_panel_factory(
-        klass_name   = 'Panel4DNew', 
-        axis_orders  = ['labels1','items1','major_axis','minor_axis'], 
-        axis_slices  = { 'items1' : 'items', 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
-        slicer       = Panel,
-        axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
-        stat_axis    = 2)
-    
-    p4dn = Panel4DNew(dict(L1 = testing.makePanel(), L2 = testing.makePanel()))
-    print "creating a 4-D Panel"
-    print p4dn, "\n"
-
-    # create a 5D
-    Panel5DNew = create_nd_panel_factory(
-        klass_name   = 'Panel5DNew', 
-        axis_orders  = [ 'cool1', 'labels1','items1','major_axis','minor_axis'], 
-        axis_slices  = { 'labels1' : 'labels1', 'items1' : 'items', 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
-        slicer       = Panel4DNew,
-        axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
-        stat_axis    = 2)
-    
-    p5dn = Panel5DNew(dict(C1 = p4dn))
-
-    print "creating a 5-D Panel"
-    print p5dn, "\n"
-
-    print "Slicing p5dn"
-    print p5dn.ix['C1',:,:,0:3,:], "\n"
-
-    print "Transposing p5dn"
-    print p5dn.transpose(1,2,3,4,0), "\n"

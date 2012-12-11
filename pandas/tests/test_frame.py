@@ -6112,6 +6112,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = frame.sort_index(by=['A', 'B'], ascending=False)
         assert_frame_equal(sorted_df, expected)
 
+    def test_sort_index_duplicates(self):
+        df = DataFrame([[1, 2], [3, 4]], columns=['a', 'a'])
+
+        try:
+            df.sort_index(by='a')
+        except Exception, e:
+            self.assertTrue('duplicate' in str(e))
+
+        try:
+            df.sort_index(by=['a'])
+        except Exception, e:
+            self.assertTrue('duplicate' in str(e))
+
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
         self.assertRaises(Exception, s.sort)
