@@ -890,11 +890,38 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse, SafeForLongAn
     #    self.assertEqual(wp['bool'].values.dtype, np.bool_)
     #    assert_frame_equal(wp['bool'], panel['bool'])
 
+    def test_update(self):
+
+        p4d = Panel4D([[[[1.5, np.nan, 3.],
+                         [1.5, np.nan, 3.],
+                         [1.5, np.nan, 3.],
+                         [1.5, np.nan, 3.]],
+                        [[1.5, np.nan, 3.],
+                         [1.5, np.nan, 3.],
+                         [1.5, np.nan, 3.],
+                         [1.5, np.nan, 3.]]]])
+        
+        other = Panel4D([[[[3.6, 2., np.nan]],
+                          [[np.nan, np.nan, 7]]]])
+
+        p4d.update(other)
+
+        expected = Panel4D([[[[3.6, 2, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]],
+                             [[1.5, np.nan, 7],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]]])
+        
+        assert_panel4d_equal(p4d, expected)
+
     def test_filter(self):
-        pass
+        raise nose.SkipTest
 
     def test_apply(self):
-        pass
+        raise nose.SkipTest
 
     def test_compound(self):
         raise nose.SkipTest

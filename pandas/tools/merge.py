@@ -975,12 +975,12 @@ class _Concatenator(object):
             data = data.consolidate()
             type_map = dict((type(blk), blk) for blk in data.blocks)
             blockmaps.append(type_map)
-        return blockmaps
+        return blockmaps, reindexed_data
 
     def _get_concatenated_data(self):
         try:
             # need to conform to same other (joined) axes for block join
-            blockmaps = self._prepare_blocks()
+            blockmaps, rdata = self._prepare_blocks()
             kinds = _get_all_block_kinds(blockmaps)
 
             new_blocks = []
@@ -1004,7 +1004,7 @@ class _Concatenator(object):
 
             new_data = {}
             for item in self.new_axes[0]:
-                new_data[item] = self._concat_single_item(item)
+                new_data[item] = self._concat_single_item(rdata, item)
 
         return new_data
 
@@ -1053,15 +1053,20 @@ class _Concatenator(object):
 
             return make_block(concat_values, concat_items, self.new_axes[0])
 
-    def _concat_single_item(self, item):
+    def _concat_single_item(self, objs, item):
         all_values = []
         dtypes = set()
-        for obj in self.objs:
-            try:
-                values = obj._data.get(item)
+
+        # le sigh
+        if isinstance(self.objs[0], SparseDataFrame):
+            objs = [x._data for x in self.objs]
+
+        for data, orig in zip(objs, self.objs):
+            if item in orig:
+                values = data.get(item)
                 dtypes.add(values.dtype)
                 all_values.append(values)
-            except KeyError:
+            else:
                 all_values.append(None)
 
         # this stinks
@@ -1075,9 +1080,9 @@ class _Concatenator(object):
             empty_dtype = np.float64
 
         to_concat = []
-        for obj, item_values in zip(self.objs, all_values):
+        for obj, item_values in zip(objs, all_values):
             if item_values is None:
-                shape = obj._data.shape[1:]
+                shape = obj.shape[1:]
                 missing_arr = np.empty(shape, dtype=empty_dtype)
                 missing_arr.fill(np.nan)
                 to_concat.append(missing_arr)

@@ -484,6 +484,15 @@ class TestDataFramePlots(unittest.TestCase):
                           colors=('#556270', '#4ECDC4', '#C7F464'))
         _check_plot_works(parallel_coordinates, df, 'Name',
                           colors=['dodgerblue', 'aquamarine', 'seagreen'])
+        _check_plot_works(parallel_coordinates, df, 'Name',
+                          colors=('#556270', '#4ECDC4', '#C7F464'))
+        _check_plot_works(parallel_coordinates, df, 'Name',
+                          colors=['dodgerblue', 'aquamarine', 'seagreen'])
+
+        df = read_csv(path, header=None, skiprows=1, names=[1,2,4,8, 'Name'])
+        _check_plot_works(parallel_coordinates, df, 'Name', use_columns=True)
+        _check_plot_works(parallel_coordinates, df, 'Name',
+                          xticks=[1, 5, 25, 125])
 
     @slow
     def test_radviz(self):

@@ -96,34 +96,13 @@ def _arith_method(func, name):
 
     def f(self, other):
         if not np.isscalar(other):
-            raise ValueError('Simple arithmetic with Panel can only be '
-                            'done with scalar values')
+            raise ValueError('Simple arithmetic with %s can only be '
+                            'done with scalar values' % self._constructor.__name__)
 
         return self._combine(other, func)
     f.__name__ = name
     return f
 
-
-def _panel_arith_method(op, name):
-    @Substitution(op)
-    def f(self, other, axis = 0):
-        """
-        Wrapper method for %s
-
-        Parameters
-        ----------
-        other : DataFrame or Panel class
-        axis : {'items', 'major', 'minor'}
-            Axis to broadcast over
-
-        Returns
-        -------
-        Panel
-        """
-        return self._combine(other, op, axis=axis)
-
-    f.__name__ = name
-    return f
 
 def _comp_method(func, name):
 
@@ -164,27 +143,6 @@ def _comp_method(func, name):
 
     return f
 
-_agg_doc = """
-Return %(desc)s over requested axis
-
-Parameters
-----------
-axis : {'items', 'major', 'minor'} or {0, 1, 2}
-skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
-
-Returns
--------
-%(outname)s : DataFrame
-"""
-
-_na_info = """
-
-NA/null values are %s.
-If all values are NA, result will be NA"""
-
-
 class Panel(NDFrame):
     _AXIS_ORDERS   = ['items','major_axis','minor_axis']
     _AXIS_NUMBERS  = dict([ (a,i) for i, a in enumerate(_AXIS_ORDERS) ])
@@ -217,13 +175,24 @@ class Panel(NDFrame):
     # return the type of the slice constructor
     _constructor_sliced = DataFrame
 
-    def _construct_axes_dict(self, axes = None):
+    def _construct_axes_dict(self, axes = None, **kwargs):
         """ return an axes dictionary for myself """
-        return dict([ (a,getattr(self,a)) for a in (axes or self._AXIS_ORDERS) ])
+        d = dict([ (a,getattr(self,a)) for a in (axes or self._AXIS_ORDERS) ])
+        d.update(kwargs)
+        return d
 
-    def _construct_axes_dict_for_slice(self, axes = None):
+    @staticmethod
+    def _construct_axes_dict_from(self, axes, **kwargs):
+        """ return an axes dictionary for the passed axes """
+        d    = dict([ (a,ax) for a,ax in zip(self._AXIS_ORDERS,axes) ])
+        d.update(kwargs)
+        return d
+
+    def _construct_axes_dict_for_slice(self, axes = None, **kwargs):
         """ return an axes dictionary for myself """
-        return dict([ (self._AXIS_SLICEMAP[a],getattr(self,a)) for a in (axes or self._AXIS_ORDERS) ])
+        d = dict([ (self._AXIS_SLICEMAP[a],getattr(self,a)) for a in (axes or self._AXIS_ORDERS) ])
+        d.update(kwargs)
+        return d
 
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
@@ -296,8 +265,7 @@ class Panel(NDFrame):
         if isinstance(data, BlockManager):
             return cls(data)
         else:
-            d = dict([ (i, a) for i, a in zip(cls._AXIS_ORDERS,axes) ])
-            d['copy'] = False
+            d = cls._construct_axes_dict_from(cls, axes, copy = False)
             return cls(data, **d)
 
     def _init_dict(self, data, axes, dtype=None):
@@ -436,8 +404,7 @@ class Panel(NDFrame):
         return self.values
 
     def __array_wrap__(self, result):
-        d = self._construct_axes_dict(self._AXIS_ORDERS)
-        d['copy'] = False
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy = False)
         return self._constructor(result, **d)
 
     #----------------------------------------------------------------------
@@ -455,8 +422,7 @@ class Panel(NDFrame):
         for col in getattr(self,self._info_axis):
             new_data[col] = func(self[col], other[col])
 
-        d = self._construct_axes_dict()
-        d['copy'] = False
+        d = self._construct_axes_dict(copy = False)
         return self._constructor(data=new_data, **d)
 
     # boolean operators
@@ -553,9 +519,7 @@ class Panel(NDFrame):
     iterkv = iteritems
 
     def _get_plane_axes(self, axis):
-        """
-
-        """
+        """ get my plane axes: these are already (as compared with higher level planes), as we are returning a DataFrame axes """
         axis = self._get_axis_name(axis)
 
         if axis == 'major_axis':
@@ -581,8 +545,7 @@ class Panel(NDFrame):
         return self._ix
 
     def _wrap_array(self, arr, axes, copy=False):
-        d    = dict([ (a,ax) for a,ax in zip(self._AXIS_ORDERS,axes) ])
-        d['copy'] = False
+        d = self._construct_axes_dict_from(self, axes, copy = copy)
         return self._constructor(arr, **d)
 
     fromDict = from_dict
@@ -628,7 +591,7 @@ class Panel(NDFrame):
 
     # TODO: needed?
     def keys(self):
-        return list(self.items)
+        return list(getattr(self,self._info_axis))
 
     def _get_values(self):
         self._consolidate_inplace()
@@ -685,9 +648,8 @@ class Panel(NDFrame):
             frame.set_value(*args[1:])
             return self
         except KeyError:
-            axes = self._expand_axes(args)
-            d    = dict([ (a,ax) for a,ax in zip(self._AXIS_ORDERS,axes) ])
-            d['copy'] = False
+            axes   = self._expand_axes(args)
+            d      = self._construct_axes_dict_from(self, axes, copy = False)
             result = self.reindex(**d)
 
             likely_dtype = com._infer_dtype(args[-1])
@@ -917,8 +879,7 @@ class Panel(NDFrame):
         -------
         reindexed : Panel
         """
-        d = other._construct_axes_dict()
-        d['method'] = method
+        d = other._construct_axes_dict(method = method)
         return self.reindex(**d)
 
     def dropna(self, axis=0, how='any'):
@@ -1046,16 +1007,6 @@ class Panel(NDFrame):
     def bfill(self):
         return self.fillna(method='bfill')
 
-
-    add = _panel_arith_method(operator.add, 'add')
-    subtract = sub = _panel_arith_method(operator.sub, 'subtract')
-    multiply = mul = _panel_arith_method(operator.mul, 'multiply')
-
-    try:
-        divide = div = _panel_arith_method(operator.div, 'divide')
-    except AttributeError:  # pragma: no cover
-        # Python 3
-        divide = div = _panel_arith_method(operator.truediv, 'divide')
 
     def major_xs(self, key, copy=True):
         """
@@ -1204,7 +1155,7 @@ class Panel(NDFrame):
         if len(axes) != len(set(axes)):
             raise ValueError('Must specify %s unique axes' % self._AXIS_LEN)
 
-        new_axes   = dict([ (a,self._get_axis(x)) for a, x in zip(self._AXIS_ORDERS,axes)])
+        new_axes   = self._construct_axes_dict_from(self, [ self._get_axis(x) for x in axes])
         new_values = self.values.transpose(tuple(axes))
         if kwargs.get('copy') or (len(args) and args[-1]):
             new_values = new_values.copy()
@@ -1337,56 +1288,6 @@ class Panel(NDFrame):
         result = mask.sum(axis=i)
 
         return self._wrap_result(result, axis)
-
-    @Substitution(desc='sum', outname='sum')
-    @Appender(_agg_doc)
-    def sum(self, axis='major', skipna=True):
-        return self._reduce(nanops.nansum, axis=axis, skipna=skipna)
-
-    @Substitution(desc='mean', outname='mean')
-    @Appender(_agg_doc)
-    def mean(self, axis='major', skipna=True):
-        return self._reduce(nanops.nanmean, axis=axis, skipna=skipna)
-
-    @Substitution(desc='unbiased variance', outname='variance')
-    @Appender(_agg_doc)
-    def var(self, axis='major', skipna=True):
-        return self._reduce(nanops.nanvar, axis=axis, skipna=skipna)
-
-    @Substitution(desc='unbiased standard deviation', outname='stdev')
-    @Appender(_agg_doc)
-    def std(self, axis='major', skipna=True):
-        return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
-
-    @Substitution(desc='unbiased skewness', outname='skew')
-    @Appender(_agg_doc)
-    def skew(self, axis='major', skipna=True):
-        return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
-
-    @Substitution(desc='product', outname='prod')
-    @Appender(_agg_doc)
-    def prod(self, axis='major', skipna=True):
-        return self._reduce(nanops.nanprod, axis=axis, skipna=skipna)
-
-    @Substitution(desc='compounded percentage', outname='compounded')
-    @Appender(_agg_doc)
-    def compound(self, axis='major', skipna=True):
-        return (1 + self).prod(axis=axis, skipna=skipna) - 1
-
-    @Substitution(desc='median', outname='median')
-    @Appender(_agg_doc)
-    def median(self, axis='major', skipna=True):
-        return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna)
-
-    @Substitution(desc='maximum', outname='maximum')
-    @Appender(_agg_doc)
-    def max(self, axis='major', skipna=True):
-        return self._reduce(nanops.nanmax, axis=axis, skipna=skipna)
-
-    @Substitution(desc='minimum', outname='minimum')
-    @Appender(_agg_doc)
-    def min(self, axis='major', skipna=True):
-        return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
 
     def shift(self, lags, axis='major'):
         """
@@ -1525,9 +1426,11 @@ class Panel(NDFrame):
         if not isinstance(other, self._constructor):
             other = self._constructor(other)
 
-        other = other.reindex(items=self.items)
+        axis = self._info_axis
+        axis_values = getattr(self,axis)
+        other = other.reindex(**{ axis : axis_values })
 
-        for frame in self.items:
+        for frame in axis_values:
             self[frame].update(other[frame], join, overwrite, filter_func,
                                raise_conflict)
 
@@ -1646,6 +1549,124 @@ class Panel(NDFrame):
 
         return _ensure_index(index)
 
+    @classmethod
+    def _add_aggregate_operations(cls):
+        """ add the operations to the cls; evaluate the doc strings again """
+
+        # doc strings substitors
+        _agg_doc = """
+Wrapper method for %s
+                
+Parameters
+----------
+other : """ + "%s or %s" % (cls._constructor_sliced.__name__,cls.__name__) + """
+axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
+Axis to broadcast over
+
+Returns
+-------
+""" + cls.__name__ + "\n"
+
+        def _panel_arith_method(op, name):
+            @Substitution(op)
+            @Appender(_agg_doc)
+            def f(self, other, axis = 0):
+                return self._combine(other, op, axis=axis)
+            f.__name__ = name
+            return f
+
+        cls.add = _panel_arith_method(operator.add, 'add')
+        cls.subtract = cls.sub = _panel_arith_method(operator.sub, 'subtract')
+        cls.multiply = cls.mul = _panel_arith_method(operator.mul, 'multiply')
+
+        try:
+            cls.divide = cls.div = _panel_arith_method(operator.div, 'divide')
+        except AttributeError:  # pragma: no cover
+            # Python 3
+            cls.divide = cls.div = _panel_arith_method(operator.truediv, 'divide')
+
+
+        _agg_doc = """
+Return %(desc)s over requested axis
+
+Parameters
+----------
+axis : {""" + ', '.join(cls._AXIS_ORDERS) + "} or {" + ', '.join([ str(i) for i in range(cls._AXIS_LEN) ]) + """}
+skipna : boolean, default True
+    Exclude NA/null values. If an entire row/column is NA, the result
+    will be NA
+
+Returns
+-------
+%(outname)s : """ + cls._constructor_sliced.__name__ + "\n"
+
+        _na_info = """
+
+NA/null values are %s.
+If all values are NA, result will be NA"""
+
+        @Substitution(desc='sum', outname='sum')
+        @Appender(_agg_doc)
+        def sum(self, axis='major', skipna=True):
+            return self._reduce(nanops.nansum, axis=axis, skipna=skipna)
+        cls.sum = sum
+
+        @Substitution(desc='mean', outname='mean')
+        @Appender(_agg_doc)
+        def mean(self, axis='major', skipna=True):
+            return self._reduce(nanops.nanmean, axis=axis, skipna=skipna)
+        cls.mean = mean
+
+        @Substitution(desc='unbiased variance', outname='variance')
+        @Appender(_agg_doc)
+        def var(self, axis='major', skipna=True):
+            return self._reduce(nanops.nanvar, axis=axis, skipna=skipna)
+        cls.var = var
+
+        @Substitution(desc='unbiased standard deviation', outname='stdev')
+        @Appender(_agg_doc)
+        def std(self, axis='major', skipna=True):
+            return self.var(axis=axis, skipna=skipna).apply(np.sqrt)
+        cls.std = std
+
+        @Substitution(desc='unbiased skewness', outname='skew')
+        @Appender(_agg_doc)
+        def skew(self, axis='major', skipna=True):
+            return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
+        cls.skew = skew
+        
+        @Substitution(desc='product', outname='prod')
+        @Appender(_agg_doc)
+        def prod(self, axis='major', skipna=True):
+            return self._reduce(nanops.nanprod, axis=axis, skipna=skipna)
+        cls.prod = prod
+
+        @Substitution(desc='compounded percentage', outname='compounded')
+        @Appender(_agg_doc)
+        def compound(self, axis='major', skipna=True):
+            return (1 + self).prod(axis=axis, skipna=skipna) - 1
+        cls.compound = compound
+
+        @Substitution(desc='median', outname='median')
+        @Appender(_agg_doc)
+        def median(self, axis='major', skipna=True):
+            return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna)
+        cls.median = median
+
+        @Substitution(desc='maximum', outname='maximum')
+        @Appender(_agg_doc)
+        def max(self, axis='major', skipna=True):
+            return self._reduce(nanops.nanmax, axis=axis, skipna=skipna)
+        cls.max = max
+
+        @Substitution(desc='minimum', outname='minimum')
+        @Appender(_agg_doc)
+        def min(self, axis='major', skipna=True):
+            return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
+        cls.min = min
+
+Panel._add_aggregate_operations()
+
 WidePanel = Panel
 LongPanel = DataFrame
 
@@ -1661,7 +1682,7 @@ def install_ipython_completers():  # pragma: no cover
 
     @complete_object.when_type(Panel)
     def complete_dataframe(obj, prev_completions):
-        return prev_completions + [c for c in obj.items \
+        return prev_completions + [c for c in obj.keys() \
                     if isinstance(c, basestring) and py3compat.isidentifier(c)]
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
