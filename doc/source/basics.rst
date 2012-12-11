@@ -1074,6 +1074,7 @@ so passing in a substring will work - as long as it is unambiguous :
 However, the following will **not work** because it matches multiple option names, e.g.``print.max_colwidth``, ``print.max_rows``, ``print.max_columns``:
 
 .. ipython:: python
+   :okexcept:
 
    get_option("print.max_")
 
