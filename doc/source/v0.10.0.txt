@@ -276,7 +276,7 @@ Updated PyTables Support
 
      # remove all nodes under this level
      store.remove('food')
- store
+     store
 
 - added mixed-dtype support!
 
@@ -285,7 +285,8 @@ Updated PyTables Support
       df['string'] = 'string'
       df['int']    = 1
       store.append('df',df)
-      df1 = store.select('df') df1
+      df1 = store.select('df') 
+      df1
       df1.get_dtype_counts()
 
 - performance improvments on table writing
