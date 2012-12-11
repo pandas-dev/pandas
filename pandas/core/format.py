@@ -1439,8 +1439,8 @@ def _binify(cols, width):
         if curr_width + 2 > width:
             bins.append(i)
             curr_width = w
-        elif i + 1== len(cols):
-            bins.append(i + 1)
+
+    bins.append(i + 1)
     return bins
 
 if __name__ == '__main__':
