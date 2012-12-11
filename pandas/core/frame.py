@@ -642,7 +642,8 @@ class DataFrame(NDFrame):
         Invoked by bytes(df) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        return com.console_encode(self.__unicode__())
+        encoding = com.get_option("print.encoding")
+        return self.__unicode__().encode(encoding , 'replace')
 
     def __unicode__(self):
         """

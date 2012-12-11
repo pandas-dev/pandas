@@ -825,6 +825,56 @@ def create_hdf_rows_3d(ndarray indexer0, ndarray indexer1,
 
     return l
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def create_hdf_rows_4d(ndarray indexer0, ndarray indexer1, ndarray indexer2,
+                       ndarray[np.uint8_t, ndim=3] mask, list values):
+    """ return a list of objects ready to be converted to rec-array format """
+
+    cdef:
+        unsigned int i, j, k, b, n_indexer0, n_indexer1, n_indexer2, n_blocks, tup_size
+        ndarray v
+        list l
+        object tup, val
+
+    n_indexer0 = indexer0.shape[0]
+    n_indexer1 = indexer1.shape[0]
+    n_indexer2 = indexer2.shape[0]
+    n_blocks   = len(values)
+    tup_size   = n_blocks+3
+    l = []
+    for i from 0 <= i < n_indexer0:
+
+        for j from 0 <= j < n_indexer1:
+
+            for k from 0 <= k < n_indexer2:
+
+                if not mask[i, j, k]:
+
+                    tup = PyTuple_New(tup_size)
+
+                    val  = indexer0[i]
+                    PyTuple_SET_ITEM(tup, 0, val)
+                    Py_INCREF(val)
+
+                    val  = indexer1[j]
+                    PyTuple_SET_ITEM(tup, 1, val)
+                    Py_INCREF(val)
+
+                    val  = indexer2[k]
+                    PyTuple_SET_ITEM(tup, 2, val)
+                    Py_INCREF(val)
+
+                    for b from 0 <= b < n_blocks:
+
+                        v   = values[b][:, i, j, k]
+                        PyTuple_SET_ITEM(tup, b+3, v)
+                        Py_INCREF(v)
+
+                l.append(tup)
+
+    return l
+
 #-------------------------------------------------------------------------------
 # Groupby-related functions
 
