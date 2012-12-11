@@ -161,20 +161,18 @@ def value_counts(values, sort=True, ascending=False):
     value_counts : Series
     """
     from pandas.core.series import Series
-    from collections import defaultdict
 
     values = np.asarray(values)
 
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
         keys, counts = htable.value_count_int64(values)
-        result = Series(counts, index=keys)
     else:
-        counter = defaultdict(lambda: 0)
-        values = values[com.notnull(values)]
-        for value in values:
-            counter[value] += 1
-        result = Series(counter)
+        mask = com.isnull(values)
+        values = com._ensure_object(values)
+        keys, counts = htable.value_count_object(values, mask)
+
+    result = Series(counts, index=keys)
 
     if sort:
         result.sort()

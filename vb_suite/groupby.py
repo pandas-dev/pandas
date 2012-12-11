@@ -122,6 +122,18 @@ s = Series(np.random.randint(0, 1000, size=100000))
 series_value_counts_int64 = Benchmark('s.value_counts()', setup,
                                       start_date=datetime(2011, 10, 21))
 
+# value_counts on lots of strings
+
+setup = common_setup + """
+K = 1000
+N = 100000
+uniques = np.array([rands(10) for x in xrange(K)], dtype='O')
+s = Series(np.tile(uniques, N // K))
+"""
+
+series_value_counts_strings = Benchmark('s.value_counts()', setup,
+                                        start_date=datetime(2011, 10, 21))
+
 #----------------------------------------------------------------------
 # pivot_table
 
