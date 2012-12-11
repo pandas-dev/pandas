@@ -445,49 +445,52 @@ class ExcelTests(unittest.TestCase):
 
     def _check_extension_indexlabels(self, ext):
         path = '__tmp_to_excel_from_excel_indexlabels__.' + ext
+        try:
+            self.frame['A'][:5] = nan
 
-        self.frame['A'][:5] = nan
+            self.frame.to_excel(path,'test1')
+            self.frame.to_excel(path,'test1', cols=['A', 'B'])
+            self.frame.to_excel(path,'test1', header=False)
+            self.frame.to_excel(path,'test1', index=False)
 
-        self.frame.to_excel(path,'test1')
-        self.frame.to_excel(path,'test1', cols=['A', 'B'])
-        self.frame.to_excel(path,'test1', header=False)
-        self.frame.to_excel(path,'test1', index=False)
+            # test index_label
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path, 'test1', index_label=['test'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
 
-        # test index_label
-        frame = (DataFrame(np.random.randn(10,2)) >= 0)
-        frame.to_excel(path, 'test1', index_label=['test'])
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0).astype(np.int64)
-        frame.index.names = ['test']
-        self.assertEqual(frame.index.names, recons.index.names)
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path, 'test1', index_label=['test', 'dummy', 'dummy2'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
 
-        frame = (DataFrame(np.random.randn(10,2)) >= 0)
-        frame.to_excel(path, 'test1', index_label=['test', 'dummy', 'dummy2'])
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0).astype(np.int64)
-        frame.index.names = ['test']
-        self.assertEqual(frame.index.names, recons.index.names)
-
-        frame = (DataFrame(np.random.randn(10,2)) >= 0)
-        frame.to_excel(path, 'test1', index_label='test')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=0).astype(np.int64)
-        frame.index.names = ['test']
-        self.assertEqual(frame.index.names, recons.index.names)
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path, 'test1', index_label='test')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0).astype(np.int64)
+            frame.index.names = ['test']
+            self.assertEqual(frame.index.names, recons.index.names)
+        finally:
+            os.remove(path)
 
         #test index_labels in same row as column names
         path = '%s.xls' % tm.rands(10)
-        self.frame.to_excel(path, 'test1',
-                            cols=['A', 'B', 'C', 'D'], index=False)
-        #take 'A' and 'B' as indexes (they are in same row as cols 'C', 'D')
-        df = self.frame.copy()
-        df = df.set_index(['A', 'B'])
+        try:
+            self.frame.to_excel(path, 'test1',
+                                cols=['A', 'B', 'C', 'D'], index=False)
+            #take 'A' and 'B' as indexes (they are in same row as cols 'C', 'D')
+            df = self.frame.copy()
+            df = df.set_index(['A', 'B'])
 
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=[0, 1])
-        tm.assert_frame_equal(df, recons)
-
-        os.remove(path)
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=[0, 1])
+            tm.assert_frame_equal(df, recons)
+        finally:
+            os.remove(path)
 
     def test_excel_roundtrip_indexname(self):
         _skip_if_no_xlrd()
