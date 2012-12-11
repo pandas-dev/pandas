@@ -612,6 +612,21 @@ You can elect to skip bad lines:
     0  1  2   3
     1  8  9  10
 
+.. _io.quoting:
+
+Quoting and Escape Characters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Quotes (and other escape characters) in embedded fields can be handled in any
+number of ways. One way is to use backslashes; to properly parse this data, you
+should pass the ``escapechar`` option:
+
+.. ipython:: python
+
+   data = 'a,b\n"hello, \\"Bob\\", nice to see you",5'
+   print data
+   pd.read_csv(StringIO(data), escapechar='\\')
+
 .. _io.fwf:
 
 Files with Fixed Width Columns
