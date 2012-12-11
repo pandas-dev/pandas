@@ -24,6 +24,12 @@ except:
     print("Scipy: Not installed")
 
 try:
+    import statsmodels
+    print("statsmodels: %s" % statsmodels.__version__)
+except:
+    print("statsmodels: Not installed")
+
+try:
     import dateutil
     print("dateutil: %s" % dateutil.__version__)
 except:
