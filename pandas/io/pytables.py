@@ -13,7 +13,7 @@ import itertools
 
 import numpy as np
 from pandas import (
-    Series, TimeSeries, DataFrame, Panel, Index, MultiIndex, Int64Index
+    Series, TimeSeries, DataFrame, Panel, Panel4D, Index, MultiIndex, Int64Index
 )
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
@@ -24,7 +24,7 @@ from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Factor
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.reshape import block2d_to_block3d
+from pandas.core.reshape import block2d_to_block3d, block2d_to_blocknd, factor_indexer
 import pandas.core.common as com
 from pandas.tools.merge import concat
 
@@ -42,6 +42,7 @@ _TYPE_MAP = {
     DataFrame: 'frame',
     SparseDataFrame: 'sparse_frame',
     Panel: 'wide',
+    Panel4D : 'ndim',
     SparsePanel: 'sparse_panel'
 }
 
@@ -632,9 +633,18 @@ class HDFStore(object):
         t.write(axes_to_index=[1,2], obj=panel,
                 append=append, compression=comp, **kwargs)
 
+    def _write_ndim_table(self, group, obj, append=False, comp=None, axes_to_index=None, **kwargs):
+        if axes_to_index is None:
+            axes_to_index=[1,2,3]
+        t = create_table(self, group, typ = 'appendable_ndim')
+        t.write(axes_to_index=axes_to_index, obj=obj,
+                append=append, compression=comp, **kwargs)
+
     def _read_wide_table(self, group, where=None):
         t = create_table(self, group)
         return t.read(where)
+
+    _read_ndim_table = _read_wide_table
 
     def _write_index(self, group, key, index):
         if isinstance(index, MultiIndex):
@@ -1098,6 +1108,7 @@ class Table(object):
 
         """
     table_type = None
+    obj_type   = None
     ndim       = None
 
     def __init__(self, parent, group):
@@ -1109,12 +1120,16 @@ class Table(object):
         self.selection      = None
 
     @property
+    def table_type_short(self):
+        return self.table_type.split('_')[0]
+
+    @property
     def pandas_type(self):
         return getattr(self.group._v_attrs,'pandas_type',None)
 
     def __repr__(self):
         """ return a pretty representatgion of myself """
-        return "%s (typ->%s,nrows->%s)" % (self.pandas_type,self.table_type,self.nrows)
+        return "%s (typ->%s,nrows->%s)" % (self.pandas_type,self.table_type_short,self.nrows)
 
     __str__ = __repr__
 
@@ -1163,9 +1178,9 @@ class Table(object):
     def axes(self):
         return itertools.chain(self.index_axes, self.values_axes)
 
-    def kinds_map(self):
-        """ return a list of the kinds for each columns """
-        return [ (a.cname,a.kind) for a in self.index_axes ]
+    def queryables(self):
+        """ return a dict of the kinds allowable columns for this object """
+        return dict([ (a.cname,a.kind) for a in self.index_axes ] + [ (self.obj_type._AXIS_NAMES[axis],None) for axis, values in self.non_index_axes ])
 
     def index_cols(self):
         """ return a list of my index cols """
@@ -1386,38 +1401,37 @@ class LegacyTable(Table):
         raise Exception("write operations are not allowed on legacy tables!")
 
     def read(self, where=None):
-        """ we have 2 indexable columns, with an arbitrary number of data axes """
+        """ we have n indexable columns, with an arbitrary number of data axes """
 
         self.read_axes(where)
 
-        index  = self.index_axes[0].values
-        column = self.index_axes[1].values
+        indicies = [ i.values for i in self.index_axes ]
+        factors  = [ Factor.from_array(i) for i in indicies ]
+        levels   = [ f.levels for f in factors ]
+        N        = [ len(f.levels) for f in factors ]
+        labels   = [ f.labels for f in factors ]
 
-        major = Factor.from_array(index)
-        minor = Factor.from_array(column)
+        # compute the key
+        key      = factor_indexer(N[1:], labels)
 
-        J, K = len(major.levels), len(minor.levels)
-        key = major.labels * K + minor.labels
-
-        panels = []
+        objs = []
         if len(unique(key)) == len(key):
-            sorter, _ = algos.groupsort_indexer(com._ensure_int64(key), J * K)
+
+            sorter, _ = algos.groupsort_indexer(com._ensure_int64(key), np.prod(N))
             sorter = com._ensure_platform_int(sorter)
 
-            # create the panels
+            # create the objs
             for c in self.values_axes:
 
                 # the data need to be sorted
                 sorted_values = c.data.take(sorter, axis=0)
-                major_labels = major.labels.take(sorter)
-                minor_labels = minor.labels.take(sorter)
-                items        = Index(c.values)
+                
+                take_labels   = [ l.take(sorter) for l in labels ]
+                items         = Index(c.values)
 
-                block = block2d_to_block3d(sorted_values, items, (J, K),
-                                           major_labels, minor_labels)
-
-                mgr = BlockManager([block], [items, major.levels, minor.levels])
-                panels.append(Panel(mgr))
+                block = block2d_to_blocknd(sorted_values, items, tuple(N), take_labels)
+                mgr = BlockManager([block], [items] + levels)
+                objs.append(self.obj_type(mgr))
 
         else:
             if not self._quiet:  # pragma: no cover
@@ -1425,9 +1439,8 @@ class LegacyTable(Table):
                        'appended')
 
             # reconstruct
-            long_index = MultiIndex.from_arrays([index, column])
+            long_index = MultiIndex.from_arrays(indicies)
 
-            panels = []
             for c in self.values_axes:
                 lp = DataFrame(c.data, index=long_index, columns=c.values)
 
@@ -1444,10 +1457,10 @@ class LegacyTable(Table):
                 new_values = lp.values.take(indexer, axis=0)
 
                 lp = DataFrame(new_values, index=new_index, columns=lp.columns)
-                panels.append(lp.to_panel())
+                objs.append(lp.to_panel())
 
-        # append the panels
-        wp = concat(panels, axis = 0, verify_integrity = True)
+        # create the composite object
+        wp = concat(objs, axis = 0, verify_integrity = True)
 
         # reorder by any non_index_axes
         for axis,labels in self.non_index_axes:
@@ -1462,12 +1475,14 @@ class LegacyTable(Table):
 class LegacyFrameTable(LegacyTable):
     """ support the legacy frame table """
     table_type = 'legacy_frame'
+    obj_type   = Panel
     def read(self, *args, **kwargs):
         return super(LegacyFrameTable, self).read(*args, **kwargs)['value']
 
 class LegacyPanelTable(LegacyTable):
     """ support the legacy panel table """
     table_type = 'legacy_panel'
+    obj_type   = Panel
 
 class AppendableTable(LegacyTable):
     """ suppor the new appendable table formats """
@@ -1586,6 +1601,7 @@ class AppendableFrameTable(AppendableTable):
     """ suppor the new appendable table formats """
     table_type = 'appendable_frame'
     ndim       = 2
+    obj_type   = DataFrame
 
     def read(self, where=None):
 
@@ -1620,11 +1636,19 @@ class AppendablePanelTable(AppendableTable):
     """ suppor the new appendable table formats """
     table_type = 'appendable_panel'
     ndim       = 3
+    obj_type   = Panel
+
+class AppendableNDimTable(AppendablePanelTable):
+    """ suppor the new appendable table formats """
+    table_type = 'appendable_ndim'
+    ndim       = 4
+    obj_type   = Panel4D
 
 # table maps
 _TABLE_MAP = {
     'appendable_frame' : AppendableFrameTable,
     'appendable_panel' : AppendablePanelTable,
+    'appendable_ndim'  : AppendableNDimTable,
     'worm'             : WORMTable,
     'legacy_frame'     : LegacyFrameTable,
     'legacy_panel'     : LegacyPanelTable,
@@ -1818,7 +1842,7 @@ class Term(object):
         op    : a valid op (defaults to '=') (optional)
                 >, >=, <, <=, =, != (not equal) are allowed
         value : a value or list of values (required)
-        kinds : the kinds map (dict of column name -> kind)
+        queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
 
         Returns
         -------
@@ -1831,24 +1855,19 @@ class Term(object):
         Term('index', '>', '20121114')
         Term('index', ['20121114','20121114'])
         Term('index', datetime(2012,11,14))
-        Term('major>20121114')
-        Term('minor', ['A','B'])
+        Term('major_axis>20121114')
+        Term('minor_axis', ['A','B'])
 
     """
 
     _ops     = ['<=','<','>=','>','!=','=']
     _search  = re.compile("^(?P<field>\w+)(?P<op>%s)(?P<value>.+)$" % '|'.join(_ops))
-    _index   = ['index','major_axis','major']
-    _column  = ['column','columns','minor_axis','minor']
 
-    def __init__(self, field, op = None, value = None, kinds = None):
+    def __init__(self, field, op = None, value = None, queryables = None):
         self.field = None
         self.op    = None
         self.value = None
-
-        if kinds is None:
-            kinds = []
-        self.kinds = dict(kinds)
+        self.q     = queryables or dict()
         self.filter     = None
         self.condition  = None
 
@@ -1901,12 +1920,6 @@ class Term(object):
         if self.field is None or self.op is None or self.value is None:
             raise Exception("Could not create this term [%s]" % str(self))
 
-        # map alias for field names
-        if self.field in self._index and len(kinds) > 0:
-            self.field = kinds[0][0]
-        elif self.field in self._column and len(kinds) > 1:
-            self.field = kinds[1][0]
-
         # we have valid conditions
         if self.op in ['>','>=','<','<=']:
             if hasattr(self.value,'__iter__') and len(self.value) > 1:
@@ -1915,7 +1928,8 @@ class Term(object):
         if not hasattr(self.value,'__iter__'):
             self.value = [ self.value ]
 
-        self.eval()
+        if len(self.q):
+            self.eval()
 
     def __str__(self):
         return "field->%s,op->%s,value->%s" % (self.field,self.op,self.value)
@@ -1923,17 +1937,25 @@ class Term(object):
     __repr__ = __str__
 
     @property
+    def is_valid(self):
+        """ return True if this is a valid field """
+        return self.field in self.q
+
+    @property
     def is_in_table(self):
         """ return True if this is a valid column name for generation (e.g. an actual column in the table) """
-        return self.field in self.kinds
+        return self.q.get(self.field) is not None
 
     @property
     def kind(self):
         """ the kind of my field """
-        return self.kinds.get(self.field)
+        return self.q.get(self.field)
 
     def eval(self):
         """ set the numexpr expression for this term """
+
+        if not self.is_valid:
+            raise Exception("query term is not valid [%s]" % str(self))
 
         # convert values
         values = [ self.convert_value(v) for v in self.value ]
@@ -2014,7 +2036,8 @@ class Selection(object):
             if not any([ isinstance(w, (list,tuple,Term)) for w in where ]):
                 where = [ where ]
 
-        return [ Term(c, kinds = self.table.kinds_map()) for c in where ]
+        queryables = self.table.queryables()
+        return [ Term(c, queryables = queryables) for c in where ]
 
     def select(self):
         """

@@ -1113,8 +1113,8 @@ a subset of the data. This allows one to have a very large on-disk table and ret
 
 A query is specified using the ``Term`` class under the hood.
 
-   - 'index' and 'column' are supported indexers of a DataFrame
-   - 'major_axis' and 'minor_axis' are supported indexers of the Panel
+   - 'index' and 'columns' are supported indexers of a DataFrame
+   - 'major_axis', 'minor_axis', and 'items' are supported indexers of the Panel
 
 Valid terms can be created from ``dict, list, tuple, or string``. Objects can be embeded as values. Allowed operations are: ``<, <=, >, >=, =``. ``=`` will be inferred as an implicit set operation (e.g. if 2 or more values are provided). The following are all valid terms.
 
@@ -1123,7 +1123,7 @@ Valid terms can be created from ``dict, list, tuple, or string``. Objects can be
        - ``'index>20121114'``
        - ``('index', '>', datetime(2012,11,14))``
        - ``('index', ['20121114','20121115'])``
-       - ``('major', '=', Timestamp('2012/11/14'))``
+       - ``('major_axis', '=', Timestamp('2012/11/14'))``
        - ``('minor_axis', ['A','B'])``
 
 Queries are built up using a list of ``Terms`` (currently only **anding** of terms is supported). An example query for a panel might be specified as follows.
@@ -1132,6 +1132,7 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
 .. ipython:: python
 
    store.append('wp',wp)
+   store
    store.select('wp',[ 'major_axis>20000102', ('minor_axis', '=', ['A','B']) ])
 
 Delete from a Table
@@ -1139,7 +1140,7 @@ Delete from a Table
 
 .. ipython:: python
 
-   store.remove('wp', 'index>20000102' )
+   store.remove('wp', 'major_axis>20000102' )
    store.select('wp')
 
 Notes & Caveats
