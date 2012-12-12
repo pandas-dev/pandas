@@ -282,6 +282,31 @@ class TestConfig(unittest.TestCase):
             self.assertEqual(self.cf.get_option('a'), 1)
             self.assertEqual(self.cf.get_option('b'), 2)
 
+    def test_callback(self):
+        k=[None]
+        v=[None]
+        def callback(key):
+            k.append(key)
+            v.append(self.cf.get_option(key))
+
+        self.cf.register_option('d.a', 'foo',cb=callback)
+        self.cf.register_option('d.b', 'foo',cb=callback)
+
+        del k[-1],v[-1]
+        self.cf.set_option("d.a","fooz")
+        self.assertEqual(k[-1],"d.a")
+        self.assertEqual(v[-1],"fooz")
+
+        del k[-1],v[-1]
+        self.cf.set_option("d.b","boo")
+        self.assertEqual(k[-1],"d.b")
+        self.assertEqual(v[-1],"boo")
+
+        del k[-1],v[-1]
+        self.cf.reset_option("d.b")
+        self.assertEqual(k[-1],"d.b")
+
+
 
 # fmt.reset_printoptions and fmt.set_printoptions were altered
 # to use core.config, test_format exercises those paths.
