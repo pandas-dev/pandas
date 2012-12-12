@@ -1712,15 +1712,14 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
     Assume len(weights) << len(input)
     """
     cdef:
-        ndarray[double_t] output, tot_wgt
-        ndarray[int64_t] counts
+        ndarray[double_t] output, tot_wgt, counts
         Py_ssize_t in_i, win_i, win_n, win_k, in_n, in_k
         float64_t val_in, val_win, c, w
 
     in_n = len(input)
     win_n = len(weights)
     output = np.zeros(in_n, dtype=float)
-    counts = np.zeros(in_n, dtype=int)
+    counts = np.zeros(in_n, dtype=float)
     if avg:
         tot_wgt = np.zeros(in_n, dtype=float)
 
