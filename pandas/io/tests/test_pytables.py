@@ -345,6 +345,25 @@ class TestHDFStore(unittest.TestCase):
         pytables._table_supports_index = False
         self.assertRaises(Exception, self.store.create_table_index, 'f')
 
+        # test out some versions
+        original = tables.__version__
+
+        for v in ['2.2','2.2b']:
+            pytables._table_mod = None
+            pytables._table_supports_index = False
+            tables.__version__ = v
+            self.assertRaises(Exception, self.store.create_table_index, 'f')
+
+        for v in ['2.3.1','2.3.1b','2.4dev','2.4',original]:
+            pytables._table_mod = None
+            pytables._table_supports_index = False
+            tables.__version__ = v
+            self.store.create_table_index('f')
+        pytables._table_mod = None
+        pytables._table_supports_index = False
+        tables.__version__ = original
+        
+
     def test_append_diff_item_order(self):
         wp = tm.makePanel()
         wp1 = wp.ix[:, :10, :]

@@ -91,9 +91,12 @@ def _tables():
         _table_mod = tables
 
         # version requirements
-        major, minor, subv = tables.__version__.split('.')
-        if int(major) >= 2 and int(minor[0]) >= 3:
-            _table_supports_index = True
+        ver = tables.__version__.split('.')
+        try:
+            if int(ver[0]) >= 2 and int(ver[1][0]) >= 3:
+                _table_supports_index = True
+        except:
+            pass
 
     return _table_mod
 
@@ -437,8 +440,9 @@ class HDFStore(object):
         """
 
         # version requirements
+        _tables()
         if not _table_supports_index:
-            raise("PyTables >= 2.3 is required for table indexing")
+            raise Exception("PyTables >= 2.3 is required for table indexing")
 
         group = self.get_node(key)
         if group is None: return
