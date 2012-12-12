@@ -39,6 +39,7 @@ if [ x"$FULL_DEPS" == x"true" ]; then
 
     pip install $PIP_ARGS --use-mirrors openpyxl pytz matplotlib;
     pip install $PIP_ARGS --use-mirrors xlrd xlwt;
+	pip install $PIP_ARGS 'http://downloads.sourceforge.net/project/pytseries/scikits.timeseries/0.91.3/scikits.timeseries-0.91.3.tar.gz?r='
 fi
 
 if [ x"$VBENCH" == x"true" ]; then
