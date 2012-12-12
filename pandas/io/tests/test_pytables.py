@@ -364,6 +364,23 @@ class TestHDFStore(unittest.TestCase):
         tables.__version__ = original
         
 
+    def test_big_table(self):
+        
+        # create and write a big table
+        wp = Panel(np.random.randn(20, 1000, 1000), items= [ 'Item%s' % i for i in xrange(20) ],
+                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%s' % i for i in xrange(1000) ])
+
+        wp.ix[:,100:200,300:400] = np.nan
+
+        try:
+            store = HDFStore(self.scratchpath)
+            store._debug_memory = True
+            store.append('wp',wp)
+            recons = store.select('wp')
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
     def test_append_diff_item_order(self):
         wp = tm.makePanel()
         wp1 = wp.ix[:, :10, :]
