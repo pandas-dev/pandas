@@ -1805,7 +1805,7 @@ class ExcelFile(object):
         return object.__repr__(self)
 
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
-              index_col=None, has_index_names=False, parse_cols=None, parse_dates=False,
+              index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
               **kwds):
         """
@@ -1824,9 +1824,6 @@ class ExcelFile(object):
         index_col : int, default None
             Column to use as the row labels of the DataFrame. Pass None if
             there is no such column
-        has_index_names: boolean, default False
-            True if the cols defined in index_col have an index name and are
-            not in the header
         parse_cols : int or list, default None
             If None then parse all columns,
             If int then indicates last column to be parsed
@@ -1840,6 +1837,12 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
+
+        # has_index_names: boolean, default False
+        #     True if the cols defined in index_col have an index name and are
+        #     not in the header
+        has_index_names=False # removed as new argument of API function
+
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
