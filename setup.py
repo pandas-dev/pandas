@@ -68,21 +68,13 @@ if sys.version_info[0] >= 3:
             "\n$ pip install distribute")
 
 else:
-    if sys.version_info[1] == 5:
-        # dateutil >= 2.1 doesn't work on Python 2.5
-        setuptools_kwargs = {
-            'install_requires': ['python-dateutil < 2',
-                                 'pytz',
-                                 'numpy >= 1.6'],
-            'zip_safe' : False,
-        }
-    else:
-        setuptools_kwargs = {
-            'install_requires': ['python-dateutil',
-                                 'pytz',
-                                 'numpy >= 1.6'],
-            'zip_safe' : False,
-        }
+    setuptools_kwargs = {
+        'install_requires': ['python-dateutil',
+                             'pytz',
+                             'numpy >= 1.6.1'],
+        'zip_safe' : False,
+    }
+
     if not _have_setuptools:
         try:
             import numpy
@@ -101,7 +93,7 @@ except ImportError:
     sys.exit(nonumpy_msg)
 
 if np.__version__ < '1.6.1':
-    msg = "pandas requires NumPy >= 1.6 due to datetime64 dependency"
+    msg = "pandas requires NumPy >= 1.6.1 due to datetime64 dependency"
     sys.exit(msg)
 
 from distutils.extension import Extension
