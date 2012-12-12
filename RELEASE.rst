@@ -84,7 +84,6 @@ pandas 0.10.0
   - Add support for Panel4D, a named 4 Dimensional stucture
   - Add support for ndpanel factory functions, to create custom,
     domain-specific N-Dimensional containers
-  - 'density' property in `SparseSeries` (#2384)
 
 **API Changes**
 
