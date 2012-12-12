@@ -503,6 +503,7 @@ class HDFStore(object):
         wrapper(value)
         group._v_attrs.pandas_type = kind
         group._v_attrs.pandas_version = _version
+        group._v_attrs.meta = getattr(value,'meta',None)
 
     def _write_series(self, group, series):
         self._write_index(group, 'index', series.index)
@@ -842,7 +843,12 @@ class HDFStore(object):
         kind = group._v_attrs.pandas_type
         kind = _LEGACY_MAP.get(kind, kind)
         handler = self._get_handler(op='read', kind=kind)
-        return handler(group, where)
+        v = handler(group, where)
+        if v is not None:
+            meta = getattr(group._v_attrs,'meta',None)
+            if meta is not None:
+                v.meta = meta
+        return v
 
     def _read_series(self, group, where=None):
         index = self._read_index(group, 'index')

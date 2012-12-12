@@ -97,6 +97,30 @@ class TestHDFStore(unittest.TestCase):
         self.assert_(self.store.root.b._v_attrs.pandas_version == '0.10')
         self.assert_(self.store.root.df1._v_attrs.pandas_version == '0.10')
 
+    def test_meta(self):
+        meta = { 'foo' : [ 'I love pandas ' ] }
+        s = tm.makeTimeSeries()
+        s.meta = meta
+        self.store['a'] = s
+        self.assert_(self.store['a'].meta == meta)
+
+        df = tm.makeDataFrame()
+        df.meta = meta
+        self.store['b'] = df
+        self.assert_(self.store['b'].meta == meta)
+
+        # this should work, but because slicing doesn't propgate meta it doesn
+        self.store.remove('df1')
+        self.store.append('df1', df[:10])
+        self.store.append('df1', df[10:])
+        results = self.store['df1']
+        #self.assert_(getattr(results,'meta',None) == meta)
+
+        # no meta
+        df = tm.makeDataFrame()
+        self.store['b'] = df
+        self.assert_(hasattr(self.store['b'],'meta') == False)
+
     def test_reopen_handle(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store.open('w', warn=False)
