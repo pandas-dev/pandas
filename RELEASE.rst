@@ -84,7 +84,6 @@ pandas 0.10.0
   - Add support for Panel4D, a named 4 Dimensional stucture
   - Add support for ndpanel factory functions, to create custom,
     domain-specific N-Dimensional containers
-  - 'density' property in `SparseSeries` (GH2384_)
 
 **API Changes**
 
@@ -913,7 +912,7 @@ pandas 0.8.1
 **Improvements to existing features**
 
   - Use moving min/max algorithms from Bottleneck in rolling_min/rolling_max
-    for > 100x speedup. (GH1504_, #50)
+    for > 100x speedup. (GH1504_, GH50_)
   - Add Cython group median method for >15x speedup (GH1358_)
   - Drastically improve ``to_datetime`` performance on ISO8601 datetime strings
     (with no time zones) (GH1571_)
@@ -990,6 +989,7 @@ pandas 0.8.1
 .. _GH1538: https://github.com/pydata/pandas/issues/1538
 .. _GH171: https://github.com/pydata/pandas/issues/171
 .. _GH1504: https://github.com/pydata/pandas/issues/1504
+.. _GH50: https://github.com/pydata/pandas/issues/50
 .. _GH1358: https://github.com/pydata/pandas/issues/1358
 .. _GH1571: https://github.com/pydata/pandas/issues/1571
 .. _GH1569: https://github.com/pydata/pandas/issues/1569
