@@ -1438,11 +1438,11 @@ def _binify(cols, width):
     curr_width = 0
     for i, w in enumerate(cols):
         curr_width += w
-        if curr_width + 2 > width:
+        if curr_width + 2 > width and i > 0:
             bins.append(i)
             curr_width = w
 
-    bins.append(i + 1)
+    bins.append(len(cols))
     return bins
 
 if __name__ == '__main__':

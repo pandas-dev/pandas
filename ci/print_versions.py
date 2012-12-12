@@ -30,6 +30,12 @@ except:
     print("statsmodels: Not installed")
 
 try:
+    import scikits.timeseries as ts
+    print("scikits.timeseries: %s" % ts.__version__)
+except:
+    print("scikits.timeseries: Not installed")
+
+try:
     import dateutil
     print("dateutil: %s" % dateutil.__version__)
 except:

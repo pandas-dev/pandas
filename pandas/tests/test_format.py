@@ -426,6 +426,14 @@ class TestDataFrameFormatting(unittest.TestCase):
         set_option('test.interactive', False)
         set_option('print.line_width', 80)
 
+    def test_wide_repr_wide_columns(self):
+        set_option('test.interactive', True)
+        df = DataFrame(randn(5, 3), columns=['a' * 90, 'b' * 90, 'c' * 90])
+        rep_str = repr(df)
+
+        self.assert_(len(rep_str.splitlines()) == 20)
+        reset_option('test.interactive')
+
     def test_wide_repr_named(self):
         set_option('test.interactive', True)
         col = lambda l, k: [tm.rands(k) for _ in xrange(l)]

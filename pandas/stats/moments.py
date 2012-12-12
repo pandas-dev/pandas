@@ -299,8 +299,8 @@ def _center_window(rs, window, axis):
         na_indexer = [slice(None)] * rs.ndim
         na_indexer[axis] = slice(-offset, None)
 
-        rs[rs_indexer] = rs[lead_indexer]
-        rs[na_indexer] = np.nan
+        rs[tuple(rs_indexer)] = rs[tuple(lead_indexer)]
+        rs[tuple(na_indexer)] = np.nan
     return rs
 
 def _process_data_structure(arg, kill_inf=True):

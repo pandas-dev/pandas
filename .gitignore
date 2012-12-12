@@ -27,3 +27,4 @@ pandas.egg-info
 pandas/io/*.dat
 pandas/io/*.json
 *.log
+.noseids
