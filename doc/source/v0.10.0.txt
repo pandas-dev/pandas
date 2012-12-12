@@ -150,11 +150,45 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
 New features
 ~~~~~~~~~~~~
 
-- Enable ``Series.str.strip/lstrip/rstrip`` methods to take an argument
-  (GH2411_)
-- Implement ``value_vars`` in ``melt`` and add ``melt`` to pandas namespace
-  (GH2412_)
-- ``SparseSeries`` now has a ``density`` property (#2384)
+Wide DataFrame Printing
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of printing the summary information, pandas now splits the string
+representation across multiple rows by default:
+
+.. ipython:: python
+
+   wide_frame = DataFrame(randn(5, 16))
+
+   wide_frame
+
+The old behavior of printing out summary information can be achieved via the
+'expand_frame_repr' print option:
+
+.. ipython:: python
+
+   pd.set_option('expand_frame_repr', False)
+
+   wide_frame
+
+.. ipython:: python
+   :suppress:
+
+   pd.reset_option('expand_frame_repr')
+
+The width of each line can be changed via 'line_width' (80 by default):
+
+.. ipython:: python
+
+   pd.set_option('line_width', 40)
+
+   wide_frame
+
+.. ipython:: python
+   :suppress:
+
+   pd.reset_option('line_width')
+
 
 Updated PyTables Support
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -235,6 +269,11 @@ Updated PyTables Support
 
 - performance improvments on table writing
 - support for arbitrarily indexed dimensions
+- ``SparseSeries`` now has a ``density`` property (GH2384_)
+- enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument
+  to strip arbitrary characters (GH2411_)
+- implement ``value_vars`` in ``melt`` to limit values to certain columns
+  and add ``melt`` to pandas namespace (GH2412_)
 
 **Bug Fixes**
 
@@ -289,3 +328,4 @@ on GitHub for a complete list.
 .. _GH2431: https://github.com/pydata/pandas/issues/2431
 .. _GH2412: https://github.com/pydata/pandas/issues/2412
 .. _GH2411: https://github.com/pydata/pandas/issues/2411
+.. _GH2384: https://github.com/pydata/pandas/issues/2384
