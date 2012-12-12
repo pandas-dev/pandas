@@ -333,7 +333,7 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group)
 
-    def select(self, key, where=None):
+    def select(self, key, where=None, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -347,7 +347,7 @@ class HDFStore(object):
         group = self.get_node(key)
         if group is None:
             raise KeyError('No object named %s in the file' % key)
-        return self._read_group(group, where)
+        return self._read_group(group, where, **kwargs)
 
     def put(self, key, value, table=False, append=False,
             compression=None, **kwargs):
@@ -637,8 +637,8 @@ class HDFStore(object):
         t.write(axes=axes, obj=obj,
                 append=append, compression=comp, **kwargs)
 
-    def _read_ndim_table(self, group, where=None):
-        t = create_table(self, group)
+    def _read_ndim_table(self, group, where=None, **kwargs):
+        t = create_table(self, group, **kwargs)
         return t.read(where)
 
     def _write_frame_table(self, group, df, append=False, comp=None, axes=None, **kwargs):
@@ -839,11 +839,11 @@ class HDFStore(object):
 
         getattr(group, key)._v_attrs.transposed = transposed
 
-    def _read_group(self, group, where=None):
+    def _read_group(self, group, where=None, **kwargs):
         kind = group._v_attrs.pandas_type
         kind = _LEGACY_MAP.get(kind, kind)
         handler = self._get_handler(op='read', kind=kind)
-        v = handler(group, where)
+        v = handler(group, where, **kwargs)
         if v is not None:
             meta = getattr(group._v_attrs,'meta',None)
             if meta is not None:
@@ -1131,7 +1131,7 @@ class Table(object):
     obj_type   = None
     ndim       = None
 
-    def __init__(self, parent, group):
+    def __init__(self, parent, group, **kwargs):
         self.parent      = parent
         self.group       = group
         self.version     = getattr(group._v_attrs,'version',None)
@@ -1794,7 +1794,7 @@ def create_table(parent, group, typ = None, **kwargs):
     """ return a suitable Table class to operate """
 
     pt = getattr(group._v_attrs,'pandas_type',None)
-    tt = getattr(group._v_attrs,'table_type',None)
+    tt = getattr(group._v_attrs,'table_type',None) or typ
 
     # a new node
     if pt is None:
@@ -1807,7 +1807,8 @@ def create_table(parent, group, typ = None, **kwargs):
         # distiguish between a frame/table
         tt = 'legacy_panel'
         try:
-            if group.table.description.values.shape[0] == 1:
+            fields = group.table._v_attrs.fields
+            if len(fields) == 1 and fields[0] == 'value':
                 tt = 'legacy_frame'
         except:
             pass

@@ -1039,6 +1039,9 @@ class TestHDFStore(unittest.TestCase):
         store.select('df2')
         store.select('wp1')
 
+        # force the frame
+        store.select('df2', typ = 'legacy_frame')
+
         # old version (this still throws an exception though)
         import warnings
         warnings.filterwarnings('ignore', category=IncompatibilityWarning)
