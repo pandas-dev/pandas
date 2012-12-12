@@ -1091,6 +1091,7 @@ Storing Mixed Types in a Table
 
 Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
 Passing ``min_itemsize = { column_name : size }`` as a paremeter to append will set a larger minimum for the column. Storing ``floats, strings, ints, bools`` are currently supported.
+Pass ``min_itemsize`` with a ``column_name`` of values to effect a minimum pre-allocation of space for strings in the dataset.
 
 .. ipython:: python
 
@@ -1151,7 +1152,7 @@ Notes & Caveats
    - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
    - ``HDFStore`` is **not-threadsafe for writing**. The underlying ``PyTables`` only supports concurrent reads (via threading or processes). If you need reading and writing *at the same time*, you need to serialize these operations in a single thread in a single process. You will corrupt your data otherwise. See the issue <https://github.com/pydata/pandas/issues/2397> for more information.
 
-   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *column* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information). This is **ONLY** necessary for storing ``Panels`` (as the indexing column is stored directly in a column)
+   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *column* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information).
 
      .. ipython:: python
 
