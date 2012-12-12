@@ -996,6 +996,17 @@ class TestHDFStore(unittest.TestCase):
         expected = df.ix[:, ['A']]
         tm.assert_frame_equal(result, expected)
 
+        # other indicies for a frame
+
+        # integer
+        df = DataFrame(dict(A = np.random.rand(20), B = np.random.rand(20)))
+        self.store.append('df_int', df)
+        self.store.select('df_int', [ Term("index<10"), Term("columns", "=", ["A"]) ])
+
+        df = DataFrame(dict(A = np.random.rand(20), B = np.random.rand(20), index = np.arange(20,dtype='f8')))
+        self.store.append('df_float', df)
+        self.store.select('df_float', [ Term("index<10.0"), Term("columns", "=", ["A"]) ])
+
         # can't select if not written as table
         #self.store['frame'] = df
         #self.assertRaises(Exception, self.store.select,

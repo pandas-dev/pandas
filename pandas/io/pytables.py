@@ -2157,8 +2157,14 @@ class Term(object):
         if self.field == 'index' or self.field == 'major_axis':
             if self.kind == 'datetime64' :
                 return [lib.Timestamp(v).value, None]
-            elif isinstance(v, datetime) or hasattr(v,'timetuple'):
+            elif isinstance(v, datetime) or hasattr(v,'timetuple') or self.kind == 'date':
                 return [time.mktime(v.timetuple()), None]
+            elif self.kind == 'integer':
+                v = int(float(v))
+                return [v, v]
+            elif self.kind == 'float':
+                v = float(v)
+                return [v, v]
         elif not isinstance(v, basestring):
             return [str(v), None]
 
