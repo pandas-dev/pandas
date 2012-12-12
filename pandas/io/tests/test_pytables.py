@@ -320,6 +320,16 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('s4', wp)
         self.assertRaises(Exception, self.store.append, 's4', wp2)
 
+        # avoid truncation on elements
+        df = DataFrame([[123,'asdqwerty'], [345,'dggnhebbsdfbdfb']])
+        self.store.append('df_big',df, min_itemsize = { 'values' : 1024 })
+        tm.assert_frame_equal(self.store.select('df_big'), df)
+
+        # avoid truncation on elements
+        df = DataFrame([[123,'asdqwerty'], [345,'dggnhebbsdfbdfb']])
+        self.store.append('df_big2',df, min_itemsize = { 'values' : 300 })
+        tm.assert_frame_equal(self.store.select('df_big2'), df)
+
     def test_create_table_index(self):
         wp = tm.makePanel()
         self.store.append('p5', wp)

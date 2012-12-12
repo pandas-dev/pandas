@@ -1403,8 +1403,16 @@ class Table(object):
 
             # a string column
             if b.dtype.name == 'object':
-                atom  = _tables().StringCol(itemsize = values.dtype.itemsize, shape = shape)
-                utype = 'S8'
+                
+                # specified min_itemsize?
+                if isinstance(min_itemsize, dict):
+                    min_itemsize = int(min_itemsize.get('values'))
+
+                if min_itemsize is None:
+                    min_itemsize = values.dtype.itemsize
+
+                atom  = _tables().StringCol(itemsize = min_itemsize, shape = shape)
+                utype = 'S%s' % min_itemsize
             else:
                 atom  = getattr(_tables(),"%sCol" % b.dtype.name.capitalize())(shape = shape)
                 utype = atom._deftype
