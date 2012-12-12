@@ -8,6 +8,27 @@ enhancements along with a large number of bug fixes. There are also a number of
 important API changes that long-time pandas users should pay close attention
 to.
 
+File parsing new features
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The delimited file parsing engine (the guts of ``read_csv`` and ``read_table``)
+has been rewritten from the ground up and now uses a fraction the amount of
+memory while parsing, while being 40% or more faster in most use cases (in some
+cases much faster).
+
+There are also many new features:
+
+- Much-improved Unicode handling via the ``encoding`` option.
+- Column filtering (``usecols``)
+- Dtype specification (``dtype`` argument)
+- Ability to specify strings to be recognized as True/False
+- Ability to yield NumPy record arrays (``as_recarray``)
+- High performance ``delim_whitespace`` option
+- Decimal format (e.g. European format) specification
+- Easier CSV dialect options: ``escapechar``, ``lineterminator``,
+  ``quotechar``, etc.
+- More robust handling of many exceptional kinds of files observed in the wild
+
 API changes
 ~~~~~~~~~~~
 
