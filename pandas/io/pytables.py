@@ -10,6 +10,7 @@ import time
 import re
 import copy
 import itertools
+import warnings
 
 import numpy as np
 from pandas import (
@@ -33,6 +34,11 @@ import pandas.algos as algos
 import pandas.tslib as tslib
 
 from contextlib import contextmanager
+
+# versioning attribute
+_version = '0.10'
+
+class IncompatibilityWarning(Warning): pass
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -341,8 +347,6 @@ class HDFStore(object):
         group = self.get_node(key)
         if group is None:
             raise KeyError('No object named %s in the file' % key)
-        if where is not None and not _is_table_type(group):
-            raise Exception('can only select with where on objects written as tables')
         return self._read_group(group, where)
 
     def put(self, key, value, table=False, append=False,
@@ -498,6 +502,7 @@ class HDFStore(object):
 
         wrapper(value)
         group._v_attrs.pandas_type = kind
+        group._v_attrs.pandas_version = _version
 
     def _write_series(self, group, series):
         self._write_index(group, 'index', series.index)
@@ -1123,6 +1128,7 @@ class Table(object):
     def __init__(self, parent, group):
         self.parent      = parent
         self.group       = group
+        self.version     = getattr(group._v_attrs,'version',None)
         self.index_axes     = []
         self.non_index_axes = []
         self.values_axes    = []
@@ -1474,6 +1480,11 @@ class LegacyTable(Table):
 
     def read(self, where=None):
         """ we have n indexable columns, with an arbitrary number of data axes """
+
+        # are we trying to operate on an old version?
+        if where is not None:
+            if self.version is None or self.version < 0.1:
+                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % self.version, IncompatibilityWarning)
 
         if not self.read_axes(where): return None
 
@@ -2114,7 +2125,7 @@ class Term(object):
         if self.field == 'index' or self.field == 'major_axis':
             if self.kind == 'datetime64' :
                 return [lib.Timestamp(v).value, None]
-            elif isinstance(v, datetime):
+            elif isinstance(v, datetime) or hasattr(v,'timetuple'):
                 return [time.mktime(v.timetuple()), None]
         elif not isinstance(v, basestring):
             return [str(v), None]
