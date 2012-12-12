@@ -216,7 +216,6 @@ Updated PyTables Support
 
 :ref:`Docs <io-hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
 
-
 .. ipython:: python
    :suppress:
    :okexcept:
@@ -318,6 +317,12 @@ Updated PyTables Support
    store.close()
    import os
    os.remove('store.h5')
+
+**Compatibility**
+
+0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
+however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
+file and write it out using the new format to take advantage of the updates.
 
 N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

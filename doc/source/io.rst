@@ -1158,6 +1158,13 @@ Notes & Caveats
         store.append('wp_big_strings', wp)
         store.select('wp_big_strings')
 
+Compatibility
+~~~~~~~~~~~~~
+
+0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
+however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
+file and write it out using the new format to take advantage of the updates.
+
 
 Performance
 ~~~~~~~~~~~
