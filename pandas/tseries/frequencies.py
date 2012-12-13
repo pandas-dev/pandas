@@ -22,7 +22,8 @@ class FreqGroup(object):
     FR_HR = 7000
     FR_MIN = 8000
     FR_SEC = 9000
-    FR_USEC = 11000
+    FR_USEC = 10000
+
 
 class Resolution(object):
 
@@ -34,20 +35,24 @@ class Resolution(object):
 
     @classmethod
     def get_str(cls, reso):
-        return {RESO_US : 'microsecond',
-                RESO_SEC : 'second',
-                RESO_MIN : 'minute',
-                RESO_HR : 'hour',
-                RESO_DAY : 'day'}.get(reso, 'day')
+        return {cls.RESO_US: 'microsecond',
+                cls.RESO_SEC: 'second',
+                cls.RESO_MIN: 'minute',
+                cls.RESO_HR: 'hour',
+                cls.RESO_DAY: 'day'}.get(reso, 'day')
+
 
 def get_reso_string(reso):
     return Resolution.get_str(reso)
 
+
 def get_to_timestamp_base(base):
     if base <= FreqGroup.FR_WK:
         return FreqGroup.FR_DAY
+
     if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
+
     return base
 
 
@@ -55,6 +60,7 @@ def get_freq_group(freq):
     if isinstance(freq, basestring):
         base, mult = get_freq_code(freq)
         freq = base
+
     return (freq // 1000) * 1000
 
 
@@ -62,24 +68,25 @@ def get_freq(freq):
     if isinstance(freq, basestring):
         base, mult = get_freq_code(freq)
         freq = base
+
     return freq
 
 
 def get_freq_code(freqstr):
     """
-
     Parameters
     ----------
+    freqstr : str
 
     Returns
     -------
+    code, stride
     """
     if isinstance(freqstr, DateOffset):
         freqstr = (get_offset_name(freqstr), freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (com.is_integer(freqstr[0]) and
-            com.is_integer(freqstr[1])):
+        if (com.is_integer(freqstr[0]) and com.is_integer(freqstr[1])):
             #e.g., freqstr = (2000, 1)
             return freqstr
         else:
@@ -596,7 +603,7 @@ _period_code_map = {
     "H": 7000,        # Hourly
     "T": 8000,        # Minutely
     "S": 9000,        # Secondly
-    "U": 11000,       # Microsecondly
+    "U": 10000,       # Microsecondly
 }
 
 _reverse_period_code_map = {}
@@ -714,7 +721,7 @@ _reso_period_map = {
     "hour": "H",
     "minute": "T",
     "second": "S",
-    "microsecond" : "U",
+    "microsecond": "U",
 }
 
 
