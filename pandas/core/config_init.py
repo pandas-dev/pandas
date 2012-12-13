@@ -139,10 +139,27 @@ with cf.config_prefix('print'):
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('line_width', 80, pc_line_width_doc)
 
-tc_interactive_doc="""
+tc_sim_interactive_doc="""
 : boolean
     Default False
     Whether to simulate interactive mode for purposes of testing
 """
-with cf.config_prefix('test'):
-    cf.register_option('interactive', False, tc_interactive_doc)
+with cf.config_prefix('mode'):
+    cf.register_option('sim_interactive', False, tc_sim_interactive_doc)
+
+use_inf_as_null_doc="""
+: boolean
+    True means treat None, NaN, INF, -INF as null (old way),
+    False means None and NaN are null, but INF, -INF are not null
+    (new way).
+"""
+
+# we don't want to start importing evrything at the global context level
+# or we'll hit circular deps.
+def use_inf_as_null_cb(key):
+    from pandas.core.common import _use_inf_as_null
+    _use_inf_as_null(key)
+
+with cf.config_prefix('mode'):
+    cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
+                       cb=use_inf_as_null_cb)
