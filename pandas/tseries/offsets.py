@@ -586,7 +586,8 @@ class WeekOfMonth(DateOffset, CacheableOffset):
             else:
                 months = self.n + 1
 
-        return self.getOffsetOfMonth(other + relativedelta(months=months, day=1))
+        return self.getOffsetOfMonth(other + relativedelta(months=months,
+                                                           day=1))
 
     def getOffsetOfMonth(self, dt):
         w = Week(weekday=self.weekday)
@@ -1073,6 +1074,7 @@ class Tick(DateOffset):
     def isAnchored(self):
         return False
 
+
 def _delta_to_tick(delta):
     if delta.microseconds == 0:
         if delta.seconds == 0:
@@ -1107,24 +1109,30 @@ class Day(Tick, CacheableOffset):
     _inc = timedelta(1)
     _rule_base = 'D'
 
+
 class Hour(Tick):
     _inc = timedelta(0, 3600)
     _rule_base = 'H'
+
 
 class Minute(Tick):
     _inc = timedelta(0, 60)
     _rule_base = 'T'
 
+
 class Second(Tick):
     _inc = timedelta(0, 1)
     _rule_base = 'S'
 
+
 class Milli(Tick):
     _rule_base = 'L'
+
 
 class Micro(Tick):
     _inc = timedelta(microseconds=1)
     _rule_base = 'U'
+
 
 class Nano(Tick):
     _inc = 1
