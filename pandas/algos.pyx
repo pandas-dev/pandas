@@ -64,6 +64,16 @@ tiebreakers = {
 }
 
 
+ctypedef fused numeric_t:
+    float64_t
+    int64_t
+    int32_t
+
+ctypedef fused weight_t:
+    float64_t
+    int64_t
+    int32_t
+
 # ctypedef fused pvalue_t:
 #     float64_t
 #     int64_t
@@ -615,9 +625,9 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def weighted_nanmean_1d(ndarray[numeric_t] arr,
-                        ndarray[weight_t] weight,
-                        uint8_t skipna=True):
+def weighted_nanmean_1d(ndarray[numeric_t, ndim=1] arr,
+                        ndarray[weight_t, ndim=1] weight,
+                        bint skipna=True):
     cdef:
         Py_ssize_t i
         numeric_t val
@@ -632,7 +642,7 @@ def weighted_nanmean_1d(ndarray[numeric_t] arr,
             val = arr[i]
             wgt = weight[i]
 
-            if val == val and wgt == wgt):
+            if val == val and wgt == wgt:
                 numer += val * wgt
                 denom += wgt
     else:
@@ -649,8 +659,9 @@ def weighted_nanmean_1d(ndarray[numeric_t] arr,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
-                                   ndarray[weight_t] weight, axis=0,
-                                   uint8_t skipna=True):
+                                   ndarray[weight_t, ndim=1] weight,
+                                   int axis=0,
+                                   bint skipna=True):
 
     cdef:
         Py_ssize_t i, len_x, len_y
@@ -660,14 +671,15 @@ def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
         ndarray[weight_t] denom
 
     len_x, len_y = (<object>arr).shape
-    if len(weight) != (len_x, len_y)[axis]:
+    axis_len = (len_x, len_y)[axis]
+    if len(weight) != axis_len:
         raise ValueError('Weights must be same size as data along broadcast '
                          'dimension')
 
-    numer = np.empty(axis_len, dtype=float64_t)
-    denom = np.empty(axis_len, dtype=weight_t)
+    numer = np.empty(axis_len, dtype=float)
+    denom = np.empty(axis_len, dtype=weight.dtype)
 
-    if arr.flags.f_continguous: #outer loop columns
+    if arr.flags.f_contiguous: #outer loop columns
         if axis == 0:
             if skipna:
                 for j in range(len_y):
@@ -748,8 +760,9 @@ def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def weighted_nanmean_2d_2d_weights(ndarray[numeric_t, ndim=2] arr,
-                                   ndarray[weight_t, ndim=2] weight, axis=0,
-                                   uint8_t skipna=True):
+                                   ndarray[weight_t, ndim=2] weight,
+                                   int axis=0,
+                                   bint skipna=True):
     cdef:
         Py_ssize_t i, len_x, len_y
         numeric_t val
@@ -761,10 +774,11 @@ def weighted_nanmean_2d_2d_weights(ndarray[numeric_t, ndim=2] arr,
     if (<object>arr).shape != (<object>weight).shape:
         raise ValueError('Weights must have same shape as data')
 
-    numer = np.empty(axis_len, dtype=float64_t)
-    denom = np.empty(axis_len, dtype=weight_t)
+    axis_len = (len_x, len_y)[axis]
+    numer = np.empty(axis_len, dtype=float)
+    denom = np.empty(axis_len, dtype=weight.dtype)
 
-    if arr.flags.f_continguous: #outer loop columns
+    if arr.flags.f_contiguous: #outer loop columns
         if axis == 0:
             if skipna:
                 for j in range(len_y):

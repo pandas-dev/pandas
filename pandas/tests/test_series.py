@@ -1216,6 +1216,31 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
+    def test_weighted_mean(self):
+        weights = Series(np.random.randint(1, 100,
+                         len(self.series)).astype(float),
+                         self.series.index)
+        weights[np.random.randint(0, len(self.series), 10)] = np.NaN
+
+        def wgt_mean(data):
+            # check the result is correct
+            mask = notnull(weights).mul(notnull(data)).dropna().astype(bool)
+            vals = weights * data
+            wgts = weights.reindex(mask.index)
+            return vals.sum() / wgts[mask].sum()
+
+        self._check_stat_op('mean', wgt_mean, weights=weights)
+
+    def test_weighted_mean_dt64_weights(self):
+        # check date range as weights
+        self.series[5:15] = np.NaN
+        weights = bdate_range('1/1/2000', periods=len(self.series))
+        rs = self.series.mean(weights=weights)
+
+        weights = weights.asi8
+        xp = (weights * self.series).sum() / weights[notnull(self.series)].sum()
+        self.assertEqual(rs, xp)
+
     def test_median(self):
         self._check_stat_op('median', np.median)
 
@@ -1316,7 +1341,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def _check_stat_op(self, name, alternate, check_objects=False):
+    def _check_stat_op(self, name, alternate, check_objects=False, **kwargs):
         import pandas.core.nanops as nanops
 
         def testit():
@@ -1326,15 +1351,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             self.series[5:15] = np.NaN
 
             # skipna or no
-            self.assert_(notnull(f(self.series)))
-            self.assert_(isnull(f(self.series, skipna=False)))
+            self.assert_(notnull(f(self.series, **kwargs)))
+            self.assert_(isnull(f(self.series, skipna=False, **kwargs)))
 
             # check the result is correct
             nona = self.series.dropna()
-            assert_almost_equal(f(nona), alternate(nona))
+            assert_almost_equal(f(nona, **kwargs), alternate(nona))
 
             allna = self.series * nan
-            self.assert_(np.isnan(f(allna)))
+            self.assert_(np.isnan(f(allna, **kwargs)))
 
             # dtype=object with None, it works!
             s = Series([1, 2, 3, None, 5])
@@ -1343,7 +1368,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             # check date range
             if check_objects:
                 s = Series(bdate_range('1/1/2000', periods=10))
-                res = f(s)
+                res = f(s, **kwargs)
                 exp = alternate(s)
                 self.assertEqual(res, exp)
 

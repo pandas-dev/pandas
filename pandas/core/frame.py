@@ -4690,10 +4690,24 @@ class DataFrame(NDFrame):
             return self._agg_by_level('mean', axis=axis, level=level,
                                       skipna=skipna)
 
-        def helper(values, axis, skipna, **kwargs):
-            weights = kwargs.get('weights', None)
+        def helper(values, axis, skipna, weights=None):
             if weights is None:
                 return nanops.nanmean(values, axis=axis, skipna=skipna)
+
+            if not isinstance(weights, np.ndarray):
+                weights = np.asarray(weights)
+
+            if weights.ndim == 1 and isinstance(weights, Series):
+                weights = weights.reindex(self._get_axis(axis)).values
+            elif isinstance(weights, DataFrame):
+                weights = weights.reindex(index=self.index,
+                                          columns=self.columns).values
+
+            if com.is_datetime64_dtype(weights):
+                weights = np.asarray(weights).view('i8')
+            elif not com.is_integer_dtype(weights):
+                weights = np.asarray(weights).astype(float)
+
             return nanops.weighted_nanmean(values, weights, axis=axis,
                                            skipna=skipna)
 
