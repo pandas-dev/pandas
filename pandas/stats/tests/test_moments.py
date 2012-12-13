@@ -20,6 +20,8 @@ N, K = 100, 10
 
 class TestMoments(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
 

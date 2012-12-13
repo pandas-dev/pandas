@@ -36,6 +36,8 @@ def get_test_data(ngroups=NGROUPS, n=N):
 
 class TestMerge(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),
@@ -922,6 +924,8 @@ def _join_by_hand(a, b, how='left'):
     return a_re.reindex(columns=result_columns)
 
 class TestConcatenate(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.frame = DataFrame(tm.getSeriesData())

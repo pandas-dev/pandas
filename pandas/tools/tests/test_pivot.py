@@ -9,6 +9,8 @@ import pandas.util.testing as tm
 
 class TestPivotTable(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         self.data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
                                       'bar', 'bar', 'bar', 'bar',
@@ -322,5 +324,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
-
