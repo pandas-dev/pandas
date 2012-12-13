@@ -116,7 +116,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     try:
         if not arg:
             return arg
-        default = datetime(1,1,1)
+        default = datetime(1, 1, 1)
         return parse(arg, dayfirst=dayfirst, default=default)
     except Exception:
         if errors == 'raise':
@@ -157,17 +157,15 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime, datetime/dateutil.parser._result, str
     """
     from pandas.core.config import get_option
-    from pandas.tseries.offsets import DateOffset
-    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
-                                            _get_freq_str)
+    from pandas.tseries.frequencies import _get_rule_month, _month_numbers
 
     if not isinstance(arg, basestring):
         return arg
 
     arg = arg.upper()
 
-    default = datetime(1, 1, 1).replace(hour=0, minute=0,
-                                      second=0, microsecond=0)
+    default = datetime(1, 1, 1).replace(hour=0, minute=0, second=0,
+                                        microsecond=0)
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     if len(arg) in [4, 6]:
@@ -240,6 +238,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     return parsed, parsed, reso  # datetime, resolution
 
+
 def dateutil_parse(timestr, default,
                    ignoretz=False, tzinfos=None,
                    **kwargs):
@@ -247,7 +246,7 @@ def dateutil_parse(timestr, default,
     res = DEFAULTPARSER._parse(StringIO(timestr), **kwargs)
 
     if res is None:
-        raise ValueError, "unknown string format"
+        raise ValueError("unknown string format")
 
     repl = {}
     for attr in ["year", "month", "day", "hour",
@@ -261,7 +260,7 @@ def dateutil_parse(timestr, default,
 
     ret = default.replace(**repl)
     if res.weekday is not None and not res.day:
-        ret = ret+relativedelta.relativedelta(weekday=res.weekday)
+        ret += relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
         if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
             if callable(tzinfos):
@@ -275,8 +274,8 @@ def dateutil_parse(timestr, default,
             elif isinstance(tzdata, int):
                 tzinfo = tz.tzoffset(res.tzname, tzdata)
             else:
-                raise ValueError, "offset must be tzinfo subclass, " \
-                                  "tz string, or int offset"
+                raise ValueError("offset must be tzinfo subclass, tz string, "
+                                 "or int offset")
             ret = ret.replace(tzinfo=tzinfo)
         elif res.tzname and res.tzname in time.tzname:
             ret = ret.replace(tzinfo=tz.tzlocal())
@@ -285,6 +284,7 @@ def dateutil_parse(timestr, default,
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tz.tzoffset(res.tzname, res.tzoffset))
     return ret, reso
+
 
 def _attempt_monthly(val):
     pats = ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']
