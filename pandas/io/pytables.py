@@ -21,7 +21,7 @@ from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
 from pandas.core.algorithms import match, unique
-
+from pandas.core.strings import str_len
 from pandas.core.categorical import Factor
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
@@ -507,7 +507,7 @@ class HDFStore(object):
         wrapper(value)
         group._v_attrs.pandas_type = kind
         group._v_attrs.pandas_version = _version
-        group._v_attrs.meta = getattr(value,'meta',None)
+        #group._v_attrs.meta = getattr(value,'meta',None)
 
     def _write_series(self, group, series):
         self._write_index(group, 'index', series.index)
@@ -848,10 +848,10 @@ class HDFStore(object):
         kind = _LEGACY_MAP.get(kind, kind)
         handler = self._get_handler(op='read', kind=kind)
         v = handler(group, where, **kwargs)
-        if v is not None:
-            meta = getattr(group._v_attrs,'meta',None)
-            if meta is not None:
-                v.meta = meta
+        #if v is not None:
+        #    meta = getattr(group._v_attrs,'meta',None)
+        #    if meta is not None:
+        #        v.meta = meta
         return v
 
     def _read_series(self, group, where=None):
@@ -1001,16 +1001,22 @@ class IndexCol(object):
         self.validate_attr(append)
         self.set_attr()
 
-    def validate_col(self):
-        """ validate this column & set table data for it """
+    def validate_col(self, itemsize = None):
+        """ validate this column: return the compared against itemsize """
 
         # validate this column for string truncation (or reset to the max size)
-        if self.kind == 'string':
+        dtype = getattr(self,'dtype',None)
+        if self.kind == 'string' or (dtype is not None and dtype.startswith('string')):
 
             c = self.col
             if c is not None:
-                if c.itemsize < self.itemsize:
-                    raise Exception("[%s] column has a min_itemsize of [%s] but itemsize [%s] is required!" % (self.cname,self.itemsize,c.itemsize))
+                if itemsize is None:
+                    itemsize = self.itemsize
+                if c.itemsize < itemsize:
+                    raise Exception("[%s] column has a min_itemsize of [%s] but itemsize [%s] is required!" % (self.cname,itemsize,c.itemsize))
+                return c.itemsize
+
+        return None
 
 
     def validate_attr(self, append):
@@ -1404,18 +1410,27 @@ class Table(object):
             # a string column
             if b.dtype.name == 'object':
                 
+                # itemsize is the maximum length of a string (along any dimension)
+                itemsize = _itemsize_string_array(values)
+
                 # specified min_itemsize?
                 if isinstance(min_itemsize, dict):
-                    min_itemsize = int(min_itemsize.get('values'))
+                    itemsize = max(int(min_itemsize.get('values')),itemsize)
 
-                if min_itemsize is None:
-                    min_itemsize = values.dtype.itemsize
+                # check for column in the values conflicts
+                if existing_table is not None and validate:
+                    eci = existing_table.values_axes[i].validate_col(itemsize)
+                    if eci > itemsize:
+                        itemsize = eci
 
-                atom  = _tables().StringCol(itemsize = min_itemsize, shape = shape)
-                utype = 'S%s' % min_itemsize
+                atom  = _tables().StringCol(itemsize = itemsize, shape = shape)
+                utype = 'S%s' % itemsize
+                kind  = 'string'
+
             else:
                 atom  = getattr(_tables(),"%sCol" % b.dtype.name.capitalize())(shape = shape)
                 utype = atom._deftype
+                kind  = b.dtype.name
 
             # coerce data to this type
             try:
@@ -1423,7 +1438,7 @@ class Table(object):
             except (Exception), detail:
                 raise Exception("cannot coerce data type -> [dtype->%s]" % b.dtype.name)
 
-            dc = DataCol.create_for_block(i = i, values = list(b.items), kind = b.dtype.name, typ = atom, data = values, pos = j)
+            dc = DataCol.create_for_block(i = i, values = list(b.items), kind = kind, typ = atom, data = values, pos = j)
             j += 1
             self.values_axes.append(dc)
 
@@ -1663,7 +1678,6 @@ class AppendableTable(LegacyTable):
         """ fast writing of data: requires specific cython routines each axis shape """
 
         # create the masks & values
-        #import pdb; pdb.set_trace()
         masks  = []
         for a in self.values_axes:
 
@@ -1694,7 +1708,6 @@ class AppendableTable(LegacyTable):
             if len(rows):
                 self.table.append(rows)
         except (Exception), detail:
-            #import pdb; pdb.set_trace()
             raise Exception("tables cannot write this data -> %s" % str(detail))
 
     def delete(self, where = None):
@@ -1848,6 +1861,10 @@ def create_table(parent, group, typ = None, **kwargs):
 
     return _TABLE_MAP.get(tt)(parent, group, **kwargs)
 
+
+def _itemsize_string_array(arr):
+    """ return the maximum size of elements in a strnig array """
+    return max([ str_len(arr[v]).max() for v in range(arr.shape[0]) ])
 
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
@@ -2247,14 +2264,20 @@ def _get_index_factory(klass):
 
 def create_debug_memory(parent):
     _debug_memory = getattr(parent,'_debug_memory',False)
+    def get_memory(s):
+        pass
+  
     if not _debug_memory:
-        def get_memory(s):
-            pass
+        pass
     else:
-        import psutil, os
-        def get_memory(s):
-            p = psutil.Process(os.getpid())
-            (rss,vms) = p.get_memory_info()
-            mp = p.get_memory_percent()
-            print "[%s] cur_mem->%.2f (MB),per_mem->%.2f" % (s,rss/1000000.0,mp)
+        try:
+            import psutil, os
+            def get_memory(s):
+                p = psutil.Process(os.getpid())
+                (rss,vms) = p.get_memory_info()
+                mp = p.get_memory_percent()
+                print "[%s] cur_mem->%.2f (MB),per_mem->%.2f" % (s,rss/1000000.0,mp)
+        except:
+            pass
+
     return get_memory

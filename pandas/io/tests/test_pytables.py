@@ -98,6 +98,8 @@ class TestHDFStore(unittest.TestCase):
         self.assert_(self.store.root.df1._v_attrs.pandas_version == '0.10')
 
     def test_meta(self):
+        raise nose.SkipTest('no meta')
+
         meta = { 'foo' : [ 'I love pandas ' ] }
         s = tm.makeTimeSeries()
         s.meta = meta
@@ -166,6 +168,29 @@ class TestHDFStore(unittest.TestCase):
         # overwrite table
         self.store.put('c', df[:10], table=True, append=False)
         tm.assert_frame_equal(df[:10], self.store['c'])
+
+    def test_put_string_index(self):
+
+        index = Index([ "I am a very long string index: %s" % i for i in range(20) ])
+        s  = Series(np.arange(20), index = index)
+        df = DataFrame({ 'A' : s, 'B' : s })
+
+        self.store['a'] = s
+        tm.assert_series_equal(self.store['a'], s)
+
+        self.store['b'] = df
+        tm.assert_frame_equal(self.store['b'], df)
+
+        # mixed length
+        index = Index(['abcdefghijklmnopqrstuvwxyz1234567890'] + [ "I am a very long string index: %s" % i for i in range(20) ])
+        s  = Series(np.arange(21), index = index)
+        df = DataFrame({ 'A' : s, 'B' : s })
+        self.store['a'] = s
+        tm.assert_series_equal(self.store['a'], s)
+
+        self.store['b'] = df
+        tm.assert_frame_equal(self.store['b'], df)
+
 
     def test_put_compression(self):
         df = tm.makeTimeDataFrame()
@@ -325,10 +350,21 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('df_big',df, min_itemsize = { 'values' : 1024 })
         tm.assert_frame_equal(self.store.select('df_big'), df)
 
+        # appending smaller string ok
+        df2 = DataFrame([[124,'asdqy'], [346,'dggnhefbdfb']])
+        self.store.append('df_big',df2)
+        expected = concat([ df, df2 ])
+        tm.assert_frame_equal(self.store.select('df_big'), expected)
+
         # avoid truncation on elements
         df = DataFrame([[123,'asdqwerty'], [345,'dggnhebbsdfbdfb']])
-        self.store.append('df_big2',df, min_itemsize = { 'values' : 300 })
+        self.store.append('df_big2',df, min_itemsize = { 'values' : 10 })
         tm.assert_frame_equal(self.store.select('df_big2'), df)
+
+        # bigger string on next append
+        self.store.append('df_new',df, min_itemsize = { 'values' : 16 })
+        df_new  = DataFrame([[124,'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
+        self.assertRaises(Exception, self.store.append, 'df_new',df_new)
 
     def test_create_table_index(self):
         wp = tm.makePanel()
@@ -375,7 +411,8 @@ class TestHDFStore(unittest.TestCase):
         
 
     def test_big_table(self):
-        
+        raise nose.SkipTest('no big table')
+
         # create and write a big table
         wp = Panel(np.random.randn(20, 1000, 1000), items= [ 'Item%s' % i for i in xrange(20) ],
                    major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%s' % i for i in xrange(1000) ])
