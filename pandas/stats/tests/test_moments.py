@@ -306,6 +306,14 @@ class TestMoments(unittest.TestCase):
         result = mom.rolling_var(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
 
+        # #2527, ugh
+        arr = np.array([0.00012456, 0.0003, 0])
+        result = mom.rolling_mean(arr, 1)
+        self.assertTrue(result[-1] >= 0)
+
+        result = mom.rolling_mean(-arr, 1)
+        self.assertTrue(result[-1] <= 0)
+
     def _check_moment_func(self, func, static_comp, window=50,
                            has_min_periods=True,
                            has_center=True,

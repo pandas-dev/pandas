@@ -412,7 +412,8 @@ pandas 0.9.1
   - Fix variety of cut/qcut string-bin formatting bugs (GH1978_, GH1979_)
   - Raise Exception when xs view not possible of MultiIndex'd DataFrame (GH2117_)
   - Fix groupby(...).first() issue with datetime64 (GH2133_)
-  - Better floating point error robustness in some rolling_* functions (GH2114_)
+  - Better floating point error robustness in some rolling_* functions
+    (GH2114_, GH2527_)
   - Fix ewma NA handling in the middle of Series (GH2128_)
   - Fix numerical precision issues in diff with integer data (GH2087_)
   - Fix bug in MultiIndex.__getitem__ with NA values (GH2008_)
@@ -483,6 +484,7 @@ pandas 0.9.1
 .. _GH2117: https://github.com/pydata/pandas/issues/2117
 .. _GH2133: https://github.com/pydata/pandas/issues/2133
 .. _GH2114: https://github.com/pydata/pandas/issues/2114
+.. _GH2527: https://github.com/pydata/pandas/issues/2114
 .. _GH2128: https://github.com/pydata/pandas/issues/2128
 .. _GH2008: https://github.com/pydata/pandas/issues/2008
 .. _GH2179: https://github.com/pydata/pandas/issues/2179
