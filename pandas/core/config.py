@@ -67,37 +67,33 @@ _reserved_keys = ['all']  # keys which have a special meaning
 ##########################################
 # User API
 
-def _get_option(pat):
+def _get_single_key(pat, silent):
     keys = _select_options(pat)
     if len(keys) == 0:
-        _warn_if_deprecated(pat)
+        if not silent:
+            _warn_if_deprecated(pat)
         raise KeyError('No such keys(s)')
     if len(keys) > 1:
         raise KeyError('Pattern matched multiple keys')
     key = keys[0]
 
-    _warn_if_deprecated(key)
+    if not silent:
+        _warn_if_deprecated(key)
 
     key = _translate_key(key)
+
+    return key
+
+def _get_option(pat, silent=False):
+    key = _get_single_key(pat,silent)
 
     # walk the nested dict
     root, k = _get_root(key)
-
     return root[k]
 
 
-def _set_option(pat, value):
-
-    keys = _select_options(pat)
-    if len(keys) == 0:
-        _warn_if_deprecated(pat)
-        raise KeyError('No such keys(s)')
-    if len(keys) > 1:
-        raise KeyError('Pattern matched multiple keys')
-    key = keys[0]
-
-    _warn_if_deprecated(key)
-    key = _translate_key(key)
+def _set_option(pat, value, silent=False):
+    key = _get_single_key(pat,silent)
 
     o = _get_registered_option(key)
     if o and o.validator:
@@ -107,7 +103,7 @@ def _set_option(pat, value):
     root, k = _get_root(key)
     root[k] = value
 
-    if o and o.cb:
+    if o.cb:
         o.cb(key)
 
 
@@ -274,6 +270,28 @@ describe_option = CallableDyanmicDoc(_describe_option, _describe_option_tmpl)
 
 ######################################################
 # Functions for use by pandas developers, in addition to User - api
+
+class option_context(object):
+    def __init__(self,*args):
+        assert len(args) % 2 == 0 and len(args)>=2, \
+           "Need to invoke as option_context(pat,val,[(pat,val),..))."
+        ops = zip(args[::2],args[1::2])
+        undo=[]
+        for pat,val in ops:
+            undo.append((pat,_get_option(pat,silent=True)))
+
+        self.undo = undo
+
+        for pat,val in ops:
+            _set_option(pat,val,silent=True)
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *args):
+        if self.undo:
+            for pat, val in self.undo:
+                _set_option(pat, val)
 
 def register_option(key, defval, doc='', validator=None, cb=None):
     """Register an option in the package-wide pandas config object

@@ -307,6 +307,21 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(k[-1],"d.b")
 
 
+    def test_set_ContextManager(self):
+        def eq(val):
+            self.assertEqual(self.cf.get_option("a"),val)
+
+        self.cf.register_option('a',0)
+        eq(0)
+        with self.cf.option_context("a",15):
+            eq(15)
+            with self.cf.option_context("a",25):
+                eq(25)
+            eq(15)
+        eq(0)
+
+        self.cf.set_option("a",17)
+        eq(17)
 
 # fmt.reset_printoptions and fmt.set_printoptions were altered
 # to use core.config, test_format exercises those paths.
