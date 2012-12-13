@@ -16,6 +16,7 @@ from numpy.random import randn
 import numpy as np
 
 from pandas import DataFrame, Series, Index
+from pandas.util.py3compat import lzip
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas
@@ -178,7 +179,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                       ('float', lambda x: '[% 4.1f]' % x),
                       ('object', lambda x: '-%s-' % str(x))]
         result = df.to_string(formatters=dict(formatters))
-        result2 = df.to_string(formatters=zip(*formatters)[1])
+        result2 = df.to_string(formatters=lzip(*formatters)[1])
         self.assertEqual(result, ('  int  float    object\n'
                                   '0 0x1 [ 1.0]  -(1, 2)-\n'
                                   '1 0x2 [ 2.0]    -True-\n'

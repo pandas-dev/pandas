@@ -12,6 +12,7 @@ if PY3:
     def bytes_to_str(b, encoding='utf-8'):
         return b.decode(encoding)
 
+    lzip = lambda *args: list(zip(*args))
 else:
     # Python 2
     import re
@@ -26,6 +27,8 @@ else:
     def bytes_to_str(b, encoding='ascii'):
         return b
 
+    lzip = zip
+
 try:
     from cStringIO import StringIO
 except:
@@ -35,3 +38,5 @@ try:
     from io import BytesIO
 except:
     from cStringIO import StringIO as BytesIO
+
+
