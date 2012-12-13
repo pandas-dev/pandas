@@ -28,6 +28,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal)
 from pandas.util import py3compat
+from pandas.util.compat import OrderedDict
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -1799,7 +1800,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(self.mixed_frame._is_mixed_type)
 
     def test_constructor_ordereddict(self):
-        from pandas.util.compat import OrderedDict
         import random
         nitems = 100
         nums = range(nitems)
@@ -2196,12 +2196,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df['str'].dtype == np.object_)
 
     def test_constructor_list_of_dicts(self):
-        data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
-                {'a': 1.5, 'b': 3, 'd':6},
-                {'a': 1.5, 'd':6},
-                {},
-                {'a': 1.5, 'b': 3, 'c':4},
-                {'b': 3, 'c':4, 'd':6}]
+        data = [OrderedDict([['a', 1.5], ['b', 3], ['c',4], ['d',6]]),
+                OrderedDict([['a', 1.5], ['b', 3], ['d',6]]),
+                OrderedDict([['a', 1.5],[ 'd',6]]),
+                OrderedDict(),
+                OrderedDict([['a', 1.5], ['b', 3],[ 'c',4]]),
+                OrderedDict([['b', 3], ['c',4], ['d',6]])]
 
         result = DataFrame(data)
         expected = DataFrame.from_dict(dict(zip(range(len(data)), data)),
@@ -2213,9 +2213,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_constructor_list_of_series(self):
-        data = [{'a': 1.5, 'b': 3.0, 'c':4.0},
-                {'a': 1.5, 'b': 3.0, 'c':6.0}]
-        sdict = dict(zip(['x', 'y'], data))
+        data = [OrderedDict([['a', 1.5],[ 'b', 3.0],[ 'c',4.0]]),
+                OrderedDict([['a', 1.5], ['b', 3.0],[ 'c',6.0]])]
+        sdict = OrderedDict(zip(['x', 'y'], data))
         idx = Index(['a', 'b', 'c'])
 
         # all named
@@ -2230,21 +2230,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                  Series([1.5, 3, 6], idx)]
         result = DataFrame(data2)
 
-        sdict = dict(zip(['x', 'Unnamed 0'], data))
+        sdict = OrderedDict(zip(['x', 'Unnamed 0'], data))
         expected = DataFrame.from_dict(sdict, orient='index')
         assert_frame_equal(result.sort_index(), expected)
 
         # none named
-        data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
-                {'a': 1.5, 'b': 3, 'd':6},
-                {'a': 1.5, 'd':6},
-                {},
-                {'a': 1.5, 'b': 3, 'c':4},
-                {'b': 3, 'c':4, 'd':6}]
+        data = [OrderedDict([['a', 1.5], ['b', 3], ['c',4], ['d',6]]),
+                OrderedDict([['a', 1.5], ['b', 3], ['d',6]]),
+                OrderedDict([['a', 1.5],[ 'd',6]]),
+                OrderedDict(),
+                OrderedDict([['a', 1.5], ['b', 3],[ 'c',4]]),
+                OrderedDict([['b', 3], ['c',4], ['d',6]])]
         data = [Series(d) for d in data]
 
         result = DataFrame(data)
-        sdict = dict(zip(range(len(data)), data))
+        sdict = OrderedDict(zip(range(len(data)), data))
         expected = DataFrame.from_dict(sdict, orient='index')
         assert_frame_equal(result, expected.reindex(result.index))
 
@@ -2255,9 +2255,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(index=[0])
         assert_frame_equal(result, expected)
 
-        data = [{'a': 1.5, 'b': 3.0, 'c':4.0},
-                {'a': 1.5, 'b': 3.0, 'c':6.0}]
-        sdict = dict(zip(range(len(data)), data))
+        data = [OrderedDict([['a', 1.5],[ 'b', 3.0],[ 'c',4.0]]),
+                OrderedDict([['a', 1.5], ['b', 3.0],[ 'c',6.0]])]
+        sdict = OrderedDict(zip(range(len(data)), data))
+
         idx = Index(['a', 'b', 'c'])
         data2 = [Series([1.5, 3, 4], idx, dtype='O'),
                  Series([1.5, 3, 6], idx)]
