@@ -1303,7 +1303,8 @@ class DatetimeIndex(Int64Index):
         if self.tz is not None:
             if other.tz is None:
                 return False
-            same_zone = tslib.get_timezone(self.tz) == tslib.get_timezone(other.tz)
+            same_zone = (tslib.get_timezone(self.tz) ==
+                         tslib.get_timezone(other.tz))
         else:
             if other.tz is not None:
                 return False
@@ -1633,6 +1634,7 @@ def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
 
+
 def _process_concat_data(to_concat, name):
     klass = Index
     kwargs = {}
@@ -1672,7 +1674,7 @@ def _process_concat_data(to_concat, name):
                 to_concat = [x.values for x in to_concat]
 
             klass = DatetimeIndex
-            kwargs = {'tz' : tz}
+            kwargs = {'tz': tz}
             concat = com._concat_compat
     else:
         for i, x in enumerate(to_concat):
