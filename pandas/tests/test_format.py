@@ -21,7 +21,7 @@ import pandas.util.testing as tm
 import pandas
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
-                                reset_option)
+                                option_context, reset_option)
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -75,26 +75,26 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_repr_truncation(self):
         max_len = 20
-        set_option("print.max_colwidth", max_len)
-        df = DataFrame({'A': np.random.randn(10),
-                 'B': [tm.rands(np.random.randint(max_len - 1,
-                     max_len + 1)) for i in range(10)]})
-        r = repr(df)
-        r = r[r.find('\n') + 1:]
+        with option_context("print.max_colwidth", max_len):
+            df = DataFrame({'A': np.random.randn(10),
+                     'B': [tm.rands(np.random.randint(max_len - 1,
+                         max_len + 1)) for i in range(10)]})
+            r = repr(df)
+            r = r[r.find('\n') + 1:]
 
-        _strlen = fmt._strlen_func()
+            _strlen = fmt._strlen_func()
 
-        for line, value in zip(r.split('\n'), df['B']):
-            if _strlen(value) + 1 > max_len:
-                self.assert_('...' in line)
-            else:
-                self.assert_('...' not in line)
+            for line, value in zip(r.split('\n'), df['B']):
+                if _strlen(value) + 1 > max_len:
+                    self.assert_('...' in line)
+                else:
+                    self.assert_('...' not in line)
 
-        set_option("print.max_colwidth", 999999)
-        self.assert_('...' not in repr(df))
+        with option_context("print.max_colwidth", 999999):
+            self.assert_('...' not in repr(df))
 
-        set_option("print.max_colwidth", max_len + 2)
-        self.assert_('...' not in repr(df))
+        with option_context("print.max_colwidth", max_len + 2):
+            self.assert_('...' not in repr(df))
 
     def test_repr_should_return_str (self):
         """
@@ -112,11 +112,10 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
 
     def test_repr_no_backslash(self):
-        pd.set_option('mode.sim_interactive', True)
-        df = DataFrame(np.random.randn(10, 4))
+        with option_context('mode.sim_interactive', True):
+            df = DataFrame(np.random.randn(10, 4))
+            self.assertTrue('\\' not in repr(df))
 
-        self.assertTrue('\\' not in repr(df))
-        pd.reset_option('mode.sim_interactive')
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -409,132 +408,119 @@ class TestDataFrameFormatting(unittest.TestCase):
         fmt.set_printoptions(max_rows=200)
 
     def test_wide_repr(self):
-        set_option('mode.sim_interactive', True)
-        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
-        df = DataFrame([col(20, 25) for _ in range(10)])
-        set_option('print.expand_frame_repr', False)
-        rep_str = repr(df)
-        set_option('print.expand_frame_repr', True)
-        wide_repr = repr(df)
-        self.assert_(rep_str != wide_repr)
+        with option_context('mode.sim_interactive', True):
+            col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+            df = DataFrame([col(20, 25) for _ in range(10)])
+            set_option('print.expand_frame_repr', False)
+            rep_str = repr(df)
+            set_option('print.expand_frame_repr', True)
+            wide_repr = repr(df)
+            self.assert_(rep_str != wide_repr)
 
-        set_option('print.line_width', 120)
-        wider_repr = repr(df)
-        self.assert_(len(wider_repr) < len(wide_repr))
+            with option_context('print.line_width', 120):
+                wider_repr = repr(df)
+                self.assert_(len(wider_repr) < len(wide_repr))
 
         reset_option('print.expand_frame_repr')
-        set_option('mode.sim_interactive', False)
-        set_option('print.line_width', 80)
 
     def test_wide_repr_wide_columns(self):
-        set_option('mode.sim_interactive', True)
-        df = DataFrame(randn(5, 3), columns=['a' * 90, 'b' * 90, 'c' * 90])
-        rep_str = repr(df)
+        with option_context('mode.sim_interactive', True):
+            df = DataFrame(randn(5, 3), columns=['a' * 90, 'b' * 90, 'c' * 90])
+            rep_str = repr(df)
 
-        self.assert_(len(rep_str.splitlines()) == 20)
-        reset_option('mode.sim_interactive')
+            self.assert_(len(rep_str.splitlines()) == 20)
 
     def test_wide_repr_named(self):
-        set_option('mode.sim_interactive', True)
-        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
-        df = DataFrame([col(20, 25) for _ in range(10)])
-        df.index.name = 'DataFrame Index'
-        set_option('print.expand_frame_repr', False)
+        with option_context('mode.sim_interactive', True):
+            col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+            df = DataFrame([col(20, 25) for _ in range(10)])
+            df.index.name = 'DataFrame Index'
+            set_option('print.expand_frame_repr', False)
 
-        rep_str = repr(df)
-        set_option('print.expand_frame_repr', True)
-        wide_repr = repr(df)
-        self.assert_(rep_str != wide_repr)
+            rep_str = repr(df)
+            set_option('print.expand_frame_repr', True)
+            wide_repr = repr(df)
+            self.assert_(rep_str != wide_repr)
 
-        set_option('print.line_width', 120)
-        wider_repr = repr(df)
-        self.assert_(len(wider_repr) < len(wide_repr))
+            with option_context('print.line_width', 120):
+                wider_repr = repr(df)
+                self.assert_(len(wider_repr) < len(wide_repr))
 
-        for line in wide_repr.splitlines()[1::13]:
-            self.assert_('DataFrame Index' in line)
+            for line in wide_repr.splitlines()[1::13]:
+                self.assert_('DataFrame Index' in line)
 
         reset_option('print.expand_frame_repr')
-        set_option('mode.sim_interactive', False)
-        set_option('print.line_width', 80)
 
     def test_wide_repr_multiindex(self):
-        set_option('mode.sim_interactive', True)
-        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
-        midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
-                                              np.array(col(10, 5))])
-        df = DataFrame([col(20, 25) for _ in range(10)],
-                       index=midx)
-        df.index.names = ['Level 0', 'Level 1']
-        set_option('print.expand_frame_repr', False)
-        rep_str = repr(df)
-        set_option('print.expand_frame_repr', True)
-        wide_repr = repr(df)
-        self.assert_(rep_str != wide_repr)
+        with option_context('mode.sim_interactive', True):
+            col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+            midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
+                                                  np.array(col(10, 5))])
+            df = DataFrame([col(20, 25) for _ in range(10)],
+                           index=midx)
+            df.index.names = ['Level 0', 'Level 1']
+            set_option('print.expand_frame_repr', False)
+            rep_str = repr(df)
+            set_option('print.expand_frame_repr', True)
+            wide_repr = repr(df)
+            self.assert_(rep_str != wide_repr)
 
-        set_option('print.line_width', 120)
-        wider_repr = repr(df)
-        self.assert_(len(wider_repr) < len(wide_repr))
+            with option_context('print.line_width', 120):
+                wider_repr = repr(df)
+                self.assert_(len(wider_repr) < len(wide_repr))
 
-        for line in wide_repr.splitlines()[1::13]:
-            self.assert_('Level 0 Level 1' in line)
+            for line in wide_repr.splitlines()[1::13]:
+                self.assert_('Level 0 Level 1' in line)
 
         reset_option('print.expand_frame_repr')
-        set_option('mode.sim_interactive', False)
-        set_option('print.line_width', 80)
 
     def test_wide_repr_multiindex_cols(self):
-        set_option('mode.sim_interactive', True)
-        col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
-        midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
-                                              np.array(col(10, 5))])
-        mcols = pandas.MultiIndex.from_arrays([np.array(col(20, 3)),
-                                               np.array(col(20, 3))])
-        df = DataFrame([col(20, 25) for _ in range(10)],
-                       index=midx, columns=mcols)
-        df.index.names = ['Level 0', 'Level 1']
-        set_option('print.expand_frame_repr', False)
-        rep_str = repr(df)
-        set_option('print.expand_frame_repr', True)
-        wide_repr = repr(df)
-        self.assert_(rep_str != wide_repr)
+        with option_context('mode.sim_interactive', True):
+            col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
+            midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
+                                                  np.array(col(10, 5))])
+            mcols = pandas.MultiIndex.from_arrays([np.array(col(20, 3)),
+                                                   np.array(col(20, 3))])
+            df = DataFrame([col(20, 25) for _ in range(10)],
+                           index=midx, columns=mcols)
+            df.index.names = ['Level 0', 'Level 1']
+            set_option('print.expand_frame_repr', False)
+            rep_str = repr(df)
+            set_option('print.expand_frame_repr', True)
+            wide_repr = repr(df)
+            self.assert_(rep_str != wide_repr)
 
-        set_option('print.line_width', 120)
-        wider_repr = repr(df)
-        self.assert_(len(wider_repr) < len(wide_repr))
-
-        self.assert_(len(wide_repr.splitlines()) == 14 * 10 - 1)
+        with option_context('print.line_width', 120):
+            wider_repr = repr(df)
+            self.assert_(len(wider_repr) < len(wide_repr))
+            self.assert_(len(wide_repr.splitlines()) == 14 * 10 - 1)
 
         reset_option('print.expand_frame_repr')
-        set_option('mode.sim_interactive', False)
-        set_option('print.line_width', 80)
 
     def test_wide_repr_unicode(self):
-        set_option('mode.sim_interactive', True)
-        col = lambda l, k: [tm.randu(k) for _ in xrange(l)]
-        df = DataFrame([col(20, 25) for _ in range(10)])
-        set_option('print.expand_frame_repr', False)
-        rep_str = repr(df)
-        set_option('print.expand_frame_repr', True)
-        wide_repr = repr(df)
-        self.assert_(rep_str != wide_repr)
+        with option_context('mode.sim_interactive', True):
+            col = lambda l, k: [tm.randu(k) for _ in xrange(l)]
+            df = DataFrame([col(20, 25) for _ in range(10)])
+            set_option('print.expand_frame_repr', False)
+            rep_str = repr(df)
+            set_option('print.expand_frame_repr', True)
+            wide_repr = repr(df)
+            self.assert_(rep_str != wide_repr)
 
-        set_option('print.line_width', 120)
-        wider_repr = repr(df)
-        self.assert_(len(wider_repr) < len(wide_repr))
+            with option_context('print.line_width', 120):
+                wider_repr = repr(df)
+                self.assert_(len(wider_repr) < len(wide_repr))
 
         reset_option('print.expand_frame_repr')
-        set_option('mode.sim_interactive', False)
-        set_option('print.line_width', 80)
+
 
     def test_wide_repr_wide_long_columns(self):
-        set_option('mode.sim_interactive', True)
+        with option_context('mode.sim_interactive', True):
+            df = DataFrame({'a': ['a'*30, 'b'*30], 'b': ['c'*70, 'd'*80]})
 
-        df = DataFrame({'a': ['a'*30, 'b'*30], 'b': ['c'*70, 'd'*80]})
-
-        result = repr(df)
-        self.assertTrue('ccccc' in result)
-        self.assertTrue('ddddd' in result)
-        set_option('mode.sim_interactive', False)
+            result = repr(df)
+            self.assertTrue('ccccc' in result)
+            self.assertTrue('ddddd' in result)
 
     def test_to_string(self):
         from pandas import read_table
