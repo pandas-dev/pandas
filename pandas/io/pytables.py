@@ -1149,7 +1149,7 @@ class Table(object):
     def __init__(self, parent, group, **kwargs):
         self.parent      = parent
         self.group       = group
-        self.version     = getattr(group._v_attrs,'version',None)
+        self.version     = getattr(group._v_attrs,'pandas_version',None)
         self.index_axes     = []
         self.non_index_axes = []
         self.values_axes    = []
@@ -1257,6 +1257,12 @@ class Table(object):
         self.attrs.values_cols = self.values_cols()
         self.attrs.non_index_axes = self.non_index_axes
 
+    def validate_version(self, where = None):
+        """ are we trying to operate on an old version? """
+        if where is not None:
+            if self.version is None or float(self.version) < 0.1:
+                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % self.version, IncompatibilityWarning)
+
     def validate(self):
         """ raise if we have an incompitable table type with the current """
         et = getattr(self.attrs,'table_type',None)
@@ -1324,6 +1330,9 @@ class Table(object):
 
     def read_axes(self, where):
         """ create and return the axes sniffed from the table: return boolean for success """
+
+        # validate the version
+        self.validate_version(where)
 
         # infer the data kind
         if not self.infer_axes(): return False
@@ -1522,11 +1531,6 @@ class LegacyTable(Table):
         
         _dm = create_debug_memory(self.parent)
         _dm('start')
-
-        # are we trying to operate on an old version?
-        if where is not None:
-            if self.version is None or self.version < 0.1:
-                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % self.version, IncompatibilityWarning)
 
         if not self.read_axes(where): return None
 

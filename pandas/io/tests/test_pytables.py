@@ -97,6 +97,13 @@ class TestHDFStore(unittest.TestCase):
         self.assert_(self.store.root.b._v_attrs.pandas_version == '0.10')
         self.assert_(self.store.root.df1._v_attrs.pandas_version == '0.10')
 
+        # write a file and wipe its versioning
+        self.store.remove('df2')
+        self.store.append('df2', df)
+        self.store.get_node('df2')._v_attrs.pandas_version = None
+        self.store.select('df2')
+        self.store.select('df2', [ Term('index','>',df.index[2]) ])
+
     def test_meta(self):
         raise nose.SkipTest('no meta')
 
