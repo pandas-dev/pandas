@@ -112,11 +112,11 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
 
     def test_repr_no_backslash(self):
-        pd.set_option('test.interactive', True)
+        pd.set_option('mode.sim_interactive', True)
         df = DataFrame(np.random.randn(10, 4))
 
         self.assertTrue('\\' not in repr(df))
-        pd.reset_option('test.interactive')
+        pd.reset_option('mode.sim_interactive')
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -409,7 +409,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         fmt.set_printoptions(max_rows=200)
 
     def test_wide_repr(self):
-        set_option('test.interactive', True)
+        set_option('mode.sim_interactive', True)
         col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
         df = DataFrame([col(20, 25) for _ in range(10)])
         set_option('print.expand_frame_repr', False)
@@ -423,19 +423,19 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(len(wider_repr) < len(wide_repr))
 
         reset_option('print.expand_frame_repr')
-        set_option('test.interactive', False)
+        set_option('mode.sim_interactive', False)
         set_option('print.line_width', 80)
 
     def test_wide_repr_wide_columns(self):
-        set_option('test.interactive', True)
+        set_option('mode.sim_interactive', True)
         df = DataFrame(randn(5, 3), columns=['a' * 90, 'b' * 90, 'c' * 90])
         rep_str = repr(df)
 
         self.assert_(len(rep_str.splitlines()) == 20)
-        reset_option('test.interactive')
+        reset_option('mode.sim_interactive')
 
     def test_wide_repr_named(self):
-        set_option('test.interactive', True)
+        set_option('mode.sim_interactive', True)
         col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
         df = DataFrame([col(20, 25) for _ in range(10)])
         df.index.name = 'DataFrame Index'
@@ -454,11 +454,11 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assert_('DataFrame Index' in line)
 
         reset_option('print.expand_frame_repr')
-        set_option('test.interactive', False)
+        set_option('mode.sim_interactive', False)
         set_option('print.line_width', 80)
 
     def test_wide_repr_multiindex(self):
-        set_option('test.interactive', True)
+        set_option('mode.sim_interactive', True)
         col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
         midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
                                               np.array(col(10, 5))])
@@ -479,11 +479,11 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assert_('Level 0 Level 1' in line)
 
         reset_option('print.expand_frame_repr')
-        set_option('test.interactive', False)
+        set_option('mode.sim_interactive', False)
         set_option('print.line_width', 80)
 
     def test_wide_repr_multiindex_cols(self):
-        set_option('test.interactive', True)
+        set_option('mode.sim_interactive', True)
         col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
         midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
                                               np.array(col(10, 5))])
@@ -505,11 +505,11 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(len(wide_repr.splitlines()) == 14 * 10 - 1)
 
         reset_option('print.expand_frame_repr')
-        set_option('test.interactive', False)
+        set_option('mode.sim_interactive', False)
         set_option('print.line_width', 80)
 
     def test_wide_repr_unicode(self):
-        set_option('test.interactive', True)
+        set_option('mode.sim_interactive', True)
         col = lambda l, k: [tm.randu(k) for _ in xrange(l)]
         df = DataFrame([col(20, 25) for _ in range(10)])
         set_option('print.expand_frame_repr', False)
@@ -523,18 +523,18 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(len(wider_repr) < len(wide_repr))
 
         reset_option('print.expand_frame_repr')
-        set_option('test.interactive', False)
+        set_option('mode.sim_interactive', False)
         set_option('print.line_width', 80)
 
     def test_wide_repr_wide_long_columns(self):
-        set_option('test.interactive', True)
+        set_option('mode.sim_interactive', True)
 
         df = DataFrame({'a': ['a'*30, 'b'*30], 'b': ['c'*70, 'd'*80]})
 
         result = repr(df)
         self.assertTrue('ccccc' in result)
         self.assertTrue('ddddd' in result)
-        set_option('test.interactive', False)
+        set_option('mode.sim_interactive', False)
 
     def test_to_string(self):
         from pandas import read_table
