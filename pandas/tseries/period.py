@@ -1,10 +1,8 @@
 # pylint: disable=E1101,E1103,W0232
-import operator
 
 from datetime import datetime, date
 import numpy as np
 
-import pandas.tseries.offsets as offsets
 from pandas.tseries.frequencies import (get_freq_code as _gfc,
                                         _month_numbers, FreqGroup)
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
@@ -427,6 +425,7 @@ def dt64arr_to_periodarr(data, freq, tz):
 
     base, mult = _gfc(freq)
     return tslib.dt64arr_to_periodarr(data.view('i8'), base, tz)
+
 
 # --- Period index sketch
 def _period_index_cmp(opname):
