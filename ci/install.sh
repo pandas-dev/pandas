@@ -38,6 +38,8 @@ if [ x"$FULL_DEPS" == x"true" ]; then
     fi
 
     if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+        sudo apt-get $APT_ARGS install libhdf5-serial-dev;
+        pip install numexpr
         pip install tables
     fi
 
