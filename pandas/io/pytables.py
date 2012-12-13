@@ -1325,8 +1325,27 @@ class Table(object):
         table = self.table
         for c in columns:
             v = getattr(table.cols,c,None)
-            if v is not None and not v.is_indexed:
-                v.createIndex(**kw)
+            if v is not None:
+
+                # remove the index if the kind/optlevel have changed
+                if v.is_indexed:
+                    index = v.index
+                    cur_optlevel = index.optlevel
+                    cur_kind     = index.kind
+
+                    if kind is not None and cur_kind != kind:
+                        v.removeIndex()
+                    else:
+                        kw['kind'] = cur_kind
+
+                    if optlevel is not None and cur_optlevel != optlevel:
+                        v.removeIndex()
+                    else:
+                        kw['optlevel'] = cur_optlevel
+
+                # create the index
+                if not v.is_indexed:
+                    v.createIndex(**kw)
 
     def read_axes(self, where):
         """ create and return the axes sniffed from the table: return boolean for success """
