@@ -1,17 +1,10 @@
-<<<<<<< HEAD
-from numpy cimport int64_t as i8
-=======
-from numpy cimport int64_t, int32_t, npy_int64, npy_int32, ndarray
->>>>>>> upstream/master
-from cpython cimport PyObject
-
-from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
+from numpy cimport int64_t as i8, int32_t as i4
+from cpython cimport PyObject, PyUnicode_Check, PyUnicode_AsASCIIString
 
 
 cdef extern from "headers/stdint.h":
     enum: INT64_MIN
     enum: INT32_MIN
-
 
 
 cdef extern from "datetime.h":
@@ -189,4 +182,3 @@ cdef inline int64_t _date_to_datetime64(object val,
     dts.hour = dts.min = dts.sec = dts.us = 0
     dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
-
