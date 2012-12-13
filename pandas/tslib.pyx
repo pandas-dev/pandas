@@ -7,6 +7,11 @@ import numpy as np
 
 from cpython cimport *
 
+# Cython < 0.17 doesn't have this in cpython
+cdef extern from "Python.h":
+    cdef PyTypeObject *Py_TYPE(object)
+
+
 from libc.stdlib cimport free
 
 from util cimport is_integer_object, is_datetime64_object

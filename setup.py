@@ -290,7 +290,12 @@ class CleanCommand(Command):
 class CheckSDist(sdist):
     """Custom sdist that ensures Cython has compiled all pyx files to c."""
 
-    _pyxfiles = ['pandas/src/tseries.pyx'
+    _pyxfiles = ['pandas/lib.pyx',
+                 'pandas/hashtable.pyx',
+                 'pandas/tslib.pyx',
+                 'pandas/index.pyx',
+                 'pandas/algos.pyx',
+                 'pandas/src/parser.pyx',
                  'pandas/src/sparse.pyx']
 
     def initialize_options(self):
@@ -530,14 +535,15 @@ class DummyBuildSrc(Command):
         pass
 
 cmdclass = {'clean': CleanCommand,
-            'build': build}
+            'build': build,
+            'sdist': CheckSDist}
+
 if cython:
     suffix = '.pyx'
     cmdclass['build_ext'] = build_ext
     if BUILD_CACHE_DIR: # use the cache
         cmdclass['build_ext'] = CachingBuildExt
     cmdclass['cython'] = CythonCommand
-    cmdclass['sdist'] =  CheckSDist
 else:
     suffix = '.c'
     cmdclass['build_src'] = DummyBuildSrc
