@@ -30,6 +30,7 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
 from pandas.compat.scipy import scoreatpercentile as _quantile
+from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
@@ -468,7 +469,6 @@ class DataFrame(NDFrame):
         Segregate Series based on type and coerce into matrices.
         Needs to handle a lot of exceptional cases.
         """
-        from pandas.util.compat import OrderedDict
         if dtype is not None:
             dtype = np.dtype(dtype)
 
@@ -883,14 +883,15 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        from collections import defaultdict
+        from collections import OrderedDict
 
         orient = orient.lower()
         if orient == 'index':
             # TODO: this should be seriously cythonized
-            new_data = defaultdict(dict)
+            new_data = OrderedDict()
             for index, s in data.iteritems():
                 for col, v in s.iteritems():
+                    new_data[col]= new_data.get(col,OrderedDict())
                     new_data[col][index] = v
             data = new_data
         elif orient != 'columns':  # pragma: no cover
