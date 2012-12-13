@@ -141,7 +141,7 @@ cdef inline int _cstring_to_dts(char *val, int length,
     return result
 
 
-cdef inline object _datetime64_to_datetime(int64_t val):
+cdef inline object _datetime64_to_datetime(i8 val):
     cdef pandas_datetimestruct dts
     pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
     return _dts_to_pydatetime(&dts)
@@ -151,7 +151,7 @@ cdef inline object _dts_to_pydatetime(pandas_datetimestruct *dts):
                                                dts.day, dts.hour,
                                                dts.min, dts.sec, dts.us)
 
-cdef inline int64_t _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
+cdef inline i8 _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -162,8 +162,7 @@ cdef inline int64_t _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
     dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
-cdef inline int64_t _dtlike_to_datetime64(object val,
-                                          pandas_datetimestruct *dts):
+cdef inline i8 _dtlike_to_datetime64(object val, pandas_datetimestruct *dts):
     dts.year = val.year
     dts.month = val.month
     dts.day = val.day
@@ -174,8 +173,7 @@ cdef inline int64_t _dtlike_to_datetime64(object val,
     dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
-cdef inline int64_t _date_to_datetime64(object val,
-                                        pandas_datetimestruct *dts):
+cdef inline i8 _date_to_datetime64(object val, pandas_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)

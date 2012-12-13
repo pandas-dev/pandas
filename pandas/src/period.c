@@ -316,7 +316,7 @@ static i8 absdate_from_ymd(i8 y, i8 m, i8 d) {
 
 //************ FROM DAILY ***************
 
-static i8 asfreq_DtoA(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoA(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
 
@@ -353,7 +353,7 @@ static i8 DtoQ_yq(i8 ordinal, asfreq_info *af_info, i8 *year, i8 *quarter) {
 }
 
 
-static i8 asfreq_DtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoQ(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     i8 year, quarter;
 
@@ -363,7 +363,7 @@ static i8 asfreq_DtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
     return (year - BASE_YEAR) * 4 + quarter - 1;
 }
 
-static i8 asfreq_DtoM(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoM(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
 
@@ -373,112 +373,112 @@ static i8 asfreq_DtoM(i8 ordinal, char relation, asfreq_info *af_info) {
     return (dinfo.year - BASE_YEAR) * 12 + dinfo.month - 1;
 }
 
-static i8 asfreq_DtoW(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoW(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return (ordinal + ORD_OFFSET - (1 + af_info->to_week_end)) / 7
         + 1 - WEEK_OFFSET;
 }
 
-static i8 asfreq_DtoB(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoB(i8 ordinal, const char* relation, asfreq_info *af_info) {
     struct date_info dinfo;
 
     if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET, GREGORIAN))
         return INT_ERR_CODE;
 
-    if (relation == 'S')
+    if (!strcmp(relation, "S"))
         return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
     else
         return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
 }
 
 // needed for getDateInfo function
-static i8 asfreq_DtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoD(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return ordinal;
 }
 
-static i8 asfreq_DtoHIGHFREQ(i8 ordinal, char relation, i8 per_day) {
-    if (relation == 'S')
+static i8 asfreq_DtoHIGHFREQ(i8 ordinal, const char* relation, i8 per_day) {
+    if (!strcmp(relation, "S"))
         return ordinal * per_day;
     else
         return (ordinal + 1L) * per_day - 1L;
 }
 
-static i8 asfreq_DtoH(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoH(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoHIGHFREQ(ordinal, relation, 24L);
 }
 
-static i8 asfreq_DtoT(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoT(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60L);
 }
 
-static i8 asfreq_DtoS(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoS(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60L * 60L);
 }
 
-static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoHIGHFREQ(ordinal, relation, US_PER_DAY);
 }
 
 //************ FROM SECONDLY ***************
 
-static i8 asfreq_StoD(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_StoD(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return ordinal / (60L * 60L * 24L);
 }
 
-static i8 asfreq_StoA(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_StoA(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
                        af_info);
 }
 
-static i8 asfreq_StoQ(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_StoQ(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoQ(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
                        af_info);
 }
 
-static i8 asfreq_StoM(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_StoM(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
                      &NULL_AF_INFO); }
 
-static i8 asfreq_StoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_StoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
                      af_info); }
 
-static i8 asfreq_StoB(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_StoB(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoB(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
                      &NULL_AF_INFO); }
 
 
-static i8 asfreq_StoT(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_StoT(i8 ordinal, const char* relation, asfreq_info *af_info) {
 	return ordinal / 60L;
 }
 
-static i8 asfreq_StoH(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_StoH(i8 ordinal, const char* relation, asfreq_info *af_info) {
 	return ordinal / (60L * 60L);
 }
 
 //************ FROM MINUTELY ***************
 
-static i8 asfreq_TtoD(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoD(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return ordinal / (60L * 24L); }
 
-static i8 asfreq_TtoA(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoA(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static i8 asfreq_TtoQ(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoQ(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static i8 asfreq_TtoM(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoM(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static i8 asfreq_TtoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static i8 asfreq_TtoB(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoB(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoB(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static i8 asfreq_TtoH(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_TtoH(i8 ordinal, const char* relation, asfreq_info *af_info) {
 	return ordinal / 60L;
 }
 
-static i8 asfreq_TtoS(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_TtoS(i8 ordinal, const char* relation, asfreq_info *af_info) {
     i8 out = ordinal * 60L;
 
-    if (relation != 'S')
+    if (strcmp(relation, "S"))
         out += 59;
 
     return out;
@@ -486,89 +486,89 @@ static i8 asfreq_TtoS(i8 ordinal, char relation, asfreq_info *af_info) {
 
 //************ FROM HOURLY ***************
 
-static i8 asfreq_HtoD(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoD(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return ordinal / 24; }
-static i8 asfreq_HtoA(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoA(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static i8 asfreq_HtoQ(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoQ(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static i8 asfreq_HtoM(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoM(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static i8 asfreq_HtoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static i8 asfreq_HtoB(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoB(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoB(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 // calculation works out the same as TtoS, so we just call that function for HtoT
-static i8 asfreq_HtoT(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_HtoT(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_TtoS(ordinal, relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_HtoS(i8 ordinal, char relation, asfreq_info *af_info) {
-    i8 is_S = relation == 'S';
+static i8 asfreq_HtoS(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    i8 is_S = !strcmp(relation, "S");
     return is_S ? ordinal * 60 * 60 : (ordinal + 1) * 60 * 60 - 1;
 }
 
 //************ FROM BUSINESS ***************
 
-static i8 asfreq_BtoD(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoD(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
     i8 ord = ordinal;
     ord += BDAY_OFFSET;
     return (ord - 1) / 5 * 7 + mod_compat(ord - 1, 5) + 1 - ORD_OFFSET;
 }
 
-static i8 asfreq_BtoA(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoA(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static i8 asfreq_BtoQ(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoQ(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static i8 asfreq_BtoM(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoM(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static i8 asfreq_BtoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static i8 asfreq_BtoH(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoH(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static i8 asfreq_BtoT(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoT(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static i8 asfreq_BtoS(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoS(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 //************ FROM WEEKLY ***************
 
-static i8 asfreq_WtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_WtoD(i8 ordinal, const char* relation, asfreq_info *af_info) {
     i8 k = 0, ord = ordinal;
 	ord += WEEK_OFFSET;
     ord *= 7;
 
-    if (relation == 'S')
+    if (!strcmp(relation, "S"))
         k = -6;
 
     return ord + k + af_info->from_week_end - ORD_OFFSET;
 }
 
-static i8 asfreq_WtoA(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoA(asfreq_WtoD(ordinal, 'E', af_info), relation, af_info);
+static i8 asfreq_WtoA(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    return asfreq_DtoA(asfreq_WtoD(ordinal, "E", af_info), relation, af_info);
 }
 
-static i8 asfreq_WtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoQ(asfreq_WtoD(ordinal, 'E', af_info), relation, af_info);
+static i8 asfreq_WtoQ(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    return asfreq_DtoQ(asfreq_WtoD(ordinal, "E", af_info), relation, af_info);
 }
 
-static i8 asfreq_WtoM(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoM(asfreq_WtoD(ordinal, 'E', af_info), relation,
+static i8 asfreq_WtoM(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    return asfreq_DtoM(asfreq_WtoD(ordinal, "E", af_info), relation,
                        &NULL_AF_INFO);
 }
 
-static i8 asfreq_WtoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_WtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_WtoB(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_WtoB(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     i8 wtod = asfreq_WtoD(ordinal, relation, af_info) + ORD_OFFSET;
@@ -577,15 +577,15 @@ static i8 asfreq_WtoB(i8 ordinal, char relation, asfreq_info *af_info) {
         return INT_ERR_CODE;
 
     i8 (*f)(i8 absdate, i8 day_of_week) = NULL;
-    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+    f = !strcmp(relation, "S") ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
     return f(dinfo.absdate, dinfo.day_of_week);
 }
 
-static i8 asfreq_WtoH(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoH(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static i8 asfreq_WtoT(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoT(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static i8 asfreq_WtoS(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoS(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
 //************ FROM MONTHLY ***************
@@ -595,11 +595,11 @@ static void MtoD_ym(i8 ordinal, i8 *y, i8 *m) {
 }
 
 
-static i8 asfreq_MtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_MtoD(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     i8 absdate, y, m;
 
-    if (relation == 'S') {
+    if (!strcmp(relation, "S")) {
         MtoD_ym(ordinal, &y, &m);
 
         if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
@@ -616,16 +616,16 @@ static i8 asfreq_MtoD(i8 ordinal, char relation, asfreq_info *af_info) {
     }
 }
 
-static i8 asfreq_MtoA(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoA(asfreq_MtoD(ordinal, 'E', &NULL_AF_INFO), relation, af_info); }
+static i8 asfreq_MtoA(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    return asfreq_DtoA(asfreq_MtoD(ordinal, "E", &NULL_AF_INFO), relation, af_info); }
 
-static i8 asfreq_MtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoQ(asfreq_MtoD(ordinal, 'E', &NULL_AF_INFO), relation, af_info); }
+static i8 asfreq_MtoQ(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    return asfreq_DtoQ(asfreq_MtoD(ordinal, "E", &NULL_AF_INFO), relation, af_info); }
 
-static i8 asfreq_MtoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static i8 asfreq_MtoB(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_MtoB(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     i8 mtod = asfreq_MtoD(ordinal, relation, &NULL_AF_INFO) + ORD_OFFSET;
@@ -634,16 +634,16 @@ static i8 asfreq_MtoB(i8 ordinal, char relation, asfreq_info *af_info) {
         return INT_ERR_CODE;
 
     i8 (*f)(i8 absdate, i8 day_of_week);
-    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+    f = !strcmp(relation, "S") ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
 
     return f(dinfo.absdate, dinfo.day_of_week);
 }
 
-static i8 asfreq_MtoH(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoH(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static i8 asfreq_MtoT(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoT(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static i8 asfreq_MtoS(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoS(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 //************ FROM QUARTERLY ***************
@@ -662,11 +662,11 @@ static void QtoD_ym(i8 ordinal, i8 *y, i8 *m, asfreq_info *af_info) {
     }
 }
 
-static i8 asfreq_QtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoD(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     i8 absdate, y, m;
 
-    if (relation == 'S') {
+    if (!strcmp(relation, "S")) {
         QtoD_ym(ordinal, &y, &m, af_info);
 
         if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
@@ -683,19 +683,19 @@ static i8 asfreq_QtoD(i8 ordinal, char relation, asfreq_info *af_info) {
     }
 }
 
-static i8 asfreq_QtoQ(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoQ(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_QtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_QtoA(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoA(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_QtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_QtoM(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoM(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoM(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
-static i8 asfreq_QtoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_QtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_QtoB(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoB(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     i8 qtod = asfreq_QtoD(ordinal, relation, af_info) + ORD_OFFSET;
@@ -704,23 +704,23 @@ static i8 asfreq_QtoB(i8 ordinal, char relation, asfreq_info *af_info) {
         return INT_ERR_CODE;
 
     i8 (*f)(i8 abdate, i8 day_of_week) = NULL;
-    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+    f = !strcmp(relation, "S") ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
 
     return f(dinfo.absdate, dinfo.day_of_week);
 }
 
 
-static i8 asfreq_QtoH(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoH(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static i8 asfreq_QtoT(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoT(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static i8 asfreq_QtoS(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoS(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
 
 //************ FROM ANNUAL ***************
 
-static i8 asfreq_AtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_AtoD(i8 ordinal, const char* relation, asfreq_info *af_info) {
     i8 absdate, final_adj, year;
     i8 month = af_info->from_a_year_end % 12, ord = ordinal;
 
@@ -733,7 +733,7 @@ static i8 asfreq_AtoD(i8 ordinal, char relation, asfreq_info *af_info) {
         ++month;
 
 
-    if (relation == 'S') {
+    if (!strcmp(relation, "S")) {
         year = af_info->from_a_year_end == 12 ? ord : ord - 1;
         final_adj = 0;
     } else {
@@ -753,19 +753,19 @@ static i8 asfreq_AtoD(i8 ordinal, char relation, asfreq_info *af_info) {
     return absdate + final_adj - ORD_OFFSET;
 }
 
-static i8 asfreq_AtoA(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoA(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_AtoQ(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoQ(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_AtoM(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoM(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_AtoW(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static i8 asfreq_AtoB(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_AtoB(i8 ordinal, const char* relation, asfreq_info *af_info) {
     struct date_info dinfo;
 
     i8 atob = asfreq_AtoD(ordinal, relation, af_info) + ORD_OFFSET;
@@ -774,20 +774,20 @@ static i8 asfreq_AtoB(i8 ordinal, char relation, asfreq_info *af_info) {
         return INT_ERR_CODE;
 
     i8 (*f)(i8 date, i8 day_of_week) = NULL;
-    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+    f = !strcmp(relation, "S") ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
 
     return f(dinfo.absdate, dinfo.day_of_week);
 }
 
-static i8 asfreq_AtoH(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoH(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static i8 asfreq_AtoT(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoT(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static i8 asfreq_AtoS(i8 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoS(i8 ordinal, const char* relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
-static i8 nofunc(i8 ordinal, char relation, asfreq_info *af_info) { return INT_ERR_CODE; }
-static i8 no_op(i8 ordinal, char relation, asfreq_info *af_info) { return ordinal; }
+static i8 nofunc(i8 ordinal, const char* relation, asfreq_info *af_info) { return INT_ERR_CODE; }
+static i8 no_op(i8 ordinal, const char* relation, asfreq_info *af_info) { return ordinal; }
 
 // end of frequency specific conversion routines
 
@@ -834,83 +834,83 @@ void get_asfreq_info(i8 fromFreq, i8 toFreq, asfreq_info *af_info) {
 }
 
 
-static i8 asfreq_UtoS(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoS(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return ordinal / US_PER_SECOND;
 }
 
-static i8 asfreq_UtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoD(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_StoD(asfreq_UtoS(ordinal, relation, &NULL_AF_INFO), relation,
                        &NULL_AF_INFO);
 }
 
-static i8 asfreq_UtoA(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoA(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        af_info);
 }
 
-static i8 asfreq_UtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoQ(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoQ(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        af_info);
 }
 
-static i8 asfreq_UtoM(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoM(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoM(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        af_info);
 }
 
-static i8 asfreq_UtoW(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoW(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoW(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        af_info);
 }
 
-static i8 asfreq_UtoB(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoB(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoB(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        af_info);
 }
 
-static i8 asfreq_UtoH(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoH(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoH(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO),
                        relation, &NULL_AF_INFO);
 
 }
 
-static i8 asfreq_UtoT(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_UtoT(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoT(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        &NULL_AF_INFO);
 }
 
 
-static i8 asfreq_StoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_StoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_StoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_AtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_AtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_QtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_MtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_MtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_MtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_WtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_WtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_BtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_BtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_BtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_HtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_HtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     /* return ordinal * US_PER_HOUR; */
     return asfreq_DtoU(asfreq_HtoD(ordinal, relation, af_info), relation,
                        af_info);
 }
 
-static i8 asfreq_TtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_TtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        &NULL_AF_INFO);
 }
@@ -1120,7 +1120,7 @@ static i8 get_abs_time(i8 freq, i8 daily_ord, i8 ordinal) {
         return 0L; // 24*60*60 - 1;
     }
 
-    start_ord = asfreq_DtoHIGHFREQ(daily_ord, 'S', per_day);
+    start_ord = asfreq_DtoHIGHFREQ(daily_ord, "S", per_day);
 	return unit * (ordinal - start_ord);
 }
 
@@ -1177,7 +1177,7 @@ onError:
  * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
 
-i8 asfreq(i8 period_ordinal, i8 freq1, i8 freq2, char relation)
+i8 asfreq(i8 period_ordinal, i8 freq1, i8 freq2, const char* relation)
 {
 	freq_conv_func func = get_asfreq_func(freq1, freq2);
 
@@ -1309,12 +1309,12 @@ i8 get_python_ordinal(i8 period_ordinal, i8 freq)
     if (freq == FR_DAY)
         return period_ordinal + ORD_OFFSET;
 
-    i8 (*toDaily)(i8, char, asfreq_info*) = get_asfreq_func(freq, FR_DAY);
+    i8 (*toDaily)(i8, const char*, asfreq_info*) = get_asfreq_func(freq, FR_DAY);
     asfreq_info af_info;
 
     get_asfreq_info(freq, FR_DAY, &af_info);
 
-    return toDaily(period_ordinal, 'E', &af_info) + ORD_OFFSET;
+    return toDaily(period_ordinal, "E", &af_info) + ORD_OFFSET;
 }
 
 char *str_replace(const char *s, const char *old, const char *new)
@@ -1398,11 +1398,11 @@ i8 get_yq(i8 ordinal, i8 freq, i8 *quarter, i8 *year)
 {
     asfreq_info af_info;
     i8 qtr_freq, daily_ord;
-    i8 (*toDaily)(i8, char, asfreq_info*) = get_asfreq_func(freq, FR_DAY);
+    i8 (*toDaily)(i8, const char*, asfreq_info*) = get_asfreq_func(freq, FR_DAY);
 
     get_asfreq_info(freq, FR_DAY, &af_info);
 
-    daily_ord = toDaily(ordinal, 'E', &af_info);
+    daily_ord = toDaily(ordinal, "E", &af_info);
 
     qtr_freq = get_freq_group(freq) == FR_QTR ? freq : FR_QTR;
 

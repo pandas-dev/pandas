@@ -183,13 +183,13 @@ typedef struct date_info {
     i8 calendar;
 } date_info;
 
-typedef i8 (*freq_conv_func)(i8, char, asfreq_info*);
+typedef i8 (*freq_conv_func)(i8, const char*, asfreq_info*);
 
 /*
  * new pandas API helper functions here
  */
 
-i8 asfreq(i8 period_ordinal, i8 freq1, i8 freq2, char relation);
+i8 asfreq(i8 period_ordinal, i8 freq1, i8 freq2, const char* relation);
 
 i8 get_period_ordinal(i8 year, i8 month, i8 day, i8 hour, i8 minute, i8 second,
                       i8 microsecond, i8 freq);
