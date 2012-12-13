@@ -5,9 +5,10 @@ import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
-from pandas.core.common import notnull, isnull, use_inf_as_null
+from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
+import pandas.core.config as cf
 
 import numpy as np
 
@@ -29,20 +30,19 @@ def test_notnull():
     assert not notnull(None)
     assert not notnull(np.NaN)
 
-    use_inf_as_null(False)
-    assert notnull(np.inf)
-    assert notnull(-np.inf)
+    with cf.option_context("mode.use_inf_as_null",False):
+        assert notnull(np.inf)
+        assert notnull(-np.inf)
 
-    use_inf_as_null(True)
-    assert not notnull(np.inf)
-    assert not notnull(-np.inf)
+    with cf.option_context("mode.use_inf_as_null",True):
+        assert not notnull(np.inf)
+        assert not notnull(-np.inf)
 
-    use_inf_as_null(False)
-
-    float_series = Series(np.random.randn(5))
-    obj_series = Series(np.random.randn(5), dtype=object)
-    assert(isinstance(notnull(float_series), Series))
-    assert(isinstance(notnull(obj_series), Series))
+    with cf.option_context("mode.use_inf_as_null",False):
+        float_series = Series(np.random.randn(5))
+        obj_series = Series(np.random.randn(5), dtype=object)
+        assert(isinstance(notnull(float_series), Series))
+        assert(isinstance(notnull(obj_series), Series))
 
 def test_isnull():
     assert not isnull(1.)

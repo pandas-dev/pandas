@@ -94,8 +94,8 @@ def isnull_old(obj):
     else:
         return obj is None
 
-def use_inf_as_null(flag):
-    '''
+def _use_inf_as_null(key):
+    '''Option change callback for null/inf behaviour
     Choose which replacement for numpy.isnan / -numpy.isfinite is used.
 
     Parameters
@@ -113,6 +113,7 @@ def use_inf_as_null(flag):
     * http://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     '''
+    flag = get_option(key)
     if flag == True:
         globals()['isnull'] = isnull_old
     else:
@@ -1179,7 +1180,7 @@ def in_interactive_session():
     returns True if running under python/ipython interactive shell
     """
     import __main__ as main
-    return not hasattr(main, '__file__') or get_option('test.interactive')
+    return not hasattr(main, '__file__') or get_option('mode.sim_interactive')
 
 def in_qtconsole():
     """
