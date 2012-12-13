@@ -40,7 +40,8 @@ docstring_to_string = """
         string representation of NAN to use, default 'NaN'
     formatters : list or dict of one-parameter functions, optional
         formatter functions to apply to columns' elements by position or name,
-        default None, if the result is a string , it must be a unicode string.
+        default None, if the result is a string , it must be a unicode
+        string. List must be of length equal to the number of columns.
     float_format : one-parameter function, optional
         formatter function to apply to columns' elements if they are floats
         default None
@@ -170,8 +171,22 @@ def _strlen_func():
 
     return _strlen
 
+class TableFormatter(object):
 
-class DataFrameFormatter(object):
+
+    def _get_formatter(self, i):
+        if isinstance(self.formatters, (list, tuple)):
+            if com.is_integer(i):
+                return self.formatters[i]
+            else:
+                return None
+        else:
+            if com.is_integer(i) and i not in self.columns:
+                i = self.columns[i]
+            return self.formatters.get(i, None)
+
+
+class DataFrameFormatter(TableFormatter):
     """
     Render a DataFrame
 
@@ -361,8 +376,7 @@ class DataFrameFormatter(object):
         self.buf.write('\\end{tabular}\n')
 
     def _format_col(self, i):
-        col = self.columns[i]
-        formatter = self.formatters.get(col)
+        formatter = self._get_formatter(i)
         return format_array(self.frame.icol(i).values, formatter,
                             float_format=self.float_format,
                             na_rep=self.na_rep,
@@ -399,9 +413,10 @@ class DataFrameFormatter(object):
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [[' ' + x
-                            if col not in self.formatters and need_leadsp[x]
+                            if not self._get_formatter(i) and need_leadsp[x]
                             else x]
-                           for col, x in zip(self.columns, fmt_columns)]
+                           for i, (col, x) in
+                           enumerate(zip(self.columns, fmt_columns))]
 
         if self.show_index_names and self.has_index_names:
             for x in str_columns:
@@ -425,7 +440,8 @@ class DataFrameFormatter(object):
         show_index_names = self.show_index_names and self.has_index_names
         show_col_names = (self.show_index_names and self.has_column_names)
 
-        fmt = self.formatters.get('__index__', None)
+        fmt = self._get_formatter('__index__')
+
         if isinstance(index, MultiIndex):
             fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
                                      names=show_index_names,
@@ -457,7 +473,7 @@ class DataFrameFormatter(object):
         return names
 
 
-class HTMLFormatter(object):
+class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
@@ -656,9 +672,9 @@ class HTMLFormatter(object):
     def _write_regular_rows(self, fmt_values, indent):
         ncols = len(self.columns)
 
-        if '__index__' in self.fmt.formatters:
-            f = self.fmt.formatters['__index__']
-            index_values = self.frame.index.map(f)
+        fmt = self.fmt._get_formatter('__index__')
+        if fmt is not None:
+            index_values = self.frame.index.map(fmt)
         else:
             index_values = self.frame.index.format()
 

@@ -230,6 +230,7 @@ pandas 0.10.0
   - Union of empty DataFrames now return empty with concatenated index (GH2307_)
   - DataFrame.sort_index raises more helpful exception if sorting by column
     with duplicates (GH2488_)
+  - DataFrame.to_string formatters can be list, too (GH2520_)
 
 .. _GH407: https://github.com/pydata/pandas/issues/407
 .. _GH821: https://github.com/pydata/pandas/issues/821
@@ -343,6 +344,7 @@ pandas 0.10.0
 .. _GH2133: https://github.com/pydata/pandas/issues/2133
 .. _GH2307: https://github.com/pydata/pandas/issues/2307
 .. _GH2488: https://github.com/pydata/pandas/issues/2488
+.. _GH2520: https://github.com/pydata/pandas/issues/2520
 
 
 pandas 0.9.1
