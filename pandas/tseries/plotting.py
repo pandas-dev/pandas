@@ -22,9 +22,9 @@ import pandas.core.common as com
 from pandas.tseries.converter import (PeriodConverter, TimeSeries_DateLocator,
                                       TimeSeries_DateFormatter)
 
+
 #----------------------------------------------------------------------
 # Plotting functions and monkey patches
-
 def tsplot(series, plotf, **kwargs):
     """
     Plots a Series on the given Matplotlib axes or the current axes
@@ -74,7 +74,7 @@ def tsplot(series, plotf, **kwargs):
         args.append(style)
 
     lines = plotf(ax, *args, **kwargs)
-    label = kwargs.get('label', None)
+    # label = kwargs.get('label', None)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
@@ -99,7 +99,7 @@ def _maybe_resample(series, ax, freq, plotf, kwargs):
         elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, plotf, kwargs)
             ax_freq = freq
-        else: #pragma: no cover
+        else:  # pragma: no cover
             raise ValueError('Incompatible frequency conversion')
     return freq, ax_freq, series
 
@@ -145,6 +145,7 @@ def _upsample_others(ax, freq, plotf, kwargs):
         if title == 'None':
             title = None
         ax.legend(lines, labels, loc='best', title=title)
+
 
 def _replot_ax(ax, freq, plotf, kwargs):
     data = getattr(ax, '_plot_data', None)
