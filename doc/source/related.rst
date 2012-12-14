@@ -26,8 +26,8 @@ with the ``la`` package.
   - It has a collection of moving window statistics implemented in
     `Bottleneck <http://pypi.python.org/pypi/Bottleneck>`__
 
-scikits.statsmodels
--------------------
+statsmodels
+-----------
 
 The main `statistics and econometrics library
 <http://statsmodels.sourceforge.net>`__ for Python. pandas has become a
@@ -45,3 +45,13 @@ customizable by the user (so 5-minutely data is easier to do with pandas for
 example).
 
 We are aiming to merge these libraries together in the near future.
+
+Progress:
+
+  - It has a collection of moving window statistics implemented in
+    `Bottleneck <http://pandas.pydata.org/developers.html#development-roadmap>`__
+  - `Outstanding issues <https://github.com/pydata/pandas/issues?labels=timeseries&milestone=&page=1&state=open>`__
+
+Summarising, Pandas offers superior functionality due to its combination with the :py:class:`pandas.DataFrame`.
+
+An introduction for former users of :mod:`scikits.timeseries` is provided in the :ref:`migration guide <ref-scikits-migration>`.

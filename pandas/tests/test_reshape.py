@@ -17,6 +17,8 @@ import numpy as np
 from pandas.core.reshape import melt, convert_dummies, lreshape
 import pandas.util.testing as tm
 
+_multiprocess_can_split_ = True
+
 def test_melt():
     df = tm.makeTimeDataFrame()[:10]
     df['id1'] = (df['A'] > 0).astype(int)
@@ -25,6 +27,10 @@ def test_melt():
     molten1 = melt(df)
     molten2 = melt(df, id_vars=['id1'])
     molten3 = melt(df, id_vars=['id1', 'id2'])
+    molten4 = melt(df, id_vars=['id1', 'id2'],
+                   value_vars='A')
+    molten5 = melt(df, id_vars=['id1', 'id2'],
+                   value_vars=['A', 'B'])
 
 def test_convert_dummies():
     df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',

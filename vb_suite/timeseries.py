@@ -156,3 +156,51 @@ a = rng[:50000].append(rng[50002:])
 
 timeseries_infer_freq = \
     Benchmark('infer_freq(a)', setup, start_date=datetime(2012, 7, 1))
+
+# setitem PeriodIndex
+
+setup = common_setup + """
+rng = period_range('1/1/1990', freq='S', periods=100000)
+df = DataFrame(index=range(len(rng)))
+"""
+
+period_setitem = \
+    Benchmark("df['col'] = rng", setup,
+              start_date=datetime(2012, 8, 1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000 9:30', periods=100000, freq='S', tz='US/Eastern')
+"""
+
+datetimeindex_normalize = \
+    Benchmark('rng.normalize()', setup,
+              start_date=datetime(2012, 9, 1))
+
+setup = common_setup + """
+from pandas.tseries.offsets import Second
+s1 = date_range('1/1/2000', periods=100, freq='S')
+curr = s1[-1]
+slst = []
+for i in range(100):
+    slst.append(curr + Second(), periods=100, freq='S')
+    curr = slst[-1][-1]
+"""
+
+dti_append_tz = \
+    Benchmark('s1.append(slst)', setup, start_date=datetime(2012, 9 ,1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=100000, freq='H')
+df = DataFrame(np.random.randn(len(rng), 2), rng)
+"""
+
+dti_reset_index = \
+    Benchmark('df.reset_index()', setup, start_date=datetime(2012,9,1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=100000, freq='H')
+df = DataFrame(np.random.randn(len(rng), 2), rng, tz='US/Eastern')
+"""
+
+dti_reset_index_tz = \
+    Benchmark('df.reset_index()', setup, start_date=datetime(2012,9,1))

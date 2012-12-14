@@ -1,16 +1,52 @@
 language: python
 
 python:
-  - 2.5
   - 2.6
   - 2.7
-  - 3.1
+  - 3.1 # travis will soon EOL this
   - 3.2
+  - 3.3
+
+env:
+  global:
+    - # need at least this so travis page will show env column
+
+matrix:
+  include:
+    - python: 2.7
+      env: VBENCH=true
+    - python: 2.7
+      env: FULL_DEPS=true
+    - python: 3.2
+      env: FULL_DEPS=true
+
+  allow_failures:
+    - python: 2.7
+      env: VBENCH=true
+    - python: 3.2
+      env: FULL_DEPS=true
+
+# allow importing from site-packages,
+# so apt-get python-x works for system pythons
+# That's 2.7/3.2 on Ubuntu 12.04
+virtualenv:
+  system_site_packages: true
+
+before_install:
+  - echo "Waldo1"
+  - echo $VIRTUAL_ENV
+  - date
+  - export PIP_ARGS=-q # comment this this to debug travis install issues
+  - export APT_ARGS=-qq # comment this to debug travis install issues
+  # - set -x # enable this to see bash commands
+  - source ci/before_install.sh # we need to source this to bring in the env
+  - python -V
 
 install:
-  - "if [[ $TRAVIS_PYTHON_VERSION == '2.5' ]]; then pip install --use-mirrors simplejson; fi"
-  - pip install --use-mirrors cython numpy nose pytz
+  - echo "Waldo2"
+  - ci/install.sh
+  - ci/print_versions.py # not including stats
 
 script:
-  - python setup.py build_ext install
-  - nosetests --exe -w /tmp pandas.tests
+  - echo "Waldo3"
+  - ci/script.sh

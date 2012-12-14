@@ -89,7 +89,7 @@ Some other notes
    on one feature for your application you may be able to create a faster
    specialized tool.
 
- - pandas will soon become a dependency of `statsmodels
+ - pandas is a dependency of `statsmodels
    <http://statsmodels.sourceforge.net>`__, making it an important part of the
    statistical computing ecosystem in Python.
 

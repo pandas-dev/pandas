@@ -15,6 +15,7 @@ from pandas.util import py3compat
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 import pandas.lib as lib
+import pandas.index as _index
 
 
 def _sparse_op_wrap(op, name):
@@ -35,11 +36,12 @@ def _sparse_op_wrap(op, name):
             return SparseArray(op(self.sp_values, other),
                                sparse_index=self.sp_index,
                                fill_value=new_fill_value)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
     wrapper.__name__ = name
     return wrapper
+
 
 def _sparse_array_op(left, right, op, name):
     if np.isnan(left.fill_value):
@@ -61,6 +63,7 @@ def _sparse_array_op(left, right, op, name):
     return SparseArray(result, sparse_index=result_index,
                        fill_value=fill_value)
 
+
 def _sparse_nanop(this, other, name):
     sparse_op = getattr(splib, 'sparse_nan%s' % name)
     result, result_index = sparse_op(this.sp_values,
@@ -69,6 +72,7 @@ def _sparse_nanop(this, other, name):
                                      other.sp_index)
 
     return result, result_index
+
 
 def _sparse_fillop(this, other, name):
     sparse_op = getattr(splib, 'sparse_%s' % name)
@@ -261,7 +265,7 @@ to sparse
         if sp_loc == -1:
             return self.fill_value
         else:
-            return lib.get_value_at(self, sp_loc)
+            return _index.get_value_at(self, sp_loc)
 
     def take(self, indices, axis=0):
         """
@@ -399,6 +403,7 @@ to sparse
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
+
 def make_sparse(arr, kind='block', fill_value=nan):
     """
     Convert ndarray to sparse format
@@ -428,7 +433,7 @@ def make_sparse(arr, kind='block', fill_value=nan):
         index = BlockIndex(length, locs, lens)
     elif kind == 'integer':
         index = IntIndex(length, indices)
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError('must be block or integer type')
 
     sparsified_values = arr[mask]

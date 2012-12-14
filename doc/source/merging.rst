@@ -414,11 +414,6 @@ either the left or right tables, the values in the joined table will be
     ``outer``, ``FULL OUTER JOIN``, Use union of keys from both frames
     ``inner``, ``INNER JOIN``, Use intersection of keys from both frames
 
-Note that if using the index from either the left or right DataFrame (or both)
-using the ``left_index`` / ``right_index`` options, the join operation is no
-longer a many-to-many join by construction, as the index values are necessarily
-unique. There will be some examples of this below.
-
 .. _merging.join.index:
 
 Joining on index

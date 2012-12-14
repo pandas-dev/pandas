@@ -1,5 +1,3 @@
-import time
-
 def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
                Py_ssize_t max_groups):
     cdef:
@@ -241,33 +239,3 @@ def ffill_by_group(ndarray[int64_t] indexer, ndarray[int64_t] group_ids,
 
     return result
 
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def join_sorter(ndarray[int64_t] index, Py_ssize_t ngroups):
-    cdef:
-        Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts, where, result
-
-    # count group sizes, location 0 for NA
-    counts = np.zeros(ngroups + 1, dtype=np.int64)
-    n = len(index)
-    for i from 0 <= i < n:
-        counts[index[i] + 1] += 1
-
-    # mark the start of each contiguous group of like-indexed data
-    where = np.zeros(ngroups + 1, dtype=np.int64)
-    for i from 1 <= i < ngroups + 1:
-        where[i] = where[i - 1] + counts[i - 1]
-
-    # this is our indexer
-    result = np.zeros(n, dtype=np.int64)
-    for i from 0 <= i < n:
-        label = index[i] + 1
-        result[where[label]] = i
-        where[label] += 1
-
-    return result, counts
-
-def _big_join_sorter(index):
-    pass

@@ -22,10 +22,12 @@ from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
 
 import pandas as pd
+from pandas.lib import Timestamp
 
 class TestIndex(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
+        self.unicodeIndex = tm.makeUnicodeIndex(100)
         self.strIndex = tm.makeStringIndex(100)
         self.dateIndex = tm.makeDateIndex(100)
         self.intIndex = tm.makeIntIndex(100)
@@ -55,8 +57,7 @@ class TestIndex(unittest.TestCase):
         self.assertRaises(Exception, self.strIndex.sort)
 
     def test_mutability(self):
-        self.assertRaises(Exception, self.strIndex.__setitem__, 5, 0)
-        self.assertRaises(Exception, self.strIndex.__setitem__, slice(1,5), 0)
+        self.assertRaises(Exception, self.strIndex.__setitem__, 0, 'foo')
 
     def test_constructor(self):
         # regular instance creation
@@ -80,9 +81,20 @@ class TestIndex(unittest.TestCase):
         # arr = np.array(5.)
         # self.assertRaises(Exception, arr.view, Index)
 
+
     def test_constructor_corner(self):
         # corner case
         self.assertRaises(Exception, Index, 0)
+
+    def test_copy(self):
+        i = Index([], name='Foo')
+        i_copy = i.copy()
+        self.assert_(i_copy.name == 'Foo')
+
+    def test_view(self):
+        i = Index([], name='Foo')
+        i_view = i.view()
+        self.assert_(i_view.name == 'Foo')
 
     def test_astype(self):
         casted = self.intIndex.astype('i8')
@@ -118,6 +130,9 @@ class TestIndex(unittest.TestCase):
 
         d = self.dateIndex[-1]
         self.assert_(self.dateIndex.asof(d + timedelta(1)) == d)
+
+        d = self.dateIndex[0].to_datetime()
+        self.assert_(isinstance(self.dateIndex.asof(d), Timestamp))
 
     def test_argsort(self):
         result = self.strIndex.argsort()
@@ -359,6 +374,7 @@ class TestIndex(unittest.TestCase):
     def _check_method_works(self, method):
         method(self.empty)
         method(self.dateIndex)
+        method(self.unicodeIndex)
         method(self.strIndex)
         method(self.intIndex)
         method(self.tuples)
@@ -493,7 +509,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(not isinstance(res, Index))
 
 class TestInt64Index(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.index = Int64Index(np.arange(0, 20, 2))
 
@@ -519,6 +535,16 @@ class TestInt64Index(unittest.TestCase):
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
         self.assertRaises(TypeError, Int64Index, arr)
+
+    def test_copy(self):
+        i = Int64Index([], name='Foo')
+        i_copy = i.copy()
+        self.assert_(i_copy.name == 'Foo')
+
+    def test_view(self):
+        i = Int64Index([], name='Foo')
+        i_view = i.view()
+        self.assert_(i_view.name == 'Foo')
 
     def test_coerce_list(self):
         # coerce things
@@ -821,8 +847,32 @@ class TestInt64Index(unittest.TestCase):
         repr(s)
         repr(df)
 
-class TestMultiIndex(unittest.TestCase):
+    def test_print_unicode_columns(self):
+        df=pd.DataFrame({u"\u05d0":[1,2,3],"\u05d1":[4,5,6],"c":[7,8,9]})
+        repr(df.columns) # should not raise UnicodeDecodeError
 
+    def test_repr_summary(self):
+        r = repr(pd.Index(np.arange(10000)))
+        self.assertTrue(len(r) < 100)
+        self.assertTrue( "..." in r)
+
+    def test_unicode_string_with_unicode(self):
+        idx = Index(range(1000))
+
+        if py3compat.PY3:
+            str(idx)
+        else:
+            unicode(idx)
+
+    def test_bytestring_with_unicode(self):
+        idx = Index(range(1000))
+        if py3compat.PY3:
+            bytes(idx)
+        else:
+            str(idx)
+
+class TestMultiIndex(unittest.TestCase):
+    _multiprocess_can_split_ = True
     def setUp(self):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
         minor_axis = Index(['one', 'two'])
@@ -848,6 +898,50 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_constructor_no_levels(self):
         self.assertRaises(Exception, MultiIndex, levels=[], labels=[])
+
+    def test_copy(self):
+        i_copy = self.index.copy()
+
+        # Equal...but not the same object
+        self.assert_(i_copy.levels == self.index.levels)
+        self.assert_(i_copy.levels is not self.index.levels)
+
+        self.assert_(i_copy.labels == self.index.labels)
+        self.assert_(i_copy.labels is not self.index.labels)
+
+        self.assert_(i_copy.names == self.index.names)
+        self.assert_(i_copy.names is not self.index.names)
+
+        self.assert_(i_copy.sortorder == self.index.sortorder)
+
+    def test_shallow_copy(self):
+        i_copy = self.index._shallow_copy()
+
+        # Equal...but not the same object
+        self.assert_(i_copy.levels == self.index.levels)
+        self.assert_(i_copy.levels is not self.index.levels)
+
+        self.assert_(i_copy.labels == self.index.labels)
+        self.assert_(i_copy.labels is not self.index.labels)
+
+        self.assert_(i_copy.names == self.index.names)
+        self.assert_(i_copy.names is not self.index.names)
+
+        self.assert_(i_copy.sortorder == self.index.sortorder)
+
+    def test_view(self):
+        i_view = self.index.view()
+
+        # Equal...but not the same object
+        self.assert_(i_view.levels == self.index.levels)
+        self.assert_(i_view.levels is not self.index.levels)
+
+        self.assert_(i_view.labels == self.index.labels)
+        self.assert_(i_view.labels is not self.index.labels)
+
+        self.assert_(i_view.names == self.index.names)
+        self.assert_(i_view.names is not self.index.names)
+        self.assert_(i_view.sortorder == self.index.sortorder)
 
     def test_duplicate_names(self):
         self.index.names = ['foo', 'foo']
@@ -1225,6 +1319,11 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(result[3], '1  0  0  0')
 
     def test_format_sparse_config(self):
+        import warnings
+        warn_filters = warnings.filters
+        warnings.filterwarnings('ignore',
+                                category=FutureWarning,
+                                module=".*format")
         # #1538
         pd.set_printoptions(multi_sparse=False)
 
@@ -1232,6 +1331,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(result[1], 'foo  two')
 
         pd.reset_printoptions()
+
+        warnings.filters = warn_filters
 
     def test_bounds(self):
         self.index._bounds
@@ -1377,7 +1478,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(len(result) == 0)
 
         # raise Exception called with non-MultiIndex
-        self.assertRaises(Exception, first.diff, first._tuple_index)
+        result = first.diff(first._tuple_index)
+        self.assertTrue(result.equals(first[:0]))
 
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
@@ -1601,6 +1703,28 @@ class TestMultiIndex(unittest.TestCase):
         exp = list(self.index.values)
         self.assertEqual(result, exp)
 
+    def test_repr_with_unicode_data(self):
+        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
+        index=pd.DataFrame(d).set_index(["a","b"]).index
+        self.assertFalse("\\u" in repr(index)) # we don't want unicode-escaped
+
+    def test_unicode_string_with_unicode(self):
+        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
+        idx=pd.DataFrame(d).set_index(["a","b"]).index
+
+        if py3compat.PY3:
+            str(idx)
+        else:
+            unicode(idx)
+
+    def test_bytestring_with_unicode(self):
+        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
+        idx=pd.DataFrame(d).set_index(["a","b"]).index
+
+        if py3compat.PY3:
+            bytes(idx)
+        else:
+            str(idx)
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index
@@ -1612,5 +1736,3 @@ if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                          # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
-
-

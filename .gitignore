@@ -1,6 +1,7 @@
 *.pyc
 *.pyo
 *.swp
+.ropeproject
 build
 dist
 MANIFEST
@@ -11,6 +12,7 @@ MANIFEST
 *.cpp
 *.so
 *.pyd
+*.h5
 pandas/version.py
 doc/source/generated
 doc/source/_static
@@ -23,6 +25,9 @@ scikits
 pandas.egg-info
 *\#*\#
 .tox
+pandas/io/*.dat
+pandas/io/*.json
+*.log
+.noseids
 *.wpr
 *.wpu
-.idea

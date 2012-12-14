@@ -1,7 +1,11 @@
 import numpy as np
 
+import pandas as pd
+
+import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.nanops as nanops
+
 
 def pivot_annual(series, freq=None):
     """
@@ -55,21 +59,26 @@ def pivot_annual(series, freq=None):
         width = 12
         offset = index.month - 1
         columns = range(1, 13)
+    elif freq == 'H':
+        width = 8784
+        grouped = series.groupby(series.index.year)
+        defaulted = grouped.apply(lambda x: x.reset_index(drop=True))
+        defaulted.index = defaulted.index.droplevel(0)
+        offset = np.asarray(defaulted.index)
+        offset[-isleapyear(year) & (offset >= 1416)] += 24
+        columns = range(1, 8785)
     else:
         raise NotImplementedError(freq)
 
     flat_index = (year - years.min()) * width + offset
+    flat_index = com._ensure_platform_int(flat_index)
 
-    values = np.empty((len(years), width), dtype=series.dtype)
-
-    if not np.issubdtype(series.dtype, np.integer):
-        values.fill(np.nan)
-    else:
-        raise Exception('need to upcast')
-
+    values = np.empty((len(years), width))
+    values.fill(np.nan)
     values.put(flat_index, series.values)
 
     return DataFrame(values, index=years, columns=columns)
+
 
 def isleapyear(year):
     """

@@ -987,10 +987,12 @@ cdef inline float64_t __rsub(float64_t a, float64_t b):
 
 cdef inline float64_t __div(float64_t a, float64_t b):
     if b == 0:
-        if a >= 0:
+        if a > 0:
             return INF
-        else:
+        elif a < 0:
             return -INF
+        else:
+            return NaN
     else:
         return a / b
 
@@ -999,10 +1001,12 @@ cdef inline float64_t __rdiv(float64_t a, float64_t b):
 
 cdef inline float64_t __floordiv(float64_t a, float64_t b):
     if b == 0:
-        if a >= 0:
+        if a > 0:
             return INF
-        else:
+        elif a < 0:
             return -INF
+        else:
+            return NaN
     else:
         return a // b
 

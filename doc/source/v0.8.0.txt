@@ -148,7 +148,7 @@ Other new features
 - Can select multiple columns from GroupBy
 - Add :ref:`update <merging.combine_first.update>` methods to Series/DataFrame
   for updating values in place
-- Add ``any`` and ``all method to DataFrame
+- Add ``any`` and ``all`` method to DataFrame
 
 New plotting methods
 ~~~~~~~~~~~~~~~~~~~~

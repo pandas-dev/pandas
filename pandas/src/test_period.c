@@ -53,17 +53,33 @@ void assert_apply_conversion_factor(npy_int64 ordinal, int from_index, int to_in
 
 int main(int argc, char** argv)
 {
+    printf("initializing\n");
+    Py_SetProgramName(argv[0]);
+    Py_Initialize();
+
     printf("running tests\n");
 
     initialize();
 
-    printf("%lu\n", asfreq(37, FR_ANN, FR_HR, 'e'));
-
     assert_conversion_factors();
+
+    printf("asfreq: %d\n", asfreq(1932, FR_WK, FR_BUS, 'S'));
+    printf("asfreq: %d\n", asfreq(10, FR_ANN, FR_QTR, 'E'));
+
+    npy_int64 reference = get_python_ordinal(0, FR_DAY);
+    printf("reference ordinal: %d\n", reference);
+    npy_int64 one_year = get_python_ordinal(1, FR_ANN);
+    printf("get_python_ordinal: %d\n", one_year - reference);
+    npy_int64 two_years = get_python_ordinal(2, FR_ANN);
+    printf("get_python_ordinal: %d\n", two_years - reference);
+    npy_int64 twelve_months = get_python_ordinal(12, FR_MTH);
+    printf("get_python_ordinal: %d\n", twelve_months - reference);
+    npy_int64 fourtytwo_weeks = get_python_ordinal(52, FR_WK);
+    printf("get_python_ordinal: %d\n", fourtytwo_weeks - reference);
+    npy_int64 threehundredsixtyfive_days = get_python_ordinal(365, FR_DAY);
+    printf("get_python_ordinal: %d\n", threehundredsixtyfive_days - reference);
 
     assert_apply_conversion_factor(24, FR_HR, FR_DAY, 1);
     assert_apply_conversion_factor(1, FR_DAY, FR_HR, 24);
     assert_apply_conversion_factor(6, FR_DAY, FR_DAY, 6);
-
-
 }

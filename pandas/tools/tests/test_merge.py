@@ -14,7 +14,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
-import pandas.lib as lib
+import pandas.algos as algos
 import pandas.util.testing as tm
 
 a_ = np.array
@@ -68,7 +68,7 @@ class TestMerge(unittest.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        ls, rs = lib.left_outer_join(left, right, max_group)
+        ls, rs = algos.left_outer_join(left, right, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
@@ -92,7 +92,7 @@ class TestMerge(unittest.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        rs, ls  = lib.left_outer_join(right, left, max_group)
+        rs, ls  = algos.left_outer_join(right, left, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
@@ -118,7 +118,7 @@ class TestMerge(unittest.TestCase):
         right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
-        ls, rs = lib.inner_join(left, right, max_group)
+        ls, rs = algos.inner_join(left, right, max_group)
 
         exp_ls = left.argsort(kind='mergesort')
         exp_rs = right.argsort(kind='mergesort')
@@ -407,12 +407,35 @@ class TestMerge(unittest.TestCase):
 
         # _assert_same_contents(expected, expected2.ix[:, expected.columns])
 
+    def test_join_hierarchical_mixed(self):
+        df = DataFrame([(1,2,3), (4,5,6)], columns = ['a','b','c'])
+        new_df = df.groupby(['a']).agg({'b': [np.mean, np.sum]})
+        other_df = DataFrame([(1,2,3), (7,10,6)], columns = ['a','b','d'])
+        other_df.set_index('a', inplace=True)
+
+        result = merge(new_df, other_df, left_index=True, right_index=True)
+        self.assertTrue(('b', 'mean') in result)
+        self.assertTrue('b' in result)
+
     def test_join_float64_float32(self):
         a = DataFrame(randn(10,2), columns=['a','b'])
         b = DataFrame(randn(10,1), columns=['c']).astype(np.float32)
         joined = a.join(b)
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
+
+        joined = b.join(a)
+        assert_frame_equal(expected, joined.reindex(columns=['a', 'b', 'c']))
+
+        a = np.random.randint(0, 5, 100)
+        b = np.random.random(100).astype('Float64')
+        c = np.random.random(100).astype('Float32')
+        df = DataFrame({'a': a, 'b' : b, 'c' : c})
+        xpdf = DataFrame({'a': a, 'b' : b, 'c' : c.astype('Float64')})
+        s = DataFrame(np.random.random(5).astype('f'), columns=['md'])
+        rs = df.merge(s, left_on='a', right_index=True)
+        xp = xpdf.merge(s.astype('f8'), left_on='a', right_index=True)
+        assert_frame_equal(rs, xp)
 
     def test_join_many_non_unique_index(self):
         df1 = DataFrame({"a": [1,1], "b": [1,1], "c": [10,20]})
@@ -510,7 +533,7 @@ class TestMerge(unittest.TestCase):
                            'value' : [5, 6, 7, 8]})
 
         merged = left.merge(right, left_on='lkey', right_on='rkey',
-                            how='outer')
+                            how='outer', sort=True)
 
         assert_almost_equal(merged['lkey'],
                             ['bar', 'baz', 'foo', 'foo', 'foo', 'foo', np.nan])
@@ -658,12 +681,36 @@ class TestMerge(unittest.TestCase):
         result = merge(right, left, on='key', how='right')
         assert_frame_equal(result, left)
 
+    def test_merge_nosort(self):
+        # #2098, anything to do?
+
+        from datetime import datetime
+
+        d = {"var1" : np.random.randint(0, 10, size=10),
+             "var2" : np.random.randint(0, 10, size=10),
+             "var3" : [datetime(2012, 1, 12), datetime(2011, 2, 4),
+                       datetime(2010, 2, 3), datetime(2012, 1, 12),
+                       datetime(2011, 2, 4), datetime(2012, 4, 3),
+                       datetime(2012, 3, 4), datetime(2008, 5, 1),
+                       datetime(2010, 2, 3), datetime(2012, 2, 3)]}
+        df = DataFrame.from_dict(d)
+        var3 = df.var3.unique()
+        var3.sort()
+        new = DataFrame.from_dict({"var3" : var3,
+                                   "var8" : np.random.random(7)})
+
+        result = df.merge(new, on="var3", sort=False)
+        exp = merge(df, new, on='var3', sort=False)
+        assert_frame_equal(result, exp)
+
+        self.assert_((df.var3.unique() == result.var3.unique()).all())
 
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
         result = x.join(y, how=how)
 
-        expected = merge(x.reset_index(), y.reset_index(), how=how)
+        expected = merge(x.reset_index(), y.reset_index(), how=how,
+                         sort=True)
         expected = expected.set_index('index')
 
         assert_frame_equal(result, expected)
@@ -763,6 +810,34 @@ class TestMergeMulti(unittest.TestCase):
         rdf = right.drop(['id'], axis=1)
         expected = left.join(rdf)
         tm.assert_frame_equal(merged, expected)
+
+    def test_merge_na_keys(self):
+        data = [[1950, "A", 1.5],
+                [1950, "B", 1.5],
+                [1955, "B", 1.5],
+                [1960, "B", np.nan],
+                [1970, "B", 4.],
+                [1950, "C", 4.],
+                [1960, "C", np.nan],
+                [1965, "C", 3.],
+                [1970, "C", 4.]]
+
+        frame = DataFrame(data, columns=["year", "panel", "data"])
+
+        other_data = [[1960, 'A', np.nan],
+                      [1970, 'A', np.nan],
+                      [1955, 'A', np.nan],
+                      [1965, 'A', np.nan],
+                      [1965, 'B', np.nan],
+                      [1955, 'C', np.nan]]
+        other = DataFrame(other_data, columns=['year', 'panel', 'data'])
+
+        result = frame.merge(other, how='outer')
+
+        expected = frame.fillna(-999).merge(other.fillna(-999), how='outer')
+        expected = expected.replace(-999, np.nan)
+
+        tm.assert_frame_equal(result, expected)
 
 
 def _check_join(left, right, result, join_col, how='left',
@@ -1328,6 +1403,61 @@ class TestConcatenate(unittest.TestCase):
         expected.ix['ItemC', :, :2] = 'baz'
         tm.assert_panel_equal(result, expected)
 
+    def test_panel_concat_buglet(self):
+        # #2257
+        def make_panel():
+            index = 5
+            cols  = 3
+            def df():
+                return DataFrame(np.random.randn(index,cols),
+                                 index = [ "I%s" % i for i in range(index) ],
+                                 columns = [ "C%s" % i for i in range(cols) ])
+            return Panel(dict([("Item%s" % x, df()) for x in ['A','B','C']]))
+
+        panel1 = make_panel()
+        panel2 = make_panel()
+
+        panel2 = panel2.rename_axis(dict([ (x,"%s_1" % x)
+                                           for x in panel2.major_axis ]),
+                                    axis=1)
+
+        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
+        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+
+        # it works!
+        concat([ panel1, panel3 ], axis = 1, verify_integrity = True)
+
+    def test_panel4d_concat(self):
+        p4d = tm.makePanel4D()
+
+        p1 = p4d.ix[:, :, :5, :]
+        p2 = p4d.ix[:, :, 5:, :]
+
+        result = concat([p1, p2], axis=2)
+        tm.assert_panel4d_equal(result, p4d)
+
+        p1 = p4d.ix[:, :, :, :2]
+        p2 = p4d.ix[:, :, :, 2:]
+
+        result = concat([p1, p2], axis=3)
+        tm.assert_panel4d_equal(result, p4d)
+
+    def test_panel4d_concat_mixed_type(self):
+        p4d = tm.makePanel4D()
+
+        # if things are a bit misbehaved
+        p1 = p4d.ix[:, :2, :, :2]
+        p2 = p4d.ix[:, :, :, 2:]
+        p1['L5'] = 'baz'
+
+        result = concat([p1, p2], axis=3)
+
+        p2['L5'] = np.nan
+        expected = concat([p1, p2], axis=3)
+        expected = expected.ix[result.labels]
+
+        tm.assert_panel4d_equal(result, expected)
+
     def test_concat_series(self):
         ts = tm.makeTimeSeries()
         ts.name = 'foo'
@@ -1466,5 +1596,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
-

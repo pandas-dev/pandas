@@ -1,0 +1,114 @@
+.. _whatsnew_0900:
+
+v0.9.0 (October 7, 2012)
+------------------------
+
+This is a major release from 0.8.1 and includes several new features and
+enhancements along with a large number of bug fixes. New features include
+vectorized unicode encoding/decoding for `Series.str`, `to_latex` method to
+DataFrame, more flexible parsing of boolean values, and enabling the download of
+options data from Yahoo! Finance.
+
+New features
+~~~~~~~~~~~~
+
+  - Add ``encode`` and ``decode`` for unicode handling to :ref:`vectorized
+    string processing methods <basics.string_methods>` in Series.str  (GH1706_)
+  - Add ``DataFrame.to_latex`` method (GH1735_)
+  - Add convenient expanding window equivalents of all rolling_* ops (GH1785_)
+  - Add Options class to pandas.io.data for fetching options data from Yahoo!
+    Finance (GH1748_, GH1739_)
+  - More flexible parsing of boolean values (Yes, No, TRUE, FALSE, etc)
+    (GH1691_, GH1295_)
+  - Add ``level`` parameter to ``Series.reset_index``
+  - ``TimeSeries.between_time`` can now select times across midnight (GH1871_)
+  - Series constructor can now handle generator as input (GH1679_)
+  - ``DataFrame.dropna`` can now take multiple axes (tuple/list) as input
+    (GH924_)
+  - Enable ``skip_footer`` parameter in ``ExcelFile.parse`` (GH1843_)
+
+API changes
+~~~~~~~~~~~
+
+  - The default column names when ``header=None`` and no columns names passed to
+    functions like ``read_csv`` has changed to be more Pythonic and amenable to
+    attribute access:
+
+.. ipython:: python
+
+   from StringIO import StringIO
+
+   data = '0,0,1\n1,1,0\n0,1,0'
+   df = read_csv(StringIO(data), header=None)
+   df
+
+
+- Creating a Series from another Series, passing an index, will cause reindexing
+  to happen inside rather than treating the Series like an ndarray. Technically
+  improper usages like ``Series(df[col1], index=df[col2])`` that worked before
+  "by accident" (this was never intended) will lead to all NA Series in some
+  cases. To be perfectly clear:
+
+.. ipython:: python
+
+   s1 = Series([1, 2, 3])
+   s1
+
+   s2 = Series(s1, index=['foo', 'bar', 'baz'])
+   s2
+
+- Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
+  (GH1723_)
+
+- Don't modify NumPy suppress printoption to True at import time
+
+- The internal HDF5 data arrangement for DataFrames has been transposed.  Legacy
+  files will still be readable by HDFStore (GH1834_, GH1824_)
+
+- Legacy cruft removed: pandas.stats.misc.quantileTS
+
+- Use ISO8601 format for Period repr: monthly, daily, and on down (GH1776_)
+
+- Empty DataFrame columns are now created as object dtype. This will prevent a
+  class of TypeErrors that was occurring in code where the dtype of a column
+  would depend on the presence of data or not (e.g. a SQL query having results)
+  (GH1783_)
+
+- Setting parts of DataFrame/Panel using ix now aligns input Series/DataFrame
+  (GH1630_)
+
+- ``first`` and ``last`` methods in ``GroupBy`` no longer drop non-numeric
+  columns (GH1809_)
+
+- Resolved inconsistencies in specifying custom NA values in text parser.
+  ``na_values`` of type dict no longer override default NAs unless
+  ``keep_default_na`` is set to false explicitly (GH1657_)
+
+- ``DataFrame.dot`` will not do data alignment, and also work with Series
+  (GH1915_)
+
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+
+.. _GH1706: https://github.com/pydata/pandas/issues/1706
+.. _GH1735: https://github.com/pydata/pandas/issues/1735
+.. _GH1785: https://github.com/pydata/pandas/issues/1785
+.. _GH1748: https://github.com/pydata/pandas/issues/1748
+.. _GH1739: https://github.com/pydata/pandas/issues/1739
+.. _GH1691: https://github.com/pydata/pandas/issues/1691
+.. _GH1295: https://github.com/pydata/pandas/issues/1295
+.. _GH1723: https://github.com/pydata/pandas/issues/1723
+.. _GH1834: https://github.com/pydata/pandas/issues/1834
+.. _GH1824: https://github.com/pydata/pandas/issues/1824
+.. _GH1776: https://github.com/pydata/pandas/issues/1776
+.. _GH1783: https://github.com/pydata/pandas/issues/1783
+.. _GH1630: https://github.com/pydata/pandas/issues/1630
+.. _GH1809: https://github.com/pydata/pandas/issues/1809
+.. _GH1657: https://github.com/pydata/pandas/issues/1657
+.. _GH1871: https://github.com/pydata/pandas/issues/1871
+.. _GH1679: https://github.com/pydata/pandas/issues/1679
+.. _GH1915: https://github.com/pydata/pandas/issues/1915
+.. _GH924: https://github.com/pydata/pandas/issues/924
+.. _GH1843: https://github.com/pydata/pandas/issues/1843

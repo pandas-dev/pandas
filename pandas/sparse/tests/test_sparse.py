@@ -3,6 +3,7 @@
 from unittest import TestCase
 import cPickle as pickle
 import operator
+from datetime import datetime
 
 import nose
 
@@ -19,6 +20,7 @@ from pandas.core.datetools import BDay
 from pandas.core.index import Index
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
+from pandas.core.common import isnull
 import pandas.util.testing as tm
 
 import pandas.sparse.frame as spf
@@ -31,6 +33,7 @@ from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
 import pandas.tests.test_frame as test_frame
 import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
+from pandas.util.py3compat import StringIO
 
 from test_array import assert_sp_array_equal
 
@@ -107,7 +110,7 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
 
 class TestSparseSeries(TestCase,
                        test_series.CheckNameIntegration):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         arr, index = _test_data1()
 
@@ -219,6 +222,16 @@ class TestSparseSeries(TestCase,
                           copy=True)
         sp.sp_values[:5] = 100
         self.assert_(values[0] == 97)
+
+    def test_constructor_scalar(self):
+        data = 5
+        sp = SparseSeries(data, np.arange(100))
+        sp = sp.reindex(np.arange(200))
+        self.assert_((sp.ix[:99] == data).all())
+        self.assert_(isnull(sp.ix[100:]).all())
+
+        data = np.nan
+        sp = SparseSeries(data, np.arange(100))
 
     def test_constructor_ndarray(self):
         pass
@@ -673,7 +686,7 @@ class TestSparseTimeSeries(TestCase):
 
 class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
     klass = SparseDataFrame
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.data = {'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
@@ -730,6 +743,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_almost_equal([0, 0, 0, 0, 1, 2, 3, 4, 5, 6],
                             self.zframe['A'].values)
 
+        # construct no data
+        sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
+        for col, series in sdf.iteritems():
+            self.assert_(isinstance(series, SparseSeries))
+
         # construct from nested dict
         data = {}
         for c, s in self.frame.iteritems():
@@ -783,6 +801,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sp = SparseDataFrame(dense)
         assert_sp_frame_equal(sp, self.frame)
 
+    def test_constructor_convert_index_once(self):
+        arr = np.array([1.5, 2.5, 3.5])
+        sdf = SparseDataFrame(columns=range(4), index=arr)
+        self.assertTrue(sdf[0].index is sdf[1].index)
+
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())
@@ -815,11 +838,52 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assertEquals(sdf.default_fill_value, 0)
         tm.assert_frame_equal(sdf.to_dense(), df)
 
+    def test_density(self):
+        df = SparseSeries([nan, nan, nan, 0, 1, 2, 3, 4, 5, 6])
+        self.assertEquals(df.density, 0.7)
+
     def test_sparse_to_dense(self):
         pass
 
     def test_sparse_series_ops(self):
-        self._check_all(self._check_frame_ops)
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
+        try:
+            self._check_frame_ops(self.frame)
+        finally:
+            sys.stderr = tmp
+
+    def test_sparse_series_ops_i(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
+        try:
+            self._check_frame_ops(self.iframe)
+        finally:
+            sys.stderr = tmp
+
+    def test_sparse_series_ops_z(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
+        try:
+            self._check_frame_ops(self.zframe)
+        finally:
+            sys.stderr = tmp
+
+    def test_sparse_series_ops_fill(self):
+        import sys
+        buf = StringIO()
+        tmp = sys.stderr
+        sys.stderr = buf
+        try:
+            self._check_frame_ops(self.fill_frame)
+        finally:
+            sys.stderr = tmp
 
     def _check_frame_ops(self, frame):
         fill = frame.default_fill_value
@@ -900,6 +964,18 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_sp_frame_equal(result, exp)
 
         self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
+
+    def test_icol(self):
+        # #2227
+        result = self.frame.icol(0)
+        self.assertTrue(isinstance(result, SparseSeries))
+        assert_sp_series_equal(result, self.frame['A'])
+
+        # preserve sparse index type. #2251
+        data = {'A' : [0,1 ]}
+        iframe = SparseDataFrame(data, default_kind='integer')
+        self.assertEquals(type(iframe['A'].sp_index),
+                          type(iframe.icol(0).sp_index))
 
     def test_set_value(self):
         res = self.frame.set_value('foobar', 'B', 1.5)
@@ -1056,6 +1132,19 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                            self.frame.to_dense().apply(np.sum, broadcast=True))
 
         self.assert_(self.empty.apply(np.sqrt) is self.empty)
+
+    def test_apply_nonuq(self):
+        df_orig = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        df = df_orig.to_sparse()
+        rs = df.apply(lambda s: s[0], axis=1)
+        xp = Series([1., 4., 7.], ['a', 'a', 'c'])
+        assert_series_equal(rs, xp)
+
+        #df.T breaks
+        df = df_orig.T.to_sparse()
+        rs = df.apply(lambda s: s[0], axis=0)
+        #no non-unique columns supported in sparse yet
+        #assert_series_equal(rs, xp)
 
     def test_applymap(self):
         # just test that it works
@@ -1284,6 +1373,22 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         rs = sparse_df[sparse_df.flag.isin([1.])]
         assert_frame_equal(xp, rs)
 
+    def test_sparse_pow_issue(self):
+        # #2220
+        df = SparseDataFrame({'A' : [1.1,3.3],'B' : [2.5,-3.9]})
+
+        # note : no error without nan
+        df = SparseDataFrame({'A' : [nan, 0, 1]    })
+
+        # note that 2 ** df works fine, also df ** 1
+        result = 1 ** df
+
+        r1 = result.take([0],1)['A']
+        r2 = result['A']
+
+        self.assertEqual(len(r2.sp_values), len(r1.sp_values))
+
+
 def _dense_series_compare(s, f):
     result = f(s)
     assert(isinstance(result, SparseSeries))
@@ -1331,7 +1436,7 @@ def panel_data3():
 class TestSparsePanel(TestCase,
                       test_panel.SafeForLongAndSparse,
                       test_panel.SafeForSparse):
-
+    _multiprocess_can_split_ = True
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_sp_panel_equal(x, y)

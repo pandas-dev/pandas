@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import unittest
 import numpy as np
 
@@ -17,14 +17,16 @@ import pandas.tseries.offsets as offsets
 
 from nose.tools import assert_raises
 
-import pandas.lib as lib
+from pandas.tslib import monthrange
 from pandas.lib import Timestamp
+
+_multiprocess_can_split_ = True
 
 def test_monthrange():
     import calendar
     for y in range(2000,2013):
         for m in range(1,13):
-            assert lib.monthrange(y,m) == calendar.monthrange(y,m)
+            assert monthrange(y,m) == calendar.monthrange(y,m)
 
 ####
 ## Misc function tests
@@ -71,7 +73,7 @@ def test_to_m8():
 #####
 
 class TestDateOffset(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.d = Timestamp(datetime(2008, 1, 2))
 
@@ -109,12 +111,19 @@ class TestDateOffset(unittest.TestCase):
         self.assert_(not (offset1 == offset2))
 
 class TestBusinessDay(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.d = datetime(2008, 1, 1)
 
         self.offset = BDay()
         self.offset2 = BDay(2)
+
+    def test_different_normalize_equals(self):
+        # equivalent in this special case
+        offset = BDay()
+        offset2 = BDay()
+        offset2.normalize = True
+        self.assertEqual(offset, offset2)
 
     def test_repr(self):
         assert repr(self.offset) == '<1 BusinessDay>'
@@ -173,6 +182,24 @@ class TestBusinessDay(unittest.TestCase):
     def testRollforward2(self):
         self.assertEqual(BDay(10).rollforward(datetime(2008, 1, 5)), datetime(2008, 1, 7))
 
+    def test_roll_date_object(self):
+        offset = BDay()
+
+        dt = date(2012, 9, 15)
+
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2012, 9, 14))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2012, 9, 17))
+
+        offset = offsets.Day()
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
+
     def test_onOffset(self):
         tests = [(BDay(), datetime(2008, 1, 1), True),
                  (BDay(), datetime(2008, 1, 5), False)]
@@ -224,6 +251,15 @@ class TestBusinessDay(unittest.TestCase):
         for offset, cases in tests:
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
+
+    def test_apply_large_n(self):
+        dt = datetime(2012, 10, 23)
+
+        result = dt + BDay(10)
+        self.assertEqual(result, datetime(2012, 11, 6))
+
+        result = dt + BDay(100) - BDay(100)
+        self.assertEqual(result, dt)
 
     def test_apply_corner(self):
         self.assertRaises(Exception, BDay().apply, BMonthEnd())
@@ -1269,6 +1305,8 @@ def test_Hour():
 
     assert(Hour(4) != Hour(1))
 
+    assert not Hour().isAnchored()
+
 def test_Minute():
     assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
     assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
@@ -1279,6 +1317,8 @@ def test_Minute():
     assert (Minute(3) - Minute(2)) == Minute()
     assert(Minute(5) != Minute())
 
+    assert not Minute().isAnchored()
+
 def test_Second():
     assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
     assertEq(Second(-1), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
@@ -1287,6 +1327,8 @@ def test_Second():
 
     assert (Second(3) + Second(2)) == Second(5)
     assert (Second(3) - Second(2)) == Second()
+
+    assert not Second().isAnchored()
 
 def test_Millisecond():
     assertEq(Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1000))
@@ -1315,7 +1357,29 @@ def test_Nanosecond():
 
     assert (Nano(3) + Nano(2)) == Nano(5)
     assert (Nano(3) - Nano(2)) == Nano()    
-    
+
+def test_tick_offset():
+    assert not Day().isAnchored()
+    assert not Milli().isAnchored()
+    assert not Micro().isAnchored()
+    assert not Nano().isAnchored()
+
+
+def test_compare_ticks():
+    offsets = [Hour, Minute, Second, Milli, Micro, Nano]
+
+    for kls in offsets:
+        three = kls(3)
+        four = kls(4)
+
+        for _ in xrange(10):
+            assert(three < kls(4))
+            assert(kls(3) < four)
+            assert(four > kls(3))
+            assert(kls(4) > three)
+            assert(kls(3) == kls(3))
+            assert(kls(3) != kls(4))
+
 def test_hasOffsetName():
     assert hasOffsetName(BDay())
     assert not hasOffsetName(BDay(2))
@@ -1439,4 +1503,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

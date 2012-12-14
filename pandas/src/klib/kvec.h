@@ -110,6 +110,11 @@ typedef struct {
 
 typedef struct {
   size_t n, m;
+  double* a;
+} kv_double;
+
+typedef struct {
+  size_t n, m;
   PyObject** a;
 } kv_object_t;
 
@@ -127,6 +132,10 @@ void PANDAS_INLINE kv_object_push(kv_object_t *v, PyObject *x) {
 
 void PANDAS_INLINE kv_int64_push(kv_int64_t *v, int64_t x) {
   kv_push(int64_t, v, x);
+}
+
+void PANDAS_INLINE kv_double_push(kv_double *v, double x) {
+  kv_push(double, v, x);
 }
 
 void PANDAS_INLINE kv_object_destroy(kv_object_t *v) {

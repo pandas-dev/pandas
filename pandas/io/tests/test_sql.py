@@ -7,10 +7,10 @@ import numpy as np
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
-from pandas import Series, Index
+from pandas import Series, Index, DataFrame
 
 class TestSQLite(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         self.db = sqlite3.connect(':memory:')
 
@@ -171,6 +171,12 @@ class TestSQLite(unittest.TestCase):
         finally:
             sys.stdout = sys.__stdout__
 
+    def test_keyword_as_column_names(self):
+        '''
+        '''
+        df = DataFrame({'From':np.ones(5)})
+        #print sql.get_sqlite_schema(df, 'testkeywords')
+        sql.write_frame(df, con = self.db, name = 'testkeywords')
 
 if __name__ == '__main__':
     # unittest.main()

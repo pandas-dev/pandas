@@ -7,6 +7,7 @@ Used under the terms of the BSD license
 import subprocess
 import sys
 
+
 def clipboard_get():
     """ Get text from the clipboard.
     """
@@ -22,6 +23,7 @@ def clipboard_get():
             pass
     return tkinter_clipboard_get()
 
+
 def clipboard_set(text):
     """ Get text from the clipboard.
     """
@@ -36,6 +38,7 @@ def clipboard_set(text):
         except Exception:
             pass
     xsel_clipboard_set(text)
+
 
 def win32_clipboard_get():
     """ Get the current clipboard's text on Windows.
@@ -54,6 +57,7 @@ def win32_clipboard_get():
     win32clipboard.CloseClipboard()
     return text
 
+
 def osx_clipboard_get():
     """ Get the clipboard's text on OS X.
     """
@@ -63,6 +67,7 @@ def osx_clipboard_get():
     # Text comes in with old Mac \r line endings. Change them to \n.
     text = text.replace('\r', '\n')
     return text
+
 
 def tkinter_clipboard_get():
     """ Get the clipboard's text using Tkinter.
@@ -83,6 +88,7 @@ def tkinter_clipboard_get():
     root.destroy()
     return text
 
+
 def win32_clipboard_set(text):
     # idiosyncratic win32 import issues
     import pywintypes as _
@@ -94,8 +100,10 @@ def win32_clipboard_set(text):
     finally:
         win32clipboard.CloseClipboard()
 
+
 def _fix_line_endings(text):
     return '\r\n'.join(text.splitlines())
+
 
 def osx_clipboard_set(text):
     """ Get the clipboard's text on OS X.
@@ -103,6 +111,7 @@ def osx_clipboard_set(text):
     p = subprocess.Popen(['pbcopy', '-Prefer', 'ascii'],
         stdin=subprocess.PIPE)
     p.communicate(input=text)
+
 
 def xsel_clipboard_set(text):
     from subprocess import Popen, PIPE

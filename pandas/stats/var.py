@@ -10,6 +10,7 @@ import pandas.stats.common as common
 from pandas.stats.math import inv
 from pandas.stats.ols import _combine_rhs
 
+
 class VAR(object):
     """
     Estimates VAR(p) regression on multivariate time series data
@@ -164,8 +165,8 @@ class VAR(object):
         p_value_mat = DataFrame(p_value_dict)
 
         return {
-            'f-stat' : f_stat_mat,
-            'p-value' : p_value_mat,
+            'f-stat': f_stat_mat,
+            'p-value': p_value_mat,
         }
 
     @cache_readonly
@@ -226,13 +227,13 @@ BIC:                            %(bic).3f
 %(banner_end)s
 """
         params = {
-            'banner_top' : common.banner('Summary of VAR'),
-            'banner_coef' : common.banner('Summary of Estimated Coefficients'),
-            'banner_end' : common.banner('End of Summary'),
-            'coef_table' : self.beta,
-            'aic' : self.aic,
-            'bic' : self.bic,
-            'nobs' : self._nobs,
+            'banner_top': common.banner('Summary of VAR'),
+            'banner_coef': common.banner('Summary of Estimated Coefficients'),
+            'banner_end': common.banner('End of Summary'),
+            'coef_table': self.beta,
+            'aic': self.aic,
+            'bic': self.bic,
+            'nobs': self._nobs,
         }
 
         return template % params
@@ -410,8 +411,8 @@ BIC:                            %(bic).3f
         k = self._p * (self._k * self._p + 1)
         n = self._nobs * self._k
 
-        return {'aic' : 2 * k + n * np.log(RSS / n),
-                'bic' : n * np.log(RSS / n) + k * np.log(n)}
+        return {'aic': 2 * k + n * np.log(RSS / n),
+                'bic': n * np.log(RSS / n) + k * np.log(n)}
 
     @cache_readonly
     def _k(self):
@@ -478,6 +479,7 @@ BIC:                            %(bic).3f
     def __repr__(self):
         return self.summary
 
+
 def lag_select(data, max_lags=5, ic=None):
     """
     Select number of lags based on a variety of information criteria
@@ -495,6 +497,7 @@ def lag_select(data, max_lags=5, ic=None):
     None
     """
     pass
+
 
 class PanelVAR(VAR):
     """
@@ -567,13 +570,16 @@ def _prep_panel_data(data):
 
     return Panel.fromDict(data)
 
+
 def _drop_incomplete_rows(array):
     mask = np.isfinite(array).all(1)
     indices = np.arange(len(array))[mask]
     return array.take(indices, 0)
 
+
 def _make_param_name(lag, name):
     return 'L%d.%s' % (lag, name)
+
 
 def chain_dot(*matrices):
     """

@@ -1,6 +1,7 @@
 from numpy cimport *
 import numpy as np
 
+
 cdef class Reducer:
     '''
     Performs generic reduction operation on a C or Fortran-contiguous ndarray
@@ -106,6 +107,7 @@ cdef class Reducer:
             raise ValueError('function does not reduce')
         return result
 
+
 cdef class SeriesBinGrouper:
     '''
     Performs grouping operation according to bin edges, rather than labels
@@ -155,7 +157,7 @@ cdef class SeriesBinGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
-            IndexEngine gin
+            object gin
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -174,7 +176,7 @@ cdef class SeriesBinGrouper:
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
 
-        gin = <IndexEngine> self.dummy.index._engine
+        gin = self.dummy.index._engine
 
         try:
             for i in range(self.ngroups):
@@ -199,8 +201,8 @@ cdef class SeriesBinGrouper:
             raise
         finally:
             # so we don't free the wrong memory
-            islider.cleanup()
-            vslider.cleanup()
+            islider.reset()
+            vslider.reset()
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
@@ -216,6 +218,7 @@ cdef class SeriesBinGrouper:
         except Exception:
             raise ValueError('function does not reduce')
         return result
+
 
 cdef class SeriesGrouper:
     '''
@@ -263,7 +266,7 @@ cdef class SeriesGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
-            IndexEngine gin
+            object gin
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
@@ -274,7 +277,7 @@ cdef class SeriesGrouper:
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
 
-        gin = <IndexEngine> self.dummy.index._engine
+        gin = self.dummy.index._engine
         try:
             for i in range(n):
                 group_size += 1
@@ -310,8 +313,8 @@ cdef class SeriesGrouper:
             raise
         finally:
             # so we don't free the wrong memory
-            islider.cleanup()
-            vslider.cleanup()
+            islider.reset()
+            vslider.reset()
 
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
@@ -328,13 +331,14 @@ cdef class SeriesGrouper:
             raise ValueError('function does not reduce')
         return result
 
+
 cdef class Slider:
     '''
     Only handles contiguous data for now
     '''
     cdef:
         ndarray values, buf
-        Py_ssize_t stride, orig_len
+        Py_ssize_t stride, orig_len, orig_stride
         char *orig_data
 
     def __init__(self, object values, object buf):
@@ -345,22 +349,153 @@ cdef class Slider:
         assert(values.dtype == buf.dtype)
         self.values = values
         self.buf = buf
-        self.stride = values.dtype.itemsize
+        self.stride = values.strides[0]
 
         self.orig_data = self.buf.data
         self.orig_len = self.buf.shape[0]
+        self.orig_stride = self.buf.strides[0]
 
         self.buf.data = self.values.data
+        self.buf.strides[0] = self.stride
 
     cpdef advance(self, Py_ssize_t k):
         self.buf.data = <char*> self.buf.data + self.stride * k
 
+    cdef move(self, int start, int end):
+        '''
+        For slicing
+        '''
+        self.buf.data = self.values.data + self.stride * start
+        self.buf.shape[0] = end - start
+
     cpdef set_length(self, Py_ssize_t length):
         self.buf.shape[0] = length
 
-    cpdef cleanup(self):
+    cpdef reset(self):
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
+        self.buf.strides[0] = self.orig_stride
+
+
+class InvalidApply(Exception):
+    pass
+
+def apply_frame_axis0(object frame, object f, object names,
+                      ndarray[int64_t] starts, ndarray[int64_t] ends):
+    cdef:
+        BlockSlider slider
+        Py_ssize_t i, n = len(starts)
+        list results
+        object piece
+        dict item_cache
+
+    if frame.index._has_complex_internals:
+        raise InvalidApply('Cannot modify frame index internals')
+
+
+    results = []
+
+    # Need to infer if our low-level mucking is going to cause a segfault
+    if n > 0:
+        chunk = frame[starts[0]:ends[0]]
+        shape_before = chunk.shape
+        try:
+            result = f(chunk)
+            if result is chunk:
+                raise InvalidApply('Function unsafe for fast apply')
+        except:
+            raise InvalidApply('Let this error raise above us')
+
+    slider = BlockSlider(frame)
+
+    mutated = False
+    item_cache = slider.dummy._item_cache
+    gin = slider.dummy.index._engine # f7u12
+    try:
+        for i in range(n):
+            slider.move(starts[i], ends[i])
+
+            item_cache.clear() # ugh
+            gin.clear_mapping()
+
+            setattr(slider.dummy, 'name', names[i])
+            piece = f(slider.dummy)
+
+            # I'm paying the price for index-sharing, ugh
+            try:
+                if piece.index is slider.dummy.index:
+                    piece.index = piece.index.copy()
+                else:
+                    mutated = True
+            except AttributeError:
+                pass
+            results.append(piece)
+    finally:
+        slider.reset()
+
+    return results, mutated
+
+cdef class BlockSlider:
+    '''
+    Only capable of sliding on axis=0
+    '''
+
+    cdef public:
+        object frame, dummy
+        int nblocks
+        Slider idx_slider
+        list blocks
+
+    cdef:
+        char **base_ptrs
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.dummy = frame[:0]
+
+        self.blocks = [b.values for b in self.dummy._data.blocks]
+
+        for x in self.blocks:
+            util.set_array_not_contiguous(x)
+
+        self.nblocks = len(self.blocks)
+        self.idx_slider = Slider(self.frame.index, self.dummy.index)
+
+        self.base_ptrs = <char**> malloc(sizeof(char*) * len(self.blocks))
+        for i, block in enumerate(self.blocks):
+            self.base_ptrs[i] = (<ndarray> block).data
+
+    def __dealloc__(self):
+        free(self.base_ptrs)
+
+    cpdef move(self, int start, int end):
+        cdef:
+            ndarray arr
+
+        # move blocks
+        for i in range(self.nblocks):
+            arr = self.blocks[i]
+
+            # axis=1 is the frame's axis=0
+            arr.data = self.base_ptrs[i] + arr.strides[1] * start
+            arr.shape[1] = end - start
+
+        self.idx_slider.move(start, end)
+
+    cdef reset(self):
+        cdef:
+            ndarray arr
+
+        # move blocks
+        for i in range(self.nblocks):
+            arr = self.blocks[i]
+
+            # axis=1 is the frame's axis=0
+            arr.data = self.base_ptrs[i]
+            arr.shape[1] = 0
+
+        self.idx_slider.reset()
+
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
     if labels._has_complex_internals:
