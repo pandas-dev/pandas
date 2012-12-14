@@ -13,8 +13,7 @@ df = DataFrame(index=range(10000), data=np.random.rand(10000,30),
 """
 statement = "df.reindex(columns=df.columns[1:5])"
 
-reindex_frame_columns = Benchmark(statement, setup,
-                                  name='dataframe_reindex_columns')
+frame_reindex_columns = Benchmark(statement, setup)
 
 #----------------------------------------------------------------------
 
@@ -26,8 +25,7 @@ df['foo'] = 'bar'
 rng2 = Index(rng[::2])
 """
 statement = "df.reindex(rng2)"
-reindex_frame_daterange = Benchmark(statement, setup,
-                                    name='dataframe_reindex_daterange')
+dataframe_reindex = Benchmark(statement, setup)
 
 #----------------------------------------------------------------------
 # multiindex reindexing
@@ -116,7 +114,6 @@ reindex_frame_level_reindex = \
 
 # pathological, but realistic
 setup = common_setup + """
-import pandas._tseries as lib
 N = 10000
 K = 10
 
@@ -125,25 +122,23 @@ key2 = np.array([rands(10) for _ in xrange(N)], dtype='O').repeat(K)
 
 df = DataFrame({'key1' : key1, 'key2' : key2,
                 'value' : np.random.randn(N * K)})
+col_array_list = list(df.values.T)
 """
 statement = "df.sort_index(by=['key1', 'key2'])"
 frame_sort_index_by_columns = Benchmark(statement, setup,
-                                        name='frame_sort_index_by_columns',
                                         start_date=datetime(2011, 11, 1))
 
 # drop_duplicates
 
 statement = "df.drop_duplicates(['key1', 'key2'])"
 frame_drop_duplicates = Benchmark(statement, setup,
-                                  name='frame_drop_duplicates',
                                   start_date=datetime(2011, 11, 15))
 
 statement = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
 frame_drop_dup_inplace = Benchmark(statement, setup,
-                                  name='frame_drop_dup_inplace',
                                   start_date=datetime(2012, 5, 16))
 
-lib_fast_zip = Benchmark('lib.fast_zip(df.values.T)', setup,
+lib_fast_zip = Benchmark('lib.fast_zip(col_array_list)', setup,
                          name='lib_fast_zip',
                          start_date=datetime(2012, 1, 1))
 
@@ -152,17 +147,26 @@ df.ix[:10000, :] = np.nan
 """
 statement2 = "df.drop_duplicates(['key1', 'key2'])"
 frame_drop_duplicates_na = Benchmark(statement2, setup,
-                                     name='frame_drop_duplicates_na',
                                      start_date=datetime(2012, 5, 15))
 
-lib_fast_zip_fillna = Benchmark('lib.fast_zip_fillna(df.values.T)', setup,
-                                name='lib_fast_zip_fillna',
+lib_fast_zip_fillna = Benchmark('lib.fast_zip_fillna(col_array_list)', setup,
                                 start_date=datetime(2012, 5, 15))
 
 statement2 = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
 frame_drop_dup_na_inplace = Benchmark(statement2, setup,
-                                  name='frame_drop_dup_na_inplace',
                                   start_date=datetime(2012, 5, 16))
+
+setup = common_setup + """
+s = Series(np.random.randint(0, 1000, size=10000))
+s2 = Series(np.tile([rands(10) for i in xrange(1000)], 10))
+"""
+
+series_drop_duplicates_int = Benchmark('s.drop_duplicates()', setup,
+                                       start_date=datetime(2012, 11, 27))
+
+series_drop_duplicates_string = \
+    Benchmark('s2.drop_duplicates()', setup,
+              start_date=datetime(2012, 11, 27))
 
 #----------------------------------------------------------------------
 # fillna, many columns
@@ -177,3 +181,26 @@ df = DataFrame(values)
 frame_fillna_many_columns_pad = Benchmark("df.fillna(method='pad')",
                                           setup,
                                           start_date=datetime(2011, 3, 1))
+
+#----------------------------------------------------------------------
+# blog "pandas escaped the zoo"
+
+setup = common_setup + """
+n = 50000
+indices = Index([rands(10) for _ in xrange(n)])
+
+def sample(values, k):
+    from random import shuffle
+    sampler = np.arange(len(values))
+    shuffle(sampler)
+    return values.take(sampler[:k])
+
+subsample_size = 40000
+
+x = Series(np.random.randn(50000), indices)
+y = Series(np.random.randn(subsample_size),
+           index=sample(indices, subsample_size))
+"""
+
+series_align_irregular_string = Benchmark("x + y", setup,
+                                          start_date=datetime(2010, 6, 1))

@@ -1,33 +1,55 @@
 from datetime import datetime
 import sys
 
+import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
+import pandas.core.config as cf
 
 import numpy as np
+
+from pandas.tslib import iNaT
+from pandas.util import py3compat
+
+_multiprocess_can_split_ = True
+
+def test_is_sequence():
+    is_seq=com._is_sequence
+    assert(is_seq((1,2)))
+    assert(is_seq([1,2]))
+    assert(not is_seq("abcd"))
+    assert(not is_seq(u"abcd"))
+    assert(not is_seq(np.int64))
 
 def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
     assert not notnull(np.NaN)
-    assert not notnull(np.inf)
-    assert not notnull(-np.inf)
 
-    float_series = Series(np.random.randn(5))
-    obj_series = Series(np.random.randn(5), dtype=object)
-    assert(isinstance(notnull(float_series), Series))
-    assert(isinstance(notnull(obj_series), Series))
+    with cf.option_context("mode.use_inf_as_null",False):
+        assert notnull(np.inf)
+        assert notnull(-np.inf)
+
+    with cf.option_context("mode.use_inf_as_null",True):
+        assert not notnull(np.inf)
+        assert not notnull(-np.inf)
+
+    with cf.option_context("mode.use_inf_as_null",False):
+        float_series = Series(np.random.randn(5))
+        obj_series = Series(np.random.randn(5), dtype=object)
+        assert(isinstance(notnull(float_series), Series))
+        assert(isinstance(notnull(obj_series), Series))
 
 def test_isnull():
     assert not isnull(1.)
     assert isnull(None)
     assert isnull(np.NaN)
-    assert isnull(np.inf)
-    assert isnull(-np.inf)
+    assert not isnull(np.inf)
+    assert not isnull(-np.inf)
 
     float_series = Series(np.random.randn(5))
     obj_series = Series(np.random.randn(5), dtype=object)
@@ -50,6 +72,14 @@ def test_isnull_lists():
     exp = np.array([[False], [False]])
     assert(np.array_equal(result, exp))
 
+    # list of strings / unicode
+    result = isnull(['foo', 'bar'])
+    assert(not result.any())
+
+    result = isnull([u'foo', u'bar'])
+    assert(not result.any())
+
+
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
     assert notnull(datetime.now())
@@ -57,9 +87,8 @@ def test_isnull_datetime():
     idx = date_range('1/1/1990', periods=20)
     assert(notnull(idx).all())
 
-    import pandas.lib as lib
     idx = np.asarray(idx)
-    idx[0] = lib.iNaT
+    idx[0] = iNaT
     idx = DatetimeIndex(idx)
     mask = isnull(idx)
     assert(mask[0])
@@ -97,6 +126,35 @@ def test_iterpairs():
     result = list(com.iterpairs(data))
 
     assert(result == expected)
+
+def test_split_ranges():
+    def _bin(x, width):
+        "return int(x) as a base2 string of given width"
+        return ''.join(str((x>>i)&1) for i in xrange(width-1,-1,-1))
+
+    def test_locs(mask):
+        nfalse = sum(np.array(mask) == 0)
+
+        remaining=0
+        for s, e in com.split_ranges(mask):
+            remaining += e-s
+
+            assert 0 not in mask[s:e]
+
+        # make sure the total items covered by the ranges are a complete cover
+        assert remaining + nfalse == len(mask)
+
+    # exhaustively test all possible mask sequences of length 8
+    ncols=8
+    for i in range(2**ncols):
+        cols=map(int,list(_bin(i,ncols))) # count up in base2
+        mask=[cols[i] == 1 for i in range(len(cols))]
+        test_locs(mask)
+
+    # base cases
+    test_locs([])
+    test_locs([0])
+    test_locs([1])
 
 def test_indent():
     s = 'a b c\nd e f'
@@ -160,7 +218,46 @@ def test_ensure_int32():
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
 
+# TODO: fix this broken test
+
+# def test_console_encode():
+#     """
+#     On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
+#     common.console_encode should encode things as utf-8.
+#     """
+#     if py3compat.PY3:
+#         raise nose.SkipTest
+
+#     with tm.stdin_encoding(encoding=None):
+#         result = com.console_encode(u"\u05d0")
+#         expected = u"\u05d0".encode('utf-8')
+#         assert (result == expected)
+
+def test_pprint_thing():
+    if py3compat.PY3:
+        raise nose.SkipTest
+
+    pp_t=com.pprint_thing
+
+    assert(pp_t('a')==u'a')
+    assert(pp_t(u'a')==u'a')
+    assert(pp_t(None)=='')
+    assert(pp_t(u'\u05d0')==u'\u05d0')
+    assert(pp_t((u'\u05d0',u'\u05d1'))==u'(\u05d0, \u05d1)')
+    assert(pp_t((u'\u05d0',(u'\u05d1',u'\u05d2')))==
+           u'(\u05d0, (\u05d1, \u05d2))')
+    assert(pp_t(('foo',u'\u05d0',(u'\u05d0',u'\u05d0')))==
+           u'(foo, \u05d0, (\u05d0, \u05d0))')
+
+
+    # escape embedded tabs in string
+    # GH #2038
+    assert not "\t" in pp_t("a\tb",escape_chars=("\t",))
+
+
 class TestTake(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def test_1d_with_out(self):
         def _test_dtype(dtype):
@@ -297,9 +394,6 @@ class TestTake(unittest.TestCase):
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
 
-
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

@@ -123,7 +123,7 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
 Selective Plotting on Secondary Y-axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To plot some columns in a DataFrame, give the column names to the `secondary_y`
+To plot some columns in a DataFrame, give the column names to the ``secondary_y``
 keyword:
 
 .. ipython:: python
@@ -135,7 +135,7 @@ keyword:
 
 Note that the columns plotted on the secondary y-axis is automatically marked
 with "(right)" in the legend. To turn off the automatic marking, use the
-`mark_right=False` keyword:
+``mark_right=False`` keyword:
 
 .. ipython:: python
 
@@ -143,6 +143,50 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 
    @savefig frame_plot_secondary_y.png width=4.5in
    df.plot(secondary_y=['A', 'B'], mark_right=False)
+
+
+Suppressing tick resolution adjustment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas includes automatically tick resolution adjustment for regular frequency
+time-series data. For limited cases where pandas cannot infer the frequency
+information (e.g., in an externally created ``twinx``), you can choose to
+suppress this behavior for alignment purposes.
+
+Here is the default behavior, notice how the x-axis tick labelling is performed:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig ser_plot_suppress.png width=4.5in
+   df.A.plot()
+
+
+Using the ``x_compat`` parameter, you can suppress this bevahior:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig ser_plot_suppress_parm.png width=4.5in
+   df.A.plot(x_compat=True)
+
+
+If you have more than one plot that needs to be suppressed, the ``use`` method
+in ``pandas.plot_params`` can be used in a `with statement`:
+
+.. ipython:: python
+
+   import pandas as pd
+
+   plt.figure()
+
+   @savefig ser_plot_suppress_context.png width=4.5in
+   with pd.plot_params.use('x_compat', True):
+       df.A.plot(color='r')
+       df.B.plot(color='g')
+       df.C.plot(color='b')
 
 
 Targeting different subplots
@@ -227,6 +271,7 @@ Histograms
    @savefig hist_plot_ex.png width=4.5in
    df['A'].diff().hist()
 
+
 For a DataFrame, ``hist`` plots the histograms of the columns on multiple
 subplots:
 
@@ -236,6 +281,22 @@ subplots:
 
    @savefig frame_hist_ex.png width=4.5in
    df.diff().hist(color='k', alpha=0.5, bins=50)
+
+
+New since 0.9.2, the ``by`` keyword can be specified to plot grouped histograms:
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+
+   data = Series(np.random.randn(1000))
+
+   @savefig grouped_hist.png width=4.5in
+   data.hist(by=np.random.randint(0, 4, 1000))
+
 
 .. _visualization.box:
 
@@ -326,6 +387,8 @@ of curves that are created using the attributes of samples as coefficients
 for Fourier series. By coloring these curves differently for each class
 it is possible to visualize data clustering. Curves belonging to samples
 of the same class will usually be closer together and form larger structures.
+
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv>`__.
 
 .. ipython:: python
 
@@ -439,6 +502,8 @@ unit interval). The point in the plane, where our sample settles to (where the
 forces acting on our sample are at an equilibrium) is where a dot representing
 our sample will be drawn. Depending on which class that sample belongs it will
 be colored differently.
+
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv>`__.
 
 .. ipython:: python
 

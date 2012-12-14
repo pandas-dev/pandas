@@ -68,9 +68,19 @@ join_dataframe_index_multi = \
 
 #----------------------------------------------------------------------
 # Joins on integer keys
+setup = common_setup + """
+df = DataFrame({'key1': np.tile(np.arange(500).repeat(10), 2),
+                'key2': np.tile(np.arange(250).repeat(10), 4),
+                'value': np.random.randn(10000)})
+df2 = DataFrame({'key1': np.arange(500), 'value2': randn(500)})
+df3 = df[:5000]
+"""
 
-join_dataframe_integer_key = Benchmark("merge(df, df2, on='key')", setup,
+
+join_dataframe_integer_key = Benchmark("merge(df, df2, on='key1')", setup,
                                        start_date=datetime(2011, 10, 20))
+join_dataframe_integer_2key = Benchmark("merge(df, df3)", setup,
+                                        start_date=datetime(2011, 10, 20))
 
 #----------------------------------------------------------------------
 # DataFrame joins on index
@@ -79,6 +89,26 @@ join_dataframe_integer_key = Benchmark("merge(df, df2, on='key')", setup,
 
 #----------------------------------------------------------------------
 # Merges
+
+setup = common_setup + """
+N = 10000
+
+indices = np.array([rands(10) for _ in xrange(N)], dtype='O')
+indices2 = np.array([rands(10) for _ in xrange(N)], dtype='O')
+key = np.tile(indices[:8000], 10)
+key2 = np.tile(indices2[:8000], 10)
+
+left = DataFrame({'key' : key, 'key2':key2,
+                  'value' : np.random.randn(80000)})
+right = DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
+                   'value2' : np.random.randn(8000)})
+"""
+
+merge_2intkey_nosort = Benchmark('merge(left, right, sort=False)', setup,
+                                 start_date=datetime(2011, 10, 20))
+
+merge_2intkey_sort = Benchmark('merge(left, right, sort=True)', setup,
+                               start_date=datetime(2011, 10, 20))
 
 #----------------------------------------------------------------------
 # Appending DataFrames
@@ -150,6 +180,13 @@ pieces = pieces * 50
 
 concat_series_axis1 = Benchmark('concat(pieces, axis=1)', setup,
                                 start_date=datetime(2012, 2, 27))
+
+setup = common_setup + """
+df = DataFrame(randn(5, 4))
+"""
+
+concat_small_frames = Benchmark('concat([df] * 1000)', setup,
+                                start_date=datetime(2012, 1, 1))
 
 #----------------------------------------------------------------------
 # Ordered merge

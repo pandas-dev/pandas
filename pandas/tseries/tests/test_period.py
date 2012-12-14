@@ -14,7 +14,7 @@ from numpy.ma.testutils import assert_equal
 from pandas import Timestamp
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.period import Period, PeriodIndex, period_range
-from pandas.tseries.index import DatetimeIndex, date_range
+from pandas.tseries.index import DatetimeIndex, date_range, Index
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.period as pmod
 
@@ -61,7 +61,7 @@ class TestPeriodProperties(unittest.TestCase):
         for month in MONTHS:
             freq = 'A-%s' % month
             exp = Period('1989', freq=freq)
-            stamp = exp.to_timestamp('D', how='end') + 30
+            stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
             p = Period(stamp, freq=freq)
             self.assertEquals(p, exp + 1)
 
@@ -191,7 +191,10 @@ class TestPeriodProperties(unittest.TestCase):
 
     def test_repr(self):
         p = Period('Jan-2000')
-        self.assert_('Jan-2000' in repr(p))
+        self.assert_('2000-01' in repr(p))
+
+        p = Period('2000-12-15')
+        self.assert_('2000-12-15' in repr(p))
 
     def test_strftime(self):
         p = Period('2000-1-1 12:34:12', freq='S')
@@ -211,15 +214,19 @@ class TestPeriodProperties(unittest.TestCase):
         start_ts = p.to_timestamp(how='S')
         aliases = ['s', 'StarT', 'BEGIn']
         for a in aliases:
-            self.assertEquals(start_ts, p.to_timestamp(how=a))
+            self.assertEquals(start_ts, p.to_timestamp('D', how=a))
 
         end_ts = p.to_timestamp(how='E')
         aliases = ['e', 'end', 'FINIsH']
         for a in aliases:
-            self.assertEquals(end_ts, p.to_timestamp(how=a))
+            self.assertEquals(end_ts, p.to_timestamp('D', how=a))
 
         from_lst = ['A', 'Q', 'M', 'W', 'B',
                     'D', 'H', 'Min', 'S']
+
+        def _ex(p):
+            return Timestamp((p + 1).start_time.value - 1)
+
         for i, fcode in enumerate(from_lst):
             p = Period('1982', freq=fcode)
             result = p.to_timestamp().to_period(fcode)
@@ -227,7 +234,7 @@ class TestPeriodProperties(unittest.TestCase):
 
             self.assertEquals(p.start_time, p.to_timestamp(how='S'))
 
-            self.assertEquals(p.end_time, p.to_timestamp(how='E'))
+            self.assertEquals(p.end_time, _ex(p))
 
         # Frequency other than daily
 
@@ -241,8 +248,8 @@ class TestPeriodProperties(unittest.TestCase):
         expected = datetime(1985, 12, 31, 23, 59)
         self.assertEquals(result, expected)
 
-        result = p.to_timestamp('S', how='end')
-        expected = datetime(1985, 12, 31, 23, 59, 59)
+        result = p.to_timestamp(how='end')
+        expected = datetime(1985, 12, 31)
         self.assertEquals(result, expected)
 
         expected = datetime(1985, 1, 1)
@@ -254,6 +261,49 @@ class TestPeriodProperties(unittest.TestCase):
         self.assertEquals(result, expected)
 
         self.assertRaises(ValueError, p.to_timestamp, '5t')
+
+    def test_start_time(self):
+        freq_lst = ['A', 'Q', 'M', 'D', 'H', 'T', 'S']
+        xp = datetime(2012, 1, 1)
+        for f in freq_lst:
+            p = Period('2012', freq=f)
+            self.assertEquals(p.start_time, xp)
+        self.assertEquals(Period('2012', freq='B').start_time,
+                          datetime(2011, 12, 30))
+        self.assertEquals(Period('2012', freq='W').start_time,
+                          datetime(2011, 12, 26))
+
+    def test_end_time(self):
+        p = Period('2012', freq='A')
+
+        def _ex(*args):
+            return Timestamp(Timestamp(datetime(*args)).value - 1)
+
+        xp = _ex(2013, 1, 1)
+        self.assertEquals(xp, p.end_time)
+
+        p = Period('2012', freq='Q')
+        xp = _ex(2012, 4, 1)
+        self.assertEquals(xp, p.end_time)
+
+        p = Period('2012', freq='M')
+        xp = _ex(2012, 2, 1)
+        self.assertEquals(xp, p.end_time)
+
+        xp = _ex(2012, 1, 2)
+        p = Period('2012', freq='D')
+        self.assertEquals(p.end_time, xp)
+
+        xp = _ex(2012, 1, 1, 1)
+        p = Period('2012', freq='H')
+        self.assertEquals(p.end_time, xp)
+
+        xp = _ex(2012, 1, 2)
+        self.assertEquals(Period('2012', freq='B').end_time, xp)
+
+        xp = _ex(2012, 1, 2)
+        self.assertEquals(Period('2012', freq='W').end_time, xp)
+
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
@@ -376,6 +426,7 @@ class TestPeriodProperties(unittest.TestCase):
                           freq='2M')
 
         self.assertRaises(ValueError, Period, datetime.now())
+        self.assertRaises(ValueError, Period, datetime.now().date())
         self.assertRaises(ValueError, Period, 1.6, freq='D')
         self.assertRaises(ValueError, Period, ordinal=1.6, freq='D')
         self.assertRaises(ValueError, Period, ordinal=2, value=1, freq='D')
@@ -1134,6 +1185,35 @@ class TestPeriodIndex(unittest.TestCase):
         result = ts['2008':'2009']
         self.assertEquals(len(result), 24)
 
+        result = ts['2008-1':'2009-12']
+        self.assertEquals(len(result), 24)
+
+        result = ts['2008Q1':'2009Q4']
+        self.assertEquals(len(result), 24)
+
+        result = ts[:'2009']
+        self.assertEquals(len(result), 36)
+
+        result = ts['2009':]
+        self.assertEquals(len(result), 50 - 24)
+
+        exp = result
+        result = ts[24:]
+        assert_series_equal(exp, result)
+
+        ts = ts[10:].append(ts[10:])
+        self.assertRaises(ValueError, ts.__getitem__, slice('2008', '2009'))
+
+    def test_getitem_datetime(self):
+        rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
+        ts = Series(range(len(rng)), index=rng)
+
+        dt1 = datetime(2011, 10, 2)
+        dt4 = datetime(2012, 4, 20)
+
+        rs = ts[dt1:dt4]
+        assert_series_equal(rs, ts)
+
     def test_sub(self):
         rng = period_range('2007-01', periods=50)
 
@@ -1149,12 +1229,12 @@ class TestPeriodIndex(unittest.TestCase):
         series = Series(1, index=index, name='foo')
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
-        result = series.to_timestamp('D', 'end')
+        result = series.to_timestamp(how='end')
         self.assert_(result.index.equals(exp_index))
         self.assertEquals(result.name, 'foo')
 
         exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
-        result = series.to_timestamp('D', 'start')
+        result = series.to_timestamp(how='start')
         self.assert_(result.index.equals(exp_index))
 
 
@@ -1178,6 +1258,15 @@ class TestPeriodIndex(unittest.TestCase):
         self.assert_(result.index.equals(exp_index))
 
         self.assertRaises(ValueError, index.to_timestamp, '5t')
+
+        index = PeriodIndex(freq='H', start='1/1/2001', end='1/2/2001')
+        series = Series(1, index=index, name='foo')
+
+        exp_index = date_range('1/1/2001 00:59:59', end='1/2/2001 00:59:59',
+                               freq='H')
+        result = series.to_timestamp(how='end')
+        self.assert_(result.index.equals(exp_index))
+        self.assertEquals(result.name, 'foo')
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
@@ -1209,6 +1298,19 @@ class TestPeriodIndex(unittest.TestCase):
 
         ts = df['1/1/2000']
         assert_series_equal(ts, df.ix[:, 0])
+
+    def test_frame_setitem(self):
+        rng = period_range('1/1/2000', periods=5)
+        rng.name = 'index'
+        df = DataFrame(randn(5, 3), index=rng)
+
+        df['Index'] = rng
+        rs = Index(df['Index'])
+        self.assert_(rs.equals(rng))
+
+        rs = df.reset_index().set_index('index')
+        self.assert_(isinstance(rs.index, PeriodIndex))
+        self.assert_(rs.index.equals(rng))
 
     def test_nested_dict_frame_constructor(self):
         rng = period_range('1/1/2000', periods=5)
@@ -1806,6 +1908,22 @@ class TestPeriodIndex(unittest.TestCase):
 
         result = index.to_datetime()
         self.assertEquals(result[0], Timestamp('1/1/2012'))
+
+    def test_append_concat(self):
+        # #1815
+        d1 = date_range('12/31/1990', '12/31/1999', freq='A-DEC')
+        d2 = date_range('12/31/2000', '12/31/2009', freq='A-DEC')
+
+        s1 = Series(np.random.randn(10), d1)
+        s2 = Series(np.random.randn(10), d2)
+
+        s1 = s1.to_period()
+        s2 = s2.to_period()
+
+        # drops index
+        result = pd.concat([s1,s2])
+        self.assert_(isinstance(result.index, PeriodIndex))
+        self.assertEquals(result.index[0], s1.index[0])
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))

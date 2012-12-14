@@ -1078,8 +1078,8 @@ npy_int64 get_period_ordinal(int year, int month, int day,
 {
     npy_int64 absdays, delta;
     npy_int64 weeks, days;
-    npy_int64 adj_ordinal, ordinal, day_adj;
-    int freq_group, fmonth, mdiff, quarter;
+    npy_int64 ordinal, day_adj;
+    int freq_group, fmonth, mdiff;
     freq_group = get_freq_group(freq);
 
     if (freq == FR_SEC) {

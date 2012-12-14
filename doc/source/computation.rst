@@ -62,6 +62,21 @@ among the series in the DataFrame, also excluding NA/null values.
    frame = DataFrame(randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
    frame.cov()
 
+``DataFrame.cov`` also supports an optional ``min_periods`` keyword that
+specifies the required minimum number of observations for each column pair
+in order to have a valid result.
+
+.. ipython:: python
+
+   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame.ix[:5, 'a'] = np.nan
+   frame.ix[5:10, 'b'] = np.nan
+
+   frame.cov()
+
+   frame.cov(min_periods=12)
+
+
 .. _computation.correlation:
 
 Correlation
@@ -96,6 +111,19 @@ All of these are currently computed using pairwise complete observations.
 
 Note that non-numeric columns will be automatically excluded from the
 correlation calculation.
+
+Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
+
+.. ipython:: python
+
+   frame = DataFrame(randn(20, 3), columns=['a', 'b', 'c'])
+   frame.ix[:5, 'a'] = np.nan
+   frame.ix[5:10, 'b'] = np.nan
+
+   frame.corr()
+
+   frame.corr(min_periods=12)
+
 
 A related method ``corrwith`` is implemented on DataFrame to compute the
 correlation between like-labeled Series contained in different DataFrame
@@ -192,7 +220,7 @@ accept the following arguments:
   - ``window``: size of moving window
   - ``min_periods``: threshold of non-null data points to require (otherwise
     result is NA)
-  - ``freq``: optionally specify a :ref: `frequency string <timeseries.alias>`
+  - ``freq``: optionally specify a :ref:`frequency string <timeseries.alias>`
     or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
     Note that prior to pandas v0.8.0, a keyword argument ``time_rule`` was used
     instead of ``freq`` that referred to the legacy time rule constants
@@ -288,6 +316,79 @@ columns using ``ix`` indexing:
    @savefig rolling_corr_pairwise_ex.png width=4.5in
    correls.ix[:, 'A', 'C'].plot()
 
+Expanding window moment functions
+---------------------------------
+A common alternative to rolling statistics is to use an *expanding* window,
+which yields the value of the statistic with all the data available up to that
+point in time. As these calculations are a special case of rolling statistics,
+they are implemented in pandas such that the following two calls are equivalent:
+
+.. ipython:: python
+
+   rolling_mean(df, window=len(df), min_periods=1)[:5]
+
+   expanding_mean(df)[:5]
+
+Like the ``rolling_`` functions, the following methods are included in the
+``pandas`` namespace or can be located in ``pandas.stats.moments``.
+
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
+
+    ``expanding_count``, Number of non-null observations
+    ``expanding_sum``, Sum of values
+    ``expanding_mean``, Mean of values
+    ``expanding_median``, Arithmetic median of values
+    ``expanding_min``, Minimum
+    ``expanding_max``, Maximum
+    ``expanding_std``, Unbiased standard deviation
+    ``expanding_var``, Unbiased variance
+    ``expanding_skew``, Unbiased skewness (3rd moment)
+    ``expanding_kurt``, Unbiased kurtosis (4th moment)
+    ``expanding_quantile``, Sample quantile (value at %)
+    ``expanding_apply``, Generic apply
+    ``expanding_cov``, Unbiased covariance (binary)
+    ``expanding_corr``, Correlation (binary)
+    ``expanding_corr_pairwise``, Pairwise correlation of DataFrame columns
+
+Aside from not having a ``window`` parameter, these functions have the same
+interfaces as their ``rolling_`` counterpart. Like above, the parameters they
+all accept are:
+
+  - ``min_periods``: threshold of non-null data points to require. Defaults to
+    minimum needed to compute statistic. No ``NaNs`` will be output once
+    ``min_periods`` non-null data points have been seen.
+  - ``freq``: optionally specify a :ref:`frequency string <timeseries.alias>`
+    or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
+    Note that prior to pandas v0.8.0, a keyword argument ``time_rule`` was used
+    instead of ``freq`` that referred to the legacy time rule constants
+
+.. note::
+
+   The output of the ``rolling_`` and ``expanding_`` functions do not return a
+   ``NaN`` if there are at least ``min_periods`` non-null values in the current
+   window. This differs from ``cumsum``, ``cumprod``, ``cummax``, and
+   ``cummin``, which return ``NaN`` in the output wherever a ``NaN`` is
+   encountered in the input.
+
+An expanding window statistic will be more stable (and less responsive) than
+its rolling window counterpart as the increasing window size decreases the
+relative impact of an individual data point. As an example, here is the
+``expanding_mean`` output for the previous time series dataset:
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+.. ipython:: python
+
+   ts.plot(style='k--')
+
+   @savefig expanding_mean_frame.png width=4.5in
+   expanding_mean(ts).plot(style='k')
+
 Exponentially weighted moment functions
 ---------------------------------------
 
@@ -324,8 +425,8 @@ available:
     :widths: 20, 80
 
     ``ewma``, EW moving average
-    ``ewvar``, EW moving variance
-    ``ewstd``, EW moving standard deviation
+    ``ewmvar``, EW moving variance
+    ``ewmstd``, EW moving standard deviation
     ``ewmcorr``, EW moving correlation
     ``ewmcov``, EW moving covariance
 

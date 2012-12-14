@@ -122,6 +122,18 @@ s = Series(np.random.randint(0, 1000, size=100000))
 series_value_counts_int64 = Benchmark('s.value_counts()', setup,
                                       start_date=datetime(2011, 10, 21))
 
+# value_counts on lots of strings
+
+setup = common_setup + """
+K = 1000
+N = 100000
+uniques = np.array([rands(10) for x in xrange(K)], dtype='O')
+s = Series(np.tile(uniques, N // K))
+"""
+
+series_value_counts_strings = Benchmark('s.value_counts()', setup,
+                                        start_date=datetime(2011, 10, 21))
+
 #----------------------------------------------------------------------
 # pivot_table
 
@@ -220,3 +232,24 @@ groupby_simple_compress_timing = \
     Benchmark('df.groupby(labels).mean()', setup,
               start_date=datetime(2011, 8, 1))
 
+
+#----------------------------------------------------------------------
+# DataFrame Apply overhead
+
+setup = common_setup + """
+N = 10000
+labels = np.random.randint(0, 2000, size=N)
+labels2 = np.random.randint(0, 3, size=N)
+df = DataFrame({'key': labels,
+                'key2': labels2,
+                'value1': randn(N),
+                'value2': ['foo', 'bar', 'baz', 'qux'] * (N / 4)})
+def f(g):
+    return 1
+"""
+
+groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,
+                                         start_date=datetime(2011, 10, 1))
+
+groupbym_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
+                                 start_date=datetime(2011, 10, 1))

@@ -1,3 +1,4 @@
+
 .. _io:
 
 .. currentmodule:: pandas
@@ -8,6 +9,7 @@
    import os
    import csv
    from StringIO import StringIO
+   import pandas as pd
 
    import numpy as np
    np.random.seed(123456)
@@ -26,33 +28,6 @@
 IO Tools (Text, CSV, HDF5, ...)
 *******************************
 
-Clipboard
----------
-
-.. _io.clipboard:
-
-A handy way to grab data is to use the ``read_clipboard`` method, which takes
-the contents of the clipboard buffer and passes them to the ``read_table``
-method described in the next section. For instance, you can copy the following
-text to the clipboard (CTRL-C on many operating systems):
-
-.. code-block:: python
-
-     A B C
-   x 1 4 p
-   y 2 5 q
-   z 3 6 r
-
-And then import the data directly to a DataFrame by calling:
-
-.. code-block:: python
-
-   clipdf = read_clipboard(sep='\s*')
-
-.. ipython:: python
-
-   clipdf
-
 .. _io.read_csv_table:
 
 CSV & Text files
@@ -68,10 +43,15 @@ data into a DataFrame object. They can take a number of arguments:
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some
     cases by "sniffing." The separator may be specified as a regular
-    expression; for instance you may use '\s*' to indicate arbitrary
-    whitespace.
-  - ``dialect``: string or csv.Dialect instance to expose more ways to specify
-    the file format
+    expression; for instance you may use '\|\s*' to indicate a pipe plus
+    arbitrary whitespace.
+  - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
+    (much faster than using a regular expression)
+  - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
+  - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more
+    ways to specify the file format
+  - ``dtype``: A data type name or a dict of column name to data type. If not
+    specified, data types will be inferred.
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
@@ -81,10 +61,12 @@ data into a DataFrame object. They can take a number of arguments:
     it will number the rows without using any column, unless there is one more
     data column than there are headers, in which case the first column is taken
     as the index.
-  - ``names``: List of column names to use. If passed, header will be
-    implicitly set to None.
+  - ``names``: List of column names to use. If file contains no header row,
+    then you should explicitly pass header=None (behavior changed in v0.10.0).
   - ``na_values``: optional list of strings to recognize as NaN (missing
     values), either in addition to or in lieu of the default set.
+  - ``true_values``: list of strings to recognize as ``True``
+  - ``false_values``: list of strings to recognize as ``False``
   - ``keep_default_na``: whether to include the default set of missing values
     in addition to the ones specified in ``na_values``
   - ``parse_dates``: if True then index will be parsed as dates
@@ -119,8 +101,8 @@ data into a DataFrame object. They can take a number of arguments:
   - ``skip_footer``: number of lines to skip at bottom of file (default 0)
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
-  - ``encoding``: a string representing the encoding to use if the contents are
-    non-ascii
+  - ``encoding``: a string representing the encoding to use for decoding
+    unicode data, e.g. ``'utf-8``` or ``'latin-1'``.
   - ``verbose``: show number of NA values inserted in non-numeric columns
   - ``squeeze``: if True then output with only one column is turned into Series
 
@@ -141,30 +123,30 @@ The default for `read_csv` is to create a DataFrame with simple numbered rows:
 
 .. ipython:: python
 
-   read_csv('foo.csv')
+   pd.read_csv('foo.csv')
 
 In the case of indexed data, you can pass the column number or column name you
 wish to use as the index:
 
 .. ipython:: python
 
-   read_csv('foo.csv', index_col=0)
+   pd.read_csv('foo.csv', index_col=0)
 
 .. ipython:: python
 
-   read_csv('foo.csv', index_col='date')
+   pd.read_csv('foo.csv', index_col='date')
 
 You can also use a list of columns to create a hierarchical index:
 
 .. ipython:: python
 
-   read_csv('foo.csv', index_col=[0, 'A'])
+   pd.read_csv('foo.csv', index_col=[0, 'A'])
 
 .. _io.dialect:
 
 The ``dialect`` keyword gives greater flexibility in specifying the file format.
 By default it uses the Excel dialect but you can specify either the dialect name
-or a `csv.Dialect <docs.python.org/library/csv.html#csv.Dialect>`_ instance.
+or a :class:`python:csv.Dialect` instance.
 
 .. ipython:: python
    :suppress:
@@ -189,19 +171,143 @@ We can get around this using ``dialect``
 
    dia = csv.excel()
    dia.quoting = csv.QUOTE_NONE
-   read_csv(StringIO(data), dialect=dia)
+   pd.read_csv(StringIO(data), dialect=dia)
+
+All of the dialect options can be specified separately by keyword arguments:
+
+.. ipython:: python
+
+    data = 'a,b,c~1,2,3~4,5,6'
+    pd.read_csv(StringIO(data), lineterminator='~')
 
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
 integer dtype without altering the contents, it will do so. Any non-numeric
 columns will come through as object dtype as with the rest of pandas objects.
 
+.. _io.dtypes:
+
+Specifying column data types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Starting with v0.10, you can indicate the data type for the whole DataFrame or
+individual columns:
+
+.. ipython:: python
+
+    data = 'a,b,c\n1,2,3\n4,5,6\n7,8,9'
+    print data
+
+    df = pd.read_csv(StringIO(data), dtype=object)
+    df
+    df['a'][0]
+    df = pd.read_csv(StringIO(data), dtype={'b': object, 'c': np.float64})
+    df.dtypes
+
+.. _io.headers:
+
+Handling column names
+~~~~~~~~~~~~~~~~~~~~~
+
+A file may or may not have a header row. pandas assumes the first row should be
+used as the column names:
+
+.. ipython:: python
+
+    from StringIO import StringIO
+    data = 'a,b,c\n1,2,3\n4,5,6\n7,8,9'
+    print data
+    pd.read_csv(StringIO(data))
+
+By specifying the ``names`` argument in conjunction with ``header`` you can
+indicate other names to use and whether or not to throw away the header row (if
+any):
+
+.. ipython:: python
+
+    print data
+    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'])
+    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=None)
+
+If the header is in a row other than the first, pass the row number to
+``header``. This will skip the preceding rows:
+
+.. ipython:: python
+
+    data = 'skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9'
+    pd.read_csv(StringIO(data), header=1)
+
+.. _io.usecols:
+
+Filtering columns (``usecols``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``usecols`` argument allows you to select any subset of the columns in a
+file, either using the column names or position numbers:
+
+.. ipython:: python
+
+    data = 'a,b,c,d\n1,2,3,foo\n4,5,6,bar\n7,8,9,baz'
+    pd.read_csv(StringIO(data))
+    pd.read_csv(StringIO(data), usecols=['b', 'd'])
+    pd.read_csv(StringIO(data), usecols=[0, 2, 3])
+
+.. _io.unicode:
+
+Dealing with Unicode Data
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``encoding`` argument should be used for encoded unicode data, which will
+result in byte strings being decoded to unicode in the result:
+
+.. ipython:: python
+
+   data = 'word,length\nTr\xe4umen,7\nGr\xfc\xdfe,5'
+   df = pd.read_csv(StringIO(data), encoding='latin-1')
+   df
+   df['word'][1]
+
+Some formats which encode all characters as multiple bytes, like UTF-16, won't
+parse correctly at all without specifying the encoding.
+
+.. _io.index_col:
+
+Index columns and trailing delimiters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If a file has one more column of data than the number of column names, the
+first column will be used as the DataFrame's row names:
+
+.. ipython:: python
+
+    data = 'a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
+    pd.read_csv(StringIO(data))
+
+.. ipython:: python
+
+    data = 'index,a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
+    pd.read_csv(StringIO(data), index_col=0)
+
+Ordinarily, you can achieve this behavior using the ``index_col`` option.
+
+There are some exception cases when a file has been prepared with delimiters at
+the end of each data line, confusing the parser. To explicitly disable the
+index column inference and discard the last column, pass ``index_col=False``:
+
+.. ipython:: python
+
+    data = 'a,b,c\n4,apple,bat,\n8,orange,cow,'
+    print data
+    pd.read_csv(StringIO(data))
+    pd.read_csv(StringIO(data), index_col=False)
+
 .. _io.parse_dates:
 
 Specifying Date Columns
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-To better facilitate working with datetime data, :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`
+To better facilitate working with datetime data,
+:func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`
 uses the keyword arguments ``parse_dates`` and ``date_parser`` to allow users
 to specify a variety of columns and date/time formats to turn the input text
 data into ``datetime`` objects.
@@ -211,7 +317,7 @@ The simplest case is to just pass in ``parse_dates=True``:
 .. ipython:: python
 
    # Use a column as an index, and parse it as dates.
-   df = read_csv('foo.csv', index_col=0, parse_dates=True)
+   df = pd.read_csv('foo.csv', index_col=0, parse_dates=True)
    df
 
    # These are python datetime objects
@@ -247,7 +353,7 @@ column names:
 .. ipython:: python
 
     print open('tmp.csv').read()
-    df = read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]])
+    df = pd.read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]])
     df
 
 By default the parser removes the component date columns, but you can choose
@@ -255,8 +361,8 @@ to retain them via the ``keep_date_col`` keyword:
 
 .. ipython:: python
 
-   df = read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]],
-                 keep_date_col=True)
+   df = pd.read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]],
+                    keep_date_col=True)
    df
 
 Note that if you wish to combine multiple columns into a single date column, a
@@ -270,7 +376,7 @@ You can also use a dict to specify custom name columns:
 .. ipython:: python
 
    date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
-   df = read_csv('tmp.csv', header=None, parse_dates=date_spec)
+   df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec)
    df
 
 It is important to remember that if multiple text columns are to be parsed into
@@ -282,9 +388,16 @@ data columns:
 .. ipython:: python
 
    date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
-   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                 index_col=0) #index is the nominal column
+   df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
+                    index_col=0) #index is the nominal column
    df
+
+**Note**: When passing a dict as the `parse_dates` argument, the order of
+the columns prepended is not guaranteed, because `dict` objects do not impose
+an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
+instead of a regular `dict` if this matters to you. Because of this, when using a
+dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
+specify `index_col` as a column label rather then as an index on the resulting frame.
 
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -294,8 +407,8 @@ take full advantage of the flexiblity of the date parsing API:
 .. ipython:: python
 
    import pandas.io.date_converters as conv
-   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                 date_parser=conv.parse_date_time)
+   df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
+                    date_parser=conv.parse_date_time)
    df
 
 You can explore the date parsing functionality in ``date_converters.py`` and
@@ -329,9 +442,8 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 
    print open('tmp.csv').read()
 
-   read_csv('tmp.csv', parse_dates=[0])
-
-   read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
+   pd.read_csv('tmp.csv', parse_dates=[0])
+   pd.read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
 
 .. _io.thousands:
 
@@ -357,7 +469,7 @@ By default, integers with a thousands separator will be parsed as strings
 .. ipython:: python
 
     print open('tmp.csv').read()
-    df = read_csv('tmp.csv', sep='|')
+    df = pd.read_csv('tmp.csv', sep='|')
     df
 
     df.level.dtype
@@ -367,7 +479,7 @@ The ``thousands`` keyword allows integers to be parsed correctly
 .. ipython:: python
 
     print open('tmp.csv').read()
-    df = read_csv('tmp.csv', sep='|', thousands=',')
+    df = pd.read_csv('tmp.csv', sep='|', thousands=',')
     df
 
     df.level.dtype
@@ -402,14 +514,14 @@ By default, the parse includes the comments in the output:
 
 .. ipython:: python
 
-   df = read_csv('tmp.csv')
+   df = pd.read_csv('tmp.csv')
    df
 
 We can suppress the comments using the ``comment`` keyword:
 
 .. ipython:: python
 
-   df = read_csv('tmp.csv', comment='#')
+   df = pd.read_csv('tmp.csv', comment='#')
    df
 
 .. ipython:: python
@@ -438,7 +550,7 @@ as a ``Series``:
 
    print open('tmp.csv').read()
 
-   output =  read_csv('tmp.csv', squeeze=True)
+   output =  pd.read_csv('tmp.csv', squeeze=True)
    output
 
    type(output)
@@ -447,6 +559,73 @@ as a ``Series``:
    :suppress:
 
    os.remove('tmp.csv')
+
+.. _io.boolean:
+
+Boolean values
+~~~~~~~~~~~~~~
+
+The common values ``True``, ``False``, ``TRUE``, and ``FALSE`` are all
+recognized as boolean. Sometime you would want to recognize some other values
+as being boolean. To do this use the ``true_values`` and ``false_values``
+options:
+
+.. ipython:: python
+
+    data= 'a,b,c\n1,Yes,2\n3,No,4'
+    print data
+    pd.read_csv(StringIO(data))
+    pd.read_csv(StringIO(data), true_values=['Yes'], false_values=['No'])
+
+.. _io.bad_lines:
+
+Handling "bad" lines
+~~~~~~~~~~~~~~~~~~~~
+
+Some files may have malformed lines with too few fields or too many. Lines with
+too few fields will have NA values filled in the trailing fields. Lines with
+too many will cause an error by default:
+
+.. ipython:: python
+   :suppress:
+
+    data = 'a,b,c\n1,2,3\n4,5,6,7\n8,9,10'
+
+.. code-block:: ipython
+
+    In [27]: data = 'a,b,c\n1,2,3\n4,5,6,7\n8,9,10'
+
+    In [28]: pd.read_csv(StringIO(data))
+    ---------------------------------------------------------------------------
+    CParserError                              Traceback (most recent call last)
+    CParserError: Error tokenizing data. C error: Expected 3 fields in line 3, saw 4
+
+You can elect to skip bad lines:
+
+.. code-block:: ipython
+
+    In [29]: pd.read_csv(StringIO(data), error_bad_lines=False)
+    Skipping line 3: expected 3 fields, saw 4
+
+    Out[29]:
+       a  b   c
+    0  1  2   3
+    1  8  9  10
+
+.. _io.quoting:
+
+Quoting and Escape Characters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Quotes (and other escape characters) in embedded fields can be handled in any
+number of ways. One way is to use backslashes; to properly parse this data, you
+should pass the ``escapechar`` option:
+
+.. ipython:: python
+
+   data = 'a,b\n"hello, \\"Bob\\", nice to see you",5'
+   print data
+   pd.read_csv(StringIO(data), escapechar='\\')
 
 .. _io.fwf:
 
@@ -487,7 +666,7 @@ column specifications to the `read_fwf` function along with the file name:
 
    #Column specifications are a list of half-intervals
    colspecs = [(0, 6), (8, 20), (21, 33), (34, 43)]
-   df = read_fwf('bar.csv', colspecs=colspecs, header=None, index_col=0)
+   df = pd.read_fwf('bar.csv', colspecs=colspecs, header=None, index_col=0)
    df
 
 Note how the parser automatically picks column names X.<column number> when
@@ -498,7 +677,7 @@ column widths for contiguous columns:
 
    #Widths are a list of integers
    widths = [6, 14, 13, 10]
-   df = read_fwf('bar.csv', widths=widths, header=None)
+   df = pd.read_fwf('bar.csv', widths=widths, header=None)
    df
 
 The parser will take care of extra white spaces around the columns
@@ -531,14 +710,14 @@ as the index of the DataFrame:
 
 .. ipython:: python
 
-   read_csv('foo.csv')
+   pd.read_csv('foo.csv')
 
 Note that the dates weren't automatically parsed. In that case you would need
 to do as before:
 
 .. ipython:: python
 
-   df = read_csv('foo.csv', parse_dates=True)
+   df = pd.read_csv('foo.csv', parse_dates=True)
    df.index
 
 .. ipython:: python
@@ -563,7 +742,7 @@ column numbers to turn multiple columns into a ``MultiIndex``:
 
 .. ipython:: python
 
-   df = read_csv("data/mindex_ex.csv", index_col=[0,1])
+   df = pd.read_csv("data/mindex_ex.csv", index_col=[0,1])
    df
    df.ix[1978]
 
@@ -573,8 +752,8 @@ Automatically "sniffing" the delimiter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``read_csv`` is capable of inferring delimited (not necessarily
-comma-separated) files. YMMV, as pandas uses the Sniffer_ class of the csv
-module.
+comma-separated) files. YMMV, as pandas uses the :class:`python:csv.Sniffer`
+class of the csv module.
 
 .. ipython:: python
    :suppress:
@@ -586,9 +765,7 @@ module.
 .. ipython:: python
 
     print open('tmp2.sv').read()
-    read_csv('tmp2.sv')
-
-.. _Sniffer: http://docs.python.org/library/csv.html#csv.Sniffer
+    pd.read_csv('tmp2.sv')
 
 .. _io.chunking:
 
@@ -602,7 +779,7 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
 
    print open('tmp.sv').read()
-   table = read_table('tmp.sv', sep='|')
+   table = pd.read_table('tmp.sv', sep='|')
    table
 
 
@@ -611,7 +788,7 @@ value will be an iterable object of type ``TextParser``:
 
 .. ipython:: python
 
-   reader = read_table('tmp.sv', sep='|', chunksize=4)
+   reader = pd.read_table('tmp.sv', sep='|', chunksize=4)
    reader
 
    for chunk in reader:
@@ -622,7 +799,7 @@ Specifying ``iterator=True`` will also return the ``TextParser`` object:
 
 .. ipython:: python
 
-   reader = read_table('tmp.sv', sep='|', iterator=True)
+   reader = pd.read_table('tmp.sv', sep='|', iterator=True)
    reader.get_chunk(5)
 
 .. ipython:: python
@@ -649,7 +826,7 @@ function takes a number of arguments. Only the first is required.
     (default), and `header` and `index` are True, then the index names are
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
-  - ``sep`` : Field delimiter for the output file (default "'")
+  - ``sep`` : Field delimiter for the output file (default ",")
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3
 
@@ -663,7 +840,7 @@ over the string representation of the object. All arguments are optional:
 
   - ``buf`` default None, for example a StringIO object
   - ``columns`` default None, which columns to write
-  - ``col_space`` default None, number of spaces to write between columns
+  - ``col_space`` default None, minimum width of each column.
   - ``na_rep`` default ``NaN``, representation of NA value
   - ``formatters`` default None, a dictionary (by column) of functions each of
     which takes a single argument and returns a formatted string
@@ -692,9 +869,36 @@ DataFrame object has an instance method ``to_html`` which renders the contents
 of the DataFrame as an html table. The function arguments are as in the method
 ``to_string`` described above.
 
+Clipboard
+---------
+
+.. _io.clipboard:
+
+A handy way to grab data is to use the ``read_clipboard`` method, which takes
+the contents of the clipboard buffer and passes them to the ``read_table``
+method described in the next section. For instance, you can copy the following
+text to the clipboard (CTRL-C on many operating systems):
+
+.. code-block:: python
+
+     A B C
+   x 1 4 p
+   y 2 5 q
+   z 3 6 r
+
+And then import the data directly to a DataFrame by calling:
+
+.. code-block:: python
+
+   clipdf = pd.read_clipboard(delim_whitespace=True)
+
+.. ipython:: python
+
+   clipdf
+
 
 Excel files
-----------------
+-----------
 
 The ``ExcelFile`` class can read an Excel 2003 file using the ``xlrd`` Python
 module and use the same parsing code as the above to convert tabular data into
@@ -757,6 +961,7 @@ one can use the ExcelWriter class, as in the following example:
    df2.to_excel(writer, sheet_name='sheet2')
    writer.save()
 
+.. _io-hdf5:
 
 HDF5 (PyTables)
 ---------------
@@ -788,16 +993,33 @@ Objects can be written to the file just like adding key-value pairs to a dict:
               major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
+   # store.put('s', s) is an equivalent method
    store['s'] = s
+
    store['df'] = df
+
    store['wp'] = wp
+
+   # the type of stored data
+   store.handle.root.wp._v_attrs.pandas_type
+
    store
 
 In a current or later Python session, you can retrieve stored objects:
 
 .. ipython:: python
 
+   # store.get('df') is an equivalent method
    store['df']
+
+Deletion of the object specified by the key
+
+.. ipython:: python
+
+   # store.remove('wp') is an equivalent method
+   del store['wp']
+
+   store
 
 .. ipython:: python
    :suppress:
@@ -807,8 +1029,163 @@ In a current or later Python session, you can retrieve stored objects:
    os.remove('store.h5')
 
 
-.. Storing in Table format
-.. ~~~~~~~~~~~~~~~~~~~~~~~
+These stores are **not** appendable once written (though you can simply remove them and rewrite). Nor are they **queryable**; they must be retrieved in their entirety.
 
-.. Querying objects stored in Table format
-.. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Storing in Table format
+~~~~~~~~~~~~~~~~~~~~~~~
+
+``HDFStore`` supports another ``PyTables`` format on disk, the ``table`` format. Conceptually a ``table`` is shaped
+very much like a DataFrame, with rows and columns. A ``table`` may be appended to in the same or other sessions.
+In addition, delete & query type operations are supported. You can create an index with ``create_table_index``
+after data is already in the table (this may become automatic in the future or an option on appending/putting a ``table``).
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('store.h5')
+
+.. ipython:: python
+
+   store = HDFStore('store.h5')
+   df1 = df[0:4]
+   df2 = df[4:]
+
+   # append data (creates a table automatically)
+   store.append('df', df1)
+   store.append('df', df2)
+   store
+
+   # select the entire object
+   store.select('df')
+
+   # the type of stored data
+   store.handle.root.df._v_attrs.pandas_type
+
+   # create an index
+   store.create_table_index('df')
+   store.handle.root.df.table
+
+Hierarchical Keys
+~~~~~~~~~~~~~~~~~
+
+Keys to a store can be specified as a string. These can be in a hierarchical path-name like format (e.g. ``foo/bar/bah``), which will generate a hierarchy of sub-stores (or ``Groups`` in PyTables parlance). Keys can be specified with out the leading '/' and are ALWAYS absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove everying in the sub-store and BELOW, so be *careful*.
+
+.. ipython:: python
+
+   store.put('foo/bar/bah', df)
+   store.append('food/orange', df)
+   store.append('food/apple',  df)
+   store
+
+   # a list of keys are returned
+   store.keys()
+
+   # remove all nodes under this level
+   store.remove('food')
+   store
+
+Storing Mixed Types in a Table
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
+Passing ``min_itemsize = { column_name : size }`` as a paremeter to append will set a larger minimum for the column. Storing ``floats, strings, ints, bools`` are currently supported.
+
+.. ipython:: python
+
+    df_mixed             = df.copy()
+    df_mixed['string']   = 'string'
+    df_mixed['int']      = 1
+    df_mixed['bool']     = True
+
+    store.append('df_mixed',df_mixed)
+    df_mixed1 = store.select('df_mixed')
+    df_mixed1
+    df_mixed1.get_dtype_counts()
+
+
+Querying a Table
+~~~~~~~~~~~~~~~~
+
+``select`` and ``delete`` operations have an optional criteria that can be specified to select/delete only
+a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
+
+A query is specified using the ``Term`` class under the hood.
+
+   - 'index' and 'columns' are supported indexers of a DataFrame
+   - 'major_axis', 'minor_axis', and 'items' are supported indexers of the Panel
+
+Valid terms can be created from ``dict, list, tuple, or string``. Objects can be embeded as values. Allowed operations are: ``<, <=, >, >=, =``. ``=`` will be inferred as an implicit set operation (e.g. if 2 or more values are provided). The following are all valid terms.
+
+       - ``dict(field = 'index', op = '>', value = '20121114')``
+       - ``('index', '>', '20121114')``
+       - ``'index>20121114'``
+       - ``('index', '>', datetime(2012,11,14))``
+       - ``('index', ['20121114','20121115'])``
+       - ``('major_axis', '=', Timestamp('2012/11/14'))``
+       - ``('minor_axis', ['A','B'])``
+
+Queries are built up using a list of ``Terms`` (currently only **anding** of terms is supported). An example query for a panel might be specified as follows.
+``['major_axis>20000102', ('minor_axis', '=', ['A','B']) ]``. This is roughly translated to: `major_axis must be greater than the date 20000102 and the minor_axis must be A or B`
+
+.. ipython:: python
+
+   store.append('wp',wp)
+   store
+   store.select('wp',[ 'major_axis>20000102', ('minor_axis', '=', ['A','B']) ])
+
+Delete from a Table
+~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+
+   store.remove('wp', 'major_axis>20000102' )
+   store.select('wp')
+
+Notes & Caveats
+~~~~~~~~~~~~~~~
+
+   - Selection by items (the top level panel dimension) is not possible; you always get all of the items in the returned Panel
+   - Once a ``table`` is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
+   - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
+   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *column* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information). This is **ONLY** necessary for storing ``Panels`` (as the indexing column is stored directly in a column)
+
+     .. ipython:: python
+
+        store.append('wp_big_strings', wp, min_itemsize = 30)
+	wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
+        store.append('wp_big_strings', wp)
+        store.select('wp_big_strings')
+
+Compatibility
+~~~~~~~~~~~~~
+
+0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
+however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
+file and write it out using the new format to take advantage of the updates.
+
+
+Performance
+~~~~~~~~~~~
+
+   - ``Tables`` come with a performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
+     Write times are generally longer as compared with regular stores. Query times can be quite fast, especially on an indexed axis.
+   - ``Tables`` can (as of 0.10.0) be expressed as different types.
+
+     - ``AppendableTable`` which is a similiar table to past versions (this is the default).
+     - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
+
+   - To delete a lot of data, it is sometimes better to erase the table and rewrite it. ``PyTables`` tends to increase the file size with deletions
+   - In general it is best to store Panels with the most frequently selected dimension in the minor axis and a time/date like dimension in the major axis, but this is not required. Panels can have any major_axis and minor_axis type that is a valid Panel indexer.
+   - No dimensions are currently indexed automagically (in the ``PyTables`` sense); these require an explict call to ``create_table_index``
+   - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
+     use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
+   - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+
+.. ipython:: python
+   :suppress:
+
+   store.close()
+   import os
+   os.remove('store.h5')

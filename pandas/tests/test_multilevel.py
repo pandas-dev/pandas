@@ -15,8 +15,13 @@ from pandas.util.testing import (assert_almost_equal,
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.compat import product as cart_product
+import pandas as pd
+
+import pandas.index as _index
 
 class TestMultiLevel(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -273,6 +278,34 @@ class TestMultiLevel(unittest.TestCase):
         df.ix[:,:] = 10
         assert_frame_equal(df, result)
 
+    def test_frame_setitem_multi_column(self):
+        df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
+                                              [0, 1, 0, 1]])
+
+        cp = df.copy()
+        cp['a'] = cp['b']
+        assert_frame_equal(cp['a'], cp['b'])
+
+        # set with ndarray
+        cp = df.copy()
+        cp['a'] = cp['b'].values
+        assert_frame_equal(cp['a'], cp['b'])
+
+        #----------------------------------------
+        # #1803
+        columns = MultiIndex.from_tuples([('A', '1'), ('A', '2'), ('B', '1')])
+        df = DataFrame(index=[1, 3, 5], columns=columns)
+
+        # Works, but adds a column instead of updating the two existing ones
+        df['A'] = 0.0 # Doesn't work
+        self.assertTrue((df['A'].values == 0).all())
+
+        # it broadcasts
+        df['B', '1'] = [1, 2, 3]
+        df['A'] = df['B', '1']
+        assert_almost_equal(df['A', '1'], df['B', '1'])
+        assert_almost_equal(df['A', '2'], df['B', '1'])
+
     def test_getitem_tuple_plus_slice(self):
         # GH #671
         df = DataFrame({'a' : range(10),
@@ -298,6 +331,16 @@ class TestMultiLevel(unittest.TestCase):
         expected = df.ix[2000, 1, 6][['A', 'B', 'C']]
         assert_series_equal(result, expected)
 
+    def test_getitem_multilevel_index_tuple_unsorted(self):
+        index_columns = list("abc")
+        df = DataFrame([[0, 1, 0, "x"], [0, 0, 1, "y"]] ,
+                       columns=index_columns + ["data"])
+        df = df.set_index(index_columns)
+        query_index = df.index[:1]
+        rs = df.ix[query_index, "data"]
+        xp = Series(['x'], index=MultiIndex.from_tuples([(0, 1, 0)]))
+        assert_series_equal(rs, xp)
+
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
         xs2 = self.frame.ix[('bar', 'two')]
@@ -311,6 +354,22 @@ class TestMultiLevel(unittest.TestCase):
         expected = self.frame.T['foo'].T
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
+
+        result = self.ymd.xs((2000, 4))
+        expected = self.ymd.ix[2000, 4]
+        assert_frame_equal(result, expected)
+
+        # ex from #1796
+        index = MultiIndex(levels=[['foo', 'bar'], ['one', 'two'], [-1, 1]],
+                           labels=[[0, 0, 0, 0, 1, 1, 1, 1],
+                                   [0, 0, 1, 1, 0, 0, 1, 1],
+                                   [0, 1, 0, 1, 0, 1, 0, 1]])
+        df = DataFrame(np.random.randn(8, 4), index=index,
+                       columns=list('abcd'))
+
+        result = df.xs(['foo', 'one'])
+        expected = df.ix['foo', 'one']
+        assert_frame_equal(result, expected)
 
     def test_xs_level(self):
         result = self.frame.xs('two', level='second')
@@ -341,6 +400,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
         assert_frame_equal(result, expected)
+
+        #GH2107
+        dates = range(20111201, 20111205)
+        ids = 'abcde'
+        idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
+        idx.names = ['date', 'secid']
+        df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
+        rs = df.xs(20111201, level='date')
+        xp = df.ix[20111201, :]
+        assert_frame_equal(rs, xp)
 
     def test_xs_level0(self):
         from pandas import read_table
@@ -523,6 +592,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # preserve names
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
 
+        #inplace
+        rs = self.frame.copy()
+        rs.sortlevel(0, inplace=True)
+        assert_frame_equal(rs, self.frame.sortlevel(0))
+
+
     def test_delevel_infer_dtype(self):
         tuples = [tuple for tuple in cart_product(['foo', 'bar'],
                                                   [10, 20], [1.0, 1.1])]
@@ -695,6 +770,28 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.ymd.unstack(0).stack(-2)
         expected = self.ymd.unstack(0).stack(0)
 
+    def test_unstack_odd_failure(self):
+        data = """day,time,smoker,sum,len
+Fri,Dinner,No,8.25,3.
+Fri,Dinner,Yes,27.03,9
+Fri,Lunch,No,3.0,1
+Fri,Lunch,Yes,13.68,6
+Sat,Dinner,No,139.63,45
+Sat,Dinner,Yes,120.77,42
+Sun,Dinner,No,180.57,57
+Sun,Dinner,Yes,66.82,19
+Thur,Dinner,No,3.0,1
+Thur,Lunch,No,117.32,44
+Thur,Lunch,Yes,51.51,17"""
+
+        df = pd.read_csv(StringIO(data)).set_index(['day', 'time', 'smoker'])
+
+        # it works, #2100
+        result = df.unstack(2)
+
+        recons = result.stack()
+        assert_frame_equal(recons, df)
+
     def test_stack_mixed_dtype(self):
         df = self.frame.T
         df['foo', 'four'] = 'foo'
@@ -779,6 +876,38 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         applied = grouped.apply(lambda x: x * 2)
         expected = grouped.transform(lambda x: x * 2)
         assert_series_equal(applied.reindex(expected.index), expected)
+
+    def test_unstack_sparse_keyspace(self):
+        # memory problems with naive impl #2278
+        # Generate Long File & Test Pivot
+        NUM_ROWS = 1000
+
+        df = DataFrame({'A' : np.random.randint(100, size=NUM_ROWS),
+                        'B' : np.random.randint(300, size=NUM_ROWS),
+                        'C' : np.random.randint(-7, 7, size=NUM_ROWS),
+                        'D' : np.random.randint(-19,19, size=NUM_ROWS),
+                        'E' : np.random.randint(3000, size=NUM_ROWS),
+                        'F' : np.random.randn(NUM_ROWS)})
+
+        idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
+
+        # it works! is sufficient
+        idf.unstack('E')
+
+    def test_unstack_unobserved_keys(self):
+        # related to #2278 refactoring
+        levels = [[0, 1], [0, 1, 2, 3]]
+        labels = [[0, 0, 1, 1], [0, 2, 0, 2]]
+
+        index = MultiIndex(levels, labels)
+
+        df = DataFrame(np.random.randn(4, 2), index=index)
+
+        result = df.unstack()
+        self.assertEquals(len(result.columns), 4)
+
+        recons = result.stack()
+        assert_frame_equal(recons, df)
 
     def test_groupby_corner(self):
         midx = MultiIndex(levels=[['foo'],['bar'],['baz']],
@@ -1287,6 +1416,27 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                             ('routine2', 'result1', '')], axis=1)
         assert_frame_equal(expected, result)
 
+    def test_drop_nonunique(self):
+        df = DataFrame([["x-a", "x", "a", 1.5],["x-a", "x", "a", 1.2],
+                        ["z-c", "z", "c", 3.1], ["x-a", "x", "a", 4.1],
+                        ["x-b", "x", "b", 5.1],["x-b", "x", "b", 4.1],
+                        ["x-b", "x", "b", 2.2],
+                        ["y-a", "y", "a", 1.2],["z-b", "z", "b", 2.1]],
+                       columns=["var1", "var2", "var3", "var4"])
+
+        grp_size = df.groupby("var1").size()
+        drop_idx = grp_size.ix[grp_size == 1]
+
+        idf = df.set_index(["var1", "var2", "var3"])
+
+        # it works! #2101
+        result = idf.drop(drop_idx.index, level=0).reset_index()
+        expected = df[-df.var1.isin(drop_idx.index)]
+
+        result.index = expected.index
+
+        assert_frame_equal(result, expected)
+
     def test_mixed_depth_pop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
@@ -1470,9 +1620,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_indexing_over_hashtable_size_cutoff(self):
         n = 10000
 
-        import pandas.lib as lib
-        old_cutoff = lib._SIZE_CUTOFF
-        lib._SIZE_CUTOFF = 20000
+        old_cutoff = _index._SIZE_CUTOFF
+        _index._SIZE_CUTOFF = 20000
 
         s = Series(np.arange(n),
                    MultiIndex.from_arrays((["a"] * n, np.arange(n))))
@@ -1482,7 +1631,47 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertEquals(s[("a", 6)], 6)
         self.assertEquals(s[("a", 7)], 7)
 
-        lib._SIZE_CUTOFF = old_cutoff
+        _index._SIZE_CUTOFF = old_cutoff
+
+    def test_xs_mixed_no_copy(self):
+        index = MultiIndex.from_arrays([['a','a', 'b', 'b'], [1,2,1,2]],
+                                       names=['first', 'second'])
+        data = DataFrame(np.random.rand(len(index)), index=index,
+                         columns=['A'])
+
+        self.assertRaises(Exception, data.xs, 2, level=1, copy=False)
+
+    def test_multiindex_na_repr(self):
+        # only an issue with long columns
+
+        from numpy import nan
+        df3 = DataFrame({
+            'A' * 30: {('A', 'A0006000', 'nuit'): 'A0006000'},
+            'B' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'C' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'D' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'E' * 30: {('A', 'A0006000', 'nuit'): 'A'},
+            'F' * 30: {('A', 'A0006000', 'nuit'): nan},
+        })
+
+        idf = df3.set_index(['A' * 30, 'C' * 30])
+        repr(idf)
+
+    def test_assign_index_sequences(self):
+        # #2200
+        df = DataFrame({"a":[1,2,3],
+                        "b":[4,5,6],
+                        "c":[7,8,9]}).set_index(["a","b"])
+        l = list(df.index)
+        l[0]=("faz","boo")
+        df.index = l
+        repr(df)
+
+        # this travels an improper code path
+        l[0] = ["faz","boo"]
+        df.index = l
+        repr(df)
+
 
 if __name__ == '__main__':
 
@@ -1492,4 +1681,3 @@ if __name__ == '__main__':
     #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

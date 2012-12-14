@@ -3,7 +3,7 @@ from datetime import datetime
 
 common_setup = """from pandas_vb_common import *
 from datetime import timedelta
-import pandas._tseries as lib
+
 N = 1000000
 
 try:
@@ -24,5 +24,6 @@ replace_fillna = Benchmark('ts.fillna(0., inplace=True)', common_setup,
 replace_replacena = Benchmark('ts.replace(np.nan, 0., inplace=True)',
                               common_setup,
                               start_date=datetime(2012, 5, 15))
-replace_putmask = Benchmark('replace_slow(ts, np.nan, 0.)', common_setup,
-                            start_date=datetime(2012, 5, 15))
+
+# replace_putmask = Benchmark('replace_slow(ts, np.nan, 0.)', common_setup,
+#                             start_date=datetime(2012, 5, 15))

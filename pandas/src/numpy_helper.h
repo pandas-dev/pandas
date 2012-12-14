@@ -44,7 +44,7 @@ infer_type(PyObject* obj) {
 }
 
 PANDAS_INLINE npy_int64
-get_nat() {
+get_nat(void) {
   return NPY_MIN_INT64;
 }
 
@@ -138,14 +138,44 @@ char_to_string(char* data) {
 //   return PyString_Check(obj);
 // #endif
 
-PANDAS_INLINE PyObject* floatify(PyObject* str) {
+PyObject* sarr_from_data(PyArray_Descr *descr, int length, void* data) {
+    PyArrayObject *result;
+    npy_intp dims[1] = {length};
+    Py_INCREF(descr); // newfromdescr steals a reference to descr
+    result = (PyArrayObject*) PyArray_NewFromDescr(&PyArray_Type, descr, 1, dims,
+                                                   NULL, data, 0, NULL);
 
-#if PY_VERSION_HEX >= 0x03000000
-  return PyFloat_FromString(str);
-#else
-  return PyFloat_FromString(str, NULL);
-#endif
+    // Returned array doesn't own data by default
+    result->flags |= NPY_OWNDATA;
 
+    return (PyObject*) result;
+}
+
+
+void transfer_object_column(char *dst, char *src, size_t stride,
+                            size_t length) {
+    int i;
+    size_t sz = sizeof(PyObject*);
+
+    for (i = 0; i < length; ++i)
+    {
+        // uninitialized data
+
+        // Py_XDECREF(*((PyObject**) dst));
+
+        memcpy(dst, src, sz);
+        Py_INCREF(*((PyObject**) dst));
+        src += sz;
+        dst += stride;
+    }
+}
+
+void set_array_owndata(PyArrayObject *ao) {
+    ao->flags |= NPY_OWNDATA;
+}
+
+void set_array_not_contiguous(PyArrayObject *ao) {
+    ao->flags &= ~(NPY_C_CONTIGUOUS | NPY_F_CONTIGUOUS);
 }
 
 
@@ -165,4 +195,3 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
 //   }
 //   return ap;
 // }
-

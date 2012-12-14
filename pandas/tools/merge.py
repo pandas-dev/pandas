@@ -20,11 +20,14 @@ from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
 import pandas.lib as lib
+import pandas.algos as algos
+import pandas.hashtable as _hash
+
 
 @Substitution('\nleft : DataFrame')
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
-          left_index=False, right_index=False, sort=True,
+          left_index=False, right_index=False, sort=False,
           suffixes=('_x', '_y'), copy=True):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
@@ -142,9 +145,9 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
 
 
 
-# TODO: NA group handling
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
+
 
 class _MergeOperation(object):
     """
@@ -183,7 +186,8 @@ class _MergeOperation(object):
         # this is a bit kludgy
         ldata, rdata = self._get_merge_data()
 
-        # TODO: more efficiently handle group keys to avoid extra consolidation!
+        # TODO: more efficiently handle group keys to avoid extra
+        #       consolidation!
         join_op = _BlockJoinOperation([ldata, rdata], join_index,
                                       [left_indexer, right_indexer], axis=1,
                                       copy=self.copy)
@@ -428,7 +432,7 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     for x in group_sizes:
         max_groups *= long(x)
 
-    if max_groups > 2**63:  # pragma: no cover
+    if max_groups > 2 ** 63:  # pragma: no cover
         raise MergeError('Combinatorial explosion! (boom)')
 
     left_group_key, right_group_key, max_groups = \
@@ -436,7 +440,6 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
 
     join_func = _join_functions[how]
     return join_func(left_group_key, right_group_key, max_groups)
-
 
 
 class _OrderedMerge(_MergeOperation):
@@ -453,9 +456,8 @@ class _OrderedMerge(_MergeOperation):
                                  left_index=left_index,
                                  right_index=right_index,
                                  how='outer', suffixes=suffixes,
-                                 sort=True # sorts when factorizing
+                                 sort=True  # sorts when factorizing
                                  )
-
 
     def get_result(self):
         join_index, left_indexer, right_indexer = self._get_join_info()
@@ -464,8 +466,8 @@ class _OrderedMerge(_MergeOperation):
         ldata, rdata = self._get_merge_data()
 
         if self.fill_method == 'ffill':
-            left_join_indexer = lib.ffill_indexer(left_indexer)
-            right_join_indexer = lib.ffill_indexer(right_indexer)
+            left_join_indexer = algos.ffill_indexer(left_indexer)
+            right_join_indexer = algos.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -498,21 +500,23 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
                         sort=False)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(com._ensure_int64(left_group_key),
-                            com._ensure_int64(right_group_key),
-                            max_groups, sort=False)
+        algos.left_outer_join(com._ensure_int64(left_group_key),
+                              com._ensure_int64(right_group_key),
+                              max_groups, sort=False)
 
     return left_indexer, right_indexer
+
 
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(com._ensure_int64(left_key),
-                            com._ensure_int64(right_key),
-                            count, sort=sort)
+        algos.left_outer_join(com._ensure_int64(left_key),
+                              com._ensure_int64(right_key),
+                              count, sort=sort)
 
     return left_indexer, right_indexer
+
 
 def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
     join_index = left_ax
@@ -541,40 +545,51 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = algos.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner' : lib.inner_join,
-    'left' : lib.left_outer_join,
-    'right' : _right_outer_join,
-    'outer' : lib.full_outer_join,
+    'inner': algos.inner_join,
+    'left': algos.left_outer_join,
+    'right': _right_outer_join,
+    'outer': algos.full_outer_join,
 }
 
 
 def _factorize_keys(lk, rk, sort=True):
-    if com.is_integer_dtype(lk) and com.is_integer_dtype(rk):
-        klass = lib.Int64Factorizer
+    if com._is_int_or_datetime_dtype(lk) and com._is_int_or_datetime_dtype(rk):
+        klass = _hash.Int64Factorizer
         lk = com._ensure_int64(lk)
         rk = com._ensure_int64(rk)
     else:
-        klass = lib.Factorizer
+        klass = _hash.Factorizer
         lk = com._ensure_object(lk)
         rk = com._ensure_object(rk)
 
     rizer = klass(max(len(lk), len(rk)))
 
-    llab, _ = rizer.factorize(lk)
-    rlab, _ = rizer.factorize(rk)
+    llab = rizer.factorize(lk)
+    rlab = rizer.factorize(rk)
 
     count = rizer.get_count()
 
     if sort:
-        llab, rlab = _sort_labels(rizer.uniques, llab, rlab)
+        uniques = rizer.uniques.to_array()
+        llab, rlab = _sort_labels(uniques, llab, rlab)
 
-        # TODO: na handling
+    # NA group
+    lmask = llab == -1; lany = lmask.any()
+    rmask = rlab == -1; rany = rmask.any()
+
+    if lany or rany:
+        if lany:
+            np.putmask(llab, lmask, count)
+        if rany:
+            np.putmask(rlab, rmask, count)
+        count += 1
 
     return llab, rlab, count
+
 
 def _sort_labels(uniques, left, right):
     if not isinstance(uniques, np.ndarray):
@@ -593,6 +608,7 @@ def _sort_labels(uniques, left, right):
     np.putmask(new_right, right == -1, -1)
 
     return new_left, new_right
+
 
 class _BlockJoinOperation(object):
     """
@@ -628,8 +644,10 @@ class _BlockJoinOperation(object):
 
         for unit in self.units:
             join_blocks = unit.get_upcasted_blocks()
-            type_map = dict((type(blk), blk) for blk in join_blocks)
-            blockmaps.append(type_map)
+            type_map = {}
+            for blk in join_blocks:
+                type_map.setdefault(type(blk), []).append(blk)
+            blockmaps.append((unit, type_map))
 
         return blockmaps
 
@@ -640,26 +658,22 @@ class _BlockJoinOperation(object):
         merged : BlockManager
         """
         blockmaps = self._prepare_blocks()
-        kinds = _get_all_block_kinds(blockmaps)
+        kinds = _get_merge_block_kinds(blockmaps)
 
         result_blocks = []
 
         # maybe want to enable flexible copying <-- what did I mean?
         for klass in kinds:
-            klass_blocks = [mapping.get(klass) for mapping in blockmaps]
+            klass_blocks = []
+            for unit, mapping in blockmaps:
+                if klass in mapping:
+                    klass_blocks.extend((unit, b) for b in mapping[klass])
             res_blk = self._get_merged_block(klass_blocks)
             result_blocks.append(res_blk)
 
         return BlockManager(result_blocks, self.result_axes)
 
-    def _get_merged_block(self, blocks):
-
-        to_merge = []
-
-        for unit, block in zip(self.units, blocks):
-            if block is not None:
-                to_merge.append((unit, block))
-
+    def _get_merged_block(self, to_merge):
         if len(to_merge) > 1:
             return self._merge_blocks(to_merge)
         else:
@@ -682,7 +696,8 @@ class _BlockJoinOperation(object):
         out_shape[self.axis] = n
 
         # Should use Fortran order??
-        out = np.empty(out_shape, dtype=fblock.values.dtype)
+        block_dtype = _get_block_dtype([x[1] for x in merge_chunks])
+        out = np.empty(out_shape, dtype=block_dtype)
 
         sofar = 0
         for unit, blk in merge_chunks:
@@ -704,7 +719,6 @@ class _BlockJoinOperation(object):
         # does not sort
         new_block_items = _concat_indexes([b.items for _, b in merge_chunks])
         return make_block(out, new_block_items, self.result_items)
-
 
 
 class _JoinUnit(object):
@@ -755,6 +769,7 @@ class _JoinUnit(object):
         result.ref_items = ref_items
         return result
 
+
 def _may_need_upcasting(blocks):
     for block in blocks:
         if isinstance(block, (IntBlock, BoolBlock)):
@@ -781,14 +796,37 @@ def _upcast_blocks(blocks):
     # use any ref_items
     return _consolidate(new_blocks, newb.ref_items)
 
+
 def _get_all_block_kinds(blockmaps):
     kinds = set()
     for mapping in blockmaps:
         kinds |= set(mapping)
     return kinds
 
+
+def _get_merge_block_kinds(blockmaps):
+    kinds = set()
+    for _, mapping in blockmaps:
+        kinds |= set(mapping)
+    return kinds
+
+
+def _get_block_dtype(blocks):
+    if len(blocks) == 0:
+        return object
+    blk1 = blocks[0]
+    dtype = blk1.dtype
+
+    if issubclass(dtype.type, np.floating):
+        for blk in blocks:
+            if blk.dtype.type == np.float64:
+                return blk.dtype
+
+    return dtype
+
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects
+
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False):
@@ -824,10 +862,11 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     names : list, default None
         Names for the levels in the resulting hierarchical index
     ignore_index : boolean, default False
-        If True, do not use the index values on the concatenation axis. The
+        If True, do not use the index values along the concatenation axis. The
         resulting axis will be labeled 0, ..., n - 1. This is useful if you are
         concatenating objects where the concatenation axis does not have
-        meaningful indexing information.
+        meaningful indexing information. Note the the index values on the other
+        axes are still respected in the join.
 
     Notes
     -----
@@ -858,8 +897,8 @@ class _Concatenator(object):
         elif join == 'inner':
             self.intersect = True
         else:  # pragma: no cover
-            raise ValueError('Only can inner (intersect) or outer (union) join '
-                             'the other axis')
+            raise ValueError('Only can inner (intersect) or outer (union) '
+                             'join the other axis')
 
         if isinstance(objs, dict):
             if keys is None:
@@ -928,16 +967,20 @@ class _Concatenator(object):
     def _get_fresh_axis(self):
         return Index(np.arange(len(self._get_concat_axis())))
 
+    def _prepare_blocks(self):
+        reindexed_data = self._get_reindexed_data()
+
+        blockmaps = []
+        for data in reindexed_data:
+            data = data.consolidate()
+            type_map = dict((type(blk), blk) for blk in data.blocks)
+            blockmaps.append(type_map)
+        return blockmaps, reindexed_data
+
     def _get_concatenated_data(self):
         try:
             # need to conform to same other (joined) axes for block join
-            reindexed_data = self._get_reindexed_data()
-
-            blockmaps = []
-            for data in reindexed_data:
-                data = data.consolidate()
-                type_map = dict((type(blk), blk) for blk in data.blocks)
-                blockmaps.append(type_map)
+            blockmaps, rdata = self._prepare_blocks()
             kinds = _get_all_block_kinds(blockmaps)
 
             new_blocks = []
@@ -961,7 +1004,7 @@ class _Concatenator(object):
 
             new_data = {}
             for item in self.new_axes[0]:
-                new_data[item] = self._concat_single_item(item)
+                new_data[item] = self._concat_single_item(rdata, item)
 
         return new_data
 
@@ -985,7 +1028,7 @@ class _Concatenator(object):
 
     def _concat_blocks(self, blocks):
         values_list = [b.values for b in blocks if b is not None]
-        concat_values = com._concat_compat(values_list)
+        concat_values = com._concat_compat(values_list, axis=self.axis)
 
         if self.axis > 0:
             # Not safe to remove this check, need to profile
@@ -1010,15 +1053,20 @@ class _Concatenator(object):
 
             return make_block(concat_values, concat_items, self.new_axes[0])
 
-    def _concat_single_item(self, item):
+    def _concat_single_item(self, objs, item):
         all_values = []
         dtypes = set()
-        for obj in self.objs:
-            try:
-                values = obj._data.get(item)
+
+        # le sigh
+        if isinstance(self.objs[0], SparseDataFrame):
+            objs = [x._data for x in self.objs]
+
+        for data, orig in zip(objs, self.objs):
+            if item in orig:
+                values = data.get(item)
                 dtypes.add(values.dtype)
                 all_values.append(values)
-            except KeyError:
+            else:
                 all_values.append(None)
 
         # this stinks
@@ -1032,9 +1080,9 @@ class _Concatenator(object):
             empty_dtype = np.float64
 
         to_concat = []
-        for obj, item_values in zip(self.objs, all_values):
+        for obj, item_values in zip(objs, all_values):
             if item_values is None:
-                shape = obj._data.shape[1:]
+                shape = obj.shape[1:]
                 missing_arr = np.empty(shape, dtype=empty_dtype)
                 missing_arr.fill(np.nan)
                 to_concat.append(missing_arr)
@@ -1118,6 +1166,7 @@ class _Concatenator(object):
 
 def _concat_indexes(indexes):
     return indexes[0].append(indexes[1:])
+
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if ((levels is None and isinstance(keys[0], tuple)) or
@@ -1218,7 +1267,6 @@ def _should_fill(lname, rname):
     if not isinstance(lname, basestring) or not isinstance(rname, basestring):
         return True
     return lname == rname
-
 
 
 def _any(x):

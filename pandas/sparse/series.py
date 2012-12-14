@@ -1,6 +1,6 @@
 """
-Data structures for sparse float data. Life is made simpler by dealing only with
-float64 data
+Data structures for sparse float data. Life is made simpler by dealing only
+with float64 data
 """
 
 # pylint: disable=E1101,E1103,W0231
@@ -14,7 +14,7 @@ from pandas.core.common import isnull
 from pandas.core.index import Index, _ensure_index
 from pandas.core.series import Series, TimeSeries, _maybe_match_name
 from pandas.core.frame import DataFrame
-import pandas.core.common as common
+import pandas.core.common as com
 import pandas.core.datetools as datetools
 
 from pandas.util import py3compat
@@ -25,8 +25,9 @@ import pandas._sparse as splib
 
 from pandas.util.decorators import Appender
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
+
 
 def _sparse_op_wrap(op, name):
     """
@@ -41,19 +42,23 @@ def _sparse_op_wrap(op, name):
         elif isinstance(other, DataFrame):
             return NotImplemented
         elif np.isscalar(other):
-            new_fill_value = op(np.float64(self.fill_value),
-                                np.float64(other))
+            if isnull(other) or isnull(self.fill_value):
+                new_fill_value = np.nan
+            else:
+                new_fill_value = op(np.float64(self.fill_value),
+                                    np.float64(other))
 
             return SparseSeries(op(self.sp_values, other),
                                 index=self.index,
                                 sparse_index=self.sp_index,
                                 fill_value=new_fill_value,
                                 name=self.name)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
     wrapper.__name__ = name
     return wrapper
+
 
 def _sparse_series_op(left, right, op, name):
     left, right = left.align(right, join='outer', copy=False)
@@ -66,6 +71,7 @@ def _sparse_series_op(left, right, op, name):
     result.name = new_name
 
     return result
+
 
 class SparseSeries(SparseArray, Series):
     __array_priority__ = 15
@@ -98,19 +104,7 @@ class SparseSeries(SparseArray, Series):
             data = Series(data)
             values, sparse_index = make_sparse(data, kind=kind,
                                                fill_value=fill_value)
-        elif np.isscalar(data): # pragma: no cover
-            if index is None:
-                raise Exception('must pass index!')
-
-            values = np.empty(len(index))
-            values.fill(data)
-
-            # TODO: more efficient
-
-            values, sparse_index = make_sparse(values, kind=kind,
-                                               fill_value=fill_value)
-
-        else:
+        elif isinstance(data, (tuple, list, np.ndarray)):
             # array-like
             if sparse_index is None:
                 values, sparse_index = make_sparse(data, kind=kind,
@@ -118,9 +112,30 @@ class SparseSeries(SparseArray, Series):
             else:
                 values = data
                 assert(len(values) == sparse_index.npoints)
+        else:
+            if index is None:
+                raise Exception('must pass index!')
+
+            length = len(index)
+
+            if data == fill_value or (isnull(data)
+                    and isnull(fill_value)):
+                if kind == 'block':
+                    sparse_index = BlockIndex(length, [], [])
+                else:
+                    sparse_index = IntIndex(length, [])
+                values = np.array([])
+            else:
+                if kind == 'block':
+                    locs, lens = ([0], [length]) if length else ([], [])
+                    sparse_index = BlockIndex(length, locs, lens)
+                else:
+                    sparse_index = IntIndex(length, index)
+                values = np.empty(length)
+                values.fill(data)
 
         if index is None:
-            index = Index(np.arange(sparse_index.length))
+            index = com._default_index(sparse_index.length)
         index = _ensure_index(index)
 
         # Create array, do *not* copy data by default
@@ -139,6 +154,17 @@ class SparseSeries(SparseArray, Series):
         output.index = index
         output.name = name
         return output
+
+    def _make_time_series(self):
+        # oh boy #2139
+        self.__class__ = SparseTimeSeries
+
+    @classmethod
+    def from_array(cls, arr, index=None, name=None, copy=False,fill_value=None):
+        """
+        Simplified alternate constructor
+        """
+        return SparseSeries(arr, index=index, name=name, copy=copy,fill_value=fill_value)
 
     def __init__(self, data, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, copy=False):
@@ -199,7 +225,6 @@ to sparse
         """Necessary for making this object picklable"""
         nd_state, own_state = state
         ndarray.__setstate__(self, nd_state)
-
 
         index, fill_value, sp_index = own_state[:3]
         name = None
@@ -351,6 +376,10 @@ to sparse
         else:
             return Series(self.values, index=self.index, name=self.name)
 
+    @property
+    def density(self):
+        return float(len(self.sp_index)) / len(self.index)
+
     def astype(self, dtype=None):
         """
 
@@ -400,7 +429,7 @@ to sparse
 
         new_index, fill_vec = self.index.reindex(index, method=method,
                                                  limit=limit)
-        new_values = common.take_1d(self.values, fill_vec)
+        new_values = com.take_1d(self.values, fill_vec)
         return SparseSeries(new_values, index=new_index,
                             fill_value=self.fill_value, name=self.name)
 
@@ -426,7 +455,7 @@ to sparse
                             fill_value=self.fill_value)
 
     @Appender(Series.fillna.__doc__)
-    def fillna(self, value=None, method='pad', inplace=False, limit=None):
+    def fillna(self, value=None, method=None, inplace=False, limit=None):
         dense = self.to_dense()
         filled = dense.fillna(value=value, method=method, limit=limit)
         result = filled.to_sparse(kind=self.kind,
@@ -539,6 +568,7 @@ to sparse
 
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
+
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass

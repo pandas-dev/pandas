@@ -22,6 +22,8 @@ import pandas.core.strings as strings
 
 class TestStringMethods(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def test_cat(self):
         one = ['a', 'a', 'b', 'b', 'c', NA]
         two = ['a', NA, 'b', 'd', 'foo', NA]
@@ -115,6 +117,10 @@ class TestStringMethods(unittest.TestCase):
         expected = [False, np.nan, True, True]
         tm.assert_almost_equal(result, expected)
 
+        result = strings.str_contains(values, pat, na=False)
+        expected = [False, False, True, True]
+        tm.assert_almost_equal(result, expected)
+
         values = ['foo', 'xyz', 'fooommm__foo', 'mmm_']
         result = strings.str_contains(values, pat)
         expected = [False, False, True, True]
@@ -146,6 +152,9 @@ class TestStringMethods(unittest.TestCase):
         exp = Series([False, NA, True, False, False, NA, True])
         tm.assert_series_equal(result, exp)
 
+        result = values.str.startswith('foo', na=True)
+        tm.assert_series_equal(result, exp.fillna(True).astype(bool))
+
     def test_endswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
 
@@ -170,6 +179,9 @@ class TestStringMethods(unittest.TestCase):
         result = values.str.endswith('foo')
         exp = Series([False, NA, False, False, True, NA, True])
         tm.assert_series_equal(result, exp)
+
+        result = values.str.endswith('foo', na=False)
+        tm.assert_series_equal(result, exp.fillna(False).astype(bool))
 
     def test_lower_upper(self):
         values = Series(['om', NA, 'nom', 'nom'])
@@ -444,6 +456,11 @@ class TestStringMethods(unittest.TestCase):
         exp = Series([['a', 'b', 'c'], ['c', 'd', 'e'], NA, ['f', 'g', 'h']])
         tm.assert_series_equal(result, exp)
 
+        #more than one char
+        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h'])
+        result = values.str.split('__')
+        tm.assert_series_equal(result, exp)
+
         #mixed
         mixed = Series(['a_b_c', NA, 'd_e_f', True, datetime.today(),
                         None, 1, 2.])
@@ -461,6 +478,45 @@ class TestStringMethods(unittest.TestCase):
         result = values.str.split('_')
         exp = Series([[u'a', u'b', u'c'], [u'c', u'd', u'e'], NA,
                       [u'f', u'g', u'h']])
+        tm.assert_series_equal(result, exp)
+
+    def test_split_noargs(self):
+        # #1859
+        s = Series(['Wes McKinney', 'Travis  Oliphant'])
+
+        result = s.str.split()
+        self.assertEquals(result[1], ['Travis', 'Oliphant'])
+
+    def test_split_maxsplit(self):
+        #re.split 0, str.split -1
+        s = Series(['bd asdf jfg', 'kjasdflqw asdfnfk'])
+
+        result = s.str.split(n=-1)
+        xp = s.str.split()
+        tm.assert_series_equal(result, xp)
+
+        result = s.str.split(n=0)
+        tm.assert_series_equal(result, xp)
+
+        xp = s.str.split('asdf')
+        result = s.str.split('asdf', n=0)
+        tm.assert_series_equal(result, xp)
+
+        result = s.str.split('asdf', n=-1)
+        tm.assert_series_equal(result, xp)
+
+    def test_pipe_failures(self):
+        # #2119
+        s = Series(['A|B|C'])
+
+        result = s.str.split('|')
+        exp = Series([['A', 'B', 'C']])
+
+        tm.assert_series_equal(result, exp)
+
+        result = s.str.replace('|', ' ')
+        exp = Series(['A B C'])
+
         tm.assert_series_equal(result, exp)
 
     def test_slice(self):
@@ -506,6 +562,7 @@ class TestStringMethods(unittest.TestCase):
         exp = Series(['  aa', ' bb', NA, 'cc'])
         tm.assert_series_equal(result, exp)
 
+    def test_strip_lstrip_rstrip_mixed(self):
         #mixed
         mixed = Series(['  aa  ', NA, ' bb \t\n', True, datetime.today(),
                         None, 1, 2.])
@@ -531,6 +588,7 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+    def test_strip_lstrip_rstrip_unicode(self):
         #unicode
         values = Series([u'  aa   ', u' bb \n', NA, u'cc  '])
 
@@ -545,6 +603,36 @@ class TestStringMethods(unittest.TestCase):
         result = values.str.rstrip()
         exp = Series([u'  aa', u' bb', NA, u'cc'])
         tm.assert_series_equal(result, exp)
+
+    def test_strip_lstrip_rstrip_args(self):
+        values = Series(['xxABCxx', 'xx BNSD', 'LDFJH xx'])
+
+        rs = values.str.strip('x')
+        xp = Series(['ABC', ' BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.lstrip('x')
+        xp = Series(['ABCxx', ' BNSD', 'LDFJH xx'])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.rstrip('x')
+        xp = Series(['xxABC', 'xx BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
+
+    def test_strip_lstrip_rstrip_args_unicode(self):
+        values = Series([u'xxABCxx', u'xx BNSD', u'LDFJH xx'])
+
+        rs = values.str.strip(u'x')
+        xp = Series(['ABC', ' BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.lstrip(u'x')
+        xp = Series(['ABCxx', ' BNSD', 'LDFJH xx'])
+        assert_series_equal(rs, xp)
+
+        rs = values.str.rstrip(u'x')
+        xp = Series(['xxABC', 'xx BNSD', 'LDFJH '])
+        assert_series_equal(rs, xp)
 
     def test_wrap(self):
         pass
@@ -659,12 +747,34 @@ class TestStringMethods(unittest.TestCase):
         self.assertEquals(result[0], True)
 
     def test_encode_decode(self):
-        base = Series([u'a', u'b', u'\xe4'])
+        base = Series([u'a', u'b', u'a\xe4'])
         series = base.str.encode('utf-8')
 
         f = lambda x: x.decode('utf-8')
         result = series.str.decode('utf-8')
         exp = series.map(f)
+
+        tm.assert_series_equal(result, exp)
+
+    def test_encode_decode_errors(self):
+        encodeBase = Series([u'a', u'b', u'a\x9d'])
+
+        self.assertRaises(UnicodeEncodeError,
+                          encodeBase.str.encode, 'cp1252')
+
+        f = lambda x: x.encode('cp1252', 'ignore')
+        result = encodeBase.str.encode('cp1252', 'ignore')
+        exp = encodeBase.map(f)
+        tm.assert_series_equal(result, exp)
+
+        decodeBase = Series([b'a', b'b', b'a\x9d'])
+
+        self.assertRaises(UnicodeDecodeError,
+                          decodeBase.str.decode, 'cp1252')
+
+        f = lambda x: x.decode('cp1252', 'ignore')
+        result = decodeBase.str.decode('cp1252', 'ignore')
+        exp = decodeBase.map(f)
 
         tm.assert_series_equal(result, exp)
 

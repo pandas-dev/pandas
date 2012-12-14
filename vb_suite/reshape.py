@@ -32,3 +32,31 @@ f = lambda: pdf.pivot('date', 'variable', 'value')
 
 reshape_pivot_time_series = Benchmark('f()', setup,
                                       start_date=datetime(2012, 5, 1))
+
+# Sparse key space, re: #2278
+
+setup = common_setup + """
+NUM_ROWS = 1000
+df = DataFrame({'A' : np.random.randint(50, size=NUM_ROWS),
+                'B' : np.random.randint(50, size=NUM_ROWS),
+                'C' : np.random.randint(-10,10, size=NUM_ROWS),
+                'D' : np.random.randint(-10,10, size=NUM_ROWS),
+                'E' : np.random.randint(10, size=NUM_ROWS),
+                'F' : np.random.randn(NUM_ROWS)})
+idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
+"""
+
+unstack_sparse_keyspace = Benchmark('idf.unstack()', setup,
+                                    start_date=datetime(2011, 10, 1))
+
+# Melt
+
+setup = common_setup + """
+from pandas.core.reshape import melt
+df = DataFrame(np.random.randn(10000, 3), columns=['A', 'B', 'C'])
+df['id1'] = np.random.randint(0, 10, 10000)
+df['id2'] = np.random.randint(100, 1000, 10000)
+"""
+
+melt_dataframe = Benchmark("melt(df, id_vars=['id1', 'id2'])", setup,
+                           start_date=datetime(2012, 8, 1))

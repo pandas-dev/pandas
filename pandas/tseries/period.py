@@ -1,10 +1,13 @@
 # pylint: disable=E1101,E1103,W0232
+import operator
+
 from datetime import datetime, date
 import numpy as np
 
-from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
+import pandas.tseries.offsets as offsets
+from pandas.tseries.frequencies import (get_freq_code as _gfc,
                                         _month_numbers, FreqGroup)
-from pandas.tseries.index import DatetimeIndex, Int64Index
+from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
@@ -12,27 +15,28 @@ import pandas.core.common as com
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
-import pandas._period as plib
-import pandas._algos as _algos
+import pandas.tslib as tslib
+import pandas.algos as _algos
 
 
 #---------------
 # Period logic
 
-
 def _period_field_accessor(name, alias):
     def f(self):
         base, mult = _gfc(self.freq)
-        return plib.get_period_field(alias, self.ordinal, base)
+        return tslib.get_period_field(alias, self.ordinal, base)
     f.__name__ = name
     return property(f)
+
 
 def _field_accessor(name, alias):
     def f(self):
         base, mult = _gfc(self.freq)
-        return plib.get_period_field_arr(alias, self.values, base)
+        return tslib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     return property(f)
+
 
 class Period(object):
 
@@ -116,9 +120,9 @@ class Period(object):
             raise ValueError('Only mult == 1 supported')
 
         if self.ordinal is None:
-            self.ordinal = plib.period_ordinal(dt.year, dt.month, dt.day,
-                                               dt.hour, dt.minute, dt.second,
-                                               base)
+            self.ordinal = tslib.period_ordinal(dt.year, dt.month, dt.day,
+                                                dt.hour, dt.minute, dt.second,
+                                                base)
 
         self.freq = _freq_mod._get_freq_str(base)
 
@@ -171,7 +175,7 @@ class Period(object):
             raise ValueError('Only mult == 1 supported')
 
         end = how == 'E'
-        new_ordinal = plib.period_asfreq(self.ordinal, base1, base2, end)
+        new_ordinal = tslib.period_asfreq(self.ordinal, base1, base2, end)
 
         return Period(ordinal=new_ordinal, freq=base2)
 
@@ -181,15 +185,18 @@ class Period(object):
 
     @property
     def end_time(self):
-        return self.to_timestamp(how='E')
+        ordinal = (self + 1).start_time.value - 1
+        return Timestamp(ordinal)
 
-    def to_timestamp(self, freq=None, how='S'):
+    def to_timestamp(self, freq=None, how='start'):
         """
-        Return the Timestamp at the start/end of the period
+        Return the Timestamp representation of the Period at the target
+        frequency at the specified end (how) of the Period
 
         Parameters
         ----------
-        freq : string or DateOffset, default frequency of PeriodIndex
+        freq : string or DateOffset, default is 'D' if self.freq is week or
+               longer and 'S' otherwise
             Target frequency
         how: str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
@@ -199,16 +206,17 @@ class Period(object):
         -------
         Timestamp
         """
+        how = _validate_end_alias(how)
+
         if freq is None:
             base, mult = _gfc(self.freq)
-            new_val = self
-        else:
-            base, mult = _gfc(freq)
-            new_val = self.asfreq(freq, how)
+            freq = _freq_mod.get_to_timestamp_base(base)
 
-        dt64 = plib.period_ordinal_to_dt64(new_val.ordinal, base)
-        ts_freq = _period_rule_to_timestamp_rule(new_val.freq, how=how)
-        return Timestamp(dt64, offset=to_offset(ts_freq))
+        base, mult = _gfc(freq)
+        val = self.asfreq(freq, how)
+
+        dt64 = tslib.period_ordinal_to_dt64(val.ordinal, base)
+        return Timestamp(dt64)
 
     year = _period_field_accessor('year', 0)
     month = _period_field_accessor('month', 3)
@@ -230,13 +238,13 @@ class Period(object):
 
     def __repr__(self):
         base, mult = _gfc(self.freq)
-        formatted = plib.period_format(self.ordinal, base)
+        formatted = tslib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
         return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
         base, mult = _gfc(self.freq)
-        formatted = plib.period_format(self.ordinal, base)
+        formatted = tslib.period_format(self.ordinal, base)
         return ("%s" % formatted)
 
     def strftime(self, fmt):
@@ -377,7 +385,8 @@ class Period(object):
             'Jan. 01, 2001 was a Monday'
         """
         base, mult = _gfc(self.freq)
-        return plib.period_format(self.ordinal, base, fmt)
+        return tslib.period_format(self.ordinal, base, fmt)
+
 
 def _get_date_and_freq(value, freq):
     value = value.upper()
@@ -407,20 +416,19 @@ def _get_date_and_freq(value, freq):
 def _get_ordinals(data, freq):
     f = lambda x: Period(x, freq=freq).ordinal
     if isinstance(data[0], Period):
-        return lib.extract_ordinals(data, freq)
+        return tslib.extract_ordinals(data, freq)
     else:
         return lib.map_infer(data, f)
 
-def dt64arr_to_periodarr(data, freq):
+
+def dt64arr_to_periodarr(data, freq, tz):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
     base, mult = _gfc(freq)
-    return plib.dt64arr_to_periodarr(data.view('i8'), base)
+    return tslib.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
 # --- Period index sketch
-
-
 def _period_index_cmp(opname):
     """
     Wrap comparison operations to convert datetime-like to datetime64
@@ -440,7 +448,6 @@ def _period_index_cmp(opname):
 
         return result
     return wrapper
-
 
 _INT64_DTYPE = np.dtype(np.int64)
 _NS_DTYPE = np.dtype('M8[ns]')
@@ -487,6 +494,8 @@ class PeriodIndex(Int64Index):
     hour : int or array, default None
     minute : int or array, default None
     second : int or array, default None
+    tz : object, default None
+        Timezone for converting datetime64 data to Periods
 
     Examples
     --------
@@ -507,7 +516,8 @@ class PeriodIndex(Int64Index):
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None,
                 year=None, month=None, quarter=None, day=None,
-                hour=None, minute=None, second=None):
+                hour=None, minute=None, second=None,
+                tz=None):
 
         freq = _freq_mod.get_standard_freq(freq)
 
@@ -524,9 +534,9 @@ class PeriodIndex(Int64Index):
             else:
                 fields = [year, month, quarter, day, hour, minute, second]
                 data, freq = cls._generate_range(start, end, periods,
-                                                    freq, fields)
+                                                 freq, fields)
         else:
-            ordinal, freq = cls._from_arraylike(data, freq)
+            ordinal, freq = cls._from_arraylike(data, freq, tz)
             data = np.array(ordinal, dtype=np.int64, copy=False)
 
         subarr = data.view(cls)
@@ -555,7 +565,7 @@ class PeriodIndex(Int64Index):
         return subarr, freq
 
     @classmethod
-    def _from_arraylike(cls, data, freq):
+    def _from_arraylike(cls, data, freq, tz):
         if not isinstance(data, np.ndarray):
             if np.isscalar(data) or isinstance(data, Period):
                 raise ValueError('PeriodIndex() must be called with a '
@@ -591,7 +601,8 @@ class PeriodIndex(Int64Index):
                 else:
                     base1, _ = _gfc(data.freq)
                     base2, _ = _gfc(freq)
-                    data = plib.period_asfreq_arr(data.values, base1, base2, 1)
+                    data = tslib.period_asfreq_arr(data.values, base1,
+                                                   base2, 1)
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq', None)
@@ -601,7 +612,7 @@ class PeriodIndex(Int64Index):
                                       'inferred from first element'))
 
                 if np.issubdtype(data.dtype, np.datetime64):
-                    data = dt64arr_to_periodarr(data, freq)
+                    data = dt64arr_to_periodarr(data, freq, tz)
                 elif data.dtype == np.int64:
                     pass
                 else:
@@ -627,6 +638,34 @@ class PeriodIndex(Int64Index):
     def _box_values(self, values):
         f = lambda x: Period(ordinal=x, freq=self.freq)
         return lib.map_infer(values, f)
+
+    def asof_locs(self, where, mask):
+        """
+        where : array of timestamps
+        mask : array of booleans where data is not NA
+
+        """
+        where_idx = where
+        if isinstance(where_idx, DatetimeIndex):
+            where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+
+        locs = self.values[mask].searchsorted(where_idx.values, side='right')
+
+        locs = np.where(locs > 0, locs - 1, 0)
+        result = np.arange(len(self))[mask].take(locs)
+
+        first = mask.argmax()
+        result[(locs == 0) & (where_idx.values < self.values[first])] = -1
+
+        return result
+
+    @property
+    def asobject(self):
+        from pandas.core.index import Index
+        return Index(self._box_values(self.values), dtype=object)
+
+    def _array_values(self):
+        return self.asobject
 
     def astype(self, dtype):
         dtype = np.dtype(dtype)
@@ -664,7 +703,7 @@ class PeriodIndex(Int64Index):
         Specialized factorize that boxes uniques
         """
         from pandas.core.algorithms import factorize
-        labels, uniques, counts = factorize(self.values)
+        labels, uniques = factorize(self.values)
         uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
         return labels, uniques
 
@@ -684,7 +723,7 @@ class PeriodIndex(Int64Index):
             raise ValueError('Only mult == 1 supported')
 
         end = how == 'E'
-        new_data = plib.period_asfreq_arr(self.values, base1, base2, end)
+        new_data = tslib.period_asfreq_arr(self.values, base1, base2, end)
 
         result = new_data.view(PeriodIndex)
         result.name = self.name
@@ -733,7 +772,8 @@ class PeriodIndex(Int64Index):
 
         Parameters
         ----------
-        freq : string or DateOffset, default 'D'
+        freq : string or DateOffset, default 'D' for week or longer, 'S'
+               otherwise
             Target frequency
         how : {'s', 'e', 'start', 'end'}
 
@@ -741,14 +781,16 @@ class PeriodIndex(Int64Index):
         -------
         DatetimeIndex
         """
+        how = _validate_end_alias(how)
+
         if freq is None:
             base, mult = _gfc(self.freq)
-            new_data = self
-        else:
-            base, mult = _gfc(freq)
-            new_data = self.asfreq(freq, how)
+            freq = _freq_mod.get_to_timestamp_base(base)
 
-        new_data = plib.periodarr_to_dt64arr(new_data.values, base)
+        base, mult = _gfc(freq)
+        new_data = self.asfreq(freq, how)
+
+        new_data = tslib.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def shift(self, n):
@@ -799,7 +841,7 @@ class PeriodIndex(Int64Index):
 
                 # if our data is higher resolution than requested key, slice
                 if grp < freqn:
-                    iv = Period(asdt, freq=(grp,1))
+                    iv = Period(asdt, freq=(grp, 1))
                     ord1 = iv.asfreq(self.freq, how='S').ordinal
                     ord2 = iv.asfreq(self.freq, how='E').ordinal
 
@@ -807,7 +849,7 @@ class PeriodIndex(Int64Index):
                         raise KeyError(key)
 
                     pos = np.searchsorted(self.values, [ord1, ord2])
-                    key = slice(pos[0], pos[1]+1)
+                    key = slice(pos[0], pos[1] + 1)
                     return series[key]
                 else:
                     key = Period(asdt, freq=self.freq)
@@ -860,6 +902,15 @@ class PeriodIndex(Int64Index):
             except KeyError:
                 pass
 
+        if isinstance(start, datetime) and isinstance(end, datetime):
+            ordinals = self.values
+            t1 = Period(start, freq=self.freq)
+            t2 = Period(end, freq=self.freq)
+
+            left = ordinals.searchsorted(t1.ordinal, side='left')
+            right = ordinals.searchsorted(t2.ordinal, side='right')
+            return left, right
+
         return Int64Index.slice_locs(self, start, end)
 
     def _get_string_slice(self, key):
@@ -873,9 +924,9 @@ class PeriodIndex(Int64Index):
         if reso == 'year':
             t1 = Period(year=parsed.year, freq='A')
         elif reso == 'month':
-            t1 = Period(year=parsed.year, motnh=parsed.month, freq='M')
+            t1 = Period(year=parsed.year, month=parsed.month, freq='M')
         elif reso == 'quarter':
-            q = (parsed.month - 1) // 4 + 1
+            q = (parsed.month - 1) // 3 + 1
             t1 = Period(year=parsed.year, quarter=q, freq='Q-DEC')
         else:
             raise KeyError(key)
@@ -955,7 +1006,7 @@ class PeriodIndex(Int64Index):
         return header + ['%s' % Period(x, freq=self.freq) for x in self]
 
     def __array_finalize__(self, obj):
-        if self.ndim == 0: # pragma: no cover
+        if self.ndim == 0:  # pragma: no cover
             return self.item()
 
         self.freq = getattr(obj, 'freq', None)
@@ -977,6 +1028,45 @@ class PeriodIndex(Int64Index):
         taken.freq = self.freq
         taken.name = self.name
         return taken
+
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        name = self.name
+        to_concat = [self]
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if isinstance(obj, Index) and obj.name != name:
+                name = None
+                break
+
+        to_concat = self._ensure_compat_concat(to_concat)
+
+        if isinstance(to_concat[0], PeriodIndex):
+            if len(set([x.freq for x in to_concat])) > 1:
+                # box
+                to_concat = [x.asobject for x in to_concat]
+            else:
+                cat_values = np.concatenate([x.values for x in to_concat])
+                return PeriodIndex(cat_values, freq=self.freq, name=name)
+
+        to_concat = [x.values if isinstance(x, Index) else x
+                     for x in to_concat]
+        return Index(com._concat_compat(to_concat), name=name)
 
 
 def _get_ordinal_range(start, end, periods, freq):
@@ -1011,9 +1101,10 @@ def _get_ordinal_range(start, end, periods, freq):
             data = np.arange(start.ordinal, start.ordinal + periods,
                              dtype=np.int64)
     else:
-        data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
+        data = np.arange(start.ordinal, end.ordinal + 1, dtype=np.int64)
 
     return data, freq
+
 
 def _range_from_fields(year=None, month=None, quarter=None, day=None,
                        hour=None, minute=None, second=None, freq=None):
@@ -1041,7 +1132,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
             y, m = _quarter_to_myear(y, q, freq)
-            val = plib.period_ordinal(y, m, 1, 1, 1, 1, base)
+            val = tslib.period_ordinal(y, m, 1, 1, 1, 1, base)
             ordinals.append(val)
     else:
         base, mult = _gfc(freq)
@@ -1050,9 +1141,10 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
 
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in zip(*arrays):
-            ordinals.append(plib.period_ordinal(y, mth, d, h, mn, s, base))
+            ordinals.append(tslib.period_ordinal(y, mth, d, h, mn, s, base))
 
     return np.array(ordinals, dtype=np.int64), freq
+
 
 def _make_field_arrays(*fields):
     length = None
@@ -1078,7 +1170,8 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
-    return plib.period_ordinal(year, month, day, hour, minute, second, base)
+    return tslib.period_ordinal(year, month, day, hour, minute, second, base)
+
 
 def _quarter_to_myear(year, quarter, freq):
     if quarter is not None:
@@ -1102,8 +1195,10 @@ def _validate_end_alias(how):
         raise ValueError('How must be one of S or E')
     return how
 
+
 def pnow(freq=None):
     return Period(datetime.now(), freq=freq)
+
 
 def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
@@ -1128,13 +1223,3 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)
-
-def _period_rule_to_timestamp_rule(freq, how='end'):
-    how = how.lower()
-    if how in ('end', 'e'):
-        return freq
-    else:
-        if freq.startswith('A-') or freq.startswith('BA-'):
-            base, color = freq.split('-')
-            return '%sS-%s' % (base, color)
-        return freq

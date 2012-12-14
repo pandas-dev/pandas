@@ -110,15 +110,11 @@ Series input is of primary interest. Using these functions, you can use to
 either match on the *index* or *columns* via the **axis** keyword:
 
 .. ipython:: python
-   :suppress:
 
    d = {'one' : Series(randn(3), index=['a', 'b', 'c']),
         'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
         'three' : Series(randn(3), index=['b', 'c', 'd'])}
    df = DataFrame(d)
-
-.. ipython:: python
-
    df
    row = df.ix[1]
    column = df['two']
@@ -876,6 +872,14 @@ Methods like ``replace`` and ``findall`` take regular expressions, too:
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
+Methods like ``contains``, ``startswith``, and ``endswith`` takes an extra
+``na`` arguement so missing values can be considered True or False:
+
+.. ipython:: python
+
+   s4 = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s4.str.contains('A', na=False)
+
 .. csv-table::
     :header: "Method", "Description"
     :widths: 20, 80
@@ -1039,10 +1043,95 @@ There is also a ``save`` function which takes any object as its first argument:
    import os
    os.remove('foo.pickle')
 
+Working with package options
+----------------------------
+
+.. _basics.working_with_options:
+
+Introduced in 0.10.0, pandas supports a new system for working with options.
+The 4 relavent functions are available directly from the ``pandas`` namespace,
+and they are:
+
+- ``get_option`` / ``set_option`` - get/set the value of a single option.
+- ``reset_option`` - reset one or more options to their default value.
+- ``describe_option`` - print the descriptions of one or more options.
+
+**Note:** developers can check out pandas/core/config.py for more info.
+
+Options have a full "dotted-style", case-insensitive name (e.g. ``print.max_rows``),
+but all of the functions above accept a regexp pattern (``re.search`` style) as argument,
+so passing in a substring will work - as long as it is unambiguous :
+
+.. ipython:: python
+
+   get_option("print.max_rows")
+   set_option("print.max_rows",101)
+   get_option("print.max_rows")
+   set_option("max_r",102)
+   get_option("print.max_rows")
+
+
+However, the following will **not work** because it matches multiple option names, e.g.``print.max_colwidth``, ``print.max_rows``, ``print.max_columns``:
+
+.. ipython:: python
+   :okexcept:
+
+   get_option("print.max_")
+
+
+**Note:** Using this form of convenient shorthand may make your code break if new options with similar names are added in future versions.
+
+
+The docstrings of all the functions document the available options, but you can also get a
+list of available options and their descriptions with ``describe_option``. When called
+with no argument ``describe_option`` will print out descriptions for all available options.
+
+.. ipython:: python
+
+   describe_option()
+
+
+or you can get the description for just the options that match the regexp you pass in:
+
+.. ipython:: python
+
+   describe_option("date")
+
+
+All options also have a default value, and you can use the ``reset_option`` to do just that:
+
+.. ipython:: python
+   :suppress:
+
+   reset_option("print.max_rows")
+
+
+.. ipython:: python
+
+   get_option("print.max_rows")
+   set_option("print.max_rows",999)
+   get_option("print.max_rows")
+   reset_option("print.max_rows")
+   get_option("print.max_rows")
+
+
+and you also set multiple options at once:
+
+.. ipython:: python
+
+   reset_option("^print\.")
+
+
+
 Console Output Formatting
 -------------------------
 
 .. _basics.console_output:
+
+**Note:** ``set_printoptions``/ ``reset_printoptions``  are now deprecated (but functioning),
+and both, as well as ``set_eng_float_format``, use the options API behind the scenes.
+The corresponding options now live under "print.XYZ", and you can set them directly with
+``get/set_option``.
 
 Use the ``set_eng_float_format`` function in the ``pandas.core.common`` module
 to alter the floating-point formatting of pandas objects to produce a particular

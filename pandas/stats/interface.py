@@ -3,6 +3,7 @@ from pandas.stats.ols import OLS, MovingOLS
 from pandas.stats.plm import PanelOLS, MovingPanelOLS, NonPooledPanelOLS
 import pandas.stats.common as common
 
+
 def ols(**kwargs):
     """Returns the appropriate OLS object depending on whether you need
     simple or panel OLS, and a full-sample or rolling/expanding OLS.

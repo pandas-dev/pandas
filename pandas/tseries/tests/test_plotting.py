@@ -8,26 +8,28 @@ import numpy as np
 from numpy.testing.decorators import slow
 from numpy.testing import assert_array_equal
 
-from pandas import Index, Series, DataFrame, isnull, notnull
+from pandas import Index, Series, DataFrame
 
 from pandas.tseries.index import date_range, bdate_range
-from pandas.tseries.offsets import Minute, DateOffset
-from pandas.tseries.period import period_range, Period
-from pandas.tseries.resample import DatetimeIndex, TimeGrouper
-import pandas.tseries.offsets as offsets
-import pandas.tseries.frequencies as frequencies
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.period import period_range, Period, PeriodIndex
+from pandas.tseries.resample import DatetimeIndex
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
+
+
+def _skip_if_no_scipy():
+    try:
+        import scipy
+    except ImportError:
+        raise nose.SkipTest
+
 
 class TestTSPlot(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import sys
-        if 'IPython' in sys.modules:
-            raise nose.SkipTest
-
         try:
             import matplotlib as mpl
             mpl.use('Agg', warn=False)
@@ -65,6 +67,12 @@ class TestTSPlot(unittest.TestCase):
         df2.plot()
         plt.close('all')
 
+        # N > 1
+        idx = date_range('2008-1-1 00:15:00', freq='15T', periods=10)
+        idx = DatetimeIndex(idx.values, freq=None)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        df.plot()
+
     @slow
     def test_tsplot(self):
         from pandas.tseries.plotting import tsplot
@@ -98,7 +106,7 @@ class TestTSPlot(unittest.TestCase):
             _check_plot_works(ser.plot)
 
     def test_get_datevalue(self):
-        from pandas.tseries.plotting import get_datevalue
+        from pandas.tseries.converter import get_datevalue
         self.assert_(get_datevalue(None, 'D') is None)
         self.assert_(get_datevalue(1987, 'A') == 1987)
         self.assert_(get_datevalue(Period(1987, 'A'), 'M') ==
@@ -236,7 +244,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(ax.get_lines()[0].get_xydata()[0, 0],
                      bts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'B')
+        self.assert_(PeriodIndex(data=idx).freqstr == 'B')
 
     @slow
     def test_business_freq_convert(self):
@@ -250,7 +258,7 @@ class TestTSPlot(unittest.TestCase):
         ax = bts.plot()
         self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'M')
+        self.assert_(PeriodIndex(data=idx).freqstr == 'M')
 
     @slow
     def test_dataframe(self):
@@ -285,6 +293,9 @@ class TestTSPlot(unittest.TestCase):
             result = ax.get_xlim()
             self.assertEqual(int(result[0]), expected[0].ordinal)
             self.assertEqual(int(result[1]), expected[1].ordinal)
+
+        import matplotlib.pyplot as plt
+        plt.close('all')
 
         ser = tm.makeTimeSeries()
         ax = ser.plot()
@@ -527,6 +538,8 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_secondary_kde(self):
+        _skip_if_no_scipy()
+
         import matplotlib.pyplot as plt
         plt.close('all')
         ser = Series(np.random.randn(10))
@@ -601,7 +614,22 @@ class TestTSPlot(unittest.TestCase):
         high.plot()
         ax = low.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'D')
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq == 'D')
+
+    @slow
+    def test_mixed_freq_alignment(self):
+        import matplotlib.pyplot as plt
+        ts_ind = date_range('2012-01-01 13:00', '2012-01-02', freq='H')
+        ts_data = np.random.randn(12)
+
+        ts = Series(ts_data, index=ts_ind)
+        ts2 = ts.asfreq('T').interpolate()
+
+        plt.close('all')
+        ax = ts.plot()
+        ts2.plot(style='r')
+
+        self.assert_(ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0])
 
     @slow
     def test_mixed_freq_lf_first(self):
@@ -611,10 +639,12 @@ class TestTSPlot(unittest.TestCase):
         idxl = date_range('1/1/1999', periods=12, freq='M')
         high = Series(np.random.randn(len(idxh)), idxh)
         low = Series(np.random.randn(len(idxl)), idxl)
-        low.plot()
-        ax = high.plot()
+        low.plot(legend=True)
+        ax = high.plot(legend=True)
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'D')
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq == 'D')
+        leg = ax.get_legend()
+        self.assert_(len(leg.texts) == 2)
 
         plt.close('all')
         idxh = date_range('1/1/1999', periods=240, freq='T')
@@ -624,7 +654,7 @@ class TestTSPlot(unittest.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'T')
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq == 'T')
 
     @slow
     def test_mixed_freq_irreg_period(self):
@@ -646,7 +676,7 @@ class TestTSPlot(unittest.TestCase):
         high.plot()
         ax = low.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq.startswith('W'))
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
     @slow
     def test_from_weekly_resampling(self):
@@ -659,11 +689,10 @@ class TestTSPlot(unittest.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq.startswith('W'))
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
     @slow
     def test_irreg_dtypes(self):
-        import matplotlib.pyplot as plt
         #date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
         df = DataFrame(np.random.randn(len(idx), 3), Index(idx, dtype=object))
@@ -840,6 +869,38 @@ class TestTSPlot(unittest.TestCase):
             if len(l.get_text()) > 0:
                 self.assert_(l.get_rotation() == 30)
 
+    @slow
+    def test_ax_plot(self):
+        x = DatetimeIndex(start='2012-01-02', periods=10,
+                          freq='D')
+        y = range(len(x))
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        lines = ax.plot(x, y, label='Y')
+        assert_array_equal(DatetimeIndex(lines[0].get_xdata()), x)
+
+    @slow
+    def test_mpl_nopandas(self):
+        import matplotlib.pyplot as plt
+
+        dates = [date(2008, 12, 31), date(2009, 1, 31)]
+        values1 = np.arange(10.0, 11.0, 0.5)
+        values2 = np.arange(11.0, 12.0, 0.5)
+
+        kw = dict(fmt='-', lw=4)
+
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot_date([x.toordinal() for x in dates], values1, **kw)
+        ax.plot_date([x.toordinal() for x in dates], values2, **kw)
+
+        line1, line2 = ax.get_lines()
+        assert_array_equal(np.array([x.toordinal() for x in dates]),
+                           line1.get_xydata()[:, 0])
+        assert_array_equal(np.array([x.toordinal() for x in dates]),
+                           line2.get_xydata()[:, 0])
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

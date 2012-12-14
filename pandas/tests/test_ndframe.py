@@ -7,6 +7,8 @@ import pandas.util.testing as t
 
 class TestNDFrame(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         tdf = t.makeTimeDataFrame()
         self.ndf = NDFrame(tdf._data)
@@ -27,4 +29,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

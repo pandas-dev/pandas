@@ -112,8 +112,8 @@ sort_level_one = Benchmark("midx.sortlevel(1)", setup,
 # Panel subset selection
 
 setup = common_setup + """
-p = Panel(np.random.randn(500, 500, 500))
-inds = range(0, 500, 10)
+p = Panel(np.random.randn(100, 100, 100))
+inds = range(0, 100, 10)
 """
 
 indexing_panel_subset = Benchmark('p.ix[inds, inds, inds]', setup,

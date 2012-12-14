@@ -2,7 +2,9 @@
 # pylint: disable=E1101
 from itertools import izip
 import datetime
+import warnings
 import re
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -15,15 +17,79 @@ from pandas.tseries.period import PeriodIndex
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 
-try: # mpl optional
+try:  # mpl optional
     import pandas.tseries.converter as conv
-    conv.register()
+    conv.register() # needs to override so set_xlim works with str/number
 except ImportError:
     pass
 
 def _get_standard_kind(kind):
-    return {'density' : 'kde'}.get(kind, kind)
+    return {'density': 'kde'}.get(kind, kind)
 
+
+class _Options(dict):
+    """
+    Stores pandas plotting options.
+    Allows for parameter aliasing so you can just use parameter names that are
+    the same as the plot function parameters, but is stored in a canonical
+    format that makes it easy to breakdown into groups later
+    """
+
+    #alias so the names are same as plotting method parameter names
+    _ALIASES = {'x_compat' : 'xaxis.compat'}
+    _DEFAULT_KEYS = ['xaxis.compat']
+
+    def __init__(self):
+        self['xaxis.compat'] = False
+
+    def __getitem__(self, key):
+        key = self._get_canonical_key(key)
+        if key not in self:
+            raise ValueError('%s is not a valid pandas plotting option' % key)
+        return super(_Options, self).__getitem__(key)
+
+    def __setitem__(self, key, value):
+        key = self._get_canonical_key(key)
+        return super(_Options, self).__setitem__(key, value)
+
+    def __delitem__(self, key):
+        key = self._get_canonical_key(key)
+        if key in self._DEFAULT_KEYS:
+            raise ValueError('Cannot remove default parameter %s' % key)
+        return super(_Options, self).__delitem__(key)
+
+    def __contains__(self, key):
+        key = self._get_canonical_key(key)
+        return super(_Options, self).__contains__(key)
+
+    def reset(self):
+        """
+        Reset the option store to its initial state
+
+        Returns
+        -------
+        None
+        """
+        self.__init__()
+
+    def _get_canonical_key(self, key):
+        return self._ALIASES.get(key, key)
+
+    @contextmanager
+    def use(self, key, value):
+        """
+        Temporarily set a parameter value using the with statement.
+        Aliasing allowed.
+        """
+        old_value = self[key]
+        try:
+            self[key] = value
+            yield self
+        finally:
+            self[key] = old_value
+
+
+plot_params = _Options()
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    diagonal='hist', marker='.', **kwds):
@@ -120,8 +186,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
             # ax.grid(b=grid)
 
     axes[0, 0].yaxis.set_visible(False)
-    axes[n-1, n-1].xaxis.set_visible(False)
-    axes[n-1, n-1].yaxis.set_visible(False)
+    axes[n - 1, n - 1].xaxis.set_visible(False)
+    axes[n - 1, n - 1].yaxis.set_visible(False)
     axes[0, n - 1].yaxis.tick_right()
 
     for ax in axes.flat:
@@ -135,9 +201,11 @@ def _gca():
     import matplotlib.pyplot as plt
     return plt.gca()
 
+
 def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
+
 
 def _get_marker_compat(marker):
     import matplotlib.lines as mlines
@@ -147,6 +215,7 @@ def _get_marker_compat(marker):
     if marker not in mlines.lineMarkers:
         return 'o'
     return marker
+
 
 def radviz(frame, class_column, ax=None, **kwds):
     """RadViz - a multivariate data visualization algorithm
@@ -207,7 +276,7 @@ def radviz(frame, class_column, ax=None, **kwds):
         line = ax.scatter(to_plot[class_][0],
                           to_plot[class_][1],
                           color=random_color(class_),
-                          label=com._stringify(class_), **kwds)
+                          label=com.pprint_thing(class_), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
@@ -232,6 +301,7 @@ def radviz(frame, class_column, ax=None, **kwds):
     ax.axis('equal')
     return ax
 
+
 def andrews_curves(data, class_column, ax=None, samples=200):
     """
     Parameters:
@@ -243,6 +313,7 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     from math import sqrt, pi, sin, cos
     import matplotlib.pyplot as plt
     import random
+
     def function(amplitudes):
         def f(x):
             x1 = amplitudes[0]
@@ -256,6 +327,7 @@ def andrews_curves(data, class_column, ax=None, samples=200):
                 result += amplitudes[-1] * sin(harmonic * x)
             return result
         return f
+
     def random_color(column):
         random.seed(column)
         return [random.random() for _ in range(3)]
@@ -272,13 +344,14 @@ def andrews_curves(data, class_column, ax=None, samples=200):
         f = function(row)
         y = [f(t) for t in x]
         label = None
-        if com._stringify(class_col[i]) not in used_legends:
-            label = com._stringify(class_col[i])
+        if com.pprint_thing(class_col[i]) not in used_legends:
+            label = com.pprint_thing(class_col[i])
             used_legends.add(label)
         ax.plot(x, y, color=random_color(class_col[i]), label=label)
     ax.legend(loc='upper right')
     ax.grid()
     return ax
+
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     """Bootstrap plot.
@@ -289,7 +362,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     fig: matplotlib figure object, optional
     size: number of data points to consider during each sampling
     samples: number of times the bootstrap procedure is performed
-    kwds: optional keyword arguments for plotting commands, must be accepted by both hist and plot
+    kwds: optional keyword arguments for plotting commands, must be accepted
+        by both hist and plot
 
     Returns:
     --------
@@ -298,11 +372,15 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     import random
     import matplotlib
     import matplotlib.pyplot as plt
-    data = series.values
+
+    # random.sample(ndarray, int) fails on python 3.3, sigh
+    data = list(series.values)
     samplings = [random.sample(data, size) for _ in range(samples)]
+
     means = np.array([np.mean(sampling) for sampling in samplings])
     medians = np.array([np.median(sampling) for sampling in samplings])
-    midranges = np.array([(min(sampling) + max(sampling)) * 0.5 for sampling in samplings])
+    midranges = np.array([(min(sampling) + max(sampling)) * 0.5
+                          for sampling in samplings])
     if fig == None:
         fig = plt.figure()
     x = range(samples)
@@ -336,23 +414,46 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         plt.setp(axis.get_yticklabels(), fontsize=8)
     return fig
 
-def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
+
+def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
+                         use_columns=False, xticks=None, **kwds):
     """Parallel coordinates plotting.
 
-    Parameters:
-    -----------
-    data: A DataFrame containing data to be plotted
-    class_column: Column name containing class names
-    cols: A list of column names to use, optional
-    ax: matplotlib axis object, optional
-    kwds: A list of keywords for matplotlib plot method
+    Parameters
+    ----------
+    data: DataFrame
+        A DataFrame containing data to be plotted
+    class_column: str
+        Column name containing class names
+    cols: list, optional
+        A list of column names to use
+    ax: matplotlib.axis, optional
+        matplotlib axis object
+    colors: list or tuple, optional
+        Colors to use for the different classes
+    use_columns: bool, optional
+        If true, columns will be used as xticks
+    xticks: list or tuple, optional
+        A list of values to use for xticks
+    kwds: list, optional
+        A list of keywords for matplotlib plot method
 
-    Returns:
-    --------
+    Returns
+    -------
     ax: matplotlib axis object
+
+    Examples
+    --------
+    >>> from pandas import read_csv
+    >>> from pandas.tools.plotting import parallel_coordinates
+    >>> from matplotlib import pyplot as plt
+    >>> df = read_csv('https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv')
+    >>> parallel_coordinates(df, 'Name', colors=('#556270', '#4ECDC4', '#C7F464'))
+    >>> plt.show()
     """
     import matplotlib.pyplot as plt
     import random
+
     def random_color(column):
         random.seed(column)
         return [random.random() for _ in range(3)]
@@ -368,29 +469,54 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
     used_legends = set([])
 
     ncols = len(df.columns)
-    x = range(ncols)
+
+    # determine values to use for xticks
+    if use_columns is True:
+        if not np.all(np.isreal(list(df.columns))):
+            raise ValueError('Columns must be numeric to be used as xticks')
+        x = df.columns
+    elif xticks is not None:
+        if not np.all(np.isreal(xticks)):
+            raise ValueError('xticks specified must be numeric')
+        elif len(xticks) != ncols:
+            raise ValueError('Length of xticks must match number of columns')
+        x = xticks
+    else:
+        x = range(ncols)
 
     if ax == None:
         ax = plt.gca()
 
+    # if user has not specified colors to use, choose at random
+    if colors is None:
+        colors = dict((kls, random_color(kls)) for kls in classes)
+    else:
+        if len(colors) != len(classes):
+            raise ValueError('Number of colors must match number of classes')
+        colors = dict((kls, colors[i]) for i, kls in enumerate(classes))
+
     for i in range(n):
         row = df.irow(i).values
         y = row
-        label = None
         kls = class_col.iget_value(i)
-        if com._stringify(kls) not in used_legends:
-            label = com._stringify(kls)
+        if com.pprint_thing(kls) not in used_legends:
+            label = com.pprint_thing(kls)
             used_legends.add(label)
-        ax.plot(x, y, color=random_color(kls), label=label, **kwds)
+            ax.plot(x, y, color=colors[kls],
+                    label=label, **kwds)
+        else:
+            ax.plot(x, y, color=colors[kls], **kwds)
 
-    for i in range(ncols):
+    for i in x:
         ax.axvline(i, linewidth=1, color='black')
 
     ax.set_xticks(x)
     ax.set_xticklabels(df.columns)
+    ax.set_xlim(x[0], x[-1])
     ax.legend(loc='upper right')
     ax.grid()
     return ax
+
 
 def lag_plot(series, ax=None, **kwds):
     """Lag plot for time series.
@@ -416,6 +542,7 @@ def lag_plot(series, ax=None, **kwds):
     ax.scatter(y1, y2, **kwds)
     return ax
 
+
 def autocorrelation_plot(series, ax=None):
     """Autocorrelation plot for time series.
 
@@ -435,44 +562,58 @@ def autocorrelation_plot(series, ax=None):
         ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
     mean = np.mean(data)
     c0 = np.sum((data - mean) ** 2) / float(n)
+
     def r(h):
         return ((data[:n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
     x = np.arange(n) + 1
     y = map(r, x)
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
-    ax.axhline(y=z99/np.sqrt(n), linestyle='--', color='grey')
-    ax.axhline(y=z95/np.sqrt(n), color='grey')
+    ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')
+    ax.axhline(y=z95 / np.sqrt(n), color='grey')
     ax.axhline(y=0.0, color='black')
-    ax.axhline(y=-z95/np.sqrt(n), color='grey')
-    ax.axhline(y=-z99/np.sqrt(n), linestyle='--', color='grey')
+    ax.axhline(y=-z95 / np.sqrt(n), color='grey')
+    ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
     ax.set_xlabel("Lag")
     ax.set_ylabel("Autocorrelation")
     ax.plot(x, y)
     ax.grid()
     return ax
 
+
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
-                 rot=90):
+                 rot=90, **kwargs):
     """
+    Grouped histogram
+
+    Parameters
+    ----------
+    data: Series/DataFrame
+    column: object, optional
+    by: object, optional
+    ax: axes, optional
+    bins: int, default 50
+    log: boolean, default False
+    figsize: tuple, optional
+    layout: optional
+    sharex: boolean, default False
+    sharey: boolean, default False
+    rot: int, default 90
 
     Returns
     -------
-    fig : matplotlib.Figure
+    axes: collection of Matplotlib Axes
     """
-    # if isinstance(data, DataFrame):
-    #     data = data[column]
-
     def plot_group(group, ax):
-        ax.hist(group.dropna(), bins=bins)
+        ax.hist(group.dropna().values, bins=bins)
 
     fig, axes = _grouped_plot(plot_group, data, column=column,
                               by=by, sharex=sharex, sharey=sharey,
                               figsize=figsize, layout=layout, rot=rot)
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
-                        hspace=0.3, wspace=0.2)
-    return fig
+                        hspace=0.5, wspace=0.3)
+    return axes
 
 class MPLPlot(object):
     """
@@ -538,6 +679,23 @@ class MPLPlot(object):
 
         self.kwds = kwds
 
+        self._validate_color_args()
+
+    def _validate_color_args(self):
+        from pandas import DataFrame
+        if 'color' not in self.kwds and 'colors' in self.kwds:
+            warnings.warn(("'colors' is being deprecated. Please use 'color'"
+                           "instead of 'colors'"))
+            colors = self.kwds.pop('colors')
+            self.kwds['color'] = colors
+
+        if ('color' in self.kwds and
+            (isinstance(self.data, Series) or
+             isinstance(self.data, DataFrame) and len(self.data.columns) ==1 )):
+            #support series.plot(color='green')
+            self.kwds['color'] = [self.kwds['color']]
+
+
     def _iter_data(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, np.ndarray)):
@@ -590,7 +748,7 @@ class MPLPlot(object):
             orig_ax, new_ax = ax, ax.twinx()
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
 
-            if len(orig_ax.get_lines()) == 0: # no data on left y
+            if len(orig_ax.get_lines()) == 0:  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
 
             if len(new_ax.get_lines()) == 0:
@@ -625,6 +783,8 @@ class MPLPlot(object):
                 ax = self._maybe_right_yaxis(ax)
             else:
                 fig = self.ax.get_figure()
+                if self.figsize is not None:
+                    fig.set_size_inches(self.figsize)
                 ax = self._maybe_right_yaxis(self.ax)
 
             axes = [ax]
@@ -671,7 +831,7 @@ class MPLPlot(object):
                 self.axes[0].set_title(self.title)
 
         if self._need_to_set_index:
-            labels = [_stringify(key) for key in self.data.index]
+            labels = [com.pprint_thing(key) for key in self.data.index]
             labels = dict(zip(range(len(self.data.index)), labels))
 
             for ax_ in self.axes:
@@ -685,10 +845,10 @@ class MPLPlot(object):
             if not isinstance(self.data.columns, MultiIndex):
                 name = self.data.columns.name
                 if name is not None:
-                    name = com._stringify(name)
+                    name = com.pprint_thing(name)
                 return name
             else:
-                stringified = map(com._stringify,
+                stringified = map(com.pprint_thing,
                                   self.data.columns.names)
                 return ','.join(stringified)
         else:
@@ -726,6 +886,12 @@ class MPLPlot(object):
 
         return x
 
+    def _is_datetype(self):
+        index = self.data.index
+        return (isinstance(index, (PeriodIndex, DatetimeIndex)) or
+                index.inferred_type in ('datetime', 'date', 'datetime64',
+                                        'time'))
+
     def _get_plot_function(self):
         if self.logy:
             plotf = self.plt.Axes.semilogy
@@ -742,13 +908,13 @@ class MPLPlot(object):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
             if any(x is not None for x in name):
-                name = ','.join([com._stringify(x) for x in name])
+                name = ','.join([com.pprint_thing(x) for x in name])
             else:
                 name = None
         else:
             name = self.data.index.name
             if name is not None:
-                name = com._stringify(name)
+                name = com.pprint_thing(name)
 
         return name
 
@@ -795,6 +961,7 @@ class MPLPlot(object):
 
         return style or None
 
+
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
@@ -806,7 +973,7 @@ class KdePlot(MPLPlot):
             ax = self._get_ax(i)
             style = self._get_style(i, label)
 
-            label = com._stringify(label)
+            label = com.pprint_thing(label)
 
             gkde = gaussian_kde(y)
             sample_range = max(y) - min(y)
@@ -830,11 +997,15 @@ class KdePlot(MPLPlot):
             for ax in self.axes:
                 ax.legend(loc='best')
 
+
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
         self.mark_right = kwargs.pop('mark_right', True)
         MPLPlot.__init__(self, data, **kwargs)
+        self.x_compat = plot_params['x_compat']
+        if 'x_compat' in self.kwds:
+           self.x_compat = bool(self.kwds.pop('x_compat'))
 
     def _index_freq(self):
         from pandas.core.frame import DataFrame
@@ -861,9 +1032,9 @@ class LinePlot(MPLPlot):
 
         ax = self._get_ax(0)
         ax_freq = getattr(ax, 'freq', None)
-        if freq is None: # convert irregular if axes has freq info
+        if freq is None:  # convert irregular if axes has freq info
             freq = ax_freq
-        else: # do not use tsplot if irregular was plotted first
+        else:  # do not use tsplot if irregular was plotted first
             if (ax_freq is None) and (len(ax.get_lines()) > 0):
                 return False
 
@@ -871,14 +1042,21 @@ class LinePlot(MPLPlot):
 
     def _get_colors(self):
         import matplotlib.pyplot as plt
-        cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
-        has_colors = 'colors' in self.kwds
-        colors = self.kwds.pop('colors', cycle)
-        return has_colors, colors
+        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+        if isinstance(cycle, basestring):
+            cycle = list(cycle)
+        has_colors = 'color' in self.kwds
+        colors = self.kwds.get('color', cycle)
+        return colors
+
+    def _maybe_add_color(self, colors, kwds, style, i):
+        if style is None or re.match('[a-z]+', style) is None:
+            kwds['color'] = colors[i % len(colors)]
 
     def _make_plot(self):
+        import pandas.tseries.plotting as tsplot
         # this is slightly deceptive
-        if self.use_index and self._use_dynamic_x():
+        if not self.x_compat and self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data, **self.kwds)
         else:
@@ -886,22 +1064,16 @@ class LinePlot(MPLPlot):
             labels = []
             x = self._get_xticks(convert_period=True)
 
-            has_colors, colors = self._get_colors()
-            def _maybe_add_color(kwargs, style, i):
-                if (not has_colors and
-                    (style is None or re.match('[a-z]+', style) is None)):
-                    kwargs['color'] = colors[i % len(colors)]
-
             plotf = self._get_plot_function()
+            colors = self._get_colors()
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
                 style = self._get_style(i, label)
                 kwds = self.kwds.copy()
+                self._maybe_add_color(colors, kwds, style, i)
 
-                _maybe_add_color(kwds, style, i)
-
-                label = _stringify(label)
+                label = com.pprint_thing(label) # .encode('utf-8')
 
                 mask = com.isnull(y)
                 if mask.any():
@@ -922,21 +1094,20 @@ class LinePlot(MPLPlot):
                 labels.append(leg_label)
                 ax.grid(self.grid)
 
+                if self._is_datetype():
+                    left, right = _get_xlim(lines)
+                    ax.set_xlim(left, right)
+
             self._make_legend(lines, labels)
 
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
         kwargs = kwargs.copy()
-        has_colors, colors = self._get_colors()
+        colors = self._get_colors()
 
         plotf = self._get_plot_function()
         lines = []
         labels = []
-
-        def _maybe_add_color(kwargs, style, i):
-            if (not has_colors and
-                (style is None or re.match('[a-z]+', style) is None)):
-                kwargs['color'] = colors[i % len(colors)]
 
         def to_leg_label(label, i):
             if self.mark_right and self.on_right(i):
@@ -944,26 +1115,26 @@ class LinePlot(MPLPlot):
             return label
 
         if isinstance(data, Series):
-            ax = self._get_ax(0) #self.axes[0]
+            ax = self._get_ax(0)  # self.axes[0]
             style = self.style or ''
-            label = com._stringify(self.label)
+            label = com.pprint_thing(self.label)
             kwds = kwargs.copy()
-            _maybe_add_color(kwds, style, 0)
+            self._maybe_add_color(colors, kwds, style, 0)
 
-            newlines = tsplot(data, plotf, ax=ax, label=label, style=self.style,
-                             **kwds)
+            newlines = tsplot(data, plotf, ax=ax, label=label,
+                              style=self.style, **kwds)
             ax.grid(self.grid)
             lines.append(newlines[0])
             leg_label = to_leg_label(label, 0)
             labels.append(leg_label)
         else:
             for i, col in enumerate(data.columns):
-                label = com._stringify(col)
+                label = com.pprint_thing(col)
                 ax = self._get_ax(i)
                 style = self._get_style(i, col)
                 kwds = kwargs.copy()
 
-                _maybe_add_color(kwds, style, i)
+                self._maybe_add_color(colors, kwds, style, i)
 
                 newlines = tsplot(data[col], plotf, ax=ax, label=label,
                                   style=style, **kwds)
@@ -1013,6 +1184,7 @@ class LinePlot(MPLPlot):
                 freq = getattr(data.index, 'inferred_freq', None)
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
+            freq = get_base_alias(freq)
             freq = get_period_alias(freq)
 
             if freq is None:
@@ -1058,11 +1230,16 @@ class LinePlot(MPLPlot):
 
 class BarPlot(MPLPlot):
 
-    _default_rot = {'bar' : 90, 'barh' : 0}
+    _default_rot = {'bar': 90, 'barh': 0}
 
     def __init__(self, data, **kwargs):
         self.stacked = kwargs.pop('stacked', False)
         self.ax_pos = np.arange(len(data)) + 0.25
+        if self.stacked:
+            self.tickoffset = 0.25
+        else:
+            self.tickoffset = 0.375
+        self.bar_width = 0.5
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1083,11 +1260,11 @@ class BarPlot(MPLPlot):
         return f
 
     def _make_plot(self):
-        colors = self.kwds.get('color', 'brgyk')
+        colors = self.kwds.pop('color', 'brgyk')
         rects = []
         labels = []
 
-        ax = self._get_ax(0) #self.axes[0]
+        ax = self._get_ax(0)  # self.axes[0]
 
         bar_f = self.bar_f
 
@@ -1096,18 +1273,18 @@ class BarPlot(MPLPlot):
         K = self.nseries
 
         for i, (label, y) in enumerate(self._iter_data()):
-            label = com._stringify(label)
+            label = com.pprint_thing(label)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % len(colors)]
 
             if self.subplots:
-                ax = self._get_ax(i) #self.axes[i]
-                rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior, **kwds)
+                ax = self._get_ax(i)  # self.axes[i]
+                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=pos_prior, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior)
-                rect = bar_f(ax, self.ax_pos, y, 0.5, start=start,
+                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=start,
                              label=label, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
@@ -1124,12 +1301,12 @@ class BarPlot(MPLPlot):
 
     def _post_plot_logic(self):
         for ax in self.axes:
-            str_index = [_stringify(key) for key in self.data.index]
+            str_index = [com.pprint_thing(key) for key in self.data.index]
 
             name = self._get_index_name()
             if self.kind == 'bar':
                 ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_xticks(self.ax_pos + 0.375)
+                ax.set_xticks(self.ax_pos + self.tickoffset)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axhline(0, color='k', linestyle='--')
@@ -1138,7 +1315,7 @@ class BarPlot(MPLPlot):
             else:
                 # horizontal bars
                 ax.set_ylim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_yticks(self.ax_pos + 0.375)
+                ax.set_yticks(self.ax_pos + self.tickoffset)
                 ax.set_yticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axvline(0, color='k', linestyle='--')
@@ -1147,6 +1324,7 @@ class BarPlot(MPLPlot):
 
         #if self.subplots and self.legend:
         #    self.axes[0].legend(loc='best')
+
 
 class BoxPlot(MPLPlot):
     pass
@@ -1158,9 +1336,10 @@ class HistPlot(MPLPlot):
 
 def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                sharey=False, use_index=True, figsize=None, grid=False,
-               legend=True, rot=None, ax=None, style=None, title=None, xlim=None,
-               ylim=None, logy=False, xticks=None, yticks=None, kind='line',
-               sort_columns=False, fontsize=None, secondary_y=False, **kwds):
+               legend=True, rot=None, ax=None, style=None, title=None,
+               xlim=None, ylim=None, logy=False, xticks=None, yticks=None,
+               kind='line', sort_columns=False, fontsize=None,
+               secondary_y=False, **kwds):
 
     """
     Make line or bar plot of DataFrame's series with the index on the x-axis
@@ -1168,8 +1347,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
     Parameters
     ----------
-    x : int or str, default None
-    y : int or str, default None
+    x : label or position, default None
+    y : label or position, default None
         Allows plotting of one column versus another
     subplots : boolean, default False
         Make separate subplots for each time series
@@ -1226,19 +1405,19 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
-    if isinstance(x, int):
-        x = frame.columns[x]
-    if isinstance(y, int):
-        y = frame.columns[y]
-
     if x is not None:
-        frame = frame.set_index(x).sort_index()
+        if com.is_integer(x) and not frame.columns.holds_integer():
+            x = frame.columns[x]
+        frame = frame.set_index(x)
 
     if y is not None:
-        return plot_series(frame[y], label=y, kind=kind, use_index=True,
+        if com.is_integer(y) and not frame.columns.holds_integer():
+            y = frame.columns[y]
+        return plot_series(frame[y], label=y, kind=kind, use_index=use_index,
                            rot=rot, xticks=xticks, yticks=yticks,
                            xlim=xlim, ylim=ylim, ax=ax, style=style,
                            grid=grid, logy=logy, secondary_y=secondary_y,
+                           title=title, figsize=figsize, fontsize=fontsize,
                            **kwds)
 
     plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
@@ -1257,15 +1436,17 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,
-                ax=None, style=None, grid=None, logy=False, secondary_y=False,
-                **kwds):
+                ax=None, style=None, grid=None, legend=False, logy=False,
+                secondary_y=False, **kwds):
     """
     Plot the input series with the index on the x-axis using matplotlib
 
     Parameters
     ----------
     label : label argument to provide to plot
-    kind : {'line', 'bar'}
+    kind : {'line', 'bar', 'barh'}
+        bar : vertical bar plot
+        barh : horizontal bar plot
     rot : int, default 30
         Rotation for tick labels
     use_index : boolean, default True
@@ -1276,9 +1457,6 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         matplotlib line style to use
     ax : matplotlib axis object
         If not passed, uses gca()
-    kind : {'line', 'bar', 'barh'}
-        bar : vertical bar plot
-        barh : horizontal bar plot
     logy : boolean, default False
         For line plots, use log scaling on y axis
     xticks : sequence
@@ -1322,13 +1500,14 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     plot_obj = klass(series, kind=kind, rot=rot, logy=logy,
                      ax=ax, use_index=use_index, style=style,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     legend=False, grid=grid, label=label,
+                     legend=legend, grid=grid, label=label,
                      secondary_y=secondary_y, **kwds)
 
     plot_obj.generate()
     plot_obj.draw()
 
     return plot_obj.ax
+
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, **kwds):
@@ -1354,12 +1533,12 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     """
     from pandas import Series, DataFrame
     if isinstance(data, Series):
-        data = DataFrame({'x' : data})
+        data = DataFrame({'x': data})
         column = 'x'
 
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
-        keys = [_stringify(x) for x in keys]
+        keys = [com.pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
         ax.boxplot(values, **kwds)
         if kwds.get('vert', 1):
@@ -1394,7 +1573,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             cols = columns
         else:
             cols = data.columns
-        keys = [_stringify(x) for x in cols]
+        keys = [com.pprint_thing(x) for x in cols]
 
         # Return boxplot dict in single plot case
 
@@ -1412,13 +1591,6 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     return ret
 
 
-def _stringify(x):
-    if isinstance(x, tuple):
-        return '|'.join(com._stringify(y) for y in x)
-    else:
-        return com._stringify(x)
-
-
 def format_date_labels(ax, rot):
     # mini version of autofmt_xdate
     try:
@@ -1427,7 +1599,7 @@ def format_date_labels(ax, rot):
             label.set_rotation(rot)
         fig = ax.get_figure()
         fig.subplots_adjust(bottom=0.2)
-    except Exception: # pragma: no cover
+    except Exception:  # pragma: no cover
         pass
 
 
@@ -1455,15 +1627,15 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
         else:
             fig = ax.get_figure()
         plot_group(data, ax)
-        ax.set_ylabel(com._stringify(y))
-        ax.set_xlabel(com._stringify(x))
+        ax.set_ylabel(com.pprint_thing(y))
+        ax.set_xlabel(com.pprint_thing(x))
 
         ax.grid(grid)
 
     return fig
 
 
-def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
+def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None, xrot=None,
                ylabelsize=None, yrot=None, ax=None,
                sharex=False, sharey=False, **kwds):
     """
@@ -1487,6 +1659,27 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
+    if column is not None:
+        if not isinstance(column, (list, np.ndarray)):
+            column = [column]
+        data = data.ix[:, column]
+
+    if by is not None:
+
+        axes = grouped_hist(data, by=by, ax=ax, grid=grid, **kwds)
+
+        for ax in axes.ravel():
+            if xlabelsize is not None:
+                plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+            if xrot is not None:
+                plt.setp(ax.get_xticklabels(), rotation=xrot)
+            if ylabelsize is not None:
+                plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+            if yrot is not None:
+                plt.setp(ax.get_yticklabels(), rotation=yrot)
+
+        return axes
+
     import matplotlib.pyplot as plt
     n = len(data.columns)
     rows, cols = 1, 1
@@ -1523,13 +1716,15 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
 
     return axes
 
-def hist_series(self, ax=None, grid=True, xlabelsize=None, xrot=None,
-                ylabelsize=None, yrot=None, **kwds):
+def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
+                xrot=None, ylabelsize=None, yrot=None, **kwds):
     """
     Draw histogram of the input series using matplotlib
 
     Parameters
     ----------
+    by : object, optional
+        If passed, then used to form histograms for separate groups
     ax : matplotlib axis object
         If not passed, uses gca()
     grid : boolean, default True
@@ -1552,24 +1747,31 @@ def hist_series(self, ax=None, grid=True, xlabelsize=None, xrot=None,
     """
     import matplotlib.pyplot as plt
 
-    if ax is None:
-        ax = plt.gca()
+    if by is None:
+        if ax is None:
+            ax = plt.gca()
+        values = self.dropna().values
 
-    values = self.dropna().values
+        ax.hist(values, **kwds)
+        ax.grid(grid)
+        axes = np.array([ax])
+    else:
+        axes = grouped_hist(self, by=by, ax=ax, grid=grid, **kwds)
 
-    ax.hist(values, **kwds)
-    ax.grid(grid)
+    for ax in axes.ravel():
+        if xlabelsize is not None:
+            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+        if xrot is not None:
+            plt.setp(ax.get_xticklabels(), rotation=xrot)
+        if ylabelsize is not None:
+            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+        if yrot is not None:
+            plt.setp(ax.get_yticklabels(), rotation=yrot)
 
-    if xlabelsize is not None:
-        plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
-    if xrot is not None:
-        plt.setp(ax.get_xticklabels(), rotation=xrot)
-    if ylabelsize is not None:
-        plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
-    if yrot is not None:
-        plt.setp(ax.get_yticklabels(), rotation=yrot)
+    if axes.ndim == 1 and len(axes) == 1:
+        return axes[0]
+    return axes
 
-    return ax
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, figsize=None, **kwds):
@@ -1620,7 +1822,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, figsize=figsize, **kwds)
-            ax.set_title(_stringify(key))
+            ax.set_title(com.pprint_thing(key))
             ret[key] = d
     else:
         from pandas.tools.merge import concat
@@ -1636,9 +1838,10 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                          grid=grid, figsize=figsize, **kwds)
     return ret
 
+
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
-                  rot=0, ax=None):
+                  rot=0, ax=None, **kwargs):
     from pandas.core.frame import DataFrame
     import matplotlib.pyplot as plt
 
@@ -1675,14 +1878,15 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         ax = ravel_axes[i]
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
-        plotf(group, ax)
-        ax.set_title(com._stringify(key))
+        plotf(group, ax, **kwargs)
+        ax.set_title(com.pprint_thing(key))
 
     return fig, axes
 
+
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True, grid=False,
-                            figsize=None, ax=None):
+                            figsize=None, ax=None, **kwargs):
     import matplotlib.pyplot as plt
 
     grouped = data.groupby(by)
@@ -1708,15 +1912,16 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     for i, col in enumerate(columns):
         ax = ravel_axes[i]
         gp_col = grouped[col]
-        plotf(gp_col, ax)
+        plotf(gp_col, ax, **kwargs)
         ax.set_title(col)
-        ax.set_xlabel(com._stringify(by))
+        ax.set_xlabel(com.pprint_thing(by))
         ax.grid(grid)
 
     byline = by[0] if len(by) == 1 else by
     fig.suptitle('Boxplot grouped by %s' % byline)
 
     return fig, axes
+
 
 def _get_layout(nplots):
     if nplots == 1:
@@ -1736,6 +1941,7 @@ def _get_layout(nplots):
         return k, k
 
 # copied from matplotlib/pyplot.py for compatibility with matplotlib < 1.0
+
 
 def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
               subplot_kw=None, ax=None, secondary_y=False, data=None,
@@ -1825,7 +2031,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     # Create empty object array to hold all axes.  It's easiest to make it 1-d
     # so we can just append subplots upon creation, and then
-    nplots = nrows*ncols
+    nplots = nrows * ncols
     axarr = np.empty(nplots, dtype=object)
 
     def on_right(i):
@@ -1862,18 +2068,18 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     if nplots > 1:
         if sharex and nrows > 1:
             for i, ax in enumerate(axarr):
-                if np.ceil(float(i + 1) / ncols) < nrows: # only last row
+                if np.ceil(float(i + 1) / ncols) < nrows:  # only last row
                     [label.set_visible(False) for label in ax.get_xticklabels()]
         if sharey and ncols > 1:
             for i, ax in enumerate(axarr):
-                if (i % ncols) != 0: # only first column
+                if (i % ncols) != 0:  # only first column
                     [label.set_visible(False) for label in ax.get_yticklabels()]
 
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
         # though discarding unneeded dimensions that equal 1.  If we only have
         # one subplot, just return it instead of a 1-element array.
-        if nplots==1:
+        if nplots == 1:
             axes = axarr[0]
         else:
             axes = axarr.reshape(nrows, ncols).squeeze()
@@ -1882,6 +2088,23 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         axes = axarr.reshape(nrows, ncols)
 
     return fig, axes
+
+def _get_xlim(lines):
+    import pandas.tseries.converter as conv
+    left, right = np.inf, -np.inf
+    for l in lines:
+        x = l.get_xdata()
+        left = min(_maybe_convert_date(x[0]), left)
+        right = max(_maybe_convert_date(x[-1]), right)
+    return left, right
+
+def _maybe_convert_date(x):
+    if not com.is_integer(x):
+        conv_func = conv._dt_to_float_ordinal
+        if isinstance(x, datetime.time):
+            conv_func = conv._to_ordinalf
+        x = conv_func(x)
+    return x
 
 if __name__ == '__main__':
     # import pandas.rpy.common as com

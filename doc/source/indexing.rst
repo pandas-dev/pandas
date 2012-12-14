@@ -91,7 +91,7 @@ the data structures:
 
 There is an analogous ``set_value`` method which has the additional capability
 of enlarging an object. This method *always* returns a reference to the object
-it modified, which in the fast of enlargement, will be a **new object**:
+it modified, which in the case of enlargement, will be a **new object**:
 
 .. ipython:: python
 
@@ -190,6 +190,7 @@ Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
    s[s > 0]
    s[(s < 0) & (s > -0.5)]
+   s[(s < -1) | (s > 1 )]
 
 You may select rows from a DataFrame using a boolean vector the same length as
 the DataFrame's index (for example, something derived from one of the columns
@@ -231,22 +232,77 @@ Note, with the :ref:`advanced indexing <indexing.advanced>` ``ix`` method, you
 may select along more than one axis using boolean vectors combined with other
 indexing expressions.
 
-Indexing a DataFrame with a boolean DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Where and Masking
+~~~~~~~~~~~~~~~~~
 
-You may wish to set values on a DataFrame based on some boolean criteria
-derived from itself or another DataFrame or set of DataFrames. This can be done
-intuitively like so:
+Selecting values from a Series with a boolean vector generally returns a subset of the data.
+To guarantee that selection output has the same shape as the original data, you can use the
+``where`` method in ``Series`` and ``DataFrame``.
+
+.. ipython:: python
+
+   # return only the selected rows
+   s[s > 0]
+
+   # return a Series of the same shape as the original
+   s.where(s > 0)
+
+Selecting values from a DataFrame with a boolean critierion now also preserves input data shape.
+``where`` is used under the hood as the implementation.
+
+.. ipython:: python
+
+   # return a DataFrame of the same shape as the original
+   # this is equiavalent to ``df.where(df < 0)``
+   df[df < 0]
+
+In addition, ``where`` takes an optional ``other`` argument for replacement of values where the
+condition is False, in the returned copy.
+
+.. ipython:: python
+
+   df.where(df < 0, -df)
+
+You may wish to set values based on some boolean criteria.
+This can be done intuitively like so:
+
+.. ipython:: python
+
+   s2 = s.copy()
+   s2[s2 < 0] = 0
+   s2
+
+   df2 = df.copy()
+   df2[df2 < 0] = 0
+   df2
+
+Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame), such that partial selection
+with setting is possible. This is analagous to partial setting via ``.ix`` (but on the contents rather than the axis labels)
 
 .. ipython:: python
 
    df2 = df.copy()
-   df2 < 0
-   df2[df2 < 0] = 0
+   df2[ df2[1:4] > 0 ] = 3
    df2
 
-Note that such an operation requires that the boolean DataFrame is indexed
-exactly the same.
+By default, ``where`` returns a modified copy of the data. There is an optional parameter ``inplace``
+so that the original data can be modified without creating a copy:
+
+.. ipython:: python
+
+   df_orig = df.copy()
+
+   df_orig.where(df > 0, -df, inplace=True);
+
+   df_orig
+
+``mask`` is the inverse boolean operation of ``where``.
+
+.. ipython:: python
+
+   s.mask(s >= 0)
+
+   df.mask(df >= 0)
 
 
 Take Methods
@@ -959,7 +1015,7 @@ the index in-place (without creating a new object):
 .. ipython:: python
 
    data.set_index('c', drop=False)
-   df = data.set_index(['a', 'b'], inplace=True)
+   data.set_index(['a', 'b'], inplace=True)
    data
 
 Remove / reset the index,  ``reset_index``
@@ -971,8 +1027,8 @@ integer index. This is the inverse operation to ``set_index``
 
 .. ipython:: python
 
-   df
-   df.reset_index()
+   data
+   data.reset_index()
 
 The output is more similar to a SQL table or a record array. The names for the
 columns derived from the index are the ones stored in the ``names`` attribute.
@@ -999,7 +1055,7 @@ If you create an index yourself, you can just assign it to the ``index`` field:
 
 .. code-block:: python
 
-   df.index = index
+   data.index = index
 
 Indexing internal details
 -------------------------
@@ -1026,9 +1082,7 @@ containers for the axis labels:
 The motivation for having an ``Index`` class in the first place was to enable
 different implementations of indexing. This means that it's possible for you,
 the user, to implement a custom ``Index`` subclass that may be better suited to
-a particular application than the ones provided in pandas. For example, we plan
-to add a more efficient datetime index which leverages the new
-``numpy.datetime64`` dtype in the relatively near future.
+a particular application than the ones provided in pandas.
 
 From an internal implementation point of view, the relevant methods that an
 ``Index`` must define are one or more of the following (depending on how

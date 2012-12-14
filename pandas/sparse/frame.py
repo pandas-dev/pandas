@@ -1,6 +1,6 @@
 """
-Data structures for sparse float data. Life is made simpler by dealing only with
-float64 data
+Data structures for sparse float data. Life is made simpler by dealing only
+with float64 data
 """
 
 # pylint: disable=E1101,E1103,W0231,E0202
@@ -42,6 +42,7 @@ class _SparseMockBlockManager(object):
     def axes(self):
         return [self.sp_frame.columns, self.sp_frame.index]
 
+
 class SparseDataFrame(DataFrame):
     """
     DataFrame containing sparse floating point data in the form of SparseSeries
@@ -63,6 +64,7 @@ class SparseDataFrame(DataFrame):
     _columns = None
     _series = None
     _is_mixed_type = False
+    _col_klass = SparseSeries
     ndim = 2
 
     def __init__(self, data=None, index=None, columns=None,
@@ -85,12 +87,16 @@ class SparseDataFrame(DataFrame):
 
             if index is None:
                 index = Index([])
+            else:
+                index = _ensure_index(index)
 
             if columns is None:
                 columns = Index([])
             else:
                 for c in columns:
-                    sdict[c] = Series(np.nan, index=index)
+                    sdict[c] = SparseSeries(np.nan, index=index,
+                                            kind=self.default_kind,
+                                            fill_value=self.default_fill_value)
 
         self._series = sdict
         self.columns = columns
@@ -108,7 +114,7 @@ class SparseDataFrame(DataFrame):
         # do nothing when DataFrame calls this method
         pass
 
-    def convert_objects(self):
+    def convert_objects(self, convert_dates=True):
         # XXX
         return self
 
@@ -129,7 +135,7 @@ class SparseDataFrame(DataFrame):
             columns = Index(_try_sort(data.keys()))
 
         if index is None:
-            index = extract_index(data)
+            index = extract_index(data.values())
 
         sp_maker = lambda x: SparseSeries(x, index=index,
                                           kind=self.default_kind,
@@ -291,10 +297,11 @@ class SparseDataFrame(DataFrame):
             new_columns = self.columns[:loc]
         else:
             new_columns = Index(np.concatenate((self.columns[:loc],
-                                               self.columns[loc+1:])))
+                                               self.columns[loc + 1:])))
         self.columns = new_columns
 
     _index = None
+
     def _set_index(self, index):
         self._index = _ensure_index(index)
         for v in self._series.values():
@@ -337,8 +344,43 @@ class SparseDataFrame(DataFrame):
                 if com._is_bool_indexer(key):
                     key = np.asarray(key, dtype=bool)
                 return self._getitem_array(key)
-            else: # pragma: no cover
+            else:  # pragma: no cover
                 raise
+
+    def icol(self, i):
+        """
+        Retrieve the i-th column or columns of the DataFrame by location
+
+        Parameters
+        ----------
+        i : int, slice, or sequence of integers
+
+        Notes
+        -----
+        If slice passed, the resulting data will be a view
+
+        Returns
+        -------
+        column : Series (int) or DataFrame (slice, sequence)
+        """
+        if isinstance(i, slice):
+            # need to return view
+            lab_slice = slice(label[0], label[-1])
+            return self.ix[:, lab_slice]
+        else:
+            label = self.columns[i]
+            if isinstance(label, Index):
+                if self.columns.inferred_type == 'integer':
+                    # XXX re: #2228
+                    return self.reindex(columns=label)
+                else:
+                    return self.ix[:, i]
+
+            return self[label]
+            # values = self._data.iget(i)
+            # return self._col_klass.from_array(
+            #     values, index=self.index, name=label,
+            #     fill_value= self.default_fill_value)
 
     @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col):
@@ -392,7 +434,8 @@ class SparseDataFrame(DataFrame):
         if len(columns) == 0:
             return np.zeros((len(self.index), 0), dtype=float)
 
-        return np.array([self[col].values for col in columns]).T
+        return np.array([self.icol(i).values
+                         for i in range(len(self.columns))]).T
 
     values = property(as_matrix)
 
@@ -574,7 +617,7 @@ class SparseDataFrame(DataFrame):
 
         for col in self.columns:
             new_col = mapper(col)
-            if new_col in new_series: # pragma: no cover
+            if new_col in new_series:  # pragma: no cover
                 raise Exception('Non-unique mapping!')
             new_series[new_col] = self[col]
             new_columns.append(new_col)
@@ -625,7 +668,7 @@ class SparseDataFrame(DataFrame):
     def _join_index(self, other, how, lsuffix, rsuffix):
         if isinstance(other, Series):
             assert(other.name is not None)
-            other = SparseDataFrame({other.name : other},
+            other = SparseDataFrame({other.name: other},
                                     default_fill_value=self.default_fill_value)
 
         join_index = self.index.join(other.index, how=how)
@@ -773,7 +816,7 @@ class SparseDataFrame(DataFrame):
         return self.apply(lambda x: map(func, x))
 
     @Appender(DataFrame.fillna.__doc__)
-    def fillna(self, value=None, method='pad', inplace=False, limit=None):
+    def fillna(self, value=None, method=None, inplace=False, limit=None):
         new_series = {}
         for k, v in self.iterkv():
             new_series[k] = v.fillna(value=value, method=method, limit=limit)
@@ -784,6 +827,7 @@ class SparseDataFrame(DataFrame):
         else:
             return self._constructor(new_series, index=self.index,
                                      columns=self.columns)
+
 
 def stack_sparse_frame(frame):
     """

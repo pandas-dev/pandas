@@ -1,3 +1,4 @@
+import os
 import nose
 import unittest
 
@@ -121,7 +122,6 @@ class TestCut(unittest.TestCase):
         self.assert_(np.array_equal(labels, ex_levels))
 
     def test_qcut_bounds(self):
-        np.random.seed(12345)
         arr = np.random.randn(1000)
 
         factor = qcut(arr, 10, labels=False)
@@ -135,8 +135,6 @@ class TestCut(unittest.TestCase):
         self.assert_(factor.equals(expected))
 
     def test_cut_out_of_bounds(self):
-        np.random.seed(12345)
-
         arr = np.random.randn(100)
 
         result = cut(arr, [-1, 0, 1])
@@ -179,6 +177,43 @@ class TestCut(unittest.TestCase):
         result = cut(np.arange(11.), 2)
 
         result = cut(np.arange(11.) / 1e10, 2)
+
+        # #1979, negative numbers
+
+        result = tmod._format_label(-117.9998, precision=3)
+        self.assertEquals(result, '-118')
+        result = tmod._format_label(117.9998, precision=3)
+        self.assertEquals(result, '118')
+
+
+    def test_qcut_binning_issues(self):
+        # #1978, 1979
+        path = os.path.join(curpath(), 'cut_data.csv')
+
+        arr = np.loadtxt(path)
+
+        result = qcut(arr, 20)
+
+        starts = []
+        ends = []
+        for lev in result.levels:
+            s, e = lev[1:-1].split(',')
+
+            self.assertTrue(s != e)
+
+            starts.append(float(s))
+            ends.append(float(e))
+
+        for (sp, sn), (ep, en) in zip(zip(starts[:-1], starts[1:]),
+                                      zip(ends[:-1], ends[1:])):
+            self.assertTrue(sp < sn)
+            self.assertTrue(ep < en)
+            self.assertTrue(ep <= sn)
+
+def curpath():
+    pth, _ = os.path.split(os.path.abspath(__file__))
+    return pth
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

@@ -6,8 +6,9 @@ intended for public consumption
 import numpy as np
 
 import pandas.core.common as com
-import pandas.lib as lib
-import pandas._algos as _algos
+import pandas.algos as algos
+import pandas.hashtable as htable
+
 
 def match(to_match, values, na_sentinel=-1):
     """
@@ -29,12 +30,13 @@ def match(to_match, values, na_sentinel=-1):
     -------
     match : ndarray of integers
     """
-    values = np.asarray(values)
+    values = com._asarray_tuplesafe(values)
     if issubclass(values.dtype.type, basestring):
         values = np.array(values, dtype='O')
 
     f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
     return _hashtable_algo(f, values.dtype)
+
 
 def unique(values):
     """
@@ -54,24 +56,25 @@ def unique(values):
     return _hashtable_algo(f, values.dtype)
 
 
-def count(values, uniques=None):
-    f = lambda htype, caster: _count_generic(values, htype, caster)
+# def count(values, uniques=None):
+#     f = lambda htype, caster: _count_generic(values, htype, caster)
 
-    if uniques is not None:
-        raise NotImplementedError
-    else:
-        return _hashtable_algo(f, values.dtype)
+#     if uniques is not None:
+#         raise NotImplementedError
+#     else:
+#         return _hashtable_algo(f, values.dtype)
+
 
 def _hashtable_algo(f, dtype):
     """
     f(HashTable, type_caster) -> result
     """
     if com.is_float_dtype(dtype):
-        return f(lib.Float64HashTable, com._ensure_float64)
+        return f(htable.Float64HashTable, com._ensure_float64)
     elif com.is_integer_dtype(dtype):
-        return f(lib.Int64HashTable, com._ensure_int64)
+        return f(htable.Int64HashTable, com._ensure_int64)
     else:
-        return f(lib.PyObjectHashTable, com._ensure_object)
+        return f(htable.PyObjectHashTable, com._ensure_object)
 
 
 def _count_generic(values, table_type, type_caster):
@@ -79,9 +82,10 @@ def _count_generic(values, table_type, type_caster):
 
     values = type_caster(values)
     table = table_type(min(len(values), 1000000))
-    uniques, labels, counts = table.factorize(values)
+    uniques, labels = table.factorize(values)
 
     return Series(counts, index=uniques)
+
 
 def _match_generic(values, index, table_type, type_caster):
     values = type_caster(values)
@@ -89,6 +93,7 @@ def _match_generic(values, index, table_type, type_caster):
     table = table_type(min(len(index), 1000000))
     table.map_locations(index)
     return table.lookup(values)
+
 
 def _unique_generic(values, table_type, type_caster):
     values = type_caster(values)
@@ -112,16 +117,17 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
     values = np.asarray(values)
     is_datetime = com.is_datetime64_dtype(values)
-    hash_klass, values = _get_data_algo(values, _hashtables)
+    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    uniques = []
     table = hash_klass(len(values))
-    labels, counts = table.get_labels(values, uniques, 0, na_sentinel)
+    uniques = vec_klass()
+    labels = table.get_labels(values, uniques, 0, na_sentinel)
 
     labels = com._ensure_platform_int(labels)
 
-    uniques = com._asarray_tuplesafe(uniques)
-    if sort and len(counts) > 0:
+    uniques = uniques.to_array()
+
+    if sort and len(uniques) > 0:
         sorter = uniques.argsort()
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -131,12 +137,12 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         np.putmask(labels, mask, -1)
 
         uniques = uniques.take(sorter)
-        counts = counts.take(sorter)
 
     if is_datetime:
-        uniques = np.array(uniques, dtype='M8[ns]')
+        uniques = uniques.view('M8[ns]')
 
-    return labels, uniques, counts
+    return labels, uniques
+
 
 def value_counts(values, sort=True, ascending=False):
     """
@@ -155,20 +161,18 @@ def value_counts(values, sort=True, ascending=False):
     value_counts : Series
     """
     from pandas.core.series import Series
-    from collections import defaultdict
 
     values = np.asarray(values)
 
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
-        keys, counts = lib.value_count_int64(values)
-        result = Series(counts, index=keys)
+        keys, counts = htable.value_count_int64(values)
     else:
-        counter = defaultdict(lambda: 0)
-        values = values[com.notnull(values)]
-        for value in values:
-            counter[value] += 1
-        result = Series(counter)
+        mask = com.isnull(values)
+        values = com._ensure_object(values)
+        keys, counts = htable.value_count_object(values, mask)
+
+    result = Series(counts, index=keys)
 
     if sort:
         result.sort()
@@ -185,12 +189,14 @@ def rank(values, axis=0, method='average', na_option='keep',
     """
     if values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
-        ranks = f(values, ties_method=method, ascending=ascending)
+        ranks = f(values, ties_method=method, ascending=ascending,
+                  na_option=na_option)
     elif values.ndim == 2:
         f, values = _get_data_algo(values, _rank2d_functions)
         ranks = f(values, axis=axis, ties_method=method,
-                  ascending=ascending)
+                  ascending=ascending, na_option=na_option)
     return ranks
+
 
 def quantile(x, q, interpolation_method='fraction'):
     """
@@ -254,8 +260,8 @@ def quantile(x, q, interpolation_method='fraction'):
             elif interpolation_method == 'higher':
                 score = values[np.ceil(idx)]
             else:
-                raise ValueError("interpolation_method can only be 'fraction', " \
-                                 "'lower' or 'higher'")
+                raise ValueError("interpolation_method can only be 'fraction' "
+                                 ", 'lower' or 'higher'")
 
         return score
 
@@ -263,13 +269,14 @@ def quantile(x, q, interpolation_method='fraction'):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)
-        return _algos.arrmap_float64(q, _get_score)
+        return algos.arrmap_float64(q, _get_score)
+
 
 def _interpolate(a, b, fraction):
     """Returns the point at the given fraction between a and b, where
     'fraction' must be between 0 and 1.
     """
-    return a + (b - a)*fraction
+    return a + (b - a) * fraction
 
 
 def _get_data_algo(values, func_map):
@@ -287,6 +294,7 @@ def _get_data_algo(values, func_map):
         values = com._ensure_object(values)
     return f, values
 
+
 def group_position(*args):
     """
     Get group position
@@ -303,19 +311,19 @@ def group_position(*args):
 
 
 _rank1d_functions = {
-    'float64' : lib.rank_1d_float64,
-    'int64' : lib.rank_1d_int64,
-    'generic' : lib.rank_1d_generic
+    'float64': algos.rank_1d_float64,
+    'int64': algos.rank_1d_int64,
+    'generic': algos.rank_1d_generic
 }
 
 _rank2d_functions = {
-    'float64' : lib.rank_2d_float64,
-    'int64' : lib.rank_2d_int64,
-    'generic' : lib.rank_2d_generic
+    'float64': algos.rank_2d_float64,
+    'int64': algos.rank_2d_int64,
+    'generic': algos.rank_2d_generic
 }
 
 _hashtables = {
-    'float64' : lib.Float64HashTable,
-    'int64' : lib.Int64HashTable,
-    'generic' : lib.PyObjectHashTable
+    'float64': (htable.Float64HashTable, htable.Float64Vector),
+    'int64': (htable.Int64HashTable, htable.Int64Vector),
+    'generic': (htable.PyObjectHashTable, htable.ObjectVector)
 }

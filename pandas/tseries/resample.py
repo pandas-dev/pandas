@@ -7,6 +7,7 @@ from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
+import pandas.tseries.tools as tools
 import pandas.core.common as com
 
 from pandas.lib import Timestamp
@@ -22,7 +23,7 @@ class TimeGrouper(CustomGrouper):
 
     Parameters
     ----------
-    rule : pandas offset string or object for identifying bin edges
+    freq : pandas date offset or offset alias for identifying bin edges
     closed : closed end of interval; left (default) or right
     label : interval boundary to use for labeling; left (default) or right
     nperiods : optional, integer
@@ -34,11 +35,26 @@ class TimeGrouper(CustomGrouper):
     Use begin, end, nperiods to generate intervals that cannot be derived
     directly from the associated object
     """
-    def __init__(self, freq='Min', closed='right', label='right', how='mean',
+    def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0):
         self.freq = to_offset(freq)
+
+        end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
+        rule = self.freq.rule_code
+        if (rule in end_types or
+            ('-' in rule and rule[:rule.find('-')] in end_types)):
+            if closed is None:
+                closed = 'right'
+            if label is None:
+                label = 'right'
+        else:
+            if closed is None:
+                closed = 'left'
+            if label is None:
+                label = 'left'
+
         self.closed = closed
         self.label = label
         self.nperiods = nperiods
@@ -109,7 +125,10 @@ class TimeGrouper(CustomGrouper):
 
         first, last = _get_range_edges(axis, self.freq, closed=self.closed,
                                        base=self.base)
-        binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
+        tz = axis.tz
+        binner = labels = DatetimeIndex(freq=self.freq,
+                                        start=first.replace(tzinfo=None),
+                                        end=last.replace(tzinfo=None), tz=tz)
 
         # a little hack
         trimmed = False
@@ -183,7 +202,7 @@ class TimeGrouper(CustomGrouper):
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
             if len(grouper.binlabels) < len(axlabels) or self.how is not None:
-                grouped  = obj.groupby(grouper, axis=self.axis)
+                grouped = obj.groupby(grouper, axis=self.axis)
                 result = grouped.aggregate(self._agg_method)
             else:
                 # upsampling shortcut
@@ -192,11 +211,12 @@ class TimeGrouper(CustomGrouper):
                                      limit=self.limit)
         else:
             # Irregular data, have to use groupby
-            grouped  = obj.groupby(grouper, axis=self.axis)
+            grouped = obj.groupby(grouper, axis=self.axis)
             result = grouped.aggregate(self._agg_method)
 
             if self.fill_method is not None:
-                result = result.fillna(method=self.fill_method, limit=self.limit)
+                result = result.fillna(method=self.fill_method,
+                                       limit=self.limit)
 
         loffset = self.loffset
         if isinstance(loffset, basestring):
@@ -218,7 +238,8 @@ class TimeGrouper(CustomGrouper):
             return obj.reindex(new_index)
         else:
             start = axlabels[0].asfreq(self.freq, how=self.convention)
-            end = axlabels[-1].asfreq(self.freq, how=self.convention)
+            end = axlabels[-1].asfreq(self.freq, how='end')
+
             new_index = period_range(start, end, freq=self.freq)
 
         # Start vs. end of period
@@ -264,7 +285,6 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise NotImplementedError
 
 
-
 def _get_range_edges(axis, offset, closed='left', base=0):
     if isinstance(offset, basestring):
         offset = to_offset(offset)
@@ -276,12 +296,18 @@ def _get_range_edges(axis, offset, closed='left', base=0):
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
                                           closed=closed, base=base)
 
-    if closed == 'left':
-        first = Timestamp(offset.rollback(axis[0]))
-    else:
-        first = Timestamp(axis[0] - offset)
+    first, last = axis[0], axis[-1]
+    if not isinstance(offset, Tick):  # and first.time() != last.time():
+        # hack!
+        first = tools.normalize_date(first)
+        last = tools.normalize_date(last)
 
-    last = Timestamp(axis[-1] + offset)
+    if closed == 'left':
+        first = Timestamp(offset.rollback(first))
+    else:
+        first = Timestamp(first - offset)
+
+    last = Timestamp(last + offset)
 
     return first, last
 
@@ -329,7 +355,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
             Timestamp(lresult, tz=last.tz))
 
 
-def asfreq(obj, freq, method=None, how=None):
+def asfreq(obj, freq, method=None, how=None, normalize=False):
     """
     Utility frequency conversion method for Series/DataFrame
     """
@@ -348,4 +374,7 @@ def asfreq(obj, freq, method=None, how=None):
         if len(obj.index) == 0:
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
-        return obj.reindex(dti, method=method)
+        rs = obj.reindex(dti, method=method)
+        if normalize:
+            rs.index = rs.index.normalize()
+        return rs
