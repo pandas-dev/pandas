@@ -3975,6 +3975,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame.info(verbose=False)
         sys.stdout = sys.__stdout__
 
+    def test_info_wide(self):
+        from pandas import set_option, reset_option
+        io = StringIO()
+        df = DataFrame(np.random.randn(5, 100))
+        df.info(buf=io)
+        self.assert_(len(io.getvalue().splitlines()) == 4)
+
+        set_option('print.max_info_columns', 101)
+        io = StringIO()
+        df.info(buf=io)
+        self.assert_(len(io.getvalue().splitlines()) > 100)
+        reset_option('print.max_info_columns')
+
     def test_info_duplicate_columns(self):
         io = StringIO()
 

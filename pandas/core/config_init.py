@@ -45,6 +45,12 @@ pc_max_cols_doc="""
     columns that can fit on it.
 """
 
+pc_max_info_cols_doc="""
+: int
+    max_info_columns is used in DataFrame.info method to decide if
+    per column information will be printed.
+"""
+
 pc_nb_repr_h_doc="""
 : boolean
     When True (default), IPython notebook will use html representation for
@@ -122,6 +128,8 @@ with cf.config_prefix('print'):
     cf.register_option('max_rows', 100, pc_max_rows_doc, validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc, validator=is_int)
+    cf.register_option('max_info_columns', 100, pc_max_info_cols_doc,
+                       validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
