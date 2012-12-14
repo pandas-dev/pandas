@@ -48,6 +48,13 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(KeyError, self.cf.register_option, 'a.b.c.d2', 1,
                           'doc')
 
+        # no python keywords
+        self.assertRaises(ValueError, self.cf.register_option, 'print',0)
+        # must be valid identifier (ensure attribute access works)
+        self.assertRaises(ValueError, self.cf.register_option,
+                          'Oh my Goddess!',0)
+
+
         # we can register options several levels deep
         # without predefining the intermediate steps
         # and we can define differently named options
@@ -99,11 +106,6 @@ class TestConfig(unittest.TestCase):
 
         # testing warning with catch_warning was only added in 2.6
         self.assertTrue(self.cf._is_deprecated('kAnBaN'))
-
-    def test_set_option(self):
-        self.cf.register_option('a', 1, 'doc')
-        self.cf.register_option('b.c', 'hullo', 'doc2')
-        self.cf.register_option('b.b', None, 'doc2')
 
     def test_get_option(self):
         self.cf.register_option('a', 1, 'doc')
