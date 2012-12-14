@@ -1174,15 +1174,17 @@ class Table(object):
         new_self = copy.copy(self)
         return new_self
 
-    def __eq__(self, other):
-        """ return True if we are 'equal' to this other table (in all respects that matter) """
+    def validate(self, other):
+        """ validate against an existing table """
+        if other is None: return
+
+        if other.table_type != self.table_type:
+            raise TypeError("incompatible table_type with existing [%s - %s]" %
+                            (other.table_type, self.table_type))
+
         for c in ['index_axes','non_index_axes','values_axes']:
             if getattr(self,c,None) != getattr(other,c,None):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
+                raise Exception("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,getattr(self,c,None),getattr(other,c,None)))
 
     @property
     def nrows(self):
@@ -1262,17 +1264,6 @@ class Table(object):
         if where is not None:
             if self.version is None or float(self.version) < 0.1:
                 warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % self.version, IncompatibilityWarning)
-
-    def validate(self):
-        """ raise if we have an incompitable table type with the current """
-        et = getattr(self.attrs,'table_type',None)
-        if et is not None and et != self.table_type:
-                raise TypeError("incompatible table_type with existing [%s - %s]" %
-                                (et, self.table_type))
-        ic  = getattr(self.attrs,'index_cols',None)
-        if ic is not None and ic != self.index_cols():
-            raise TypeError("incompatible index cols with existing [%s - %s]" %
-                            (ic, self.index_cols()))
 
     @property
     def indexables(self):
@@ -1417,13 +1408,28 @@ class Table(object):
                 j += 1
 
             else:
-                self.non_index_axes.append((i,list(a)))
+
+                # we might be able to change the axes on the appending data if necessary
+                append_axis = list(a)
+                if existing_table is not None:
+                    indexer = len(self.non_index_axes)
+                    exist_axis = existing_table.non_index_axes[indexer][1]
+                    if append_axis != exist_axis:
+                        
+                        # ahah! -> reindex
+                        if sorted(append_axis) == sorted(exist_axis):
+                            append_axis = exist_axis
+
+                self.non_index_axes.append((i,append_axis))
 
         # check for column conflicts
         if validate:
             for a in self.axes:
                 a.maybe_set_size(min_itemsize = min_itemsize)
 
+        # reindex by our non_index_axes
+        for a in self.non_index_axes:
+            obj = obj.reindex_axis(a[1], axis = a[0])
 
         blocks = self.get_data_blocks(obj)
 
@@ -1471,9 +1477,8 @@ class Table(object):
             self.values_axes.append(dc)
 
         # validate the axes if we have an existing table
-        if existing_table is not None:
-            if self != existing_table:
-                raise Exception("try to write axes [%s] that are invalid to an existing table [%s]!" % (axes,self.group))
+        if validate:
+            self.validate(existing_table)
 
     def create_description(self, compression = None, complevel = None):
         """ create the description of the table from the axes & values """
@@ -1670,12 +1675,7 @@ class AppendableTable(LegacyTable):
             table = self.handle.createTable(self.group, **options)
 
         else:
-
-            # the table must already exist
             table = self.table
-
-            # validate the table
-            self.validate()
 
         # validate the axes and set the kinds
         for a in self.axes:

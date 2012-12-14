@@ -279,6 +279,15 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('p4d2', p4d2, axes=['items','major_axis','minor_axis'])
         tm.assert_panel4d_equal(self.store['p4d2'], p4d2)
 
+        # test using differt order of items on the non-index axes
+        self.store.remove('wp1')
+        wp_append1 = wp.ix[:,:10,:]
+        self.store.append('wp1', wp_append1)
+        wp_append2 = wp.ix[:,10:,:].reindex(items = wp.items[::-1])
+        self.store.append('wp1', wp_append2) 
+        tm.assert_panel_equal(self.store['wp1'], wp)
+        
+
     def test_append_frame_column_oriented(self):
 
         # column oriented
@@ -459,6 +468,8 @@ class TestHDFStore(unittest.TestCase):
             os.remove(self.scratchpath)
 
     def test_append_diff_item_order(self):
+        raise nose.SkipTest('append diff item order')
+
         wp = tm.makePanel()
         wp1 = wp.ix[:, :10, :]
         wp2 = wp.ix[['ItemC', 'ItemB', 'ItemA'], 10:, :]
