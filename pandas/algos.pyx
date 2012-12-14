@@ -667,7 +667,7 @@ def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
         Py_ssize_t i, len_x, len_y
         numeric_t val
         weight_t wgt
-        ndarray[float64_t] numer
+        ndarray[double] numer
         ndarray[weight_t] denom
 
     len_x, len_y = (<object>arr).shape
@@ -675,7 +675,7 @@ def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
     other_len = (len_x, len_y)[axis]
     if len(weight) != other_len:
         raise ValueError('Weights must be same size as data along axis %d'
-                         % other_len)
+                         % axis)
 
     numer = np.zeros(axis_len, dtype=float)
     denom = np.zeros(axis_len, dtype=weight.dtype)

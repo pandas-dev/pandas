@@ -1328,7 +1328,12 @@ copy : boolean, default False
             return nanops.nanmean(self.values, skipna=skipna)
 
         weights = _align_clean(self, weights, axis)
-        return nanops.weighted_nanmean(self.values, weights, axis=axis,
+        values = self.values
+        if com.is_datetime64_dtype(values):
+            values = values.view('i8')
+        elif not com.is_integer_dtype(values):
+            values = com.ensure_float(values)
+        return nanops.weighted_nanmean(values, weights, axis=axis,
                                        skipna=skipna)
 
     @Substitution(name='mean absolute deviation', shortname='mad',
@@ -3148,6 +3153,8 @@ def _align_clean(data, weights, axis):
             weights = weights.values
         else:
             weights = weights.reindex(data.index).values
+    elif isinstance(weights, Index):
+        weights = weights.values
     elif len(weights) != len(data):
         raise ValueError('ndarray weights must be same size as data')
     elif isinstance(weights, (list, tuple)):
@@ -3157,9 +3164,9 @@ def _align_clean(data, weights, axis):
         raise ValueError('Weights must be 1-dimensional')
 
     if com.is_datetime64_dtype(weights):
-        weights = np.asarray(weights).view('i8')
+        weights = weights.view('i8')
     elif not com.is_integer_dtype(weights):
-        weights = weights.astype(float)
+        weights = com.ensure_float(weights)
 
     return weights
 

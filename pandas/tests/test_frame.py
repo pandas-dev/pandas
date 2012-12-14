@@ -6464,7 +6464,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
-    def test_000weighted_mean_1d_weights(self):
+    def test_weighted_mean_1d_weights(self):
         # axis = 0
         weights = Series(np.random.randint(1, 100,
                          len(self.frame)).astype(float),

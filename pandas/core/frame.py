@@ -4694,7 +4694,7 @@ class DataFrame(NDFrame):
             if weights is None:
                 return nanops.nanmean(values, axis=axis, skipna=skipna)
 
-            if isinstance(weights, Series):
+            if isinstance(weights, (Series, Index)):
                 weights = weights.values
             elif not isinstance(weights, np.ndarray):
                 weights = np.asarray(weights)
@@ -4703,6 +4703,11 @@ class DataFrame(NDFrame):
                 weights = weights.view('i8')
             elif not com.is_integer_dtype(weights):
                 weights = com.ensure_float(weights)
+
+            if com.is_datetime64_dtype(values):
+                values = values.view('i8')
+            elif not com.is_integer_dtype(values):
+                values = com.ensure_float(values)
 
             return nanops.weighted_nanmean(values, weights, axis=axis,
                                            skipna=skipna)
@@ -4823,41 +4828,33 @@ class DataFrame(NDFrame):
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, weights=None, **kwds):
-        if weights is None:
-            f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
-        else:
-            f = lambda x, weights: op(x, axis=axis, skipna=skipna,
-                                      weights=weights, **kwds)
+        f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
 
         labels = self._get_agg_axis(axis)
         if weights is not None:
             weights = weights.reindex(self._get_axis(axis))
+            kwds['weights'] = weights
 
         if numeric_only is None:
             try:
                 values = self.values
-                if weights is None:
-                    result = f(values)
-                else:
-                    result = f(values, weights=weights)
+                result = f(values)
             except Exception:
                 data, labels = self._numeric_or_bool(filter_type, axis)
-                if weights is None:
-                    result = f(data.values)
-                else:
+                if weights is not None:
                     weights = weights.reindex(data._get_axis(axis))
-                    result = f(data.values, weights=weights)
+                    kwds['weights'] = weights
+
+                result = f(data.values)
         else:
+            data = self
             if numeric_only:
                 data, labels = self._numeric_or_bool(filter_type, axis)
-            else:
-                data = self
 
-            if weights is not None:
-                weights = weights.reindex(data._get_axis(axis))
-                result = f(data.values, weights=weights)
-            else:
-                result = f(data.values)
+                if weights is not None:
+                    weights = weights.reindex(data._get_axis(axis))
+                    kwds['weights'] = weights
+            result = f(data.values)
 
         if result.dtype == np.object_:
             try:
