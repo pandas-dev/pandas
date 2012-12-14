@@ -1092,7 +1092,21 @@ class UTF8Recoder:
         return self.reader.next().encode("utf-8")
 
 
-def _get_handle(path, mode, encoding=None):
+def _get_handle(path, mode, encoding=None, compression=None):
+    if compression is not None:
+        if encoding is not None:
+            raise ValueError('encoding + compression not yet supported')
+
+        if compression == 'gzip':
+            import gzip
+            return gzip.GzipFile(path, 'rb')
+        elif compression == 'bz2':
+            import bz2
+            return bz2.BZ2File(path, 'rb')
+        else:
+            raise ValueError('Unrecognized compression type: %s' %
+                             compression)
+
     if py3compat.PY3:  # pragma: no cover
         if encoding:
             f = open(path, mode, encoding=encoding)

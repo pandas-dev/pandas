@@ -245,7 +245,8 @@ _parser_defaults = {
     'chunksize': None,
     'verbose': False,
     'encoding': None,
-    'squeeze': False
+    'squeeze': False,
+    'compression': None
 }
 
 
@@ -263,7 +264,6 @@ _c_parser_defaults = {
     'factorize': True,
     'dtype': None,
     'usecols': None,
-    'compression': None,
     'decimal': b'.'
 }
 
@@ -1102,6 +1102,7 @@ class PythonParser(ParserBase):
 
         self.header = kwds['header']
         self.encoding = kwds['encoding']
+        self.compression = kwds['compression']
         self.skiprows = kwds['skiprows']
 
         self.skip_footer = kwds['skip_footer']
@@ -1127,13 +1128,8 @@ class PythonParser(ParserBase):
 
 
         if isinstance(f, basestring):
-            f = com._get_handle(f, 'r', encoding=self.encoding)
-
-            # if self.encoding is None:
-            #     # universal newline mode
-            #     f = com._get_handle(f, 'U')
-            # else:
-            #     f = com._get_handle(f, 'rb', encoding=self.encoding)
+            f = com._get_handle(f, 'r', encoding=self.encoding,
+                                compression=self.compression)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
