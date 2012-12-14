@@ -302,7 +302,7 @@ def _center_window(rs, window, axis):
         na_indexer = [slice(None)] * rs.ndim
         na_indexer[axis] = slice(-offset, None)
 
-        rs[tuple(rs_indexer)] = rs[tuple(lead_indexer)]
+        rs[tuple(rs_indexer)] = np.copy(rs[tuple(lead_indexer)])
         rs[tuple(na_indexer)] = np.nan
     return rs
 
