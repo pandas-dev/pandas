@@ -883,8 +883,6 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        from collections import OrderedDict
-
         orient = orient.lower()
         if orient == 'index':
             # TODO: this should be seriously cythonized
