@@ -6188,6 +6188,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         comb = self.frame.combine_first(DataFrame(index=["faz","boo"]))
         self.assertTrue("faz" in comb.index)
 
+        # #2525
+        df = DataFrame({'a': [1]}, index=[datetime(2012,1,1)])
+        df2 = DataFrame({}, columns=['b'])
+        result = df.combine_first(df2)
+        self.assertTrue('b' in result)
+
     def test_combine_first_mixed_bug(self):
         idx = Index(['a','b','c','e'])
         ser1 = Series([5.0,-9.0,4.0,100.],index=idx)

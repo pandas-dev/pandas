@@ -3690,7 +3690,8 @@ class DataFrame(NDFrame):
     def combine_first(self, other):
         """
         Combine two DataFrame objects and default to non-null values in frame
-        calling the method. Result index will be the union of the two indexes
+        calling the method. Result index columns will be the union of the
+        respective indexes and columns
 
         Parameters
         ----------

@@ -231,6 +231,8 @@ pandas 0.10.0
   - DataFrame.sort_index raises more helpful exception if sorting by column
     with duplicates (GH2488_)
   - DataFrame.to_string formatters can be list, too (GH2520_)
+  - DataFrame.combine_first will always result in the union of the index and
+    columns, even if one DataFrame is length-zero (GH2525_)
 
 .. _GH407: https://github.com/pydata/pandas/issues/407
 .. _GH821: https://github.com/pydata/pandas/issues/821
@@ -345,6 +347,7 @@ pandas 0.10.0
 .. _GH2307: https://github.com/pydata/pandas/issues/2307
 .. _GH2488: https://github.com/pydata/pandas/issues/2488
 .. _GH2520: https://github.com/pydata/pandas/issues/2520
+.. _GH2525: https://github.com/pydata/pandas/issues/2525
 
 
 pandas 0.9.1
