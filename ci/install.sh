@@ -4,7 +4,7 @@ echo "inside $0"
 # Install Dependencies
 
 # Hard Deps
-pip install $PIP_ARGS --use-mirrors cython nose python-dateutil
+pip install $PIP_ARGS --use-mirrors cython nose python-dateutil pytz
 
 # try and get numpy as a binary deb
 
@@ -43,7 +43,7 @@ if [ x"$FULL_DEPS" == x"true" ]; then
         pip install tables
     fi
 
-    pip install $PIP_ARGS --use-mirrors openpyxl pytz matplotlib;
+    pip install $PIP_ARGS --use-mirrors openpyxl matplotlib;
     pip install $PIP_ARGS --use-mirrors xlrd xlwt;
     pip install $PIP_ARGS 'http://downloads.sourceforge.net/project/pytseries/scikits.timeseries/0.91.3/scikits.timeseries-0.91.3.tar.gz?r='
 fi
@@ -60,5 +60,5 @@ python setup.py build_ext install
 if [ x"$FULL_DEPS" == x"true" ]; then
     pip install patsy
     # pick recent 0.5dev dec/2012
-    pip install git+git://github.com/statsmodels/statsmodels@c9062e43b8a5f7385537ca95#egg=statsmod
+    pip install git+git://github.com/statsmodels/statsmodels@c9062e43b8a5f7385537ca95#egg=statsmodels
 fi;

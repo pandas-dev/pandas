@@ -67,7 +67,8 @@ Dependencies
 
   * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
-
+  * `pytz <http://pytz.sourceforge.net/>`__
+     * Needed for time zone support
 
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
@@ -79,8 +80,6 @@ Optional dependencies
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`
-  * `pytz <http://pytz.sourceforge.net/>`__
-     * Needed for time zone support
   * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
      * openpyxl version 1.6.1 or higher
      * Needed for Excel I/O
