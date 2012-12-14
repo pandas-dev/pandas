@@ -605,6 +605,18 @@ class TestHDFStore(unittest.TestCase):
 
     def test_remove_crit(self):
         wp = tm.makePanel()
+
+        # group row removal
+        date4 = wp.major_axis.take([ 0,1,2,4,5,6,8,9,10 ])
+        crit4 = Term('major_axis',date4)
+        self.store.put('wp3', wp, table=True)
+        n = self.store.remove('wp3', where=[crit4])
+        assert(n == 36)
+        result = self.store.select('wp3')
+        expected = wp.reindex(major_axis = wp.major_axis-date4)
+        tm.assert_panel_equal(result, expected)
+
+        # upper half
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
@@ -612,7 +624,6 @@ class TestHDFStore(unittest.TestCase):
         crit2 = Term('minor_axis',['A', 'D'])
         n = self.store.remove('wp', where=[crit1])
 
-        # deleted number
         assert(n == 56)
 
         n = self.store.remove('wp', where=[crit2])
@@ -622,32 +633,36 @@ class TestHDFStore(unittest.TestCase):
         expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
         tm.assert_panel_equal(result, expected)
 
-        # test non-consecutive row removal
-        wp = tm.makePanel()
+        # individual row elements
         self.store.put('wp2', wp, table=True)
 
         date1 = wp.major_axis[1:3]
-        date2 = wp.major_axis[5]
-        date3 = [wp.major_axis[7],wp.major_axis[9]]
-
         crit1 = Term('major_axis',date1)
-        crit2 = Term('major_axis',date2)
-        crit3 = Term('major_axis',date3)
-
         self.store.remove('wp2', where=[crit1])
-        self.store.remove('wp2', where=[crit2])
-        self.store.remove('wp2', where=[crit3])
-        result = self.store['wp2']
-
-        ma = list(wp.major_axis)
-        for d in date1:
-            ma.remove(d)
-        ma.remove(date2)
-        for d in date3:
-            ma.remove(d)
-        expected = wp.reindex(major = ma)
+        result = self.store.select('wp2')
+        expected = wp.reindex(major_axis=wp.major_axis-date1)
         tm.assert_panel_equal(result, expected)
 
+        date2 = wp.major_axis[5]
+        crit2 = Term('major_axis',date2)
+        self.store.remove('wp2', where=[crit2])
+        result = self.store['wp2']
+        expected = wp.reindex(major_axis=wp.major_axis-date1-Index([date2]))
+        tm.assert_panel_equal(result, expected)
+
+        date3 = [wp.major_axis[7],wp.major_axis[9]]
+        crit3 = Term('major_axis',date3)
+        self.store.remove('wp2', where=[crit3])
+        result = self.store['wp2']
+        expected = wp.reindex(major_axis=wp.major_axis-date1-Index([date2])-Index(date3))
+        tm.assert_panel_equal(result, expected)
+
+        # corners
+        self.store.put('wp4', wp, table=True)
+        n = self.store.remove('wp4', where=[Term('major_axis','>',wp.major_axis[-1])])
+        result = self.store.select('wp4')
+        tm.assert_panel_equal(result, wp)
+        
     def test_terms(self):
 
         wp = tm.makePanel()

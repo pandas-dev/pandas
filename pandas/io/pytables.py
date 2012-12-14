@@ -1738,22 +1738,35 @@ class AppendableTable(LegacyTable):
         self.selection.select_coords()
 
         # delete the rows in reverse order
-        l  = list(self.selection.values)
+        l  = Series(self.selection.values).order()
         ln = len(l)
 
         if ln:
 
-            # if we can do a consecutive removal - do it!
-            if l[0]+ln-1 == l[-1]:
-                table.removeRows(start = l[0], stop = l[-1]+1)
+            # construct groups of consecutive rows
+            diff   = l.diff()
+            groups = list(diff[diff>1].index)
 
-            # one by one
-            else:
-                l.reverse()
-                for c in l:
-                    table.removeRows(c)
+            # 1 group
+            if not len(groups):
+                groups = [0]
 
-                    self.handle.flush()
+            # final element
+            if groups[-1] != ln:
+                groups.append(ln)
+            
+            # initial element
+            if groups[0] != 0:
+                groups.insert(0,0)
+
+            # we must remove in reverse order!
+            pg = groups.pop()
+            for g in reversed(groups):
+                rows = l.take(range(g,pg))
+                table.removeRows(start = rows[rows.index[0]], stop = rows[rows.index[-1]]+1)
+                pg = g
+
+            self.handle.flush()
 
         # return the number of rows removed
         return ln
