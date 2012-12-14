@@ -1239,7 +1239,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         weights = weights.asi8
         xp = (weights * self.series).sum() / weights[notnull(self.series)].sum()
-        self.assertEqual(rs, xp)
+        assert_almost_equal(rs, xp)
 
     def test_median(self):
         self._check_stat_op('median', np.median)
