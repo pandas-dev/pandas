@@ -75,6 +75,20 @@ Note:
     # old behavior
     series.resample('D', how='sum', closed='right', label='right')
 
+- Infinity and negative infinity are no longer treated as NA by ``isnull`` and
+  ``notnull``. That they every were was a relic of early pandas. This behavior
+  can be re-enabled globally by the ``mode.use_inf_as_null`` option:
+
+.. ipython:: python
+
+    s = pd.Series([1.5, np.inf, 3.4, -np.inf])
+	pd.isnull(s)
+    s.fillna(0)
+    pd.set_option('use_inf_as_null', True)
+	pd.isnull(s)
+    s.fillna(0)
+	pd.reset_option('use_inf_as_null')
+
 - Methods with the ``inplace`` option now all return ``None`` instead of the
   calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
   may stop working. To fix, simply delete the unnecessary variable assignment.

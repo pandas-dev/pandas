@@ -34,9 +34,17 @@ def test_notnull():
         assert notnull(np.inf)
         assert notnull(-np.inf)
 
+        arr = np.array([1.5, np.inf, 3.5, -np.inf])
+        result = notnull(arr)
+        assert result.all()
+
     with cf.option_context("mode.use_inf_as_null",True):
         assert not notnull(np.inf)
         assert not notnull(-np.inf)
+
+        arr = np.array([1.5, np.inf, 3.5, -np.inf])
+        result = notnull(arr)
+        assert result.sum() == 2
 
     with cf.option_context("mode.use_inf_as_null",False):
         float_series = Series(np.random.randn(5))
@@ -62,6 +70,7 @@ def test_isnull():
     result = isnull(df)
     expected = result.apply(isnull)
     tm.assert_frame_equal(result, expected)
+
 
 def test_isnull_lists():
     result = isnull([[False]])
