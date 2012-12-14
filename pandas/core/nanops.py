@@ -119,12 +119,11 @@ def _nanmean(values, axis=None, skipna=True):
 
 def weighted_nanmean(values, weights, axis=None, skipna=True):
     if values.ndim == 1:
-        return lib.weighted_nanmean_1d(values, weights, skipna)
+        return algos.weighted_nanmean_1d(values, weights, skipna)
     elif values.ndim == 2 and weights.ndim == 1:
-        return lib.weighted_nanmean_2d_1d_weights(values, weights, axis, skipna)
-    elif values.ndim == 2 and weights.ndim == 2:
-        return lib.weighted_nanmean_2d_2d_weights(values, weights, axis, skipna)
-    else: #loses precision for large ints
+        return algos.weighted_nanmean_2d_1d_weights(values, weights, axis,
+                                                    skipna)
+    else:
         raise NotImplementedError()
 
 def _nanmedian(values, axis=None, skipna=True):

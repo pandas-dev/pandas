@@ -6471,51 +6471,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                          self.frame.index)
         weights[np.random.randint(0, len(self.frame), 10)] = np.NaN
 
-        def wgt_mean(data):
+        def wgt_mean(data, skipna=True):
             # check the result is correct
-            mask = notnull(weights).mul(notnull(data))
-            mask = mask.dropna().astype(bool)
-            vals = weights * data
-            wgts = weights.reindex(mask.index)
-            return vals.sum() / wgts[mask].sum()
+            wgts = weights.reindex(data.index)
+            if skipna:
+                mask = notnull(wgts) & notnull(data)
+                wgts = wgts[mask]
+                data = data[mask]
+            vals = np.asarray(wgts) * np.asarray(data)
+            return vals.sum() / np.asarray(wgts).sum()
 
-        self._check_stat_op('mean', wgt_mean, axis=0, weights=weights)
+        self._check_stat_op('mean', wgt_mean, axis=0, weights=weights,
+                            inject_skipna=True)
 
         # axis = 1
         weights = Series(np.random.randint(1, 100,
                          len(self.frame.columns)).astype(float),
                          self.frame.columns)
-        weights[np.random.randint(0, len(self.frame.columns), 10)] = np.NaN
+        weights[3:4] = np.NaN
 
-        self._check_stat_op('mean', wgt_mean, axis=1, weights=weights)
-
-    def test_000weighted_mean_2d_weights(self):
-        # axis = 0
-        weights = DataFrame(np.random.randint(1, 100,
-                                self.frame.shape).astype(float),
-                            self.frame.index)
-        weights[np.random.randint(0, len(self.frame), 10), :] = np.NaN
-
-        def wgt_mean(data):
-            # check the result is correct
-            mask = notnull(weights.ix[:, data.name]).mul(notnull(data))
-            mask = mask.dropna().astype(bool)
-            vals = weights * data
-            wgts = weights.reindex(mask.index)
-            return vals.sum() / wgts[mask].sum()
-
-        self._check_stat_op('mean', wgt_mean, axis=0, weights=weights)
-
-        #axis = 1
-        def wgt_mean(data):
-            # check the result is correct
-            mask = notnull(weights.ix[data.name, :]).mul(notnull(data))
-            mask = mask.dropna().astype(bool)
-            vals = weights * data
-            wgts = weights.reindex(mask.index)
-            return vals.sum() / wgts[mask].sum()
-
-        self._check_stat_op('mean', wgt_mean, axis=1, weights=weights)
+        self._check_stat_op('mean', wgt_mean, axis=1, weights=weights,
+                            inject_skipna=True)
 
     def test_product(self):
         self._check_stat_op('product', np.prod)
@@ -6652,13 +6628,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         f = getattr(frame, name)
 
         if has_skipna:
+            inject_arg = kwargs.pop('inject_skipna', False)
+
             def skipna_wrapper(x):
                 nona = x.dropna().values
                 if len(nona) == 0:
                     return np.nan
-                return alternative(nona)
+                if inject_arg:
+                    return alternative(x, True)
+                else:
+                    return alternative(nona)
 
             def wrapper(x):
+                if inject_arg:
+                    return alternative(x, False)
                 return alternative(x.values)
 
             if axis is None:

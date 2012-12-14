@@ -671,13 +671,14 @@ def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
         ndarray[weight_t] denom
 
     len_x, len_y = (<object>arr).shape
-    axis_len = (len_x, len_y)[axis]
-    if len(weight) != axis_len:
-        raise ValueError('Weights must be same size as data along broadcast '
-                         'dimension')
+    axis_len = (len_x, len_y)[1 - axis]
+    other_len = (len_x, len_y)[axis]
+    if len(weight) != other_len:
+        raise ValueError('Weights must be same size as data along axis %d'
+                         % other_len)
 
-    numer = np.empty(axis_len, dtype=float)
-    denom = np.empty(axis_len, dtype=weight.dtype)
+    numer = np.zeros(axis_len, dtype=float)
+    denom = np.zeros(axis_len, dtype=weight.dtype)
 
     if arr.flags.f_contiguous: #outer loop columns
         if axis == 0:
@@ -712,8 +713,9 @@ def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
                 for j in range(len_y):
                     for i in range(len_x):
                         wgt = weight[j]
+                        val = arr[i, j]
 
-                        numer[i] += arr[i, j] * wgt
+                        numer[i] += val * wgt
                         denom[i] += wgt
 
     else:
@@ -753,106 +755,11 @@ def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
 
 
     for k in range(axis_len):
-        numer[k] /= denom[k]
-
-    return numer
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def weighted_nanmean_2d_2d_weights(ndarray[numeric_t, ndim=2] arr,
-                                   ndarray[weight_t, ndim=2] weight,
-                                   int axis=0,
-                                   bint skipna=True):
-    cdef:
-        Py_ssize_t i, len_x, len_y
-        numeric_t val
-        weight_t wgt
-        ndarray[float64_t] numer
-        ndarray[weight_t] denom
-
-    len_x, len_y = (<object>arr).shape
-    if (<object>arr).shape != (<object>weight).shape:
-        raise ValueError('Weights must have same shape as data')
-
-    axis_len = (len_x, len_y)[axis]
-    numer = np.empty(axis_len, dtype=float)
-    denom = np.empty(axis_len, dtype=weight.dtype)
-
-    if arr.flags.f_contiguous: #outer loop columns
-        if axis == 0:
-            if skipna:
-                for j in range(len_y):
-                    for i in range(len_x):
-                        val = arr[i, j]
-                        wgt = weight[i, j]
-
-                        if val == val and wgt == wgt:
-                            numer[j] += val * wgt
-                            denom[j] += wgt
-            else:
-                for j in range(len_y):
-                    for i in range(len_x):
-                        wgt = weight[i, j]
-
-                        numer[j] += arr[i, j] * wgt
-                        denom[j] += wgt
-
+        wgt = denom[k]
+        if wgt == 0:
+            numer[k] = NaN
         else:
-            if skipna:
-                for j in range(len_y):
-                    for i in range(len_x):
-                        val = arr[i, j]
-                        wgt = weight[i, j]
-
-                        if val == val and wgt == wgt:
-                            numer[i] += val * wgt
-                            denom[i] += wgt
-            else:
-                for j in range(len_y):
-                    for i in range(len_x):
-                        wgt = weight[i, j]
-
-                        numer[i] += arr[i, j] * wgt
-                        denom[i] += wgt
-
-    else:
-        if axis == 0:
-            if skipna:
-                for i in range(len_x):
-                    for j in range(len_y):
-                        val = arr[i, j]
-                        wgt = weight[i, j]
-
-                        if val == val and wgt == wgt:
-                            numer[j] += val * wgt
-                            denom[j] += wgt
-            else:
-                for i in range(len_x):
-                    for j in range(len_y):
-                        wgt = weight[i, j]
-                        numer[j] += arr[i, j] * wgt
-                        denom[j] += wgt
-        else:
-            if skipna:
-                for i in range(len_x):
-                    for j in range(len_y):
-                        val = arr[i, j]
-                        wgt = weight[i, j]
-
-                        if val == val and wgt == wgt:
-                            numer[i] += val * wgt
-                            denom[i] += wgt
-
-            else:
-                for i in range(len_x):
-                    for j in range(len_y):
-                        wgt = weight[i, j]
-                        numer[i] += arr[i, j] + wgt
-                        denom[i] += wgt
-
-    for k in range(axis_len):
-        numer[k] /= denom[k]
-
+            numer[k] /= denom[k]
     return numer
 
 @cython.wraparound(False)

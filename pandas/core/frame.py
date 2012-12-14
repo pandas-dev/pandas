@@ -4694,19 +4694,15 @@ class DataFrame(NDFrame):
             if weights is None:
                 return nanops.nanmean(values, axis=axis, skipna=skipna)
 
-            if not isinstance(weights, np.ndarray):
+            if isinstance(weights, Series):
+                weights = weights.values
+            elif not isinstance(weights, np.ndarray):
                 weights = np.asarray(weights)
 
-            if weights.ndim == 1 and isinstance(weights, Series):
-                weights = weights.reindex(self._get_axis(axis)).values
-            elif isinstance(weights, DataFrame):
-                weights = weights.reindex(index=self.index,
-                                          columns=self.columns).values
-
             if com.is_datetime64_dtype(weights):
-                weights = np.asarray(weights).view('i8')
+                weights = weights.view('i8')
             elif not com.is_integer_dtype(weights):
-                weights = np.asarray(weights).astype(float)
+                weights = com.ensure_float(weights)
 
             return nanops.weighted_nanmean(values, weights, axis=axis,
                                            skipna=skipna)
@@ -4826,35 +4822,42 @@ class DataFrame(NDFrame):
         return grouped.aggregate(applyf)
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
-        f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
+                filter_type=None, weights=None, **kwds):
+        if weights is None:
+            f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
+        else:
+            f = lambda x, weights: op(x, axis=axis, skipna=skipna,
+                                      weights=weights, **kwds)
+
         labels = self._get_agg_axis(axis)
+        if weights is not None:
+            weights = weights.reindex(self._get_axis(axis))
+
         if numeric_only is None:
             try:
                 values = self.values
-                result = f(values)
-            except Exception:
-                if filter_type is None or filter_type == 'numeric':
-                    data = self._get_numeric_data()
-                elif filter_type == 'bool':
-                    data = self._get_bool_data()
+                if weights is None:
+                    result = f(values)
                 else:
-                    raise NotImplementedError
-                result = f(data.values)
-                labels = data._get_agg_axis(axis)
+                    result = f(values, weights=weights)
+            except Exception:
+                data, labels = self._numeric_or_bool(filter_type, axis)
+                if weights is None:
+                    result = f(data.values)
+                else:
+                    weights = weights.reindex(data._get_axis(axis))
+                    result = f(data.values, weights=weights)
         else:
             if numeric_only:
-                if filter_type is None or filter_type == 'numeric':
-                    data = self._get_numeric_data()
-                elif filter_type == 'bool':
-                    data = self._get_bool_data()
-                else:
-                    raise NotImplementedError
-                values = data.values
-                labels = data._get_agg_axis(axis)
+                data, labels = self._numeric_or_bool(filter_type, axis)
             else:
-                values = self.values
-            result = f(values)
+                data = self
+
+            if weights is not None:
+                weights = weights.reindex(data._get_axis(axis))
+                result = f(data.values, weights=weights)
+            else:
+                result = f(data.values)
 
         if result.dtype == np.object_:
             try:
@@ -4867,6 +4870,16 @@ class DataFrame(NDFrame):
                 pass
 
         return Series(result, index=labels)
+
+    def _numeric_or_bool(self, filter_type, axis):
+        if filter_type is None or filter_type == 'numeric':
+            data = self._get_numeric_data()
+        elif filter_type == 'bool':
+            data = self._get_bool_data()
+        else:
+            raise NotImplementedError
+        labels = data._get_agg_axis(axis)
+        return data, labels
 
     def idxmin(self, axis=0, skipna=True):
         """
