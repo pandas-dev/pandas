@@ -1497,6 +1497,18 @@ class TestConcatenate(unittest.TestCase):
         expected = DataFrame(pieces, index=['A', 'B', 'C']).T
         assert_frame_equal(result, expected)
 
+        # preserve series names, #2489
+        s = Series(randn(5), name='A')
+        s2 = Series(randn(5), name='B')
+
+        result = concat([s, s2], axis=1)
+        expected = DataFrame({'A': s, 'B': s2})
+        assert_frame_equal(result, expected)
+
+        s2.name = None
+        result = concat([s, s2], axis=1)
+        self.assertTrue(np.array_equal(result.columns, range(2)))
+
     def test_concat_single_with_key(self):
         df = DataFrame(np.random.randn(10, 4))
 
