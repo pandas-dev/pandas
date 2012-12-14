@@ -1566,7 +1566,7 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
-    def info(self, verbose=True, buf=None):
+    def info(self, verbose=True, buf=None, max_cols=None):
         """
         Concise summary of a DataFrame, used in __repr__ when very large.
 
@@ -1575,6 +1575,8 @@ class DataFrame(NDFrame):
         verbose : boolean, default True
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
+        max_cols : int, default None
+            Determines whether full summary or short summary is printed
         """
         from pandas.core.format import _put_lines
 
@@ -1594,7 +1596,10 @@ class DataFrame(NDFrame):
         cols = self.columns
 
         # hack
-        if verbose and len(self.columns) < get_option('print.max_info_columns'):
+        if max_cols is None:
+            max_cols = get_option('print.max_info_columns')
+
+        if verbose and len(self.columns) <= max_cols:
             lines.append('Data columns:')
             space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
             counts = self.count()

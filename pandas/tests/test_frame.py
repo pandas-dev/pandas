@@ -3978,15 +3978,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_info_wide(self):
         from pandas import set_option, reset_option
         io = StringIO()
-        df = DataFrame(np.random.randn(5, 100))
+        df = DataFrame(np.random.randn(5, 101))
         df.info(buf=io)
-        self.assert_(len(io.getvalue().splitlines()) == 4)
+        rs = io.getvalue()
+        self.assert_(len(rs.splitlines()) == 4)
+
+        io = StringIO()
+        df.info(buf=io, max_cols=101)
+        rs = io.getvalue()
+        self.assert_(len(rs.splitlines()) > 100)
+        xp = rs
 
         set_option('print.max_info_columns', 101)
         io = StringIO()
         df.info(buf=io)
-        self.assert_(len(io.getvalue().splitlines()) > 100)
+        self.assert_(rs == xp)
         reset_option('print.max_info_columns')
+
 
     def test_info_duplicate_columns(self):
         io = StringIO()
