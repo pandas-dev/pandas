@@ -5504,6 +5504,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp = self.tsframe - self.tsframe.shift(-1)
         assert_frame_equal(rs, xp)
 
+    def test_diff_float_n(self):
+        rs = self.tsframe.diff(1.)
+        xp = self.tsframe.diff(1)
+        assert_frame_equal(rs, xp)
+
     def test_pct_change(self):
         rs = self.tsframe.pct_change(fill_method=None)
         assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)

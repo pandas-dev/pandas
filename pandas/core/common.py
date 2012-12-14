@@ -455,6 +455,7 @@ _diff_special = {
 }
 
 def diff(arr, n, axis=0):
+    n = int(n)
     dtype = arr.dtype
     if issubclass(dtype.type, np.integer):
         dtype = np.float64
