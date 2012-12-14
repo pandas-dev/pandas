@@ -1049,8 +1049,20 @@ Working with package options
 .. _basics.working_with_options:
 
 Introduced in 0.10.0, pandas supports a new system for working with options.
-The 4 relavent functions are available directly from the ``pandas`` namespace,
-and they are:
+Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``),
+
+You can get/set options directly as attributes of the top-level ``options`` attribute:
+
+.. ipython:: python
+
+   import pandas as pd
+   pd.options.display.max_rows
+   pd.options.display.max_rows = 999
+   pd.options.display.max_rows
+
+
+There is also an API composed of 4 relavent functions, available directly from the ``pandas``
+namespace, and they are:
 
 - ``get_option`` / ``set_option`` - get/set the value of a single option.
 - ``reset_option`` - reset one or more options to their default value.
@@ -1058,7 +1070,7 @@ and they are:
 
 **Note:** developers can check out pandas/core/config.py for more info.
 
-Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``),
+
 but all of the functions above accept a regexp pattern (``re.search`` style) as argument,
 so passing in a substring will work - as long as it is unambiguous :
 

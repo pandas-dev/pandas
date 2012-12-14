@@ -19,6 +19,7 @@ class TestConfig(unittest.TestCase):
 
     def setUp(self):
         setattr(self.cf, '_global_config', {})
+        setattr(self.cf, 'options', self.cf.DictWrapper(self.cf._global_config))
         setattr(self.cf, '_deprecated_options', {})
         setattr(self.cf, '_registered_options', {})
 
@@ -322,6 +323,27 @@ class TestConfig(unittest.TestCase):
 
         self.cf.set_option("a",17)
         eq(17)
+
+    def test_attribute_access(self):
+        def f():
+            options.b=1
+        def f2():
+            options.display=1
+        self.cf.register_option('a',0)
+        options=self.cf.options
+
+        self.assertEqual(options.a,0)
+        with self.cf.option_context("a",15):
+            self.assertEqual(options.a,15)
+
+        options.a=500
+        self.assertEqual(self.cf.get_option("a"),500)
+
+        self.cf.reset_option("a")
+        self.assertEqual(options.a, self.cf.get_option("a",0))
+
+        self.assertRaises(KeyError,f)
+        self.assertRaises(KeyError,f2)
 
 # fmt.reset_printoptions and fmt.set_printoptions were altered
 # to use core.config, test_format exercises those paths.

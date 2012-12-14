@@ -138,6 +138,29 @@ def _reset_option(pat):
     for k in keys:
         _set_option(k, _registered_options[k].defval)
 
+class DictWrapper(object):
+    """ provide attribute-style access to a nested dict
+    """
+    def __init__(self,d):
+        object.__setattr__(self,"d",d)
+
+    def __setattr__(self,key,val):
+        # you can't set new keys
+        # can you can't overwrite subtrees
+        if key in self.d and not isinstance(self.d[key],dict):
+            self.d[key]=val
+        else:
+            raise KeyError("You can only set the value of existing options")
+
+    def __getattr__(self,key):
+        v=object.__getattribute__(self,"d")[key]
+        if isinstance(v,dict):
+            return DictWrapper(v)
+        else:
+            return v
+
+    def __dir__(self):
+        return self.d.keys()
 
 # For user convenience,  we'd like to have the available options described
 # in the docstring. For dev convenience we'd like to generate the docstrings
@@ -266,7 +289,7 @@ get_option = CallableDyanmicDoc(_get_option, _get_option_tmpl)
 set_option = CallableDyanmicDoc(_set_option, _set_option_tmpl)
 reset_option = CallableDyanmicDoc(_reset_option, _reset_option_tmpl)
 describe_option = CallableDyanmicDoc(_describe_option, _describe_option_tmpl)
-
+options = DictWrapper(_global_config)
 
 ######################################################
 # Functions for use by pandas developers, in addition to User - api

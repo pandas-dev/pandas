@@ -73,7 +73,8 @@ pandas 0.10.0
     backfilling time series data (GH2284_)
   - New option configuration system and functions `set_option`, `get_option`,
     `describe_option`, and `reset_option`. Deprecate `set_printoptions` and
-    `reset_printoptions` (GH2393_)
+    `reset_printoptions` (GH2393_).
+    You can also access options as attributes via ``pandas.options.X``
   - Wide DataFrames can be viewed more easily in the console with new
     `expand_frame_repr` and `line_width` configuration options. This is on by
     default now (GH2436_)
