@@ -16,7 +16,7 @@ module is imported, register them here rather then in the module.
 
 
 ###########################################
-# options from the "print" namespace
+# options from the "display" namespace
 
 pc_precision_doc="""
 : int
@@ -121,7 +121,7 @@ pc_line_width_doc="""
     When printing wide DataFrames, this is the width of each line.
 """
 
-with cf.config_prefix('print'):
+with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)

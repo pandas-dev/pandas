@@ -160,11 +160,11 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
     arguments. print all registered options.
 
   Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but
-  functioning), the print options now live under "print.XYZ". For example:
+  functioning), the print options now live under "display.XYZ". For example:
 
   .. ipython:: python
 
-     get_option("print.max_rows")
+     get_option("display.max_rows")
 
 - to_string() methods now always return unicode strings  (GH2224_).
 
@@ -284,7 +284,7 @@ Updated PyTables Support
       df['string'] = 'string'
       df['int']    = 1
       store.append('df',df)
-      df1 = store.select('df') 
+      df1 = store.select('df')
       df1
       df1.get_dtype_counts()
 

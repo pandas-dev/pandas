@@ -1213,7 +1213,7 @@ def in_qtconsole():
 # 2) If you need to send something to the console, use console_encode().
 #
 #    console_encode() should (hopefully) choose the right encoding for you
-#    based on the encoding set in option "print.encoding"
+#    based on the encoding set in option "display.encoding"
 #
 # 3) if you need to write something out to file, use
 #    pprint_thing_encoded(encoding).
@@ -1272,10 +1272,10 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None):
          hasattr(thing,'next'):
         return unicode(thing)
     elif (isinstance(thing, dict) and
-          _nest_lvl < get_option("print.pprint_nest_depth")):
+          _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl)
     elif _is_sequence(thing) and _nest_lvl < \
-		get_option("print.pprint_nest_depth"):
+		get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars)
     else:
         # when used internally in the package, everything
@@ -1313,8 +1313,8 @@ def console_encode(object, **kwds):
     this is the sanctioned way to prepare something for
     sending *to the console*, it delegates to pprint_thing() to get
     a unicode representation of the object relies on the global encoding
-    set in print.encoding. Use this everywhere
+    set in display.encoding. Use this everywhere
     where you output to the console.
     """
     return pprint_thing_encoded(object,
-             get_option("print.encoding"))
+             get_option("display.encoding"))

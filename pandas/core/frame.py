@@ -594,10 +594,10 @@ class DataFrame(NDFrame):
             terminal_width, terminal_height = 100, 100
         else:
             terminal_width, terminal_height = get_terminal_size()
-        max_rows = (terminal_height if get_option("print.max_rows") == 0
-                    else get_option("print.max_rows"))
-        max_columns = get_option("print.max_columns")
-        expand_repr = get_option("print.expand_frame_repr")
+        max_rows = (terminal_height if get_option("display.max_rows") == 0
+                    else get_option("display.max_rows"))
+        max_columns = get_option("display.max_columns")
+        expand_repr = get_option("display.expand_frame_repr")
 
         if max_columns > 0:
             if (len(self.index) <= max_rows and
@@ -642,7 +642,7 @@ class DataFrame(NDFrame):
         Invoked by bytes(df) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        encoding = com.get_option("print.encoding")
+        encoding = com.get_option("display.encoding")
         return self.__unicode__().encode(encoding , 'replace')
 
     def __unicode__(self):
@@ -659,7 +659,7 @@ class DataFrame(NDFrame):
             is_wide = self._need_wide_repr()
             line_width = None
             if is_wide:
-                line_width = get_option('print.line_width')
+                line_width = get_option('display.line_width')
             self.to_string(buf=buf, line_width=line_width)
 
         value = buf.getvalue()
@@ -668,7 +668,7 @@ class DataFrame(NDFrame):
         return value
 
     def _need_wide_repr(self):
-        return (get_option("print.expand_frame_repr")
+        return (get_option("display.expand_frame_repr")
                 and com.in_interactive_session())
 
     def __repr__(self):
@@ -687,7 +687,7 @@ class DataFrame(NDFrame):
         if com.in_qtconsole():
             raise ValueError('Disable HTML output in QtConsole')
 
-        if get_option("print.notebook_repr_html"):
+        if get_option("display.notebook_repr_html"):
             if self._need_info_repr_():
                 return None
             else:
@@ -1597,7 +1597,7 @@ class DataFrame(NDFrame):
 
         # hack
         if max_cols is None:
-            max_cols = get_option('print.max_info_columns')
+            max_cols = get_option('display.max_info_columns')
 
         if verbose and len(self.columns) <= max_cols:
             lines.append('Data columns:')

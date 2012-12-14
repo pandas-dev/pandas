@@ -76,7 +76,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_repr_truncation(self):
         max_len = 20
-        with option_context("print.max_colwidth", max_len):
+        with option_context("display.max_colwidth", max_len):
             df = DataFrame({'A': np.random.randn(10),
                      'B': [tm.rands(np.random.randint(max_len - 1,
                          max_len + 1)) for i in range(10)]})
@@ -91,10 +91,10 @@ class TestDataFrameFormatting(unittest.TestCase):
                 else:
                     self.assert_('...' not in line)
 
-        with option_context("print.max_colwidth", 999999):
+        with option_context("display.max_colwidth", 999999):
             self.assert_('...' not in repr(df))
 
-        with option_context("print.max_colwidth", max_len + 2):
+        with option_context("display.max_colwidth", max_len + 2):
             self.assert_('...' not in repr(df))
 
     def test_repr_should_return_str (self):
@@ -415,17 +415,17 @@ class TestDataFrameFormatting(unittest.TestCase):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
             df = DataFrame([col(20, 25) for _ in range(10)])
-            set_option('print.expand_frame_repr', False)
+            set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
-            set_option('print.expand_frame_repr', True)
+            set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-            with option_context('print.line_width', 120):
+            with option_context('display.line_width', 120):
                 wider_repr = repr(df)
                 self.assert_(len(wider_repr) < len(wide_repr))
 
-        reset_option('print.expand_frame_repr')
+        reset_option('display.expand_frame_repr')
 
     def test_wide_repr_wide_columns(self):
         with option_context('mode.sim_interactive', True):
@@ -439,21 +439,21 @@ class TestDataFrameFormatting(unittest.TestCase):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
             df = DataFrame([col(20, 25) for _ in range(10)])
             df.index.name = 'DataFrame Index'
-            set_option('print.expand_frame_repr', False)
+            set_option('display.expand_frame_repr', False)
 
             rep_str = repr(df)
-            set_option('print.expand_frame_repr', True)
+            set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-            with option_context('print.line_width', 120):
+            with option_context('display.line_width', 120):
                 wider_repr = repr(df)
                 self.assert_(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
                 self.assert_('DataFrame Index' in line)
 
-        reset_option('print.expand_frame_repr')
+        reset_option('display.expand_frame_repr')
 
     def test_wide_repr_multiindex(self):
         with option_context('mode.sim_interactive', True):
@@ -463,20 +463,20 @@ class TestDataFrameFormatting(unittest.TestCase):
             df = DataFrame([col(20, 25) for _ in range(10)],
                            index=midx)
             df.index.names = ['Level 0', 'Level 1']
-            set_option('print.expand_frame_repr', False)
+            set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
-            set_option('print.expand_frame_repr', True)
+            set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-            with option_context('print.line_width', 120):
+            with option_context('display.line_width', 120):
                 wider_repr = repr(df)
                 self.assert_(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
                 self.assert_('Level 0 Level 1' in line)
 
-        reset_option('print.expand_frame_repr')
+        reset_option('display.expand_frame_repr')
 
     def test_wide_repr_multiindex_cols(self):
         with option_context('mode.sim_interactive', True):
@@ -488,34 +488,34 @@ class TestDataFrameFormatting(unittest.TestCase):
             df = DataFrame([col(20, 25) for _ in range(10)],
                            index=midx, columns=mcols)
             df.index.names = ['Level 0', 'Level 1']
-            set_option('print.expand_frame_repr', False)
+            set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
-            set_option('print.expand_frame_repr', True)
+            set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-        with option_context('print.line_width', 120):
+        with option_context('display.line_width', 120):
             wider_repr = repr(df)
             self.assert_(len(wider_repr) < len(wide_repr))
             self.assert_(len(wide_repr.splitlines()) == 14 * 10 - 1)
 
-        reset_option('print.expand_frame_repr')
+        reset_option('display.expand_frame_repr')
 
     def test_wide_repr_unicode(self):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.randu(k) for _ in xrange(l)]
             df = DataFrame([col(20, 25) for _ in range(10)])
-            set_option('print.expand_frame_repr', False)
+            set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
-            set_option('print.expand_frame_repr', True)
+            set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-            with option_context('print.line_width', 120):
+            with option_context('display.line_width', 120):
                 wider_repr = repr(df)
                 self.assert_(len(wider_repr) < len(wide_repr))
 
-        reset_option('print.expand_frame_repr')
+        reset_option('display.expand_frame_repr')
 
 
     def test_wide_repr_wide_long_columns(self):
@@ -628,7 +628,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         assert(df_s == expected)
 
         fmt.reset_printoptions()
-        self.assertEqual(get_option("print.precision"), 7)
+        self.assertEqual(get_option("display.precision"), 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()

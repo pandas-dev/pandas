@@ -3989,11 +3989,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(len(rs.splitlines()) > 100)
         xp = rs
 
-        set_option('print.max_info_columns', 101)
+        set_option('display.max_info_columns', 101)
         io = StringIO()
         df.info(buf=io)
         self.assert_(rs == xp)
-        reset_option('print.max_info_columns')
+        reset_option('display.max_info_columns')
 
 
     def test_info_duplicate_columns(self):
