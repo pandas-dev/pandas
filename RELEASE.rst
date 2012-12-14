@@ -170,6 +170,7 @@ pandas 0.10.0
   - Optimize ``unstack`` memory usage by compressing indices (GH2278_)
   - Fix HTML repr in IPython qtconsole if opening window is small (GH2275_)
   - Escape more special characters in console output (GH2492_)
+  - df.select now invokes bool on the result of crit(x) (GH2487_)
 
 **Bug fixes**
 
@@ -297,6 +298,7 @@ pandas 0.10.0
 .. _GH2447: https://github.com/pydata/pandas/issues/2447
 .. _GH2275: https://github.com/pydata/pandas/issues/2275
 .. _GH2492: https://github.com/pydata/pandas/issues/2492
+.. _GH2487: https://github.com/pydata/pandas/issues/2487
 .. _GH2273: https://github.com/pydata/pandas/issues/2273
 .. _GH2266: https://github.com/pydata/pandas/issues/2266
 .. _GH2038: https://github.com/pydata/pandas/issues/2038
