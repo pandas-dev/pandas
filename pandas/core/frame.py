@@ -883,19 +883,19 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
+        index, columns = None, None
         orient = orient.lower()
         if orient == 'index':
-            # TODO: this should be seriously cythonized
-            new_data = OrderedDict()
-            for index, s in data.iteritems():
-                for col, v in s.iteritems():
-                    new_data[col]= new_data.get(col,OrderedDict())
-                    new_data[col][index] = v
-            data = new_data
+            if len(data) > 0:
+                #TODO speed up Series case
+                if isinstance(data.values()[0], (Series, dict)):
+                    data = _from_nested_dict(data)
+                else:
+                    data, index = data.values(), data.keys()
         elif orient != 'columns':  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
-        return DataFrame(data, dtype=dtype)
+        return DataFrame(data, index=index, columns=columns, dtype=dtype)
 
     def to_dict(self, outtype='dict'):
         """
@@ -5522,6 +5522,14 @@ def _homogenize(data, index, dtype=None):
 
     return homogenized
 
+def _from_nested_dict(data):
+    # TODO: this should be seriously cythonized
+    new_data = OrderedDict()
+    for index, s in data.iteritems():
+        for col, v in s.iteritems():
+            new_data[col]= new_data.get(col,OrderedDict())
+            new_data[col][index] = v
+    return new_data
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)

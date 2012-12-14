@@ -2329,6 +2329,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame.sort_index()
         assert_frame_equal(recons, expected)
 
+        # dict of sequence
+        a = {'hi': [32, 3, 3],
+             'there': [3, 5, 3]}
+        rs = DataFrame.from_dict(a, orient='index')
+        xp = DataFrame.from_dict(a).T.reindex(a.keys())
+        assert_frame_equal(rs, xp)
+
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')
         df = DataFrame(a)
