@@ -349,7 +349,7 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     ValueError if `validator` is specified and `defval` is not a valid value.
 
     """
-
+    import tokenize, keyword
     key = key.lower()
 
     if key in _registered_options:
@@ -363,6 +363,13 @@ def register_option(key, defval, doc='', validator=None, cb=None):
 
     # walk the nested dict, creating dicts as needed along the path
     path = key.split('.')
+
+    for k in path:
+        if not bool(re.match('^'+tokenize.Name+'$', k)):
+            raise ValueError("%s is not a valid identifier" % k)
+        if keyword.iskeyword(key):
+            raise ValueError("%s is a python keyword" % k)
+
     cursor = _global_config
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
