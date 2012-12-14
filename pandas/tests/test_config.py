@@ -49,7 +49,7 @@ class TestConfig(unittest.TestCase):
                           'doc')
 
         # no python keywords
-        self.assertRaises(ValueError, self.cf.register_option, 'print',0)
+        self.assertRaises(ValueError, self.cf.register_option, 'for',0)
         # must be valid identifier (ensure attribute access works)
         self.assertRaises(ValueError, self.cf.register_option,
                           'Oh my Goddess!',0)
