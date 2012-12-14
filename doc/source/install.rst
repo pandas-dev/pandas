@@ -67,7 +67,8 @@ Dependencies
 
   * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
-
+  * `pytz <http://pytz.sourceforge.net/>`__
+     * Needed for time zone support
 
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
@@ -79,8 +80,6 @@ Optional dependencies
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`
-  * `pytz <http://pytz.sourceforge.net/>`__
-     * Needed for time zone support
   * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
      * openpyxl version 1.6.1 or higher
      * Needed for Excel I/O
@@ -110,6 +109,9 @@ out using git and compiled / installed like so:
   git clone git://github.com/pydata/pandas.git
   cd pandas
   python setup.py install
+
+Make sure you have Cython installed when installing from the repository,
+rather then a tarball or pypi.
 
 On Windows, I suggest installing the MinGW compiler suite following the
 directions linked to above. Once configured property, run the following on the

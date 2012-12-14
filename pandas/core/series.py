@@ -943,7 +943,7 @@ copy : boolean, default False
         Invoked by bytes(df) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        encoding = com.get_option("print.encoding")
+        encoding = com.get_option("display.encoding")
         return self.__unicode__().encode(encoding , 'replace')
 
     def __unicode__(self):
@@ -953,8 +953,8 @@ copy : boolean, default False
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
         """
         width, height = get_terminal_size()
-        max_rows = (height if get_option("print.max_rows") == 0
-                    else get_option("print.max_rows"))
+        max_rows = (height if get_option("display.max_rows") == 0
+                    else get_option("display.max_rows"))
         if len(self.index) > (max_rows or 1000):
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:

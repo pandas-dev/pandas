@@ -1738,12 +1738,12 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_rank_apply(self):
-        lev1 = np.array([rands(10) for _ in xrange(1000)], dtype=object)
+        lev1 = np.array([rands(10) for _ in xrange(100)], dtype=object)
         lev2 = np.array([rands(10) for _ in xrange(130)], dtype=object)
-        lab1 = np.random.randint(0, 1000, size=5000)
-        lab2 = np.random.randint(0, 130, size=5000)
+        lab1 = np.random.randint(0, 100, size=500)
+        lab2 = np.random.randint(0, 130, size=500)
 
-        df = DataFrame({'value' : np.random.randn(5000),
+        df = DataFrame({'value' : np.random.randn(500),
                         'key1' : lev1.take(lab1),
                         'key2' : lev2.take(lab2)})
 

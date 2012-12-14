@@ -75,6 +75,20 @@ Note:
     # old behavior
     series.resample('D', how='sum', closed='right', label='right')
 
+- Infinity and negative infinity are no longer treated as NA by ``isnull`` and
+  ``notnull``. That they every were was a relic of early pandas. This behavior
+  can be re-enabled globally by the ``mode.use_inf_as_null`` option:
+
+.. ipython:: python
+
+    s = pd.Series([1.5, np.inf, 3.4, -np.inf])
+	pd.isnull(s)
+    s.fillna(0)
+    pd.set_option('use_inf_as_null', True)
+	pd.isnull(s)
+    s.fillna(0)
+	pd.reset_option('use_inf_as_null')
+
 - Methods with the ``inplace`` option now all return ``None`` instead of the
   calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
   may stop working. To fix, simply delete the unnecessary variable assignment.
@@ -160,11 +174,11 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
     arguments. print all registered options.
 
   Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but
-  functioning), the print options now live under "print.XYZ". For example:
+  functioning), the print options now live under "display.XYZ". For example:
 
   .. ipython:: python
 
-     get_option("print.max_rows")
+     get_option("display.max_rows")
 
 - to_string() methods now always return unicode strings  (GH2224_).
 
@@ -215,7 +229,6 @@ Updated PyTables Support
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 :ref:`Docs <io-hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
-
 
 .. ipython:: python
    :suppress:
@@ -276,7 +289,7 @@ Updated PyTables Support
 
      # remove all nodes under this level
      store.remove('food')
- store
+     store
 
 - added mixed-dtype support!
 
@@ -285,7 +298,8 @@ Updated PyTables Support
       df['string'] = 'string'
       df['int']    = 1
       store.append('df',df)
-      df1 = store.select('df') df1
+      df1 = store.select('df')
+      df1
       df1.get_dtype_counts()
 
 - performance improvments on table writing
@@ -317,6 +331,12 @@ Updated PyTables Support
    store.close()
    import os
    os.remove('store.h5')
+
+**Compatibility**
+
+0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
+however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
+file and write it out using the new format to take advantage of the updates.
 
 N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

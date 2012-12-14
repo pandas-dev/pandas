@@ -1864,6 +1864,46 @@ a,b,c
             except:
                 pass
 
+    def test_decompression_regex_sep(self):
+        try:
+            import gzip, bz2
+        except ImportError:
+            raise nose.SkipTest
+
+        data = open(self.csv1, 'rb').read()
+        data = data.replace(',', '::')
+        expected = self.read_csv(self.csv1)
+
+        try:
+            tmp = gzip.GzipFile('__tmp__', mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            result = self.read_csv('__tmp__', sep='::', compression='gzip')
+            tm.assert_frame_equal(result, expected)
+        finally:
+            # try:
+            #     os.remove('__tmp__')
+            # except:
+            #     pass
+            pass
+
+        try:
+            tmp = bz2.BZ2File('__tmp__', mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            result = self.read_csv('__tmp__', sep='::', compression='bz2')
+            tm.assert_frame_equal(result, expected)
+
+            self.assertRaises(ValueError, self.read_csv,
+                              '__tmp__', compression='bz3')
+        finally:
+            try:
+                os.remove('__tmp__')
+            except:
+                pass
+
     def test_memory_map(self):
         # it works!
         result = self.read_csv(self.csv1, memory_map=True)

@@ -159,7 +159,7 @@ class Index(np.ndarray):
         Invoked by bytes(df) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        encoding = com.get_option("print.encoding")
+        encoding = com.get_option("display.encoding")
         return self.__unicode__().encode(encoding , 'replace')
 
     def __unicode__(self):
@@ -1380,7 +1380,7 @@ class MultiIndex(Index):
         Invoked by bytes(df) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        encoding = com.get_option("print.encoding")
+        encoding = com.get_option("display.encoding")
         return self.__unicode__().encode(encoding , 'replace')
 
     def __unicode__(self):
@@ -1586,7 +1586,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            sparsify = get_option("print.multi_sparse")
+            sparsify = get_option("display.multi_sparse")
 
         if sparsify:
             # little bit of a kludge job for #1217

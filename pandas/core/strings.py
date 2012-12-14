@@ -392,7 +392,7 @@ def str_center(arr, width):
     return str_pad(arr, width, side='both')
 
 
-def str_split(arr, pat=None, n=-1):
+def str_split(arr, pat=None, n=None):
     """
     Split each string (a la re.split) in array by given pattern, propagating NA
     values
@@ -401,18 +401,28 @@ def str_split(arr, pat=None, n=-1):
     ----------
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
-    n : int, default -1 (all)
+    n : int, default None (all)
+
+    Notes
+    -----
+    Both 0 and -1 will be interpreted as return all splits
 
     Returns
     -------
     split : array
     """
     if pat is None:
+        if n is None or n == 0:
+            n = -1
         f = lambda x: x.split()
     else:
         if len(pat) == 1:
+            if n is None or n == 0:
+                n = -1
             f = lambda x: x.split(pat, n)
         else:
+            if n is None or n == -1:
+                n = 0
             regex = re.compile(pat)
             f = lambda x: regex.split(x, maxsplit=n)
 

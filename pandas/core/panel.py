@@ -473,7 +473,7 @@ class Panel(NDFrame):
         Invoked by bytes(df) in py3 only.
         Yields a bytestring in both py2/py3.
         """
-        encoding = com.get_option("print.encoding")
+        encoding = com.get_option("display.encoding")
         return self.__unicode__().encode(encoding , 'replace')
 
     def __unicode__(self):
@@ -1556,7 +1556,7 @@ class Panel(NDFrame):
         # doc strings substitors
         _agg_doc = """
 Wrapper method for %s
-                
+
 Parameters
 ----------
 other : """ + "%s or %s" % (cls._constructor_sliced.__name__,cls.__name__) + """
@@ -1634,7 +1634,7 @@ If all values are NA, result will be NA"""
         def skew(self, axis='major', skipna=True):
             return self._reduce(nanops.nanskew, axis=axis, skipna=skipna)
         cls.skew = skew
-        
+
         @Substitution(desc='product', outname='prod')
         @Appender(_agg_doc)
         def prod(self, axis='major', skipna=True):

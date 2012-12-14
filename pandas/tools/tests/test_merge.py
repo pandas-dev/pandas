@@ -36,6 +36,8 @@ def get_test_data(ngroups=NGROUPS, n=N):
 
 class TestMerge(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),
@@ -923,6 +925,8 @@ def _join_by_hand(a, b, how='left'):
 
 class TestConcatenate(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     def setUp(self):
         self.frame = DataFrame(tm.getSeriesData())
         self.mixed_frame = self.frame.copy()
@@ -1492,6 +1496,18 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces, keys=['A', 'B', 'C'], axis=1)
         expected = DataFrame(pieces, index=['A', 'B', 'C']).T
         assert_frame_equal(result, expected)
+
+        # preserve series names, #2489
+        s = Series(randn(5), name='A')
+        s2 = Series(randn(5), name='B')
+
+        result = concat([s, s2], axis=1)
+        expected = DataFrame({'A': s, 'B': s2})
+        assert_frame_equal(result, expected)
+
+        s2.name = None
+        result = concat([s, s2], axis=1)
+        self.assertTrue(np.array_equal(result.columns, range(2)))
 
     def test_concat_single_with_key(self):
         df = DataFrame(np.random.randn(10, 4))

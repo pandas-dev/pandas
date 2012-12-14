@@ -73,3 +73,12 @@ stats_rank2d_axis1_average = Benchmark('df.rank(1)', setup,
 
 stats_rank2d_axis0_average = Benchmark('df.rank()', setup,
                                        start_date=datetime(2011, 12, 12))
+
+# rolling functions
+
+setup = common_setup + """
+arr = np.random.randn(100000)
+"""
+
+stats_rolling_mean = Benchmark('rolling_mean(arr, 100)', setup,
+                               start_date=datetime(2011, 6, 1))

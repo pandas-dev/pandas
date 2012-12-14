@@ -19,6 +19,7 @@ class TestConfig(unittest.TestCase):
 
     def setUp(self):
         setattr(self.cf, '_global_config', {})
+        setattr(self.cf, 'options', self.cf.DictWrapper(self.cf._global_config))
         setattr(self.cf, '_deprecated_options', {})
         setattr(self.cf, '_registered_options', {})
 
@@ -46,6 +47,13 @@ class TestConfig(unittest.TestCase):
                           'doc')
         self.assertRaises(KeyError, self.cf.register_option, 'a.b.c.d2', 1,
                           'doc')
+
+        # no python keywords
+        self.assertRaises(ValueError, self.cf.register_option, 'for',0)
+        # must be valid identifier (ensure attribute access works)
+        self.assertRaises(ValueError, self.cf.register_option,
+                          'Oh my Goddess!',0)
+
 
         # we can register options several levels deep
         # without predefining the intermediate steps
@@ -98,11 +106,6 @@ class TestConfig(unittest.TestCase):
 
         # testing warning with catch_warning was only added in 2.6
         self.assertTrue(self.cf._is_deprecated('kAnBaN'))
-
-    def test_set_option(self):
-        self.cf.register_option('a', 1, 'doc')
-        self.cf.register_option('b.c', 'hullo', 'doc2')
-        self.cf.register_option('b.b', None, 'doc2')
 
     def test_get_option(self):
         self.cf.register_option('a', 1, 'doc')
@@ -282,6 +285,76 @@ class TestConfig(unittest.TestCase):
             self.assertEqual(self.cf.get_option('a'), 1)
             self.assertEqual(self.cf.get_option('b'), 2)
 
+    def test_callback(self):
+        k=[None]
+        v=[None]
+        def callback(key):
+            k.append(key)
+            v.append(self.cf.get_option(key))
+
+        self.cf.register_option('d.a', 'foo',cb=callback)
+        self.cf.register_option('d.b', 'foo',cb=callback)
+
+        del k[-1],v[-1]
+        self.cf.set_option("d.a","fooz")
+        self.assertEqual(k[-1],"d.a")
+        self.assertEqual(v[-1],"fooz")
+
+        del k[-1],v[-1]
+        self.cf.set_option("d.b","boo")
+        self.assertEqual(k[-1],"d.b")
+        self.assertEqual(v[-1],"boo")
+
+        del k[-1],v[-1]
+        self.cf.reset_option("d.b")
+        self.assertEqual(k[-1],"d.b")
+
+
+    def test_set_ContextManager(self):
+        def eq(val):
+            self.assertEqual(self.cf.get_option("a"),val)
+
+        self.cf.register_option('a',0)
+        eq(0)
+        with self.cf.option_context("a",15):
+            eq(15)
+            with self.cf.option_context("a",25):
+                eq(25)
+            eq(15)
+        eq(0)
+
+        self.cf.set_option("a",17)
+        eq(17)
+
+    def test_attribute_access(self):
+        holder = []
+        def f():
+            options.b=1
+        def f2():
+            options.display=1
+        def f3(key):
+            holder.append(True)
+
+        self.cf.register_option('a',0)
+        self.cf.register_option('c',0,cb=f3)
+        options=self.cf.options
+
+        self.assertEqual(options.a,0)
+        with self.cf.option_context("a",15):
+            self.assertEqual(options.a,15)
+
+        options.a=500
+        self.assertEqual(self.cf.get_option("a"),500)
+
+        self.cf.reset_option("a")
+        self.assertEqual(options.a, self.cf.get_option("a",0))
+
+        self.assertRaises(KeyError,f)
+        self.assertRaises(KeyError,f2)
+
+        # make sure callback kicks when using this form of setting
+        options.c = 1
+        self.assertEqual(len(holder),1)
 
 # fmt.reset_printoptions and fmt.set_printoptions were altered
 # to use core.config, test_format exercises those paths.

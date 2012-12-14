@@ -245,7 +245,8 @@ _parser_defaults = {
     'chunksize': None,
     'verbose': False,
     'encoding': None,
-    'squeeze': False
+    'squeeze': False,
+    'compression': None
 }
 
 
@@ -263,7 +264,6 @@ _c_parser_defaults = {
     'factorize': True,
     'dtype': None,
     'usecols': None,
-    'compression': None,
     'decimal': b'.'
 }
 
@@ -1102,6 +1102,7 @@ class PythonParser(ParserBase):
 
         self.header = kwds['header']
         self.encoding = kwds['encoding']
+        self.compression = kwds['compression']
         self.skiprows = kwds['skiprows']
 
         self.skip_footer = kwds['skip_footer']
@@ -1127,13 +1128,8 @@ class PythonParser(ParserBase):
 
 
         if isinstance(f, basestring):
-            f = com._get_handle(f, 'r', encoding=self.encoding)
-
-            # if self.encoding is None:
-            #     # universal newline mode
-            #     f = com._get_handle(f, 'U')
-            # else:
-            #     f = com._get_handle(f, 'rb', encoding=self.encoding)
+            f = com._get_handle(f, 'r', encoding=self.encoding,
+                                compression=self.compression)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -1805,7 +1801,7 @@ class ExcelFile(object):
         return object.__repr__(self)
 
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
-              index_col=None, has_index_names=False, parse_cols=None, parse_dates=False,
+              index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
               **kwds):
         """
@@ -1824,9 +1820,6 @@ class ExcelFile(object):
         index_col : int, default None
             Column to use as the row labels of the DataFrame. Pass None if
             there is no such column
-        has_index_names: boolean, default False
-            True if the cols defined in index_col have an index name and are
-            not in the header
         parse_cols : int or list, default None
             If None then parse all columns,
             If int then indicates last column to be parsed
@@ -1840,6 +1833,12 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
+
+        # has_index_names: boolean, default False
+        #     True if the cols defined in index_col have an index name and are
+        #     not in the header
+        has_index_names=False # removed as new argument of API function
+
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter

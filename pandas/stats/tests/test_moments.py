@@ -20,6 +20,8 @@ N, K = 100, 10
 
 class TestMoments(unittest.TestCase):
 
+    _multiprocess_can_split_ = True
+
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
 
@@ -305,6 +307,14 @@ class TestMoments(unittest.TestCase):
 
         result = mom.rolling_var(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
+
+        # #2527, ugh
+        arr = np.array([0.00012456, 0.0003, 0])
+        result = mom.rolling_mean(arr, 1)
+        self.assertTrue(result[-1] >= 0)
+
+        result = mom.rolling_mean(-arr, 1)
+        self.assertTrue(result[-1] <= 0)
 
     def _check_moment_func(self, func, static_comp, window=50,
                            has_min_periods=True,

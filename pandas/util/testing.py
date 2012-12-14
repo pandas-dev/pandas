@@ -309,12 +309,12 @@ def makePeriodSeries(nper=None):
     return Series(randn(nper), index=makePeriodIndex(nper))
 
 
-def getTimeSeriesData():
-    return dict((c, makeTimeSeries()) for c in getCols(K))
+def getTimeSeriesData(nper=None):
+    return dict((c, makeTimeSeries(nper)) for c in getCols(K))
 
 
-def makeTimeDataFrame():
-    data = getTimeSeriesData()
+def makeTimeDataFrame(nper=None):
+    data = getTimeSeriesData(nper)
     return DataFrame(data)
 
 
@@ -327,13 +327,14 @@ def makePeriodFrame():
     return DataFrame(data)
 
 
-def makePanel():
+def makePanel(nper=None):
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-    data = dict((c, makeTimeDataFrame()) for c in cols)
+    data = dict((c, makeTimeDataFrame(nper)) for c in cols)
     return Panel.fromDict(data)
 
-def makePanel4D():
-    return Panel4D(dict(l1 = makePanel(), l2 = makePanel(), l3 = makePanel()))
+def makePanel4D(nper=None):
+    return Panel4D(dict(l1 = makePanel(nper), l2 = makePanel(nper),
+                        l3 = makePanel(nper)))
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
