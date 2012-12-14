@@ -25,9 +25,9 @@ scikits
 pandas.egg-info
 *\#*\#
 .tox
-*.wpr
-*.wpu
 pandas/io/*.dat
 pandas/io/*.json
 *.log
 .noseids
+*.wpr
+*.wpu

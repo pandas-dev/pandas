@@ -7,6 +7,10 @@ import numpy as np
 
 from cpython cimport *
 
+# Cython < 0.17 doesn't have this in cpython
+cdef extern from "Python.h":
+    cdef PyTypeObject *Py_TYPE(object)
+
 # this is our datetime.pxd
 from datetime cimport *
 from util cimport is_integer_object, is_datetime64_object, is_timedelta64_object
@@ -1796,7 +1800,7 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     """
     cdef:
         int64_t retval
-
+    
     if end:
         retval = asfreq(period_ordinal, freq1, freq2, END)
     else:

@@ -5,6 +5,7 @@ from pandas.tseries.tools import to_datetime
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
 import pandas.lib as lib
+import pandas.tslib as tslib
 import numpy as np
 
 __all__ = ['Day', 'BusinessDay', 'BDay',

@@ -149,7 +149,7 @@ void initialize() {
 npy_int64 get_proportionality_conversion_factor(int index1, int index2)
 {
     if (proportionality_factors == NULL) {
-        exit(10);
+        initialize();
     }
     return proportionality_factors[min(index1, index2)][max(index1, index2)];
 }
@@ -262,7 +262,8 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
                 day);
 
         yearoffset = dInfoCalc_YearOffset(year, calendar);
-        if (PyErr_Occurred()) goto onError;
+        if (PyErr_Occurred())
+	    goto onError;
 
         absdate = day + month_offset[leap][month - 1] + yearoffset;
 
@@ -575,12 +576,12 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, char relation, asfreq_info *af_i
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    int tempStore = af_info->sourceFreq;
-    af_info->sourceFreq = FR_DAY;
+    int tempStore = af_info->targetFreq;
+    af_info->targetFreq = FR_DAY;
     if (dInfoCalc_SetFromAbsDate(&dinfo,
                 asfreq_WtoDT(ordinal, relation, af_info) + ORD_OFFSET,
                 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
-    af_info->sourceFreq = tempStore;
+    af_info->targetFreq = tempStore;
 
     if (relation == 'S') {
         return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
@@ -714,8 +715,7 @@ static npy_int64 asfreq_AtoDT(npy_int64 ordinal, char relation, asfreq_info *af_
     // start from 1970
     ordinal += BASE_YEAR;
 
-    if (month == 0) { month = 1; }
-    else { month += 1; }
+    month += 1;
 
     if (relation == 'S') {
         if (af_info->from_a_year_end == 12) {year = ordinal;}
@@ -1043,26 +1043,27 @@ onError:
 
 npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation)
 {
+    initialize();
     npy_int64 val;
     freq_conv_func func;
     asfreq_info finfo;
 
-    printf("asfreq(%d, %d)\n", freq1, freq2);
+    //printf("asfreq(%lld, %d, %d, '%c')\n", period_ordinal, freq1, freq2, relation);
 
     func = get_asfreq_func(freq1, freq2);
 
-    printf("asfreq func %x\n", func);
+    //printf("asfreq func %x\n", func);
 
     get_asfreq_info(freq1, freq2, &finfo);
 
-    printf("asfreq finfo %x\n", &finfo);
+    //printf("asfreq finfo %x\n", &finfo);
 
     val = (*func)(period_ordinal, relation, &finfo);
 
-    printf("asfreq value: %d\n", val);
+    //printf("asfreq value: %d\n", val);
 
     if (val == INT_ERR_CODE) {
-        // Py_Error(PyExc_ValueError, "Unable to convert to desired frequency.");
+        //Py_Error(PyExc_ValueError, "Unable to convert to desired frequency.");
         goto onError;
     }
     return val;

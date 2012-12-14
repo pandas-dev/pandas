@@ -1357,7 +1357,6 @@ def test_Nanosecond():
 
     assert (Nano(3) + Nano(2)) == Nano(5)
     assert (Nano(3) - Nano(2)) == Nano()    
-    
 
 def test_tick_offset():
     assert not Day().isAnchored()

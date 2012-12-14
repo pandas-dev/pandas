@@ -57,13 +57,12 @@ int main(int argc, char** argv)
 
     initialize();
 
-    printf("%lu\n", asfreq(37, FR_ANN, FR_HR, 'e'));
-
     assert_conversion_factors();
+
+    printf("asfreq: %d", asfreq(1932, FR_WK, FR_BUS, 'S'));
+    printf("asfreq: %d", asfreq(10, FR_ANN, FR_QTR, 'E'));
 
     assert_apply_conversion_factor(24, FR_HR, FR_DAY, 1);
     assert_apply_conversion_factor(1, FR_DAY, FR_HR, 24);
     assert_apply_conversion_factor(6, FR_DAY, FR_DAY, 6);
-
-
 }

@@ -117,7 +117,7 @@ class TestFrequencyInference(unittest.TestCase):
         self._check_tick(timedelta(microseconds=1), 'U')
 
     def test_nanosecond(self):
-        self._check_tick(np.timedelta64(10, 'ns'), '10N')
+        self._check_tick(np.timedelta64(1, 'ns'), 'N')
 
     def _check_tick(self, base_delta, code):
         b = Timestamp(datetime.now())
