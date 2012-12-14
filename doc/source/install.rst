@@ -110,6 +110,9 @@ out using git and compiled / installed like so:
   cd pandas
   python setup.py install
 
+Make sure you have Cython installed when installing from the repository,
+rather then a tarball or pypi.
+
 On Windows, I suggest installing the MinGW compiler suite following the
 directions linked to above. Once configured property, run the following on the
 command line:
