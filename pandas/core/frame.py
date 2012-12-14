@@ -1875,11 +1875,7 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
             if isinstance(label, Index):
-                if self.columns.inferred_type == 'integer':
-                    # XXX re: #2228
-                    return self.reindex(columns=label)
-                else:
-                    return self.ix[:, i]
+                return self.take(i, axis=1)
 
             values = self._data.iget(i)
             return self._col_klass.from_array(values, index=self.index,

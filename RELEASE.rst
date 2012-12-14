@@ -233,6 +233,7 @@ pandas 0.10.0
   - DataFrame.to_string formatters can be list, too (GH2520_)
   - DataFrame.combine_first will always result in the union of the index and
     columns, even if one DataFrame is length-zero (GH2525_)
+  - Fix several DataFrame.icol/irow with duplicate indices issues (GH2228_, GH2259_)
 
 .. _GH407: https://github.com/pydata/pandas/issues/407
 .. _GH821: https://github.com/pydata/pandas/issues/821
@@ -348,6 +349,8 @@ pandas 0.10.0
 .. _GH2488: https://github.com/pydata/pandas/issues/2488
 .. _GH2520: https://github.com/pydata/pandas/issues/2520
 .. _GH2525: https://github.com/pydata/pandas/issues/2525
+.. _GH2228: https://github.com/pydata/pandas/issues/2228
+.. _GH2259: https://github.com/pydata/pandas/issues/2259
 
 
 pandas 0.9.1
