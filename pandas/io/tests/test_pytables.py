@@ -271,6 +271,14 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('p4d', p4d.ix[:,:,10:,:], axes=['items','major_axis','minor_axis'])
         tm.assert_panel4d_equal(self.store['p4d'], p4d)
 
+        # test using differnt number of items on each axis
+        p4d2 = p4d.copy()
+        p4d2['l4'] = p4d['l1']
+        p4d2['l5'] = p4d['l1']
+        self.store.remove('p4d2')
+        self.store.append('p4d2', p4d2, axes=['items','major_axis','minor_axis'])
+        tm.assert_panel4d_equal(self.store['p4d2'], p4d2)
+
     def test_append_frame_column_oriented(self):
 
         # column oriented

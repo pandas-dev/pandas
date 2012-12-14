@@ -20,9 +20,9 @@ from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
-from pandas.core.algorithms import match, unique
+from pandas.core.algorithms import match, unique, factorize
 from pandas.core.strings import str_len
-from pandas.core.categorical import Factor
+from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.reshape import block2d_to_block3d, block2d_to_blocknd, factor_indexer
@@ -1548,14 +1548,10 @@ class LegacyTable(Table):
         """ we have n indexable columns, with an arbitrary number of data axes """
 
         
-        _dm = create_debug_memory(self.parent)
-        _dm('start')
-
         if not self.read_axes(where): return None
 
-        _dm('read_axes')
         indicies = [ i.values for i in self.index_axes ]
-        factors  = [ Factor.from_array(i) for i in indicies ]
+        factors  = [ Categorical.from_array(i) for i in indicies ]
         levels   = [ f.levels for f in factors ]
         N        = [ len(f.levels) for f in factors ]
         labels   = [ f.labels for f in factors ]
@@ -1577,9 +1573,7 @@ class LegacyTable(Table):
                 
                 take_labels   = [ l.take(sorter) for l in labels ]
                 items         = Index(c.values)
-                _dm('pre block')
                 block         = block2d_to_blocknd(sorted_values, items, tuple(N), take_labels)
-                _dm('block created done')
 
                 # create the object
                 mgr = BlockManager([block], [items] + levels)
@@ -1617,15 +1611,11 @@ class LegacyTable(Table):
                 lp = DataFrame(new_values, index=new_index, columns=lp.columns)
                 objs.append(lp.to_panel())
 
-        _dm('pre-concat')
-
         # create the composite object
         if len(objs) == 1:
             wp = objs[0]
         else:
             wp = concat(objs, axis = 0, verify_integrity = True)
-
-        _dm('post-concat')
 
         # reorder by any non_index_axes
         for axis,labels in self.non_index_axes:
@@ -1637,8 +1627,6 @@ class LegacyTable(Table):
             ordered  = getattr(wp,filter_axis_name)
             new_axis = sorted(ordered & self.selection.filter)
             wp = wp.reindex(**{ filter_axis_name : new_axis, 'copy' : False })
-
-        _dm('done')
 
         return wp
 
@@ -2285,22 +2273,3 @@ def _get_index_factory(klass):
         return f
     return klass
 
-def create_debug_memory(parent):
-    _debug_memory = getattr(parent,'_debug_memory',False)
-    def get_memory(s):
-        pass
-  
-    if not _debug_memory:
-        pass
-    else:
-        try:
-            import psutil, os
-            def get_memory(s):
-                p = psutil.Process(os.getpid())
-                (rss,vms) = p.get_memory_info()
-                mp = p.get_memory_percent()
-                print "[%s] cur_mem->%.2f (MB),per_mem->%.2f" % (s,rss/1000000.0,mp)
-        except:
-            pass
-
-    return get_memory

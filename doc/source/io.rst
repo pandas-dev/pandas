@@ -1140,7 +1140,7 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
 
    store.append('wp',wp)
    store
-   store.select('wp',[ 'major_axis>20000102', ('minor_axis', '=', ['A','B']) ])
+   store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
 Indexing
 ~~~~~~~~
@@ -1226,7 +1226,6 @@ These, by default, index the three axes ``items, major_axis, minor_axis``. On an
 
 .. ipython:: python
 
-   from pandas.io.pytables import Term
    store.append('p4d2', p4d, axes = ['labels','major_axis','minor_axis'])
    store
    store.select('p4d2', [ Term('labels=l1'), Term('items=Item1'), Term('minor_axis=A_big_strings') ])
