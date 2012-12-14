@@ -15,6 +15,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
+import pandas.core.config as cf
 import pandas.core.series as smod
 import pandas.lib as lib
 
@@ -1200,18 +1201,28 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self._check_stat_op('sum', np.sum)
 
     def test_sum_inf(self):
+        import pandas.core.nanops as nanops
+
         s = Series(np.random.randn(10))
         s2 = s.copy()
+
         s[5:8] = np.inf
         s2[5:8] = np.nan
-        assert_almost_equal(s.sum(), s2.sum())
 
-        import pandas.core.nanops as nanops
+        self.assertTrue(np.isinf(s.sum()))
+
         arr = np.random.randn(100, 100).astype('f4')
         arr[:, 2] = np.inf
+
+        with cf.option_context("mode.use_inf_as_null", True):
+            assert_almost_equal(s.sum(), s2.sum())
+
+            res = nanops.nansum(arr, axis=1)
+            expected = nanops._nansum(arr, axis=1)
+            assert_almost_equal(res, expected)
+
         res = nanops.nansum(arr, axis=1)
-        expected = nanops._nansum(arr, axis=1)
-        assert_almost_equal(res, expected)
+        self.assertTrue(np.isinf(res).all())
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)

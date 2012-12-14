@@ -1140,7 +1140,13 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.keys is None:
-                return Index(np.arange(len(self.objs)))
+                names = []
+                for x in self.objs:
+                    if x.name is not None:
+                        names.append(x.name)
+                    else:
+                        return Index(np.arange(len(self.objs)))
+                return Index(names)
             else:
                 return _ensure_index(self.keys)
         else:

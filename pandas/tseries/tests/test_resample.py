@@ -22,7 +22,6 @@ import pandas.util.testing as tm
 
 bday = BDay()
 
-
 def _skip_if_no_pytz():
     try:
         import pytz
@@ -450,7 +449,7 @@ class TestResample(unittest.TestCase):
     def test_resample_anchored_intraday(self):
         # #1471, #1458
 
-        rng = date_range('1/1/2012', '4/1/2012', freq='10min')
+        rng = date_range('1/1/2012', '4/1/2012', freq='100min')
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('M')
@@ -463,7 +462,7 @@ class TestResample(unittest.TestCase):
 
         tm.assert_frame_equal(result, exp)
 
-        rng = date_range('1/1/2012', '4/1/2013', freq='10min')
+        rng = date_range('1/1/2012', '4/1/2012', freq='100min')
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('Q')
@@ -590,7 +589,55 @@ from pandas.util.compat import product
 
 
 class TestResamplePeriodIndex(unittest.TestCase):
+
     _multiprocess_can_split_ = True
+
+    def test_annual_upsample_D_s_f(self):
+        self._check_annual_upsample_cases('D', 'start', 'ffill')
+
+    def test_annual_upsample_D_e_f(self):
+        self._check_annual_upsample_cases('D', 'end', 'ffill')
+
+    def test_annual_upsample_D_s_b(self):
+        self._check_annual_upsample_cases('D', 'start', 'bfill')
+
+    def test_annual_upsample_D_e_b(self):
+        self._check_annual_upsample_cases('D', 'end', 'bfill')
+
+    def test_annual_upsample_B_s_f(self):
+        self._check_annual_upsample_cases('B', 'start', 'ffill')
+
+    def test_annual_upsample_B_e_f(self):
+        self._check_annual_upsample_cases('B', 'end', 'ffill')
+
+    def test_annual_upsample_B_s_b(self):
+        self._check_annual_upsample_cases('B', 'start', 'bfill')
+
+    def test_annual_upsample_B_e_b(self):
+        self._check_annual_upsample_cases('B', 'end', 'bfill')
+
+    def test_annual_upsample_M_s_f(self):
+        self._check_annual_upsample_cases('M', 'start', 'ffill')
+
+    def test_annual_upsample_M_e_f(self):
+        self._check_annual_upsample_cases('M', 'end', 'ffill')
+
+    def test_annual_upsample_M_s_b(self):
+        self._check_annual_upsample_cases('M', 'start', 'bfill')
+
+    def test_annual_upsample_M_e_b(self):
+        self._check_annual_upsample_cases('M', 'end', 'bfill')
+
+    def _check_annual_upsample_cases(self, targ, conv, meth, end='12/31/1991'):
+        for month in MONTHS:
+            ts = _simple_pts('1/1/1990', end, freq='A-%s' % month)
+
+            result = ts.resample(targ, fill_method=meth,
+                                 convention=conv)
+            expected = result.to_timestamp(targ, how=conv)
+            expected = expected.asfreq(targ, meth).to_period()
+            assert_series_equal(result, expected)
+
     def test_basic_downsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec')
@@ -634,24 +681,11 @@ class TestResamplePeriodIndex(unittest.TestCase):
         assert_series_equal(result, expected)
 
     def test_annual_upsample(self):
-        targets = ['D', 'B', 'M']
-
-        for month in MONTHS:
-            ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-%s' % month)
-
-            for targ, conv, meth in product(targets, ['start', 'end'],
-                                            ['ffill', 'bfill']):
-                result = ts.resample(targ, fill_method=meth,
-                                     convention=conv)
-                expected = result.to_timestamp(targ, how=conv)
-                expected = expected.asfreq(targ, meth).to_period()
-                assert_series_equal(result, expected)
-
+        ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-DEC')
         df = DataFrame({'a' : ts})
         rdf = df.resample('D', fill_method='ffill')
         exp = df['a'].resample('D', fill_method='ffill')
         assert_series_equal(rdf['a'], exp)
-
 
         rng = period_range('2000', '2003', freq='A-DEC')
         ts = Series([1, 2, 3, 4], index=rng)
@@ -979,7 +1013,7 @@ class TestTimeGrouper(unittest.TestCase):
         result = grouped.apply(f)
         self.assertTrue(result.index.equals(df.index))
 
-
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',
+                         '--with-timer'],
                    exit=False)

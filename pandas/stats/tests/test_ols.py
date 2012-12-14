@@ -10,6 +10,7 @@ from datetime import datetime
 import unittest
 import nose
 import numpy as np
+from numpy.testing.decorators import slow
 
 from pandas import date_range, bdate_range
 from pandas.core.panel import Panel
@@ -52,6 +53,8 @@ def _compare_moving_ols(model1, model2):
 
 class TestOLS(BaseTest):
 
+    _multiprocess_can_split_ = True
+
     # TODO: Add tests for OLS y predict
     # TODO: Right now we just check for consistency between full-sample and
     # rolling/expanding results of the panel OLS.  We should also cross-check
@@ -69,12 +72,18 @@ class TestOLS(BaseTest):
         if not _have_statsmodels:
             raise nose.SkipTest
 
-    def testOLSWithDatasets(self):
+    def testOLSWithDatasets_ccard(self):
         self.checkDataSet(sm.datasets.ccard.load(), skip_moving=True)
         self.checkDataSet(sm.datasets.cpunish.load(), skip_moving=True)
         self.checkDataSet(sm.datasets.longley.load(), skip_moving=True)
         self.checkDataSet(sm.datasets.stackloss.load(), skip_moving=True)
+
+    @slow
+    def testOLSWithDatasets_copper(self):
         self.checkDataSet(sm.datasets.copper.load())
+
+    @slow
+    def testOLSWithDatasets_scotland(self):
         self.checkDataSet(sm.datasets.scotland.load())
 
         # degenerate case fails on some platforms
@@ -233,6 +242,9 @@ class TestOLS(BaseTest):
         summary = repr(model)
 
 class TestOLSMisc(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
+
     '''
     For test coverage with faux data
     '''
@@ -445,6 +457,8 @@ class TestOLSMisc(unittest.TestCase):
         model.summary
 
 class TestPanelOLS(BaseTest):
+
+    _multiprocess_can_split_ = True
 
     FIELDS = ['beta', 'df', 'df_model', 'df_resid', 'f_stat',
               'p_value', 'r2', 'r2_adj', 'rmse', 'std_err',
@@ -764,6 +778,8 @@ def _period_slice(panelModel, i):
     return slice(L, R)
 
 class TestOLSFilter(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         date_index = date_range(datetime(2009, 12, 11), periods=3,

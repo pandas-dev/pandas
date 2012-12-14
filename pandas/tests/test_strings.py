@@ -456,6 +456,11 @@ class TestStringMethods(unittest.TestCase):
         exp = Series([['a', 'b', 'c'], ['c', 'd', 'e'], NA, ['f', 'g', 'h']])
         tm.assert_series_equal(result, exp)
 
+        #more than one char
+        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h'])
+        result = values.str.split('__')
+        tm.assert_series_equal(result, exp)
+
         #mixed
         mixed = Series(['a_b_c', NA, 'd_e_f', True, datetime.today(),
                         None, 1, 2.])
@@ -481,6 +486,24 @@ class TestStringMethods(unittest.TestCase):
 
         result = s.str.split()
         self.assertEquals(result[1], ['Travis', 'Oliphant'])
+
+    def test_split_maxsplit(self):
+        #re.split 0, str.split -1
+        s = Series(['bd asdf jfg', 'kjasdflqw asdfnfk'])
+
+        result = s.str.split(n=-1)
+        xp = s.str.split()
+        tm.assert_series_equal(result, xp)
+
+        result = s.str.split(n=0)
+        tm.assert_series_equal(result, xp)
+
+        xp = s.str.split('asdf')
+        result = s.str.split('asdf', n=0)
+        tm.assert_series_equal(result, xp)
+
+        result = s.str.split('asdf', n=-1)
+        tm.assert_series_equal(result, xp)
 
     def test_pipe_failures(self):
         # #2119

@@ -278,7 +278,10 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     calc = lambda x: func(x, window, minp=minp, **kwargs)
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
-    result = np.apply_along_axis(calc, axis, values)
+    if values.ndim > 1:
+        result = np.apply_along_axis(calc, axis, values)
+    else:
+        result = calc(values)
 
     rs = return_hook(result)
     if center:
@@ -299,7 +302,7 @@ def _center_window(rs, window, axis):
         na_indexer = [slice(None)] * rs.ndim
         na_indexer[axis] = slice(-offset, None)
 
-        rs[tuple(rs_indexer)] = rs[tuple(lead_indexer)]
+        rs[tuple(rs_indexer)] = np.copy(rs[tuple(lead_indexer)])
         rs[tuple(na_indexer)] = np.nan
     return rs
 

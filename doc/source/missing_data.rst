@@ -61,7 +61,7 @@ arise and we wish to also consider that "missing" or "null".
 
 Until recently, for legacy reasons ``inf`` and ``-inf`` were also
 considered to be "null" in computations. This is no longer the case by
-default; use the :func: `~pandas.core.common.use_inf_as_null` function to recover it.
+default; use the ``mode.use_inf_as_null`` option to recover it.
 
 .. _missing.isnull:
 

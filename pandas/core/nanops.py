@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas.core.common import isnull, notnull
 import pandas.core.common as com
+import pandas.core.config as cf
 import pandas.lib as lib
 import pandas.algos as algos
 import pandas.hashtable as _hash
