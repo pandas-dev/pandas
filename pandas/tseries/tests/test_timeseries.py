@@ -226,6 +226,14 @@ class TestTimeSeries(unittest.TestCase):
 
         self.assert_(isinstance(s.iget_value(5), Timestamp))
 
+    def test_date_range_ambiguous_arguments(self):
+        # #2538
+        start = datetime(2011, 1, 1, 5, 3, 40)
+        end = datetime(2011, 1, 1, 8, 9, 40)
+
+        self.assertRaises(ValueError, date_range, start, end,
+                          freq='s', periods=10)
+
     def test_timestamp_to_datetime(self):
         _skip_if_no_pytz()
         rng = date_range('20090415', '20090519',
