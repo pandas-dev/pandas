@@ -141,23 +141,33 @@ def _reset_option(pat):
 class DictWrapper(object):
     """ provide attribute-style access to a nested dict
     """
-    def __init__(self,d):
+    def __init__(self,d,prefix=""):
         object.__setattr__(self,"d",d)
+        object.__setattr__(self,"prefix",prefix)
 
     def __setattr__(self,key,val):
+        prefix = object.__getattribute__(self,"prefix")
+        if prefix:
+            prefix += "."
+        prefix += key
         # you can't set new keys
         # can you can't overwrite subtrees
         if key in self.d and not isinstance(self.d[key],dict):
+            _set_option(prefix,val)
             self.d[key]=val
         else:
             raise KeyError("You can only set the value of existing options")
 
     def __getattr__(self,key):
+        prefix = object.__getattribute__(self,"prefix")
+        if prefix:
+            prefix += "."
+        prefix += key
         v=object.__getattribute__(self,"d")[key]
         if isinstance(v,dict):
-            return DictWrapper(v)
+            return DictWrapper(v,prefix)
         else:
-            return v
+            return _get_option(prefix)
 
     def __dir__(self):
         return self.d.keys()
@@ -365,6 +375,7 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     if not isinstance(cursor, dict):
         raise KeyError("Path prefix to option '%s' is already an option"
                        % '.'.join(path[:-1]))
+
 
     cursor[path[-1]] = defval  # initialize
 

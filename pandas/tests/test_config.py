@@ -325,11 +325,16 @@ class TestConfig(unittest.TestCase):
         eq(17)
 
     def test_attribute_access(self):
+        holder = []
         def f():
             options.b=1
         def f2():
             options.display=1
+        def f3(key):
+            holder.append(True)
+
         self.cf.register_option('a',0)
+        self.cf.register_option('c',0,cb=f3)
         options=self.cf.options
 
         self.assertEqual(options.a,0)
@@ -344,6 +349,10 @@ class TestConfig(unittest.TestCase):
 
         self.assertRaises(KeyError,f)
         self.assertRaises(KeyError,f2)
+
+        # make sure callback kicks when using this form of setting
+        options.c = 1
+        self.assertEqual(len(holder),1)
 
 # fmt.reset_printoptions and fmt.set_printoptions were altered
 # to use core.config, test_format exercises those paths.
