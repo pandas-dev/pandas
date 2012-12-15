@@ -285,7 +285,7 @@ class DatetimeIndex(Int64Index):
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
                   tz=None, normalize=False):
-        if com._count_not_none(start, end, periods) < 2:
+        if com._count_not_none(start, end, periods) != 2:
             raise ValueError('Must specify two of start, end, or periods')
 
         _normalized = True

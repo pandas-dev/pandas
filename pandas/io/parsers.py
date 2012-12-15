@@ -37,6 +37,13 @@ filepath_or_buffer : string or file handle / StringIO. The string could be
     is expected. For instance, a local file could be
     file ://localhost/path/to/table.csv
 %s
+lineterminator : string (length 1), default None
+    Character to break file into lines. Only valid with C parser
+quotechar : string
+quoting : string
+skipinitialspace : boolean, default False
+    Skip spaces after delimiter
+escapechar : string
 compression : {'gzip', 'bz2', None}, default None
     For on-the-fly decompression of on-disk data
 dialect : string or csv.Dialect instance, default None
@@ -107,16 +114,6 @@ encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
-
-**Dialect options**
-
-lineterminator : string (length 1), default None
-    Character to break file into lines. Only valid with C parser
-quotechar : string
-quoting : string
-skipinitialspace : boolean, default False
-    Skip spaces after delimiter
-escapechar : string
 
 Returns
 -------
