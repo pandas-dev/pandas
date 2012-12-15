@@ -20,9 +20,9 @@ from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
-from pandas.core.algorithms import match, unique
+from pandas.core.algorithms import match, unique, factorize
 from pandas.core.strings import str_len
-from pandas.core.categorical import Factor
+from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.reshape import block2d_to_block3d, block2d_to_blocknd, factor_indexer
@@ -1174,15 +1174,17 @@ class Table(object):
         new_self = copy.copy(self)
         return new_self
 
-    def __eq__(self, other):
-        """ return True if we are 'equal' to this other table (in all respects that matter) """
+    def validate(self, other):
+        """ validate against an existing table """
+        if other is None: return
+
+        if other.table_type != self.table_type:
+            raise TypeError("incompatible table_type with existing [%s - %s]" %
+                            (other.table_type, self.table_type))
+
         for c in ['index_axes','non_index_axes','values_axes']:
             if getattr(self,c,None) != getattr(other,c,None):
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
+                raise Exception("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,getattr(self,c,None),getattr(other,c,None)))
 
     @property
     def nrows(self):
@@ -1262,17 +1264,6 @@ class Table(object):
         if where is not None:
             if self.version is None or float(self.version) < 0.1:
                 warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % self.version, IncompatibilityWarning)
-
-    def validate(self):
-        """ raise if we have an incompitable table type with the current """
-        et = getattr(self.attrs,'table_type',None)
-        if et is not None and et != self.table_type:
-                raise TypeError("incompatible table_type with existing [%s - %s]" %
-                                (et, self.table_type))
-        ic  = getattr(self.attrs,'index_cols',None)
-        if ic is not None and ic != self.index_cols():
-            raise TypeError("incompatible index cols with existing [%s - %s]" %
-                            (ic, self.index_cols()))
 
     @property
     def indexables(self):
@@ -1390,7 +1381,7 @@ class Table(object):
         """
 
         # map axes to numbers
-        axes = set([ obj._get_axis_number(a) for a in axes ])
+        axes = [ obj._get_axis_number(a) for a in axes ]
 
         # do we have an existing table (if so, use its axes)?
         if self.infer_axes():
@@ -1404,26 +1395,42 @@ class Table(object):
             raise Exception("currenctly only support ndim-1 indexers in an AppendableTable")
 
         # create according to the new data
-        self.index_axes       = []
         self.non_index_axes   = []
 
         # create axes to index and non_index
-        j = 0
+        index_axes_map = dict()
         for i, a in enumerate(obj.axes):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
-                self.index_axes.append(_convert_index(a).set_name(name).set_axis(i).set_pos(j))
-                j += 1
-
+                index_axes_map[i] = _convert_index(a).set_name(name).set_axis(i)
             else:
-                self.non_index_axes.append((i,list(a)))
+
+                # we might be able to change the axes on the appending data if necessary
+                append_axis = list(a)
+                if existing_table is not None:
+                    indexer = len(self.non_index_axes)
+                    exist_axis = existing_table.non_index_axes[indexer][1]
+                    if append_axis != exist_axis:
+                        
+                        # ahah! -> reindex
+                        if sorted(append_axis) == sorted(exist_axis):
+                            append_axis = exist_axis
+
+                self.non_index_axes.append((i,append_axis))
+        
+        # set axis positions (based on the axes)
+        self.index_axes = [ index_axes_map[a].set_pos(j) for j, a in enumerate(axes) ]
+        j = len(self.index_axes)
 
         # check for column conflicts
         if validate:
             for a in self.axes:
                 a.maybe_set_size(min_itemsize = min_itemsize)
 
+        # reindex by our non_index_axes
+        for a in self.non_index_axes:
+            obj = obj.reindex_axis(a[1], axis = a[0], copy = False)
 
         blocks = self.get_data_blocks(obj)
 
@@ -1471,9 +1478,8 @@ class Table(object):
             self.values_axes.append(dc)
 
         # validate the axes if we have an existing table
-        if existing_table is not None:
-            if self != existing_table:
-                raise Exception("try to write axes [%s] that are invalid to an existing table [%s]!" % (axes,self.group))
+        if validate:
+            self.validate(existing_table)
 
     def create_description(self, compression = None, complevel = None):
         """ create the description of the table from the axes & values """
@@ -1548,14 +1554,10 @@ class LegacyTable(Table):
         """ we have n indexable columns, with an arbitrary number of data axes """
 
         
-        _dm = create_debug_memory(self.parent)
-        _dm('start')
-
         if not self.read_axes(where): return None
 
-        _dm('read_axes')
         indicies = [ i.values for i in self.index_axes ]
-        factors  = [ Factor.from_array(i) for i in indicies ]
+        factors  = [ Categorical.from_array(i) for i in indicies ]
         levels   = [ f.levels for f in factors ]
         N        = [ len(f.levels) for f in factors ]
         labels   = [ f.labels for f in factors ]
@@ -1577,9 +1579,7 @@ class LegacyTable(Table):
                 
                 take_labels   = [ l.take(sorter) for l in labels ]
                 items         = Index(c.values)
-                _dm('pre block')
                 block         = block2d_to_blocknd(sorted_values, items, tuple(N), take_labels)
-                _dm('block created done')
 
                 # create the object
                 mgr = BlockManager([block], [items] + levels)
@@ -1587,7 +1587,7 @@ class LegacyTable(Table):
 
                 # permute if needed
                 if self.is_transposed:
-                    obj = obj.transpose(*self.data_orientation)
+                    obj = obj.transpose(*tuple(Series(self.data_orientation).argsort()))
 
                 objs.append(obj)
 
@@ -1617,15 +1617,11 @@ class LegacyTable(Table):
                 lp = DataFrame(new_values, index=new_index, columns=lp.columns)
                 objs.append(lp.to_panel())
 
-        _dm('pre-concat')
-
         # create the composite object
         if len(objs) == 1:
             wp = objs[0]
         else:
             wp = concat(objs, axis = 0, verify_integrity = True)
-
-        _dm('post-concat')
 
         # reorder by any non_index_axes
         for axis,labels in self.non_index_axes:
@@ -1637,8 +1633,6 @@ class LegacyTable(Table):
             ordered  = getattr(wp,filter_axis_name)
             new_axis = sorted(ordered & self.selection.filter)
             wp = wp.reindex(**{ filter_axis_name : new_axis, 'copy' : False })
-
-        _dm('done')
 
         return wp
 
@@ -1682,12 +1676,7 @@ class AppendableTable(LegacyTable):
             table = self.handle.createTable(self.group, **options)
 
         else:
-
-            # the table must already exist
             table = self.table
-
-            # validate the table
-            self.validate()
 
         # validate the axes and set the kinds
         for a in self.axes:
@@ -1750,22 +1739,35 @@ class AppendableTable(LegacyTable):
         self.selection.select_coords()
 
         # delete the rows in reverse order
-        l  = list(self.selection.values)
+        l  = Series(self.selection.values).order()
         ln = len(l)
 
         if ln:
 
-            # if we can do a consecutive removal - do it!
-            if l[0]+ln-1 == l[-1]:
-                table.removeRows(start = l[0], stop = l[-1]+1)
+            # construct groups of consecutive rows
+            diff   = l.diff()
+            groups = list(diff[diff>1].index)
 
-            # one by one
-            else:
-                l.reverse()
-                for c in l:
-                    table.removeRows(c)
+            # 1 group
+            if not len(groups):
+                groups = [0]
 
-                    self.handle.flush()
+            # final element
+            if groups[-1] != ln:
+                groups.append(ln)
+            
+            # initial element
+            if groups[0] != 0:
+                groups.insert(0,0)
+
+            # we must remove in reverse order!
+            pg = groups.pop()
+            for g in reversed(groups):
+                rows = l.take(range(g,pg))
+                table.removeRows(start = rows[rows.index[0]], stop = rows[rows.index[-1]]+1)
+                pg = g
+
+            self.handle.flush()
 
         # return the number of rows removed
         return ln
@@ -2285,22 +2287,3 @@ def _get_index_factory(klass):
         return f
     return klass
 
-def create_debug_memory(parent):
-    _debug_memory = getattr(parent,'_debug_memory',False)
-    def get_memory(s):
-        pass
-  
-    if not _debug_memory:
-        pass
-    else:
-        try:
-            import psutil, os
-            def get_memory(s):
-                p = psutil.Process(os.getpid())
-                (rss,vms) = p.get_memory_info()
-                mp = p.get_memory_percent()
-                print "[%s] cur_mem->%.2f (MB),per_mem->%.2f" % (s,rss/1000000.0,mp)
-        except:
-            pass
-
-    return get_memory

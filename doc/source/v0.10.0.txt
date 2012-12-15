@@ -255,7 +255,6 @@ Updated PyTables Support
 
 .. ipython:: python
 
-   from pandas.io.pytables import Term
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
           major_axis=date_range('1/1/2000', periods=5),
           minor_axis=['A', 'B', 'C', 'D'])
