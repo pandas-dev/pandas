@@ -1871,7 +1871,7 @@ a,b,c
             raise nose.SkipTest
 
         data = open(self.csv1, 'rb').read()
-        data = data.replace(',', '::')
+        data = data.replace(b',', b'::')
         expected = self.read_csv(self.csv1)
 
         try:

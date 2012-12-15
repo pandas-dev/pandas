@@ -1200,7 +1200,18 @@ class PythonParser(ParserBase):
                                     strict=True)
 
         else:
-            reader = (re.split(sep, line.strip()) for line in f)
+            def _read():
+                line = next(f)
+                pat = re.compile(sep)
+                if (py3compat.PY3 and isinstance(line, bytes)):
+                    yield pat.split(line.decode('utf-8').strip())
+                    for line in f:
+                        yield pat.split(line.decode('utf-8').strip())
+                else:
+                    yield pat.split(line.strip())
+                    for line in f:
+                        yield pat.split(line.strip())
+            reader = _read()
 
         self.data = reader
 
