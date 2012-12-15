@@ -98,17 +98,6 @@ Note:
   often one of the more expensive parts of the computation and is often
   unnecessary.
 
-- The ``names`` argument in the file parsers no longer overrides the ``header``
-  option to ``None``. This means that you need to specify ``header=None`` in
-  cases where your file has no header row:
-
-.. ipython:: python
-
-    from StringIO import StringIO
-    data = '1,2,3\n4,5,6\n7,8,9'
-    print data
-    pd.read_csv(StringIO(data), names=['a', 'b', 'c'], header=None)
-
 - The default column names for a file with no header have been changed to the
   integers ``0`` through ``N - 1``. This is to create consistency with the
   DataFrame constructor with no columns specified. The v0.9.0 behavior (names

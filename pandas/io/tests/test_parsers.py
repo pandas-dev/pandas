@@ -341,13 +341,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         xp = DataFrame({'a' : [1, 5, 9], 'b' : [2, 6, 10], 'c' : [3, 7, 11],
                         'd' : [4, 8, 12]},
                        index=Index(['hello', 'world', 'foo'], name='message'))
-        rs = self.read_csv(StringIO(data), names=names,
-                           header=None, index_col=['message'])
+        rs = self.read_csv(StringIO(data), names=names, index_col=['message'])
         tm.assert_frame_equal(xp, rs)
         self.assert_(xp.index.name == rs.index.name)
 
-        rs = self.read_csv(StringIO(data), names=names,
-                           header=None, index_col='message')
+        rs = self.read_csv(StringIO(data), names=names, index_col='message')
         tm.assert_frame_equal(xp, rs)
         self.assert_(xp.index.name == rs.index.name)
 
@@ -671,8 +669,7 @@ c,4,5
                                   header=None)
 
         names = ['foo', 'bar', 'baz', 'quux', 'panda']
-        df2 = self.read_table(StringIO(data), sep=',', header=None,
-                              names=names)
+        df2 = self.read_table(StringIO(data), sep=',', names=names)
         expected = [[1,2,3,4,5.],
                     [6,7,8,9,10],
                     [11,12,13,14,15]]
@@ -691,7 +688,7 @@ bar,4,5,6
 baz,7,8,9
 """
         names = ['A', 'B', 'C']
-        df = self.read_csv(StringIO(data), names=names, header=None)
+        df = self.read_csv(StringIO(data), names=names)
 
         self.assertEqual(names, ['A', 'B', 'C'])
 
@@ -914,8 +911,7 @@ baz,12,13,14,15
 
         # regular index
         names = ['index', 'A', 'B', 'C', 'D']
-        df = self.read_csv(StringIO(no_header), index_col=0,
-                           header=None, names=names)
+        df = self.read_csv(StringIO(no_header), index_col=0, names=names)
         expected = self.read_csv(StringIO(self.data1), index_col=0)
         tm.assert_frame_equal(df, expected)
 
@@ -931,7 +927,7 @@ bar,two,12,13,14,15
         no_header = '\n'.join(lines[1:])
         names = ['index1', 'index2', 'A', 'B', 'C', 'D']
         df = self.read_csv(StringIO(no_header), index_col=[0, 1],
-                           header=None, names=names)
+                           names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
         tm.assert_frame_equal(df, expected)
 
@@ -1481,6 +1477,20 @@ A,B,C
                          'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie')
         self.assertTrue(np.array_equal(result.columns,
                                        ['SEARCH_TERM', 'ACTUAL_URL']))
+
+    def test_header_names_backward_compat(self):
+        # #2539
+        data = '1,2,3\n4,5,6'
+
+        result = self.read_csv(StringIO(data), names=['a', 'b', 'c'])
+        expected = self.read_csv(StringIO(data), names=['a', 'b', 'c'],
+                                 header=None)
+        tm.assert_frame_equal(result, expected)
+
+        data2 = 'foo,bar,baz\n' + data
+        result = self.read_csv(StringIO(data2), names=['a', 'b', 'c'],
+                               header=0)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestPythonParser(ParserTests, unittest.TestCase):

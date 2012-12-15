@@ -52,8 +52,9 @@ data into a DataFrame object. They can take a number of arguments:
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
     specified, data types will be inferred.
-  - ``header``: row number to use as the column names, and the start of the data.
-    Defaults to 0 (first row); specify None if there is no header row.
+  - ``header``: row number to use as the column names, and the start of the
+    data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
+    pass ``header=0`` to be able to replace existing names.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
   - ``index_col``: column number, column name, or list of column numbers/names,
@@ -61,8 +62,8 @@ data into a DataFrame object. They can take a number of arguments:
     it will number the rows without using any column, unless there is one more
     data column than there are headers, in which case the first column is taken
     as the index.
-  - ``names``: List of column names to use. If file contains no header row,
-    then you should explicitly pass header=None (behavior changed in v0.10.0).
+  - ``names``: List of column names to use as column names. To replace header
+    existing in file, explicitly pass ``header=0``.
   - ``na_values``: optional list of strings to recognize as NaN (missing
     values), either in addition to or in lieu of the default set.
   - ``true_values``: list of strings to recognize as ``True``
@@ -235,7 +236,7 @@ any):
 .. ipython:: python
 
     print data
-    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'])
+    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=0)
     pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=None)
 
 If the header is in a row other than the first, pass the row number to

@@ -49,7 +49,7 @@ compression : {'gzip', 'bz2', None}, default None
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
-header : int, default 0
+header : int, default 0 if names parameter not specified, otherwise None
     Row to use for the column labels of the parsed DataFrame. Specify None if
     there is no header row.
 skiprows : list-like or integer
@@ -216,7 +216,7 @@ _parser_defaults = {
     'skipinitialspace': False,
     'lineterminator': None,
 
-    'header': 0,
+    'header': 'infer',
     'index_col': None,
     'names': None,
     'prefix': None,
@@ -287,7 +287,7 @@ def _make_parser_function(name, sep=','):
                  skipinitialspace=False,
                  lineterminator=None,
 
-                 header=0,
+                 header='infer',
                  index_col=None,
                  names=None,
                  prefix=None,
@@ -477,6 +477,9 @@ class TextFileReader(object):
             kwds['skipinitialspace'] = dialect.skipinitialspace
             kwds['quotechar'] = dialect.quotechar
             kwds['quoting'] = dialect.quoting
+
+        if kwds.get('header', 'infer') == 'infer':
+            kwds['header'] = 0 if kwds.get('names') is None else None
 
         self.orig_options = kwds
 
