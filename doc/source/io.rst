@@ -180,6 +180,15 @@ All of the dialect options can be specified separately by keyword arguments:
     data = 'a,b,c~1,2,3~4,5,6'
     pd.read_csv(StringIO(data), lineterminator='~')
 
+Another common dialect option is ``skipinitialspace``, to skip any whitespace
+after a delimiter:
+
+.. ipython:: python
+
+   data = 'a, b, c\n1, 2, 3\n4, 5, 6'
+   print data
+   pd.read_csv(StringIO(data), skipinitialspace=True)
+
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
 integer dtype without altering the contents, it will do so. Any non-numeric

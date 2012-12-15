@@ -237,6 +237,7 @@ pandas 0.10.0
     columns, even if one DataFrame is length-zero (GH2525_)
   - Fix several DataFrame.icol/irow with duplicate indices issues (GH2228_, GH2259_)
   - Use Series names for column names when using concat with axis=1 (GH2489_)
+  - Raise Exception if start, end, periods all passed to date_range (GH2538_)
 
 .. _GH407: https://github.com/pydata/pandas/issues/407
 .. _GH821: https://github.com/pydata/pandas/issues/821
@@ -356,6 +357,7 @@ pandas 0.10.0
 .. _GH2228: https://github.com/pydata/pandas/issues/2228
 .. _GH2259: https://github.com/pydata/pandas/issues/2259
 .. _GH2489: https://github.com/pydata/pandas/issues/2489
+.. _GH2538: https://github.com/pydata/pandas/issues/2538
 
 
 pandas 0.9.1
