@@ -314,20 +314,45 @@ class TestHDFStore(unittest.TestCase):
 
         p4d = tm.makePanel4D()
 
+        def check_indexers(key, indexers):
+            for i,idx in enumerate(indexers):
+                self.assert_(getattr(getattr(self.store.root,key).table.description,idx)._v_pos == i)
+
         # append then change (will take existing schema)
+        indexers = ['items','major_axis','minor_axis']
+        
         self.store.remove('p4d')
-        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=['items','major_axis','minor_axis'])
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
+        self.store.append('p4d', p4d.ix[:,:,10:,:])
+        tm.assert_panel4d_equal(self.store.select('p4d'),p4d)
+        check_indexers('p4d',indexers)
+
+        # same as above, but try to append with differnt axes
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
         self.store.append('p4d', p4d.ix[:,:,10:,:], axes=['labels','items','major_axis'])
+        tm.assert_panel4d_equal(self.store.select('p4d'),p4d)
+        check_indexers('p4d',indexers)
 
         # pass incorrect number of axes
         self.store.remove('p4d')
         self.assertRaises(Exception, self.store.append, 'p4d', p4d.ix[:,:,:10,:], axes=['major_axis','minor_axis'])
 
-        # different than default indexables
+        # different than default indexables #1
+        indexers = ['labels','major_axis','minor_axis']
         self.store.remove('p4d')
-        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=[0,2,3])
-        self.store.append('p4d', p4d.ix[:,:,10:,:], axes=[0,2,3])
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
+        self.store.append('p4d', p4d.ix[:,:,10:,:])
         tm.assert_panel4d_equal(self.store['p4d'], p4d)
+        check_indexers('p4d',indexers)
+  
+        # different than default indexables #2
+        indexers = ['major_axis','labels','minor_axis']
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
+        self.store.append('p4d', p4d.ix[:,:,10:,:])
+        tm.assert_panel4d_equal(self.store['p4d'], p4d)
+        check_indexers('p4d',indexers)
 
         # partial selection
         result = self.store.select('p4d',['labels=l1'])

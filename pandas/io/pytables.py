@@ -1430,7 +1430,7 @@ class Table(object):
 
         # reindex by our non_index_axes
         for a in self.non_index_axes:
-            obj = obj.reindex_axis(a[1], axis = a[0])
+            obj = obj.reindex_axis(a[1], axis = a[0], copy = False)
 
         blocks = self.get_data_blocks(obj)
 
@@ -1587,7 +1587,7 @@ class LegacyTable(Table):
 
                 # permute if needed
                 if self.is_transposed:
-                    obj = obj.transpose(*self.data_orientation)
+                    obj = obj.transpose(*tuple(Series(self.data_orientation).argsort()))
 
                 objs.append(obj)
 
