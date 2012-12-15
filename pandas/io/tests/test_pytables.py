@@ -271,6 +271,23 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('p4d', p4d.ix[:,:,10:,:], axes=['items','major_axis','minor_axis'])
         tm.assert_panel4d_equal(self.store['p4d'], p4d)
 
+        # test using differnt number of items on each axis
+        p4d2 = p4d.copy()
+        p4d2['l4'] = p4d['l1']
+        p4d2['l5'] = p4d['l1']
+        self.store.remove('p4d2')
+        self.store.append('p4d2', p4d2, axes=['items','major_axis','minor_axis'])
+        tm.assert_panel4d_equal(self.store['p4d2'], p4d2)
+
+        # test using differt order of items on the non-index axes
+        self.store.remove('wp1')
+        wp_append1 = wp.ix[:,:10,:]
+        self.store.append('wp1', wp_append1)
+        wp_append2 = wp.ix[:,10:,:].reindex(items = wp.items[::-1])
+        self.store.append('wp1', wp_append2) 
+        tm.assert_panel_equal(self.store['wp1'], wp)
+        
+
     def test_append_frame_column_oriented(self):
 
         # column oriented
@@ -297,20 +314,45 @@ class TestHDFStore(unittest.TestCase):
 
         p4d = tm.makePanel4D()
 
+        def check_indexers(key, indexers):
+            for i,idx in enumerate(indexers):
+                self.assert_(getattr(getattr(self.store.root,key).table.description,idx)._v_pos == i)
+
         # append then change (will take existing schema)
+        indexers = ['items','major_axis','minor_axis']
+        
         self.store.remove('p4d')
-        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=['items','major_axis','minor_axis'])
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
+        self.store.append('p4d', p4d.ix[:,:,10:,:])
+        tm.assert_panel4d_equal(self.store.select('p4d'),p4d)
+        check_indexers('p4d',indexers)
+
+        # same as above, but try to append with differnt axes
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
         self.store.append('p4d', p4d.ix[:,:,10:,:], axes=['labels','items','major_axis'])
+        tm.assert_panel4d_equal(self.store.select('p4d'),p4d)
+        check_indexers('p4d',indexers)
 
         # pass incorrect number of axes
         self.store.remove('p4d')
         self.assertRaises(Exception, self.store.append, 'p4d', p4d.ix[:,:,:10,:], axes=['major_axis','minor_axis'])
 
-        # different than default indexables
+        # different than default indexables #1
+        indexers = ['labels','major_axis','minor_axis']
         self.store.remove('p4d')
-        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=[0,2,3])
-        self.store.append('p4d', p4d.ix[:,:,10:,:], axes=[0,2,3])
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
+        self.store.append('p4d', p4d.ix[:,:,10:,:])
         tm.assert_panel4d_equal(self.store['p4d'], p4d)
+        check_indexers('p4d',indexers)
+  
+        # different than default indexables #2
+        indexers = ['major_axis','labels','minor_axis']
+        self.store.remove('p4d')
+        self.store.append('p4d', p4d.ix[:,:,:10,:], axes=indexers)
+        self.store.append('p4d', p4d.ix[:,:,10:,:])
+        tm.assert_panel4d_equal(self.store['p4d'], p4d)
+        check_indexers('p4d',indexers)
 
         # partial selection
         result = self.store.select('p4d',['labels=l1'])
@@ -451,6 +493,8 @@ class TestHDFStore(unittest.TestCase):
             os.remove(self.scratchpath)
 
     def test_append_diff_item_order(self):
+        raise nose.SkipTest('append diff item order')
+
         wp = tm.makePanel()
         wp1 = wp.ix[:, :10, :]
         wp2 = wp.ix[['ItemC', 'ItemB', 'ItemA'], 10:, :]
@@ -597,6 +641,18 @@ class TestHDFStore(unittest.TestCase):
 
     def test_remove_crit(self):
         wp = tm.makePanel()
+
+        # group row removal
+        date4 = wp.major_axis.take([ 0,1,2,4,5,6,8,9,10 ])
+        crit4 = Term('major_axis',date4)
+        self.store.put('wp3', wp, table=True)
+        n = self.store.remove('wp3', where=[crit4])
+        assert(n == 36)
+        result = self.store.select('wp3')
+        expected = wp.reindex(major_axis = wp.major_axis-date4)
+        tm.assert_panel_equal(result, expected)
+
+        # upper half
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
@@ -604,7 +660,6 @@ class TestHDFStore(unittest.TestCase):
         crit2 = Term('minor_axis',['A', 'D'])
         n = self.store.remove('wp', where=[crit1])
 
-        # deleted number
         assert(n == 56)
 
         n = self.store.remove('wp', where=[crit2])
@@ -614,32 +669,36 @@ class TestHDFStore(unittest.TestCase):
         expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
         tm.assert_panel_equal(result, expected)
 
-        # test non-consecutive row removal
-        wp = tm.makePanel()
+        # individual row elements
         self.store.put('wp2', wp, table=True)
 
         date1 = wp.major_axis[1:3]
-        date2 = wp.major_axis[5]
-        date3 = [wp.major_axis[7],wp.major_axis[9]]
-
         crit1 = Term('major_axis',date1)
-        crit2 = Term('major_axis',date2)
-        crit3 = Term('major_axis',date3)
-
         self.store.remove('wp2', where=[crit1])
-        self.store.remove('wp2', where=[crit2])
-        self.store.remove('wp2', where=[crit3])
-        result = self.store['wp2']
-
-        ma = list(wp.major_axis)
-        for d in date1:
-            ma.remove(d)
-        ma.remove(date2)
-        for d in date3:
-            ma.remove(d)
-        expected = wp.reindex(major = ma)
+        result = self.store.select('wp2')
+        expected = wp.reindex(major_axis=wp.major_axis-date1)
         tm.assert_panel_equal(result, expected)
 
+        date2 = wp.major_axis[5]
+        crit2 = Term('major_axis',date2)
+        self.store.remove('wp2', where=[crit2])
+        result = self.store['wp2']
+        expected = wp.reindex(major_axis=wp.major_axis-date1-Index([date2]))
+        tm.assert_panel_equal(result, expected)
+
+        date3 = [wp.major_axis[7],wp.major_axis[9]]
+        crit3 = Term('major_axis',date3)
+        self.store.remove('wp2', where=[crit3])
+        result = self.store['wp2']
+        expected = wp.reindex(major_axis=wp.major_axis-date1-Index([date2])-Index(date3))
+        tm.assert_panel_equal(result, expected)
+
+        # corners
+        self.store.put('wp4', wp, table=True)
+        n = self.store.remove('wp4', where=[Term('major_axis','>',wp.major_axis[-1])])
+        result = self.store.select('wp4')
+        tm.assert_panel_equal(result, wp)
+        
     def test_terms(self):
 
         wp = tm.makePanel()
