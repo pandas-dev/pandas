@@ -1381,7 +1381,7 @@ class Table(object):
         """
 
         # map axes to numbers
-        axes = set([ obj._get_axis_number(a) for a in axes ])
+        axes = [ obj._get_axis_number(a) for a in axes ]
 
         # do we have an existing table (if so, use its axes)?
         if self.infer_axes():
@@ -1395,18 +1395,15 @@ class Table(object):
             raise Exception("currenctly only support ndim-1 indexers in an AppendableTable")
 
         # create according to the new data
-        self.index_axes       = []
         self.non_index_axes   = []
 
         # create axes to index and non_index
-        j = 0
+        index_axes_map = dict()
         for i, a in enumerate(obj.axes):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
-                self.index_axes.append(_convert_index(a).set_name(name).set_axis(i).set_pos(j))
-                j += 1
-
+                index_axes_map[i] = _convert_index(a).set_name(name).set_axis(i)
             else:
 
                 # we might be able to change the axes on the appending data if necessary
@@ -1421,6 +1418,10 @@ class Table(object):
                             append_axis = exist_axis
 
                 self.non_index_axes.append((i,append_axis))
+        
+        # set axis positions (based on the axes)
+        self.index_axes = [ index_axes_map[a].set_pos(j) for j, a in enumerate(axes) ]
+        j = len(self.index_axes)
 
         # check for column conflicts
         if validate:

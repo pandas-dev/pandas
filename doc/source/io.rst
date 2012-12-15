@@ -1161,6 +1161,21 @@ You can create an index for a table with ``create_table_index`` after data is al
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~
+You can delete from a table selectively by specifying a ``where``. In deleting rows, it is important to understand the ``PyTables`` deletes rows by erasing the rows, then **moving** the following data. Thus deleting can potentially be a very expensive operation depending on the orientation of your data. This is especially true in higher dimensional objects (``Panel`` and ``Panel4D``). To get optimal deletion speed, it pays to have the dimension you are deleting be the first of the ``indexables``.
+
+Data is ordered (on the disk) in terms of the ``indexables``. Here's a simple use case. You store panel type data, with dates in the ``major_axis`` and ids in the ``minor_axis``. The data is then interleaved like this:
+
+   - date_1
+        - id_1
+        - id_2
+        -  .
+        - id_n
+   - date_2
+        - id_1
+        -  .
+        - id_n
+
+It should be clear that a delete operation on the ``major_axis`` will be fairly quick, as one chunk is removed, then the following data moved. On the other hand a delete operation on the ``minor_axis`` will be very expensive. In this case it would almost certainly be faster to rewrite the table using a ``where`` that selects all but the missing data.
 
 .. ipython:: python
 
@@ -1205,7 +1220,6 @@ Performance
      - ``AppendableTable`` which is a similiar table to past versions (this is the default).
      - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
 
-   - To delete a lot of data, it is sometimes better to erase the table and rewrite it. ``PyTables`` tends to increase the file size with deletions
    - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
      use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
    - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
