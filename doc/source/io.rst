@@ -52,8 +52,9 @@ data into a DataFrame object. They can take a number of arguments:
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
     specified, data types will be inferred.
-  - ``header``: row number to use as the column names, and the start of the data.
-    Defaults to 0 (first row); specify None if there is no header row.
+  - ``header``: row number to use as the column names, and the start of the
+    data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
+    pass ``header=0`` to be able to replace existing names.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
   - ``index_col``: column number, column name, or list of column numbers/names,
@@ -61,8 +62,8 @@ data into a DataFrame object. They can take a number of arguments:
     it will number the rows without using any column, unless there is one more
     data column than there are headers, in which case the first column is taken
     as the index.
-  - ``names``: List of column names to use. If file contains no header row,
-    then you should explicitly pass header=None (behavior changed in v0.10.0).
+  - ``names``: List of column names to use as column names. To replace header
+    existing in file, explicitly pass ``header=0``.
   - ``na_values``: optional list of strings to recognize as NaN (missing
     values), either in addition to or in lieu of the default set.
   - ``true_values``: list of strings to recognize as ``True``
@@ -235,7 +236,7 @@ any):
 .. ipython:: python
 
     print data
-    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'])
+    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=0)
     pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=None)
 
 If the header is in a row other than the first, pass the row number to
@@ -1140,7 +1141,7 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
 
    store.append('wp',wp)
    store
-   store.select('wp',[ 'major_axis>20000102', ('minor_axis', '=', ['A','B']) ])
+   store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
 Indexing
 ~~~~~~~~
@@ -1161,6 +1162,21 @@ You can create an index for a table with ``create_table_index`` after data is al
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~
+You can delete from a table selectively by specifying a ``where``. In deleting rows, it is important to understand the ``PyTables`` deletes rows by erasing the rows, then **moving** the following data. Thus deleting can potentially be a very expensive operation depending on the orientation of your data. This is especially true in higher dimensional objects (``Panel`` and ``Panel4D``). To get optimal deletion speed, it pays to have the dimension you are deleting be the first of the ``indexables``.
+
+Data is ordered (on the disk) in terms of the ``indexables``. Here's a simple use case. You store panel type data, with dates in the ``major_axis`` and ids in the ``minor_axis``. The data is then interleaved like this:
+
+   - date_1
+        - id_1
+        - id_2
+        -  .
+        - id_n
+   - date_2
+        - id_1
+        -  .
+        - id_n
+
+It should be clear that a delete operation on the ``major_axis`` will be fairly quick, as one chunk is removed, then the following data moved. On the other hand a delete operation on the ``minor_axis`` will be very expensive. In this case it would almost certainly be faster to rewrite the table using a ``where`` that selects all but the missing data.
 
 .. ipython:: python
 
@@ -1205,7 +1221,6 @@ Performance
      - ``AppendableTable`` which is a similiar table to past versions (this is the default).
      - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
 
-   - To delete a lot of data, it is sometimes better to erase the table and rewrite it. ``PyTables`` tends to increase the file size with deletions
    - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
      use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
    - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
@@ -1226,7 +1241,6 @@ These, by default, index the three axes ``items, major_axis, minor_axis``. On an
 
 .. ipython:: python
 
-   from pandas.io.pytables import Term
    store.append('p4d2', p4d, axes = ['labels','major_axis','minor_axis'])
    store
    store.select('p4d2', [ Term('labels=l1'), Term('items=Item1'), Term('minor_axis=A_big_strings') ])

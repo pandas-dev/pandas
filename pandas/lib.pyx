@@ -754,7 +754,7 @@ def create_hdf_rows_2d(ndarray indexer0, ndarray[np.uint8_t, ndim=1] mask,
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
-        unsigned int i, b, n_indexer0, n_blocks, tup_size
+        int i, b, n_indexer0, n_blocks, tup_size
         ndarray v
         list l
         object tup, val
@@ -789,7 +789,7 @@ def create_hdf_rows_3d(ndarray indexer0, ndarray indexer1,
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
-        unsigned int i, j, b, n_indexer0, n_indexer1, n_blocks, tup_size
+        int i, j, b, n_indexer0, n_indexer1, n_blocks, tup_size
         ndarray v
         list l
         object tup, val
@@ -832,7 +832,7 @@ def create_hdf_rows_4d(ndarray indexer0, ndarray indexer1, ndarray indexer2,
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
-        unsigned int i, j, k, b, n_indexer0, n_indexer1, n_indexer2, n_blocks, tup_size
+        int i, j, k, b, n_indexer0, n_indexer1, n_indexer2, n_blocks, tup_size
         ndarray v
         list l
         object tup, val
@@ -871,7 +871,7 @@ def create_hdf_rows_4d(ndarray indexer0, ndarray indexer1, ndarray indexer2,
                         PyTuple_SET_ITEM(tup, b+3, v)
                         Py_INCREF(v)
 
-                l.append(tup)
+                    l.append(tup)
 
     return l
 

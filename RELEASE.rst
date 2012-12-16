@@ -102,10 +102,8 @@ pandas 0.10.0
     using the new option ``mode.use_inf_as_null`` (GH2050_, GH1919_)
   - ``pandas.merge`` will now default to ``sort=False``. For many use cases
     sorting the join keys is not necessary, and doing it by default is wasteful
-  - ``names`` handling in file parsing: if explicit column `names` passed,
-    `header` argument will be respected. If there is an existing header column,
-    this can rename the columns. To fix legacy code, put ``header=None`` when
-    passing ``names``
+  - Specify ``header=0`` explicitly to replace existing column names in file in
+    read_* functions.
   - Default column names for header-less parsed files (yielded by read_csv,
     etc.) are now the integers 0, 1, .... A new argument `prefix` has been
     added; to get the v0.9.x behavior specify ``prefix='X'`` (GH2034_). This API
