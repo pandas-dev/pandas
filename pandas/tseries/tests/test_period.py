@@ -512,8 +512,8 @@ class TestFreqConversion(unittest.TestCase):
         ival_ANOV_to_D_start = Period(freq='D', year=2006, month=12, day=1)
 
         assert_equal(ival_A.asfreq('Q', 'S'), ival_A_to_Q_start)
-        assert_equal(ival_A.asfreq('Q', 'e'), ival_A_to_Q_end)
-        assert_equal(ival_A.asfreq('M', 's'), ival_A_to_M_start)
+        assert_equal(ival_A.asfreq('Q', 'E'), ival_A_to_Q_end)
+        assert_equal(ival_A.asfreq('M', 'S'), ival_A_to_M_start)
         assert_equal(ival_A.asfreq('M', 'E'), ival_A_to_M_end)
         assert_equal(ival_A.asfreq('WK', 'S'), ival_A_to_W_start)
         assert_equal(ival_A.asfreq('WK', 'E'), ival_A_to_W_end)

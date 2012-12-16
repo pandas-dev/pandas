@@ -46,7 +46,7 @@ void assert_conversion_factors()
 
 void assert_apply_conversion_factor(npy_int64 ordinal, int from_index, int to_index, npy_int64 expected)
 {
-    npy_int64 actual = apply_conversion_factor(ordinal, from_index, to_index);
+    npy_int64 actual = convert_daytime(ordinal, from_index, to_index);
     //printf("%llu vs %llu\n", actual, expected);
     assert(actual == expected);
 }
@@ -69,15 +69,19 @@ int main(int argc, char** argv)
     npy_int64 reference = get_python_ordinal(0, FR_DAY);
     printf("reference ordinal: %d\n", reference);
     npy_int64 one_year = get_python_ordinal(1, FR_ANN);
-    printf("get_python_ordinal: %d\n", one_year - reference);
-    npy_int64 two_years = get_python_ordinal(2, FR_ANN);
-    printf("get_python_ordinal: %d\n", two_years - reference);
+    printf("get_python_ordinal     1 year: %d\n", one_year - reference);
+    npy_int64 four_quarts = get_python_ordinal(4, FR_QTR);
+    printf("get_python_ordinal 4 quarters: %d\n", four_quarts - reference);
     npy_int64 twelve_months = get_python_ordinal(12, FR_MTH);
-    printf("get_python_ordinal: %d\n", twelve_months - reference);
-    npy_int64 fourtytwo_weeks = get_python_ordinal(52, FR_WK);
-    printf("get_python_ordinal: %d\n", fourtytwo_weeks - reference);
+    printf("get_python_ordinal  12 months: %d\n", twelve_months - reference);
+    npy_int64 fiftytwo_weeks = get_python_ordinal(52, FR_WK);
+    printf("get_python_ordinal: %d\n", fiftytwo_weeks - reference);
     npy_int64 threehundredsixtyfive_days = get_python_ordinal(365, FR_DAY);
     printf("get_python_ordinal: %d\n", threehundredsixtyfive_days - reference);
+    npy_int64 year_hours = get_python_ordinal(365 * 24, FR_HR);
+    printf("get_python_ordinal hour offset: %d\n", year_hours - reference);
+    npy_int64 year_more_hours = get_python_ordinal(365 * 24 + 1, FR_HR);
+    printf("get_python_ordinal hours: %d\n", year_more_hours - reference);
 
     assert_apply_conversion_factor(24, FR_HR, FR_DAY, 1);
     assert_apply_conversion_factor(1, FR_DAY, FR_HR, 24);

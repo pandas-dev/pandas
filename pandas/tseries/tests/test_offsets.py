@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from pandas.core.datetools import (
-    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
+    bday, Day, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
     BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Milli, Micro, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,

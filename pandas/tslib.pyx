@@ -1800,7 +1800,7 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     """
     cdef:
         int64_t retval
-    
+   
     if end:
         retval = asfreq(period_ordinal, freq1, freq2, END)
     else:
@@ -1893,6 +1893,12 @@ def period_format(int64_t value, int freq, object fmt=None):
             fmt = b'%Y-%m-%d %H:%M'
         elif freq_group == 9000: # SEC
             fmt = b'%Y-%m-%d %H:%M:%S'
+        elif freq_group == 10000: # MILLISEC
+            fmt = b'%Y-%m-%d %H:%M:%S.xxx'
+        elif freq_group == 11000: # MICROSEC
+            fmt = b'%Y-%m-%d %H:%M:%S.xxxxxx'
+        elif freq_group == 12000: # NANOSEC
+            fmt = b'%Y-%m-%d %H:%M:%S.xxxxxxxxx'
         else:
             raise ValueError('Unknown freq: %d' % freq)
 
