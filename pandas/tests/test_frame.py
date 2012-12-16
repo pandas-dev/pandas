@@ -2668,6 +2668,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame([1, 2, 3])
         self.assertRaises(ValueError, df.to_json, orient="garbage")
 
+    def test_array_index_asobject(self):
+        df = DataFrame([["one", "two", "three"], ["four", "five", "six"]], index=pan.date_range("2012-01-01", "2012-01-02"))
+        self.assert_(df.to_records()['index'][0] == df.index[0])
+
+
     def test_from_records_to_records(self):
         # from numpy documentation
         arr = np.zeros((2,),dtype=('i4,f4,a10'))
