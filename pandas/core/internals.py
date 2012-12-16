@@ -27,11 +27,7 @@ class Block(object):
         if values.ndim != ndim:
             raise AssertionError('Wrong number of dimensions')
 
-        nitems = len(items)
-        nvalues = len(values)
-        if nitems != nvalues:
-            import pdb
-            pdb.set_trace()
+        if len(items) != len(values):
             raise AssertionError('Wrong number of items passed (%d vs %d)'
                                  % (len(items), len(values)))
 
