@@ -371,8 +371,13 @@ class TestResample(unittest.TestCase):
                       major_axis=rng,
                       minor_axis=['a', 'b', 'c', 'd', 'e'])
 
-        result = panel.resample('M', how=lambda x: x.mean(), axis=1)
+        result = panel.resample('M', how=lambda x: x.mean(1), axis=1)
         expected = panel.resample('M', how='mean', axis=1)
+        tm.assert_panel_equal(result, expected)
+
+        panel = panel.swapaxes(1, 2)
+        result = panel.resample('M', how=lambda x: x.mean(2), axis=2)
+        expected = panel.resample('M', how='mean', axis=2)
         tm.assert_panel_equal(result, expected)
 
     def test_resample_anchored_ticks(self):
@@ -1013,7 +1018,24 @@ class TestTimeGrouper(unittest.TestCase):
         result = grouped.apply(f)
         self.assertTrue(result.index.equals(df.index))
 
+    def test_panel_aggregation(self):
+        ind = pd.date_range('1/1/2000', periods=100)
+        data = np.random.randn(2,len(ind),4)
+        wp = pd.Panel(data, items=['Item1', 'Item2'], major_axis=ind,
+                      minor_axis=['A', 'B', 'C', 'D'])
+
+        tg = TimeGrouper('M', axis=1)
+        grouper = tg.get_grouper(wp)
+        bingrouped = wp.groupby(grouper)
+        binagg = bingrouped.mean()
+
+        def f(x):
+            assert(isinstance(x, Panel))
+            return x.mean(1)
+        result = bingrouped.agg(f)
+        tm.assert_panel_equal(result, binagg)
+
+
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',
-                         '--with-timer'],
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

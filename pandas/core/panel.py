@@ -283,8 +283,9 @@ class Panel(NDFrame):
                 data[k] = self._constructor_sliced(v)
 
         # extract axis for remaining axes & create the slicemap
-        raxes      = [ self._extract_axis(self, data, axis=i) if a is None else a for i, a in enumerate(axes) ]
-        raxes_sm   = self._extract_axes_for_slice(self, raxes)
+        raxes = [self._extract_axis(self, data, axis=i)
+                 if a is None else a for i, a in enumerate(axes)]
+        raxes_sm = self._extract_axes_for_slice(self, raxes)
 
         # shallow copy
         arrays = []
