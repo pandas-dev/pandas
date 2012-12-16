@@ -477,7 +477,6 @@ class TestFreqConversion(unittest.TestCase):
 
         ival_A = Period(freq='A', year=2007)
 
-	print "eins"
         ival_AJAN = Period(freq="A-JAN", year=2007)
         ival_AJUN = Period(freq="A-JUN", year=2007)
         ival_ANOV = Period(freq="A-NOV", year=2007)
