@@ -959,10 +959,9 @@ class IndexCol(object):
         new_self.get_attr()
         return new_self
 
-    def convert(self, sel):
+    def convert(self, values):
         """ set the values from this selection """
-        self.values = Index(_maybe_convert(sel.values[self.cname], self.kind))
-        self.factor = Categorical.from_array(self.values)
+        self.values = Index(_maybe_convert(values[self.cname], self.kind))
    
     @property
     def attrs(self):
@@ -1100,9 +1099,9 @@ class DataCol(IndexCol):
                 raise Exception("appended items dtype do not match existing items dtype"
                                 " in table!")
 
-    def convert(self, sel):
+    def convert(self, values):
         """ set the data from this selection (and convert to the correct dtype if we can) """
-        self.set_data(sel.values[self.cname])
+        self.set_data(values[self.cname])
 
         # convert to the correct dtype
         if self.dtype is not None:
@@ -1350,11 +1349,11 @@ class Table(object):
 
         # create the selection
         self.selection = Selection(self, where)
-        self.selection.select()
+        values = self.selection.select()
 
         # convert the data
         for a in self.axes:
-            a.convert(self.selection)
+            a.convert(values)
 
         return True
 
@@ -1573,7 +1572,7 @@ class LegacyTable(Table):
         
         if not self.read_axes(where): return None
 
-        factors  = [ a.factor for a in self.index_axes ]
+        factors  = [ Categorical.from_array(a.values) for a in self.index_axes ]
         levels   = [ f.levels for f in factors ]
         N        = [ len(f.levels) for f in factors ]
         labels   = [ f.labels for f in factors ]
@@ -1749,10 +1748,10 @@ class AppendableTable(LegacyTable):
         # create the selection
         table = self.table
         self.selection = Selection(self, where)
-        self.selection.select_coords()
+        values = self.selection.select_coords()
 
         # delete the rows in reverse order
-        l  = Series(self.selection.values).order()
+        l  = Series(values).order()
         ln = len(l)
 
         if ln:
@@ -2239,7 +2238,6 @@ class Selection(object):
     def __init__(self, table, where=None):
         self.table      = table
         self.where      = where
-        self.values     = None
         self.condition  = None
         self.filter     = None
         self.terms      = self.generate(where)
@@ -2273,15 +2271,15 @@ class Selection(object):
         generate the selection
         """
         if self.condition is not None:
-            self.values = self.table.table.readWhere(self.condition)
+            return self.table.table.readWhere(self.condition)
         else:
-            self.values = self.table.table.read()
+            return self.table.table.read()
 
     def select_coords(self):
         """
         generate the selection
         """
-        self.values = self.table.table.getWhereList(self.condition, sort = True)
+        return self.table.table.getWhereList(self.condition, sort = True)
 
 
 def _get_index_factory(klass):
