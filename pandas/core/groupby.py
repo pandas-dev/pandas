@@ -942,16 +942,26 @@ class BinGrouper(Grouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if axis == 1:
-            raise NotImplementedError
+        if axis == 0:
+            start = 0
+            for edge, label in izip(self.bins, self.binlabels):
+                yield label, data[start:edge]
+                start = edge
 
-        start = 0
-        for edge, label in izip(self.bins, self.binlabels):
-            yield label, data[start:edge]
-            start = edge
+            if edge < len(data):
+                yield self.binlabels[-1], data[edge:]
+        else:
+            start = 0
+            for edge, label in izip(self.bins, self.binlabels):
+                inds = range(start, edge)
+                yield label, data.take(inds, axis=axis)
+                start = edge
 
-        if edge < len(data):
-            yield self.binlabels[-1], data[edge:]
+            n = len(data.axes[axis])
+            if edge < n:
+                inds = range(edge, n)
+                yield self.binlabels[-1], data.take(inds, axis=axis)
+
 
     def apply(self, f, data, axis=0, keep_internal=False):
         result_keys = []
@@ -1652,8 +1662,9 @@ class NDFrameGroupBy(GroupBy):
         result = {}
         if axis != obj._het_axis:
             try:
-                for name in self.indices:
-                    data = self.get_group(name, obj=obj)
+                for name, data in self:
+                    # for name in self.indices:
+                    #     data = self.get_group(name, obj=obj)
                     result[name] = func(data, *args, **kwargs)
             except Exception:
                 return self._aggregate_item_by_item(func, *args, **kwargs)
@@ -1993,13 +2004,22 @@ class PanelGroupBy(NDFrameGroupBy):
         return self._aggregate_generic(arg, *args, **kwargs)
 
     def _wrap_generic_output(self, result, obj):
-        new_axes = list(obj.axes)
-        new_axes[self.axis] = self.grouper.result_index
+        if self.axis == 0:
+            new_axes = list(obj.axes)
+            new_axes[0] = self.grouper.result_index
+        elif self.axis == 1:
+            x, y, z = obj.axes
+            new_axes = [self.grouper.result_index, z, x]
+        else:
+            x, y, z = obj.axes
+            new_axes = [self.grouper.result_index, y, x]
 
         result = Panel._from_axes(result, new_axes)
 
-        if self.axis > 0:
-            result = result.swapaxes(0, self.axis)
+        if self.axis == 1:
+            result = result.swapaxes(0, 1).swapaxes(0, 2)
+        elif self.axis == 2:
+            result = result.swapaxes(0, 2)
 
         return result
 
