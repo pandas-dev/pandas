@@ -1066,8 +1066,11 @@ class DataFrame(NDFrame):
         y : recarray
         """
         if index:
-            arrays = [self.index.values] + [self[c].values
-                                            for c in self.columns]
+            if (com.is_datetime64_dtype(self.index)):
+                arrays = [self.index.asobject.values] + [self[c].values for c in self.columns]
+            else:
+                arrays = [self.index.values] + [self[c].values for c in self.columns]
+
             count = 0
             index_names = self.index.names
             if isinstance(self.index, MultiIndex):
