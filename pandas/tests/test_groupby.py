@@ -1265,6 +1265,18 @@ class TestGroupBy(unittest.TestCase):
         for key, group in grouped:
             assert_frame_equal(result.ix[key], f(group))
 
+    def test_apply_chunk_view(self):
+        # Low level tinkering could be unsafe, make sure not
+        df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                        'value': range(9)})
+
+        # return view
+        f = lambda x: x[:2]
+
+        result = df.groupby('key', group_keys=False).apply(f)
+        expected = df.take([0, 1, 3, 4, 6, 7])
+        assert_frame_equal(result, expected)
+
     def test_groupby_series_indexed_differently(self):
         s1 = Series([5.0,-9.0,4.0,100.,-5.,55.,6.7],
                     index=Index(['a','b','c','d','e','f','g']))
