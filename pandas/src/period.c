@@ -1040,7 +1040,6 @@ static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
         double abstime,
         int calendar)
 {
-
     /* Bounds check */
     Py_AssertWithArg(abstime >= 0.0 && abstime <= SECONDS_PER_DAY,
             PyExc_ValueError,
@@ -1361,6 +1360,10 @@ int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo)
     if (abstime < 0) {
         abstime += 86400;
         absdate -= 1;
+    }
+    if (abstime > 86400) {
+        abstime -= 86400;
+	absdate += 1;
     }
 
     if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate,
