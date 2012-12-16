@@ -233,14 +233,10 @@ class DataFrameFormatter(TableFormatter):
         else:
             self.columns = frame.columns
 
-    def _to_str_columns(self, force_unicode=None):
+    def _to_str_columns(self):
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
-        import warnings
-        if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no effect",
-                          FutureWarning)
 
         # may include levels names also
         str_index = self._get_formatted_index()

@@ -28,7 +28,8 @@ class Block(object):
             raise AssertionError('Wrong number of dimensions')
 
         if len(items) != len(values):
-            raise AssertionError('Wrong number of items passed')
+            raise AssertionError('Wrong number of items passed (%d vs %d)'
+                                 % (len(items), len(values)))
 
         self._ref_locs = None
         self.values = values

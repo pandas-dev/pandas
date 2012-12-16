@@ -1156,7 +1156,7 @@ class Index(np.ndarray):
         -------
         new_index : Index
         """
-        arr = np.delete(np.asarray(self), loc)
+        arr = np.delete(self.values, loc)
         return Index(arr)
 
     def insert(self, loc, item):

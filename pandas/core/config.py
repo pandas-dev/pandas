@@ -154,7 +154,6 @@ class DictWrapper(object):
         # can you can't overwrite subtrees
         if key in self.d and not isinstance(self.d[key],dict):
             _set_option(prefix,val)
-            self.d[key]=val
         else:
             raise KeyError("You can only set the value of existing options")
 
