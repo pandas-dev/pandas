@@ -1,0 +1,106 @@
+#
+# Pandas cheatsheet 
+#    - created during the PyData Workshop-Sprint 2012
+#    - Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
+#
+
+Creating Pandas Objects  S/D/P/G 
+
+Series(data,index=index)    S   
+DataFrame(data,index=index,columns=column)  D   
+Panel(data,items=items,major_axis=index,minor_axis=column   P   
+
+Deleting    
+
+del df  S/D/P                                    # deletes pandas object
+del df[col] D                                    # deletes column
+
+
+Indexing/Selection  
+
+df[col] S/D/P                                    # Select column
+df.xs(label) or df.ix[label]    S/D/P            # Select row by label
+df.ix[loc]  S/D/P                                # Select row by location (int)
+df[5:10]    S/D/P                                # Slice rows
+df[bool_vec]    S/D/P                            # Select rows by boolean vector
+df.reindex(columns=col1,col2...)    S/D          # Moves columns around
+
+Finding Data    
+
+df.[col].str.replace(find.replace)  S/D          # Finding string and replacing 
+
+Viewing Data    
+
+df.head(x)   S/D                                 # See the top x in the df, default 5
+df.tail(x)  S/D                                  # See the bottom x in the df, default 5
+df.index    S/D                                  # gets the index of the series/dataframe
+df.values   S/D                                  # gets the value of the series/dataframe
+s.value_counts()    S                            # Gets unique items and makes summary table
+
+Indexing and selecting data                      
+
+series[label]                                    # selects data element
+df[col] == df.col                                # selects series
+panel[item]                                      # selects dataFrame 
+ 
+df.get_value(row, col)                           #  
+df.set_value(row, col, valueToSet)               # 
+
+Accessing column attribute
+  df.attribute1
+In-place transformation
+  df[['att1', 'att2']] = df[['att2', 'att1']]
+
+Accessing row with xs function                   # 
+df.xs(row)                                       #
+panel.major_xs(row), panel.minor_xs(row)         # 
+ 
+Slicing (returns subset of data)
+s[n] == s.get(n)                                 # nth index
+s[a:b]                                           # values from [a,b]
+s[::n]                   every n values (e.g. s[::2] -> every other value)
+s[::-1]                   backwards
+ 
+s.where(query) -> returns same shape as original data with NaN fills
+s.mask(condition) -> Nan for values that meet condition
+
+df.drop_duplicates([col1,col2,...])             # delete duplicates using col as identifers
+ 
+Getting/Setting with Advanced indexing (ix function)
+
+df.ix[row, col] -> value at (row, col) of df
+df.ix[label1:label2] -> series from label1 to label2
+ 
+Set Operations
+a | b, a & b, a - b
+
+
+Concatenating and joining objects
+
+concat(objs)                                     # Concatenates a list or dict of homogeneously-typed objects
+
+s1.append(s2)                                    # Append series s2 to s1
+df1.append(df2)                                  # Append dataframe df2 to df1 - indexes must be disjoint but the columns do not need to be.
+
+merge(left, right, how='left', on=None, left_on=None, right_on=None, left_index=False, right_index=False, sort=True)
+
+left.join(right, on=keys)    # left join of dataframe left and right using keys found in left (defaults to row labels)
+left.combine_first(right)    # fill in missing values in left using right
+
+df.pivot(index='date', columns='variable', values='value') # 
+
+
+
+date_range('1/1/2011', periods=72, freq='H')     # define a date range 
+ts.asfreq('45Min', method='pad')                 # changes frequency of ts to 45 minutes and fills gaps
+Series(randn(len(rng)), index=rng)               # creates a series with index as a DateTimeIndex
+read_csv(path, index_col = ['Date', 'Time'])     # reads a csv with date time data
+read_csv(path, parse_dates={'ts': ['Date', 'Time']}, index_col='ts') parses dates and times and makes a DateTimeIndex
+ts.index                                         # gets the DateTimeIndex for a time series DataFrame
+ 
+rs.ix['2011-11-01 08:00:00':'2011-11-01 10:00:00']              # returns data for nearest time matching that interval
+ts['1/31/2011']                                                 # gets data for a specific entry
+ts[datetime(2011, 12, 25):]                                     # gets data for a date time for all columns
+ts['10/31/2011':'12/31/2011']                                   # gets data for all data between two dates
+rs.between_time('08:00', '10:00')                               # extracts data for every day between start and end hours
+PeriodIndex([Period('2012-01'), Period('2012-02'), Period('2012-03')]) #defines a period index instead of DateTimeIndex
