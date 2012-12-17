@@ -28,6 +28,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal)
 from pandas.util import py3compat
+from pandas.util.compat import OrderedDict
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -1333,6 +1334,12 @@ class CheckIndexing(object):
         xp = df.ix[:, [0]]
         assert_frame_equal(rs, xp)
 
+        # #2259
+        df = DataFrame([[1,2,3],[4,5,6]], columns=[1,1,2])
+        result = df.icol([0])
+        expected = df.take([0], axis=1)
+        assert_frame_equal(result, expected)
+
     def test_icol_sparse_propegate_fill_value(self):
         from pandas.sparse.api import SparseDataFrame
         df=SparseDataFrame({'A' : [999,1]},default_fill_value=999)
@@ -1799,7 +1806,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(self.mixed_frame._is_mixed_type)
 
     def test_constructor_ordereddict(self):
-        from pandas.util.compat import OrderedDict
         import random
         nitems = 100
         nums = range(nitems)
@@ -2196,12 +2202,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df['str'].dtype == np.object_)
 
     def test_constructor_list_of_dicts(self):
-        data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
-                {'a': 1.5, 'b': 3, 'd':6},
-                {'a': 1.5, 'd':6},
-                {},
-                {'a': 1.5, 'b': 3, 'c':4},
-                {'b': 3, 'c':4, 'd':6}]
+        data = [OrderedDict([['a', 1.5], ['b', 3], ['c',4], ['d',6]]),
+                OrderedDict([['a', 1.5], ['b', 3], ['d',6]]),
+                OrderedDict([['a', 1.5],[ 'd',6]]),
+                OrderedDict(),
+                OrderedDict([['a', 1.5], ['b', 3],[ 'c',4]]),
+                OrderedDict([['b', 3], ['c',4], ['d',6]])]
 
         result = DataFrame(data)
         expected = DataFrame.from_dict(dict(zip(range(len(data)), data)),
@@ -2213,9 +2219,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_constructor_list_of_series(self):
-        data = [{'a': 1.5, 'b': 3.0, 'c':4.0},
-                {'a': 1.5, 'b': 3.0, 'c':6.0}]
-        sdict = dict(zip(['x', 'y'], data))
+        data = [OrderedDict([['a', 1.5],[ 'b', 3.0],[ 'c',4.0]]),
+                OrderedDict([['a', 1.5], ['b', 3.0],[ 'c',6.0]])]
+        sdict = OrderedDict(zip(['x', 'y'], data))
         idx = Index(['a', 'b', 'c'])
 
         # all named
@@ -2230,21 +2236,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                  Series([1.5, 3, 6], idx)]
         result = DataFrame(data2)
 
-        sdict = dict(zip(['x', 'Unnamed 0'], data))
+        sdict = OrderedDict(zip(['x', 'Unnamed 0'], data))
         expected = DataFrame.from_dict(sdict, orient='index')
         assert_frame_equal(result.sort_index(), expected)
 
         # none named
-        data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
-                {'a': 1.5, 'b': 3, 'd':6},
-                {'a': 1.5, 'd':6},
-                {},
-                {'a': 1.5, 'b': 3, 'c':4},
-                {'b': 3, 'c':4, 'd':6}]
+        data = [OrderedDict([['a', 1.5], ['b', 3], ['c',4], ['d',6]]),
+                OrderedDict([['a', 1.5], ['b', 3], ['d',6]]),
+                OrderedDict([['a', 1.5],[ 'd',6]]),
+                OrderedDict(),
+                OrderedDict([['a', 1.5], ['b', 3],[ 'c',4]]),
+                OrderedDict([['b', 3], ['c',4], ['d',6]])]
         data = [Series(d) for d in data]
 
         result = DataFrame(data)
-        sdict = dict(zip(range(len(data)), data))
+        sdict = OrderedDict(zip(range(len(data)), data))
         expected = DataFrame.from_dict(sdict, orient='index')
         assert_frame_equal(result, expected.reindex(result.index))
 
@@ -2255,9 +2261,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(index=[0])
         assert_frame_equal(result, expected)
 
-        data = [{'a': 1.5, 'b': 3.0, 'c':4.0},
-                {'a': 1.5, 'b': 3.0, 'c':6.0}]
-        sdict = dict(zip(range(len(data)), data))
+        data = [OrderedDict([['a', 1.5],[ 'b', 3.0],[ 'c',4.0]]),
+                OrderedDict([['a', 1.5], ['b', 3.0],[ 'c',6.0]])]
+        sdict = OrderedDict(zip(range(len(data)), data))
+
         idx = Index(['a', 'b', 'c'])
         data2 = [Series([1.5, 3, 4], idx, dtype='O'),
                  Series([1.5, 3, 6], idx)]
@@ -2321,6 +2328,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = DataFrame.from_dict(data_dict, orient='index')
         expected = self.mixed_frame.sort_index()
         assert_frame_equal(recons, expected)
+
+        # dict of sequence
+        a = {'hi': [32, 3, 3],
+             'there': [3, 5, 3]}
+        rs = DataFrame.from_dict(a, orient='index')
+        xp = DataFrame.from_dict(a).T.reindex(a.keys())
+        assert_frame_equal(rs, xp)
 
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')
@@ -3961,6 +3975,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame.info(verbose=False)
         sys.stdout = sys.__stdout__
 
+    def test_info_wide(self):
+        from pandas import set_option, reset_option
+        io = StringIO()
+        df = DataFrame(np.random.randn(5, 101))
+        df.info(buf=io)
+        rs = io.getvalue()
+        self.assert_(len(rs.splitlines()) == 4)
+
+        io = StringIO()
+        df.info(buf=io, max_cols=101)
+        rs = io.getvalue()
+        self.assert_(len(rs.splitlines()) > 100)
+        xp = rs
+
+        set_option('display.max_info_columns', 101)
+        io = StringIO()
+        df.info(buf=io)
+        self.assert_(rs == xp)
+        reset_option('display.max_info_columns')
+
+
     def test_info_duplicate_columns(self):
         io = StringIO()
 
@@ -5497,6 +5532,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp = self.tsframe - self.tsframe.shift(-1)
         assert_frame_equal(rs, xp)
 
+    def test_diff_float_n(self):
+        rs = self.tsframe.diff(1.)
+        xp = self.tsframe.diff(1)
+        assert_frame_equal(rs, xp)
+
     def test_pct_change(self):
         rs = self.tsframe.pct_change(fill_method=None)
         assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)
@@ -6186,6 +6226,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         comb = self.frame.combine_first(DataFrame(index=["faz","boo"]))
         self.assertTrue("faz" in comb.index)
+
+        # #2525
+        df = DataFrame({'a': [1]}, index=[datetime(2012,1,1)])
+        df2 = DataFrame({}, columns=['b'])
+        result = df.combine_first(df2)
+        self.assertTrue('b' in result)
 
     def test_combine_first_mixed_bug(self):
         idx = Index(['a','b','c','e'])

@@ -54,7 +54,6 @@ parser.add_argument('-o', '--output',
                     metavar="<file>",
                     dest='log_file',
                     help='path of file in which to save the report (default: vb_suite.log).')
-args = parser.parse_args()
 
 def get_results_df(db,rev):
     from pandas import DataFrame
@@ -207,6 +206,7 @@ def _parse_commit_log(repo_path):
 
 
 if __name__ == '__main__':
+    args = parser.parse_args()
     if not args.auto and not args.base_commit and not args.target_commit:
         parser.print_help()
     else:

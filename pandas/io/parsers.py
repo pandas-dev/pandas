@@ -37,12 +37,19 @@ filepath_or_buffer : string or file handle / StringIO. The string could be
     is expected. For instance, a local file could be
     file ://localhost/path/to/table.csv
 %s
+lineterminator : string (length 1), default None
+    Character to break file into lines. Only valid with C parser
+quotechar : string
+quoting : string
+skipinitialspace : boolean, default False
+    Skip spaces after delimiter
+escapechar : string
 compression : {'gzip', 'bz2', None}, default None
     For on-the-fly decompression of on-disk data
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
-header : int, default 0
+header : int, default 0 if names parameter not specified, otherwise None
     Row to use for the column labels of the parsed DataFrame. Specify None if
     there is no header row.
 skiprows : list-like or integer
@@ -107,16 +114,6 @@ encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
-
-**Dialect options**
-
-lineterminator : string (length 1), default None
-    Character to break file into lines. Only valid with C parser
-quotechar : string
-quoting : string
-skipinitialspace : boolean, default False
-    Skip spaces after delimiter
-escapechar : string
 
 Returns
 -------
@@ -219,7 +216,7 @@ _parser_defaults = {
     'skipinitialspace': False,
     'lineterminator': None,
 
-    'header': 0,
+    'header': 'infer',
     'index_col': None,
     'names': None,
     'prefix': None,
@@ -245,7 +242,8 @@ _parser_defaults = {
     'chunksize': None,
     'verbose': False,
     'encoding': None,
-    'squeeze': False
+    'squeeze': False,
+    'compression': None
 }
 
 
@@ -263,7 +261,6 @@ _c_parser_defaults = {
     'factorize': True,
     'dtype': None,
     'usecols': None,
-    'compression': None,
     'decimal': b'.'
 }
 
@@ -290,7 +287,7 @@ def _make_parser_function(name, sep=','):
                  skipinitialspace=False,
                  lineterminator=None,
 
-                 header=0,
+                 header='infer',
                  index_col=None,
                  names=None,
                  prefix=None,
@@ -480,6 +477,9 @@ class TextFileReader(object):
             kwds['skipinitialspace'] = dialect.skipinitialspace
             kwds['quotechar'] = dialect.quotechar
             kwds['quoting'] = dialect.quoting
+
+        if kwds.get('header', 'infer') == 'infer':
+            kwds['header'] = 0 if kwds.get('names') is None else None
 
         self.orig_options = kwds
 
@@ -1102,6 +1102,7 @@ class PythonParser(ParserBase):
 
         self.header = kwds['header']
         self.encoding = kwds['encoding']
+        self.compression = kwds['compression']
         self.skiprows = kwds['skiprows']
 
         self.skip_footer = kwds['skip_footer']
@@ -1127,13 +1128,8 @@ class PythonParser(ParserBase):
 
 
         if isinstance(f, basestring):
-            f = com._get_handle(f, 'r', encoding=self.encoding)
-
-            # if self.encoding is None:
-            #     # universal newline mode
-            #     f = com._get_handle(f, 'U')
-            # else:
-            #     f = com._get_handle(f, 'rb', encoding=self.encoding)
+            f = com._get_handle(f, 'r', encoding=self.encoding,
+                                compression=self.compression)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -1207,7 +1203,18 @@ class PythonParser(ParserBase):
                                     strict=True)
 
         else:
-            reader = (re.split(sep, line.strip()) for line in f)
+            def _read():
+                line = next(f)
+                pat = re.compile(sep)
+                if (py3compat.PY3 and isinstance(line, bytes)):
+                    yield pat.split(line.decode('utf-8').strip())
+                    for line in f:
+                        yield pat.split(line.decode('utf-8').strip())
+                else:
+                    yield pat.split(line.strip())
+                    for line in f:
+                        yield pat.split(line.strip())
+            reader = _read()
 
         self.data = reader
 

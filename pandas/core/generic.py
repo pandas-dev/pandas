@@ -315,7 +315,7 @@ class PandasObject(object):
         axis = self._get_axis(axis)
 
         if len(axis) > 0:
-            new_axis = axis[np.asarray([crit(label) for label in axis])]
+            new_axis = axis[np.asarray([bool(crit(label)) for label in axis])]
         else:
             new_axis = axis
 

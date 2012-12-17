@@ -138,6 +138,38 @@ def _reset_option(pat):
     for k in keys:
         _set_option(k, _registered_options[k].defval)
 
+class DictWrapper(object):
+    """ provide attribute-style access to a nested dict
+    """
+    def __init__(self,d,prefix=""):
+        object.__setattr__(self,"d",d)
+        object.__setattr__(self,"prefix",prefix)
+
+    def __setattr__(self,key,val):
+        prefix = object.__getattribute__(self,"prefix")
+        if prefix:
+            prefix += "."
+        prefix += key
+        # you can't set new keys
+        # can you can't overwrite subtrees
+        if key in self.d and not isinstance(self.d[key],dict):
+            _set_option(prefix,val)
+        else:
+            raise KeyError("You can only set the value of existing options")
+
+    def __getattr__(self,key):
+        prefix = object.__getattribute__(self,"prefix")
+        if prefix:
+            prefix += "."
+        prefix += key
+        v=object.__getattribute__(self,"d")[key]
+        if isinstance(v,dict):
+            return DictWrapper(v,prefix)
+        else:
+            return _get_option(prefix)
+
+    def __dir__(self):
+        return self.d.keys()
 
 # For user convenience,  we'd like to have the available options described
 # in the docstring. For dev convenience we'd like to generate the docstrings
@@ -266,7 +298,7 @@ get_option = CallableDyanmicDoc(_get_option, _get_option_tmpl)
 set_option = CallableDyanmicDoc(_set_option, _set_option_tmpl)
 reset_option = CallableDyanmicDoc(_reset_option, _reset_option_tmpl)
 describe_option = CallableDyanmicDoc(_describe_option, _describe_option_tmpl)
-
+options = DictWrapper(_global_config)
 
 ######################################################
 # Functions for use by pandas developers, in addition to User - api
@@ -316,7 +348,7 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     ValueError if `validator` is specified and `defval` is not a valid value.
 
     """
-
+    import tokenize, keyword
     key = key.lower()
 
     if key in _registered_options:
@@ -330,6 +362,13 @@ def register_option(key, defval, doc='', validator=None, cb=None):
 
     # walk the nested dict, creating dicts as needed along the path
     path = key.split('.')
+
+    for k in path:
+        if not bool(re.match('^'+tokenize.Name+'$', k)):
+            raise ValueError("%s is not a valid identifier" % k)
+        if keyword.iskeyword(key):
+            raise ValueError("%s is a python keyword" % k)
+
     cursor = _global_config
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
@@ -342,6 +381,7 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     if not isinstance(cursor, dict):
         raise KeyError("Path prefix to option '%s' is already an option"
                        % '.'.join(path[:-1]))
+
 
     cursor[path[-1]] = defval  # initialize
 

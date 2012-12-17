@@ -22,7 +22,6 @@ import pandas.util.testing as tm
 
 bday = BDay()
 
-
 def _skip_if_no_pytz():
     try:
         import pytz
@@ -372,8 +371,13 @@ class TestResample(unittest.TestCase):
                       major_axis=rng,
                       minor_axis=['a', 'b', 'c', 'd', 'e'])
 
-        result = panel.resample('M', how=lambda x: x.mean(), axis=1)
+        result = panel.resample('M', how=lambda x: x.mean(1), axis=1)
         expected = panel.resample('M', how='mean', axis=1)
+        tm.assert_panel_equal(result, expected)
+
+        panel = panel.swapaxes(1, 2)
+        result = panel.resample('M', how=lambda x: x.mean(2), axis=2)
+        expected = panel.resample('M', how='mean', axis=2)
         tm.assert_panel_equal(result, expected)
 
     def test_resample_anchored_ticks(self):
@@ -450,7 +454,7 @@ class TestResample(unittest.TestCase):
     def test_resample_anchored_intraday(self):
         # #1471, #1458
 
-        rng = date_range('1/1/2012', '4/1/2012', freq='10min')
+        rng = date_range('1/1/2012', '4/1/2012', freq='100min')
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('M')
@@ -463,7 +467,7 @@ class TestResample(unittest.TestCase):
 
         tm.assert_frame_equal(result, exp)
 
-        rng = date_range('1/1/2012', '4/1/2013', freq='10min')
+        rng = date_range('1/1/2012', '4/1/2012', freq='100min')
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('Q')
@@ -590,7 +594,55 @@ from pandas.util.compat import product
 
 
 class TestResamplePeriodIndex(unittest.TestCase):
+
     _multiprocess_can_split_ = True
+
+    def test_annual_upsample_D_s_f(self):
+        self._check_annual_upsample_cases('D', 'start', 'ffill')
+
+    def test_annual_upsample_D_e_f(self):
+        self._check_annual_upsample_cases('D', 'end', 'ffill')
+
+    def test_annual_upsample_D_s_b(self):
+        self._check_annual_upsample_cases('D', 'start', 'bfill')
+
+    def test_annual_upsample_D_e_b(self):
+        self._check_annual_upsample_cases('D', 'end', 'bfill')
+
+    def test_annual_upsample_B_s_f(self):
+        self._check_annual_upsample_cases('B', 'start', 'ffill')
+
+    def test_annual_upsample_B_e_f(self):
+        self._check_annual_upsample_cases('B', 'end', 'ffill')
+
+    def test_annual_upsample_B_s_b(self):
+        self._check_annual_upsample_cases('B', 'start', 'bfill')
+
+    def test_annual_upsample_B_e_b(self):
+        self._check_annual_upsample_cases('B', 'end', 'bfill')
+
+    def test_annual_upsample_M_s_f(self):
+        self._check_annual_upsample_cases('M', 'start', 'ffill')
+
+    def test_annual_upsample_M_e_f(self):
+        self._check_annual_upsample_cases('M', 'end', 'ffill')
+
+    def test_annual_upsample_M_s_b(self):
+        self._check_annual_upsample_cases('M', 'start', 'bfill')
+
+    def test_annual_upsample_M_e_b(self):
+        self._check_annual_upsample_cases('M', 'end', 'bfill')
+
+    def _check_annual_upsample_cases(self, targ, conv, meth, end='12/31/1991'):
+        for month in MONTHS:
+            ts = _simple_pts('1/1/1990', end, freq='A-%s' % month)
+
+            result = ts.resample(targ, fill_method=meth,
+                                 convention=conv)
+            expected = result.to_timestamp(targ, how=conv)
+            expected = expected.asfreq(targ, meth).to_period()
+            assert_series_equal(result, expected)
+
     def test_basic_downsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec')
@@ -634,24 +686,11 @@ class TestResamplePeriodIndex(unittest.TestCase):
         assert_series_equal(result, expected)
 
     def test_annual_upsample(self):
-        targets = ['D', 'B', 'M']
-
-        for month in MONTHS:
-            ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-%s' % month)
-
-            for targ, conv, meth in product(targets, ['start', 'end'],
-                                            ['ffill', 'bfill']):
-                result = ts.resample(targ, fill_method=meth,
-                                     convention=conv)
-                expected = result.to_timestamp(targ, how=conv)
-                expected = expected.asfreq(targ, meth).to_period()
-                assert_series_equal(result, expected)
-
+        ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-DEC')
         df = DataFrame({'a' : ts})
         rdf = df.resample('D', fill_method='ffill')
         exp = df['a'].resample('D', fill_method='ffill')
         assert_series_equal(rdf['a'], exp)
-
 
         rng = period_range('2000', '2003', freq='A-DEC')
         ts = Series([1, 2, 3, 4], index=rng)
@@ -978,6 +1017,23 @@ class TestTimeGrouper(unittest.TestCase):
         # it works!
         result = grouped.apply(f)
         self.assertTrue(result.index.equals(df.index))
+
+    def test_panel_aggregation(self):
+        ind = pd.date_range('1/1/2000', periods=100)
+        data = np.random.randn(2,len(ind),4)
+        wp = pd.Panel(data, items=['Item1', 'Item2'], major_axis=ind,
+                      minor_axis=['A', 'B', 'C', 'D'])
+
+        tg = TimeGrouper('M', axis=1)
+        grouper = tg.get_grouper(wp)
+        bingrouped = wp.groupby(grouper)
+        binagg = bingrouped.mean()
+
+        def f(x):
+            assert(isinstance(x, Panel))
+            return x.mean(1)
+        result = bingrouped.agg(f)
+        tm.assert_panel_equal(result, binagg)
 
 
 if __name__ == '__main__':

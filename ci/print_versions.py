@@ -28,6 +28,11 @@ try:
     print("statsmodels: %s" % statsmodels.__version__)
 except:
     print("statsmodels: Not installed")
+try:
+    import patsy
+    print("    patsy: %s" % patsy.__version__)
+except:
+    print("    patsy: Not installed")
 
 try:
     import scikits.timeseries as ts
@@ -53,6 +58,11 @@ try:
 except:
     print("PyTables: Not Installed")
 
+try:
+    import numexpr
+    print("    numexpr: %s" % numexpr.__version__)
+except:
+    print("    numexpr: Not Installed")
 
 try:
     import matplotlib

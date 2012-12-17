@@ -16,7 +16,7 @@ module is imported, register them here rather then in the module.
 
 
 ###########################################
-# options from the "print" namespace
+# options from the "display" namespace
 
 pc_precision_doc="""
 : int
@@ -43,6 +43,12 @@ pc_max_cols_doc="""
     Either one, or both can be set to 0 (experimental). Pandas will figure
     out how big the terminal is and will not display more rows or/and
     columns that can fit on it.
+"""
+
+pc_max_info_cols_doc="""
+: int
+    max_info_columns is used in DataFrame.info method to decide if
+    per column information will be printed.
 """
 
 pc_nb_repr_h_doc="""
@@ -115,13 +121,15 @@ pc_line_width_doc="""
     When printing wide DataFrames, this is the width of each line.
 """
 
-with cf.config_prefix('print'):
+with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)
     cf.register_option('max_rows', 100, pc_max_rows_doc, validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc, validator=is_int)
+    cf.register_option('max_info_columns', 100, pc_max_info_cols_doc,
+                       validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,

@@ -75,6 +75,20 @@ Note:
     # old behavior
     series.resample('D', how='sum', closed='right', label='right')
 
+- Infinity and negative infinity are no longer treated as NA by ``isnull`` and
+  ``notnull``. That they every were was a relic of early pandas. This behavior
+  can be re-enabled globally by the ``mode.use_inf_as_null`` option:
+
+.. ipython:: python
+
+    s = pd.Series([1.5, np.inf, 3.4, -np.inf])
+	pd.isnull(s)
+    s.fillna(0)
+    pd.set_option('use_inf_as_null', True)
+	pd.isnull(s)
+    s.fillna(0)
+	pd.reset_option('use_inf_as_null')
+
 - Methods with the ``inplace`` option now all return ``None`` instead of the
   calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
   may stop working. To fix, simply delete the unnecessary variable assignment.
@@ -83,17 +97,6 @@ Note:
   default. This was done for performance reasons: the group-key sorting is
   often one of the more expensive parts of the computation and is often
   unnecessary.
-
-- The ``names`` argument in the file parsers no longer overrides the ``header``
-  option to ``None``. This means that you need to specify ``header=None`` in
-  cases where your file has no header row:
-
-.. ipython:: python
-
-    from StringIO import StringIO
-    data = '1,2,3\n4,5,6\n7,8,9'
-    print data
-    pd.read_csv(StringIO(data), names=['a', 'b', 'c'], header=None)
 
 - The default column names for a file with no header have been changed to the
   integers ``0`` through ``N - 1``. This is to create consistency with the
@@ -160,11 +163,11 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
     arguments. print all registered options.
 
   Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but
-  functioning), the print options now live under "print.XYZ". For example:
+  functioning), the print options now live under "display.XYZ". For example:
 
   .. ipython:: python
 
-     get_option("print.max_rows")
+     get_option("display.max_rows")
 
 - to_string() methods now always return unicode strings  (GH2224_).
 
@@ -241,7 +244,6 @@ Updated PyTables Support
 
 .. ipython:: python
 
-   from pandas.io.pytables import Term
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
           major_axis=date_range('1/1/2000', periods=5),
           minor_axis=['A', 'B', 'C', 'D'])
@@ -284,7 +286,7 @@ Updated PyTables Support
       df['string'] = 'string'
       df['int']    = 1
       store.append('df',df)
-      df1 = store.select('df') 
+      df1 = store.select('df')
       df1
       df1.get_dtype_counts()
 

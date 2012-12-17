@@ -73,7 +73,8 @@ pandas 0.10.0
     backfilling time series data (GH2284_)
   - New option configuration system and functions `set_option`, `get_option`,
     `describe_option`, and `reset_option`. Deprecate `set_printoptions` and
-    `reset_printoptions` (GH2393_)
+    `reset_printoptions` (GH2393_).
+    You can also access options as attributes via ``pandas.options.X``
   - Wide DataFrames can be viewed more easily in the console with new
     `expand_frame_repr` and `line_width` configuration options. This is on by
     default now (GH2436_)
@@ -101,10 +102,8 @@ pandas 0.10.0
     using the new option ``mode.use_inf_as_null`` (GH2050_, GH1919_)
   - ``pandas.merge`` will now default to ``sort=False``. For many use cases
     sorting the join keys is not necessary, and doing it by default is wasteful
-  - ``names`` handling in file parsing: if explicit column `names` passed,
-    `header` argument will be respected. If there is an existing header column,
-    this can rename the columns. To fix legacy code, put ``header=None`` when
-    passing ``names``
+  - Specify ``header=0`` explicitly to replace existing column names in file in
+    read_* functions.
   - Default column names for header-less parsed files (yielded by read_csv,
     etc.) are now the integers 0, 1, .... A new argument `prefix` has been
     added; to get the v0.9.x behavior specify ``prefix='X'`` (GH2034_). This API
@@ -170,6 +169,7 @@ pandas 0.10.0
   - Optimize ``unstack`` memory usage by compressing indices (GH2278_)
   - Fix HTML repr in IPython qtconsole if opening window is small (GH2275_)
   - Escape more special characters in console output (GH2492_)
+  - df.select now invokes bool on the result of crit(x) (GH2487_)
 
 **Bug fixes**
 
@@ -231,6 +231,12 @@ pandas 0.10.0
   - DataFrame.sort_index raises more helpful exception if sorting by column
     with duplicates (GH2488_)
   - DataFrame.to_string formatters can be list, too (GH2520_)
+  - DataFrame.combine_first will always result in the union of the index and
+    columns, even if one DataFrame is length-zero (GH2525_)
+  - Fix several DataFrame.icol/irow with duplicate indices issues (GH2228_, GH2259_)
+  - Use Series names for column names when using concat with axis=1 (GH2489_)
+  - Raise Exception if start, end, periods all passed to date_range (GH2538_)
+  - Fix Panel resampling issue (GH2537_)
 
 .. _GH407: https://github.com/pydata/pandas/issues/407
 .. _GH821: https://github.com/pydata/pandas/issues/821
@@ -294,6 +300,7 @@ pandas 0.10.0
 .. _GH2447: https://github.com/pydata/pandas/issues/2447
 .. _GH2275: https://github.com/pydata/pandas/issues/2275
 .. _GH2492: https://github.com/pydata/pandas/issues/2492
+.. _GH2487: https://github.com/pydata/pandas/issues/2487
 .. _GH2273: https://github.com/pydata/pandas/issues/2273
 .. _GH2266: https://github.com/pydata/pandas/issues/2266
 .. _GH2038: https://github.com/pydata/pandas/issues/2038
@@ -345,6 +352,12 @@ pandas 0.10.0
 .. _GH2307: https://github.com/pydata/pandas/issues/2307
 .. _GH2488: https://github.com/pydata/pandas/issues/2488
 .. _GH2520: https://github.com/pydata/pandas/issues/2520
+.. _GH2525: https://github.com/pydata/pandas/issues/2525
+.. _GH2228: https://github.com/pydata/pandas/issues/2228
+.. _GH2259: https://github.com/pydata/pandas/issues/2259
+.. _GH2489: https://github.com/pydata/pandas/issues/2489
+.. _GH2538: https://github.com/pydata/pandas/issues/2538
+.. _GH2537: https://github.com/pydata/pandas/issues/2537
 
 
 pandas 0.9.1

@@ -225,9 +225,9 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
         return mresult
 
     if dayfirst is None:
-        dayfirst = get_option("print.date_dayfirst")
+        dayfirst = get_option("display.date_dayfirst")
     if yearfirst is None:
-        yearfirst = get_option("print.date_yearfirst")
+        yearfirst = get_option("display.date_yearfirst")
 
     try:
         parsed, reso = dateutil_parse(arg, default, dayfirst=dayfirst,

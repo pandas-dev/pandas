@@ -52,8 +52,9 @@ data into a DataFrame object. They can take a number of arguments:
     ways to specify the file format
   - ``dtype``: A data type name or a dict of column name to data type. If not
     specified, data types will be inferred.
-  - ``header``: row number to use as the column names, and the start of the data.
-    Defaults to 0 (first row); specify None if there is no header row.
+  - ``header``: row number to use as the column names, and the start of the
+    data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
+    pass ``header=0`` to be able to replace existing names.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
   - ``index_col``: column number, column name, or list of column numbers/names,
@@ -61,8 +62,8 @@ data into a DataFrame object. They can take a number of arguments:
     it will number the rows without using any column, unless there is one more
     data column than there are headers, in which case the first column is taken
     as the index.
-  - ``names``: List of column names to use. If file contains no header row,
-    then you should explicitly pass header=None (behavior changed in v0.10.0).
+  - ``names``: List of column names to use as column names. To replace header
+    existing in file, explicitly pass ``header=0``.
   - ``na_values``: optional list of strings to recognize as NaN (missing
     values), either in addition to or in lieu of the default set.
   - ``true_values``: list of strings to recognize as ``True``
@@ -180,6 +181,15 @@ All of the dialect options can be specified separately by keyword arguments:
     data = 'a,b,c~1,2,3~4,5,6'
     pd.read_csv(StringIO(data), lineterminator='~')
 
+Another common dialect option is ``skipinitialspace``, to skip any whitespace
+after a delimiter:
+
+.. ipython:: python
+
+   data = 'a, b, c\n1, 2, 3\n4, 5, 6'
+   print data
+   pd.read_csv(StringIO(data), skipinitialspace=True)
+
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
 integer dtype without altering the contents, it will do so. Any non-numeric
@@ -226,7 +236,7 @@ any):
 .. ipython:: python
 
     print data
-    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'])
+    pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=0)
     pd.read_csv(StringIO(data), names=['foo', 'bar', 'baz'], header=None)
 
 If the header is in a row other than the first, pass the row number to
@@ -1001,7 +1011,7 @@ Objects can be written to the file just like adding key-value pairs to a dict:
    store['wp'] = wp
 
    # the type of stored data
-   store.handle.root.wp._v_attrs.pandas_type
+   store.root.wp._v_attrs.pandas_type
 
    store
 
@@ -1037,8 +1047,7 @@ Storing in Table format
 
 ``HDFStore`` supports another ``PyTables`` format on disk, the ``table`` format. Conceptually a ``table`` is shaped
 very much like a DataFrame, with rows and columns. A ``table`` may be appended to in the same or other sessions.
-In addition, delete & query type operations are supported. You can create an index with ``create_table_index``
-after data is already in the table (this may become automatic in the future or an option on appending/putting a ``table``).
+In addition, delete & query type operations are supported.
 
 .. ipython:: python
    :suppress:
@@ -1061,11 +1070,7 @@ after data is already in the table (this may become automatic in the future or a
    store.select('df')
 
    # the type of stored data
-   store.handle.root.df._v_attrs.pandas_type
-
-   # create an index
-   store.create_table_index('df')
-   store.handle.root.df.table
+   store.root.df._v_attrs.pandas_type
 
 Hierarchical Keys
 ~~~~~~~~~~~~~~~~~
@@ -1090,7 +1095,7 @@ Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
-Passing ``min_itemsize = { column_name : size }`` as a paremeter to append will set a larger minimum for the column. Storing ``floats, strings, ints, bools`` are currently supported.
+Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools`` are currently supported.
 
 .. ipython:: python
 
@@ -1099,10 +1104,13 @@ Passing ``min_itemsize = { column_name : size }`` as a paremeter to append will 
     df_mixed['int']      = 1
     df_mixed['bool']     = True
 
-    store.append('df_mixed',df_mixed)
+    store.append('df_mixed', df_mixed, min_itemsize = { 'values' : 50 })
     df_mixed1 = store.select('df_mixed')
     df_mixed1
     df_mixed1.get_dtype_counts()
+
+    # we have provided a minimum string column size
+    store.root.df_mixed.table
 
 
 Querying a Table
@@ -1133,55 +1141,109 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
 
    store.append('wp',wp)
    store
-   store.select('wp',[ 'major_axis>20000102', ('minor_axis', '=', ['A','B']) ])
+   store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
-Delete from a Table
-~~~~~~~~~~~~~~~~~~~
+Indexing
+~~~~~~~~
+You can create an index for a table with ``create_table_index`` after data is already in the table (after and ``append/put`` operation). Creating a table index is **highly** encouraged. This will speed your queries a great deal when you use a ``select`` with the indexed dimension as the ``where``. It is not automagically done now because you may want to index different axes than the default (except in the case of a DataFrame, where it almost always makes sense to index the ``index``.
 
 .. ipython:: python
 
+   # create an index
+   store.create_table_index('df')
+   i = store.root.df.table.cols.index.index
+   i.optlevel, i.kind
+
+   # change an index by passing new parameters
+   store.create_table_index('df', optlevel = 9, kind = 'full')
+   i = store.root.df.table.cols.index.index
+   i.optlevel, i.kind
+
+
+Delete from a Table
+~~~~~~~~~~~~~~~~~~~
+You can delete from a table selectively by specifying a ``where``. In deleting rows, it is important to understand the ``PyTables`` deletes rows by erasing the rows, then **moving** the following data. Thus deleting can potentially be a very expensive operation depending on the orientation of your data. This is especially true in higher dimensional objects (``Panel`` and ``Panel4D``). To get optimal deletion speed, it pays to have the dimension you are deleting be the first of the ``indexables``.
+
+Data is ordered (on the disk) in terms of the ``indexables``. Here's a simple use case. You store panel type data, with dates in the ``major_axis`` and ids in the ``minor_axis``. The data is then interleaved like this:
+
+   - date_1
+        - id_1
+        - id_2
+        -  .
+        - id_n
+   - date_2
+        - id_1
+        -  .
+        - id_n
+
+It should be clear that a delete operation on the ``major_axis`` will be fairly quick, as one chunk is removed, then the following data moved. On the other hand a delete operation on the ``minor_axis`` will be very expensive. In this case it would almost certainly be faster to rewrite the table using a ``where`` that selects all but the missing data.
+
+.. ipython:: python
+
+   # returns the number of rows deleted
    store.remove('wp', 'major_axis>20000102' )
    store.select('wp')
 
 Notes & Caveats
 ~~~~~~~~~~~~~~~
 
-   - Selection by items (the top level panel dimension) is not possible; you always get all of the items in the returned Panel
    - Once a ``table`` is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
    - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
-   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *column* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information). This is **ONLY** necessary for storing ``Panels`` (as the indexing column is stored directly in a column)
+   - ``HDFStore`` is **not-threadsafe for writing**. The underlying ``PyTables`` only supports concurrent reads (via threading or processes). If you need reading and writing *at the same time*, you need to serialize these operations in a single thread in a single process. You will corrupt your data otherwise. See the issue <https://github.com/pydata/pandas/issues/2397> for more information.
+
+   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *columns* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information). Just to be clear, this fixed-width restriction applies to **indexables** (the indexing columns) and **string values** in a mixed_type table.
 
      .. ipython:: python
 
-        store.append('wp_big_strings', wp, min_itemsize = 30)
+        store.append('wp_big_strings', wp, min_itemsize = { 'minor_axis' : 30 })
 	wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
         store.append('wp_big_strings', wp)
         store.select('wp_big_strings')
+
+	# we have provided a minimum minor_axis indexable size
+	store.root.wp_big_strings.table
 
 Compatibility
 ~~~~~~~~~~~~~
 
 0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
-however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
-file and write it out using the new format to take advantage of the updates.
+however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire
+file and write it out using the new format to take advantage of the updates. The group attribute ``pandas_version`` contains the version information.
 
 
 Performance
 ~~~~~~~~~~~
 
-   - ``Tables`` come with a performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
+   - ``Tables`` come with a writing performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
      Write times are generally longer as compared with regular stores. Query times can be quite fast, especially on an indexed axis.
    - ``Tables`` can (as of 0.10.0) be expressed as different types.
 
      - ``AppendableTable`` which is a similiar table to past versions (this is the default).
      - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
 
-   - To delete a lot of data, it is sometimes better to erase the table and rewrite it. ``PyTables`` tends to increase the file size with deletions
-   - In general it is best to store Panels with the most frequently selected dimension in the minor axis and a time/date like dimension in the major axis, but this is not required. Panels can have any major_axis and minor_axis type that is a valid Panel indexer.
-   - No dimensions are currently indexed automagically (in the ``PyTables`` sense); these require an explict call to ``create_table_index``
    - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
      use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
    - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+
+Experimental
+~~~~~~~~~~~~
+
+HDFStore supports ``Panel4D`` storage.
+
+.. ipython:: python
+
+   p4d = Panel4D({ 'l1' : wp })
+   p4d
+   store.append('p4d', p4d)
+   store
+
+These, by default, index the three axes ``items, major_axis, minor_axis``. On an ``AppendableTable`` it is possible to setup with the first append a different indexing scheme, depending on how you want to store your data. Pass the ``axes`` keyword with a list of dimension (currently must by exactly 1 less than the total dimensions of the object). This cannot be changed after table creation.
+
+.. ipython:: python
+
+   store.append('p4d2', p4d, axes = ['labels','major_axis','minor_axis'])
+   store
+   store.select('p4d2', [ Term('labels=l1'), Term('items=Item1'), Term('minor_axis=A_big_strings') ])
 
 .. ipython:: python
    :suppress:
