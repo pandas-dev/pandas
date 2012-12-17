@@ -283,7 +283,7 @@ subplots:
    df.diff().hist(color='k', alpha=0.5, bins=50)
 
 
-New since 0.9.2, the ``by`` keyword can be specified to plot grouped histograms:
+New since 0.10.0, the ``by`` keyword can be specified to plot grouped histograms:
 
 .. ipython:: python
    :suppress:

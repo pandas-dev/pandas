@@ -598,6 +598,41 @@ DataFrame in tabular form, though it won't always fit the console width:
 
    print baseball.ix[-20:, :12].to_string()
 
+New since 0.10.0, wide DataFrames will now be printed across multiple rows by
+default:
+
+.. ipython:: python
+
+   DataFrame(randn(3, 12))
+
+You can change how much to print on a single row by setting the ``line_width``
+option:
+
+.. ipython:: python
+
+   set_option('line_width', 40) # default is 80
+
+   DataFrame(randn(3, 12))
+
+.. ipython:: python
+   :suppress:
+
+   reset_option('line_width')
+
+You can also disable this feature via the ``expand_frame_repr`` option:
+
+.. ipython:: python
+
+   set_option('expand_frame_repr', False)
+
+   DataFrame(randn(3, 12))
+
+.. ipython:: python
+   :suppress:
+
+   reset_option('expand_frame_repr')
+
+
 DataFrame column types
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -904,7 +939,7 @@ Here we slice to a Panel4D.
         slicer       = Panel4D,
         axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
         stat_axis    = 2)
-    
+
     p5d = Panel5D(dict(C1 = p4d))
     p5d
 
