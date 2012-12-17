@@ -5,11 +5,11 @@
 
 #include "period.h"
 
-npy_int64 get_proportionality_conversion_factor(int index1, int index2);
-npy_int64 apply_conversion_factor(npy_int64 ordinal, int from, int to);
+npy_int64 get_daytime_conversion_factor(int index1, int index2);
+npy_int64 convert_daytime(npy_int64 ordinal, int from, int to);
 
 void assert_conversion_factor(int freq_group_1, int freq_group_2, npy_int64 expected) {
-    npy_int64 actual = get_proportionality_conversion_factor(freq_group_1 / 1000, freq_group_2 / 1000);
+    npy_int64 actual = get_daytime_conversion_factor(freq_group_1 / 1000, freq_group_2 / 1000);
     //printf("%llu vs. %llu\n", actual, expected);
     assert(actual == expected);
 }
@@ -47,19 +47,18 @@ void assert_conversion_factors()
 void assert_apply_conversion_factor(npy_int64 ordinal, int from_index, int to_index, npy_int64 expected)
 {
     npy_int64 actual = convert_daytime(ordinal, from_index, to_index);
-    //printf("%llu vs %llu\n", actual, expected);
+    printf("%llu vs %llu\n", actual, expected);
     assert(actual == expected);
 }
 
 int main(int argc, char** argv)
 {
     printf("initializing\n");
+
     Py_SetProgramName(argv[0]);
     Py_Initialize();
 
     printf("running tests\n");
-
-    initialize();
 
     assert_conversion_factors();
 
@@ -82,6 +81,8 @@ int main(int argc, char** argv)
     printf("get_python_ordinal hour offset: %d\n", year_hours - reference);
     npy_int64 year_more_hours = get_python_ordinal(365 * 24 + 1, FR_HR);
     printf("get_python_ordinal hours: %d\n", year_more_hours - reference);
+
+    printf("get_abs_time %f\n", get_abs_time(2000, 13603, 148));
 
     assert_apply_conversion_factor(24, FR_HR, FR_DAY, 1);
     assert_apply_conversion_factor(1, FR_DAY, FR_HR, 24);
