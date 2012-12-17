@@ -272,6 +272,14 @@ onError:
 
 // helpers for frequency conversion routines //
 
+static npy_int64 absdate_from_ymd(int y, int m, int d) {
+    struct date_info tempDate;
+    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
+        return INT_ERR_CODE;
+    }
+    return tempDate.absdate;
+}
+
 static int daytime_conversion_factors[][2] = {
     { FR_DAY, 1 },
     { FR_HR,  24 },
@@ -410,6 +418,19 @@ static npy_int64 convert_daytime(npy_int64 ordinal, int from, int to, int atEnd)
       
 }
 
+static npy_int64 transform_via_day(npy_int64 ordinal, char relation, asfreq_info *af_info, freq_conv_func first_func, freq_conv_func second_func) {
+    int tempStore = af_info->targetFreq;
+    af_info->targetFreq = FR_DAY;
+    npy_int64 result = (*first_func)(ordinal, relation, af_info);
+    af_info->targetFreq = tempStore;
+
+    tempStore = af_info->sourceFreq;
+    af_info->sourceFreq = FR_DAY;
+    result = (*second_func)(result, relation, af_info);
+    af_info->sourceFreq = tempStore;
+
+    return result;
+}
 
 static npy_int64 DtoB_weekday(npy_int64 absdate) {
     return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
@@ -429,28 +450,6 @@ static npy_int64 DtoB_WeekendToFriday(npy_int64 absdate, int day_of_week) {
         absdate -= (day_of_week - 4);
     }
     return DtoB_weekday(absdate);
-}
-
-static npy_int64 absdate_from_ymd(int y, int m, int d) {
-    struct date_info tempDate;
-    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
-        return INT_ERR_CODE;
-    }
-    return tempDate.absdate;
-}
-
-static npy_int64 transform_via_day(npy_int64 ordinal, char relation, asfreq_info *af_info, freq_conv_func first_func, freq_conv_func second_func) {
-    int tempStore = af_info->targetFreq;
-    af_info->targetFreq = FR_DAY;
-    npy_int64 result = (*first_func)(ordinal, relation, af_info);
-    af_info->targetFreq = tempStore;
-
-    tempStore = af_info->sourceFreq;
-    af_info->sourceFreq = FR_DAY;
-    result = (*second_func)(result, relation, af_info);
-    af_info->sourceFreq = tempStore;
-
-    return result;
 }
 
 //************ FROM DAILY ***************
