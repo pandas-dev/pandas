@@ -45,9 +45,6 @@ static int days_in_month[2][12] = {
     { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 };
 
-static int get_freq_group(int freq) { return (freq/1000)*1000; }
-static int get_freq_group_index(int freq) { return freq/1000; }
-
 /* Return 1/0 iff year points to a leap year in calendar. */
 static int dInfoCalc_Leapyear(npy_int64 year, int calendar)
 {
@@ -296,6 +293,14 @@ inline static int min(int a, int b) {
     return a < b ? a : b;
 }
 
+static int get_freq_group(int freq) {
+    return (freq/1000)*1000;
+}
+
+static int get_freq_group_index(int freq) {
+    return freq/1000;
+}
+
 static int calc_conversion_factors_matrix_size() {
     int matrix_size = 0;
     int index;
@@ -367,13 +372,13 @@ static void populate_conversion_factors_matrix() {
     }
 }
 
-void initialize_daytime_conversion_factor_maxtrix() {
+static void initialize_daytime_conversion_factor_maxtrix() {
     int matrix_size = calc_conversion_factors_matrix_size();
     alloc_conversion_factors_matrix(matrix_size);
     populate_conversion_factors_matrix();
 }
 
-npy_int64 get_daytime_conversion_factor(int index1, int index2)
+static npy_int64 get_daytime_conversion_factor(int index1, int index2)
 {
     if (daytime_conversion_factor_matrix == NULL) {
         initialize_daytime_conversion_factor_maxtrix();
@@ -381,7 +386,7 @@ npy_int64 get_daytime_conversion_factor(int index1, int index2)
     return daytime_conversion_factor_matrix[min(index1, index2)][max(index1, index2)];
 }
 
-npy_int64 convert_daytime(npy_int64 ordinal, int from, int to, int atEnd)
+static npy_int64 convert_daytime(npy_int64 ordinal, int from, int to, int atEnd)
 {
     //printf("from(%d) == to(%d), end: %d: %lld\n", from, to, atEnd, ordinal);
 
