@@ -538,17 +538,10 @@ static npy_int64 asfreq_WithinDT(npy_int64 ordinal, char relation, asfreq_info *
 
 static npy_int64 asfreq_BtoDT(npy_int64 ordinal, char relation, asfreq_info *af_info)
 {
-    if (relation != 'S') {
-      ordinal += 1;
-    }
-
     ordinal += BDAY_OFFSET;
     ordinal = (((ordinal - 1) / 5) * 7 +
             mod_compat(ordinal - 1, 5) + 1 - ORD_OFFSET);
 
-    if (relation != 'S') {
-      ordinal -= 1;
-    }
     return convert_daytime(ordinal, FR_DAY, af_info->targetFreq, relation != 'S');
 }
 
@@ -572,7 +565,16 @@ static npy_int64 asfreq_BtoW(npy_int64 ordinal, char relation, asfreq_info *af_i
 
 static npy_int64 asfreq_WtoDT(npy_int64 ordinal, char relation, asfreq_info *af_info) {
     ordinal += WEEK_OFFSET;
+    if (relation != 'S') {
+        ordinal += 1;
+    }
+
     ordinal = ordinal * 7 - 6 + af_info->from_week_end - ORD_OFFSET;
+
+    if (relation != 'S') {
+        ordinal -= 1;
+    }
+
     return convert_daytime(ordinal, FR_DAY, af_info->targetFreq, relation != 'S');
 }
 
