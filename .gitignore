@@ -29,5 +29,3 @@ pandas/io/*.dat
 pandas/io/*.json
 *.log
 .noseids
-*.wpr
-*.wpu
