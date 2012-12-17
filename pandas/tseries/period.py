@@ -994,7 +994,7 @@ class PeriodIndex(Int64Index):
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 
-    def format(self, name=False):
+    def format(self, name=False, formatter=None):
         """
         Render a string representation of the Index
         """

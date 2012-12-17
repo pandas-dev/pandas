@@ -1596,6 +1596,13 @@ class TestPeriodIndex(TestCase):
         ts = Series(np.random.randn(len(index)), index=index)
         repr(ts)
 
+    def test_frame_index_to_string(self):
+        index = PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')
+        frame = DataFrame(np.random.randn(3,4), index=index)
+
+        # it works!
+        frame.to_string()
+
     def test_asfreq_ts(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
         ts = Series(np.random.randn(len(index)), index=index)
