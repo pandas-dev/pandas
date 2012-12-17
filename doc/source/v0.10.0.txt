@@ -1,9 +1,9 @@
 .. _whatsnew_0100:
 
-v0.10.0 (December ??, 2012)
+v0.10.0 (December 17, 2012)
 ---------------------------
 
-This is a major release from 0.9.1 and includes several new features and
+This is a major release from 0.9.1 and includes many new features and
 enhancements along with a large number of bug fixes. There are also a number of
 important API changes that long-time pandas users should pay close attention
 to.

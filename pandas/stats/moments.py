@@ -580,14 +580,14 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
                    freq=None, center=False, mean=True, time_rule=None,
                    axis=0, **kwargs):
     """
-    Applies a centered moving window of type ``window_type`` and size ``window``
+    Applies a moving window of type ``window_type`` and size ``window``
     on the data.
 
     Parameters
     ----------
     arg : Series, DataFrame
     window : int or ndarray
-        Filtering window specification. If the window is an integer, then it is
+        Weighting window specification. If the window is an integer, then it is
         treated as the window length and win_type is required
     win_type : str, default None
         Window type (see Notes)
