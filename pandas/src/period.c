@@ -45,138 +45,8 @@ static int days_in_month[2][12] = {
     { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 };
 
-inline static int max(int a, int b) {
-    return a > b ? a : b;
-}
-
-inline static int min(int a, int b) {
-    return a < b ? a : b;
-}
-
 static int get_freq_group(int freq) { return (freq/1000)*1000; }
 static int get_freq_group_index(int freq) { return freq/1000; }
-
-static int day_proportional_elements[][2] = {
-    { FR_DAY, 1 },
-    { FR_HR,  24 },
-    { FR_MIN, 60 },
-    { FR_SEC, 60 },
-    { FR_MS,  1000 },
-    { FR_US,  1000 },
-    { FR_NS,  1000 },
-    { 0, 0 }
-};
-
-static npy_int64** proportionality_factors;
-
-static int get_proportionality_factors_matrix_size() {
-    int matrix_size = 0;
-    int index;
-    for (index=0;; index++) {
-        int period_value = get_freq_group_index(day_proportional_elements[index][0]);
-        if (period_value == 0) {
-            break;
-        }
-        matrix_size = max(matrix_size, period_value);
-    }
-    return matrix_size + 1; 
-}
-
-static void create_proportionality_factors_matrix(int matrix_size) {
-    proportionality_factors = malloc(matrix_size * sizeof(**proportionality_factors));
-    int row_index;
-    for (row_index = 0; row_index < matrix_size; row_index++) {
-        proportionality_factors[row_index] = malloc(matrix_size * sizeof(**proportionality_factors));
-        int column_index;
-        for (column_index = 0; column_index < matrix_size; column_index++) {
-            proportionality_factors[row_index][column_index] = 0;
-        }
-    }
-}
-
-static npy_int64 calculate_proportionality_factor(int start_value, int end_value) {
-    npy_int64 proportionality_factor = 0;
-    int index;
-    for (index=0;; index++) {
-        int freq_group = day_proportional_elements[index][0];
-
-        if (freq_group == 0) {
-            proportionality_factor = 0;
-            break;
-        }
-
-        if (freq_group == start_value) {
-            proportionality_factor = 1;
-        } else {
-            proportionality_factor *= day_proportional_elements[index][1];
-        }
-
-        if (freq_group == end_value) {
-            break;
-        }
-    }
-    return proportionality_factor;
-}
-
-static void populate_proportionality_factors_matrix() {
-    int row_index_index;
-    for (row_index_index = 0;; row_index_index++) {
-        int row_value = day_proportional_elements[row_index_index][0];
-        if (row_value == 0) {
-            break;
-        }
-        int row_index = get_freq_group_index(row_value);
-        int column_index_index;
-        for (column_index_index = row_index_index;; column_index_index++) {
-            int column_value = day_proportional_elements[column_index_index][0];
-            if (column_value == 0) {
-                break;
-            }
-            int column_index = get_freq_group_index(column_value);
-
-            proportionality_factors[row_index][column_index] = calculate_proportionality_factor(row_value, column_value);
-            //printf("populated %d, %d :: %d, %d = %llu\n", row_index, column_index, row_value, column_value, proportionality_factors[row_index][column_index]);
-        }
-    }
-}
-
-void initialize() {
-    int matrix_size = get_proportionality_factors_matrix_size();
-    create_proportionality_factors_matrix(matrix_size);
-    populate_proportionality_factors_matrix();
-}
-
-npy_int64 get_proportionality_conversion_factor(int index1, int index2)
-{
-    if (proportionality_factors == NULL) {
-        initialize();
-    }
-    return proportionality_factors[min(index1, index2)][max(index1, index2)];
-}
-
-npy_int64 convert_daytime(npy_int64 ordinal, int from, int to, int atEnd)
-{
-    //printf("from(%d) == to(%d), end: %d: %lld\n", from, to, atEnd, ordinal);
-
-    if (from == to) {
-      return ordinal;
-    }
-
-    int from_index = get_freq_group_index(from);
-    int to_index = get_freq_group_index(to);
-
-    npy_int64 conversion_factor = get_proportionality_conversion_factor(from_index, to_index);
-
-    int offset = atEnd ? 1 : 0;
-
-    //printf("from(%d) == to(%d), end: %d: %lld, factor %lld \n", from, to, atEnd, ordinal, conversion_factor);
-    if (from <= to) {
-        return (ordinal + offset) * conversion_factor - offset;
-    } else {
-        return ordinal / conversion_factor;
-    }
-      
-}
 
 /* Return 1/0 iff year points to a leap year in calendar. */
 static int dInfoCalc_Leapyear(npy_int64 year, int calendar)
@@ -404,6 +274,137 @@ onError:
 ///////////////////////////////////////////////////////////////////////
 
 // helpers for frequency conversion routines //
+
+static int daytime_conversion_factors[][2] = {
+    { FR_DAY, 1 },
+    { FR_HR,  24 },
+    { FR_MIN, 60 },
+    { FR_SEC, 60 },
+    { FR_MS,  1000 },
+    { FR_US,  1000 },
+    { FR_NS,  1000 },
+    { 0, 0 }
+};
+
+static npy_int64** daytime_conversion_factor_matrix;
+
+inline static int max(int a, int b) {
+    return a > b ? a : b;
+}
+
+inline static int min(int a, int b) {
+    return a < b ? a : b;
+}
+
+static int calc_conversion_factors_matrix_size() {
+    int matrix_size = 0;
+    int index;
+    for (index=0;; index++) {
+        int period_value = get_freq_group_index(daytime_conversion_factors[index][0]);
+        if (period_value == 0) {
+            break;
+        }
+        matrix_size = max(matrix_size, period_value);
+    }
+    return matrix_size + 1; 
+}
+
+static void alloc_conversion_factors_matrix(int matrix_size) {
+    daytime_conversion_factor_matrix = malloc(matrix_size * sizeof(**daytime_conversion_factor_matrix));
+    int row_index;
+    for (row_index = 0; row_index < matrix_size; row_index++) {
+        daytime_conversion_factor_matrix[row_index] = malloc(matrix_size * sizeof(**daytime_conversion_factor_matrix));
+        int column_index;
+        for (column_index = 0; column_index < matrix_size; column_index++) {
+            daytime_conversion_factor_matrix[row_index][column_index] = 0;
+        }
+    }
+}
+
+static npy_int64 calculate_conversion_factor(int start_value, int end_value) {
+    npy_int64 conversion_factor = 0;
+    int index;
+    for (index=0;; index++) {
+        int freq_group = daytime_conversion_factors[index][0];
+
+        if (freq_group == 0) {
+            conversion_factor = 0;
+            break;
+        }
+
+        if (freq_group == start_value) {
+            conversion_factor = 1;
+        } else {
+            conversion_factor *= daytime_conversion_factors[index][1];
+        }
+
+        if (freq_group == end_value) {
+            break;
+        }
+    }
+    return conversion_factor;
+}
+
+static void populate_conversion_factors_matrix() {
+    int row_index_index;
+    for (row_index_index = 0;; row_index_index++) {
+        int row_value = daytime_conversion_factors[row_index_index][0];
+        if (row_value == 0) {
+            break;
+        }
+        int row_index = get_freq_group_index(row_value);
+        int column_index_index;
+        for (column_index_index = row_index_index;; column_index_index++) {
+            int column_value = daytime_conversion_factors[column_index_index][0];
+            if (column_value == 0) {
+                break;
+            }
+            int column_index = get_freq_group_index(column_value);
+
+            daytime_conversion_factor_matrix[row_index][column_index] = calculate_conversion_factor(row_value, column_value);
+            //printf("populated %d, %d :: %d, %d = %llu\n", row_index, column_index, row_value, column_value, daytime_conversion_factor_matrix[row_index][column_index]);
+        }
+    }
+}
+
+void initialize_daytime_conversion_factor_maxtrix() {
+    int matrix_size = calc_conversion_factors_matrix_size();
+    alloc_conversion_factors_matrix(matrix_size);
+    populate_conversion_factors_matrix();
+}
+
+npy_int64 get_daytime_conversion_factor(int index1, int index2)
+{
+    if (daytime_conversion_factor_matrix == NULL) {
+        initialize_daytime_conversion_factor_maxtrix();
+    }
+    return daytime_conversion_factor_matrix[min(index1, index2)][max(index1, index2)];
+}
+
+npy_int64 convert_daytime(npy_int64 ordinal, int from, int to, int atEnd)
+{
+    //printf("from(%d) == to(%d), end: %d: %lld\n", from, to, atEnd, ordinal);
+
+    if (from == to) {
+      return ordinal;
+    }
+
+    int from_index = get_freq_group_index(from);
+    int to_index = get_freq_group_index(to);
+
+    npy_int64 conversion_factor = get_daytime_conversion_factor(from_index, to_index);
+
+    int offset = atEnd ? 1 : 0;
+
+    //printf("from(%d) == to(%d), end: %d: %lld, factor %lld \n", from, to, atEnd, ordinal, conversion_factor);
+    if (from <= to) {
+        return (ordinal + offset) * conversion_factor - offset;
+    } else {
+        return ordinal / conversion_factor;
+    }
+      
+}
+
 
 static npy_int64 DtoB_weekday(npy_int64 absdate) {
     return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
@@ -1076,7 +1077,6 @@ onError:
 
 npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation)
 {
-    initialize();
     npy_int64 val;
     freq_conv_func func;
     asfreq_info finfo;
