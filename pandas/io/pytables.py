@@ -959,10 +959,10 @@ class IndexCol(object):
         new_self.get_attr()
         return new_self
 
-    def convert(self, sel):
+    def convert(self, values):
         """ set the values from this selection """
-        self.values = _maybe_convert(sel.values[self.cname], self.kind)
-
+        self.values = Index(_maybe_convert(values[self.cname], self.kind))
+   
     @property
     def attrs(self):
         return self.table._v_attrs
@@ -1099,9 +1099,9 @@ class DataCol(IndexCol):
                 raise Exception("appended items dtype do not match existing items dtype"
                                 " in table!")
 
-    def convert(self, sel):
+    def convert(self, values):
         """ set the data from this selection (and convert to the correct dtype if we can) """
-        self.set_data(sel.values[self.cname])
+        self.set_data(values[self.cname])
 
         # convert to the correct dtype
         if self.dtype is not None:
@@ -1349,11 +1349,11 @@ class Table(object):
 
         # create the selection
         self.selection = Selection(self, where)
-        self.selection.select()
+        values = self.selection.select()
 
         # convert the data
         for a in self.axes:
-            a.convert(self.selection)
+            a.convert(values)
 
         return True
 
@@ -1481,6 +1481,22 @@ class Table(object):
         if validate:
             self.validate(existing_table)
 
+    def process_axes(self, obj):
+        """ process axes filters """
+
+        def reindex(obj, axis, filt, ordered):
+            axis_name = obj._get_axis_name(axis)
+            ordd = ordered & filt
+            ordd = sorted(ordered.get_indexer(ordd))
+            return obj.reindex_axis(ordered.take(ordd), axis = obj._get_axis_number(axis_name), copy = False)
+            
+        # apply the selection filters (but keep in the same order)
+        if self.selection.filter:
+            for axis, filt in self.selection.filter:
+                obj = reindex(obj, axis, filt, getattr(obj,obj._get_axis_name(axis)))
+
+        return obj
+
     def create_description(self, compression = None, complevel = None):
         """ create the description of the table from the axes & values """
 
@@ -1556,8 +1572,7 @@ class LegacyTable(Table):
         
         if not self.read_axes(where): return None
 
-        indicies = [ i.values for i in self.index_axes ]
-        factors  = [ Categorical.from_array(i) for i in indicies ]
+        factors  = [ Categorical.from_array(a.values) for a in self.index_axes ]
         levels   = [ f.levels for f in factors ]
         N        = [ len(f.levels) for f in factors ]
         labels   = [ f.labels for f in factors ]
@@ -1597,7 +1612,8 @@ class LegacyTable(Table):
                        'appended')
 
             # reconstruct
-            long_index = MultiIndex.from_arrays(indicies)
+            long_index = MultiIndex.from_arrays([ i.values for i in self.index_axes ])
+
 
             for c in self.values_axes:
                 lp = DataFrame(c.data, index=long_index, columns=c.values)
@@ -1627,12 +1643,8 @@ class LegacyTable(Table):
         for axis,labels in self.non_index_axes:
             wp = wp.reindex_axis(labels,axis=axis,copy=False)
 
-        # apply the selection filters (but keep in the same order)
-        if self.selection.filter:
-            filter_axis_name = wp._get_axis_name(self.non_index_axes[0][0])
-            ordered  = getattr(wp,filter_axis_name)
-            new_axis = sorted(ordered & self.selection.filter)
-            wp = wp.reindex(**{ filter_axis_name : new_axis, 'copy' : False })
+        # apply the selection filters & axis orderings
+        wp = self.process_axes(wp)
 
         return wp
 
@@ -1736,10 +1748,10 @@ class AppendableTable(LegacyTable):
         # create the selection
         table = self.table
         self.selection = Selection(self, where)
-        self.selection.select_coords()
+        values = self.selection.select_coords()
 
         # delete the rows in reverse order
-        l  = Series(self.selection.values).order()
+        l  = Series(values).order()
         ln = len(l)
 
         if ln:
@@ -1792,7 +1804,7 @@ class AppendableFrameTable(AppendableTable):
 
         if not self.read_axes(where): return None
 
-        index   = Index(self.index_axes[0].values)
+        index   = self.index_axes[0].values
         frames  = []
         for a in self.values_axes:
             columns = Index(a.values)
@@ -1815,16 +1827,8 @@ class AppendableFrameTable(AppendableTable):
         for axis,labels in self.non_index_axes:
             df = df.reindex_axis(labels,axis=axis,copy=False)
 
-        # apply the selection filters (but keep in the same order)
-        filter_axis_name = df._get_axis_name(self.non_index_axes[0][0])
-
-        ordered = getattr(df,filter_axis_name)
-        if self.selection.filter:
-            ordd = ordered & self.selection.filter
-            ordd = sorted(ordered.get_indexer(ordd))
-            df      = df.reindex(**{ filter_axis_name : ordered.take(ordd), 'copy' : False })
-        else:
-            df      = df.reindex(**{ filter_axis_name : ordered , 'copy' : False })
+        # apply the selection filters & axis orderings
+        df = self.process_axes(df)
 
         return df
 
@@ -2185,11 +2189,11 @@ class Term(object):
 
                 # use a filter after reading
                 else:
-                    self.filter = set([ v[1] for v in values ])
+                    self.filter = (self.field,Index([ v[1] for v in values ]))
 
             else:
 
-                self.filter = set([ v[1] for v in values ])
+                self.filter = (self.field,Index([ v[1] for v in values ]))
 
         else:
 
@@ -2234,7 +2238,6 @@ class Selection(object):
     def __init__(self, table, where=None):
         self.table      = table
         self.where      = where
-        self.values     = None
         self.condition  = None
         self.filter     = None
         self.terms      = self.generate(where)
@@ -2244,10 +2247,10 @@ class Selection(object):
             conds = [ t.condition for t in self.terms if t.condition is not None ]
             if len(conds):
                 self.condition = "(%s)" % ' & '.join(conds)
-            self.filter    = set()
+            self.filter = []
             for t in self.terms:
                 if t.filter is not None:
-                    self.filter |= t.filter
+                    self.filter.append(t.filter)
 
     def generate(self, where):
         """ where can be a : dict,list,tuple,string """
@@ -2268,15 +2271,15 @@ class Selection(object):
         generate the selection
         """
         if self.condition is not None:
-            self.values = self.table.table.readWhere(self.condition)
+            return self.table.table.readWhere(self.condition)
         else:
-            self.values = self.table.table.read()
+            return self.table.table.read()
 
     def select_coords(self):
         """
         generate the selection
         """
-        self.values = self.table.table.getWhereList(self.condition, sort = True)
+        return self.table.table.getWhereList(self.condition, sort = True)
 
 
 def _get_index_factory(klass):

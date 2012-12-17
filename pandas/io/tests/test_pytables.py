@@ -1080,12 +1080,25 @@ class TestHDFStore(unittest.TestCase):
         wp = tm.makePanel()
 
         # put/select ok
+        self.store.remove('wp')
         self.store.put('wp', wp, table=True)
         self.store.select('wp')
 
         # non-table ok (where = None)
+        self.store.remove('wp')
         self.store.put('wp2', wp, table=False)
         self.store.select('wp2')
+
+        # selection on the non-indexable with a large number of columns
+        wp = Panel(np.random.randn(100, 100, 100), items = [ 'Item%03d' % i for i in xrange(100) ],
+                   major_axis=date_range('1/1/2000', periods=100), minor_axis = [ 'E%03d' % i for i in xrange(100) ])
+
+        self.store.remove('wp')
+        self.store.append('wp', wp)
+        items = [ 'Item%03d' % i for i in xrange(80) ]
+        result = self.store.select('wp', Term('items', items))
+        expected = wp.reindex(items = items)
+        tm.assert_panel_equal(expected, result)
 
         # selectin non-table with a where
         #self.assertRaises(Exception, self.store.select,

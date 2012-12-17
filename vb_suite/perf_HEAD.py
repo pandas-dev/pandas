@@ -20,7 +20,7 @@ def get_travis_data():
     import os
     jobid=os.environ.get("TRAVIS_JOB_ID")
     if not jobid:
-        return None
+        return None, None
 
     workers=json.loads(urllib2.urlopen("https://api.travis-ci.org/workers/").read())
 
