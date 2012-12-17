@@ -212,6 +212,7 @@ otherwise they can be found in :mod:`pandas.stats.moments`.
     ``rolling_cov``, Unbiased covariance (binary)
     ``rolling_corr``, Correlation (binary)
     ``rolling_corr_pairwise``, Pairwise correlation of DataFrame columns
+    ``rolling_window``, Moving window function
 
 Generally these methods all have the same interface. The binary operators
 (e.g. ``rolling_corr``) take two Series or DataFrames. Otherwise, they all
@@ -264,6 +265,58 @@ compute the mean absolute deviation on a rolling basis:
    mad = lambda x: np.fabs(x - x.mean()).mean()
    @savefig rolling_apply_ex.png width=4.5in
    rolling_apply(ts, 60, mad).plot(style='k')
+
+The ``rolling_window`` function performs a generic rolling window computation
+on the input data. The weights used in the window are specified by the ``win_type``
+keyword. The list of recognized types are:
+
+    - ``boxcar``
+    - ``triang``
+    - ``blackman``
+    - ``hamming``
+    - ``bartlett``
+    - ``parzen``
+    - ``bohman``
+    - ``blackmanharris``
+    - ``nuttall``
+    - ``barthann``
+    - ``kaiser`` (needs beta)
+    - ``gaussian`` (needs std)
+    - ``general_gaussian`` (needs power, width)
+    - ``slepian`` (needs width).
+
+.. ipython:: python
+
+   ser = Series(randn(10), index=date_range('1/1/2000', periods=10))
+
+   rolling_window(ser, 5, 'triang')
+
+Note that the ``boxcar`` window is equivalent to ``rolling_mean``:
+
+.. ipython:: python
+
+   rolling_window(ser, 5, 'boxcar')
+
+   rolling_mean(ser, 5)
+
+For some windowing functions, additional parameters must be specified:
+
+.. ipython:: python
+
+   rolling_window(ser, 5, 'gaussian', std=0.1)
+
+By default the labels are set to the right edge of the window, but a
+``center`` keyword is available so the labels can be set at the center.
+This keyword is available in other rolling functions as well.
+
+.. ipython:: python
+
+   rolling_window(ser, 5, 'boxcar')
+
+   rolling_window(ser, 5, 'boxcar', center=True)
+
+   rolling_mean(ser, 5, center=True)
+
 
 .. _stats.moments.binary:
 
@@ -634,4 +687,3 @@ Result fields and tests
 
 We'll leave it to the user to explore the docstrings and source, especially as
 we'll be moving this code into statsmodels in the near future.
-
