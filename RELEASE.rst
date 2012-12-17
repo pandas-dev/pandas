@@ -25,7 +25,7 @@ Where to get it
 pandas 0.10.0
 =============
 
-**Release date:** Not yet released
+**Release date:** 2012-12-17
 
 **New features**
 
