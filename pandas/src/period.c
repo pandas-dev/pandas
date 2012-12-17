@@ -421,14 +421,6 @@ static npy_int64 transform_via_day(npy_int64 ordinal, char relation, asfreq_info
     return result;
 }
 
-static npy_int64 absdate_from_ymd(int y, int m, int d) {
-    struct date_info tempDate;
-    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
-        return INT_ERR_CODE;
-    }
-    return tempDate.absdate;
-}
-
 static npy_int64 DtoB_weekday(npy_int64 absdate) {
     return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
 }
@@ -439,6 +431,14 @@ static npy_int64 DtoB_WeekendToMonday(npy_int64 absdate, int day_of_week) {
         absdate += (7 - day_of_week);
     }
     return DtoB_weekday(absdate);
+}
+
+static npy_int64 absdate_from_ymd(int y, int m, int d) {
+    struct date_info tempDate;
+    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
+        return INT_ERR_CODE;
+    }
+    return tempDate.absdate;
 }
 
 static npy_int64 DtoB_WeekendToFriday(npy_int64 absdate, int day_of_week) {
