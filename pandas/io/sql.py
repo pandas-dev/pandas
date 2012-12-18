@@ -241,9 +241,10 @@ def table_exists(name, con, flavor):
 
 def get_sqltype(pytype, flavor):
     sqltype = {'mysql': 'VARCHAR (63)',
-               'sqlite': 'TEXT'}
-
-    if issubclass(pytype, np.floating):
+                'oracle': 'VARCHAR2',
+                'sqlite': 'TEXT',
+                'postgresql': 'TEXT'}
+    if issubclass(pytype, np.number):
         sqltype['mysql'] = 'FLOAT'
         sqltype['sqlite'] = 'REAL'
 

@@ -1,6 +1,7 @@
 from pandas.util.py3compat import StringIO
 import unittest
 import sqlite3
+import MySQLdb
 import sys
 
 import nose
@@ -13,6 +14,40 @@ from pandas.core.api import DataFrame, isnull
 import pandas.io.sql as sql
 import pandas.util.testing as tm
 from pandas import Series, Index, DataFrame
+from datetime import datetime
+
+_formatters = {
+    datetime: lambda dt: "'%s'" % date_format(dt),
+    str: lambda x: "'%s'" % x,
+    np.str_: lambda x: "'%s'" % x,
+    unicode: lambda x: "'%s'" % x,
+    float: lambda x: "%.8f" % x,
+    int: lambda x: "%s" % x,
+    type(None): lambda x: "NULL",
+    np.float64: lambda x: "%.10f" % x,
+    bool: lambda x: "'%s'" % x,
+}
+
+def format_query(sql, *args):
+    """
+
+    """
+    processed_args = []
+    for arg in args:
+        if isinstance(arg, float) and isnull(arg):
+            arg = None
+
+        formatter = _formatters[type(arg)]
+        processed_args.append(formatter(arg))
+
+    return sql % tuple(processed_args)
+
+def _skip_if_no_MySQLdb():
+    try:
+        import MySQLdb
+    except ImportError:
+        raise nose.SkipTest('MySQLdb not installed, skipping')
+
 from datetime import datetime
 
 _formatters = {
@@ -218,19 +253,15 @@ class TestSQLite(unittest.TestCase):
         df = DataFrame({'From':np.ones(5)})
         sql.write_frame(df, con = self.db, name = 'testkeywords')
 
-
 class TestMySQL(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
-        try:
-            import MySQLdb
-        except ImportError:
-            raise nose.SkipTest
+        _skip_if_no_MySQLdb()
         try:
             self.db = MySQLdb.connect(read_default_group='pandas')
         except MySQLdb.Error, e:
             raise nose.SkipTest(
-                "Cannot connect to database. "
+                "Cannot connect to database. " 
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
@@ -239,6 +270,7 @@ class TestMySQL(unittest.TestCase):
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+            
 
     def test_basic(self):
         _skip_if_no_MySQLdb()
@@ -261,6 +293,7 @@ class TestMySQL(unittest.TestCase):
 
         self.db.commit()
 
+>>>>>>> added mysql nosetests and made them optional
         result = sql.read_frame("select * from test", con=self.db)
         result.index = frame.index
         tm.assert_frame_equal(result, frame)
@@ -386,10 +419,7 @@ class TestMySQL(unittest.TestCase):
         tm.assert_frame_equal(expected, result)
 
     def test_tquery(self):
-        try:
-            import MySQLdb
-        except ImportError:
-            raise nose.SkipTest
+        _skip_if_no_MySQLdb()
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.db.cursor()
@@ -411,10 +441,7 @@ class TestMySQL(unittest.TestCase):
             sys.stdout = sys.__stdout__
 
     def test_uquery(self):
-        try:
-            import MySQLdb
-        except ImportError:
-            raise nose.SkipTest
+        _skip_if_no_MySQLdb()
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.db.cursor()
