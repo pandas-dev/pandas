@@ -21,27 +21,23 @@ import pandas.algos as _algos
 # Period logic
 
 def _period_field_accessor(name, alias):
-
-    @property
     def f(self):
         base, mult = _gfc(self.freq)
         return tslib.get_period_field(alias, self.ordinal, base)
 
     f.__name__ = name
 
-    return f
+    return property(f)
 
 
 def _field_accessor(name, alias):
-
-    @property
     def f(self):
         base, mult = _gfc(self.freq)
         return tslib.get_period_field_arr(alias, self.values, base)
 
     f.__name__ = name
 
-    return f
+    return property(f)
 
 
 class Period(object):
@@ -79,8 +75,8 @@ class Period(object):
         self.ordinal = None
 
         if ordinal is not None and value is not None:
-            raise ValueError(("Only value or ordinal but not both should be "
-                              "given but not both"))
+            raise ValueError("Only value or ordinal but not both should be "
+                             "given but not both")
         elif ordinal is not None:
             if not com.is_integer(ordinal):
                 raise ValueError("Ordinal must be an integer")
@@ -120,8 +116,8 @@ class Period(object):
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
         else:
-            msg = "Value must be Period, string, integer, or datetime"
-            raise ValueError(msg)
+            raise ValueError("Value must be Period, string, integer, or "
+                             "datetime")
 
         base, mult = _gfc(freq)
         if mult != 1:
@@ -618,7 +614,7 @@ class PeriodIndex(Int64Index):
                     base1, _ = _gfc(data.freq)
                     base2, _ = _gfc(freq)
                     data = tslib.period_asfreq_arr(data.values, base1,
-                                                   base2, 1)
+                                                   base2, 'E')
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq', None)
@@ -1153,7 +1149,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
             y, m = _quarter_to_myear(y, q, freq)
-            val = tslib.period_ordinal(y, m, 1, 1, 1, 1, base)
+            val = tslib.period_ordinal(y, m, 1, 1, 1, 1, 1, base)
             ordinals.append(val)
     else:
         base, mult = _gfc(freq)

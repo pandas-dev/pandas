@@ -1688,33 +1688,39 @@ cdef ndarray[i8] localize_dt64arr_to_period(ndarray[i8] stamps,
 cdef extern from "period.h":
     ctypedef struct date_info:
         i8 absdate
-        double abstime
-        double second
-        int minute
-        int hour
-        int day
-        int month
-        int quarter
-        int year
-        int day_of_week
-        int day_of_year
-        int calendar
+        i8 abstime
+
+        i8 attosecond
+        i8 femtosecond
+        i8 picosecond
+        i8 nanosecond
+        i8 microsecond
+        i8 second
+        i8 minute
+        i8 hour
+        i8 day
+        i8 month
+        i8 quarter
+        i8 year
+        i8 day_of_week
+        i8 day_of_year
+        i8 calendar
 
     ctypedef struct asfreq_info:
-        int from_week_end
-        int to_week_end
+        i8 from_week_end
+        i8 to_week_end
 
-        int from_a_year_end
-        int to_a_year_end
+        i8 from_a_year_end
+        i8 to_a_year_end
 
-        int from_q_year_end
-        int to_q_year_end
+        i8 from_q_year_end
+        i8 to_q_year_end
 
     ctypedef i8 (*freq_conv_func)(i8, char*, asfreq_info*)
 
-    i8 asfreq(i8 dtordinal, int freq1, int freq2, char* relation) except INT64_MIN
-    freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
-    void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
+    i8 asfreq(i8 ordinal, i8 freq1, i8 freq2, char* relation) except INT64_MIN
+    freq_conv_func get_asfreq_func(i8 fromFreq, i8 toFreq)
+    void get_asfreq_info(i8 fromFreq, i8 toFreq, asfreq_info *af_info)
 
     i8 get_period_ordinal(i8 year, i8 month, i8 day,
                           i8 hour, i8 minute, i8 second, i8 microsecond,
@@ -1851,8 +1857,8 @@ def period_asfreq_arr(ndarray[i8] arr, int freq1, int freq2, char* relation):
     return result
 
 
-cpdef i8 period_ordinal(i8 y, i8 m, i8 d, i8 h, i8 min, i8 s, i8, us, i8 freq):
-    cdef int64_t ordinal = get_period_ordinal(y, m, d, h, min, s, us, freq)
+cpdef i8 period_ordinal(i8 y, i8 m, i8 d, i8 h, i8 min, i8 s, i8 us, i8 freq):
+    cdef i8 ordinal = get_period_ordinal(y, m, d, h, min, s, us, freq)
     return ordinal
 
 
@@ -1868,8 +1874,9 @@ cpdef i8 period_ordinal_to_dt64(i8 ordinal, int freq):
     dts.day = dinfo.day
     dts.hour = dinfo.hour
     dts.min = dinfo.minute
-    dts.sec = int(dinfo.second)
-    dts.us = dts.ps = 0
+    dts.sec = dinfo.second
+    dts.us = dinfo.microsecond
+    dts.ps = 0
 
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 

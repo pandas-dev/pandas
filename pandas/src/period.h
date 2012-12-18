@@ -28,16 +28,16 @@ enum CalendarType {
 
 #define SECONDS_PER_DAY 86400L
 
-#define Py_AssertWithArg(x, errortype, errorstr, a1) {  \
-        if (!(x)) {                                     \
-            PyErr_Format(errortype, errorstr, a1);      \
-            goto onError;                               \
-        }                                               \
+#define Py_AssertWithArg(x, errortype, errorstr, a1) {      \
+        if (!((x))) {                                       \
+            PyErr_Format((errortype), (errorstr), (a1));    \
+            goto onError;                                   \
+        }                                                   \
     }
 
-#define Py_Error(errortype, errorstr) {         \
-        PyErr_SetString(errortype, errorstr);   \
-        goto onError;                           \
+#define Py_Error(errortype, errorstr) {             \
+        PyErr_SetString((errortype), (errorstr));   \
+        goto onError;                               \
     }
 
 
@@ -114,7 +114,7 @@ enum Daily { FR_DAY = 6000 };
 enum Hourly { FR_HR = 7000 };
 enum Minutely { FR_MIN = 8000 };
 enum Secondly { FR_SEC = 9000 };
-enum Microsecondly { FR_USEC = 11000 };
+enum Microsecondly { FR_USEC = 10000 };
 
 /* #define FR_BUS  5000  /\* Business days *\/ */
 /* #define FR_DAY  6000  /\* Daily *\/ */
@@ -169,6 +169,9 @@ typedef struct date_info {
     i8 absdate;
     i8 abstime;
 
+    i8 attosecond;
+    i8 femtosecond;
+    i8 picosecond;
     i8 nanosecond;
     i8 microsecond;
     i8 second;
