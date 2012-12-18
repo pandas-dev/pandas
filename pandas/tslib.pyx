@@ -1912,7 +1912,7 @@ def period_format(i8 value, int freq, object fmt=None):
         elif freq_group == 9000: # SEC
             fmt = b'%Y-%m-%d %H:%M:%S'
         elif freq_group == 10000: # USEC
-            fmt = b'%Y-%m-%d %H:%M:%S.%%u'
+            fmt = b'%Y-%m-%d %H:%M:%S.%%.6u'
         else:
             raise ValueError('Unknown freq: %d' % freq)
 

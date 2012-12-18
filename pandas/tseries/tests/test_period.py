@@ -204,7 +204,7 @@ class TestPeriodProperties(TestCase):
         self.assertEqual(s, '2000-01-01 12:34:12')
 
         p = Period('2001-1-1 12:34:12', freq='U')
-        s = p.strftime('%Y-%m-%d %H:%M:%S.%u')
+        s = p.strftime('%Y-%m-%d %H:%M:%S.%%.6u')
         self.assertEqual(s, '2001-01-01 12:34:12.000000')
 
     def test_sub_delta(self):
@@ -527,7 +527,8 @@ class TestFreqConversion(TestCase):
         ival_A_to_U_start = Period(freq='U', year=2007, month=1, day=1,
                                    hour=0, minute=0, second=0, microsecond=0)
         ival_A_to_U_end = Period(freq='U', year=2007, month=12, day=31,
-                                 hour=23, minute=59, second=59, microsecond=999999)
+                                 hour=23, minute=59, second=59,
+                                 microsecond=999999)
 
         ival_AJAN_to_D_end = Period(freq='D', year=2007, month=1, day=31)
         ival_AJAN_to_D_start = Period(freq='D', year=2006, month=2, day=1)
@@ -1123,7 +1124,6 @@ class TestFreqConversion(TestCase):
 
         assert_equal(ival_S.asfreq('U', 'S'), ival_S_to_U_start)
         assert_equal(ival_S.asfreq('U', 'E'), ival_S_to_U_end)
-
         assert_equal(ival_S.asfreq('S'), ival_S)
 
     def test_conv_microsecondly(self):
@@ -1406,7 +1406,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.index.equals(exp_index))
 
         result = series.to_timestamp('U', 'end')
-        delta = timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
+        delta = timedelta(hours=23, minutes=59, seconds=59,
+                          microseconds=999999)
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
 
@@ -1520,7 +1521,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.index.equals(exp_index))
 
         result = df.to_timestamp('U', 'end')
-        delta = timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
+        delta = timedelta(hours=23, minutes=59, seconds=59,
+                          microseconds=999999)
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
 
@@ -1552,7 +1554,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.columns.equals(exp_index))
 
         result = df.to_timestamp('U', 'end', axis=1)
-        delta = timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
+        delta = timedelta(hours=23, minutes=59, seconds=59,
+                          microseconds=999999)
         exp_index = _get_with_delta(delta)
         self.assert_(result.columns.equals(exp_index))
 
@@ -1603,8 +1606,9 @@ class TestPeriodIndex(TestCase):
         pi = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 23:59:59')
         assert_equal(len(pi), 24 * 60 * 60)
 
-        pi = self.assertRaises(MemoryError, PeriodIndex, freq='U', start='1/1/2001',
-                        end='1/1/2001 23:59:59.999999')
+        pi = self.assertRaises(MemoryError, PeriodIndex, freq='U',
+                               start='1/1/2001',
+                               end='1/1/2001 23:59:59.999999')
         # assert_equal(len(pi), 24 * 60 * 60 * 1000000)
 
         start = Period('02-Apr-2005', 'B')
@@ -1788,7 +1792,7 @@ class TestPeriodIndex(TestCase):
 
     def test_frame_index_to_string(self):
         index = PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')
-        frame = DataFrame(np.random.randn(3,4), index=index)
+        frame = DataFrame(np.random.randn(3, 4), index=index)
 
         # it works!
         frame.to_string()
@@ -2035,11 +2039,11 @@ class TestPeriodIndex(TestCase):
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='S', start='12/31/2001 00:00:00',
-                        end='12/31/2001 00:05:00')
+                         end='12/31/2001 00:05:00')
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='U', start='12/31/2001 00:00:00.000000',
-                        end='12/31/2001 00:05:00.000000')
+                         end='12/31/2001 00:00:00.000500')
         self._check_all_fields(pi)
 
         end_intv = Period('2006-12-31', 'W')
