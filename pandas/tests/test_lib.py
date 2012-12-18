@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from pandas.core.api import TimeStamp
+from pandas.core.api import Timestamp
 
 class TestTimestamp(unittest.TestCase):
 
