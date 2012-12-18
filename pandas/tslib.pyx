@@ -1,7 +1,7 @@
 # cython: profile=False
 
 cimport numpy as np
-from numpy cimport (int32_t as i4, int64_t, import_array, ndarray,
+from numpy cimport (int32_t as i4, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME)
 import numpy as np
 
@@ -10,8 +10,8 @@ ctypedef int64_t i8
 from cpython cimport *
 
 # Cython < 0.17 doesn't have this in cpython
-cdef extern from "Python.h":
-    cdef PyTypeObject *Py_TYPE(object)
+# cdef extern from "Python.h":
+    # cdef int PyObject_TypeCheck(PyObject*, PyTypeObject*)
 
 
 from libc.stdlib cimport free
@@ -319,13 +319,16 @@ cdef _tz_format(object obj, object zone):
         return ', tz=%s' % zone
 
 
-def is_timestamp_array(ndarray[object] values):
+def is_timestamp_array(object[:] values):
     cdef int i, n = len(values)
-    if n == 0:
+
+    if not n:
         return False
+
     for i in range(n):
         if not is_timestamp(values[i]):
             return False
+
     return True
 
 
@@ -529,7 +532,8 @@ cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
 
 
 cdef inline bint is_timestamp(object o):
-    return Py_TYPE(o) == ts_type # isinstance(o, Timestamp)
+    cdef bint isa = PyObject_TypeCheck(o, ts_type)
+    return isa
 
 
 cdef class _NaT(_Timestamp):
