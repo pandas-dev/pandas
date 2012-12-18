@@ -649,7 +649,6 @@ def _possibly_cast_item(obj, item, dtype):
         elif not issubclass(dtype, (np.integer, np.bool_)):  # pragma: no cover
             raise ValueError("Unexpected dtype encountered: %s" % dtype)
 
-
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
         key = np.asarray(key)
