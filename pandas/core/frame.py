@@ -1051,7 +1051,7 @@ class DataFrame(NDFrame):
 
         return DataFrame(mgr)
 
-    def to_records(self, index=True):
+    def to_records(self, index=True, convert_datetime64=True):
         """
         Convert DataFrame to record array. Index will be put in the
         'index' field of the record array if requested
@@ -1060,16 +1060,20 @@ class DataFrame(NDFrame):
         ----------
         index : boolean, default True
             Include index in resulting record array, stored in 'index' field
+        convert_datetime64 : boolean, default True
+            Whether to convert the index to datetime.datetime if it is a
+            DatetimeIndex
 
         Returns
         -------
         y : recarray
         """
         if index:
-            if (com.is_datetime64_dtype(self.index)):
-                arrays = [self.index.asobject.values] + [self[c].values for c in self.columns]
+            if com.is_datetime64_dtype(self.index) and convert_datetime64:
+                ix_vals = [self.index.to_pydatetime()]
             else:
-                arrays = [self.index.values] + [self[c].values for c in self.columns]
+                ix_vals = [self.index.values]
+            arrays = ix_vals + [self[c].values for c in self.columns]
 
             count = 0
             index_names = self.index.names
