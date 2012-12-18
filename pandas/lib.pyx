@@ -749,24 +749,45 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def create_hdf_rows_2d(ndarray indexer0, ndarray[np.uint8_t, ndim=1] mask,
-                       list values):
+def max_len_string_array(ndarray arr):
+    """ return the maximum size of elements in a strnig array """
+    cdef:
+        int i, n_i, n_j, m, l
+
+    n_i = arr.shape[0]
+    m = 0
+    for i from 0 <= i < n_i:
+        n_j = len(arr[i])
+
+        for j from 0 <= j < n_j:
+        
+            l = len(arr[i,j])
+            if l > m:
+                m = l
+    return m
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def create_hdf_rows_2d(ndarray indexer0, 
+                       ndarray[np.uint8_t, ndim=1] mask,
+                       ndarray[np.uint8_t, ndim=1] searchable,	 
+                       list values):	 
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
         int i, b, n_indexer0, n_blocks, tup_size
-        ndarray v
         list l
-        object tup, val
+        object tup, val, v
 
     n_indexer0 = indexer0.shape[0]
     n_blocks   = len(values)
     tup_size   = n_blocks+1
     l = []
+
     for i from 0 <= i < n_indexer0:
 
         if not mask[i]:
-
+                
             tup = PyTuple_New(tup_size)
             val  = indexer0[i]
             PyTuple_SET_ITEM(tup, 0, val)
@@ -774,7 +795,9 @@ def create_hdf_rows_2d(ndarray indexer0, ndarray[np.uint8_t, ndim=1] mask,
 
             for b from 0 <= b < n_blocks:
 
-                v   = values[b][:, i]
+                v = values[b][:, i]
+                if searchable[b]:
+                    v = v[0]
                 PyTuple_SET_ITEM(tup, b+1, v)
                 Py_INCREF(v)
 
@@ -785,14 +808,15 @@ def create_hdf_rows_2d(ndarray indexer0, ndarray[np.uint8_t, ndim=1] mask,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def create_hdf_rows_3d(ndarray indexer0, ndarray indexer1,
-                       ndarray[np.uint8_t, ndim=2] mask, list values):
+                       ndarray[np.uint8_t, ndim=2] mask, 
+                       ndarray[np.uint8_t, ndim=1] searchable,	 
+                       list values):
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
         int i, j, b, n_indexer0, n_indexer1, n_blocks, tup_size
-        ndarray v
         list l
-        object tup, val
+        object tup, val, v
 
     n_indexer0 = indexer0.shape[0]
     n_indexer1 = indexer1.shape[0]
@@ -818,6 +842,8 @@ def create_hdf_rows_3d(ndarray indexer0, ndarray indexer1,
                 for b from 0 <= b < n_blocks:
 
                     v   = values[b][:, i, j]
+                    if searchable[b]:
+                        v = v[0]
                     PyTuple_SET_ITEM(tup, b+2, v)
                     Py_INCREF(v)
 
@@ -828,14 +854,15 @@ def create_hdf_rows_3d(ndarray indexer0, ndarray indexer1,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def create_hdf_rows_4d(ndarray indexer0, ndarray indexer1, ndarray indexer2,
-                       ndarray[np.uint8_t, ndim=3] mask, list values):
+                       ndarray[np.uint8_t, ndim=3] mask, 
+                       ndarray[np.uint8_t, ndim=1] searchable,	 
+                       list values):
     """ return a list of objects ready to be converted to rec-array format """
 
     cdef:
         int i, j, k, b, n_indexer0, n_indexer1, n_indexer2, n_blocks, tup_size
-        ndarray v
         list l
-        object tup, val
+        object tup, val, v
 
     n_indexer0 = indexer0.shape[0]
     n_indexer1 = indexer1.shape[0]
@@ -868,6 +895,8 @@ def create_hdf_rows_4d(ndarray indexer0, ndarray indexer1, ndarray indexer2,
                     for b from 0 <= b < n_blocks:
 
                         v   = values[b][:, i, j, k]
+                        if searchable[b]:
+                            v = v[0]
                         PyTuple_SET_ITEM(tup, b+3, v)
                         Py_INCREF(v)
 

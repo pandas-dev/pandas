@@ -93,9 +93,9 @@ class TestHDFStore(unittest.TestCase):
         self.store.remove('df1')
         self.store.append('df1', df[:10])
         self.store.append('df1', df[10:])
-        self.assert_(self.store.root.a._v_attrs.pandas_version == '0.10')
-        self.assert_(self.store.root.b._v_attrs.pandas_version == '0.10')
-        self.assert_(self.store.root.df1._v_attrs.pandas_version == '0.10')
+        self.assert_(self.store.root.a._v_attrs.pandas_version == '0.11')
+        self.assert_(self.store.root.b._v_attrs.pandas_version == '0.11')
+        self.assert_(self.store.root.df1._v_attrs.pandas_version == '0.11')
 
         # write a file and wipe its versioning
         self.store.remove('df2')
@@ -287,6 +287,13 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('wp1', wp_append2) 
         tm.assert_panel_equal(self.store['wp1'], wp)
         
+        # dtype issues - mizxed type in a single object column
+        df = DataFrame(data=[[1,2],[0,1],[1,2],[0,0]])
+        df['mixed_column'] = 'testing'
+        df.ix[2,'mixed_column'] = np.nan
+        self.store.remove('df')
+        self.store.append('df', df)
+        tm.assert_frame_equal(self.store['df'],df)
 
     def test_append_frame_column_oriented(self):
 
@@ -415,6 +422,44 @@ class TestHDFStore(unittest.TestCase):
         df_new  = DataFrame([[124,'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
         self.assertRaises(Exception, self.store.append, 'df_new',df_new)
 
+    def test_append_with_data_columns(self):
+
+        df = tm.makeTimeDataFrame()
+        self.store.remove('df')
+        self.store.append('df', df[:2], columns = ['B'])
+        self.store.append('df', df[2:])
+        tm.assert_frame_equal(self.store['df'], df)
+
+        # data column searching
+        result = self.store.select('df', [ Term('B>0') ])
+        expected = df[df.B>0]
+        tm.assert_frame_equal(result, expected)
+
+        # data column searching (with an indexable and a data_columns)
+        result = self.store.select('df', [ Term('B>0'), Term('index','>',df.index[3]) ])
+        df_new = df.reindex(index=df.index[4:])
+        expected = df_new[df_new.B>0]
+        tm.assert_frame_equal(result, expected)
+        
+        # index the columns
+        self.store.create_table_index('df', columns = ['B'])
+        result = self.store.select('df', [ Term('B>0'), Term('index','>',df.index[3]) ])
+        tm.assert_frame_equal(result, expected)
+
+        # check the index
+        assert(self.store.handle.root.df.table.cols.B.is_indexed == True)
+
+        # data column selection with a string data_column
+        df_new = df.copy()
+        df_new['string'] = 'foo'
+        df_new['string'][1:4] = np.nan
+        df_new['string'][5:6] = 'bar'
+        self.store.remove('df')
+        self.store.append('df', df_new, columns = ['string'])
+        result = self.store.select('df', [ Term('string', '=', 'foo') ])
+        expected = df_new[df_new.string == 'foo']
+        tm.assert_frame_equal(result, expected)
+
     def test_create_table_index(self):
         wp = tm.makePanel()
         self.store.append('p5', wp)
@@ -474,23 +519,51 @@ class TestHDFStore(unittest.TestCase):
         tables.__version__ = original
         
 
-    def test_big_table(self):
-        raise nose.SkipTest('no big table')
+    def test_big_table_frame(self):
+        raise nose.SkipTest('no big table frame')
 
         # create and write a big table
-        wp = Panel(np.random.randn(20, 1000, 1000), items= [ 'Item%s' % i for i in xrange(20) ],
-                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%s' % i for i in xrange(1000) ])
+        df = DataFrame(np.random.randn(2000*100, 100), index = range(2000*100), columns = [ 'E%03d' % i for i in xrange(100) ])
+        for x in range(20):
+            df['String%03d' % x] = 'string%03d' % x
+
+        import time
+        x = time.time()
+        try:
+            store = HDFStore(self.scratchpath)
+            store.append('df',df)
+            rows = store.root.df.table.nrows
+            recons = store.select('df')
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+        print "\nbig_table frame [%s] -> %5.2f" % (rows,time.time()-x)
+
+    def test_big_table_panel(self):
+        raise nose.SkipTest('no big table panel')
+
+        # create and write a big table
+        wp = Panel(np.random.randn(20, 1000, 1000), items= [ 'Item%03d' % i for i in xrange(20) ],
+                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%03d' % i for i in xrange(1000) ])
 
         wp.ix[:,100:200,300:400] = np.nan
 
+        for x in range(100):
+            wp['String%03d'] = 'string%03d' % x
+
+        import time
+        x = time.time()
         try:
             store = HDFStore(self.scratchpath)
-            store._debug_memory = True
-            store.append('wp',wp)
+            store.prof_append('wp',wp)
+            rows = store.root.wp.table.nrows
             recons = store.select('wp')
         finally:
             store.close()
             os.remove(self.scratchpath)
+
+        print "\nbig_table panel [%s] -> %5.2f" % (rows,time.time()-x)
 
     def test_append_diff_item_order(self):
         raise nose.SkipTest('append diff item order')
@@ -1236,6 +1309,14 @@ class TestHDFStore(unittest.TestCase):
         self.assertRaises(Exception, store.select, 'wp1', Term('minor_axis','=','B'))
         warnings.filterwarnings('always', category=IncompatibilityWarning)
 
+        store.close()
+
+    def test_legacy_0_10_read(self):
+        # legacy from 0.10
+        pth = curpath()
+        store = HDFStore(os.path.join(pth, 'legacy_0.10.h5'), 'r')
+        for k in store.keys():
+            store.select(k)
         store.close()
 
     def test_legacy_table_write(self):

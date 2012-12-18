@@ -1095,7 +1095,7 @@ Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
-Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools`` are currently supported.
+Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools`` are currently supported. For string columns, passing ``nan_rep = 'my_nan_rep'`` to append will change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
 
 .. ipython:: python
 
@@ -1115,7 +1115,6 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
 
 Querying a Table
 ~~~~~~~~~~~~~~~~
-
 ``select`` and ``delete`` operations have an optional criteria that can be specified to select/delete only
 a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
 
@@ -1159,6 +1158,30 @@ You can create an index for a table with ``create_table_index`` after data is al
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
+
+Query via Data Columns
+~~~~~~~~~~~~~~~~~~~~~~
+You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this this common operation, on-disk, and return just the frame that matches this query.
+
+.. ipython:: python
+
+   df['string'] = 'foo'
+   df.ix[4:6,'string'] = np.nan
+   df.ix[7:9,'string'] = 'bar'
+   df
+
+   # on-disk operations
+   store.append('df_dc', df, columns = ['B','string'])
+   store.select('df_dc',[ Term('B>0') ])
+
+   # getting creative
+   store.select('df_dc',[ Term('B>0'), Term('string=foo') ])
+
+   # index the data_column
+   store.create_table_index('df_dc', columns = ['B'])
+   store.root.df_dc.table
+
+There is some performance degredation by making lots of columns into `data columns`, so it is up to the user to designate these.
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~
