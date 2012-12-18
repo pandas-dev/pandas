@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import datetime
 
 from pandas.core.api import Timestamp
 
