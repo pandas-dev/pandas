@@ -1124,7 +1124,7 @@ static i8 get_abs_time(i8 freq, i8 daily_ord, i8 ordinal) {
         break;
 
     default:
-        return 0L; // 24*60*60 - 1;
+        return 0L;
     }
 
     start_ord = asfreq_DtoHIGHFREQ(daily_ord, "S", per_day);
