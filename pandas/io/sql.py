@@ -277,7 +277,10 @@ def get_schema(frame, name, flavor, keys=None):
         columns = ',\n  '.join('[%s] %s' % x for x in column_types)
     else:
         columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+<<<<<<< HEAD
 
+=======
+>>>>>>> added test keyword_as_column_names
     keystr = ''
     if keys is not None:
         if isinstance(keys, basestring):
