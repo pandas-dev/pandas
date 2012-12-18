@@ -1,7 +1,6 @@
 from pandas.util.py3compat import StringIO
 import unittest
 import sqlite3
-import MySQLdb
 import sys
 
 import nose
@@ -256,7 +255,10 @@ class TestSQLite(unittest.TestCase):
 class TestMySQL(unittest.TestCase):
     _multiprocess_can_split_ = True
     def setUp(self):
-        _skip_if_no_MySQLdb()
+        try:
+            import MySQLdb 
+        except ImportError:
+            raise nose.SkipTest
         try:
             self.db = MySQLdb.connect(read_default_group='pandas')
         except MySQLdb.Error, e:
@@ -270,7 +272,6 @@ class TestMySQL(unittest.TestCase):
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
-            
 
     def test_basic(self):
         _skip_if_no_MySQLdb()
@@ -419,7 +420,10 @@ class TestMySQL(unittest.TestCase):
         tm.assert_frame_equal(expected, result)
 
     def test_tquery(self):
-        _skip_if_no_MySQLdb()
+        try:
+            import MySQLdb 
+        except ImportError:
+            raise nose.SkipTest
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.db.cursor()
@@ -441,7 +445,10 @@ class TestMySQL(unittest.TestCase):
             sys.stdout = sys.__stdout__
 
     def test_uquery(self):
-        _skip_if_no_MySQLdb()
+        try:
+            import MySQLdb 
+        except ImportError:
+            raise nose.SkipTest
         frame = tm.makeTimeDataFrame()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.db.cursor()
