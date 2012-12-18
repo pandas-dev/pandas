@@ -399,7 +399,15 @@ static i8 asfreq_DtoHIGHFREQ(i8 ordinal, const char* relation, i8 per_day) {
     if (!strcmp(relation, "S"))
         return ordinal * per_day;
     else
-        return (ordinal + 1L) * per_day - 1L;
+        return (ordinal + 1) * per_day - 1;
+}
+
+static i8 asfreq_StoHIGHFREQ(i8 ordinal, const char* relation, i8 per_sec) {
+    if (!strcmp(relation, "S"))
+        return ordinal * per_sec;
+    else
+        return (ordinal + 1) * per_sec - 1;
+
 }
 
 static i8 asfreq_DtoH(i8 ordinal, const char* relation, asfreq_info *af_info) {
@@ -881,7 +889,7 @@ static i8 asfreq_UtoT(i8 ordinal, const char* relation, asfreq_info *af_info) {
 
 
 static i8 asfreq_StoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
-    return asfreq_DtoU(asfreq_StoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+    return asfreq_StoHIGHFREQ(ordinal, relation, US_PER_SECOND);
 }
 
 static i8 asfreq_AtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
@@ -904,15 +912,14 @@ static i8 asfreq_BtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
     return asfreq_DtoU(asfreq_BtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
-static i8 asfreq_HtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
-    /* return ordinal * US_PER_HOUR; */
-    return asfreq_DtoU(asfreq_HtoD(ordinal, relation, af_info), relation,
-                       af_info);
+static i8 asfreq_TtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_TtoS(ordinal, relation, &NULL_AF_INFO), relation,
+                       &NULL_AF_INFO);
 }
 
-static i8 asfreq_TtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
-    return asfreq_DtoU(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation,
-                       &NULL_AF_INFO);
+static i8 asfreq_HtoU(i8 ordinal, const char* relation, asfreq_info *af_info) {
+    return asfreq_TtoU(asfreq_HtoT(ordinal, relation, af_info), relation,
+                       af_info);
 }
 
 
