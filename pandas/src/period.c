@@ -1741,7 +1741,7 @@ c_strftime(date_info *tmp, char *fmt)
     c_date.tm_yday = dinfo.day_of_year - 1L;
     c_date.tm_isdst = -1L;
 
-    // this will be freed in cython
+    // this must be freed by the caller (right now this is in cython)
     char* result = malloc(result_len * sizeof(char));
     strftime(result, result_len, fmt, &c_date);
     return result;
