@@ -13,7 +13,6 @@
 #include "limits.h"
 
 typedef int64_t i8;
-typedef int32_t i4;
 
 /*
  * declarations from period here
@@ -27,7 +26,7 @@ enum CalendarType {
 /* #define GREGORIAN_CALENDAR 0 */
 /* #define JULIAN_CALENDAR 1 */
 
-#define SECONDS_PER_DAY 86400L
+static const i8 SECONDS_PER_DAY = 86400;
 
 #define Py_AssertWithArg(x, errortype, errorstr, a1) {      \
         if (!((x))) {                                       \

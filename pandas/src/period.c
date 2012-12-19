@@ -13,6 +13,7 @@
  * Code derived from scikits.timeseries
  * ------------------------------------------------------------------*/
 
+#include <stdbool.h>
 
 static i8
 mod_compat(i8 x, i8 m)
@@ -51,10 +52,10 @@ static i8 days_in_month[2][12] = {
 };
 
 /* Return 1/0 iff year points to a leap year in calendar. */
-static i8
+static bool
 dInfoCalc_Leapyear(i8 year, i8 calendar)
 {
-    i4 ymod4_is0 = year % 4 == 0;
+    bool ymod4_is0 = year % 4 == 0;
 
     if (calendar == GREGORIAN)
         return ymod4_is0 && (year % 100 != 0 || year % 400 == 0);
