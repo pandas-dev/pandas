@@ -460,6 +460,25 @@ class TestHDFStore(unittest.TestCase):
         expected = df_new[df_new.string == 'foo']
         tm.assert_frame_equal(result, expected)
 
+        # multiple data columns
+        df_new = df.copy()
+        df_new['string'] = 'foo'
+        df_new['string'][1:4] = np.nan
+        df_new['string'][5:6] = 'bar'
+        df_new['string2'] = 'foo'
+        df_new['string2'][2:5] = np.nan
+        df_new['string2'][7:8] = 'bar'
+        self.store.remove('df')
+        self.store.append('df', df_new, columns = ['A','B','string','string2'])
+        result = self.store.select('df', [ Term('string', '=', 'foo'), Term('string2=foo'), Term('A>0'), Term('B<0') ])
+        expected = df_new[(df_new.string == 'foo') & (df_new.string2 == 'foo') & (df_new.A > 0) & (df_new.B < 0)]
+        tm.assert_frame_equal(result, expected)
+
+        # yield an empty frame
+        result = self.store.select('df', [ Term('string', '=', 'foo'), Term('string2=bar'), Term('A>0'), Term('B<0') ])
+        expected = df_new[(df_new.string == 'foo') & (df_new.string2 == 'bar') & (df_new.A > 0) & (df_new.B < 0)]
+        tm.assert_frame_equal(result, expected)
+
     def test_create_table_index(self):
         wp = tm.makePanel()
         self.store.append('p5', wp)

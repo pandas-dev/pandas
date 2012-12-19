@@ -1568,19 +1568,19 @@ class Table(object):
 
         # get out blocks 
         block_obj = self.get_object(obj)
+        blocks    = None
 
-        data_obj = None
         if columns is not None and len(self.non_index_axes):
             axis        = self.non_index_axes[0][0]
             axis_labels = self.non_index_axes[0][1]
             columns = [ c for c in columns if c in axis_labels ]
             if len(columns):
-                data_obj  = block_obj.reindex_axis(Index(columns), axis = axis, copy = False)
-                block_obj = block_obj.reindex_axis(Index(axis_labels)-Index(columns), axis = axis, copy = False)
+                blocks    = block_obj.reindex_axis(Index(axis_labels)-Index(columns), axis = axis, copy = False)._data.blocks
+                for c in columns:
+                    blocks.extend(block_obj.reindex_axis([ c ], axis = axis, copy = False)._data.blocks)
 
-        blocks    = list(block_obj._data.blocks)
-        if data_obj is not None:
-            blocks.extend(data_obj._data.blocks)
+        if blocks is None:
+            blocks = block_obj._data.blocks
 
         # add my values
         self.values_axes = []
