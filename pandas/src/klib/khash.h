@@ -145,13 +145,14 @@ typedef double khfloat64_t;
 typedef khint32_t khint_t;
 typedef khint_t khiter_t;
 
-#define __ac_isempty(flag, i) ((flag[i>>4]>>((i&0xfU)<<1))&2)
-#define __ac_isdel(flag, i) ((flag[i>>4]>>((i&0xfU)<<1))&1)
-#define __ac_iseither(flag, i) ((flag[i>>4]>>((i&0xfU)<<1))&3)
-#define __ac_set_isdel_false(flag, i) (flag[i>>4]&=~(1ul<<((i&0xfU)<<1)))
-#define __ac_set_isempty_false(flag, i) (flag[i>>4]&=~(2ul<<((i&0xfU)<<1)))
-#define __ac_set_isboth_false(flag, i) (flag[i>>4]&=~(3ul<<((i&0xfU)<<1)))
-#define __ac_set_isdel_true(flag, i) (flag[i>>4]|=1ul<<((i&0xfU)<<1))
+#define __ac_isempty(flag, i) ((flag[i>>5]>>(i&0x1fU))&1)
+#define __ac_isdel(flag, i) (0)
+#define __ac_iseither(flag, i) __ac_isempty(flag, i)
+#define __ac_set_isdel_false(flag, i) (0)
+#define __ac_set_isempty_false(flag, i) (flag[i>>5]&=~(1ul<<(i&0x1fU)))
+#define __ac_set_isempty_true(flag, i) (flag[i>>5]|=(1ul<<(i&0x1fU)))
+#define __ac_set_isboth_false(flag, i) __ac_set_isempty_false(flag, i)
+#define __ac_set_isdel_true(flag, i) (0)
 
 #ifdef KHASH_LINEAR
 #define __ac_inc(k, m) 1
@@ -159,7 +160,7 @@ typedef khint_t khiter_t;
 #define __ac_inc(k, m) (((k)>>3 ^ (k)<<3) | 1) & (m)
 #endif
 
-#define __ac_fsize(m) ((m) < 16? 1 : (m)>>4)
+#define __ac_fsize(m) ((m) < 32? 1 : (m)>>5)
 
 #ifndef kroundup32
 #define kroundup32(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
@@ -231,7 +232,7 @@ static const double __ac_HASH_UPPER = 0.77;
 			if (h->size >= (khint_t)(new_n_buckets * __ac_HASH_UPPER + 0.5)) j = 0;	/* requested size is too small */ \
 			else { /* hash table size to be changed (shrink or expand); rehash */ \
 				new_flags = (khint32_t*)malloc(__ac_fsize(new_n_buckets) * sizeof(khint32_t));	\
-				memset(new_flags, 0xaa, __ac_fsize(new_n_buckets) * sizeof(khint32_t)); \
+				memset(new_flags, 0xff, __ac_fsize(new_n_buckets) * sizeof(khint32_t)); \
 				if (h->n_buckets < new_n_buckets) {	/* expand */		\
 					h->keys = (khkey_t*)realloc(h->keys, new_n_buckets * sizeof(khkey_t)); \
 					if (kh_is_map) h->vals = (khval_t*)realloc(h->vals, new_n_buckets * sizeof(khval_t)); \
@@ -246,7 +247,7 @@ static const double __ac_HASH_UPPER = 0.77;
 					khint_t new_mask;									\
 					new_mask = new_n_buckets - 1; 						\
 					if (kh_is_map) val = h->vals[j];					\
-					__ac_set_isdel_true(h->flags, j);					\
+					__ac_set_isempty_true(h->flags, j);					\
 					while (1) { /* kick-out process; sort of like in Cuckoo hashing */ \
 						khint_t inc, k, i;								\
 						k = __hash_func(key);							\
@@ -257,7 +258,7 @@ static const double __ac_HASH_UPPER = 0.77;
 						if (i < h->n_buckets && __ac_iseither(h->flags, i) == 0) { /* kick out the existing element */ \
 							{ khkey_t tmp = h->keys[i]; h->keys[i] = key; key = tmp; } \
 							if (kh_is_map) { khval_t tmp = h->vals[i]; h->vals[i] = val; val = tmp; } \
-							__ac_set_isdel_true(h->flags, i); /* mark it as deleted in the old hash table */ \
+							__ac_set_isempty_true(h->flags, i); /* mark it as deleted in the old hash table */ \
 						} else { /* write the element and jump out of the loop */ \
 							h->keys[i] = key;							\
 							if (kh_is_map) h->vals[i] = val;			\
