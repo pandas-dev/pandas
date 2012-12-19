@@ -1338,8 +1338,8 @@ class HistPlot(MPLPlot):
 def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                sharey=False, use_index=True, figsize=None, grid=False,
                legend=True, rot=None, ax=None, style=None, title=None,
-               xlim=None, ylim=None, logy=False, xticks=None, yticks=None,
-               kind='line', sort_columns=False, fontsize=None,
+               xlim=None, ylim=None, logx=False, logy=False, xticks=None,
+               yticks=None, kind='line', sort_columns=False, fontsize=None,
                secondary_y=False, **kwds):
 
     """
@@ -1376,6 +1376,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     kind : {'line', 'bar', 'barh'}
         bar : vertical bar plot
         barh : horizontal bar plot
+    logx : boolean, default False
+        For line plots, use log scaling on x axis
     logy : boolean, default False
         For line plots, use log scaling on y axis
     xticks : sequence
@@ -1421,17 +1423,17 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
                            use_index=use_index,
                            rot=rot, xticks=xticks, yticks=yticks,
                            xlim=xlim, ylim=ylim, ax=ax, style=style,
-                           grid=grid, logy=logy, secondary_y=secondary_y,
-                           title=title, figsize=figsize, fontsize=fontsize,
-                           legend=legend, **kwds)
+                           grid=grid, logx=logx, logy=logy,
+                           secondary_y=secondary_y, title=title,
+                           figsize=figsize, fontsize=fontsize, **kwds)
 
     plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
                      legend=legend, ax=ax, style=style, fontsize=fontsize,
                      use_index=use_index, sharex=sharex, sharey=sharey,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     title=title, grid=grid, figsize=figsize, logy=logy,
-                     sort_columns=sort_columns, secondary_y=secondary_y,
-                     **kwds)
+                     title=title, grid=grid, figsize=figsize, logx=logx,
+                     logy=logy, sort_columns=sort_columns,
+                     secondary_y=secondary_y, **kwds)
     plot_obj.generate()
     plot_obj.draw()
     if subplots:
@@ -1441,8 +1443,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,
-                ax=None, style=None, grid=None, legend=False, logy=False,
-                secondary_y=False, **kwds):
+                ax=None, style=None, grid=None, legend=False, logx=False,
+                logy=False, secondary_y=False, **kwds):
     """
     Plot the input series with the index on the x-axis using matplotlib
 
@@ -1462,6 +1464,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         matplotlib line style to use
     ax : matplotlib axis object
         If not passed, uses gca()
+    logx : boolean, default False
+        For line plots, use log scaling on x axis
     logy : boolean, default False
         For line plots, use log scaling on y axis
     xticks : sequence
@@ -1502,7 +1506,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     if label is None:
         label = series.name
 
-    plot_obj = klass(series, kind=kind, rot=rot, logy=logy,
+    plot_obj = klass(series, kind=kind, rot=rot, logx=logx, logy=logy,
                      ax=ax, use_index=use_index, style=style,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
                      legend=legend, grid=grid, label=label,
