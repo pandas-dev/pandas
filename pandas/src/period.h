@@ -13,6 +13,7 @@
 #include "limits.h"
 
 typedef int64_t i8;
+typedef int32_t i4;
 
 /*
  * declarations from period here
@@ -50,10 +51,10 @@ enum CalendarType {
 // begins second ordinal at 1/1/1970 unix epoch
 
 // #define HIGHFREQ_ORIG 62135683200LL
-static const i8 BASE_YEAR = 1970L;
-static const i8 ORD_OFFSET = 719163L; // days until 1970-01-01
-static const i8 BDAY_OFFSET = 513689L; // days until 1970-01-01
-static const i8 WEEK_OFFSET = 102737L;
+static const i8 BASE_YEAR = 1970;
+static const i8 ORD_OFFSET = 719163; // days until 1970-01-01
+static const i8 BDAY_OFFSET = 513689; // days until 1970-01-01
+static const i8 WEEK_OFFSET = 102737;
 static const i8 HIGHFREQ_ORIG = 0; // ORD_OFFSET * 86400LL // days until 1970-01-01
 
 enum Annual {
@@ -129,16 +130,16 @@ enum Undefined { FR_UND = -10000 };
 /* #define FR_UND  -10000 /\* Undefined *\/ */
 
 static const i8 US_PER_SECOND = 1000000L;
-static const i8 US_PER_MINUTE = 60L * 1000000L;
-static const i8 US_PER_HOUR = 60L * 60L * 1000000L;
-static const i8 US_PER_DAY = 24L * 60L * 60L * 1000000L;
-static const i8 US_PER_WEEK = 7L * 24L * 60L * 60L * 1000000L;
+static const i8 US_PER_MINUTE = 60 * 1000000L;
+static const i8 US_PER_HOUR = 60 * 60 * 1000000L;
+static const i8 US_PER_DAY = 24 * 60 * 60 * 1000000L;
+static const i8 US_PER_WEEK = 7 * 24 * 60 * 60 * 1000000L;
 
 static const i8 NS_PER_SECOND = 1000000000L;
-static const i8 NS_PER_MINUTE = 60L * 1000000000L;
-static const i8 NS_PER_HOUR = 60L * 60L * 1000000000L;
-static const i8 NS_PER_DAY = 24L * 60L * 60L * 1000000000L;
-static const i8 NS_PER_WEEK = 7L * 24L * 60L * 60L * 1000000000L;
+static const i8 NS_PER_MINUTE = 60 * 1000000000L;
+static const i8 NS_PER_HOUR = 60 * 60 * 1000000000L;
+static const i8 NS_PER_DAY = 24 * 60 * 60 * 1000000000L;
+static const i8 NS_PER_WEEK = 7 * 24 * 60 * 60 * 1000000000L;
 
 // make sure INT64_MIN is a macro!
 static const i8 INT_ERR_CODE = INT64_MIN;
@@ -217,6 +218,9 @@ i8 pminute(i8 ordinal, i8 freq);
 i8 psecond(i8 ordinal, i8 freq);
 i8 pmicrosecond(i8 ordinal, i8 freq);
 i8 pnanosecond(i8 ordinal, i8 freq);
+i8 ppicosecond(i8 ordinal, i8 freq);
+i8 pfemtosecond(i8 ordinal, i8 freq);
+i8 pattosecond(i8 ordinal, i8 freq);
 
 char *c_strftime(struct date_info *dinfo, char *fmt);
 i8 get_yq(i8 ordinal, i8 freq, i8 *quarter, i8 *year);
