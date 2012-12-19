@@ -92,7 +92,7 @@ from dateutil.tz import tzlocal
 
 
 cpdef bint _is_tzlocal(object tz):
-    cdef bint isa = isinstance(tz, tzlocal)
+    cdef bint isa = PyObject_TypeCheck(tz, <PyTypeObject*> tzlocal)
     return isa
 
 
