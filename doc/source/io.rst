@@ -1148,8 +1148,7 @@ You can create/modify an index for a table with ``create_table_index`` after dat
 
 .. ipython:: python
 
-   # create an index
-   store.create_table_index('df')
+   # we have automagically already created an index (in the first section)
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
@@ -1168,20 +1167,35 @@ You can designate (and index) certain columns that you want to be able to perfor
    df['string'] = 'foo'
    df.ix[4:6,'string'] = np.nan
    df.ix[7:9,'string'] = 'bar'
+   df['string2'] = 'cool'
    df
 
    # on-disk operations
-   store.append('df_dc', df, columns = ['B','string'])
+   store.append('df_dc', df, columns = ['B','C','string','string2'])
    store.select('df_dc',[ Term('B>0') ])
 
    # getting creative
-   store.select('df_dc',[ Term('B>0'), Term('string=foo') ])
+   store.select('df_dc',[ Term('B>0'), Term('C>0'), Term('string=foo') ])
 
-   # index the data_column
-   store.create_table_index('df_dc', columns = ['B'])
+   # this is in-memory version of this type of selection
+   df[(df.B > 0) & (df.C > 0) & (df.string == 'foo')]
+
+   # we have automagically created this index and that the B/string columns are stored separately as ``PyTables`` columns
    store.root.df_dc.table
 
-There is some performance degredation by making lots of columns into `data columns`, so it is up to the user to designate these.
+There is some performance degredation by making lots of columns into `data columns`, so it is up to the user to designate these. In addition, you cannot change data columns (nor indexables) after the first append/put operation (Of course you can simply read in the data and create a new table!)
+
+Advanced Queries
+~~~~~~~~~~~~~~~~
+
+``not`` and ``or`` conditions are unsupported at this time; however, ``or`` operations are easy to replicate. Repately apply the criteria to the table and concat.
+
+.. ipython:: python
+
+   crit1 = [ Term('B>0'), Term('C>0'), Term('string=foo') ]
+   crit2 = [ Term('B<0'), Term('C>0'), Term('string=foo') ]
+
+   concat([ store.select('df_dc',c) for c in [ crit1, crit2 ] ])
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~

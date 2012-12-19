@@ -894,7 +894,9 @@ class IndexCol(object):
         pos    : the position in the pytables
 
         """
-    is_indexable = True
+    is_an_indexable   = True
+    is_data_indexable = True
+    is_searchable     = False
 
     def __init__(self, values = None, kind = None, typ = None, cname = None, itemsize = None, name = None, axis = None, kind_attr = None, pos = None, **kwargs):
         self.values = values
@@ -1047,12 +1049,16 @@ class DataCol(IndexCol):
         data   : the actual data
         cname  : the column name in the table to hold the data (typeically values)
         """
-    is_indexable = False
-    is_searchable = False
+    is_an_indexable   = False
+    is_data_indexable = False
+    is_searchable     = False
 
     @classmethod
     def create_for_block(cls, i = None, name = None, cname = None, **kwargs):
         """ return a new datacol with the block i """
+
+        # a little hacky here, to avoid a backwards compability issue
+        #   columns in the table are named like: values_block_0...., but there name is values_0 (for kind attributes)
         if cname is None:
             cname = name or 'values_block_%d' % i
         if name is None:
@@ -1110,7 +1116,7 @@ class DataCol(IndexCol):
             elif inferred_type == 'date':
                 raise NotImplementedError("date is not implemented as a table column")
 
-            self.set_atom_object(block, existing_col, min_itemsize, nan_rep)
+            self.set_atom_string(block, existing_col, min_itemsize, nan_rep)
         elif dtype == 'datetime64[ns]':
             raise NotImplementedError("datetime64[ns] is not implemented as a table column")
         else:
@@ -1118,10 +1124,10 @@ class DataCol(IndexCol):
 
         return self
 
-    def get_atom_object(self, block, itemsize):
+    def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize = itemsize, shape = block.shape[0])
 
-    def set_atom_object(self, block, existing_col, min_itemsize, nan_rep):
+    def set_atom_string(self, block, existing_col, min_itemsize, nan_rep):
         # fill nan items with myself
         data = block.fillna(nan_rep).values
                     
@@ -1139,10 +1145,10 @@ class DataCol(IndexCol):
                 itemsize = eci
 
         self.kind   = 'string'
-        self.typ    = self.get_atom_object(block, itemsize)
-        self.set_data(self.convert_object_data(data, itemsize))
+        self.typ    = self.get_atom_string(block, itemsize)
+        self.set_data(self.convert_string_data(data, itemsize))
 
-    def convert_object_data(self, data, itemsize):
+    def convert_string_data(self, data, itemsize):
         return data.astype('S%s' % itemsize)
 
     def get_atom_data(self, block):
@@ -1206,22 +1212,14 @@ class DataCol(IndexCol):
 
 class DataIndexableCol(DataCol):
     """ represent a data column that can be indexed """
+    is_data_indexable = True
 
     @property
     def is_searchable(self):
         return self.kind == 'string' 
 
-    def get_atom_object(self, block, itemsize):
+    def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize = itemsize)
-
-        # reshape the values if not shape (e.g. we are a scalar)
-        #if 'shape' not in kw:
-        #    import pdb; pdb.set_trace()
-        #    values = values.reshape(values.shape[1:])
-
-
-    def convert_object_data(self, data, itemsize):
-        return data.astype('S%s' % itemsize)
 
     def get_atom_data(self, block):
         return getattr(_tables(),"%sCol" % self.kind.capitalize())()
@@ -1242,9 +1240,11 @@ class Table(object):
         These are attributes that are store in the main table node, they are necessary
         to recreate these tables when read back in.
 
-        index_axes: a list of tuples of the (original indexing axis and index column)
+        index_axes    : a list of tuples of the (original indexing axis and index column)
         non_index_axes: a list of tuples of the (original index axis and columns on a non-indexing axis)
-        values_axes : a list of the columns which comprise the data of this table
+        values_axes   : a list of the columns which comprise the data of this table
+        data_columns  : a list of columns that we are allowing indexing (these become single columns in values_axes)
+        nan_rep       : the string to use for nan representations for string objects
 
         """
     table_type = None
@@ -1429,7 +1429,7 @@ class Table(object):
 
         # index all indexables and data_columns
         if columns is None:
-            columns = [ a.cname for a in self.index_axes ] + [ v.cname for v in self.values_axes if v.name in set(self.data_columns) ]
+            columns = [ a.cname for a in self.axes if a.is_data_indexable ]
         if not isinstance(columns, (tuple,list)):
             columns = [ columns ]
 
@@ -1494,8 +1494,8 @@ class Table(object):
         self.non_index_axes   = getattr(self.attrs,'non_index_axes',None) or []
         self.data_columns     = getattr(self.attrs,'data_columns',None)   or []
         self.nan_rep          = getattr(self.attrs,'nan_rep',None)
-        self.index_axes, self.values_axes = [ a.infer(self.table) for a in self.indexables if a.is_indexable ], [ a.infer(self.table) for a in self.indexables if not a.is_indexable ]
-
+        self.index_axes       = [ a.infer(self.table) for a in self.indexables if     a.is_an_indexable ]
+        self.values_axes      = [ a.infer(self.table) for a in self.indexables if not a.is_an_indexable ]
         return True
 
     def get_object(self, obj):
@@ -2362,8 +2362,8 @@ class Term(object):
                 raise Exception("passing a filterable condition to a non-table indexer [%s]" % str(self))
 
     def convert_value(self, v):
+        """ convert the expression that is in the term to something that is accepted by pytables """
 
-        #### a little hacky here, need to really figure out what we should convert ####x
         if self.kind == 'datetime64' :
             return [lib.Timestamp(v).value, None]
         elif isinstance(v, datetime) or hasattr(v,'timetuple') or self.kind == 'date':
