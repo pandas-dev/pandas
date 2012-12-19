@@ -1221,6 +1221,20 @@ It should be clear that a delete operation on the ``major_axis`` will be fairly 
    store.remove('wp', 'major_axis>20000102' )
    store.select('wp')
 
+Compression
+~~~~~~~~~~~
+``PyTables`` allows the stored data to be compressed (this applies to all kinds of stores, not just tables). You can pass ``complevel=int`` for a compression level (1-9, with 0 being no compression, and the default), ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for whichever compression library you prefer. ``blosc`` offers very fast compression (its level defaults to 9), and is my most used. 
+
+``PyTables`` offer better write performance when compressed after writing them, as opposed to turning on compression at the very beginning. You can use the supplied ``PyTables`` utility ``ptrepack``. ``ptrepack`` also can change compression levels after the fact.
+
+   - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
+
+Or on-the-fly compression
+
+   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')``
+
+
+
 Notes & Caveats
 ~~~~~~~~~~~~~~~
 
@@ -1258,8 +1272,6 @@ Performance
      - ``AppendableTable`` which is a similiar table to past versions (this is the default).
      - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
 
-   - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
-     use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
    - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
 
 Experimental

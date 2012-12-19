@@ -420,6 +420,14 @@ class HDFStore(object):
         key : object
         value : {Series, DataFrame, Panel}
 
+        Optional Parameters
+        -------------------
+        columns : list of columns to create as data columns
+        min_itemsize : dict of columns that specify minimum string sizes
+        nan_rep : string to use as string nan represenation
+        chunksize : size to chunk the writing
+
+
         Notes
         -----
         Does *not* check if data being appended overlaps with existing
@@ -1820,7 +1828,7 @@ class AppendableTable(LegacyTable):
     table_type = 'appendable'
 
     def write(self, axes, obj, append=False, compression=None,
-              complevel=None, min_itemsize = None, **kwargs):
+              complevel=None, min_itemsize = None, chunksize = 50000, **kwargs):
 
         # create the table if it doesn't exist (or get it if it does)
         if not append:
@@ -1849,10 +1857,9 @@ class AppendableTable(LegacyTable):
             a.validate_and_set(table, append)
 
         # add the rows
-        self.write_data()
-        self.handle.flush()
+        self.write_data(chunksize)
 
-    def write_data(self):
+    def write_data(self, chunksize):
         """ fast writing of data: requires specific cython routines each axis shape """
 
         # create the masks & values
@@ -1869,16 +1876,29 @@ class AppendableTable(LegacyTable):
             m = mask & m
 
         # the arguments
-        args   = [ a.cvalues for a in self.index_axes ]
-        search = np.array([ a.is_searchable for a in self.values_axes ]).astype('u1')
-        values = [ a.data for a in self.values_axes ]
+        indexes = [ a.cvalues for a in self.index_axes ]
+        search  = np.array([ a.is_searchable for a in self.values_axes ]).astype('u1')
+        values  = [ a.take_data() for a in self.values_axes ]
+
+        # write the chunks
+        rows   = np.prod([ i.shape[0] for i in indexes ])
+        chunks = int(rows / chunksize) + 1
+        for i in xrange(chunks):
+            start_i = i*chunksize
+            end_i   = min((i+1)*chunksize,rows)
+
+            self.write_data_chunk(indexes = [ a[start_i:end_i] for a in indexes ],
+                                  mask    = mask[start_i:end_i],
+                                  search  = search,
+                                  values  = [ v[:,start_i:end_i] for v in values ])
+
+    def write_data_chunk(self, indexes, mask, search, values):
 
         # get our function
         try:
             func = getattr(lib,"create_hdf_rows_%sd" % self.ndim)
-            args.append(mask)
-            args.append(search)
-            args.append(values)
+            args = list(indexes)
+            args.extend([ mask, search, values ])
             rows = func(*args)
         except (Exception), detail:
             raise Exception("cannot create row-data -> %s" % str(detail))
@@ -1886,7 +1906,9 @@ class AppendableTable(LegacyTable):
         try:
             if len(rows):
                 self.table.append(rows)
+                self.table.flush()
         except (Exception), detail:
+            import pdb; pdb.set_trace()
             raise Exception("tables cannot write this data -> %s" % str(detail))
 
     def delete(self, where = None):
@@ -1934,7 +1956,7 @@ class AppendableTable(LegacyTable):
                 table.removeRows(start = rows[rows.index[0]], stop = rows[rows.index[-1]]+1)
                 pg = g
 
-            self.handle.flush()
+            self.table.flush()
 
         # return the number of rows removed
         return ln

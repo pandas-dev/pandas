@@ -576,28 +576,26 @@ class TestHDFStore(unittest.TestCase):
         for x in range(20):
             df['String%03d' % x] = 'string%03d' % x
 
-        print "\nbig_table2 frame (creation of df) -> %5.2f" % (time.time()-start_time)
-        start_time = time.time()
-
-        from arb.common import profile
+        print "\nbig_table2 frame (creation of df) [rows->%s] -> %5.2f" % (len(df.index),time.time()-start_time)
         fn = 'big_table2.h5'
 
         try:
             
-            @profile.profile_func()
-            def f():
+            def f(chunksize):
                 store = HDFStore(fn,mode = 'w')
-                store.append('df',df)
+                store.append('df',df,chunksize=chunksize)
+                r = store.root.df.table.nrows
                 store.close()
-            
-            f()
-            rows = store.root.df.table.nrows
-            #recons = store.select('df')
-        finally:
-            pass
-            #os.remove(fn)
+                return r
 
-        print "\nbig_table2 frame [%s] -> %5.2f" % (rows,time.time()-start_time)
+            for c in [ 10000, 50000, 100000, 250000 ]:
+                start_time = time.time()
+                print "big_table2 frame [chunk->%s]" % c
+                rows = f(c)
+                print "big_table2 frame [rows->%s,chunk->%s] -> %5.2f" % (rows,c,time.time()-start_time)
+
+        finally:
+            os.remove(fn)
 
     def test_big_table_panel(self):
         raise nose.SkipTest('no big table panel')
