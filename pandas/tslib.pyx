@@ -47,6 +47,7 @@ try:
 except NameError: # py3
     basestring = str
 
+
 cpdef ndarray[object] ints_to_pydatetime(ndarray[i8] arr, tz=None):
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -85,6 +86,7 @@ cpdef ndarray[object] ints_to_pydatetime(ndarray[i8] arr, tz=None):
                                  dts.min, dts.sec, dts.us)
 
     return result
+
 
 from dateutil.tz import tzlocal
 
@@ -300,9 +302,10 @@ class NaTType(_NaT):
     def toordinal(self):
         return -1
 
-fields = ['year', 'quarter', 'month', 'day', 'hour',
-          'minute', 'second', 'microsecond', 'nanosecond',
-          'week', 'dayofyear']
+cdef tuple fields = ('year', 'quarter', 'month', 'day', 'hour',
+                     'minute', 'second', 'microsecond', 'nanosecond',
+                     'week', 'dayofyear')
+
 for field in fields:
     prop = property(fget=lambda self: -1)
     setattr(NaTType, field, prop)
@@ -337,10 +340,13 @@ cpdef object get_value_box(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
         void* data_ptr
+
     if util.is_float_object(loc):
         casted = int(loc)
+
         if casted == loc:
             loc = casted
+
     i = <Py_ssize_t> loc
     sz = np.PyArray_SIZE(arr)
 
@@ -358,7 +364,7 @@ cpdef object get_value_box(ndarray arr, object loc):
 #----------------------------------------------------------------------
 # Frequency inference
 
-cpdef ndarray[i8] unique_deltas(ndarray[i8] arr):
+cpdef ndarray[i8] unique_deltas(i8[:] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         i8 val
@@ -390,7 +396,7 @@ cdef inline bint _is_multiple(i8 us, i8 mult):
     return us % mult == 0
 
 
-def apply_offset(ndarray[object] values, object offset):
+def apply_offset(object[:] values, object offset):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[i8] new_values
@@ -737,18 +743,18 @@ cdef inline _check_dts_bounds(i8 value, pandas_datetimestruct *dts):
             raise ValueError('Out of bounds nanosecond timestamp: %s' % fmt)
 
 
-def datetime_to_datetime64(ndarray[object] values):
+cpdef tuple datetime_to_datetime64(object[:] values):
     cdef:
         Py_ssize_t i, n = len(values)
         object val, inferred_tz = None
-        ndarray[i8] iresult
         pandas_datetimestruct dts
         _TSObject _ts
+        ndarray result = np.empty(n, dtype='M8[ns]')
+        i8[:] iresult = result.view('i8')
 
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
     for i in range(n):
         val = values[i]
+
         if util._checknull(val):
             iresult[i] = iNaT
         elif PyDateTime_Check(val):
@@ -773,8 +779,8 @@ def datetime_to_datetime64(ndarray[object] values):
     return result, inferred_tz
 
 
-def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
-                      format=None, utc=None):
+cpdef ndarray array_to_datetime(object[:] values, raise_=False, dayfirst=False,
+                                format=None, utc=None):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
@@ -876,17 +882,16 @@ cdef inline _get_datetime64_nanos(object val):
         return ival
 
 
-def cast_to_nanoseconds(ndarray arr):
+cpdef ndarray[i8] cast_to_nanoseconds(ndarray arr):
     cdef:
         Py_ssize_t i, n = arr.size
         ndarray[i8] ivalues, iresult
+        ndarray result
         PANDAS_DATETIMEUNIT unit
         pandas_datetimestruct dts
-
-    shape = (<object> arr).shape
+        tuple shape = (<object> arr).shape
 
     ivalues = arr.view(np.int64).ravel()
-
     result = np.empty(shape, dtype='M8[ns]')
     iresult = result.ravel().view(np.int64)
 
@@ -934,7 +939,7 @@ except:
     have_pytz = False
 
 
-cpdef ndarray[i8] tz_convert(ndarray[i8] vals, object tz1, object tz2):
+cpdef ndarray[i8] tz_convert(i8[:] vals, object tz1, object tz2):
     cdef:
         ndarray[i8] utc_dates, result, trans, deltas
         Py_ssize_t i, pos, n = len(vals)
@@ -1119,12 +1124,9 @@ cpdef i8 tot_seconds(object td):
 
 cpdef ndarray[i8] _unbox_utcoffsets(object transinfo):
     cdef:
-        Py_ssize_t i, sz
-        ndarray[i8] arr
+        Py_ssize_t i, sz = len(transinfo)
+        ndarray[i8] arr = np.empty(sz, dtype='i8')
         i8 billion = 1000000000
-
-    sz = len(transinfo)
-    arr = np.empty(sz, dtype='i8')
 
     for i in range(sz):
         arr[i] = total_seconds(transinfo[i][0]) * billion
@@ -1259,7 +1261,7 @@ cdef inline Py_ssize_t bisect_right_i8(i8 *data, i8 val, Py_ssize_t n):
 
 # Accessors
 #----------------------------------------------------------------------
-def build_field_sarray(ndarray[i8] dtindex):
+def build_field_sarray(i8[:] dtindex):
     '''
     Datetime as int64 representation to a structured array of fields
     '''
@@ -1302,27 +1304,29 @@ def build_field_sarray(ndarray[i8] dtindex):
     return out
 
 
-cpdef ndarray[i8] get_time_micros(ndarray[i8] dtindex):
+cpdef ndarray[i8] get_time_micros(i8[:] dtindex):
     '''
     Datetime as int64 representation to a structured array of fields
     '''
     cdef:
         Py_ssize_t i, n = len(dtindex)
         pandas_datetimestruct dts
-        ndarray[i8] micros
+        ndarray[i8] micros = np.empty(n, dtype=np.int64)
+        i8 secs_per_min = 60
+        i8 secs_per_hour = secs_per_min * secs_per_min
+        i8 us_per_sec = 1000000
 
-    micros = np.empty(n, dtype=np.int64)
 
     for i in range(n):
         pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-        micros[i] = 1000000LL * (dts.hour * 60 * 60 +
-                                 60 * dts.min + dts.sec) + dts.us
+        micros[i] = us_per_sec * (dts.hour * secs_per_hour + secs_per_min *
+                                  dts.min + dts.sec) + dts.us
 
     return micros
 
 
 @cython.wraparound(False)
-def get_date_field(ndarray[i8] dtindex, object field):
+def get_date_field(i8[:] dtindex, object field):
     '''
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
@@ -1450,10 +1454,11 @@ cdef inline int m8_weekday(i8 val):
     ts = convert_to_tsobject(val, None)
     return ts_dayofweek(ts)
 
+
 cdef i8 DAY_NS = 86400000000000LL
 
 
-cpdef ndarray[i8] date_normalize(ndarray[i8] stamps, tz=None):
+cpdef ndarray[i8] date_normalize(i8[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
@@ -1476,7 +1481,7 @@ cpdef ndarray[i8] date_normalize(ndarray[i8] stamps, tz=None):
     return result
 
 
-cdef ndarray[i8] _normalize_local(ndarray[i8] stamps, object tz):
+cdef ndarray[i8] _normalize_local(i8[:] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[i8] result = np.empty(n, dtype=np.int64)
@@ -1549,7 +1554,7 @@ cdef inline void m8_populate_tsobject(i8 stamp, _TSObject tso, object tz):
         _localize_tso(tso, tz)
 
 
-cpdef bint dates_normalized(ndarray[i8] stamps, tz=None):
+cpdef bint dates_normalized(i8[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
@@ -1921,13 +1926,13 @@ cpdef object period_format(i8 value, int freq, object fmt=None):
     return _period_strftime(value, freq, fmt)
 
 
-cdef list extra_fmts = [(b"%q", b"^`AB`^"),
-                        (b"%f", b"^`CD`^"),
-                        (b"%F", b"^`EF`^"),
-                        (b"%u", b"^`GH`^")]
+cdef tuple extra_fmts = ((b"%q", b"^`AB`^"),
+                         (b"%f", b"^`CD`^"),
+                         (b"%F", b"^`EF`^"),
+                         (b"%u", b"^`GH`^"))
 
 
-cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^", "^`GH`^"]
+cdef tuple str_extra_fmts = ("^`AB`^", "^`CD`^", "^`EF`^", "^`GH`^")
 
 
 cdef object _period_strftime(i8 value, int freq, object fmt):
