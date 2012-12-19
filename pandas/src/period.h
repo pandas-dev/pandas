@@ -12,30 +12,31 @@
 #include "headers/stdint.h"
 #include "limits.h"
 
-typedef int64_t i8;
 
 /*
  * declarations from period here
  */
 
-enum CalendarType {
-    GREGORIAN = 0,
-    JULIAN = 1
-};
+typedef int64_t i8;
 
-/* #define GREGORIAN_CALENDAR 0 */
-/* #define JULIAN_CALENDAR 1 */
+enum CalendarType
+{
+    GREGORIAN,
+    JULIAN
+};
 
 static const i8 SECONDS_PER_DAY = 86400;
 
-#define Py_AssertWithArg(x, errortype, errorstr, a1) {      \
+#define Py_AssertWithArg(x, errortype, errorstr, a1)        \
+    {                                                       \
         if (!((x))) {                                       \
             PyErr_Format((errortype), (errorstr), (a1));    \
             goto onError;                                   \
         }                                                   \
     }
 
-#define Py_Error(errortype, errorstr) {             \
+#define Py_Error(errortype, errorstr)               \
+    {                                               \
         PyErr_SetString((errortype), (errorstr));   \
         goto onError;                               \
     }
@@ -56,7 +57,8 @@ static const i8 BDAY_OFFSET = 513689; // days until 1970-01-01
 static const i8 WEEK_OFFSET = 102737;
 static const i8 HIGHFREQ_ORIG = 0; // ORD_OFFSET * 86400LL // days until 1970-01-01
 
-enum Annual {
+enum Annual
+{
     FR_ANN = 1000,  /* Annual */
     FR_ANNDEC = FR_ANN,  /* Annual - December year end*/
     FR_ANNJAN,  /* Annual - January year end*/
@@ -75,7 +77,8 @@ enum Annual {
 
 /* The standard quarterly frequencies with various fiscal year ends
    eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005 */
-enum Quarterly {
+enum Quarterly
+{
     FR_QTR = 2000, /* Quarterly - December year end (default quarterly) */
     FR_QTRDEC = FR_QTR, /* Quarterly - December year end */
     FR_QTRJAN, /* Quarterly - January year end */
@@ -93,12 +96,14 @@ enum Quarterly {
 
 /* #define FR_MTH  3000  /\* Monthly *\/ */
 
-enum Monthly {
+enum Monthly
+{
     FR_MTH = 3000
 };
 
 
-enum Weekly {
+enum Weekly
+{
     FR_WK = 4000,  /* Weekly */
     FR_WKSUN = FR_WK, /* Weekly - Sunday end of week */
     FR_WKMON, /* Weekly - Monday end of week */
@@ -116,17 +121,7 @@ enum Minutely { FR_MIN = 8000 };
 enum Secondly { FR_SEC = 9000 };
 enum Microsecondly { FR_USEC = 10000 };
 
-/* #define FR_BUS  5000  /\* Business days *\/ */
-/* #define FR_DAY  6000  /\* Daily *\/ */
-/* #define FR_HR   7000  /\* Hourly *\/ */
-/* #define FR_MIN  8000  /\* Minutely *\/ */
-/* #define FR_SEC  9000  /\* Secondly *\/ */
-/* #define FR_USEC 11000 /\* Microsecondly *\/ */
-
-
 enum Undefined { FR_UND = -10000 };
-
-/* #define FR_UND  -10000 /\* Undefined *\/ */
 
 static const i8 US_PER_SECOND = 1000000L;
 static const i8 US_PER_MINUTE = 60 * 1000000L;
@@ -144,16 +139,19 @@ static const i8 NS_PER_WEEK = 7 * 24 * 60 * 60 * 1000000000L;
 static const i8 INT_ERR_CODE = INT64_MIN;
 
 #define MEM_CHECK(item)                         \
-    if (item == NULL) {                         \
-        return PyErr_NoMemory();                \
+    {                                           \
+        if (item == NULL)                       \
+            return PyErr_NoMemory();            \
     }
 
 #define ERR_CHECK(item)                         \
-    if (item == NULL) {                         \
-        return NULL;                            \
+    {                                           \
+        if (item == NULL)                       \
+            return NULL;                        \
     }
 
-typedef struct asfreq_info {
+typedef struct asfreq_info
+{
     i8 from_week_end;   // day the week ends on in the "from" frequency
     i8 to_week_end;     // day the week ends on in the "to" frequency
 
@@ -165,7 +163,8 @@ typedef struct asfreq_info {
 } asfreq_info;
 
 
-typedef struct date_info {
+typedef struct date_info
+{
     i8 absdate;
     i8 abstime;
 

@@ -53,7 +53,7 @@ static i8 days_in_month[2][12] = {
 
 /* Return 1/0 iff year points to a leap year in calendar. */
 static bool
-dInfoCalc_Leapyear(i8 year, i8 calendar)
+dInfoCalc_Leapyear(i8 year, enum CalendarType calendar)
 {
     bool ymod4_is0 = year % 4 == 0;
 
@@ -85,7 +85,7 @@ monthToQuarter(i8 month)
    (0001-01-01) in the Julian calendar lies 2 days before the Epoch in
    the Gregorian calendar. */
 static i8
-dInfoCalc_YearOffset(i8 yr, i8 calendar)
+dInfoCalc_YearOffset(i8 yr, enum CalendarType calendar)
 {
     i8 year = yr;
     --year;
@@ -114,7 +114,7 @@ onError:
 static i8
 dInfoCalc_SetFromDateAndTime(date_info *dinfo, i8 year, i8 month, i8 day,
                              i8 hour, i8 minute, i8 second, i8 microsecond,
-                             i8 calendar)
+                             enum CalendarType calendar)
 {
 
     /* Calculate the absolute date */
@@ -213,7 +213,8 @@ onError:
    XXX This could also be done using some i8eger arithmetics rather
    than with this iterative approach... */
 static i8
-dInfoCalc_SetFromAbsDate(register date_info *dinfo, i8 absdate, i8 calendar)
+dInfoCalc_SetFromAbsDate(register date_info *dinfo, i8 absdate,
+                         enum CalendarType calendar)
 {
     register i8 year;
     i8 yearoffset, leap, dayoffset, *monthoffset = NULL;
@@ -1512,7 +1513,7 @@ dInfoCalc_SetFromAbsTime(date_info *dinfo, i8 abstime)
    indicate the calendar to be used. */
 static i8
 dInfoCalc_SetFromAbsDateTime(date_info *dinfo, i8 absdate, i8 abstime,
-                             i8 calendar)
+                             enum CalendarType calendar)
 {
 
     /* Bounds check */
