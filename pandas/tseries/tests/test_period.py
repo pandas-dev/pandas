@@ -183,6 +183,10 @@ class TestPeriodProperties(TestCase):
         i2 = Period(datetime(2007, 1, 1), freq='M')
         self.assertEqual(i1, i2)
 
+        i1 = Period(date(2007, 1, 1), freq='U')
+        i2 = Period(datetime(2007, 1, 1), freq='U')
+        self.assertEqual(i1, i2)
+
         # errors
         self.assertRaises(ValueError, Period, ordinal=200701)
         self.assertRaises(KeyError, Period, '2007-1-1', freq='L')
@@ -203,9 +207,10 @@ class TestPeriodProperties(TestCase):
         s = p.strftime('%Y-%m-%d %H:%M:%S')
         self.assertEqual(s, '2000-01-01 12:34:12')
 
-        p = Period('2001-1-1 12:34:12', freq='U')
-        s = p.strftime('%Y-%m-%d %H:%M:%S.%%.6u')
-        self.assertEqual(s, '2001-01-01 12:34:12.000000')
+        for i in xrange(1, 7):
+            p = Period('2001-1-1 12:34:12', freq='U')
+            s = p.strftime('%Y-%m-%d %H:%M:%S.%%.{0}u'.format(i))
+            self.assertEqual(s, '2001-01-01 12:34:12.{0}'.format('0' * i))
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
@@ -228,7 +233,7 @@ class TestPeriodProperties(TestCase):
             self.assertEquals(end_ts, p.to_timestamp('D', how=a))
 
         from_lst = ['A', 'Q', 'M', 'W', 'B',
-                    'D', 'H', 'Min', 'S']
+                    'D', 'H', 'Min', 'S', 'U']
 
         def _ex(p):
             return Timestamp((p + 1).start_time.value - 1)
@@ -286,8 +291,8 @@ class TestPeriodProperties(TestCase):
     def test_end_time(self):
         p = Period('2012', freq='A')
 
-        def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).value - 1)
+        def _ex(*args, **kwargs):
+            return Timestamp(Timestamp(datetime(*args, **kwargs)).value - 1)
 
         xp = _ex(2013, 1, 1)
         self.assertEquals(xp, p.end_time)
@@ -306,6 +311,18 @@ class TestPeriodProperties(TestCase):
 
         xp = _ex(2012, 1, 1, 1)
         p = Period('2012', freq='H')
+        self.assertEquals(p.end_time, xp)
+
+        xp = _ex(2012, 1, 1, hour=0, minute=1)
+        p = Period('2012', freq='T')
+        self.assertEquals(p.end_time, xp)
+
+        xp = _ex(2012, 1, 1, hour=0, minute=0, second=1)
+        p = Period('2012', freq='S')
+        self.assertEquals(p.end_time, xp)
+
+        xp = _ex(2012, 1, 1, hour=0, minute=0, second=0, microsecond=1)
+        p = Period('2012', freq='U')
         self.assertEquals(p.end_time, xp)
 
         xp = _ex(2012, 1, 2)
