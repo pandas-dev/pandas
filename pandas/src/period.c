@@ -1380,22 +1380,22 @@ char* c_strftime(struct date_info *tmp, char *fmt)
     c_date.tm_isdst = -1L;
 
     // this will be freed in cython
-    char* result = (char*) malloc(result_len * sizeof(char));
+    char* result = malloc(result_len * sizeof(char));
 
     strftime(result, result_len, fmt, &c_date);
 
     // check to see if the format is sub second
-    i8 is_subsec = strstr(fmt, ".") != NULL;
+    /* i8 is_subsec = strstr(fmt, ".") != NULL; */
 
     // workaround the fact that strftime doesn't do sub second printing
-    char* result2 = NULL;
+    /* char* result2 = NULL; */
 
-    if (is_subsec) {
-        result2 = (char*) malloc(result_len * sizeof(char));
-        snprintf(result2, result_len, result, dinfo.microsecond);
-        free(result);
-        result = result2;
-    }
+    /* if (is_subsec) { */
+        /* result2 = (char*) malloc(result_len * sizeof(char)); */
+        /* snprintf(result2, result_len, result, dinfo.microsecond); */
+        /* free(result); */
+        /* result = result2; */
+    /* } */
 
     return result;
 }

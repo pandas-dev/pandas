@@ -207,10 +207,9 @@ class TestPeriodProperties(TestCase):
         s = p.strftime('%Y-%m-%d %H:%M:%S')
         self.assertEqual(s, '2000-01-01 12:34:12')
 
-        for i in xrange(1, 7):
-            p = Period('2001-1-1 12:34:12', freq='U')
-            s = p.strftime('%Y-%m-%d %H:%M:%S.%%.{0}u'.format(i))
-            self.assertEqual(s, '2001-01-01 12:34:12.{0}'.format('0' * i))
+        p = Period('2001-1-1 12:34:12', freq='U')
+        s = p.strftime('%Y-%m-%d %H:%M:%S.%u')
+        self.assertEqual(s, '2001-01-01 12:34:12.000000')
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
@@ -232,8 +231,7 @@ class TestPeriodProperties(TestCase):
         for a in aliases:
             self.assertEquals(end_ts, p.to_timestamp('D', how=a))
 
-        from_lst = ['A', 'Q', 'M', 'W', 'B',
-                    'D', 'H', 'Min', 'S', 'U']
+        from_lst = ['A', 'Q', 'M', 'W', 'B', 'D', 'H', 'Min', 'S', 'U']
 
         def _ex(p):
             return Timestamp((p + 1).start_time.value - 1)
@@ -276,7 +274,7 @@ class TestPeriodProperties(TestCase):
         self.assertRaises(ValueError, p.to_timestamp, '5t')
 
     def test_start_time(self):
-        freq_lst = ['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'U']
+        freq_lst = 'A', 'Q', 'M', 'D', 'H', 'T', 'S', 'U'
         xp = datetime(2012, 1, 1)
 
         for f in freq_lst:
@@ -952,6 +950,9 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_D_saturday.asfreq('B', 'E'), ival_B_monday)
         assert_equal(ival_D_sunday.asfreq('B', 'S'), ival_B_friday)
         assert_equal(ival_D_sunday.asfreq('B', 'E'), ival_B_monday)
+
+        assert_equal(ival_D_monday.asfreq('B', 'S'), ival_B_monday)
+        assert_equal(ival_D_monday.asfreq('B', 'E'), ival_B_monday)
 
         assert_equal(ival_D.asfreq('H', 'S'), ival_D_to_H_start)
         assert_equal(ival_D.asfreq('H', 'E'), ival_D_to_H_end)
@@ -1862,11 +1863,17 @@ class TestPeriodIndex(TestCase):
 
     def test_negative_ordinals(self):
         p = Period(ordinal=-1000, freq='A')
+        self.assertLess(p.ordinal, 0)
+        self.assertEqual(p.ordinal, -1000)
 
         p = Period(ordinal=0, freq='A')
+        self.assertEqual(p.ordinal, 0)
 
         idx = PeriodIndex(ordinal=[-1, 0, 1], freq='A')
+        assert_equal(idx.values, np.array([-1, 0, 1]))
+
         idx = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq='A')
+        assert_equal(idx.values, np.array([-1, 0, 1]))
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -2081,15 +2088,15 @@ class TestPeriodIndex(TestCase):
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='S', start='12/31/2001 00:00:00',
-                         end='12/31/2001 00:05:00')
+                         end='12/31/2001 00:00:02')
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='U', start='12/31/2001 00:00:00.000000',
-                         end='12/31/2001 00:00:00.000500')
+                         end='12/31/2001 00:00:00.000002')
         self._check_all_fields(pi)
 
         end_intv = Period('2006-12-31', 'W')
-        i1 = PeriodIndex(end=end_intv, periods=10)
+        pi = PeriodIndex(end=end_intv, periods=10)
         self._check_all_fields(pi)
 
     def _check_all_fields(self, periodindex):
