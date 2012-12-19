@@ -560,6 +560,9 @@ class DatetimeIndex(Int64Index):
         except (KeyError, TypeError):
             return False
 
+    def unique(self):
+        return self.asobject.unique()
+
     def isin(self, values):
         """
         Compute boolean array of whether each index value is found in the
