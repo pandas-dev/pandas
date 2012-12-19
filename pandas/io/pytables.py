@@ -1100,9 +1100,19 @@ class DataCol(IndexCol):
     def set_atom(self, block, existing_col, min_itemsize, nan_rep, **kwargs):
         """ create and setup my atom from the block b """
 
-        self.values = list(block.items)
-        if block.dtype.name == 'object':
+        self.values   = list(block.items)
+        dtype         = block.dtype.name
+
+        if dtype == 'object':
+            inferred_type = lib.infer_dtype(block.values.flatten())
+            if inferred_type == 'unicode':
+                raise NotImplementedError("unicode is not implemented as a table column")
+            elif inferred_type == 'date':
+                raise NotImplementedError("date is not implemented as a table column")
+
             self.set_atom_object(block, existing_col, min_itemsize, nan_rep)
+        elif dtype == 'datetime64[ns]':
+            raise NotImplementedError("datetime64[ns] is not implemented as a table column")
         else:
             self.set_atom_data(block)
 
@@ -1531,6 +1541,12 @@ class Table(object):
             nan_rep = 'nan'
         self.nan_rep = nan_rep
 
+        # convert the objects if we can to better divine dtypes
+        try:
+            obj = obj.convert_objects()
+        except:
+            pass
+
         # create axes to index and non_index
         index_axes_map = dict()
         for i, a in enumerate(obj.axes):
@@ -1608,6 +1624,8 @@ class Table(object):
                 col.set_pos(j)
 
                 self.values_axes.append(col)
+            except (NotImplementedError):
+                raise
             except (Exception), detail:
                 raise Exception("cannot find the correct atom type -> [dtype->%s] %s" % (b.dtype.name,str(detail)))
             j += 1

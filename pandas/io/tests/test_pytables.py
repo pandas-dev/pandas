@@ -4,7 +4,7 @@ import os
 import sys
 import warnings
 
-from datetime import datetime
+import datetime
 import numpy as np
 
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
@@ -13,7 +13,7 @@ from pandas.io.pytables import HDFStore, get_store, Term, IncompatibilityWarning
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
-from pandas import concat, Timestamp
+from pandas import concat
 
 try:
     import tables
@@ -559,6 +559,42 @@ class TestHDFStore(unittest.TestCase):
 
         print "\nbig_table frame [%s] -> %5.2f" % (rows,time.time()-x)
 
+
+    def test_big_table2_frame(self):
+        # this is a really big table: 2.5m rows x 300 float columns, 20 string columns
+        raise nose.SkipTest('no big table2 frame')
+
+        # create and write a big table
+        print "\nbig_table2 start"
+        import time
+        start_time = time.time()
+        df = DataFrame(np.random.randn(2.5*1000*1000, 300), index = range(int(2.5*1000*1000)), columns = [ 'E%03d' % i for i in xrange(300) ])
+        for x in range(20):
+            df['String%03d' % x] = 'string%03d' % x
+
+        print "\nbig_table2 frame (creation of df) -> %5.2f" % (time.time()-start_time)
+        start_time = time.time()
+
+        from arb.common import profile
+        fn = 'big_table2.h5'
+
+        try:
+            
+            @profile.profile_func()
+            def f():
+                store = HDFStore(fn,mode = 'w')
+                store.append('df',df)
+                store.close()
+            
+            f()
+            rows = store.root.df.table.nrows
+            #recons = store.select('df')
+        finally:
+            pass
+            #os.remove(fn)
+
+        print "\nbig_table2 frame [%s] -> %5.2f" % (rows,time.time()-start_time)
+
     def test_big_table_panel(self):
         raise nose.SkipTest('no big table panel')
 
@@ -664,6 +700,15 @@ class TestHDFStore(unittest.TestCase):
         p4d = _make_one_p4d()
         self.store.append('p4d_mixed', p4d)
         tm.assert_panel4d_equal(self.store.select('p4d_mixed'), p4d)
+
+    def test_unimplemented_dtypes_table_columns(self):
+        #### currently not supported dtypes ####
+        from pandas import Timestamp
+
+        for n,f in [ ('timestamp',Timestamp('20010102')), ('unicode',u'\u03c3'), ('datetime',datetime.datetime(2001,1,2)), ('date',datetime.date(2001,1,2)) ]:
+            df = tm.makeDataFrame()
+            df[n] = f
+            self.assertRaises(NotImplementedError, self.store.append, 'df1_%s' % n, df)
 
     def test_remove(self):
         ts = tm.makeTimeSeries()
@@ -829,7 +874,7 @@ class TestHDFStore(unittest.TestCase):
             ('major_axis', '20121114'),
             ('major_axis', '>', '20121114'),
             (('major_axis', ['20121114','20121114']),),
-            ('major_axis', datetime(2012,11,14)),
+            ('major_axis', datetime.datetime(2012,11,14)),
             'major_axis>20121114',
             'major_axis>20121114',
             'major_axis>20121114',
@@ -936,14 +981,13 @@ class TestHDFStore(unittest.TestCase):
         ser = Series(values, [0, 'y'])
         self._check_roundtrip(ser, func)
 
-        ser = Series(values, [datetime.today(), 0])
+        ser = Series(values, [datetime.datetime.today(), 0])
         self._check_roundtrip(ser, func)
 
         ser = Series(values, ['y', 0])
         self._check_roundtrip(ser, func)
 
-        from datetime import date
-        ser = Series(values, [date.today(), 'a'])
+        ser = Series(values, [datetime.date.today(), 'a'])
         self._check_roundtrip(ser, func)
 
         ser = Series(values, [1.23, 'b'])
@@ -955,7 +999,7 @@ class TestHDFStore(unittest.TestCase):
         ser = Series(values, [1, 5])
         self._check_roundtrip(ser, func)
 
-        ser = Series(values, [datetime(2012, 1, 1), datetime(2012, 1, 2)])
+        ser = Series(values, [datetime.datetime(2012, 1, 1), datetime.datetime(2012, 1, 2)])
         self._check_roundtrip(ser, func)
 
     def test_timeseries_preepoch(self):
@@ -1352,7 +1396,7 @@ class TestHDFStore(unittest.TestCase):
         store.close()
 
     def test_store_datetime_fractional_secs(self):
-        dt = datetime(2012, 1, 2, 3, 4, 5, 123456)
+        dt = datetime.datetime(2012, 1, 2, 3, 4, 5, 123456)
         series = Series([0], [dt])
         self.store['a'] = series
         self.assertEquals(self.store['a'].index[0], dt)
