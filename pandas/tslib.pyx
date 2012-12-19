@@ -313,7 +313,7 @@ NaT = NaTType()
 iNaT = util.get_nat()
 
 
-cdef _tz_format(object obj, object zone):
+cdef object _tz_format(object obj, object zone):
     try:
         return obj.strftime(' %%Z, tz=%s' % zone)
     except:
@@ -705,7 +705,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
             obj.tzinfo = tz._tzinfos[inf]
 
 
-def get_timezone(tz):
+cpdef object get_timezone(object tz):
     return _get_zone(tz)
 
 
@@ -1626,8 +1626,7 @@ cpdef object normalize_date(object dt):
         raise TypeError('Unrecognized type: %s' % type(dt))
 
 
-cdef ndarray[i8] localize_dt64arr_to_period(ndarray[i8] stamps,
-                                            int freq, object tz):
+cdef ndarray[i8] localize_dt64arr_to_period(i8[:] stamps, int freq, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[i8] result = np.empty(n, dtype=np.int64)
@@ -1734,9 +1733,8 @@ cdef extern from "period.h":
     freq_conv_func get_asfreq_func(i8 fromFreq, i8 toFreq)
     void get_asfreq_info(i8 fromFreq, i8 toFreq, asfreq_info *af_info)
 
-    i8 get_period_ordinal(i8 year, i8 month, i8 day,
-                          i8 hour, i8 minute, i8 second, i8 microsecond,
-                          i8 freq) except INT64_MIN
+    i8 get_period_ordinal(i8 year, i8 month, i8 day, i8 hour, i8 minute,
+                          i8 second, i8 microsecond, i8 freq) except INT64_MIN
 
     i8 get_python_ordinal(i8 period_ordinal, i8 freq) except INT64_MIN
 
@@ -1783,7 +1781,7 @@ cdef inline i8 remove_mult(i8 period_ord_w_mult, i8 mult):
     return period_ord_w_mult * mult + 1;
 
 
-cpdef ndarray[i8] dt64arr_to_periodarr(ndarray[i8] dtarr, int freq, tz=None):
+cpdef ndarray[i8] dt64arr_to_periodarr(i8[:] dtarr, int freq, object tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     periods corresponding to desired frequency, per period convention.
@@ -1808,18 +1806,14 @@ cpdef ndarray[i8] dt64arr_to_periodarr(ndarray[i8] dtarr, int freq, tz=None):
     return out
 
 
-cpdef ndarray[i8] periodarr_to_dt64arr(ndarray[i8] periodarr, int freq):
+cpdef ndarray[i8] periodarr_to_dt64arr(i8[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
     """
     cdef:
-        ndarray[i8] out
-        Py_ssize_t i, l
-
-    l = len(periodarr)
-
-    out = np.empty(l, dtype='i8')
+        Py_ssize_t i, l = len(periodarr)
+        ndarray[i8] out = np.empty(l, dtype='i8')
 
     for i in range(l):
         out[i] = period_ordinal_to_dt64(periodarr[i], freq)
@@ -1841,7 +1835,7 @@ cpdef i8 period_asfreq(i8 period_ordinal, int freq1, int freq2,
     return retval
 
 
-cpdef ndarray[i8] period_asfreq_arr(ndarray[i8] arr, int freq1, int freq2,
+cpdef ndarray[i8] period_asfreq_arr(i8[:] arr, int freq1, int freq2,
                                     char* relation):
     """
     Convert int64-array of period ordinals from one frequency to another, and
@@ -1993,16 +1987,11 @@ cpdef i8 get_period_field(int code, i8 value, int freq):
     return f(value, freq)
 
 
-cpdef ndarray[i8] get_period_field_arr(int code, ndarray[i8] arr, int freq):
+cpdef ndarray[i8] get_period_field_arr(int code, i8[:] arr, int freq):
     cdef:
-        Py_ssize_t i, sz
-        ndarray[i8] out
-        accessor f
-
-    f = _get_accessor_func(code)
-
-    sz = len(arr)
-    out = np.empty(sz, dtype=np.int64)
+        Py_ssize_t i, sz = len(arr)
+        ndarray[i8] out = np.empty(sz, dtype=np.int64)
+        accessor f = _get_accessor_func(code)
 
     for i in range(sz):
         out[i] = f(arr[i], freq)
@@ -2039,7 +2028,7 @@ cdef accessor _get_accessor_func(int code):
         raise ValueError('Unrecognized code: %s' % code)
 
 
-cpdef ndarray[i8] extract_ordinals(ndarray[object] values, freq):
+cpdef ndarray[i8] extract_ordinals(object[:] values, freq):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[i8] ordinals = np.empty(n, dtype=np.int64)
@@ -2054,7 +2043,7 @@ cpdef ndarray[i8] extract_ordinals(ndarray[object] values, freq):
     return ordinals
 
 
-cpdef int resolution(ndarray[i8] stamps, object tz=None):
+cpdef int resolution(i8[:] stamps, object tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
@@ -2094,7 +2083,7 @@ cdef inline int _reso_stamp(pandas_datetimestruct *dts):
     return D_RESO
 
 
-cdef int _reso_local(ndarray[i8] stamps, object tz):
+cdef int _reso_local(i8[:] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         int reso = D_RESO, curr_reso
