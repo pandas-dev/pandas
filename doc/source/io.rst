@@ -1144,7 +1144,7 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
 
 Indexing
 ~~~~~~~~
-You can create an index for a table with ``create_table_index`` after data is already in the table (after and ``append/put`` operation). Creating a table index is **highly** encouraged. This will speed your queries a great deal when you use a ``select`` with the indexed dimension as the ``where``. It is not automagically done now because you may want to index different axes than the default (except in the case of a DataFrame, where it almost always makes sense to index the ``index``.
+You can create/modify an index for a table with ``create_table_index`` after data is already in the table (after and ``append/put`` operation). Creating a table index is **highly** encouraged. This will speed your queries a great deal when you use a ``select`` with the indexed dimension as the ``where``. **Indexes are automagically created** on the indexables and any data columns you specify. This behavior can be turned off by passing ``index=False`` to ``append``.
 
 .. ipython:: python
 

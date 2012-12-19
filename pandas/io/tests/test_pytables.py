@@ -430,6 +430,10 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('df', df[2:])
         tm.assert_frame_equal(self.store['df'], df)
 
+        # check that we have indicies created
+        assert(self.store.handle.root.df.table.cols.index.is_indexed == True)
+        assert(self.store.handle.root.df.table.cols.B.is_indexed == True)
+
         # data column searching
         result = self.store.select('df', [ Term('B>0') ])
         expected = df[df.B>0]
@@ -441,14 +445,6 @@ class TestHDFStore(unittest.TestCase):
         expected = df_new[df_new.B>0]
         tm.assert_frame_equal(result, expected)
         
-        # index the columns
-        self.store.create_table_index('df', columns = ['B'])
-        result = self.store.select('df', [ Term('B>0'), Term('index','>',df.index[3]) ])
-        tm.assert_frame_equal(result, expected)
-
-        # check the index
-        assert(self.store.handle.root.df.table.cols.B.is_indexed == True)
-
         # data column selection with a string data_column
         df_new = df.copy()
         df_new['string'] = 'foo'
@@ -480,12 +476,20 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_create_table_index(self):
+
+        # index=False
         wp = tm.makePanel()
-        self.store.append('p5', wp)
-        self.store.create_table_index('p5')
+        self.store.append('p5', wp, index=False)
+        self.store.create_table_index('p5', columns = ['major_axis'])
 
         assert(self.store.handle.root.p5.table.cols.major_axis.is_indexed == True)
         assert(self.store.handle.root.p5.table.cols.minor_axis.is_indexed == False)
+
+        # index=True
+        self.store.append('p5i', wp, index=True)
+
+        assert(self.store.handle.root.p5i.table.cols.major_axis.is_indexed == True)
+        assert(self.store.handle.root.p5i.table.cols.minor_axis.is_indexed == True)
 
         # default optlevels
         assert(self.store.handle.root.p5.table.cols.major_axis.index.optlevel == 6)

@@ -507,7 +507,6 @@ class HDFStore(object):
         wrapper(value)
         group._v_attrs.pandas_type = kind
         group._v_attrs.pandas_version = _version
-        #group._v_attrs.meta = getattr(value,'meta',None)
 
     def _write_series(self, group, series):
         self._write_index(group, 'index', series.index)
@@ -634,31 +633,37 @@ class HDFStore(object):
     def _read_wide(self, group, where=None):
         return Panel(self._read_block_manager(group))
 
-    def _write_ndim_table(self, group, obj, append=False, comp=None, axes=None, **kwargs):
+    def _write_ndim_table(self, group, obj, append=False, comp=None, axes=None, index=True, **kwargs):
         if axes is None:
             axes = [1,2,3]
         t = create_table(self, group, typ = 'appendable_ndim')
         t.write(axes=axes, obj=obj,
                 append=append, compression=comp, **kwargs)
+        if index:
+            t.create_index()
 
     def _read_ndim_table(self, group, where=None, **kwargs):
         t = create_table(self, group, **kwargs)
         return t.read(where)
 
-    def _write_frame_table(self, group, df, append=False, comp=None, axes=None, **kwargs):
+    def _write_frame_table(self, group, df, append=False, comp=None, axes=None, index=True, **kwargs):
         if axes is None:
             axes = [0]
         t = create_table(self, group, typ = 'appendable_frame')
         t.write(axes=axes, obj=df, append=append, compression=comp, **kwargs)
+        if index:
+            t.create_index()
 
     _read_frame_table = _read_ndim_table
 
-    def _write_wide_table(self, group, panel, append=False, comp=None, axes=None, **kwargs):
+    def _write_wide_table(self, group, panel, append=False, comp=None, axes=None, index=True, **kwargs):
         if axes is None:
             axes = [1,2]
         t = create_table(self, group, typ = 'appendable_panel')
         t.write(axes=axes, obj=panel,
                 append=append, compression=comp, **kwargs)
+        if index:
+            t.create_index()
 
     _read_wide_table = _read_ndim_table
 
@@ -847,12 +852,7 @@ class HDFStore(object):
         kind = group._v_attrs.pandas_type
         kind = _LEGACY_MAP.get(kind, kind)
         handler = self._get_handler(op='read', kind=kind)
-        v = handler(group, where, **kwargs)
-        #if v is not None:
-        #    meta = getattr(group._v_attrs,'meta',None)
-        #    if meta is not None:
-        #        v.meta = meta
-        return v
+        return handler(group, where, **kwargs)
 
     def _read_series(self, group, where=None):
         index = self._read_index(group, 'index')
@@ -1427,8 +1427,9 @@ class Table(object):
 
         if not self.infer_axes(): return
 
+        # index all indexables and data_columns
         if columns is None:
-            columns = [ self.index_axes[0].name ]
+            columns = [ a.cname for a in self.index_axes ] + [ v.cname for v in self.values_axes if v.name in set(self.data_columns) ]
         if not isinstance(columns, (tuple,list)):
             columns = [ columns ]
 
