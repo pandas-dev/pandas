@@ -32,7 +32,7 @@ pandas 0.10.1
 **Improvements to existing features**
 
   - ``HDFStore``
-    - enables storing of multi-index dataframes
+    - enables storing of multi-index dataframes (closes GH1277_)
     - support data column indexing and selection, via ``columns`` keyword in append
     - support write chunking to reduce memory footprint, via ``chunksize`` keywork to append
     - support automagic indexing via ``index`` keyworkd to append
@@ -45,8 +45,10 @@ pandas 0.10.1
   - ``HDFStore``
     - correctly handle ``nan`` elements in string columns; serialize via the ``nan_rep`` keyword to append
     - raise correctly on non-implemented column types (unicode/datetime64/date)
-    - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``)
+    - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``), closes (GH512_)
 
+.. _GH512: https://github.com/pydata/pandas/issues/512
+.. _GH1277: https://github.com/pydata/pandas/issues/1277
 
 pandas 0.10.0
 =============

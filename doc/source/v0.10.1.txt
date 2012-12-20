@@ -79,7 +79,7 @@ You can designate (and index) certain columns that you want to be able to perfor
 - You can pass ``index`` to ``append``. This defaults to ``True``. This will automagically create indicies on the *indexables* and *data columns* of the table
 - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
 - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
-- ``Select`` now supports passing ``start`` and ``stop`` to provide selection space liminting in selection.
+- ``Select`` now supports passing ``start`` and ``stop`` to provide selection space limiting in selection.
 
 
 See the `full release notes
