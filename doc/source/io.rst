@@ -1241,6 +1241,13 @@ Advanced Queries
 
    concat([ store.select('df_dc',c) for c in [ crit1, crit2 ] ])
 
+If you want to inspect the table object, retrieve via ``get_table``. You could use this progamatically to say get the number of rows in the table.
+
+.. ipython:: python
+
+   store.get_table('df_dc').nrows
+
+
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~
 You can delete from a table selectively by specifying a ``where``. In deleting rows, it is important to understand the ``PyTables`` deletes rows by erasing the rows, then **moving** the following data. Thus deleting can potentially be a very expensive operation depending on the orientation of your data. This is especially true in higher dimensional objects (``Panel`` and ``Panel4D``). To get optimal deletion speed, it pays to have the dimension you are deleting be the first of the ``indexables``.

@@ -344,7 +344,12 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
+
+        Optional Parameters
+        -------------------
         where : list of Term (or convertable) objects, optional
+        start : integer (defaults to None), row number to start selection
+        stop  : integer (defaults to None), row number to stop selection
 
         """
         group = self.get_node(key)
@@ -384,9 +389,12 @@ class HDFStore(object):
         ----------
         key : string
             Node to remove or delete rows from
-        where : list
-            For Table node, delete specified rows. See HDFStore.select for more
-            information
+
+        Optional Parameters
+        -------------------
+        where : list of Term (or convertable) objects, optional
+        start : integer (defaults to None), row number to start selection
+        stop  : integer (defaults to None), row number to stop selection
 
         Returns
         -------
@@ -418,14 +426,14 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel}
+        value : {Series, DataFrame, Panel, Panel4D}
 
         Optional Parameters
         -------------------
-        columns : list of columns to create as data columns
+        columns      : list of columns to create as data columns
         min_itemsize : dict of columns that specify minimum string sizes
-        nan_rep : string to use as string nan represenation
-        chunksize : size to chunk the writing
+        nan_rep      : string to use as string nan represenation
+        chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
 
         Notes

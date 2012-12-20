@@ -23,7 +23,7 @@ HDFStore
 
    os.remove('store.h5')
 
-You can designate (and index) certain columns that you want to be able to perform queries on a table.
+You can designate (and index) certain columns that you want to be able to perform queries on a table, by passing a list to ``columns``
 
 .. ipython:: python
 
