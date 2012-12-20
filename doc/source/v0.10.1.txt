@@ -1,0 +1,88 @@
+.. _whatsnew_0101:
+
+v0.10.1 (January ??, 2013)
+---------------------------
+
+This is a minor release from 0.10.0 and includes many new features and
+enhancements along with a large number of bug fixes. There are also a number of
+important API changes that long-time pandas users should pay close attention
+to.
+
+API changes
+~~~~~~~~~~~
+
+New features
+~~~~~~~~~~~~
+
+HDFStore
+~~~~~~~~
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('store.h5')
+
+You can designate (and index) certain columns that you want to be able to perform queries on a table.
+
+.. ipython:: python
+
+   store = HDFStore('store.h5')
+   df = DataFrame(randn(8, 3), index=date_range('1/1/2000', periods=8),
+              columns=['A', 'B', 'C'])
+   df['string'] = 'foo'
+   df.ix[4:6,'string'] = np.nan
+   df.ix[7:9,'string'] = 'bar'
+   df['string2'] = 'cool'
+   df
+
+   # on-disk operations
+   store.append('df', df, columns = ['B','C','string','string2'])
+   store.select('df',[ Term('B>0') ])
+
+   # getting creative
+   store.select('df',[ Term('B>0'), Term('C>0'), Term('string=foo') ])
+
+   # this is in-memory version of this type of selection
+   df[(df.B > 0) & (df.C > 0) & (df.string == 'foo')]
+
+
+``HDFStore`` now serializes multi-index dataframes.
+
+.. ipython:: python
+
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['foo', 'bar'])
+        df = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['A', 'B', 'C'])
+        df
+
+        store.append('mi',df)
+        store.select('mi')
+
+	# the levels are automatically included as data columns
+        store.select('mi', Term('foo=bar'))
+
+.. ipython:: python
+   :suppress:
+
+   store.close()
+   import os
+   os.remove('store.h5')
+
+**Enhancements**
+
+- You can pass ``nan_rep = 'my_nan_rep'`` to append, to change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
+- You can pass ``index`` to ``append``. This defaults to ``True``. This will automagically create indicies on the *indexables* and *data columns* of the table
+- You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
+- You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
+- ``Select`` now supports passing ``start`` and ``stop`` to provide selection space liminting in selection.
+
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+

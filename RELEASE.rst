@@ -22,6 +22,31 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.10.1
+=============
+
+**Release date:** 2013-??-??
+
+**New features**
+
+**Improvements to existing features**
+
+  - ``HDFStore``
+    - enables storing of multi-index dataframes
+    - support data column indexing and selection
+    - support write chunking to reduce memory footprint, via ``chunksize`` keywork to append
+    - support automagic indexing via ``index`` keyworkd to append
+    - support ``expectedrows`` keyword in append to inform ``PyTables`` about the expected tablesize
+    - support ``start`` and ``stop`` keywords in select to limit the row selection space
+
+**Bug fixes**
+
+  - ``HDFStore``
+    - correctly handle ``nan`` elements in string columns; serialize via the ``nan_rep`` keyword to append
+    - raise correctly on non-implemented column types (unicode/datetime64/date)
+    - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``)
+
+
 pandas 0.10.0
 =============
 
