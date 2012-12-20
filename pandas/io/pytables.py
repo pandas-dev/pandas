@@ -336,7 +336,7 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group)
 
-    def select(self, key, where=None, **kwargs):
+    def select(self, key, where=None, start=None, stop=None, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -350,7 +350,7 @@ class HDFStore(object):
         group = self.get_node(key)
         if group is None:
             raise KeyError('No object named %s in the file' % key)
-        return self._read_group(group, where, **kwargs)
+        return self._read_group(group, where=where, start=start, stop=stop, **kwargs)
 
     def put(self, key, value, table=False, append=False,
             compression=None, **kwargs):
@@ -376,7 +376,7 @@ class HDFStore(object):
         self._write_to_group(key, value, table=table, append=append,
                              comp=compression, **kwargs)
 
-    def remove(self, key, where=None):
+    def remove(self, key, where=None, start=None, stop=None):
         """
         Remove pandas object partially by specifying the where condition
 
@@ -406,7 +406,7 @@ class HDFStore(object):
                 if not _is_table_type(group):
                     raise Exception('can only remove with where on objects written as tables')
                 t = create_table(self, group)
-                return t.delete(where)
+                return t.delete(where = where, start=start, stop=stop)
 
         return None
 
@@ -426,7 +426,7 @@ class HDFStore(object):
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep : string to use as string nan represenation
         chunksize : size to chunk the writing
-
+        expectedrows : expected TOTAL row size of this table
 
         Notes
         -----
@@ -471,6 +471,15 @@ class HDFStore(object):
             return self.handle.getNode(self.root,key)
         except:
             return None
+
+    def get_table(self, key):
+        """ return the table object for a key, raise if not in the file or a non-table """
+        group = self.get_node(key)
+        if group is None:
+            raise KeyError('No object named %s in the file' % key)
+        if not _is_table_type(group):
+            raise Exception("cannot return a table object for a non-table")
+        return create_table(self, group)
 
     ###### private methods ######
 
@@ -596,7 +605,7 @@ class HDFStore(object):
     def _write_frame(self, group, df):
         self._write_block_manager(group, df._data)
 
-    def _read_frame(self, group, where=None):
+    def _read_frame(self, group, where=None, **kwargs):
         return DataFrame(self._read_block_manager(group))
 
     def _write_block_manager(self, group, data):
@@ -638,7 +647,7 @@ class HDFStore(object):
         panel._consolidate_inplace()
         self._write_block_manager(group, panel._data)
 
-    def _read_wide(self, group, where=None):
+    def _read_wide(self, group, where=None, **kwargs):
         return Panel(self._read_block_manager(group))
 
     def _write_ndim_table(self, group, obj, append=False, comp=None, axes=None, index=True, **kwargs):
@@ -652,12 +661,13 @@ class HDFStore(object):
 
     def _read_ndim_table(self, group, where=None, **kwargs):
         t = create_table(self, group, **kwargs)
-        return t.read(where)
+        return t.read(where, **kwargs)
 
     def _write_frame_table(self, group, df, append=False, comp=None, axes=None, index=True, **kwargs):
         if axes is None:
             axes = [0]
-        t = create_table(self, group, typ = 'appendable_frame')
+
+        t = create_table(self, group, typ = 'appendable_frame' if df.index.nlevels == 1 else 'appendable_multiframe')
         t.write(axes=axes, obj=df, append=append, compression=comp, **kwargs)
         if index:
             t.create_index()
@@ -860,9 +870,9 @@ class HDFStore(object):
         kind = group._v_attrs.pandas_type
         kind = _LEGACY_MAP.get(kind, kind)
         handler = self._get_handler(op='read', kind=kind)
-        return handler(group, where, **kwargs)
+        return handler(group, where=where, **kwargs)
 
-    def _read_series(self, group, where=None):
+    def _read_series(self, group, where=None, **kwargs):
         index = self._read_index(group, 'index')
         if len(index) > 0:
             values = _read_array(group, 'values')
@@ -872,12 +882,12 @@ class HDFStore(object):
         name = getattr(group._v_attrs, 'name', None)
         return Series(values, index=index, name=name)
 
-    def _read_legacy_series(self, group, where=None):
+    def _read_legacy_series(self, group, where=None, **kwargs):
         index = self._read_index_legacy(group, 'index')
         values = _read_array(group, 'values')
         return Series(values, index=index)
 
-    def _read_legacy_frame(self, group, where=None):
+    def _read_legacy_frame(self, group, where=None, **kwargs):
         index = self._read_index_legacy(group, 'index')
         columns = self._read_index_legacy(group, 'columns')
         values = _read_array(group, 'values')
@@ -1253,11 +1263,13 @@ class Table(object):
         values_axes   : a list of the columns which comprise the data of this table
         data_columns  : a list of columns that we are allowing indexing (these become single columns in values_axes)
         nan_rep       : the string to use for nan representations for string objects
+        levels        : the names of levels
 
         """
     table_type = None
     obj_type   = None
     ndim       = None
+    levels     = 1
 
     def __init__(self, parent, group, **kwargs):
         self.parent      = parent
@@ -1384,6 +1396,7 @@ class Table(object):
         self.attrs.non_index_axes = self.non_index_axes
         self.attrs.data_columns   = self.data_columns
         self.attrs.nan_rep        = self.nan_rep
+        self.attrs.levels         = self.levels
 
     def validate_version(self, where = None):
         """ are we trying to operate on an old version? """
@@ -1472,7 +1485,7 @@ class Table(object):
                 if not v.is_indexed:
                     v.createIndex(**kw)
 
-    def read_axes(self, where):
+    def read_axes(self, where, **kwargs):
         """ create and return the axes sniffed from the table: return boolean for success """
 
         # validate the version
@@ -1482,7 +1495,7 @@ class Table(object):
         if not self.infer_axes(): return False
 
         # create the selection
-        self.selection = Selection(self, where)
+        self.selection = Selection(self, where = where, **kwargs)
         values = self.selection.select()
 
         # convert the data
@@ -1502,6 +1515,7 @@ class Table(object):
         self.non_index_axes   = getattr(self.attrs,'non_index_axes',None) or []
         self.data_columns     = getattr(self.attrs,'data_columns',None)   or []
         self.nan_rep          = getattr(self.attrs,'nan_rep',None)
+        self.levels           = getattr(self.attrs,'levels',None)         or []
         self.index_axes       = [ a.infer(self.table) for a in self.indexables if     a.is_an_indexable ]
         self.values_axes      = [ a.infer(self.table) for a in self.indexables if not a.is_an_indexable ]
         return True
@@ -1659,10 +1673,11 @@ class Table(object):
 
         return obj
 
-    def create_description(self, compression = None, complevel = None):
+    def create_description(self, compression = None, complevel = None, expectedrows = None):
         """ create the description of the table from the axes & values """
 
-        d = { 'name' : 'table' }
+        d = dict( name = 'table',
+                  expectedrows = expectedrows )
 
         # description from the axes & values
         d['description'] = dict([ (a.cname,a.typ) for a in self.axes ])
@@ -1728,11 +1743,11 @@ class LegacyTable(Table):
     def write(self, **kwargs):
         raise Exception("write operations are not allowed on legacy tables!")
 
-    def read(self, where=None):
+    def read(self, where=None, **kwargs):
         """ we have n indexable columns, with an arbitrary number of data axes """
 
         
-        if not self.read_axes(where): return None
+        if not self.read_axes(where=where, **kwargs): return None
 
         factors  = [ Categorical.from_array(a.values) for a in self.index_axes ]
         levels   = [ f.levels for f in factors ]
@@ -1828,7 +1843,8 @@ class AppendableTable(LegacyTable):
     table_type = 'appendable'
 
     def write(self, axes, obj, append=False, compression=None,
-              complevel=None, min_itemsize = None, chunksize = 50000, **kwargs):
+              complevel=None, min_itemsize = None, chunksize = 50000,
+              expectedrows = None, **kwargs):
 
         # create the table if it doesn't exist (or get it if it does)
         if not append:
@@ -1841,7 +1857,7 @@ class AppendableTable(LegacyTable):
         if 'table' not in self.group:
 
             # create the table
-            options = self.create_description(compression = compression, complevel = complevel)
+            options = self.create_description(compression = compression, complevel = complevel, expectedrows = expectedrows)
 
             # set the table attributes
             self.set_attrs()
@@ -1911,7 +1927,7 @@ class AppendableTable(LegacyTable):
             import pdb; pdb.set_trace()
             raise Exception("tables cannot write this data -> %s" % str(detail))
 
-    def delete(self, where = None):
+    def delete(self, where = None, **kwargs):
 
         # delete all rows (and return the nrows)
         if where is None or not len(where):
@@ -1924,7 +1940,7 @@ class AppendableTable(LegacyTable):
 
         # create the selection
         table = self.table
-        self.selection = Selection(self, where)
+        self.selection = Selection(self, where, **kwargs)
         values = self.selection.select_coords()
 
         # delete the rows in reverse order
@@ -1977,9 +1993,9 @@ class AppendableFrameTable(AppendableTable):
             obj = obj.T
         return obj
 
-    def read(self, where=None):
+    def read(self, where=None, **kwargs):
 
-        if not self.read_axes(where): return None
+        if not self.read_axes(where=where, **kwargs): return None
 
         index   = self.index_axes[0].values
         frames  = []
@@ -2014,6 +2030,30 @@ class AppendableFrameTable(AppendableTable):
 
         return df
 
+class AppendableMultiFrameTable(AppendableFrameTable):
+    """ a frame with a multi-index """
+    table_type = 'appendable_multiframe'
+    obj_type   = DataFrame
+    ndim       = 2
+
+    @property
+    def table_type_short(self):
+        return 'appendable_multi'
+
+    def write(self, obj, columns = None, **kwargs):
+        if columns is None:
+            columns = []
+        for n in obj.index.names:
+            if n not in columns:
+                columns.insert(0,n)
+        self.levels = obj.index.names
+        return super(AppendableMultiFrameTable, self).write(obj = obj.reset_index(), columns = columns, **kwargs)
+
+    def read(self, where=None, **kwargs):
+        df = super(AppendableMultiFrameTable, self).read(where = where, **kwargs)
+        df.set_index(self.levels, inplace=True)
+        return df
+
 class AppendablePanelTable(AppendableTable):
     """ suppor the new appendable table formats """
     table_type = 'appendable_panel'
@@ -2038,7 +2078,8 @@ class AppendableNDimTable(AppendablePanelTable):
 
 # table maps
 _TABLE_MAP = {
-    'appendable_frame' : AppendableFrameTable,
+    'appendable_frame'      : AppendableFrameTable,
+    'appendable_multiframe' : AppendableMultiFrameTable,
     'appendable_panel' : AppendablePanelTable,
     'appendable_ndim'  : AppendableNDimTable,
     'worm'             : WORMTable,
@@ -2410,11 +2451,14 @@ class Selection(object):
     ----------
     table : a Table object
     where : list of Terms (or convertable to)
+    start, stop: indicies to start and/or stop selection
 
     """
-    def __init__(self, table, where=None):
+    def __init__(self, table, where=None, start=None, stop=None, **kwargs):
         self.table      = table
         self.where      = where
+        self.start      = start
+        self.stop       = stop
         self.condition  = None
         self.filter     = None
         self.terms      = self.generate(where)
@@ -2448,15 +2492,15 @@ class Selection(object):
         generate the selection
         """
         if self.condition is not None:
-            return self.table.table.readWhere(self.condition)
+            return self.table.table.readWhere(self.condition, start=self.start, stop=self.stop)
         else:
-            return self.table.table.read()
+            return self.table.table.read(start=self.start,stop=self.stop)
 
     def select_coords(self):
         """
         generate the selection
         """
-        return self.table.table.getWhereList(self.condition, sort = True)
+        return self.table.table.getWhereList(self.condition, start=self.start, stop=self.stop, sort = True)
 
 
 def _get_index_factory(klass):

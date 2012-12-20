@@ -633,6 +633,30 @@ class TestHDFStore(unittest.TestCase):
         self.assertRaises(Exception, self.store.put, 'panel', wp2,
                           append=True)
 
+    def test_append_hierarchical(self):
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['foo', 'bar'])
+        df = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['A', 'B', 'C'])
+
+        self.store.append('mi',df)
+        result = self.store.select('mi')
+        tm.assert_frame_equal(result, df)
+
+    def test_append_misc(self):
+
+        df = tm.makeDataFrame()
+        self.store.append('df',df,chunksize=1)
+        result = self.store.select('df')
+        tm.assert_frame_equal(result, df)
+
+        self.store.append('df1',df,expectedrows=10)
+        result = self.store.select('df1')
+        tm.assert_frame_equal(result, df)
+
     def test_table_index_incompatible_dtypes(self):
         df1 = DataFrame({'a': [1, 2, 3]})
         df2 = DataFrame({'a': [4, 5, 6]},
@@ -1291,6 +1315,15 @@ class TestHDFStore(unittest.TestCase):
         #self.assertRaises(Exception, self.store.select,
         #                  'frame', [crit1, crit2])
 
+    def test_start_stop(self):
+        
+        df = DataFrame(dict(A = np.random.rand(20), B = np.random.rand(20)))
+        self.store.append('df', df)
+
+        result = self.store.select('df', [ Term("columns", "=", ["A"]) ], start=0, stop=5)
+        expected = df.ix[0:4,['A']]
+        tm.assert_frame_equal(result, expected)
+
     def test_select_filter_corner(self):
         df = DataFrame(np.random.randn(50, 100))
         df.index = ['%.3d' % c for c in df.index]
@@ -1453,13 +1486,13 @@ class TestHDFStore(unittest.TestCase):
         df['d'] = ts.index[:3]
         self._check_roundtrip(df, tm.assert_frame_equal)
 
-    def test_cant_write_multiindex_table(self):
-        # for now, #1848
-        df = DataFrame(np.random.randn(10, 4),
-                       index=[np.arange(5).repeat(2),
-                              np.tile(np.arange(2), 5)])
+    #def test_cant_write_multiindex_table(self):
+    #    # for now, #1848
+    #    df = DataFrame(np.random.randn(10, 4),
+    #                   index=[np.arange(5).repeat(2),
+    #                          np.tile(np.arange(2), 5)])
 
-        self.assertRaises(Exception, self.store.put, 'foo', df, table=True)
+    #    self.assertRaises(Exception, self.store.put, 'foo', df, table=True)
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

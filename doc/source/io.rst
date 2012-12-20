@@ -1030,6 +1030,17 @@ Deletion of the object specified by the key
    del store['wp']
 
    store
+Closing a Store
+
+.. ipython:: python
+
+
+   # closing a store
+   store.close()
+
+   # Working with, and automatically closing the store with the context manager.
+   with get_store('store.h5') as store:
+        store.keys()
 
 .. ipython:: python
    :suppress:
@@ -1267,7 +1278,9 @@ Performance
 
    - ``Tables`` come with a writing performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
      Write times are generally longer as compared with regular stores. Query times can be quite fast, especially on an indexed axis.
-   - ``Tables`` can (as of 0.10.0) be expressed as different types.
+   - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
+   - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
+   - ``Tables`` can be expressed as different types.
 
      - ``AppendableTable`` which is a similiar table to past versions (this is the default).
      - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
