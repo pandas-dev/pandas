@@ -290,7 +290,8 @@ _offset_to_period_map = {
     'Q': 'Q',
     'A': 'A',
     'W': 'W',
-    'M': 'M'
+    'M': 'M',
+    'U': 'U',
 }
 
 need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
