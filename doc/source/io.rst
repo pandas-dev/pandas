@@ -1424,3 +1424,98 @@ These, by default, index the three axes ``items, major_axis, minor_axis``. On an
    store.close()
    import os
    os.remove('store.h5')
+
+
+.. _io.sql:
+
+DataBase Queries
+----------------
+
+The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
+facilitate data retrieval and to reduce dependency on DB-specific API. There
+wrappers only support the Python database adapters which respect the `Python
+DB-API <http://www.python.org/dev/peps/pep-0249/>`_.
+
+Suppose you want to query some data with different types from a table such as:
+
++-----+------------+-------+-------+-------+
+| id  |    Date    | Col_1 | Col_2 | Col_3 |
++=====+============+=======+=======+=======+
+| 26  | 2012-10-18 |   X   |  25.7 | True  |
++-----+------------+-------+-------+-------+
+| 42  | 2012-10-19 |   Y   | -12.4 | False |
++-----+------------+-------+-------+-------+
+| 63  | 2012-10-20 |   Z   |  5.73 | True  |
++-----+------------+-------+-------+-------+
+
+Functions from :mod:`pandas.io.sql` can extract some data into a DataFrame. In
+the following example, we use `SQlite <http://www.sqlite.org/>`_ SQL database
+engine. You can use a temporary SQLite database where data are stored in
+"memory". Just do:
+
+.. code-block:: python
+
+   import sqlite3
+   from pandas.io import sql
+   # Create your connection.
+   cnx = sqlite3.connect(':memory:')
+
+.. ipython:: python
+   :suppress:
+
+   import sqlite3
+   from pandas.io import sql
+   cnx = sqlite3.connect(':memory:')
+
+.. ipython:: python
+   :suppress:
+
+   cu = cnx.cursor()
+   # Create a table named 'data'.
+   cu.execute("""CREATE TABLE data(id integer,
+                                   date date,
+                                   Col_1 string,
+                                   Col_2 float,
+                                   Col_3 bool);""")
+   cu.executemany('INSERT INTO data VALUES (?,?,?,?,?)',
+                  [(26, datetime(2010,10,18), 'X', 27.5, True),
+                   (42, datetime(2010,10,19), 'Y', -12.5, False),
+                   (63, datetime(2010,10,20), 'Z', 5.73, True)])
+
+
+Let ``data`` be the name of your SQL table. With a query and your database
+connection, just use the :func:`~pandas.io.sql.read_frame` function to get the
+query results into a DataFrame:
+
+.. ipython:: python
+
+   sql.read_frame("SELECT * FROM data;", cnx)
+
+You can also specify the name of the column as the DataFrame index:
+
+.. ipython:: python
+
+   sql.read_frame("SELECT * FROM data;", cnx, index_col='id')
+   sql.read_frame("SELECT * FROM data;", cnx, index_col='date')
+
+Of course, you can specify more "complex" query.
+
+.. ipython:: python
+
+   sql.read_frame("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", cnx)
+
+.. ipython:: python
+   :suppress:
+
+   cu.close()
+   cnx.close()
+
+.. note::
+
+   For now, writing your DataFrame into a database works only with
+   SQLite. Moreover, the index will currently be dropped.
+
+.. todo::
+
+   - methods list
+
