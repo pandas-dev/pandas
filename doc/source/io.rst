@@ -1135,15 +1135,15 @@ Storing multi-index dataframes is very similar to storing/selecting from homogen
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
-        df = DataFrame(np.random.randn(10, 3), index=index,
+        df_mi = DataFrame(np.random.randn(10, 3), index=index,
                        columns=['A', 'B', 'C'])
-        df
+        df_mi
 
-        store.append('mi',df)
-        store.select('mi')
+        store.append('df_mi',df_mi)
+        store.select('df_mi')
 
 	# the levels are automatically included as data columns
-        store.select('mi', Term('foo=bar'))
+        store.select('df_mi', Term('foo=bar'))
 
 
 Querying a Table
