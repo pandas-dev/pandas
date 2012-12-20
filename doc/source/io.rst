@@ -1123,6 +1123,28 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
     # we have provided a minimum string column size
     store.root.df_mixed.table
 
+Storing Multi-Index DataFrames
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Storing multi-index dataframes is very similar to storing/selecting from homogenous index DataFrames.
+
+.. ipython:: python
+
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['foo', 'bar'])
+        df = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['A', 'B', 'C'])
+        df
+
+        store.append('mi',df)
+        store.select('mi')
+
+	# the levels are automatically included as data columns
+        store.select('mi', Term('foo=bar'))
+
 
 Querying a Table
 ~~~~~~~~~~~~~~~~
@@ -1152,6 +1174,17 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
    store.append('wp',wp)
    store
    store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
+
+Start and Stop parameters can be specified to limit the total search space. These are in terms of the total number of rows in a table.
+
+.. ipython:: python
+
+   # this is effectively what the storage of a Panel looks like
+   wp.to_frame()
+
+   # limiting the search
+   store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ], start=0, stop=10)
+
 
 Indexing
 ~~~~~~~~
