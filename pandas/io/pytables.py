@@ -2316,7 +2316,7 @@ class Term(object):
 
     """
 
-    _ops     = ['<=','<','>=','>','!=','=']
+    _ops     = ['<=','<','>=','>','!=','==','=']
     _search  = re.compile("^(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)$" % '|'.join(_ops))
 
     def __init__(self, field, op = None, value = None, queryables = None):
@@ -2375,6 +2375,10 @@ class Term(object):
         # we have valid fields
         if self.field is None or self.op is None or self.value is None:
             raise Exception("Could not create this term [%s]" % str(self))
+
+        # = vs ==
+        if self.op == '==':
+            self.op = '='
 
         # we have valid conditions
         if self.op in ['>','>=','<','<=']:
@@ -2502,9 +2506,12 @@ class Selection(object):
         if not isinstance(where, (list,tuple)):
             where = [ where ]
         else:
-            # do we have all list/tuple
+
+            # make this a list of we think that we only have a sigle term & no operands inside any terms 
             if not any([ isinstance(w, (list,tuple,Term)) for w in where ]):
-                where = [ where ]
+
+                if not any([ isinstance(w,basestring) and Term._search.match(w) for w in where ]):
+                    where = [ where ]
 
         queryables = self.table.queryables()
         return [ Term(c, queryables = queryables) for c in where ]

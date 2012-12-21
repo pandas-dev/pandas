@@ -476,6 +476,23 @@ class TestHDFStore(unittest.TestCase):
         expected = df_new[(df_new.string == 'foo') & (df_new.string2 == 'bar') & (df_new.A > 0) & (df_new.B < 0)]
         tm.assert_frame_equal(result, expected)
 
+        # doc example
+        df_dc = df.copy()
+        df_dc['string'] = 'foo'
+        df_dc.ix[4:6,'string'] = np.nan
+        df_dc.ix[7:9,'string'] = 'bar'
+        df_dc['string2'] = 'cool'
+        df_dc
+        self.store.remove('df_dc')
+        self.store.append('df_dc', df_dc, columns = ['B','C','string','string2'])
+        result = self.store.select('df_dc',[ Term('B>0') ])
+        expected = df_dc[df_dc.B > 0]
+        tm.assert_frame_equal(result, expected)
+
+        result = self.store.select('df_dc',[ 'B > 0', 'C > 0', 'string == foo' ])
+        expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
+        tm.assert_frame_equal(result, expected)
+
     def test_create_table_index(self):
 
         # index=False
