@@ -1054,7 +1054,7 @@ copy : boolean, default False
         else:
             return iter(self.values)
 
-    def iteritems(self, index=True):
+    def iteritems(self):
         """
         Lazily iterate over (index, value) tuples
         """
