@@ -487,7 +487,9 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         if not _is_table_type(group):
             raise Exception("cannot return a table object for a non-table")
-        return create_table(self, group)
+        t = create_table(self, group)
+        t.infer_axes()
+        return t
 
     ###### private methods ######
 
@@ -1293,7 +1295,7 @@ class Table(object):
         try:
             self.version = tuple([ int(x) for x in version.split('.') ])
             if len(self.version) == 2:
-                self.version = tuple(self.version + [0])
+                self.version = self.version + (0,)
         except:
             self.version = (0,0,0)
             
