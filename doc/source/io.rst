@@ -1208,21 +1208,22 @@ You can designate (and index) certain columns that you want to be able to perfor
 
 .. ipython:: python
 
-   df['string'] = 'foo'
-   df.ix[4:6,'string'] = np.nan
-   df.ix[7:9,'string'] = 'bar'
-   df['string2'] = 'cool'
-   df
+   df_dc = df.copy()
+   df_dc['string'] = 'foo'
+   df_dc.ix[4:6,'string'] = np.nan
+   df_dc.ix[7:9,'string'] = 'bar'
+   df_dc['string2'] = 'cool'
+   df_dc
 
    # on-disk operations
-   store.append('df_dc', df, columns = ['B','C','string','string2'])
+   store.append('df_dc', df_dc, columns = ['B','C','string','string2'])
    store.select('df_dc',[ Term('B>0') ])
 
    # getting creative
    store.select('df_dc',[ Term('B>0'), Term('C>0'), Term('string=foo') ])
 
    # this is in-memory version of this type of selection
-   df[(df.B > 0) & (df.C > 0) & (df.string == 'foo')]
+   df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
 
    # we have automagically created this index and that the B/string columns are stored separately as ``PyTables`` columns
    store.root.df_dc.table
@@ -1232,7 +1233,7 @@ There is some performance degredation by making lots of columns into `data colum
 Advanced Queries
 ~~~~~~~~~~~~~~~~
 
-``not`` and ``or`` conditions are unsupported at this time; however, ``or`` operations are easy to replicate. Repately apply the criteria to the table and concat.
+``not`` and ``or`` conditions are unsupported at this time; however, ``or`` operations are easy to replicate, by repeately applying the criteria to the table, and then ``concat`` the results.
 
 .. ipython:: python
 

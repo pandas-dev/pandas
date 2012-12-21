@@ -36,7 +36,7 @@ import pandas.tslib as tslib
 from contextlib import contextmanager
 
 # versioning attribute
-_version = '0.11'
+_version = '0.10.1'
 
 class IncompatibilityWarning(Warning): pass
 
@@ -529,9 +529,9 @@ class HDFStore(object):
             handler = self._get_handler(op='write', kind=kind)
             wrapper = lambda value: handler(group, value)
 
-        wrapper(value)
         group._v_attrs.pandas_type = kind
         group._v_attrs.pandas_version = _version
+        wrapper(value)
 
     def _write_series(self, group, series):
         self._write_index(group, 'index', series.index)
@@ -1080,18 +1080,23 @@ class DataCol(IndexCol):
     is_searchable     = False
 
     @classmethod
-    def create_for_block(cls, i = None, name = None, cname = None, **kwargs):
+    def create_for_block(cls, i = None, name = None, cname = None, version = None, **kwargs):
         """ return a new datacol with the block i """
 
-        # a little hacky here, to avoid a backwards compability issue
-        #   columns in the table are named like: values_block_0...., but there name is values_0 (for kind attributes)
         if cname is None:
             cname = name or 'values_block_%d' % i
         if name is None:
             name  = cname
-        m = re.search("values_block_(\d+)",name)
-        if m:
-            name = "values_%s" % m.groups()[0]
+
+        # prior to 0.10.1, we named values blocks like: values_block_0 an the name values_0
+        try:
+            if version[0] == 0 and version[1] <= 10 and version[2] == 0:
+                m = re.search("values_block_(\d+)",name)
+                if m:
+                    name = "values_%s" % m.groups()[0]
+        except:
+            pass
+
         return cls(name = name, cname = cname, **kwargs)
 
     def __init__(self, values = None, kind = None, typ = None, cname = None, data = None, block = None, **kwargs):
@@ -1282,7 +1287,16 @@ class Table(object):
     def __init__(self, parent, group, **kwargs):
         self.parent      = parent
         self.group       = group
-        self.version     = getattr(group._v_attrs,'pandas_version',None)
+
+        # compute our version
+        version = getattr(group._v_attrs,'pandas_version',None)
+        try:
+            self.version = tuple([ int(x) for x in version.split('.') ])
+            if len(self.version) == 2:
+                self.version = tuple(self.version + [0])
+        except:
+            self.version = (0,0,0)
+            
         self.index_axes     = []
         self.non_index_axes = []
         self.values_axes    = []
@@ -1409,8 +1423,8 @@ class Table(object):
     def validate_version(self, where = None):
         """ are we trying to operate on an old version? """
         if where is not None:
-            if self.version is None or float(self.version) < 0.1:
-                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % self.version, IncompatibilityWarning)
+            if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
+                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % '.'.join([ str(x) for x in self.version ]), IncompatibilityWarning)
 
     @property
     def indexables(self):
@@ -1430,7 +1444,7 @@ class Table(object):
                 klass = DataCol
                 if c in dc:
                     klass = DataIndexableCol
-                return klass.create_for_block(i = i, name = c, pos = base_pos + i ) 
+                return klass.create_for_block(i = i, name = c, pos = base_pos + i, version = self.version) 
 
             self._indexables.extend([ f(i,c) for i, c in enumerate(self.attrs.values_cols) ])
 
@@ -1646,7 +1660,7 @@ class Table(object):
             try:
                 existing_col = existing_table.values_axes[i] if existing_table is not None and validate else None
 
-                col = klass.create_for_block(i = i, name = name)
+                col = klass.create_for_block(i = i, name = name, version = self.version)
                 col.set_atom(block          = b, 
                              existing_col   = existing_col,
                              min_itemsize   = min_itemsize,

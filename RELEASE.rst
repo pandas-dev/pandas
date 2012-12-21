@@ -45,7 +45,7 @@ pandas 0.10.1
   - ``HDFStore``
     - correctly handle ``nan`` elements in string columns; serialize via the ``nan_rep`` keyword to append
     - raise correctly on non-implemented column types (unicode/datetime64/date)
-    - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``), closes (GH512_)
+    - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``), (closes GH512_)
 
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277

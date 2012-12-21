@@ -93,16 +93,17 @@ class TestHDFStore(unittest.TestCase):
         self.store.remove('df1')
         self.store.append('df1', df[:10])
         self.store.append('df1', df[10:])
-        self.assert_(self.store.root.a._v_attrs.pandas_version == '0.11')
-        self.assert_(self.store.root.b._v_attrs.pandas_version == '0.11')
-        self.assert_(self.store.root.df1._v_attrs.pandas_version == '0.11')
+        self.assert_(self.store.root.a._v_attrs.pandas_version == '0.10.1')
+        self.assert_(self.store.root.b._v_attrs.pandas_version == '0.10.1')
+        self.assert_(self.store.root.df1._v_attrs.pandas_version == '0.10.1')
 
         # write a file and wipe its versioning
         self.store.remove('df2')
         self.store.append('df2', df)
+
+        # this is an error because its table_type is appendable, but no version info
         self.store.get_node('df2')._v_attrs.pandas_version = None
-        self.store.select('df2')
-        self.store.select('df2', [ Term('index','>',df.index[2]) ])
+        self.assertRaises(Exception, self.store.select,'df2')
 
     def test_meta(self):
         raise nose.SkipTest('no meta')
@@ -1310,6 +1311,11 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('df_float', df)
         self.store.select('df_float', [ Term("index<10.0"), Term("columns", "=", ["A"]) ])
 
+        # invalid terms
+        df = tm.makeTimeDataFrame()
+        self.store.append('df_time', df)
+        self.assertRaises(Exception, self.store.select, 'df_time', [ Term("index>0") ])
+
         # can't select if not written as table
         #self.store['frame'] = df
         #self.assertRaises(Exception, self.store.select,
@@ -1401,10 +1407,13 @@ class TestHDFStore(unittest.TestCase):
         # force the frame
         store.select('df2', typ = 'legacy_frame')
 
-        # old version (this still throws an exception though)
+        self.assertRaises(Exception, store.select, 'wp1', Term('minor_axis','=','B'))
+
+        # old version warning
         import warnings
         warnings.filterwarnings('ignore', category=IncompatibilityWarning)
-        self.assertRaises(Exception, store.select, 'wp1', Term('minor_axis','=','B'))
+        df2 = store.select('df2')
+        store.select('df2', Term('index', '>', df2.index[2]))
         warnings.filterwarnings('always', category=IncompatibilityWarning)
 
         store.close()
