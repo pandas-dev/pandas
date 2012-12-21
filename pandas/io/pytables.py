@@ -2317,7 +2317,7 @@ class Term(object):
     """
 
     _ops     = ['<=','<','>=','>','!=','=']
-    _search  = re.compile("^(?P<field>\w+)(?P<op>%s)(?P<value>.+)$" % '|'.join(_ops))
+    _search  = re.compile("^(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)$" % '|'.join(_ops))
 
     def __init__(self, field, op = None, value = None, queryables = None):
         self.field = None

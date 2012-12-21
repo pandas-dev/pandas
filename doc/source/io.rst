@@ -1160,7 +1160,7 @@ Valid terms can be created from ``dict, list, tuple, or string``. Objects can be
 
        - ``dict(field = 'index', op = '>', value = '20121114')``
        - ``('index', '>', '20121114')``
-       - ``'index>20121114'``
+       - ``'index > 20121114'``
        - ``('index', '>', datetime(2012,11,14))``
        - ``('index', ['20121114','20121115'])``
        - ``('major_axis', '=', Timestamp('2012/11/14'))``
@@ -1220,7 +1220,7 @@ You can designate (and index) certain columns that you want to be able to perfor
    store.select('df_dc',[ Term('B>0') ])
 
    # getting creative
-   store.select('df_dc',[ Term('B>0'), Term('C>0'), Term('string=foo') ])
+   store.select('df_dc',[ 'B > 0', 'C > 0', 'string == foo' ])
 
    # this is in-memory version of this type of selection
    df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
