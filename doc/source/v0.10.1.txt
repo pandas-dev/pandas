@@ -47,6 +47,12 @@ You can designate (and index) certain columns that you want to be able to perfor
    df[(df.B > 0) & (df.C > 0) & (df.string == 'foo')]
 
 
+You can pass ``columns`` keyword to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``
+
+.. ipython:: python
+
+   store.select('df',columns = ['A','B'])
+
 ``HDFStore`` now serializes multi-index dataframes.
 
 .. ipython:: python

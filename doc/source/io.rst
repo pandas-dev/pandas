@@ -1175,6 +1175,12 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
    store
    store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
+The ``columns`` keyword can be supplied to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``
+
+.. ipython:: python
+
+   store.select('df', columns = ['A','B'])
+
 Start and Stop parameters can be specified to limit the total search space. These are in terms of the total number of rows in a table.
 
 .. ipython:: python

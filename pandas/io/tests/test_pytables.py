@@ -1284,6 +1284,33 @@ class TestHDFStore(unittest.TestCase):
         #self.assertRaises(Exception, self.store.select,
         #                  'wp2', ('column', ['A', 'D']))
 
+        # select with columns=
+        df = tm.makeTimeDataFrame()
+        self.store.remove('df')
+        self.store.append('df',df)
+        result = self.store.select('df', columns = ['A','B'])
+        expected = df.reindex(columns = ['A','B'])
+        tm.assert_frame_equal(expected, result)
+
+        # equivalentsly
+        result = self.store.select('df', [ ('columns', ['A','B']) ])
+        expected = df.reindex(columns = ['A','B'])
+        tm.assert_frame_equal(expected, result)
+
+        # with a data column
+        self.store.remove('df')
+        self.store.append('df',df, columns = ['A'])
+        result = self.store.select('df', [ 'A > 0' ], columns = ['A','B'])
+        expected = df[df.A > 0].reindex(columns = ['A','B'])
+        tm.assert_frame_equal(expected, result)
+
+        # with a data column, but different columns
+        self.store.remove('df')
+        self.store.append('df',df, columns = ['A'])
+        result = self.store.select('df', [ 'A > 0' ], columns = ['C','D'])
+        expected = df[df.A > 0].reindex(columns = ['C','D'])
+        tm.assert_frame_equal(expected, result)
+
     def test_panel_select(self):
         wp = tm.makePanel()
         self.store.put('wp', wp, table=True)

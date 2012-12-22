@@ -39,6 +39,7 @@ pandas 0.10.1
     - support ``expectedrows`` keyword in append to inform ``PyTables`` about the expected tablesize
     - support ``start`` and ``stop`` keywords in select to limit the row selection space
     - added ``get_store`` context manager to automatically import with pandas
+    - added column filtering via ``columns`` keyword in select
 
 **Bug fixes**
 

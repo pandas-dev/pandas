@@ -336,7 +336,7 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group)
 
-    def select(self, key, where=None, start=None, stop=None, **kwargs):
+    def select(self, key, where=None, start=None, stop=None, columns=None, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -350,12 +350,13 @@ class HDFStore(object):
         where : list of Term (or convertable) objects, optional
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
+        columns : a list of columns that if not None, will limit the return columns
 
         """
         group = self.get_node(key)
         if group is None:
             raise KeyError('No object named %s in the file' % key)
-        return self._read_group(group, where=where, start=start, stop=stop, **kwargs)
+        return self._read_group(group, where=where, start=start, stop=stop, columns=columns, **kwargs)
 
     def put(self, key, value, table=False, append=False,
             compression=None, **kwargs):
@@ -1317,11 +1318,12 @@ class Table(object):
     def __repr__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
-        return "%s (typ->%s,nrows->%s,indexers->[%s],data->[%s])" % (self.pandas_type,
+        dc = ",dc->%s" % ','.join(self.data_columns) if len(self.data_columns) else ''
+        return "%s (typ->%s,nrows->%s,indexers->[%s]%s)" % (self.pandas_type,
                                                                      self.table_type_short,
                                                                      self.nrows,
                                                                      ','.join([ a.name for a in self.index_axes ]),
-                                                                     ','.join(self.data_columns))
+                                                                     dc)
 
     __str__ = __repr__
 
@@ -1681,8 +1683,14 @@ class Table(object):
         if validate:
             self.validate(existing_table)
 
-    def process_axes(self, obj):
+    def process_axes(self, obj, columns=None):
         """ process axes filters """
+
+        # reorder by any non_index_axes & limit to the select columns
+        for axis,labels in self.non_index_axes:
+            if columns is not None:
+                labels = Index(labels) & Index(columns)
+            obj = obj.reindex_axis(labels,axis=axis,copy=False)
 
         def reindex(obj, axis, filt, ordered):
             axis_name = obj._get_axis_name(axis)
@@ -1767,7 +1775,7 @@ class LegacyTable(Table):
     def write(self, **kwargs):
         raise Exception("write operations are not allowed on legacy tables!")
 
-    def read(self, where=None, **kwargs):
+    def read(self, where=None, columns=None, **kwargs):
         """ we have n indexable columns, with an arbitrary number of data axes """
 
         
@@ -1840,12 +1848,8 @@ class LegacyTable(Table):
         else:
             wp = concat(objs, axis = 0, verify_integrity = True)
 
-        # reorder by any non_index_axes
-        for axis,labels in self.non_index_axes:
-            wp = wp.reindex_axis(labels,axis=axis,copy=False)
-
         # apply the selection filters & axis orderings
-        wp = self.process_axes(wp)
+        wp = self.process_axes(wp, columns=columns)
 
         return wp
 
@@ -2017,40 +2021,40 @@ class AppendableFrameTable(AppendableTable):
             obj = obj.T
         return obj
 
-    def read(self, where=None, **kwargs):
+    def read(self, where=None, columns=None, **kwargs):
 
         if not self.read_axes(where=where, **kwargs): return None
 
         index   = self.index_axes[0].values
         frames  = []
         for a in self.values_axes:
-            columns = Index(a.values)
+            cols = Index(a.values)
 
             if self.is_transposed:
                 values   = a.cvalues
-                index_   = columns
-                columns_ = Index(index)
+                index_   = cols
+                cols_    = Index(index)
             else:
                 values   = a.cvalues.T
                 index_   = Index(index)
-                columns_ = columns
+                cols_    = cols
 
 
             # if we have a DataIndexableCol, its shape will only be 1 dim
             if values.ndim == 1:
                 values = values.reshape(1,values.shape[0])
 
-            block   = make_block(values, columns_, columns_)
-            mgr     = BlockManager([ block ], [ columns_, index_ ])
+            block   = make_block(values, cols_, cols_)
+            mgr     = BlockManager([ block ], [ cols_, index_ ])
             frames.append(DataFrame(mgr))
-        df = concat(frames, axis = 1, verify_integrity = True)
 
-        # sort the indicies & reorder the columns
-        for axis,labels in self.non_index_axes:
-            df = df.reindex_axis(labels,axis=axis,copy=False)
+        if len(frames) == 1:
+            df = frames[0]
+        else:
+            df = concat(frames, axis = 1, verify_integrity = True)
 
         # apply the selection filters & axis orderings
-        df = self.process_axes(df)
+        df = self.process_axes(df, columns=columns)
 
         return df
 
@@ -2073,8 +2077,8 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         self.levels = obj.index.names
         return super(AppendableMultiFrameTable, self).write(obj = obj.reset_index(), columns = columns, **kwargs)
 
-    def read(self, where=None, **kwargs):
-        df = super(AppendableMultiFrameTable, self).read(where = where, **kwargs)
+    def read(self, *args, **kwargs):
+        df = super(AppendableMultiFrameTable, self).read(*args, **kwargs)
         df.set_index(self.levels, inplace=True)
         return df
 
