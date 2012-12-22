@@ -1254,6 +1254,24 @@ If you want to inspect the table object, retrieve via ``get_table``. You could u
 
    store.get_table('df_dc').nrows
 
+Multiple Table Queries
+~~~~~~~~~~~~~~~~~~~~~~
+
+New in 0.10.1 is the method ``select_multiple``, that can perform selections from multiple tables and return a combined result, by using ``where`` on a selector table. The purpose is to allow fast selection from really wide tables. Construct 2 (or more) tables, where your indexing criteria is contained in a relatively small table. Then put your data in another table. Queries will be quite fast, yet you can allow your tables to grow (in column space). **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This means, append to the tables in the same order. You can pass the ``axis`` parameter to control concatenation. Default is on the ``columns`` axis.
+
+.. ipython:: python
+
+   index = date_range('1/1/2000', periods=8)
+   df1_mt = DataFrame(randn(8, 3), index=index, columns=['A', 'B', 'C'])
+   df2_mt = DataFrame(randn(8, 3), index=index, columns=['D', 'E', 'F'])
+   df2_mt['foo'] = 'bar'
+
+   # you can use data columns as well
+   store.append('df1_mt',df1_mt, columns = ['A','B'])
+   store.append('df2_mt',df2_mt)
+
+   store.select_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], axis = 1, selector = 'df1_mt')
+  
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~

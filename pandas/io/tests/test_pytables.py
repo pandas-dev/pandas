@@ -1365,6 +1365,82 @@ class TestHDFStore(unittest.TestCase):
         #self.assertRaises(Exception, self.store.select,
         #                  'frame', [crit1, crit2])
 
+    def test_coordinates(self):
+        df = tm.makeTimeDataFrame()
+
+        self.store.remove('df')
+        self.store.append('df', df)
+
+        # all
+        c = self.store.select_as_coordinates('df')
+        assert((c.values == np.arange(len(df.index))).all() == True)
+
+        # get coordinates back & test vs frame
+        self.store.remove('df')
+
+        df = DataFrame(dict(A = range(5), B = range(5)))
+        self.store.append('df', df)
+        c = self.store.select_as_coordinates('df',[ 'index<3' ])
+        assert((c.values == np.arange(3)).all() == True)
+        result = self.store.select('df', where = c)
+        expected = df.ix[0:2,:]
+        tm.assert_frame_equal(result,expected)
+
+        c = self.store.select_as_coordinates('df', [ 'index>=3', 'index<=4' ])
+        assert((c.values == np.arange(2)+3).all() == True)
+        result = self.store.select('df', where = c)
+        expected = df.ix[3:4,:]
+        tm.assert_frame_equal(result,expected)
+
+        # multiple tables
+        self.store.remove('df1')
+        self.store.remove('df2')
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame().rename(columns = lambda x: "%s_2" % x)
+        self.store.append('df1',df1, columns = ['A','B'])
+        self.store.append('df2',df2)
+
+        c = self.store.select_as_coordinates('df1', [ 'A>0','B>0' ])
+        df1_result = self.store.select('df1',c)
+        df2_result = self.store.select('df2',c)
+        result = concat([ df1_result, df2_result ], axis=1)
+
+        expected = concat([ df1, df2 ], axis=1)
+        expected = expected[(expected.A > 0) & (expected.B > 0)]
+        tm.assert_frame_equal(result, expected)
+
+    def test_select_multiple(self):
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame().rename(columns = lambda x: "%s_2" % x)
+        df2['foo'] = 'bar'
+        self.store.append('df1',df1, columns = ['A','B'])
+        self.store.append('df2',df2)
+
+        # exceptions
+        self.assertRaises(Exception, self.store.select_multiple, None, where = [ 'A>0','B>0' ], selector = 'df1')
+        self.assertRaises(Exception, self.store.select_multiple, [ None ], where = [ 'A>0','B>0' ], selector = 'df1')
+
+        # default select
+        result = self.store.select('df1', ['A>0','B>0'])
+        expected = self.store.select_multiple([ 'df1' ], where = [ 'A>0','B>0' ], selector = 'df1')
+        tm.assert_frame_equal(result, expected)
+
+        # multiple
+        result = self.store.select_multiple(['df1','df2'], where = [ 'A>0','B>0' ], selector = 'df1')
+        expected = concat([ df1, df2 ], axis=1)
+        expected = expected[(expected.A > 0) & (expected.B > 0)]
+        tm.assert_frame_equal(result, expected)
+
+        # multiple (diff selector)
+        result = self.store.select_multiple(['df1','df2'], where = [ Term('index', '>', df2.index[4]) ], selector = 'df2')
+        expected = concat([ df1, df2 ], axis=1)
+        expected = expected[5:]
+        tm.assert_frame_equal(result, expected)
+
+        # test excpection for diff rows
+        self.store.append('df3',tm.makeTimeDataFrame(nper=50))
+        self.assertRaises(Exception, self.store.select_multiple, ['df1','df3'], where = [ 'A>0','B>0' ], selector = 'df1')
+
     def test_start_stop(self):
         
         df = DataFrame(dict(A = np.random.rand(20), B = np.random.rand(20)))
@@ -1373,6 +1449,11 @@ class TestHDFStore(unittest.TestCase):
         result = self.store.select('df', [ Term("columns", "=", ["A"]) ], start=0, stop=5)
         expected = df.ix[0:4,['A']]
         tm.assert_frame_equal(result, expected)
+
+        # out of range
+        result = self.store.select('df', [ Term("columns", "=", ["A"]) ], start=30, stop=40)
+        assert(len(result) == 0)
+        assert(type(result) == DataFrame)
 
     def test_select_filter_corner(self):
         df = DataFrame(np.random.randn(50, 100))

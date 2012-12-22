@@ -358,6 +358,65 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group, where=where, start=start, stop=stop, columns=columns, **kwargs)
 
+    def select_as_coordinates(self, key, where=None, **kwargs):
+        """ 
+        return the selection as a Coordinates. Note that start/stop/columns parematers are inapplicable here.
+
+        Parameters
+        ----------
+        key : object
+
+        Optional Parameters
+        -------------------
+        where : list of Term (or convertable) objects, optional
+        """
+        return self.get_table(key).read_coordinates(where = where, **kwargs)
+
+    def select_multiple(self, keys, where=None, selector=None, columns=None, axis=1, **kwargs):
+        """ Retrieve pandas objects from multiple tables
+
+        Parameters
+        ----------
+        keys : a list of the tables
+        selector : the table to apply the where criteria (defaults to keys[0] if not supplied)
+        columns : the columns I want back
+        axis : the concentation axis (defaults to 1)
+
+        Exceptions
+        ----------
+        raise if any of the keys don't refer to tables or if they are not ALL THE SAME DIMENSIONS
+        """
+
+        if not isinstance(keys, (list,tuple)):
+            raise Exception("keys must be a list/tuple")
+
+        if len(keys) == 0:
+            raise Exception("keys must have a non-zero length")
+
+        if len(keys) == 1:
+            return self.select(key = keys[0], where=where, columns = columns, **kwargs)
+
+        if selector is None:
+            selector = keys[0]
+
+        # collect the tables
+        tbls = [ self.get_table(k) for k in keys ]
+
+        # validate rows
+        nrows = tbls[0].nrows
+        for t in tbls:
+            if t.nrows != nrows:
+                raise Exception("all tables must have exactly the same nrows!")
+            
+        # select coordinates from the selector table
+        c = self.select_as_coordinates(selector, where)
+        
+        # collect the returns objs
+        objs = [ t.read(where = c, columns = columns) for t in tbls ]
+
+        # concat and return
+        return concat(objs, axis = axis, verify_integrity = True)
+
     def put(self, key, value, table=False, append=False,
             compression=None, **kwargs):
         """
@@ -1318,7 +1377,7 @@ class Table(object):
     def __repr__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
-        dc = ",dc->%s" % ','.join(self.data_columns) if len(self.data_columns) else ''
+        dc = ",dc->[%s]" % ','.join(self.data_columns) if len(self.data_columns) else ''
         return "%s (typ->%s,nrows->%s,indexers->[%s]%s)" % (self.pandas_type,
                                                                      self.table_type_short,
                                                                      self.nrows,
@@ -1729,6 +1788,18 @@ class Table(object):
 
     def read(self, **kwargs):
         raise NotImplementedError("cannot read on an abstract table: subclasses should implement")
+
+    def read_coordinates(self, where=None, **kwargs):
+
+        # validate the version
+        self.validate_version(where)
+
+        # infer the data kind
+        if not self.infer_axes(): return False
+
+        # create the selection
+        self.selection = Selection(self, where = where, **kwargs)
+        return Coordinates(self.selection.select_coords(), group = self.group, where = where)
 
     def write(self, **kwargs):
         raise NotImplementedError("cannot write on an abstract table")
@@ -2475,6 +2546,19 @@ class Term(object):
         # string quoting
         return ["'" + v + "'", v]
 
+class Coordinates(object):
+    """ holds a returned coordinates list, useful to select the same rows from different tables 
+
+    coordinates : holds the array of coordinates
+    group       : the source group
+    where       : the source where
+    """
+
+    def __init__(self, values, group, where, **kwargs):
+        self.values = values
+        self.group  = group
+        self.where  = where
+
 class Selection(object):
     """
     Carries out a selection operation on a tables.Table object.
@@ -2493,17 +2577,23 @@ class Selection(object):
         self.stop       = stop
         self.condition  = None
         self.filter     = None
-        self.terms      = self.generate(where)
+        self.terms      = None
+        self.coordinates = None
 
-        # create the numexpr & the filter
-        if self.terms:
-            conds = [ t.condition for t in self.terms if t.condition is not None ]
-            if len(conds):
-                self.condition = "(%s)" % ' & '.join(conds)
-            self.filter = []
-            for t in self.terms:
-                if t.filter is not None:
-                    self.filter.append(t.filter)
+        if isinstance(where, Coordinates):
+            self.coordinates = where.values
+        else:
+            self.terms      = self.generate(where)
+
+            # create the numexpr & the filter
+            if self.terms:
+                conds = [ t.condition for t in self.terms if t.condition is not None ]
+                if len(conds):
+                    self.condition = "(%s)" % ' & '.join(conds)
+                self.filter = []
+                for t in self.terms:
+                    if t.filter is not None:
+                        self.filter.append(t.filter)
 
     def generate(self, where):
         """ where can be a : dict,list,tuple,string """
@@ -2528,13 +2618,17 @@ class Selection(object):
         """
         if self.condition is not None:
             return self.table.table.readWhere(self.condition, start=self.start, stop=self.stop)
-        else:
-            return self.table.table.read(start=self.start,stop=self.stop)
+        elif self.coordinates is not None:
+            return self.table.table.readCoordinates(self.coordinates)
+        return self.table.table.read(start=self.start,stop=self.stop)
 
     def select_coords(self):
         """
         generate the selection
         """
+        if self.condition is None:
+            return np.arange(self.table.nrows)
+
         return self.table.table.getWhereList(self.condition, start=self.start, stop=self.stop, sort = True)
 
 
