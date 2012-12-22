@@ -16,7 +16,7 @@
 Group By: split-apply-combine
 *****************************
 
-By "group by" we are refer to a process involving one or more of the following
+By "group by" we are referring to a process involving one or more of the following
 steps
 
  - **Splitting** the data into groups based on some criteria
