@@ -483,12 +483,12 @@ class TestHDFStore(unittest.TestCase):
         df_dc.ix[7:9,'string'] = 'bar'
         df_dc['string2'] = 'cool'
         df_dc['datetime'] = Timestamp('20010102')
+        df_dc = df_dc.convert_objects()
+        df_dc.ix[3:5,['A','B','datetime']] = np.nan
+
         self.store.remove('df_dc')
         self.store.append('df_dc', df_dc, data_columns = ['B','C','string','string2','datetime'])
         result = self.store.select('df_dc',[ Term('B>0') ])
-
-        # convert it
-        df_dc = df_dc.consolidate().convert_objects()
 
         expected = df_dc[df_dc.B > 0]
         tm.assert_frame_equal(result, expected)
@@ -760,13 +760,6 @@ class TestHDFStore(unittest.TestCase):
         df['obj2'] = 'bar'
         df['datetime1']  = datetime.date(2001,1,2)
         df = df.consolidate().convert_objects()
-
-        # datetime64 with nan
-        df = tm.makeDataFrame()
-        df['timestamp1'] = Timestamp('20010102')
-        df.ix[3:6,:] = np.nan
-        df = df.consolidate().convert_objects()
-        self.assertRaises(Exception, self.store.append, 'df_datetime64_with_nan', df)
 
         # this fails because we have a date in the object block......
         self.assertRaises(Exception, self.store.append, 'df_unimplemented', df)

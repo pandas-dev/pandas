@@ -1115,7 +1115,10 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
     df_mixed['int']      = 1
     df_mixed['bool']     = True
     df_mixed['datetime64'] = Timestamp('20010102')
-    df_mixed.ix[3:4,['A','B','string']] = np.nan
+
+    # make sure that we have datetime64[ns] types
+    df_mixed = df_mixed.convert_objects()
+    df_mixed.ix[3:5,['A','B','string','datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = { 'values' : 50 })
     df_mixed1 = store.select('df_mixed')
@@ -1125,7 +1128,7 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
     # we have provided a minimum string column size
     store.root.df_mixed.table
 
-It is ok to store ``np.nan`` in a ``float or string``. Storing a column with a ``np.nan`` in a ``int, bool, or datetime64`` will currently throw an ``Exception`` as these columns will have converted to ``object`` type.
+It is ok to store ``np.nan`` in a ``float or string``. Make sure to do a ``convert_objects()`` on the frame before storing a ``np.nan`` in a datetime64 column. Storing a column with a ``np.nan`` in a ``int, bool`` will currently throw an ``Exception`` as these columns will have converted to ``object`` type.
 
 Storing Multi-Index DataFrames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
