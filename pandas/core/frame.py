@@ -1517,7 +1517,7 @@ class DataFrame(NDFrame):
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
-                justify=None, force_unicode=False, bold_rows=True,
+                justify=None, force_unicode=None, bold_rows=True,
                 classes=None):
         """
         to_html-specific options
@@ -1527,8 +1527,12 @@ class DataFrame(NDFrame):
         Render a DataFrame to an html table.
         """
 
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no "
+                          "effect", FutureWarning)
+
         if colSpace is not None:  # pragma: no cover
-            import warnings
             warnings.warn("colSpace is deprecated, use col_space",
                           FutureWarning)
             col_space = colSpace
@@ -1551,7 +1555,7 @@ class DataFrame(NDFrame):
     def to_latex(self, buf=None, columns=None, col_space=None, colSpace=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
-                 bold_rows=True):
+                 bold_rows=True, force_unicode=None):
         """
         to_latex-specific options
         bold_rows : boolean, default True
@@ -1560,6 +1564,17 @@ class DataFrame(NDFrame):
         Render a DataFrame to a tabular environment table.
         You can splice this into a LaTeX document.
         """
+
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no "
+                          "effect", FutureWarning)
+
+        if colSpace is not None:  # pragma: no cover
+            warnings.warn("colSpace is deprecated, use col_space",
+                          FutureWarning)
+            col_space = colSpace
+
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            header=header, index=index,
