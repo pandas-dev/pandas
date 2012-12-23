@@ -1257,19 +1257,25 @@ If you want to inspect the table object, retrieve via ``get_table``. You could u
 Multiple Table Queries
 ~~~~~~~~~~~~~~~~~~~~~~
 
-New in 0.10.1 is the method ``select_as_multiple``, that can perform selections from multiple tables and return a combined result, by using ``where`` on a selector table. The purpose is to allow fast selection from really wide tables. Construct 2 (or more) tables, where your indexing criteria is contained in a relatively small table. Then put your data in another table. Queries will be quite fast, yet you can allow your tables to grow (in column space). **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This means, append to the tables in the same order. You can pass the ``axis`` parameter to control concatenation. Default is on the ``columns`` axis.
+New in 0.10.1 are the methods ``append_to_multple`` and ``select_as_multiple``, that can perform appending/selecting from multiple tables at once. The idea is to have one table (call it the selector table) that you index most/all of the columns, and perform your queries. The other table(s) are data tables that you are indexed the same the selector table. You can then perform a very fast query on the selector table, yet get lots of data back. This method works similar to having a very wide-table, but is more efficient in terms of queries.
+
+Note, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This means, append to the tables in the same order; ``append_to_multiple`` splits a single object to multiple tables, given a specification (as a dictionary). This dictionary is a mapping of the table names to the 'columns' you want included in that table. Pass a `None` for a single table (optional) to let it have the remaining columns. The argument ``selector`` defines which table is the selector table.
 
 .. ipython:: python
 
    index = date_range('1/1/2000', periods=8)
-   df1_mt = DataFrame(randn(8, 3), index=index, columns=['A', 'B', 'C'])
-   df2_mt = DataFrame(randn(8, 3), index=index, columns=['D', 'E', 'F'])
-   df2_mt['foo'] = 'bar'
+   df_mt = DataFrame(randn(8, 6), index=index, columns=['A', 'B', 'C', 'D', 'E', 'F'])
+   df_mt['foo'] = 'bar'
 
-   # you can use data columns as well
-   store.append('df1_mt',df1_mt, data_columns = ['A','B'])
-   store.append('df2_mt',df2_mt)
+   # you can also create the tables individually
+   store.append_to_multiple({ 'df1_mt' : ['A','B'], 'df2_mt' : None }, df_mt, selector = 'df1_mt')
+   store
 
+   # indiviual tables were created
+   store.select('df1_mt')
+   store.select('df2_mt')
+   
+   # as a multiple
    store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], axis = 1, selector = 'df1_mt')
   
 

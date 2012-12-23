@@ -40,7 +40,7 @@ pandas 0.10.1
     - support ``start`` and ``stop`` keywords in select to limit the row selection space
     - added ``get_store`` context manager to automatically import with pandas
     - added column filtering via ``columns`` keyword in select
-    - added methods select_as_multiple/select_as_coordinates to do multiple-table selection
+    - added methods append_to_multiple/select_as_multiple/select_as_coordinates to do multiple-table append/selection
 
 **Bug fixes**
 

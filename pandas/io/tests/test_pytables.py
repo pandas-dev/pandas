@@ -1409,6 +1409,24 @@ class TestHDFStore(unittest.TestCase):
         expected = expected[(expected.A > 0) & (expected.B > 0)]
         tm.assert_frame_equal(result, expected)
 
+    def test_append_to_multiple(self):
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame().rename(columns = lambda x: "%s_2" % x)
+        df2['foo'] = 'bar'
+        df  = concat([ df1, df2 ], axis=1)
+
+        # exceptions
+        self.assertRaises(Exception, self.store.append_to_multiple, { 'df1' : ['A','B'], 'df2' : None }, df, selector = 'df3')
+        self.assertRaises(Exception, self.store.append_to_multiple, { 'df1' : None, 'df2' : None }, df, selector = 'df3')
+        self.assertRaises(Exception, self.store.append_to_multiple, 'df1', df, 'df1')
+
+        # regular operation
+        self.store.append_to_multiple({ 'df1' : ['A','B'], 'df2' : None }, df, selector = 'df1')
+        result = self.store.select_as_multiple(['df1','df2'], where = [ 'A>0','B>0' ], selector = 'df1')
+        expected = df[(df.A > 0) & (df.B > 0)]
+        tm.assert_frame_equal(result, expected)
+
+
     def test_select_as_multiple(self):
         df1 = tm.makeTimeDataFrame()
         df2 = tm.makeTimeDataFrame().rename(columns = lambda x: "%s_2" % x)
@@ -1423,6 +1441,8 @@ class TestHDFStore(unittest.TestCase):
         # default select
         result = self.store.select('df1', ['A>0','B>0'])
         expected = self.store.select_as_multiple([ 'df1' ], where = [ 'A>0','B>0' ], selector = 'df1')
+        tm.assert_frame_equal(result, expected)
+        expected = self.store.select_as_multiple( 'df1' , where = [ 'A>0','B>0' ], selector = 'df1')
         tm.assert_frame_equal(result, expected)
 
         # multiple

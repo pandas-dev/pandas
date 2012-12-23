@@ -79,6 +79,13 @@ _LEGACY_MAP = {
     'WidePanel': 'wide_table',
 }
 
+# axes map
+_AXES_MAP = {
+    DataFrame : [0],
+    Panel     : [1,2],
+    Panel4D   : [1,2,3],
+}
+
 # oh the troubles to reduce import time
 _table_mod = None
 _table_supports_index = False
@@ -387,14 +394,17 @@ class HDFStore(object):
         raise if any of the keys don't refer to tables or if they are not ALL THE SAME DIMENSIONS
         """
 
+        # default to single select
+        if isinstance(keys, (list,tuple)) and len(keys) == 1:
+            keys = keys[0]
+        if isinstance(keys,basestring):
+            return self.select(key = keys, where=where, columns = columns, **kwargs)
+
         if not isinstance(keys, (list,tuple)):
             raise Exception("keys must be a list/tuple")
 
         if len(keys) == 0:
             raise Exception("keys must have a non-zero length")
-
-        if len(keys) == 1:
-            return self.select(key = keys[0], where=where, columns = columns, **kwargs)
 
         if selector is None:
             selector = keys[0]
@@ -505,6 +515,63 @@ class HDFStore(object):
             raise Exception("columns is not a supported keyword in append, try data_columns")
 
         self._write_to_group(key, value, table=True, append=True, **kwargs)
+
+    def append_to_multiple(self, d, value, selector, data_columns = None, axes = None, **kwargs):
+        """
+        Append to multiple tables
+
+        Parameters
+        ----------
+        d : a dict of table_name to table_columns, None is acceptable as the values of one node (this will get all the remaining columns)
+        value : a pandas object
+        selector : a string that designates the indexable table; all of its columns will be designed as data_columns, unless data_columns is passed,
+                   in which case these are used
+
+        Notes
+        -----
+        axes parameter is currently not accepted
+
+        """
+        if axes is not None:
+            raise Exception("axes is currently not accepted as a paremter to append_to_multiple; you can create the tables indepdently instead")
+
+        if not isinstance(d, dict):
+            raise Exception("append_to_multiple must have a dictionary specified as the way to split the value")
+            
+        if selector not in d:
+            raise Exception("append_to_multiple requires a selector that is in passed dict")
+
+        # figure out the splitting axis (the non_index_axis)
+        axis = list(set(range(value.ndim))-set(_AXES_MAP[type(value)]))[0]
+
+        # figure out how to split the value
+        remain_key = None
+        remain_values = []
+        for k, v in d.items():
+            if v is None:
+                if remain_key is not None:
+                    raise Exception("append_to_multiple can only have one value in d that is None")
+                remain_key = k
+            else:
+                remain_values.extend(v)
+        if remain_key is not None:
+            ordered = value.axes[axis]
+            ordd = ordered-Index(remain_values)
+            ordd = sorted(ordered.get_indexer(ordd))
+            d[remain_key] = ordered.take(ordd)
+
+        # data_columns
+        if data_columns is None:
+            data_columns = d[selector]
+
+        # append
+        for k, v in d.items():
+            dc = data_columns if k == selector else None
+
+            # compute the val
+            val = value.reindex_axis(v, axis = axis, copy = False)
+
+            self.append(k, val, data_columns = dc, **kwargs)
 
     def create_table_index(self, key, **kwargs):
         """ Create a pytables index on the table
@@ -725,7 +792,7 @@ class HDFStore(object):
 
     def _write_ndim_table(self, group, obj, append=False, comp=None, axes=None, index=True, **kwargs):
         if axes is None:
-            axes = [1,2,3]
+            axes = _AXES_MAP[type(obj)]
         t = create_table(self, group, typ = 'appendable_ndim')
         t.write(axes=axes, obj=obj,
                 append=append, compression=comp, **kwargs)
@@ -738,7 +805,7 @@ class HDFStore(object):
 
     def _write_frame_table(self, group, df, append=False, comp=None, axes=None, index=True, **kwargs):
         if axes is None:
-            axes = [0]
+            axes = _AXES_MAP[type(df)]
 
         t = create_table(self, group, typ = 'appendable_frame' if df.index.nlevels == 1 else 'appendable_multiframe')
         t.write(axes=axes, obj=df, append=append, compression=comp, **kwargs)
@@ -749,7 +816,7 @@ class HDFStore(object):
 
     def _write_wide_table(self, group, panel, append=False, comp=None, axes=None, index=True, **kwargs):
         if axes is None:
-            axes = [1,2]
+            axes = _AXES_MAP[type(panel)]
         t = create_table(self, group, typ = 'appendable_panel')
         t.write(axes=axes, obj=panel,
                 append=append, compression=comp, **kwargs)
@@ -1755,10 +1822,9 @@ class Table(object):
             obj = obj.reindex_axis(labels,axis=axis,copy=False)
 
         def reindex(obj, axis, filt, ordered):
-            axis_name = obj._get_axis_name(axis)
             ordd = ordered & filt
             ordd = sorted(ordered.get_indexer(ordd))
-            return obj.reindex_axis(ordered.take(ordd), axis = obj._get_axis_number(axis_name), copy = False)
+            return obj.reindex_axis(ordered.take(ordd), axis = obj._get_axis_number(axis), copy = False)
             
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:
