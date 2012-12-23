@@ -23,7 +23,7 @@ HDFStore
 
    os.remove('store.h5')
 
-You can designate (and index) certain columns that you want to be able to perform queries on a table, by passing a list to ``columns``
+You can designate (and index) certain columns that you want to be able to perform queries on a table, by passing a list to ``data_columns``
 
 .. ipython:: python
 
@@ -37,7 +37,7 @@ You can designate (and index) certain columns that you want to be able to perfor
    df
 
    # on-disk operations
-   store.append('df', df, columns = ['B','C','string','string2'])
+   store.append('df', df, data_columns = ['B','C','string','string2'])
    store.select('df',[ Term('B>0') ])
 
    # getting creative
@@ -82,7 +82,7 @@ Multi-table Selection via ``select_multiple`` can perform selections from multip
    df2_mt['foo'] = 'bar'
 
    # you can use data columns as well
-   store.append('df1_mt',df1_mt, columns = ['A','B'])
+   store.append('df1_mt',df1_mt, data_columns = ['A','B'])
    store.append('df2_mt',df2_mt)
 
    store.select_multiple(['df1_mt','df2_mt'], where = [ 'A>0' ], axis = 1, selector = 'df1_mt')

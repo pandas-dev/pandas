@@ -372,7 +372,7 @@ class HDFStore(object):
         """
         return self.get_table(key).read_coordinates(where = where, **kwargs)
 
-    def select_multiple(self, keys, where=None, selector=None, columns=None, axis=1, **kwargs):
+    def select_as_multiple(self, keys, where=None, selector=None, columns=None, axis=1, **kwargs):
         """ Retrieve pandas objects from multiple tables
 
         Parameters
@@ -478,7 +478,7 @@ class HDFStore(object):
 
         return None
 
-    def append(self, key, value, **kwargs):
+    def append(self, key, value, columns = None, **kwargs):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -490,7 +490,7 @@ class HDFStore(object):
 
         Optional Parameters
         -------------------
-        columns      : list of columns to create as data columns
+        data_columns : list of columns to create as data columns
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
         chunksize    : size to chunk the writing
@@ -501,6 +501,9 @@ class HDFStore(object):
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
         """
+        if columns is not None:
+            raise Exception("columns is not a supported keyword in append, try data_columns")
+
         self._write_to_group(key, value, table=True, append=True, **kwargs)
 
     def create_table_index(self, key, **kwargs):
@@ -1336,7 +1339,7 @@ class Table(object):
         index_axes    : a list of tuples of the (original indexing axis and index column)
         non_index_axes: a list of tuples of the (original index axis and columns on a non-indexing axis)
         values_axes   : a list of the columns which comprise the data of this table
-        data_columns  : a list of columns that we are allowing indexing (these become single columns in values_axes)
+        data_columns  : a list of the columns that we are allowing indexing (these become single columns in values_axes)
         nan_rep       : the string to use for nan representations for string objects
         levels        : the names of levels
 
@@ -1609,7 +1612,7 @@ class Table(object):
         """ return the data for this obj """
         return obj
 
-    def create_axes(self, axes, obj, validate = True, nan_rep = None, columns = None, min_itemsize = None, **kwargs):
+    def create_axes(self, axes, obj, validate = True, nan_rep = None, data_columns = None, min_itemsize = None, **kwargs):
         """ create and return the axes
               leagcy tables create an indexable column, indexable index, non-indexable fields
     
@@ -1620,7 +1623,7 @@ class Table(object):
             validate: validate the obj against an existiing object already written
             min_itemsize: a dict of the min size for a column in bytes
             nan_rep : a values to use for string column nan_rep
-            columns : a list of columns that we want to create separate to allow indexing
+            data_columns : a list of columns that we want to create separate to allow indexing
 
         """
 
@@ -1630,9 +1633,9 @@ class Table(object):
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
             existing_table = self.copy()
-            axes    = [ a.axis for a in existing_table.index_axes]
-            columns = existing_table.data_columns
-            nan_rep = existing_table.nan_rep
+            axes         = [ a.axis for a in existing_table.index_axes]
+            data_columns = existing_table.data_columns
+            nan_rep      = existing_table.nan_rep
         else:
             existing_table = None
 
@@ -1694,13 +1697,13 @@ class Table(object):
         block_obj = self.get_object(obj)
         blocks    = None
 
-        if columns is not None and len(self.non_index_axes):
-            axis        = self.non_index_axes[0][0]
-            axis_labels = self.non_index_axes[0][1]
-            columns = [ c for c in columns if c in axis_labels ]
-            if len(columns):
-                blocks    = block_obj.reindex_axis(Index(axis_labels)-Index(columns), axis = axis, copy = False)._data.blocks
-                for c in columns:
+        if data_columns is not None and len(self.non_index_axes):
+            axis         = self.non_index_axes[0][0]
+            axis_labels  = self.non_index_axes[0][1]
+            data_columns = [ c for c in data_columns if c in axis_labels ]
+            if len(data_columns):
+                blocks    = block_obj.reindex_axis(Index(axis_labels)-Index(data_columns), axis = axis, copy = False)._data.blocks
+                for c in data_columns:
                     blocks.extend(block_obj.reindex_axis([ c ], axis = axis, copy = False)._data.blocks)
 
         if blocks is None:
@@ -1715,7 +1718,7 @@ class Table(object):
             name   = None
 
             # we have a data_column
-            if columns and len(b.items) == 1 and b.items[0] in columns:
+            if data_columns and len(b.items) == 1 and b.items[0] in data_columns:
                 klass = DataIndexableCol
                 name  = b.items[0]
                 self.data_columns.append(name)
@@ -2139,14 +2142,14 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     def table_type_short(self):
         return 'appendable_multi'
 
-    def write(self, obj, columns = None, **kwargs):
-        if columns is None:
-            columns = []
+    def write(self, obj, data_columns = None, **kwargs):
+        if data_columns is None:
+            data_columns = []
         for n in obj.index.names:
-            if n not in columns:
-                columns.insert(0,n)
+            if n not in data_columns:
+                data_columns.insert(0,n)
         self.levels = obj.index.names
-        return super(AppendableMultiFrameTable, self).write(obj = obj.reset_index(), columns = columns, **kwargs)
+        return super(AppendableMultiFrameTable, self).write(obj = obj.reset_index(), data_columns = data_columns, **kwargs)
 
     def read(self, *args, **kwargs):
         df = super(AppendableMultiFrameTable, self).read(*args, **kwargs)

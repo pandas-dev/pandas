@@ -427,7 +427,7 @@ class TestHDFStore(unittest.TestCase):
 
         df = tm.makeTimeDataFrame()
         self.store.remove('df')
-        self.store.append('df', df[:2], columns = ['B'])
+        self.store.append('df', df[:2], data_columns = ['B'])
         self.store.append('df', df[2:])
         tm.assert_frame_equal(self.store['df'], df)
 
@@ -452,7 +452,7 @@ class TestHDFStore(unittest.TestCase):
         df_new['string'][1:4] = np.nan
         df_new['string'][5:6] = 'bar'
         self.store.remove('df')
-        self.store.append('df', df_new, columns = ['string'])
+        self.store.append('df', df_new, data_columns = ['string'])
         result = self.store.select('df', [ Term('string', '=', 'foo') ])
         expected = df_new[df_new.string == 'foo']
         tm.assert_frame_equal(result, expected)
@@ -466,7 +466,7 @@ class TestHDFStore(unittest.TestCase):
         df_new['string2'][2:5] = np.nan
         df_new['string2'][7:8] = 'bar'
         self.store.remove('df')
-        self.store.append('df', df_new, columns = ['A','B','string','string2'])
+        self.store.append('df', df_new, data_columns = ['A','B','string','string2'])
         result = self.store.select('df', [ Term('string', '=', 'foo'), Term('string2=foo'), Term('A>0'), Term('B<0') ])
         expected = df_new[(df_new.string == 'foo') & (df_new.string2 == 'foo') & (df_new.A > 0) & (df_new.B < 0)]
         tm.assert_frame_equal(result, expected)
@@ -484,7 +484,7 @@ class TestHDFStore(unittest.TestCase):
         df_dc['string2'] = 'cool'
         df_dc
         self.store.remove('df_dc')
-        self.store.append('df_dc', df_dc, columns = ['B','C','string','string2'])
+        self.store.append('df_dc', df_dc, data_columns = ['B','C','string','string2'])
         result = self.store.select('df_dc',[ Term('B>0') ])
         expected = df_dc[df_dc.B > 0]
         tm.assert_frame_equal(result, expected)
@@ -1299,14 +1299,14 @@ class TestHDFStore(unittest.TestCase):
 
         # with a data column
         self.store.remove('df')
-        self.store.append('df',df, columns = ['A'])
+        self.store.append('df',df, data_columns = ['A'])
         result = self.store.select('df', [ 'A > 0' ], columns = ['A','B'])
         expected = df[df.A > 0].reindex(columns = ['A','B'])
         tm.assert_frame_equal(expected, result)
 
         # with a data column, but different columns
         self.store.remove('df')
-        self.store.append('df',df, columns = ['A'])
+        self.store.append('df',df, data_columns = ['A'])
         result = self.store.select('df', [ 'A > 0' ], columns = ['C','D'])
         expected = df[df.A > 0].reindex(columns = ['C','D'])
         tm.assert_frame_equal(expected, result)
@@ -1397,7 +1397,7 @@ class TestHDFStore(unittest.TestCase):
         self.store.remove('df2')
         df1 = tm.makeTimeDataFrame()
         df2 = tm.makeTimeDataFrame().rename(columns = lambda x: "%s_2" % x)
-        self.store.append('df1',df1, columns = ['A','B'])
+        self.store.append('df1',df1, data_columns = ['A','B'])
         self.store.append('df2',df2)
 
         c = self.store.select_as_coordinates('df1', [ 'A>0','B>0' ])
@@ -1409,37 +1409,37 @@ class TestHDFStore(unittest.TestCase):
         expected = expected[(expected.A > 0) & (expected.B > 0)]
         tm.assert_frame_equal(result, expected)
 
-    def test_select_multiple(self):
+    def test_select_as_multiple(self):
         df1 = tm.makeTimeDataFrame()
         df2 = tm.makeTimeDataFrame().rename(columns = lambda x: "%s_2" % x)
         df2['foo'] = 'bar'
-        self.store.append('df1',df1, columns = ['A','B'])
+        self.store.append('df1',df1, data_columns = ['A','B'])
         self.store.append('df2',df2)
 
         # exceptions
-        self.assertRaises(Exception, self.store.select_multiple, None, where = [ 'A>0','B>0' ], selector = 'df1')
-        self.assertRaises(Exception, self.store.select_multiple, [ None ], where = [ 'A>0','B>0' ], selector = 'df1')
+        self.assertRaises(Exception, self.store.select_as_multiple, None, where = [ 'A>0','B>0' ], selector = 'df1')
+        self.assertRaises(Exception, self.store.select_as_multiple, [ None ], where = [ 'A>0','B>0' ], selector = 'df1')
 
         # default select
         result = self.store.select('df1', ['A>0','B>0'])
-        expected = self.store.select_multiple([ 'df1' ], where = [ 'A>0','B>0' ], selector = 'df1')
+        expected = self.store.select_as_multiple([ 'df1' ], where = [ 'A>0','B>0' ], selector = 'df1')
         tm.assert_frame_equal(result, expected)
 
         # multiple
-        result = self.store.select_multiple(['df1','df2'], where = [ 'A>0','B>0' ], selector = 'df1')
+        result = self.store.select_as_multiple(['df1','df2'], where = [ 'A>0','B>0' ], selector = 'df1')
         expected = concat([ df1, df2 ], axis=1)
         expected = expected[(expected.A > 0) & (expected.B > 0)]
         tm.assert_frame_equal(result, expected)
 
         # multiple (diff selector)
-        result = self.store.select_multiple(['df1','df2'], where = [ Term('index', '>', df2.index[4]) ], selector = 'df2')
+        result = self.store.select_as_multiple(['df1','df2'], where = [ Term('index', '>', df2.index[4]) ], selector = 'df2')
         expected = concat([ df1, df2 ], axis=1)
         expected = expected[5:]
         tm.assert_frame_equal(result, expected)
 
         # test excpection for diff rows
         self.store.append('df3',tm.makeTimeDataFrame(nper=50))
-        self.assertRaises(Exception, self.store.select_multiple, ['df1','df3'], where = [ 'A>0','B>0' ], selector = 'df1')
+        self.assertRaises(Exception, self.store.select_as_multiple, ['df1','df3'], where = [ 'A>0','B>0' ], selector = 'df1')
 
     def test_start_stop(self):
         

@@ -1222,7 +1222,7 @@ You can designate (and index) certain columns that you want to be able to perfor
    df_dc
 
    # on-disk operations
-   store.append('df_dc', df_dc, columns = ['B','C','string','string2'])
+   store.append('df_dc', df_dc, data_columns = ['B','C','string','string2'])
    store.select('df_dc',[ Term('B>0') ])
 
    # getting creative
@@ -1257,7 +1257,7 @@ If you want to inspect the table object, retrieve via ``get_table``. You could u
 Multiple Table Queries
 ~~~~~~~~~~~~~~~~~~~~~~
 
-New in 0.10.1 is the method ``select_multiple``, that can perform selections from multiple tables and return a combined result, by using ``where`` on a selector table. The purpose is to allow fast selection from really wide tables. Construct 2 (or more) tables, where your indexing criteria is contained in a relatively small table. Then put your data in another table. Queries will be quite fast, yet you can allow your tables to grow (in column space). **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This means, append to the tables in the same order. You can pass the ``axis`` parameter to control concatenation. Default is on the ``columns`` axis.
+New in 0.10.1 is the method ``select_as_multiple``, that can perform selections from multiple tables and return a combined result, by using ``where`` on a selector table. The purpose is to allow fast selection from really wide tables. Construct 2 (or more) tables, where your indexing criteria is contained in a relatively small table. Then put your data in another table. Queries will be quite fast, yet you can allow your tables to grow (in column space). **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This means, append to the tables in the same order. You can pass the ``axis`` parameter to control concatenation. Default is on the ``columns`` axis.
 
 .. ipython:: python
 
@@ -1267,10 +1267,10 @@ New in 0.10.1 is the method ``select_multiple``, that can perform selections fro
    df2_mt['foo'] = 'bar'
 
    # you can use data columns as well
-   store.append('df1_mt',df1_mt, columns = ['A','B'])
+   store.append('df1_mt',df1_mt, data_columns = ['A','B'])
    store.append('df2_mt',df2_mt)
 
-   store.select_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], axis = 1, selector = 'df1_mt')
+   store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], axis = 1, selector = 'df1_mt')
   
 
 Delete from a Table
