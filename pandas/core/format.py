@@ -55,7 +55,8 @@ docstring_to_string = """
     index_names : bool, optional
         Prints the names of the indexes, default True
     force_unicode : bool, default False
-        Always return a unicode result
+        Always return a unicode result. Deprecated in v0.10.0 as string
+        formatting is now rendered to unicode by default.
 
     Returns
     -------
