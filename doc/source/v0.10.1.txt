@@ -38,13 +38,10 @@ You can designate (and index) certain columns that you want to be able to perfor
 
    # on-disk operations
    store.append('df', df, data_columns = ['B','C','string','string2'])
-   store.select('df',[ Term('B>0') ])
-
-   # getting creative
-   store.select('df',[ Term('B>0'), Term('C>0'), Term('string=foo') ])
+   store.select('df',[ 'B > 0', 'string == foo' ])
 
    # this is in-memory version of this type of selection
-   df[(df.B > 0) & (df.C > 0) & (df.string == 'foo')]
+   df[(df.B > 0) & (df.string == 'foo')]
 
 
 You can pass ``columns`` keyword to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``
@@ -53,7 +50,7 @@ You can pass ``columns`` keyword to select to filter a list of the return column
 
    store.select('df',columns = ['A','B'])
 
-``HDFStore`` now serializes multi-index dataframes.
+``HDFStore`` now serializes multi-index dataframes when appending tables.
 
 .. ipython:: python
 
@@ -76,8 +73,8 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_multi
 
 .. ipython:: python
 
-   index = date_range('1/1/2000', periods=8)
-   df_mt = DataFrame(randn(8, 6), index=index, columns=['A', 'B', 'C', 'D', 'E', 'F'])
+   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8), 
+                                  columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
 
    # you can also create the tables individually
@@ -89,7 +86,7 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_multi
    store.select('df2_mt')
    
    # as a multiple
-   store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], axis = 1, selector = 'df1_mt')
+   store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], selector = 'df1_mt')
 
 .. ipython:: python
    :suppress:

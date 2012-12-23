@@ -34,7 +34,7 @@ pandas 0.10.1
   - ``HDFStore``
     - enables storing of multi-index dataframes (closes GH1277_)
     - support data column indexing and selection, via ``data_columns`` keyword in append
-    - support write chunking to reduce memory footprint, via ``chunksize`` keywork to append
+    - support write chunking to reduce memory footprint, via ``chunksize`` keyword to append
     - support automagic indexing via ``index`` keywork to append
     - support ``expectedrows`` keyword in append to inform ``PyTables`` about the expected tablesize
     - support ``start`` and ``stop`` keywords in select to limit the row selection space

@@ -379,7 +379,7 @@ class HDFStore(object):
         """
         return self.get_table(key).read_coordinates(where = where, **kwargs)
 
-    def select_as_multiple(self, keys, where=None, selector=None, columns=None, axis=1, **kwargs):
+    def select_as_multiple(self, keys, where=None, selector=None, columns=None, **kwargs):
         """ Retrieve pandas objects from multiple tables
 
         Parameters
@@ -387,7 +387,6 @@ class HDFStore(object):
         keys : a list of the tables
         selector : the table to apply the where criteria (defaults to keys[0] if not supplied)
         columns : the columns I want back
-        axis : the concentation axis (defaults to 1)
 
         Exceptions
         ----------
@@ -423,6 +422,9 @@ class HDFStore(object):
         
         # collect the returns objs
         objs = [ t.read(where = c, columns = columns) for t in tbls ]
+
+        # axis is the concentation axes
+        axis = list(set([ t.non_index_axes[0][0] for t in tbls ]))[0]
 
         # concat and return
         return concat(objs, axis = axis, verify_integrity = True)
@@ -2463,7 +2465,7 @@ class Term(object):
     """
 
     _ops     = ['<=','<','>=','>','!=','==','=']
-    _search  = re.compile("^(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)$" % '|'.join(_ops))
+    _search  = re.compile("^\s*(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)\s*$" % '|'.join(_ops))
 
     def __init__(self, field, op = None, value = None, queryables = None):
         self.field = None
