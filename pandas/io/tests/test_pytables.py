@@ -13,7 +13,7 @@ from pandas.io.pytables import HDFStore, get_store, Term, IncompatibilityWarning
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
-from pandas import concat
+from pandas import concat, Timestamp
 
 try:
     import tables
@@ -482,10 +482,14 @@ class TestHDFStore(unittest.TestCase):
         df_dc.ix[4:6,'string'] = np.nan
         df_dc.ix[7:9,'string'] = 'bar'
         df_dc['string2'] = 'cool'
-        df_dc
+        df_dc['datetime'] = Timestamp('20010102')
         self.store.remove('df_dc')
-        self.store.append('df_dc', df_dc, data_columns = ['B','C','string','string2'])
+        self.store.append('df_dc', df_dc, data_columns = ['B','C','string','string2','datetime'])
         result = self.store.select('df_dc',[ Term('B>0') ])
+
+        # convert it
+        df_dc = df_dc.consolidate().convert_objects()
+
         expected = df_dc[df_dc.B > 0]
         tm.assert_frame_equal(result, expected)
 
@@ -699,60 +703,73 @@ class TestHDFStore(unittest.TestCase):
     def test_table_mixed_dtypes(self):
 
         # frame
-        def _make_one_df():
-            df = tm.makeDataFrame()
-            df['obj1'] = 'foo'
-            df['obj2'] = 'bar'
-            df['bool1'] = df['A'] > 0
-            df['bool2'] = df['B'] > 0
-            df['bool3'] = True
-            df['int1'] = 1
-            df['int2'] = 2
-            return df.consolidate()
+        df = tm.makeDataFrame()
+        df['obj1'] = 'foo'
+        df['obj2'] = 'bar'
+        df['bool1'] = df['A'] > 0
+        df['bool2'] = df['B'] > 0
+        df['bool3'] = True
+        df['int1'] = 1
+        df['int2'] = 2
+        df['timestamp1'] = Timestamp('20010102')
+        df['timestamp2'] = Timestamp('20010103')
+        df['datetime1']  = datetime.datetime(2001,1,2,0,0)
+        df['datetime2']  = datetime.datetime(2001,1,3,0,0)
+        df.ix[3:6,['obj1']] = np.nan
+        df = df.consolidate().convert_objects()
 
-        df1 = _make_one_df()
-
-        self.store.append('df1_mixed', df1)
-        tm.assert_frame_equal(self.store.select('df1_mixed'), df1)
+        self.store.append('df1_mixed', df)
+        tm.assert_frame_equal(self.store.select('df1_mixed'), df)
 
         # panel
-        def _make_one_panel():
-            wp = tm.makePanel()
-            wp['obj1'] = 'foo'
-            wp['obj2'] = 'bar'
-            wp['bool1'] = wp['ItemA'] > 0
-            wp['bool2'] = wp['ItemB'] > 0
-            wp['int1'] = 1
-            wp['int2'] = 2
-            return wp.consolidate()
-        p1 = _make_one_panel()
+        wp = tm.makePanel()
+        wp['obj1'] = 'foo'
+        wp['obj2'] = 'bar'
+        wp['bool1'] = wp['ItemA'] > 0
+        wp['bool2'] = wp['ItemB'] > 0
+        wp['int1'] = 1
+        wp['int2'] = 2
+        wp = wp.consolidate()
 
-        self.store.append('p1_mixed', p1)
-        tm.assert_panel_equal(self.store.select('p1_mixed'), p1)
+        self.store.append('p1_mixed', wp)
+        tm.assert_panel_equal(self.store.select('p1_mixed'), wp)
 
         # ndim
-        def _make_one_p4d():
-            wp = tm.makePanel4D()
-            wp['obj1'] = 'foo'
-            wp['obj2'] = 'bar'
-            wp['bool1'] = wp['l1'] > 0
-            wp['bool2'] = wp['l2'] > 0
-            wp['int1'] = 1
-            wp['int2'] = 2
-            return wp.consolidate()
-
-        p4d = _make_one_p4d()
-        self.store.append('p4d_mixed', p4d)
-        tm.assert_panel4d_equal(self.store.select('p4d_mixed'), p4d)
+        wp = tm.makePanel4D()
+        wp['obj1'] = 'foo'
+        wp['obj2'] = 'bar'
+        wp['bool1'] = wp['l1'] > 0
+        wp['bool2'] = wp['l2'] > 0
+        wp['int1'] = 1
+        wp['int2'] = 2
+        wp = wp.consolidate()
+    
+        self.store.append('p4d_mixed', wp)
+        tm.assert_panel4d_equal(self.store.select('p4d_mixed'), wp)
 
     def test_unimplemented_dtypes_table_columns(self):
         #### currently not supported dtypes ####
-        from pandas import Timestamp
-
-        for n,f in [ ('timestamp',Timestamp('20010102')), ('unicode',u'\u03c3'), ('datetime',datetime.datetime(2001,1,2)), ('date',datetime.date(2001,1,2)) ]:
+        for n,f in [ ('unicode',u'\u03c3'), ('date',datetime.date(2001,1,2)) ]:
             df = tm.makeDataFrame()
             df[n] = f
             self.assertRaises(NotImplementedError, self.store.append, 'df1_%s' % n, df)
+
+        # frame
+        df = tm.makeDataFrame()
+        df['obj1'] = 'foo'
+        df['obj2'] = 'bar'
+        df['datetime1']  = datetime.date(2001,1,2)
+        df = df.consolidate().convert_objects()
+
+        # datetime64 with nan
+        df = tm.makeDataFrame()
+        df['timestamp1'] = Timestamp('20010102')
+        df.ix[3:6,:] = np.nan
+        df = df.consolidate().convert_objects()
+        self.assertRaises(Exception, self.store.append, 'df_datetime64_with_nan', df)
+
+        # this fails because we have a date in the object block......
+        self.assertRaises(Exception, self.store.append, 'df_unimplemented', df)
 
     def test_remove(self):
         ts = tm.makeTimeSeries()

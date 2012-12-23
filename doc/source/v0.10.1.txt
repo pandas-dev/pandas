@@ -43,6 +43,18 @@ You can designate (and index) certain columns that you want to be able to perfor
    # this is in-memory version of this type of selection
    df[(df.B > 0) & (df.string == 'foo')]
 
+You can now store ``datetime64`` in data columns
+
+.. ipython:: python
+
+    df_mixed               = df.copy()
+    df_mixed['datetime64'] = Timestamp('20010102')
+    df_mixed.ix[3:4,['A','B']] = np.nan
+
+    store.append('df_mixed', df_mixed)
+    df_mixed1 = store.select('df_mixed')
+    df_mixed1
+    df_mixed1.get_dtype_counts()
 
 You can pass ``columns`` keyword to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``
 

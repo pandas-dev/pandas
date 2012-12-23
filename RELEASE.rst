@@ -41,12 +41,13 @@ pandas 0.10.1
     - added ``get_store`` context manager to automatically import with pandas
     - added column filtering via ``columns`` keyword in select
     - added methods append_to_multiple/select_as_multiple/select_as_coordinates to do multiple-table append/selection
+    - added support for datetime64 in columns
 
 **Bug fixes**
 
   - ``HDFStore``
     - correctly handle ``nan`` elements in string columns; serialize via the ``nan_rep`` keyword to append
-    - raise correctly on non-implemented column types (unicode/datetime64/date)
+    - raise correctly on non-implemented column types (unicode/date)
     - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``), (closes GH512_)
 
 .. _GH512: https://github.com/pydata/pandas/issues/512

@@ -1106,7 +1106,7 @@ Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
-Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools`` are currently supported. For string columns, passing ``nan_rep = 'my_nan_rep'`` to append will change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
+Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools, datetime64`` are currently supported. For string columns, passing ``nan_rep = 'my_nan_rep'`` to append will change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
 
 .. ipython:: python
 
@@ -1114,6 +1114,7 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
     df_mixed['string']   = 'string'
     df_mixed['int']      = 1
     df_mixed['bool']     = True
+    df_mixed['datetime64'] = Timestamp('20010102')
     df_mixed.ix[3:4,['A','B','string']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = { 'values' : 50 })
@@ -1123,6 +1124,8 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
 
     # we have provided a minimum string column size
     store.root.df_mixed.table
+
+It is ok to store ``np.nan`` in a ``float or string``. Storing a column with a ``np.nan`` in a ``int, bool, or datetime64`` will currently throw an ``Exception`` as these columns will have converted to ``object`` type.
 
 Storing Multi-Index DataFrames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

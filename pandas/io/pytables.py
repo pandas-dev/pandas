@@ -1246,10 +1246,13 @@ class DataCol(IndexCol):
         """ compare 2 col items """
         return all([ getattr(self,a,None) == getattr(other,a,None) for a in ['name','cname','dtype','pos'] ])
 
-    def set_data(self, data):
+    def set_data(self, data, dtype = None):
         self.data = data
         if data is not None:
-            if self.dtype is None:
+            if dtype is not None:
+                self.dtype = dtype
+                self.set_kind()
+            elif self.dtype is None:
                 self.dtype = data.dtype.name
                 self.set_kind()
 
@@ -1267,23 +1270,26 @@ class DataCol(IndexCol):
                 self.kind = 'float'
             elif self.dtype.startswith('int'):
                 self.kind = 'integer'
+            elif self.dtype.startswith('date'):
+                self.kind = 'datetime'
 
     def set_atom(self, block, existing_col, min_itemsize, nan_rep, **kwargs):
         """ create and setup my atom from the block b """
 
         self.values   = list(block.items)
         dtype         = block.dtype.name
+        inferred_type = lib.infer_dtype(block.values.flatten())
 
-        if dtype == 'object':
-            inferred_type = lib.infer_dtype(block.values.flatten())
-            if inferred_type == 'unicode':
-                raise NotImplementedError("unicode is not implemented as a table column")
-            elif inferred_type == 'date':
-                raise NotImplementedError("date is not implemented as a table column")
+        if inferred_type == 'datetime64':
+            self.set_atom_datetime64(block)
+        elif inferred_type == 'date':
+            raise NotImplementedError("date is not implemented as a table column")
+        elif inferred_type == 'unicode':
+            raise NotImplementedError("unicode is not implemented as a table column")
 
+        ### this is basically a catchall; if say a datetime64 has nans then will end up here ###
+        elif inferred_type == 'string' or dtype == 'object':
             self.set_atom_string(block, existing_col, min_itemsize, nan_rep)
-        elif dtype == 'datetime64[ns]':
-            raise NotImplementedError("datetime64[ns] is not implemented as a table column")
         else:
             self.set_atom_data(block)
 
@@ -1324,6 +1330,14 @@ class DataCol(IndexCol):
         self.typ    = self.get_atom_data(block)
         self.set_data(block.values.astype(self.typ._deftype))
 
+    def get_atom_datetime64(self, block):
+        return _tables().Int64Col(shape = block.shape[0])
+
+    def set_atom_datetime64(self, block):
+        self.kind   = 'datetime64'
+        self.typ    = self.get_atom_datetime64(block)
+        self.set_data(block.values.view('i8'),'datetime64')
+
     @property
     def shape(self):
         return getattr(self.data,'shape',None)
@@ -1354,10 +1368,21 @@ class DataCol(IndexCol):
 
         # convert to the correct dtype
         if self.dtype is not None:
-            try:
-                self.data = self.data.astype(self.dtype)
-            except:
-                self.data = self.data.astype('O')
+
+            # reverse converts
+            if self.dtype == 'datetime64':
+                self.data = np.asarray(self.data, dtype='M8[ns]')
+            elif self.dtype == 'date':
+                self.data = np.array([date.fromtimestamp(v) for v in self.data], dtype=object)
+            elif self.dtype == 'datetime':
+                self.data = np.array([datetime.fromtimestamp(v) for v in self.data],
+                                     dtype=object)
+            else:
+
+                try:
+                    self.data = self.data.astype(self.dtype)
+                except:
+                    self.data = self.data.astype('O')
 
         # convert nans
         if self.kind == 'string':
@@ -1388,6 +1413,9 @@ class DataIndexableCol(DataCol):
 
     def get_atom_data(self, block):
         return getattr(_tables(),"%sCol" % self.kind.capitalize())()
+
+    def get_atom_datetime64(self, block):
+        return _tables().Int64Col()
 
 class Table(object):
     """ represent a table:
