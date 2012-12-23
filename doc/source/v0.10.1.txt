@@ -69,7 +69,7 @@ You can pass ``columns`` keyword to select to filter a list of the return column
    # the levels are automatically included as data columns
    store.select('mi', Term('foo=bar'))
 
-Multi-table creation via ``append_to_multiple`` and selection via ``select_multiple`` can create/select from multiple tables and return a combined result, by using ``where`` on a selector table.
+Multi-table creation via ``append_to_multiple`` and selection via ``select_as_multiple`` can create/select from multiple tables and return a combined result, by using ``where`` on a selector table.
 
 .. ipython:: python
 
