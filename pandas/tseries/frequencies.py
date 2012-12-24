@@ -1014,23 +1014,25 @@ def is_subperiod(source, target):
         if _is_quarterly(source):
             return _quarter_months_conform(_get_rule_month(source),
                                            _get_rule_month(target))
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif _is_quarterly(target):
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif target == 'M':
-        return source in ['D', 'B', 'H', 'T', 'S']
+        return source in ['D', 'B', 'H', 'T', 'S', 'U']
     elif _is_weekly(target):
-        return source in [target, 'D', 'B', 'H', 'T', 'S']
+        return source in [target, 'D', 'B', 'H', 'T', 'S', 'U']
     elif target == 'B':
-        return source in ['B', 'H', 'T', 'S']
+        return source in ['B', 'H', 'T', 'S', 'U']
     elif target == 'D':
-        return source in ['D', 'H', 'T', 'S']
+        return source in ['D', 'H', 'T', 'S', 'U']
     elif target == 'H':
-        return source in ['H', 'T', 'S']
+        return source in ['H', 'T', 'S', 'U']
     elif target == 'T':
-        return source in ['T', 'S']
+        return source in ['T', 'S', 'U']
     elif target == 'S':
-        return source in ['S']
+        return source in ['S', 'U']
+    elif target == 'U':
+        return source == target
 
 
 def is_superperiod(source, target):
@@ -1065,23 +1067,25 @@ def is_superperiod(source, target):
             smonth = _get_rule_month(source)
             tmonth = _get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif _is_quarterly(source):
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif source == 'M':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S', 'U']
     elif _is_weekly(source):
-        return target in [source, 'D', 'B', 'H', 'T', 'S']
+        return target in [source, 'D', 'B', 'H', 'T', 'S', 'U']
     elif source == 'B':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S', 'U']
     elif source == 'D':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S', 'U']
     elif source == 'H':
-        return target in ['H', 'T', 'S']
+        return target in ['H', 'T', 'S', 'U']
     elif source == 'T':
-        return target in ['T', 'S']
+        return target in ['T', 'S', 'U']
     elif source == 'S':
-        return target in ['S']
+        return target in ['S', 'U']
+    elif source == 'U':
+        return target == source
 
 
 def _get_rule_month(source, default='DEC'):
