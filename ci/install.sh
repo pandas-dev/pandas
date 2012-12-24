@@ -21,7 +21,7 @@ fi
 if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ] || \
    [ ${TRAVIS_PYTHON_VERSION}     == "3.1" ] || \
    [ ${TRAVIS_PYTHON_VERSION}     == "3.2" ]; then
-     pip $PIP_ARGS install numpy; #https://github.com/y-p/numpy/archive/1.6.2_with_travis_fix.tar.gz;
+     pip $PIP_ARGS install numpy;
 else
     pip $PIP_ARGS install https://github.com/numpy/numpy/archive/v1.7.0b2.tar.gz;
 fi
