@@ -1,4 +1,4 @@
-import urllib2 
+import urllib2
 import warnings
 import json
 import pandas
@@ -93,6 +93,7 @@ def _WDIdownload(indicator = "NY.GNS.ICTR.GN.ZS", country = 'US',
     # Prepare output
     out = pandas.DataFrame([country, iso2c, year, value]).T
     return out
+     
 
 _cached_series = None
 def search(string='gdp.*capi', field='name', case=False):
