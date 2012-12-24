@@ -1,7 +1,6 @@
-from datetime import datetime, time, timedelta
-import sys
-import os
+from datetime import datetime, timedelta
 import unittest
+from unittest import TestCase
 
 import nose
 
@@ -9,12 +8,12 @@ import numpy as np
 
 from pandas import Index, DatetimeIndex, date_range, period_range
 
-from pandas.tseries.frequencies import to_offset, infer_freq
+from pandas.tseries.frequencies import (to_offset, infer_freq, Resolution,
+                                        get_reso_string)
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.frequencies as fmod
 import pandas.tseries.offsets as offsets
 
-import pandas.lib as lib
 
 def test_to_offset_multiple():
     freqstr = '2h30min'
@@ -53,12 +52,13 @@ def test_to_offset_multiple():
     else:
         assert(False)
 
+
 def test_to_offset_negative():
     freqstr = '-1S'
     result = to_offset(freqstr)
     assert(result.n == -1)
 
-    freqstr='-5min10s'
+    freqstr = '-5min10s'
     result = to_offset(freqstr)
     assert(result.n == -310)
 
@@ -74,6 +74,7 @@ def test_anchored_shortcuts():
 
 
 _dti = DatetimeIndex
+
 
 class TestFrequencyInference(unittest.TestCase):
 
@@ -197,7 +198,6 @@ class TestFrequencyInference(unittest.TestCase):
                          (inf_freq == 'Q-OCT' and
                           gen.freqstr in ('Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
 
-
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
         if not freq.startswith('Q-'):
@@ -243,12 +243,36 @@ class TestFrequencyInference(unittest.TestCase):
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
           'OCT', 'NOV', 'DEC']
 
+
 def test_is_superperiod_subperiod():
     assert(fmod.is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
     assert(fmod.is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
 
     assert(fmod.is_superperiod(offsets.Hour(), offsets.Minute()))
     assert(fmod.is_subperiod(offsets.Minute(), offsets.Hour()))
+
+
+class TestResolution(TestCase):
+    def test_resolution(self):
+        resos = 'microsecond', 'second', 'minute', 'hour', 'day'
+
+        for i, r in enumerate(resos):
+            s = Resolution.get_str(i)
+            self.assertEqual(s, r)
+
+        self.assertEqual(Resolution.get_str(None), 'day')
+
+    def test_get_reso_string(self):
+        resos = 'microsecond', 'second', 'minute', 'hour', 'day'
+
+        for i, r in enumerate(resos):
+            s = Resolution.get_str(i)
+            self.assertEqual(s, r)
+            self.assertEqual(get_reso_string(i), s)
+
+        self.assertEqual(Resolution.get_str(None), 'day')
+        self.assertEqual(get_reso_string(None), 'day')
+
 
 if __name__ == '__main__':
     import nose
