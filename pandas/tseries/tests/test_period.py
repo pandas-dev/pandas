@@ -231,7 +231,7 @@ class TestPeriodProperties(TestCase):
         for a in aliases:
             self.assertEquals(end_ts, p.to_timestamp('D', how=a))
 
-        from_lst = ['A', 'Q', 'M', 'W', 'B', 'D', 'H', 'Min', 'S', 'U']
+        from_lst = 'A', 'Q', 'M', 'W', 'B', 'D', 'H', 'Min', 'S', 'U'
 
         def _ex(p):
             return Timestamp((p + 1).start_time.value - 1)

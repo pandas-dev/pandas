@@ -96,6 +96,7 @@ cpdef bint _is_tzlocal(object tz):
     return isa
 
 
+
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
@@ -779,8 +780,8 @@ cpdef tuple datetime_to_datetime64(ndarray[object] values):
     return result, inferred_tz
 
 
-cpdef ndarray array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
-                                format=None, utc=None):
+cpdef ndarray array_to_datetime(ndarray[object] values, raise_=False,
+                                dayfirst=False, format=None, utc=None):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
@@ -919,6 +920,7 @@ cpdef i8 pydt_to_i8(object pydt):
         i8 value = ts.value
 
     return value
+
 
 
 def i8_to_pydt(i8 i, object tzinfo = None):
@@ -1316,7 +1318,6 @@ cpdef ndarray[i8] get_time_micros(ndarray[i8] dtindex):
         i8 secs_per_hour = secs_per_min * secs_per_min
         i8 us_per_sec = 1000000
 
-
     for i in range(n):
         pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
         micros[i] = us_per_sec * (dts.hour * secs_per_hour + secs_per_min *
@@ -1631,7 +1632,8 @@ cpdef object normalize_date(object dt):
         raise TypeError('Unrecognized type: %s' % type(dt))
 
 
-cdef ndarray[i8] localize_dt64arr_to_period(ndarray[i8] stamps, int freq, object tz):
+cdef ndarray[i8] localize_dt64arr_to_period(ndarray[i8] stamps, int freq,
+                                            object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[i8] result = np.empty(n, dtype=np.int64)
@@ -1786,7 +1788,8 @@ cdef inline i8 remove_mult(i8 period_ord_w_mult, i8 mult):
     return period_ord_w_mult * mult + 1;
 
 
-cpdef ndarray[i8] dt64arr_to_periodarr(ndarray[i8] dtarr, int freq, object tz=None):
+cpdef ndarray[i8] dt64arr_to_periodarr(ndarray[i8] dtarr, int freq,
+                                       object tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     periods corresponding to desired frequency, per period convention.

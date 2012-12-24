@@ -3,8 +3,8 @@
 from datetime import datetime, date
 import numpy as np
 
-from pandas.tseries.frequencies import (get_freq_code as _gfc,
-                                        _month_numbers, FreqGroup)
+from pandas.tseries.frequencies import (get_freq_code as _gfc, _month_numbers,
+                                        FreqGroup)
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
@@ -172,7 +172,7 @@ class Period(object):
         resampled : Period
         """
         how = _validate_end_alias(how)
-        base1, mult1 = _gfc(self.freq)
+        base1, _ = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
 
         if mult2 != 1:
@@ -214,10 +214,10 @@ class Period(object):
         how = _validate_end_alias(how)
 
         if freq is None:
-            base, mult = _gfc(self.freq)
+            base, _ = _gfc(self.freq)
             freq = _freq_mod.get_to_timestamp_base(base)
 
-        base, mult = _gfc(freq)
+        base, _ = _gfc(freq)
         val = self.asfreq(freq, how)
 
         dt64 = tslib.period_ordinal_to_dt64(val.ordinal, base)
@@ -311,6 +311,18 @@ class Period(object):
         +-----------+--------------------------------+-------+
         | ``%S``    | Second as a decimal number     | \(4)  |
         |           | [00,61].                       |       |
+        +-----------|--------------------------------|-------+
+        | ``%u``    | Microsecond as a decimal       |       |
+        |           | number                         |       |
+        |           | [000000, 999999]               |       |
+        +-----------+--------------------------------+-------+
+        | ``%u``    | Microsecond as a decimal number|       |
+        |           | [00,999999].                   |       |
+        |           |                                |       |
+        |           |                                |       |
+        |           |                                |       |
+        |           |                                |       |
+        |           |                                |       |
         +-----------+--------------------------------+-------+
         | ``%u``    | Microsecond as a decimal number|       |
         |           | [00,999999].                   |       |
@@ -661,9 +673,14 @@ class PeriodIndex(Int64Index):
 
     def asof_locs(self, where, mask):
         """
+        Parameters
+        ----------
         where : array of timestamps
         mask : array of booleans where data is not NA
 
+        Returns
+        -------
+        result : array_like
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
@@ -736,7 +753,7 @@ class PeriodIndex(Int64Index):
 
         freq = _freq_mod.get_standard_freq(freq)
 
-        base1, mult1 = _gfc(self.freq)
+        base1, _ = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
 
         if mult2 != 1:
@@ -806,10 +823,10 @@ class PeriodIndex(Int64Index):
         how = _validate_end_alias(how)
 
         if freq is None:
-            base, mult = _gfc(self.freq)
+            base, _ = _gfc(self.freq)
             freq = _freq_mod.get_to_timestamp_base(base)
 
-        base, mult = _gfc(freq)
+        base, _ = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
         new_data = tslib.periodarr_to_dt64arr(new_data.values, base)
@@ -855,7 +872,7 @@ class PeriodIndex(Int64Index):
             return super(PeriodIndex, self).get_value(series, key)
         except (KeyError, IndexError):
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
+                asdt, _, reso = parse_time_string(key, self.freq)
                 grp = _freq_mod._infer_period_group(reso)
                 freqn = _freq_mod._period_group(self.freq)
 
@@ -896,7 +913,7 @@ class PeriodIndex(Int64Index):
             return self._engine.get_loc(key)
         except KeyError:
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
+                asdt, _, _ = parse_time_string(key, self.freq)
                 key = asdt
             except TypeError:
                 pass
@@ -1128,19 +1145,23 @@ def _get_ordinal_range(start, end, periods, freq):
     return data, freq
 
 
-def _range_from_fields(year=None, month=None, quarter=None, day=None,
-                       hour=None, minute=None, second=None, microsecond=None,
-                       freq=None):
-    if hour is None:
-        hour = 0
-    if minute is None:
-        minute = 0
-    if second is None:
-        second = 0
-    if microsecond is None:
-        microsecond = 0
+def _range_from_fields(year=None, month=None, quarter=None, day=None, hour=None,
+                       minute=None, second=None, microsecond=None, freq=None):
+
     if day is None:
         day = 1
+
+    if hour is None:
+        hour = 0
+
+    if minute is None:
+        minute = 0
+
+    if second is None:
+        second = 0
+
+    if microsecond is None:
+        microsecond = 0
 
     ordinals = []
 
@@ -1169,7 +1190,6 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
         for y, mth, d, h, mn, s, us in zip(*arrays):
             ordinals.append(tslib.period_ordinal(y, mth, d, h, mn, s, us,
                                                  base))
-
     return np.array(ordinals, dtype=np.int64), freq
 
 

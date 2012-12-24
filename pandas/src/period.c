@@ -219,6 +219,7 @@ dInfoCalc_SetFromAbsDate(register date_info *dinfo, i8 absdate,
     register i8 year;
     i8 yearoffset, leap, dayoffset, *monthoffset = NULL;
 
+
     /* Approximate year */
     switch (calendar) {
     case GREGORIAN:
@@ -381,7 +382,6 @@ DtoQ_yq(i8 ordinal, asfreq_info *af_info, i8 *year, i8 *quarter)
 static i8
 asfreq_DtoQ(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
-
     i8 year, quarter;
 
     if (DtoQ_yq(ordinal, af_info, &year, &quarter) == INT_ERR_CODE)
@@ -393,7 +393,6 @@ asfreq_DtoQ(i8 ordinal, const char* relation, asfreq_info *af_info)
 static i8
 asfreq_DtoM(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
-
     date_info dinfo;
 
     if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET, GREGORIAN))
@@ -446,7 +445,6 @@ asfreq_StoHIGHFREQ(i8 ordinal, const char* relation, i8 per_sec)
         return ordinal * per_sec;
     else
         return (ordinal + 1) * per_sec - 1;
-
 }
 
 static i8
@@ -470,6 +468,10 @@ asfreq_DtoS(i8 ordinal, const char* relation, asfreq_info *af_info)
 static i8
 asfreq_DtoU(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
+    return asfreq_DtoHIGHFREQ(ordinal, relation, US_PER_DAY);
+}
+
+static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
     return asfreq_DtoHIGHFREQ(ordinal, relation, US_PER_DAY);
 }
 
@@ -575,7 +577,7 @@ asfreq_TtoB(i8 ordinal, const char* relation, asfreq_info *af_info)
 static i8
 asfreq_TtoH(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
-	return ordinal / 60;
+    return ordinal / 60;
 }
 
 static i8
@@ -892,14 +894,13 @@ QtoD_ym(i8 ordinal, i8 *y, i8 *m, asfreq_info *af_info)
         if (*m > 12)
             *m -= 12;
         else
-            *y -= 1;
+            --*y;
     }
 }
 
 static i8
 asfreq_QtoD(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
-
     i8 absdate, y, m;
 
     if (!strcmp(relation, "S")) {
@@ -950,7 +951,6 @@ asfreq_QtoW(i8 ordinal, const char* relation, asfreq_info *af_info)
 static i8
 asfreq_QtoB(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
-
     date_info dinfo;
     i8 qtod = asfreq_QtoD(ordinal, relation, af_info) + ORD_OFFSET;
 
@@ -1001,7 +1001,6 @@ asfreq_AtoD(i8 ordinal, const char* relation, asfreq_info *af_info)
         month = 1;
     else
         ++month;
-
 
     if (!strcmp(relation, "S")) {
         year = af_info->from_a_year_end == 12 ? ord : ord - 1;
@@ -1209,7 +1208,6 @@ asfreq_UtoH(i8 ordinal, const char* relation, asfreq_info *af_info)
 {
     return asfreq_DtoH(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO),
                        relation, &NULL_AF_INFO);
-
 }
 
 static i8
@@ -1274,7 +1272,6 @@ asfreq_HtoU(i8 ordinal, const char* relation, asfreq_info *af_info)
     return asfreq_TtoU(asfreq_HtoT(ordinal, relation, af_info), relation,
                        af_info);
 }
-
 
 freq_conv_func
 get_asfreq_func(i8 fromFreq, i8 toFreq)
@@ -1450,7 +1447,6 @@ get_asfreq_func(i8 fromFreq, i8 toFreq)
     }
 }
 
-
 static i8
 get_abs_time(i8 freq, i8 daily_ord, i8 ordinal)
 {
@@ -1484,7 +1480,7 @@ get_abs_time(i8 freq, i8 daily_ord, i8 ordinal)
     }
 
     start_ord = asfreq_DtoHIGHFREQ(daily_ord, "S", per_day);
-	return unit * (ordinal - start_ord);
+    return unit * (ordinal - start_ord);
 }
 
 /* Sets the time part of the DateTime object. */
@@ -1568,6 +1564,13 @@ get_period_ordinal(i8 year, i8 month, i8 day, i8 hour, i8 minute, i8 second,
 {
     i8 absdays, delta, weeks, days, ordinal, day_adj, fmonth, mdiff;
     i8 freq_group = get_freq_group(freq);
+
+    if (freq == FR_USEC) {
+        absdays = absdate_from_ymd(year, month, day);
+        delta = absdays - ORD_OFFSET;
+        return delta * US_PER_DAY + hour * US_PER_HOUR +
+            minute * US_PER_MINUTE + second * US_PER_SECOND + microsecond;
+    }
 
     if (freq == FR_USEC) {
         absdays = absdate_from_ymd(year, month, day);
@@ -1829,13 +1832,13 @@ get_date_info(i8 ordinal, i8 freq, date_info *dinfo)
     i8 absdate = get_python_ordinal(ordinal, freq);
     i8 abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal);
 
-	if (abstime < 0) {
+    if (abstime < 0) {
         // add a day's worth of us to time
-		abstime += US_PER_DAY;
+        abstime += US_PER_DAY;
 
         // subtract a day from the date
-		--absdate;
-	}
+        --absdate;
+    }
 
     if (dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime, GREGORIAN))
         return INT_ERR_CODE;
@@ -1954,6 +1957,50 @@ i8
 pmicrosecond(i8 ordinal, i8 freq)
 {
     date_info dinfo;
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.microsecond;
+}
+
+i8
+pnanosecond(i8 ordinal, i8 freq)
+{
+    date_info dinfo;
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.nanosecond;
+}
+
+
+i8
+ppicosecond(i8 ordinal, i8 freq)
+{
+    date_info dinfo;
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.picosecond;
+}
+
+i8
+pfemtosecond(i8 ordinal, i8 freq)
+{
+    date_info dinfo;
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.femtosecond;
+}
+
+i8
+pattosecond(i8 ordinal, i8 freq)
+{
+    date_info dinfo;
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.attosecond;
+}
+
+i8 pmicrosecond(i8 ordinal, i8 freq) {
+    struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.microsecond;
