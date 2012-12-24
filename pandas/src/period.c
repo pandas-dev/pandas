@@ -471,9 +471,6 @@ asfreq_DtoU(i8 ordinal, const char* relation, asfreq_info *af_info)
     return asfreq_DtoHIGHFREQ(ordinal, relation, US_PER_DAY);
 }
 
-static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoHIGHFREQ(ordinal, relation, US_PER_DAY);
-}
 
 //************ FROM SECONDLY ***************
 
@@ -1957,50 +1954,6 @@ i8
 pmicrosecond(i8 ordinal, i8 freq)
 {
     date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.microsecond;
-}
-
-i8
-pnanosecond(i8 ordinal, i8 freq)
-{
-    date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.nanosecond;
-}
-
-
-i8
-ppicosecond(i8 ordinal, i8 freq)
-{
-    date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.picosecond;
-}
-
-i8
-pfemtosecond(i8 ordinal, i8 freq)
-{
-    date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.femtosecond;
-}
-
-i8
-pattosecond(i8 ordinal, i8 freq)
-{
-    date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.attosecond;
-}
-
-i8 pmicrosecond(i8 ordinal, i8 freq) {
-    struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.microsecond;
