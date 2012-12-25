@@ -86,6 +86,7 @@ class Index(np.ndarray):
     _engine_type = _index.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
+        from pandas.tseries.period import PeriodIndex
         if isinstance(data, np.ndarray):
             if issubclass(data.dtype.type, np.datetime64):
                 from pandas.tseries.index import DatetimeIndex
@@ -100,6 +101,8 @@ class Index(np.ndarray):
                     data = np.array(data, dtype=dtype, copy=copy)
                 except TypeError:
                     pass
+            elif isinstance(data, PeriodIndex):
+                return PeriodIndex(data, copy=copy, name=name)
 
             if issubclass(data.dtype.type, np.integer):
                 return Int64Index(data, copy=copy, name=name)
@@ -122,9 +125,8 @@ class Index(np.ndarray):
                     from pandas.tseries.index import DatetimeIndex
                     return DatetimeIndex(subarr, copy=copy, name=name)
 
-                if lib.is_period_array(subarr):
-                    from pandas.tseries.period import PeriodIndex
-                    return PeriodIndex(subarr, name=name)
+            if lib.is_period_array(subarr):
+                return PeriodIndex(subarr, name=name)
 
         subarr = subarr.view(cls)
         subarr.name = name
