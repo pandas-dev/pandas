@@ -2992,12 +2992,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     def _try_cast(arr):
         try:
-            subarr = np.array(data, dtype=dtype, copy=copy)
+            arr = com._possibly_cast_to_datetime(arr, dtype)
+            subarr = np.array(arr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if dtype is not None and raise_cast_failure:
                 raise
             else:  # pragma: no cover
-                subarr = np.array(data, dtype=object, copy=copy)
+                subarr = np.array(arr, dtype=object, copy=copy)
         return subarr
 
     # GH #846
@@ -3056,6 +3057,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 value, dtype = _dtype_from_scalar(value)
                 subarr = np.empty(len(index), dtype=dtype)
             else:
+                # need to possibly convert the value here
+                value  = com._possibly_cast_to_datetime(value, dtype)
                 subarr = np.empty(len(index), dtype=dtype)
             subarr.fill(value)
         else:

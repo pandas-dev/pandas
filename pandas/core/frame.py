@@ -4235,7 +4235,14 @@ class DataFrame(NDFrame):
         -------
         applied : DataFrame
         """
-        return self.apply(lambda x: lib.map_infer(x, func))
+        
+        # if we have a dtype == 'M8[ns]', provide boxed values
+        def infer(x):
+            if x.dtype == 'M8[ns]':
+                from pandas import Timestamp
+                return [ func(Timestamp(e)) for e in x ]
+            return lib.map_infer(x, func)
+        return self.apply(infer)
 
     #----------------------------------------------------------------------
     # Merging / joining methods

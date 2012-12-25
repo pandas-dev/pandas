@@ -463,12 +463,13 @@ def make_block(values, items, ref_items):
 
     # try to infer a datetimeblock
     if klass is None and np.prod(values.shape):
-        inferred_type = lib.infer_dtype(values.flatten())
+        flat = values.flatten()
+        inferred_type = lib.infer_dtype(flat)
         if inferred_type == 'datetime':
 
             # we have an object array that has been inferred as datetime, so convert it
             try:
-                values = tslib.array_to_datetime(values.flatten()).reshape(values.shape)
+                values = tslib.array_to_datetime(flat).reshape(values.shape)
                 klass = DatetimeBlock
             except: # it already object, so leave it
                 pass

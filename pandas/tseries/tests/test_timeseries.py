@@ -2079,7 +2079,7 @@ class TestLegacySupport(unittest.TestCase):
         df = df.applymap(lambda x: x+BDay())
         df = df.applymap(lambda x: x+BDay())
 
-        self.assertTrue(df.x1.dtype == object)
+        self.assertTrue(df.x1.dtype == 'M8[ns]')
 
 
 class TestLegacyCompat(unittest.TestCase):
