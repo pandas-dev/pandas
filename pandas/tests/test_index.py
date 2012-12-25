@@ -86,6 +86,13 @@ class TestIndex(unittest.TestCase):
         # corner case
         self.assertRaises(Exception, Index, 0)
 
+    def test_index_ctor_infer_periodindex(self):
+        from pandas import period_range, PeriodIndex
+        xp = period_range('2012-1-1', freq='M', periods=3)
+        rs = Index(xp)
+        assert_array_equal(rs, xp)
+        self.assert_(isinstance(rs, PeriodIndex))
+
     def test_copy(self):
         i = Index([], name='Foo')
         i_copy = i.copy()

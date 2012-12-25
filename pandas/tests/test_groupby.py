@@ -224,6 +224,13 @@ class TestGroupBy(unittest.TestCase):
 
         assert(len(gb1) == len(gb2))
 
+    def test_agg_period_index(self):
+        from pandas import period_range, PeriodIndex
+        prng = period_range('2012-1-1', freq='M', periods=3)
+        df = DataFrame(np.random.randn(3, 2), index=prng)
+        rs = df.groupby(level=0).sum()
+        self.assert_(isinstance(rs.index, PeriodIndex))
+
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
