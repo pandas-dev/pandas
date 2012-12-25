@@ -4239,8 +4239,7 @@ class DataFrame(NDFrame):
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if x.dtype == 'M8[ns]':
-                from pandas import Timestamp
-                return [ func(Timestamp(e)) for e in x ]
+                x = lib.map_infer(x, lib.Timestamp)
             return lib.map_infer(x, func)
         return self.apply(infer)
 
