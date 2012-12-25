@@ -446,6 +446,7 @@ class DatetimeBlock(Block):
 def make_block(values, items, ref_items):
     dtype = values.dtype
     vtype = dtype.type
+    klass = None
 
     if issubclass(vtype, np.floating):
         klass = FloatBlock
@@ -459,7 +460,20 @@ def make_block(values, items, ref_items):
         klass = IntBlock
     elif dtype == np.bool_:
         klass = BoolBlock
-    else:
+
+    # try to infer a datetimeblock
+    if klass is None and np.prod(values.shape):
+        inferred_type = lib.infer_dtype(values.flatten())
+        if inferred_type == 'datetime':
+
+            # we have an object array that has been inferred as datetime, so convert it
+            try:
+                values = tslib.array_to_datetime(values.flatten()).reshape(values.shape)
+                klass = DatetimeBlock
+            except: # it already object, so leave it
+                pass
+
+    if klass is None:
         klass = ObjectBlock
 
     return klass(values, items, ref_items, ndim=values.ndim)

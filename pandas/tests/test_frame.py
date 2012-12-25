@@ -21,7 +21,7 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
-                             MultiIndex, DatetimeIndex)
+                             MultiIndex, DatetimeIndex, Timestamp)
 from pandas.io.parsers import read_csv
 
 from pandas.util.testing import (assert_almost_equal,
@@ -1072,6 +1072,27 @@ class CheckIndexing(object):
         df.ix[::2, 'str'] = nan
         expected = [nan, 'qux', nan, 'qux', nan]
         assert_almost_equal(df['str'].values, expected)
+
+    def test_setitem_single_column_mixed_datetime(self):
+        df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
+                       columns=['foo', 'bar', 'baz'])
+
+        df['timestamp'] = Timestamp('20010102')
+
+        # check our dtypes
+        result = df.get_dtype_counts()
+        expected = Series({ 'float64' : 3, 'datetime64[ns]' : 1})
+        assert_series_equal(result, expected)
+
+        # set an allowable datetime64 type
+        from pandas import tslib
+        df.ix['b','timestamp'] = tslib.iNaT
+
+        # this fails because nan is a float type
+        df.ix['b','timestamp'] = nan
+
+        # prior to 0.10.1 this failed
+        #self.assertRaises(TypeError, df.ix.__setitem__, ('c','timestamp'), nan)
 
     def test_setitem_frame(self):
         piece = self.frame.ix[:2, ['A', 'B']]
