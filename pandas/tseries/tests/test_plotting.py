@@ -98,6 +98,18 @@ class TestTSPlot(unittest.TestCase):
         self.assert_((0., 0., 0.) == ax.get_lines()[0].get_color())
 
     @slow
+    def test_both_style_and_color(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+        ts = tm.makeTimeSeries()
+        ts.plot(style='b-', color='#000099') #works
+
+        plt.close('all')
+        s = ts.reset_index(drop=True)
+        s.plot(style='b-', color='#000099') #non-tsplot
+
+    @slow
     def test_high_freq(self):
         freaks = ['ms', 'us']
         for freq in freaks:

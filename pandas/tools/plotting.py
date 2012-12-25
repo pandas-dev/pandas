@@ -1050,6 +1050,7 @@ class LinePlot(MPLPlot):
         return colors
 
     def _maybe_add_color(self, colors, kwds, style, i):
+        kwds.pop('color', None)
         if style is None or re.match('[a-z]+', style) is None:
             kwds['color'] = colors[i % len(colors)]
 
