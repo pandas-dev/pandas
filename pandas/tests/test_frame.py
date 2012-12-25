@@ -1087,9 +1087,14 @@ class CheckIndexing(object):
         # set an allowable datetime64 type
         from pandas import tslib
         df.ix['b','timestamp'] = tslib.iNaT
+        self.assert_(com.isnull(df.ix['b','timestamp']))
 
-        # this fails because nan is a float type
-        df.ix['b','timestamp'] = nan
+        # allow this syntax
+        df.ix['c','timestamp'] = nan
+        self.assert_(com.isnull(df.ix['c','timestamp']))
+
+        # try to set with a list like item
+        self.assertRaises(Exception,  df.ix.__setitem__, ('d','timestamp'), [nan])
 
         # prior to 0.10.1 this failed
         #self.assertRaises(TypeError, df.ix.__setitem__, ('c','timestamp'), nan)
