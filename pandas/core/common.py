@@ -632,7 +632,6 @@ def _possibly_cast_to_datetime(value, dtype):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
 
     if dtype == 'M8[ns]':
-        import pandas.tslib as tslib
         if np.isscalar(value):
             if value == tslib.iNaT or isnull(value):
                 value = tslib.iNaT
