@@ -1244,9 +1244,9 @@ class TestTimeSeries(unittest.TestCase):
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
-        self.assert_(x[0].dtype == object)
+        #self.assert_(x[0].dtype == object)
 
-        x[0] = to_datetime(x[0])
+        #x[0] = to_datetime(x[0])
         self.assert_(x[0].dtype == np.dtype('M8[ns]'))
 
     def test_groupby_count_dateparseerror(self):
@@ -2075,6 +2075,7 @@ class TestLegacySupport(unittest.TestCase):
     def test_frame_apply_dont_convert_datetime64(self):
         from pandas.tseries.offsets import BDay
         df = DataFrame({'x1': [datetime(1996,1,1)]})
+
         df = df.applymap(lambda x: x+BDay())
         df = df.applymap(lambda x: x+BDay())
 
