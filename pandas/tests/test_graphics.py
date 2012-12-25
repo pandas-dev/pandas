@@ -222,6 +222,15 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, title=u'\u03A3')
 
     @slow
+    def test_label(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        df = DataFrame(np.random.randn(10, 3), columns=['a', 'b', 'c'])
+        ax = df.plot(x='a', y='b', label='LABEL', legend=True)
+        self.assert_(ax.get_legend().get_texts()[0].get_text() == 'LABEL')
+        self.assert_(ax.xaxis.get_label().get_text() == 'LABEL')
+
+    @slow
     def test_plot_xy(self):
         import matplotlib.pyplot as plt
         # columns.inferred_type == 'string'

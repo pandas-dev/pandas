@@ -1414,12 +1414,16 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     if y is not None:
         if com.is_integer(y) and not frame.columns.holds_integer():
             y = frame.columns[y]
-        return plot_series(frame[y], label=y, kind=kind, use_index=use_index,
+        label = kwds.pop('label', y)
+        ser = frame[y]
+        ser.index.name = label
+        return plot_series(ser, label=label, kind=kind,
+                           use_index=use_index,
                            rot=rot, xticks=xticks, yticks=yticks,
                            xlim=xlim, ylim=ylim, ax=ax, style=style,
                            grid=grid, logy=logy, secondary_y=secondary_y,
                            title=title, figsize=figsize, fontsize=fontsize,
-                           **kwds)
+                           legend=legend, **kwds)
 
     plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
                      legend=legend, ax=ax, style=style, fontsize=fontsize,
