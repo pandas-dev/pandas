@@ -351,6 +351,26 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s2[1] = 5
         self.assertEquals(s[1], 5)
 
+    def test_constructor_dtype_datetime64(self):
+        import pandas.tslib as tslib
+
+        s = Series(tslib.iNaT,dtype='M8[ns]',index=range(5))
+        self.assert_(isnull(s).all() == True)
+
+        s = Series(tslib.NaT,dtype='M8[ns]',index=range(5))
+        self.assert_(isnull(s).all() == True)
+
+        s = Series(nan,dtype='M8[ns]',index=range(5))
+        self.assert_(isnull(s).all() == True)
+
+        s = Series([ datetime(2001,1,2,0,0), tslib.iNaT ],dtype='M8[ns]')
+        self.assert_(isnull(s[1]) == True)
+        self.assert_(s.dtype == 'M8[ns]')
+
+        s = Series([ datetime(2001,1,2,0,0), nan ],dtype='M8[ns]')
+        self.assert_(isnull(s[1]) == True)
+        self.assert_(s.dtype == 'M8[ns]')
+
     def test_constructor_dict(self):
         d = {'a' : 0., 'b' : 1., 'c' : 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])

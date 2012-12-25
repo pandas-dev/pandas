@@ -628,6 +628,29 @@ def _consensus_name_attr(objs):
 #----------------------------------------------------------------------
 # Lots of little utilities
 
+def _possibly_cast_to_datetime(value, dtype):
+    """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
+
+    if dtype == 'M8[ns]':
+        import pandas.tslib as tslib
+        if np.isscalar(value):
+            if value == tslib.iNaT or isnull(value):
+                value = tslib.iNaT
+        else:
+            value = np.array(value)
+
+            # have a scalar array-like (e.g. NaT)
+            if value.ndim == 0:
+                value = tslib.iNaT
+
+            # we have an array of datetime & nulls
+            elif np.prod(value.shape):
+                try:
+                    value = tslib.array_to_datetime(value)
+                except:
+                    pass
+            
+    return value
 
 def _infer_dtype(value):
     if isinstance(value, (float, np.floating)):

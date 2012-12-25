@@ -1093,6 +1093,10 @@ class CheckIndexing(object):
         df.ix['c','timestamp'] = nan
         self.assert_(com.isnull(df.ix['c','timestamp']))
 
+        # allow this syntax
+        df.ix['d',:] = nan
+        self.assert_(com.isnull(df.ix['c',:]).all() == False)
+
         # try to set with a list like item
         self.assertRaises(Exception,  df.ix.__setitem__, ('d','timestamp'), [nan])
 

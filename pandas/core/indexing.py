@@ -4,7 +4,6 @@ from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex
 import pandas.core.common as com
 import pandas.lib as lib
-import pandas.tslib as tslib
 
 import numpy as np
 
@@ -112,24 +111,15 @@ class _NDFrameIndexer(object):
                     data = self.obj[item]
                     values = data.values
                     if np.prod(values.shape):
+                        value = com._possibly_cast_to_datetime(value,getattr(data,'dtype',None))
                         values[plane_indexer] = value
             except ValueError:
+                for item, v in zip(item_labels[het_idx], value):
+                    data = self.obj[item]
+                    values = data.values
+                    if np.prod(values.shape):
+                        values[plane_indexer] = v
 
-                # convert nan to iNaT if possible
-                if data.dtype == 'M8[ns]':
-                    mask = com._isnull(value)
-                    if np.isscalar(value) and com.isnull(value):
-                        value = tslib.iNaT
-                        values[plane_indexer] = value
-                    else:
-                        raise ValueError("Cannot set indexer value of datetime64[ns] with [%s]" % value)
-
-                else:
-                    for item, v in zip(item_labels[het_idx], value):
-                        data = self.obj[item]
-                        values = data.values
-                        if np.prod(values.shape):
-                            values[plane_indexer] = v
         else:
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
