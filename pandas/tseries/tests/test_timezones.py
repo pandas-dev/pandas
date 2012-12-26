@@ -3,10 +3,10 @@ from datetime import datetime, time, timedelta, tzinfo
 import sys
 import os
 import unittest
-
 import nose
 
 import numpy as np
+import pytz
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
@@ -557,6 +557,16 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         # it works! #2443
         repr(series.index[0])
+
+    def test_getitem_pydatetime_tz(self):
+        index = date_range(start='2012-12-24 16:00',
+                           end='2012-12-24 18:00', freq='H',
+                           tz='Europe/Berlin')
+        ts = Series(index=index, data=index.hour)
+        time_pandas = Timestamp('2012-12-24 17:00', tz='Europe/Berlin')
+        time_datetime = datetime(2012,12,24,17,00,
+                                 tzinfo=pytz.timezone('Europe/Berlin'))
+        self.assertEqual(ts[time_pandas], ts[time_datetime])
 
 
 class TestTimeZones(unittest.TestCase):
