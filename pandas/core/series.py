@@ -245,7 +245,16 @@ def _flex_method(op, name):
 
     @Appender(doc)
     def f(self, other, level=None, fill_value=None):
-        return self._binop(other, op, level=level, fill_value=fill_value)
+        if isinstance(other, Series):
+            return self._binop(other, op, level=level, fill_value=fill_value)
+        elif isinstance(other, (np.ndarray, list, tuple)):
+            if len(other) != len(self):
+                raise ValueError('Lengths must be equal')
+            return self._binop(Series(other, self.index), op,
+                               level=level, fill_value=fill_value)
+        else:
+            return Series(op(self.values, other), self.index,
+                          name=self.name)
 
     f.__name__ = name
     return f
