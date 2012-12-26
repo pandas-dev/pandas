@@ -43,7 +43,7 @@ def download(country=['MX','CA','US'], indicator=['GDPPCKD','GDPPCKN'],
             "PY", "RO", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SI",
             "SK", "SL", "SN", "SR", "SV", "SY", "SZ", "TD", "TG", "TH", "TN",
             "TR", "TT", "TW", "TZ", "UA", "UG", "US", "UY", "UZ", "VC", "VE",
-            "VN", "VU", "YE", "ZA", "ZM", "ZW"]    
+            "VN", "VU", "YE", "ZA", "ZM", "ZW", "all"]    
     if type(country) == str:
         country = [country]
     bad_countries = np.setdiff1d(country, valid_countries)
@@ -64,7 +64,8 @@ def download(country=['MX','CA','US'], indicator=['GDPPCKD','GDPPCKN'],
             bad_indicators.append(ind) 
     # Warn
     if len(bad_indicators) > 0:
-        print 'Failed to download indicator(s): ' + '; '.join(bad_indicators)
+        print 'Failed to obtain indicator(s): ' + '; '.join(bad_indicators)
+        print 'The data may still be available for download at http://data.worldbank.org'
     if len(bad_countries) > 0:
         print 'Invalid ISO-2 codes: ' + ' '.join(bad_countries)
     # Merge WDI series
