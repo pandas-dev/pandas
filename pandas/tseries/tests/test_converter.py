@@ -19,6 +19,7 @@ class TestDateTimeConverter(unittest.TestCase):
 
     def setUp(self):
         self.dtc = converter.DatetimeConverter()
+        self.tc = converter.TimeFormatter(None)
 
     def test_convert_accepts_unicode(self):
         r1 = self.dtc.convert("12:22",None,None)
@@ -42,6 +43,8 @@ class TestDateTimeConverter(unittest.TestCase):
         rs = self.dtc.convert('2012-1-1', None, None)
         self.assertEqual(rs, xp)
 
+    def test_time_formatter(self):
+        self.tc(90000)
 
 
 if __name__ == '__main__':

@@ -86,11 +86,14 @@ class TimeFormatter(Formatter):
         us = int((x - s) * 1e6 - ms)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
+        _, h = divmod(h, 24)
         if us != 0:
             fmt += '.%6f'
         elif ms != 0:
             fmt += '.%3f'
+
         return pydt.time(h, m, s, us).strftime(fmt)
+
 
 ### Period Conversion
 
