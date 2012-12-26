@@ -1508,6 +1508,11 @@ class Table(object):
         return getattr(self.table,'nrows',None)
 
     @property
+    def nrows_expected(self):
+        """ based on our axes, compute the expected nrows """
+        return np.prod([ i.cvalues.shape[0] for i in self.index_axes ])
+
+    @property
     def table(self):
         """ return the table group """
         return getattr(self.group, 'table', None)
@@ -1868,8 +1873,10 @@ class Table(object):
     def create_description(self, compression = None, complevel = None, expectedrows = None):
         """ create the description of the table from the axes & values """
 
-        d = dict( name = 'table',
-                  expectedrows = expectedrows )
+        # expected rows estimate
+        if expectedrows is None:
+            expectedrows = max(self.nrows_expected,10000)
+        d = dict( name = 'table', expectedrows = expectedrows )
 
         # description from the axes & values
         d['description'] = dict([ (a.cname,a.typ) for a in self.axes ])
@@ -2097,7 +2104,7 @@ class AppendableTable(LegacyTable):
         values  = [ a.take_data() for a in self.values_axes ]
 
         # write the chunks
-        rows   = np.prod([ i.shape[0] for i in indexes ])
+        rows   = self.nrows_expected
         chunks = int(rows / chunksize) + 1
         for i in xrange(chunks):
             start_i = i*chunksize

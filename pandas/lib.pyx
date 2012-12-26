@@ -15,7 +15,9 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyList_Check, PyFloat_Check,
                       PyString_Check,
                       PyTuple_SetItem,
-                      PyTuple_New)
+                      PyTuple_New,
+                      PyObject_SetAttrString)
+
 cimport cpython
 
 isnan = np.isnan
@@ -739,13 +741,6 @@ def clean_index_list(list obj):
             converted[i] = v
 
     return maybe_convert_objects(converted), 0
-
-from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
-                      PyDict_Contains, PyDict_Keys,
-                      Py_INCREF, PyTuple_SET_ITEM,
-                      PyTuple_SetItem,
-                      PyTuple_New,
-                      PyObject_SetAttrString)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
