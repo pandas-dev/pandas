@@ -381,11 +381,15 @@ class TestHDFStore(unittest.TestCase):
         wp = tm.makePanel()
         wp2 = wp.rename_axis(dict([ (x,"%s_extra" % x) for x in wp.minor_axis ]), axis = 2)
 
+        def check_col(key,name,size):
+            self.assert_(getattr(self.store.get_table(key).table.description,name).itemsize == size)
+
         self.store.append('s1', wp, min_itemsize = 20)
         self.store.append('s1', wp2)
         expected = concat([ wp, wp2], axis = 2)
         expected = expected.reindex(minor_axis = sorted(expected.minor_axis))
         tm.assert_panel_equal(self.store['s1'], expected)
+        check_col('s1','minor_axis',20)
 
         # test dict format
         self.store.append('s2', wp, min_itemsize = { 'minor_axis' : 20 })
@@ -393,6 +397,7 @@ class TestHDFStore(unittest.TestCase):
         expected = concat([ wp, wp2], axis = 2)
         expected = expected.reindex(minor_axis = sorted(expected.minor_axis))
         tm.assert_panel_equal(self.store['s2'], expected)
+        check_col('s1','minor_axis',20)
 
         # apply the wrong field (similar to #1)
         self.store.append('s3', wp, min_itemsize = { 'major_axis' : 20 })
@@ -404,24 +409,28 @@ class TestHDFStore(unittest.TestCase):
 
         # avoid truncation on elements
         df = DataFrame([[123,'asdqwerty'], [345,'dggnhebbsdfbdfb']])
-        self.store.append('df_big',df, min_itemsize = { 'values' : 1024 })
+        self.store.append('df_big',df)
         tm.assert_frame_equal(self.store.select('df_big'), df)
+        check_col('df_big','values_block_1',15)
 
         # appending smaller string ok
         df2 = DataFrame([[124,'asdqy'], [346,'dggnhefbdfb']])
         self.store.append('df_big',df2)
         expected = concat([ df, df2 ])
         tm.assert_frame_equal(self.store.select('df_big'), expected)
+        check_col('df_big','values_block_1',15)
 
         # avoid truncation on elements
         df = DataFrame([[123,'asdqwerty'], [345,'dggnhebbsdfbdfb']])
-        self.store.append('df_big2',df, min_itemsize = { 'values' : 10 })
+        self.store.append('df_big2',df, min_itemsize = { 'values' : 50 })
         tm.assert_frame_equal(self.store.select('df_big2'), df)
+        check_col('df_big2','values_block_1',50)
 
         # bigger string on next append
-        self.store.append('df_new',df, min_itemsize = { 'values' : 16 })
+        self.store.append('df_new',df)
         df_new  = DataFrame([[124,'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
         self.assertRaises(Exception, self.store.append, 'df_new',df_new)
+
 
     def test_append_with_data_columns(self):
 
@@ -456,6 +465,29 @@ class TestHDFStore(unittest.TestCase):
         result = self.store.select('df', [ Term('string', '=', 'foo') ])
         expected = df_new[df_new.string == 'foo']
         tm.assert_frame_equal(result, expected)
+
+        # using min_itemsize and a data column
+        def check_col(key,name,size):
+            self.assert_(getattr(self.store.get_table(key).table.description,name).itemsize == size)
+
+        self.store.remove('df')
+        self.store.append('df', df_new, data_columns = ['string'], min_itemsize = { 'string' : 30 })
+        check_col('df','string',30)
+        self.store.remove('df')
+        self.store.append('df', df_new, data_columns = ['string'], min_itemsize = 30)
+        check_col('df','string',30)
+        self.store.remove('df')
+        self.store.append('df', df_new, data_columns = ['string'], min_itemsize = { 'values' : 30 })
+        check_col('df','string',30)
+
+        df_new['string2'] = 'foobarbah'
+        df_new['string_block1'] = 'foobarbah1'
+        df_new['string_block2'] = 'foobarbah2'
+        self.store.remove('df')
+        self.store.append('df', df_new, data_columns = ['string','string2'], min_itemsize = { 'string' : 30, 'string2' : 40, 'values' : 50 })
+        check_col('df','string',30)
+        check_col('df','string2',40)
+        check_col('df','values_block_1',50)
 
         # multiple data columns
         df_new = df.copy()

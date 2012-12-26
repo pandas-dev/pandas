@@ -1307,7 +1307,8 @@ class DataCol(IndexCol):
                     
         # specified min_itemsize?
         if isinstance(min_itemsize, dict):
-            itemsize = max(int(min_itemsize.get('values')),itemsize)
+            min_itemsize = int(min_itemsize.get(self.name) or min_itemsize.get('values') or 0)
+        itemsize = max(min_itemsize or 0,itemsize)
 
         # check for column in the values conflicts
         if existing_col is not None:
@@ -1315,6 +1316,7 @@ class DataCol(IndexCol):
             if eci > itemsize:
                 itemsize = eci
 
+        self.itemsize = itemsize
         self.kind   = 'string'
         self.typ    = self.get_atom_string(block, itemsize)
         self.set_data(self.convert_string_data(data, itemsize))
