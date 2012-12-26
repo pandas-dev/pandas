@@ -798,7 +798,7 @@ class HDFStore(object):
         t.write(axes=axes, obj=obj,
                 append=append, compression=comp, **kwargs)
         if index:
-            t.create_index()
+            t.create_index(columns = index)
 
     def _read_ndim_table(self, group, where=None, **kwargs):
         t = create_table(self, group, **kwargs)
@@ -811,7 +811,7 @@ class HDFStore(object):
         t = create_table(self, group, typ = 'appendable_frame' if df.index.nlevels == 1 else 'appendable_multiframe')
         t.write(axes=axes, obj=df, append=append, compression=comp, **kwargs)
         if index:
-            t.create_index()
+            t.create_index(columns = index)
 
     _read_frame_table = _read_ndim_table
 
@@ -822,7 +822,7 @@ class HDFStore(object):
         t.write(axes=axes, obj=panel,
                 append=append, compression=comp, **kwargs)
         if index:
-            t.create_index()
+            t.create_index(columns = index)
 
     _read_wide_table = _read_ndim_table
 
@@ -1617,12 +1617,12 @@ class Table(object):
     def create_index(self, columns = None, optlevel = None, kind = None):
         """
         Create a pytables index on the specified columns
-          note: cannot index Time64Col() currently; PyTables must be >= 2.3.1
+          note: cannot index Time64Col() currently; PyTables must be >= 2.3
 
 
         Paramaters
         ----------
-        columns : None or list_like (the indexers to index)
+        columns : False (don't create an index), True (create all columns index), None or list_like (the indexers to index)
         optlevel: optimization level (defaults to 6)
         kind    : kind of index (defaults to 'medium')
 
@@ -1633,9 +1633,10 @@ class Table(object):
         """
 
         if not self.infer_axes(): return
+        if columns is False: return
 
         # index all indexables and data_columns
-        if columns is None:
+        if columns is None or columns is True:
             columns = [ a.cname for a in self.axes if a.is_data_indexable ]
         if not isinstance(columns, (tuple,list)):
             columns = [ columns ]

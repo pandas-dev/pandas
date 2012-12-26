@@ -544,42 +544,54 @@ class TestHDFStore(unittest.TestCase):
 
     def test_create_table_index(self):
 
+        def col(t,column):
+            return getattr(self.store.get_table(t).table.cols,column)
+
         # index=False
         wp = tm.makePanel()
         self.store.append('p5', wp, index=False)
         self.store.create_table_index('p5', columns = ['major_axis'])
-
-        assert(self.store.handle.root.p5.table.cols.major_axis.is_indexed == True)
-        assert(self.store.handle.root.p5.table.cols.minor_axis.is_indexed == False)
+        assert(col('p5','major_axis').is_indexed == True)
+        assert(col('p5','minor_axis').is_indexed == False)
 
         # index=True
         self.store.append('p5i', wp, index=True)
-
-        assert(self.store.handle.root.p5i.table.cols.major_axis.is_indexed == True)
-        assert(self.store.handle.root.p5i.table.cols.minor_axis.is_indexed == True)
+        assert(col('p5i','major_axis').is_indexed == True)
+        assert(col('p5i','minor_axis').is_indexed == True)
 
         # default optlevels
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.optlevel == 6)
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.kind == 'medium')
+        self.store.get_table('p5').create_index()
+        assert(col('p5','major_axis').index.optlevel == 6)
+        assert(col('p5','minor_axis').index.kind == 'medium')
 
         # let's change the indexing scheme
         self.store.create_table_index('p5')
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.optlevel == 6)
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.kind == 'medium')
+        assert(col('p5','major_axis').index.optlevel == 6)
+        assert(col('p5','minor_axis').index.kind == 'medium')
         self.store.create_table_index('p5', optlevel=9)
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.optlevel == 9)
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.kind == 'medium')
+        assert(col('p5','major_axis').index.optlevel == 9)
+        assert(col('p5','minor_axis').index.kind == 'medium')
         self.store.create_table_index('p5', kind='full')
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.optlevel == 9)
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.kind == 'full')
+        assert(col('p5','major_axis').index.optlevel == 9)
+        assert(col('p5','minor_axis').index.kind == 'full')
         self.store.create_table_index('p5', optlevel=1, kind='light')
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.optlevel == 1)
-        assert(self.store.handle.root.p5.table.cols.major_axis.index.kind == 'light')
-
+        assert(col('p5','major_axis').index.optlevel == 1)
+        assert(col('p5','minor_axis').index.kind == 'light')
+        
+        # data columns
         df = tm.makeTimeDataFrame()
-        self.store.append('f', df[:10])
-        self.store.append('f', df[10:])
-        self.store.create_table_index('f')
+        df['string'] = 'foo'
+        df['string2'] = 'bar'
+        self.store.append('f', df, data_columns=['string','string2'])
+        assert(col('f','index').is_indexed == True)
+        assert(col('f','string').is_indexed == True)
+        assert(col('f','string2').is_indexed == True)
+
+        # specify index=columns
+        self.store.append('f2', df, index=['string'], data_columns=['string','string2'])
+        assert(col('f2','index').is_indexed == False)
+        assert(col('f2','string').is_indexed == True)
+        assert(col('f2','string2').is_indexed == False)
 
         # try to index a non-table
         self.store.put('f2', df)
