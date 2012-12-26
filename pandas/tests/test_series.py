@@ -1478,6 +1478,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(not bool_series.all())
         self.assert_(bool_series.any())
 
+    def test_op_method(self):
+        def _check_op(series, other, op, alt):
+            result = op(series, other)
+            expected = alt(series, other)
+            tm.assert_almost_equal(result, expected)
+
+        def check(series, other):
+            simple_ops = ['add', 'sub', 'mul']
+
+            for opname in simple_ops:
+                _check_op(series, other, getattr(Series, opname),
+                          getattr(operator, opname))
+
+        check(self.ts, self.ts * 2)
+        check(self.ts, self.ts[::2])
+        check(self.ts, 5)
+
     def test_operators(self):
 
         def _check_op(series, other, op, pos_only=False):
