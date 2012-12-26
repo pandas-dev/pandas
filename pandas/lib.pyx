@@ -749,22 +749,36 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def max_len_string_array(ndarray arr):
-    """ return the maximum size of elements in a strnig array """
+def max_len_string_array(ndarray[object, ndim=1] arr):
+    """ return the maximum size of elements in a 1-dim string array """
     cdef:
-        int i, n_i, n_j, m, l
+        int i, m, l
+        length = arr.shape[0]
 
-    n_i = arr.shape[0]
     m = 0
-    for i from 0 <= i < n_i:
-        n_j = len(arr[i])
+    for i from 0 <= i < length:
+        l = len(arr[i])
 
-        for j from 0 <= j < n_j:
-        
-            l = len(arr[i,j])
-            if l > m:
-                m = l
+        if l > m:
+            m = l
+
     return m
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, object replace = None):
+    """ replace the values in the array with replacement if they are nan_rep; return the same array """
+
+    cdef int length = arr.shape[0]
+    cdef int i = 0
+    if replace is None:
+        replace = np.nan
+
+    for i from 0 <= i < length:
+        if arr[i] == nan_rep:
+            arr[i] = replace
+
+    return arr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

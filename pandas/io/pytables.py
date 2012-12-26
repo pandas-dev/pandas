@@ -21,7 +21,6 @@ from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
 from pandas.core.algorithms import match, unique, factorize
-from pandas.core.strings import str_len, _na_map
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
@@ -1303,7 +1302,7 @@ class DataCol(IndexCol):
         data = block.fillna(nan_rep).values
                     
         # itemsize is the maximum length of a string (along any dimension)
-        itemsize = lib.max_len_string_array(data)
+        itemsize = lib.max_len_string_array(data.flatten())
                     
         # specified min_itemsize?
         if isinstance(min_itemsize, dict):
@@ -1388,7 +1387,7 @@ class DataCol(IndexCol):
 
         # convert nans
         if self.kind == 'string':
-            self.data = _na_map(lambda x: np.nan if x == nan_rep else x, self.data.flatten()).reshape(self.data.shape)
+            self.data = lib.array_replace_from_nan_rep(self.data.flatten(), nan_rep).reshape(self.data.shape)
    
     def get_attr(self):
         """ get the data for this colummn """

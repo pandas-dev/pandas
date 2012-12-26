@@ -397,7 +397,7 @@ class TestHDFStore(unittest.TestCase):
         expected = concat([ wp, wp2], axis = 2)
         expected = expected.reindex(minor_axis = sorted(expected.minor_axis))
         tm.assert_panel_equal(self.store['s2'], expected)
-        check_col('s1','minor_axis',20)
+        check_col('s2','minor_axis',20)
 
         # apply the wrong field (similar to #1)
         self.store.append('s3', wp, min_itemsize = { 'major_axis' : 20 })
@@ -430,6 +430,19 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('df_new',df)
         df_new  = DataFrame([[124,'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
         self.assertRaises(Exception, self.store.append, 'df_new',df_new)
+
+        # with nans
+        self.store.remove('df')
+        df = tm.makeTimeDataFrame()
+        df['string'] = 'foo'
+        df.ix[1:4,'string'] = np.nan
+        df['string2'] = 'bar'
+        df.ix[4:8,'string2'] = np.nan
+        df['string3'] = 'bah'
+        df.ix[1:,'string3'] = np.nan
+        self.store.append('df',df)
+        result = self.store.select('df')
+        tm.assert_frame_equal(result,df)
 
 
     def test_append_with_data_columns(self):
