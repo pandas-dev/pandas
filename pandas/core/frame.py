@@ -1999,9 +1999,12 @@ class DataFrame(NDFrame):
                                    columns=result_columns)
             if len(result.columns) == 1:
                 top = result.columns[0]
-                if (type(top) == str and top == '' or
-                        type(top) == tuple and top[0] == ''):
-                    result = Series(result[''], index=self.index, name=key)
+                if ((type(top) == str and top == '') or
+                    (type(top) == tuple and top[0] == '')):
+                    result = result['']
+                    if isinstance(result, Series):
+                        result = Series(result, index=self.index, name=key)
+
             return result
         else:
             return self._get_item_cache(key)

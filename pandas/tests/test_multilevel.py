@@ -278,6 +278,18 @@ class TestMultiLevel(unittest.TestCase):
         df.ix[:,:] = 10
         assert_frame_equal(df, result)
 
+    def test_frame_getitem_multicolumn_empty_level(self):
+        f = DataFrame({'a': ['1','2','3'],
+                       'b': ['2','3','4']})
+        f.columns = [['level1 item1', 'level1 item2'],
+                     ['', 'level2 item2'],
+                     ['level3 item1', 'level3 item2']]
+
+        result = f['level1 item1']
+        expected = DataFrame([['1'],['2'],['3']], index=f.index,
+                             columns=['level3 item1'])
+        assert_frame_equal(result, expected)
+
     def test_frame_setitem_multi_column(self):
         df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
                                               [0, 1, 0, 1]])
