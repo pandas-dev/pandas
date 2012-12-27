@@ -1246,6 +1246,17 @@ There is some performance degredation by making lots of columns into `data colum
 Advanced Queries
 ~~~~~~~~~~~~~~~~
 
+**Unique**
+
+To retrieve the *unique* values of an indexable or data column, use the method ``unique``. This will, for example, enable you to get the index very quickly. Note ``nan`` are excluded from the result set.
+
+.. ipython:: python
+
+   store.unique('df_dc','index')
+   store.unique('df_dc','string')
+
+**Replicating or**
+
 ``not`` and ``or`` conditions are unsupported at this time; however, ``or`` operations are easy to replicate, by repeately applying the criteria to the table, and then ``concat`` the results.
 
 .. ipython:: python
@@ -1254,6 +1265,8 @@ Advanced Queries
    crit2 = [ Term('B<0'), Term('C>0'), Term('string=foo') ]
 
    concat([ store.select('df_dc',c) for c in [ crit1, crit2 ] ])
+
+**Table Object**
 
 If you want to inspect the table object, retrieve via ``get_table``. You could use this progamatically to say get the number of rows in the table.
 

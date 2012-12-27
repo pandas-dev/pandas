@@ -43,6 +43,13 @@ You can designate (and index) certain columns that you want to be able to perfor
    # this is in-memory version of this type of selection
    df[(df.B > 0) & (df.string == 'foo')]
 
+Retrieving unique values in an indexable or data column.
+
+.. ipython:: python
+
+   store.unique('df','index')
+   store.unique('df','string')
+
 You can now store ``datetime64`` in data columns
 
 .. ipython:: python

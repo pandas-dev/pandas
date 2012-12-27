@@ -42,6 +42,7 @@ pandas 0.10.1
     - added column filtering via ``columns`` keyword in select
     - added methods append_to_multiple/select_as_multiple/select_as_coordinates to do multiple-table append/selection
     - added support for datetime64 in columns
+    - added method ``unique`` to select the unique values in an indexable or data column
 
 **Bug fixes**
 

@@ -1432,6 +1432,41 @@ class TestHDFStore(unittest.TestCase):
         #self.assertRaises(Exception, self.store.select,
         #                  'frame', [crit1, crit2])
 
+    def test_unique(self):
+        df = tm.makeTimeDataFrame()
+
+
+        def check(x, y):
+            self.assert_((np.unique(x) == np.unique(y)).all() == True)
+
+        self.store.remove('df')
+        self.store.append('df', df)
+
+        # error
+        self.assertRaises(KeyError, self.store.unique, 'df','foo')
+
+        # valid
+        result = self.store.unique('df','index')
+        check(result.values,df.index.values)
+
+        # not a data indexable column
+        self.assertRaises(ValueError, self.store.unique, 'df','values_block_0')
+
+        # a data column
+        df2 = df.copy()
+        df2['string'] = 'foo'
+        self.store.append('df2',df2,data_columns = ['string'])
+        result = self.store.unique('df2','string')
+        check(result.values,df2['string'].unique())
+
+        # a data column with NaNs, result excludes the NaNs
+        df3 = df.copy()
+        df3['string'] = 'foo'
+        df3.ix[4:6,'string'] = np.nan
+        self.store.append('df3',df3,data_columns = ['string'])
+        result = self.store.unique('df3','string')
+        check(result.values,df3['string'].valid().unique())
+
     def test_coordinates(self):
         df = tm.makeTimeDataFrame()
 

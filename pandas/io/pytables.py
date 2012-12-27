@@ -378,6 +378,23 @@ class HDFStore(object):
         """
         return self.get_table(key).read_coordinates(where = where, **kwargs)
 
+    def unique(self, key, column, **kwargs):
+        """ 
+        return a single column uniquely from the table. This is generally only useful to select an indexable
+
+        Parameters
+        ----------
+        key : object
+        column: the column of interest
+
+        Exceptions
+        ----------
+        raises KeyError if the column is not found (or key is not a valid store)
+        raises ValueError if the column can not be extracted indivually (it is part of a data block)
+
+        """
+        return self.get_table(key).read_column(column = column, **kwargs)
+
     def select_as_multiple(self, keys, where=None, selector=None, columns=None, **kwargs):
         """ Retrieve pandas objects from multiple tables
 
@@ -1124,9 +1141,19 @@ class IndexCol(object):
         return new_self
 
     def convert(self, values, nan_rep):
-        """ set the values from this selection """
-        self.values = Index(_maybe_convert(values[self.cname], self.kind))
-   
+        """ set the values from this selection: take = take ownership """
+        try:
+            values = values[self.cname]
+        except:
+            pass
+        self.values = Index(_maybe_convert(values, self.kind))
+        return self
+
+    def take_data(self):
+        """ return the values & release the memory """
+        self.values, values = None, self.values
+        return values
+
     @property
     def attrs(self):
         return self.table._v_attrs
@@ -1365,7 +1392,11 @@ class DataCol(IndexCol):
 
     def convert(self, values, nan_rep):
         """ set the data from this selection (and convert to the correct dtype if we can) """
-        self.set_data(values[self.cname])
+        try:
+            values = values[self.cname]
+        except:
+            pass
+        self.set_data(values)
 
         # convert to the correct dtype
         if self.dtype is not None:
@@ -1388,7 +1419,8 @@ class DataCol(IndexCol):
         # convert nans
         if self.kind == 'string':
             self.data = lib.array_replace_from_nan_rep(self.data.flatten(), nan_rep).reshape(self.data.shape)
-   
+        return self
+
     def get_attr(self):
         """ get the data for this colummn """
         self.values = getattr(self.attrs,self.kind_attr,None)
@@ -1898,6 +1930,7 @@ class Table(object):
         raise NotImplementedError("cannot read on an abstract table: subclasses should implement")
 
     def read_coordinates(self, where=None, **kwargs):
+        """ select coordinates (row numbers) from a table; return the coordinates object """
 
         # validate the version
         self.validate_version(where)
@@ -1908,6 +1941,28 @@ class Table(object):
         # create the selection
         self.selection = Selection(self, where = where, **kwargs)
         return Coordinates(self.selection.select_coords(), group = self.group, where = where)
+
+    def read_column(self, column, **kwargs):
+        """ return a single column from the table, generally only indexables are interesting """
+
+        # validate the version
+        self.validate_version()
+
+        # infer the data kind
+        if not self.infer_axes(): return False
+
+        # find the axes
+        for a in self.axes:
+            if column == a.name:
+
+                if not a.is_data_indexable:
+                    raise ValueError("column [%s] can not be extracted individually; it is not data indexable" % column)
+
+                # column must be an indexable or a data column
+                c = getattr(self.table.cols,column)
+                return Categorical.from_array(a.convert(c[:], nan_rep = self.nan_rep).take_data()).levels
+
+        raise KeyError("column [%s] not found in the table" % column)
 
     def write(self, **kwargs):
         raise NotImplementedError("cannot write on an abstract table")
