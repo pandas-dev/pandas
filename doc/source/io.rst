@@ -1327,15 +1327,26 @@ Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files automatically. 
 
 Compression
 ~~~~~~~~~~~
-``PyTables`` allows the stored data to be compressed (this applies to all kinds of stores, not just tables). You can pass ``complevel=int`` for a compression level (1-9, with 0 being no compression, and the default), ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for whichever compression library you prefer. ``blosc`` offers very fast compression (its level defaults to 9), and is my most used. 
+``PyTables`` allows the stored data to be compressed. Tthis applies to all kinds of stores, not just tables.
+
+   - Pass ``complevel=int`` for a compression level (1-9, with 0 being no compression, and the default)
+   - Pass ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for whichever compression library you prefer.
+
+``HDFStore`` will use the file based compression scheme if no overriding ``complib`` or ``complevel`` options are provided. ``blosc`` offers very fast compression, and is my most used. Note that ``lzo`` and ``bzip2`` may not be installed (by Python) by default.
+
+Compression for all objects within the file
+
+   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')``
+
+Or on-the-fly compression (this only applies to tables). You can turn off file compression for a specific table by passing ``complevel=0``
+
+   - ``store.append('df', df, complib='zlib', complevel=5)``
+
+**ptrepack**
 
 ``PyTables`` offer better write performance when compressed after writing them, as opposed to turning on compression at the very beginning. You can use the supplied ``PyTables`` utility ``ptrepack``. In addition, ``ptrepack`` can change compression levels after the fact.
 
    - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
-
-Or on-the-fly compression
-
-   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')``
 
 Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow you to reuse previously deleted space (alternatively, one can simply remove the file and write again).
 

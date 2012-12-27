@@ -203,12 +203,12 @@ class TestHDFStore(unittest.TestCase):
     def test_put_compression(self):
         df = tm.makeTimeDataFrame()
 
-        self.store.put('c', df, table=True, compression='zlib')
+        self.store.put('c', df, table=True, complib='zlib')
         tm.assert_frame_equal(self.store['c'], df)
 
         # can't compress if table=False
         self.assertRaises(ValueError, self.store.put, 'b', df,
-                          table=False, compression='zlib')
+                          table=False, complib='zlib')
 
     def test_put_compression_blosc(self):
         tm.skip_if_no_package('tables', '2.2', app='blosc support')
@@ -216,9 +216,9 @@ class TestHDFStore(unittest.TestCase):
 
         # can't compress if table=False
         self.assertRaises(ValueError, self.store.put, 'b', df,
-                          table=False, compression='blosc')
+                          table=False, complib='blosc')
 
-        self.store.put('c', df, table=True, compression='blosc')
+        self.store.put('c', df, table=True, complib='blosc')
         tm.assert_frame_equal(self.store['c'], df)
 
     def test_put_integer(self):

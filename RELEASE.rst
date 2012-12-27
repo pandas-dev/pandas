@@ -51,6 +51,11 @@ pandas 0.10.1
     - raise correctly on non-implemented column types (unicode/date)
     - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``), (closes GH512_)
 
+**API Changes**
+
+  - ``HDFStore``
+    - removed keyword ``compression`` from ``put`` (replaced by keyword ``complib`` to be consistent across library)
+
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277
 

@@ -114,28 +114,7 @@ def get_store(path, mode='a', complevel=None, complib=None,
 
     Parameters
     ----------
-    path : string
-        File path to HDF5 file
-    mode : {'a', 'w', 'r', 'r+'}, default 'a'
-
-        ``'r'``
-            Read-only; no data can be modified.
-        ``'w'``
-            Write; a new file is created (an existing file with the same
-            name would be deleted).
-        ``'a'``
-            Append; an existing file is opened for reading and writing,
-            and if the file does not exist it is created.
-        ``'r+'``
-            It is similar to ``'a'``, but the file must already exist.
-    complevel : int, 1-9, default 0
-            If a complib is specified compression will be applied
-            where possible
-    complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
-            If complevel is > 0 apply compression to objects written
-            in the store wherever possible
-    fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum
+    same as HDFStore
 
     Examples
     --------
@@ -445,8 +424,7 @@ class HDFStore(object):
         # concat and return
         return concat(objs, axis = axis, verify_integrity = True)
 
-    def put(self, key, value, table=False, append=False,
-            compression=None, **kwargs):
+    def put(self, key, value, table=False, append=False, **kwargs):
         """
         Store object in HDFStore
 
@@ -461,13 +439,8 @@ class HDFStore(object):
         append : boolean, default False
             For table data structures, append the input data to the existing
             table
-        compression : {None, 'blosc', 'lzo', 'zlib'}, default None
-            Use a compression algorithm to compress the data
-            If None, the compression settings specified in the ctor will
-            be used.
         """
-        self._write_to_group(key, value, table=table, append=append,
-                             comp=compression, **kwargs)
+        self._write_to_group(key, value, table=table, append=append, **kwargs)
 
     def remove(self, key, where=None, start=None, stop=None):
         """
@@ -645,7 +618,7 @@ class HDFStore(object):
         return getattr(self, '_%s_%s' % (op, kind))
 
     def _write_to_group(self, key, value, table=False, append=False,
-                        comp=None, **kwargs):
+                        complib=None, **kwargs):
         group = self.get_node(key)
         if group is None:
             paths = key.split('/')
@@ -669,11 +642,11 @@ class HDFStore(object):
             kind = '%s_table' % kind
             handler = self._get_handler(op='write', kind=kind)
             wrapper = lambda value: handler(group, value, append=append,
-                                            comp=comp, **kwargs)
+                                            complib=complib, **kwargs)
         else:
             if append:
                 raise ValueError('Can only append to Tables')
-            if comp:
+            if complib:
                 raise ValueError('Compression only supported on Tables')
 
             handler = self._get_handler(op='write', kind=kind)
@@ -808,12 +781,11 @@ class HDFStore(object):
     def _read_wide(self, group, where=None, **kwargs):
         return Panel(self._read_block_manager(group))
 
-    def _write_ndim_table(self, group, obj, append=False, comp=None, axes=None, index=True, **kwargs):
+    def _write_ndim_table(self, group, obj, append=False, axes=None, index=True, **kwargs):
         if axes is None:
             axes = _AXES_MAP[type(obj)]
         t = create_table(self, group, typ = 'appendable_ndim')
-        t.write(axes=axes, obj=obj,
-                append=append, compression=comp, **kwargs)
+        t.write(axes=axes, obj=obj, append=append, **kwargs)
         if index:
             t.create_index(columns = index)
 
@@ -821,23 +793,22 @@ class HDFStore(object):
         t = create_table(self, group, **kwargs)
         return t.read(where, **kwargs)
 
-    def _write_frame_table(self, group, df, append=False, comp=None, axes=None, index=True, **kwargs):
+    def _write_frame_table(self, group, df, append=False, axes=None, index=True, **kwargs):
         if axes is None:
             axes = _AXES_MAP[type(df)]
 
         t = create_table(self, group, typ = 'appendable_frame' if df.index.nlevels == 1 else 'appendable_multiframe')
-        t.write(axes=axes, obj=df, append=append, compression=comp, **kwargs)
+        t.write(axes=axes, obj=df, append=append, **kwargs)
         if index:
             t.create_index(columns = index)
 
     _read_frame_table = _read_ndim_table
 
-    def _write_wide_table(self, group, panel, append=False, comp=None, axes=None, index=True, **kwargs):
+    def _write_wide_table(self, group, panel, append=False, axes=None, index=True, **kwargs):
         if axes is None:
             axes = _AXES_MAP[type(panel)]
         t = create_table(self, group, typ = 'appendable_panel')
-        t.write(axes=axes, obj=panel,
-                append=append, compression=comp, **kwargs)
+        t.write(axes=axes, obj=panel, append=append, **kwargs)
         if index:
             t.create_index(columns = index)
 
@@ -1902,7 +1873,7 @@ class Table(object):
 
         return obj
 
-    def create_description(self, compression = None, complevel = None, expectedrows = None):
+    def create_description(self, complib = None, complevel = None, fletcher32 = False, expectedrows = None):
         """ create the description of the table from the axes & values """
 
         # expected rows estimate
@@ -1913,13 +1884,12 @@ class Table(object):
         # description from the axes & values
         d['description'] = dict([ (a.cname,a.typ) for a in self.axes ])
 
-        if compression:
-            complevel = self.complevel
+        if complib:
             if complevel is None:
-                complevel = 9
-            filters = _tables().Filters(complevel=complevel,
-                                        complib=compression,
-                                        fletcher32=self.fletcher32)
+                complevel = self.complevel or 9
+            filters = _tables().Filters(complevel  = complevel,
+                                        complib    = complib,
+                                        fletcher32 = fletcher32 or self.fletcher32)
             d['filters'] = filters
         elif self.filters is not None:
             d['filters'] = self.filters
@@ -2104,8 +2074,8 @@ class AppendableTable(LegacyTable):
     _indexables = None
     table_type = 'appendable'
 
-    def write(self, axes, obj, append=False, compression=None,
-              complevel=None, min_itemsize = None, chunksize = 50000,
+    def write(self, axes, obj, append=False, complib=None,
+              complevel=None, fletcher32=None, min_itemsize = None, chunksize = 50000,
               expectedrows = None, **kwargs):
 
         # create the table if it doesn't exist (or get it if it does)
@@ -2119,7 +2089,10 @@ class AppendableTable(LegacyTable):
         if 'table' not in self.group:
 
             # create the table
-            options = self.create_description(compression = compression, complevel = complevel, expectedrows = expectedrows)
+            options = self.create_description(complib      = complib, 
+                                              complevel    = complevel, 
+                                              fletcher32   = fletcher32,
+                                              expectedrows = expectedrows)
 
             # set the table attributes
             self.set_attrs()
