@@ -57,7 +57,7 @@ def download(country=['MX','CA','US'], indicator=['GDPPCKD','GDPPCKN'],
     bad_indicators = []
     for ind in indicator:
         try: 
-            tmp = get_indicator(ind, country, start, end)
+            tmp = _get_data(ind, country, start, end)
             tmp.columns = ['country', 'iso2c', 'year', ind]
             data.append(tmp)
         except:
@@ -77,7 +77,7 @@ def download(country=['MX','CA','US'], indicator=['GDPPCKD','GDPPCKN'],
         return out
 
 
-def get_indicator(indicator = "NY.GNS.ICTR.GN.ZS", country = 'US', 
+def _get_data(indicator = "NY.GNS.ICTR.GN.ZS", country = 'US', 
                 start = 2002, end = 2005):
     # Build URL for api call
     url = "http://api.worldbank.org/countries/" + country + "/indicators/" + \
@@ -97,7 +97,7 @@ def get_indicator(indicator = "NY.GNS.ICTR.GN.ZS", country = 'US',
     return out
      
 
-def get_country():
+def get_countries():
     '''Query information about countries
     '''
     url = 'http://api.worldbank.org/countries/all?format=json'
@@ -112,7 +112,34 @@ def get_country():
     data = data.rename(columns={'id':'iso3c', 'iso2Code':'iso2c'})
     return data
 
-    
+
+def get_indicators():
+    '''Download information about all World Bank data series
+    '''
+    url = 'http://api.worldbank.org/indicators?per_page=50000&format=json'
+    response = urllib2.urlopen(url)
+    data = response.read()
+    data = json.loads(data)[1]
+    data = pandas.DataFrame(data)
+    # Clean fields
+    data.source = map(lambda x: x['value'], data.source)
+    fun = lambda x: x.encode('ascii', 'ignore')
+    data.sourceOrganization = data.sourceOrganization.apply(fun)
+    # Clean topic field
+    def get_value(x):
+        try: 
+            return x['value']
+        except:
+            return ''
+    fun = lambda x: map(lambda y: get_value(y), x)
+    data.topics = data.topics.apply(fun)
+    data.topics = data.topics.apply(lambda x: ' ; '.join(x))
+    # Clean outpu
+    data = data.sort(columns='id')
+    data.index = pandas.Index(range(data.shape[0]))
+    return data
+
+
 _cached_series = None
 def search(string='gdp.*capi', field='name', case=False):
     """
@@ -149,11 +176,7 @@ def search(string='gdp.*capi', field='name', case=False):
     # Create cached list of series if it does not exist
     global _cached_series
     if type(_cached_series) is not pandas.core.frame.DataFrame:
-        url = 'http://api.worldbank.org/indicators?per_page=25000&format=json'
-        response = urllib2.urlopen(url)
-        data = response.read()
-        data = json.loads(data)[1]
-        _cached_series = pandas.DataFrame(data)
+        _cached_series = get_indicators()
     data = _cached_series[field]
     idx = data.str.contains(string, case=case)
     out = _cached_series.ix[idx].dropna()
