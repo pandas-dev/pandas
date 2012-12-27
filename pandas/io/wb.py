@@ -57,7 +57,7 @@ def download(country=['MX','CA','US'], indicator=['GDPPCKD','GDPPCKN'],
     bad_indicators = []
     for ind in indicator:
         try: 
-            tmp = _WDIdownload(ind, country, start, end)
+            tmp = get_indicator(ind, country, start, end)
             tmp.columns = ['country', 'iso2c', 'year', ind]
             data.append(tmp)
         except:
@@ -76,7 +76,8 @@ def download(country=['MX','CA','US'], indicator=['GDPPCKD','GDPPCKN'],
         out = out.set_index(['country', 'year'])
         return out
 
-def _WDIdownload(indicator = "NY.GNS.ICTR.GN.ZS", country = 'US', 
+
+def get_indicator(indicator = "NY.GNS.ICTR.GN.ZS", country = 'US', 
                 start = 2002, end = 2005):
     # Build URL for api call
     url = "http://api.worldbank.org/countries/" + country + "/indicators/" + \
@@ -96,6 +97,22 @@ def _WDIdownload(indicator = "NY.GNS.ICTR.GN.ZS", country = 'US',
     return out
      
 
+def get_country():
+    '''Query information about countries
+    '''
+    url = 'http://api.worldbank.org/countries/all?format=json'
+    response = urllib2.urlopen(url)
+    data = response.read()
+    data = json.loads(data)[1]
+    data = pandas.DataFrame(data)
+    data.adminregion = map(lambda x: x['value'], data.adminregion)
+    data.incomeLevel = map(lambda x: x['value'], data.incomeLevel)
+    data.lendingType = map(lambda x: x['value'], data.lendingType)
+    data.region = map(lambda x: x['value'], data.region)
+    data = data.rename(columns={'id':'iso3c', 'iso2Code':'iso2c'})
+    return data
+
+    
 _cached_series = None
 def search(string='gdp.*capi', field='name', case=False):
     """
