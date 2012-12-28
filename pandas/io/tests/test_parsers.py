@@ -1492,6 +1492,16 @@ A,B,C
                                header=0)
         tm.assert_frame_equal(result, expected)
 
+    def test_integer_overflow_bug(self):
+        # #2601
+        data = "65248E10 11\n55555E55 22\n"
+
+        result = self.read_csv(StringIO(data), header=None, sep=' ')
+        self.assertTrue(result[0].dtype == np.float64)
+
+        result = self.read_csv(StringIO(data), header=None, sep='\s+')
+        self.assertTrue(result[0].dtype == np.float64)
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 

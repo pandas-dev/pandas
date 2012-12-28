@@ -41,6 +41,8 @@ from util cimport is_array, _checknull, _checknan
 
 cdef extern from "headers/stdint.h":
     enum: UINT8_MAX
+    enum: INT64_MAX
+    enum: INT64_MIN
 
 
 cdef extern from "math.h":
