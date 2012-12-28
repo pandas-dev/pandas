@@ -1284,6 +1284,15 @@ class TestGroupBy(unittest.TestCase):
         expected = df.take([0, 1, 3, 4, 6, 7])
         assert_frame_equal(result, expected)
 
+    def test_apply_no_name_column_conflict(self):
+        df = DataFrame({'name': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
+                        'name2': [0, 0, 0, 1, 1, 1, 0, 0, 1, 1],
+                        'value': range(10)[::-1]})
+
+        # it works! #2605
+        grouped = df.groupby(['name', 'name2'])
+        grouped.apply(lambda x: x.sort('value'))
+
     def test_groupby_series_indexed_differently(self):
         s1 = Series([5.0,-9.0,4.0,100.,-5.,55.,6.7],
                     index=Index(['a','b','c','d','e','f','g']))
