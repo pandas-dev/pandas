@@ -1416,7 +1416,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     if y is not None:
         if com.is_integer(y) and not frame.columns.holds_integer():
             y = frame.columns[y]
-        label = kwds.pop('label', y)
+        label = x if x is not None else frame.index.name
+        label = kwds.pop('label', label)
         ser = frame[y]
         ser.index.name = label
         return plot_series(ser, label=label, kind=kind,

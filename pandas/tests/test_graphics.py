@@ -226,8 +226,11 @@ class TestDataFramePlots(unittest.TestCase):
         import matplotlib.pyplot as plt
         plt.close('all')
         df = DataFrame(np.random.randn(10, 3), columns=['a', 'b', 'c'])
-        ax = df.plot(x='a', y='b', label='LABEL', legend=True)
-        self.assert_(ax.get_legend().get_texts()[0].get_text() == 'LABEL')
+        ax = df.plot(x='a', y='b')
+        self.assert_(ax.xaxis.get_label().get_text() == 'a')
+
+        plt.close('all')
+        ax = df.plot(x='a', y='b', label='LABEL')
         self.assert_(ax.xaxis.get_label().get_text() == 'LABEL')
 
     @slow
