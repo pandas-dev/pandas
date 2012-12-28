@@ -204,3 +204,11 @@ df = DataFrame(np.random.randn(len(rng), 2), rng, tz='US/Eastern')
 
 dti_reset_index_tz = \
     Benchmark('df.reset_index()', setup, start_date=datetime(2012,9,1))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=10000, freq='T')
+index = rng.repeat(10)
+"""
+
+datetimeindex_unique = Benchmark('index.unique()', setup,
+                                 date=datetime(2012, 7, 1))

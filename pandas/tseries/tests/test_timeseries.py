@@ -63,6 +63,15 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         uniques = self.dups.index.unique()
         self.assert_(uniques.dtype == 'M8[ns]') # sanity
 
+        # #2563
+        self.assertTrue(isinstance(uniques, DatetimeIndex))
+
+        dups_local = self.dups.index.tz_localize('US/Eastern')
+        dups_local.name = 'foo'
+        result = dups_local.unique()
+        self.assertTrue(result.tz is not None)
+        self.assertEquals(result.name, 'foo')
+
     def test_index_dupes_contains(self):
         d = datetime(2011, 12, 5, 20, 30)
         ix=DatetimeIndex([d,d])
