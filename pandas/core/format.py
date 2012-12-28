@@ -1443,7 +1443,7 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
 
 def _put_lines(buf, lines):
     if any(isinstance(x, unicode) for x in lines):
-        lines = [unicode(x) for x in lines]
+        lines = [x.decode('utf-8', errors='ignore').encode('utf-8') for x in lines]
     buf.write('\n'.join(lines))
 
 def _binify(cols, width):
