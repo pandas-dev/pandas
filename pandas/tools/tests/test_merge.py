@@ -1509,6 +1509,13 @@ class TestConcatenate(unittest.TestCase):
         result = concat([s, s2], axis=1)
         self.assertTrue(np.array_equal(result.columns, range(2)))
 
+        # must reindex, #2603
+        s = Series(randn(5), name='A')
+        s2 = Series(randn(6), name='B')
+        result = concat([s, s2], axis=1)
+        expected = DataFrame({'A': s, 'B': s2})
+        assert_frame_equal(result, expected)
+
     def test_concat_single_with_key(self):
         df = DataFrame(np.random.randn(10, 4))
 

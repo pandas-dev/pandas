@@ -97,4 +97,3 @@ if __name__ == '__main__':
     by_date = result.reset_index().set_index('release_date').downloads
     dummy = pd.Series(index=pd.DatetimeIndex([datetime(2012, 12, 27)]))
     by_date = by_date.append(dummy).shift(1).fillna(0)
-
