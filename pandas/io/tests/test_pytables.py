@@ -1735,6 +1735,26 @@ class TestHDFStore(unittest.TestCase):
             store.select(k)
         store.close()
 
+    def test_legacy_copy_to(self):
+        pth = curpath()
+        try:
+            import os
+            store = HDFStore(os.path.join(pth, 'legacy_0.10.h5'), 'r')
+            import tempfile
+            tmp = tempfile.mkstemp()[1]
+            tstore = store.copy_to(tmp)
+            
+            # the tmp store
+            for k in tstore.keys():
+                self.assert_(k in store)
+        except:
+            pass
+        finally:
+            store.close()
+            tstore.close()
+            import os
+            os.remove(tmp)
+
     def test_legacy_table_write(self):
         raise nose.SkipTest
         # legacy table types

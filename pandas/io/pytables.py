@@ -37,9 +37,11 @@ from contextlib import contextmanager
 # versioning attribute
 _version = '0.10.1'
 
-
-class IncompatibilityWarning(Warning):
-    pass
+class IncompatibilityWarning(Warning): pass
+incompatibility_doc = """
+where criteria is being ignored as this version [%s] is too old (or not-defined),
+read the file in and write it out to a new file to upgrade (with the copy_to method)
+"""
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -258,6 +260,15 @@ class HDFStore(object):
         objects stored in the HDFStore. These are ABSOLUTE path-names (e.g. have the leading '/'
         """
         return [n._v_pathname for n in self.groups()]
+
+    def items(self):
+        """
+        iterate on key->group
+        """
+        for g in self.groups():
+            yield g._v_pathname, g
+
+    iteritems = items
 
     def open(self, mode='a', warn=True):
         """
@@ -618,6 +629,17 @@ class HDFStore(object):
         t = create_table(self, group)
         t.infer_axes()
         return t
+
+    def copy_to(self, file):
+        """ copy the existing store to a new file, upgrading in place """
+        new_store = HDFStore(file, mode = 'w')
+        for k, g in self.iteritems():
+            data = self.select(k)
+            if _is_table_type(g):
+                new_store.append(k,data)
+            else:
+                new_store.put(k,data)
+        return new_store
 
     ###### private methods ######
 
@@ -1493,6 +1515,10 @@ class Table(object):
         self.selection = None
 
     @property
+    def is_old_version(self):
+        return self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1
+
+    @property
     def table_type_short(self):
         return self.table_type.split('_')[0]
 
@@ -1503,14 +1529,18 @@ class Table(object):
     def __repr__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
-        dc = ",dc->[%s]" % ','.join(
-            self.data_columns) if len(self.data_columns) else ''
-        return "%s (typ->%s,nrows->%s,indexers->[%s]%s)" % (self.pandas_type,
-                                                            self.table_type_short,
-                                                            self.nrows,
-                                                            ','.join([a.name for a in self.index_axes]),
-                                                            dc)
+        dc = ",dc->[%s]" % ','.join(self.data_columns) if len(self.data_columns) else ''
+        ver = ''
+        if self.is_old_version:
+            ver = "[%s]" % '.'.join([ str(x) for x in self.version ])
 
+        return "%s%s (typ->%s,nrows->%s,indexers->[%s]%s)" % (self.pandas_type,
+                                                              ver,
+                                                              self.table_type_short,
+                                                              self.nrows,
+                                                              ','.join([ a.name for a in self.index_axes ]),
+                                                              dc)
+    
     __str__ = __repr__
 
     def copy(self):
@@ -1621,8 +1651,8 @@ class Table(object):
         """ are we trying to operate on an old version? """
         if where is not None:
             if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
-                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]"
-                    % '.'.join([str(x) for x in self.version]), IncompatibilityWarning)
+                ws = incompatibility_doc % '.'.join([ str(x) for x in self.version ])
+                warnings.warn(ws, IncompatibilityWarning)
 
     @property
     def indexables(self):

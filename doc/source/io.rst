@@ -1372,10 +1372,30 @@ Notes & Caveats
 Compatibility
 ~~~~~~~~~~~~~
 
-0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
+0.10.1 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas
 however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire
 file and write it out using the new format to take advantage of the updates. The group attribute ``pandas_version`` contains the version information.
 
+
+     .. ipython:: python
+
+        # a legacy store
+	import os
+        legacy_store = HDFStore('legacy_0.10.h5', 'r')
+        legacy_store
+
+        # copy (and return the new handle)
+	new_store = legacy_store.copy_to('store_new.h5')
+	new_store
+        new_store.close()
+
+     .. ipython:: python
+        :suppress:
+ 
+        legacy_store.close()
+        import os
+        os.remove('store_new.h5')
+     
 
 Performance
 ~~~~~~~~~~~
