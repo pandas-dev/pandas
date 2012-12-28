@@ -700,7 +700,10 @@ cdef inline object _get_zone(object tz):
         return 'UTC'
     else:
         try:
-            return tz.zone
+            zone = tz.zone
+            if zone is None:
+                return tz
+            return zone
         except AttributeError:
             return tz
 
