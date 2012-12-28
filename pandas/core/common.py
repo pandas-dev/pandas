@@ -1197,8 +1197,16 @@ def in_interactive_session():
 
     returns True if running under python/ipython interactive shell
     """
-    import __main__ as main
-    return not hasattr(main, '__file__') or get_option('mode.sim_interactive')
+    try:
+        ipy = __IPYTHON__
+        if ipy:
+            return True
+    except:
+        pass
+    finally:
+        import __main__ as main
+        return (not hasattr(main, '__file__') or
+                get_option('mode.sim_interactive'))
 
 def in_qtconsole():
     """
