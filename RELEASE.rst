@@ -29,6 +29,8 @@ pandas 0.10.1
 
 **New features**
 
+  - Add data inferface to World Bank WDI pandas.io.wb (#2592)
+
 **Improvements to existing features**
 
   - ``HDFStore``
