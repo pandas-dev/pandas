@@ -220,3 +220,33 @@ store.create_table_index('df12')
 query_store_table = Benchmark("store.select('df12', [ ('index', '>', df.index[10000]), ('index', '<', df.index[15000]) ])", setup12, cleanup = "store.close()",
                               start_date=start_date)
 
+#----------------------------------------------------------------------
+# select from a panel table
+
+setup13 = common_setup + """
+p = Panel(randn(20, 1000, 1000), items= [ 'Item%03d' % i for i in xrange(20) ],
+                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%03d' % i for i in xrange(1000) ])
+
+remove(f)
+store = HDFStore(f)
+store.append('p1',p)
+"""
+
+read_store_table_panel = Benchmark("store.select('p1')", setup13, cleanup = "store.close()",
+                                   start_date=start_date)
+
+
+#----------------------------------------------------------------------
+# write to a panel table
+
+setup14 = common_setup + """
+p = Panel(randn(20, 1000, 1000), items= [ 'Item%03d' % i for i in xrange(20) ],
+                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%03d' % i for i in xrange(1000) ])
+
+remove(f)
+store = HDFStore(f)
+"""
+
+write_store_table_panel = Benchmark("store.append('p2',p)", setup14, cleanup = "store.close()",
+                                    start_date=start_date)
+

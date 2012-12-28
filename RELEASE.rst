@@ -22,6 +22,43 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.10.1
+=============
+
+**Release date:** 2013-??-??
+
+**New features**
+
+**Improvements to existing features**
+
+  - ``HDFStore``
+    - enables storing of multi-index dataframes (closes GH1277_)
+    - support data column indexing and selection, via ``data_columns`` keyword in append
+    - support write chunking to reduce memory footprint, via ``chunksize`` keyword to append
+    - support automagic indexing via ``index`` keywork to append
+    - support ``expectedrows`` keyword in append to inform ``PyTables`` about the expected tablesize
+    - support ``start`` and ``stop`` keywords in select to limit the row selection space
+    - added ``get_store`` context manager to automatically import with pandas
+    - added column filtering via ``columns`` keyword in select
+    - added methods append_to_multiple/select_as_multiple/select_as_coordinates to do multiple-table append/selection
+    - added support for datetime64 in columns
+    - added method ``unique`` to select the unique values in an indexable or data column
+
+**Bug fixes**
+
+  - ``HDFStore``
+    - correctly handle ``nan`` elements in string columns; serialize via the ``nan_rep`` keyword to append
+    - raise correctly on non-implemented column types (unicode/date)
+    - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index is ``Int64``), (closes GH512_)
+
+**API Changes**
+
+  - ``HDFStore``
+    - removed keyword ``compression`` from ``put`` (replaced by keyword ``complib`` to be consistent across library)
+
+.. _GH512: https://github.com/pydata/pandas/issues/512
+.. _GH1277: https://github.com/pydata/pandas/issues/1277
+
 pandas 0.10.0
 =============
 

@@ -1030,6 +1030,17 @@ Deletion of the object specified by the key
    del store['wp']
 
    store
+Closing a Store
+
+.. ipython:: python
+
+
+   # closing a store
+   store.close()
+
+   # Working with, and automatically closing the store with the context manager.
+   with get_store('store.h5') as store:
+        store.keys()
 
 .. ipython:: python
    :suppress:
@@ -1095,7 +1106,7 @@ Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
-Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools`` are currently supported.
+Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools, datetime64`` are currently supported. For string columns, passing ``nan_rep = 'my_nan_rep'`` to append will change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
 
 .. ipython:: python
 
@@ -1103,6 +1114,11 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
     df_mixed['string']   = 'string'
     df_mixed['int']      = 1
     df_mixed['bool']     = True
+    df_mixed['datetime64'] = Timestamp('20010102')
+
+    # make sure that we have datetime64[ns] types
+    df_mixed = df_mixed.convert_objects()
+    df_mixed.ix[3:5,['A','B','string','datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = { 'values' : 50 })
     df_mixed1 = store.select('df_mixed')
@@ -1112,10 +1128,33 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
     # we have provided a minimum string column size
     store.root.df_mixed.table
 
+It is ok to store ``np.nan`` in a ``float or string``. Make sure to do a ``convert_objects()`` on the frame before storing a ``np.nan`` in a datetime64 column. Storing a column with a ``np.nan`` in a ``int, bool`` will currently throw an ``Exception`` as these columns will have converted to ``object`` type.
+
+Storing Multi-Index DataFrames
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Storing multi-index dataframes as tables is very similar to storing/selecting from homogenous index DataFrames.
+
+.. ipython:: python
+
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['foo', 'bar'])
+        df_mi = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['A', 'B', 'C'])
+        df_mi
+
+        store.append('df_mi',df_mi)
+        store.select('df_mi')
+
+	# the levels are automatically included as data columns
+        store.select('df_mi', Term('foo=bar'))
+
 
 Querying a Table
 ~~~~~~~~~~~~~~~~
-
 ``select`` and ``delete`` operations have an optional criteria that can be specified to select/delete only
 a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
 
@@ -1128,7 +1167,7 @@ Valid terms can be created from ``dict, list, tuple, or string``. Objects can be
 
        - ``dict(field = 'index', op = '>', value = '20121114')``
        - ``('index', '>', '20121114')``
-       - ``'index>20121114'``
+       - ``'index > 20121114'``
        - ``('index', '>', datetime(2012,11,14))``
        - ``('index', ['20121114','20121115'])``
        - ``('major_axis', '=', Timestamp('2012/11/14'))``
@@ -1143,14 +1182,30 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
    store
    store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
-Indexing
-~~~~~~~~
-You can create an index for a table with ``create_table_index`` after data is already in the table (after and ``append/put`` operation). Creating a table index is **highly** encouraged. This will speed your queries a great deal when you use a ``select`` with the indexed dimension as the ``where``. It is not automagically done now because you may want to index different axes than the default (except in the case of a DataFrame, where it almost always makes sense to index the ``index``.
+The ``columns`` keyword can be supplied to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``
 
 .. ipython:: python
 
-   # create an index
-   store.create_table_index('df')
+   store.select('df', columns = ['A','B'])
+
+Start and Stop parameters can be specified to limit the total search space. These are in terms of the total number of rows in a table.
+
+.. ipython:: python
+
+   # this is effectively what the storage of a Panel looks like
+   wp.to_frame()
+
+   # limiting the search
+   store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ], start=0, stop=10)
+
+
+Indexing
+~~~~~~~~
+You can create/modify an index for a table with ``create_table_index`` after data is already in the table (after and ``append/put`` operation). Creating a table index is **highly** encouraged. This will speed your queries a great deal when you use a ``select`` with the indexed dimension as the ``where``. **Indexes are automagically created (starting 0.10.1)** on the indexables and any data columns you specify. This behavior can be turned off by passing ``index=False`` to ``append``.
+
+.. ipython:: python
+
+   # we have automagically already created an index (in the first section)
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
@@ -1159,6 +1214,90 @@ You can create an index for a table with ``create_table_index`` after data is al
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
+
+Query via Data Columns
+~~~~~~~~~~~~~~~~~~~~~~
+You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query.
+
+.. ipython:: python
+
+   df_dc = df.copy()
+   df_dc['string'] = 'foo'
+   df_dc.ix[4:6,'string'] = np.nan
+   df_dc.ix[7:9,'string'] = 'bar'
+   df_dc['string2'] = 'cool'
+   df_dc
+
+   # on-disk operations
+   store.append('df_dc', df_dc, data_columns = ['B','C','string','string2'])
+   store.select('df_dc',[ Term('B>0') ])
+
+   # getting creative
+   store.select('df_dc',[ 'B > 0', 'C > 0', 'string == foo' ])
+
+   # this is in-memory version of this type of selection
+   df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
+
+   # we have automagically created this index and that the B/C/string/string2 columns are stored separately as ``PyTables`` columns
+   store.root.df_dc.table
+
+There is some performance degredation by making lots of columns into `data columns`, so it is up to the user to designate these. In addition, you cannot change data columns (nor indexables) after the first append/put operation (Of course you can simply read in the data and create a new table!)
+
+Advanced Queries
+~~~~~~~~~~~~~~~~
+
+**Unique**
+
+To retrieve the *unique* values of an indexable or data column, use the method ``unique``. This will, for example, enable you to get the index very quickly. Note ``nan`` are excluded from the result set.
+
+.. ipython:: python
+
+   store.unique('df_dc','index')
+   store.unique('df_dc','string')
+
+**Replicating or**
+
+``not`` and ``or`` conditions are unsupported at this time; however, ``or`` operations are easy to replicate, by repeately applying the criteria to the table, and then ``concat`` the results.
+
+.. ipython:: python
+
+   crit1 = [ Term('B>0'), Term('C>0'), Term('string=foo') ]
+   crit2 = [ Term('B<0'), Term('C>0'), Term('string=foo') ]
+
+   concat([ store.select('df_dc',c) for c in [ crit1, crit2 ] ])
+
+**Table Object**
+
+If you want to inspect the table object, retrieve via ``get_table``. You could use this progamatically to say get the number of rows in the table.
+
+.. ipython:: python
+
+   store.get_table('df_dc').nrows
+
+Multiple Table Queries
+~~~~~~~~~~~~~~~~~~~~~~
+
+New in 0.10.1 are the methods ``append_to_multple`` and ``select_as_multiple``, that can perform appending/selecting from multiple tables at once. The idea is to have one table (call it the selector table) that you index most/all of the columns, and perform your queries. The other table(s) are data tables that are indexed the same the selector table. You can then perform a very fast query on the selector table, yet get lots of data back. This method works similar to having a very wide-table, but is more efficient in terms of queries.
+
+Note, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This means, append to the tables in the same order; ``append_to_multiple`` splits a single object to multiple tables, given a specification (as a dictionary). This dictionary is a mapping of the table names to the 'columns' you want included in that table. Pass a `None` for a single table (optional) to let it have the remaining columns. The argument ``selector`` defines which table is the selector table.
+
+.. ipython:: python
+
+   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8), 
+                                  columns=['A', 'B', 'C', 'D', 'E', 'F'])
+   df_mt['foo'] = 'bar'
+
+   # you can also create the tables individually
+   store.append_to_multiple({ 'df1_mt' : ['A','B'], 'df2_mt' : None }, df_mt, selector = 'df1_mt')
+   store
+
+   # indiviual tables were created
+   store.select('df1_mt')
+   store.select('df2_mt')
+   
+   # as a multiple
+   store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], selector = 'df1_mt')
+  
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~
@@ -1183,6 +1322,33 @@ It should be clear that a delete operation on the ``major_axis`` will be fairly 
    # returns the number of rows deleted
    store.remove('wp', 'major_axis>20000102' )
    store.select('wp')
+
+Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files automatically. Thus, repeatedly deleting (or removing nodes) and adding again **WILL TEND TO INCREASE THE FILE SIZE**. To *clean* the file, use ``ptrepack`` (see below).
+
+Compression
+~~~~~~~~~~~
+``PyTables`` allows the stored data to be compressed. Tthis applies to all kinds of stores, not just tables.
+
+   - Pass ``complevel=int`` for a compression level (1-9, with 0 being no compression, and the default)
+   - Pass ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for whichever compression library you prefer.
+
+``HDFStore`` will use the file based compression scheme if no overriding ``complib`` or ``complevel`` options are provided. ``blosc`` offers very fast compression, and is my most used. Note that ``lzo`` and ``bzip2`` may not be installed (by Python) by default.
+
+Compression for all objects within the file
+
+   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')``
+
+Or on-the-fly compression (this only applies to tables). You can turn off file compression for a specific table by passing ``complevel=0``
+
+   - ``store.append('df', df, complib='zlib', complevel=5)``
+
+**ptrepack**
+
+``PyTables`` offer better write performance when compressed after writing them, as opposed to turning on compression at the very beginning. You can use the supplied ``PyTables`` utility ``ptrepack``. In addition, ``ptrepack`` can change compression levels after the fact.
+
+   - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
+
+Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow you to reuse previously deleted space (alternatively, one can simply remove the file and write again).
 
 Notes & Caveats
 ~~~~~~~~~~~~~~~
@@ -1216,14 +1382,9 @@ Performance
 
    - ``Tables`` come with a writing performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
      Write times are generally longer as compared with regular stores. Query times can be quite fast, especially on an indexed axis.
-   - ``Tables`` can (as of 0.10.0) be expressed as different types.
-
-     - ``AppendableTable`` which is a similiar table to past versions (this is the default).
-     - ``WORMTable`` (pending implementation) - is available to faciliate very fast writing of tables that are also queryable (but CANNOT support appends)
-
-   - ``Tables`` offer better performance when compressed after writing them (as opposed to turning on compression at the very beginning)
-     use the pytables utilities ``ptrepack`` to rewrite the file (and also can change compression methods)
-   - Duplicate rows can be written, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+   - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
+   - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
+   - Duplicate rows can be written to tables, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
 
 Experimental
 ~~~~~~~~~~~~
