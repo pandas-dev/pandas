@@ -61,7 +61,8 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
     def test_index_unique(self):
         uniques = self.dups.index.unique()
-        self.assert_(uniques.dtype == 'M8[ns]') # sanity
+        #self.assert_(uniques.dtype == 'M8[ns]') # sanity
+        self.assert_(isinstance(uniques[0], tslib.Timestamp))
 
         # #2563
         self.assertTrue(isinstance(uniques, DatetimeIndex))
