@@ -113,3 +113,13 @@ def f(K=500):
 
 frame_insert_500_columns = Benchmark('f()', setup,
                                      start_date=datetime(2011, 1, 1))
+
+#----------------------------------------------------------------------
+# strings methods, #2602
+
+setup = common_setup + """
+s = Series(['abcdefg', np.nan]*500000)
+"""
+
+series_string_vector_slice = Benchmark('s.str[:5]', setup,
+                                       start_date=datetime(2012, 8, 1))

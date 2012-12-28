@@ -64,7 +64,7 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(result, Series))
         tm.assert_almost_equal(result, exp)
 
-        #mixed
+        # mixed
         mixed = ['a', NA, 'b', True, datetime.today(), 'foo', None, 1, 2.]
         rs = strings.str_count(mixed, 'a')
         xp = [1, NA, 0, NA, NA, 0, NA, NA, NA]

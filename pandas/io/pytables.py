@@ -248,7 +248,7 @@ class HDFStore(object):
                 # a table
                 if _is_table_type(n):
                     values.append(str(create_table(self, n)))
-                
+
                 # a group
                 elif kind is None:
                     values.append('unknown type')
@@ -400,7 +400,7 @@ class HDFStore(object):
             if where is None:
                 group = self.get_node(key)
                 group._f_remove(recursive=True)
-            
+
             # delete from the table
             else:
                 if not _is_table_type(group):
@@ -962,7 +962,7 @@ class IndexCol(object):
     def convert(self, values):
         """ set the values from this selection """
         self.values = Index(_maybe_convert(values[self.cname], self.kind))
-   
+
     @property
     def attrs(self):
         return self.table._v_attrs
@@ -1362,7 +1362,7 @@ class Table(object):
               return a boolean indicating if we have a valid table or not """
 
         table = self.table
-        if table is None: 
+        if table is None:
             return False
 
         self.index_axes, self.values_axes = [ a.infer(self.table) for a in self.indexables if a.is_indexable ], [ a.infer(self.table) for a in self.indexables if not a.is_indexable ]
@@ -1412,13 +1412,13 @@ class Table(object):
                     indexer = len(self.non_index_axes)
                     exist_axis = existing_table.non_index_axes[indexer][1]
                     if append_axis != exist_axis:
-                        
+
                         # ahah! -> reindex
                         if sorted(append_axis) == sorted(exist_axis):
                             append_axis = exist_axis
 
                 self.non_index_axes.append((i,append_axis))
-        
+
         # set axis positions (based on the axes)
         self.index_axes = [ index_axes_map[a].set_pos(j) for j, a in enumerate(axes) ]
         j = len(self.index_axes)
@@ -1444,7 +1444,7 @@ class Table(object):
 
             # a string column
             if b.dtype.name == 'object':
-                
+
                 # itemsize is the maximum length of a string (along any dimension)
                 itemsize = _itemsize_string_array(values)
 
@@ -1489,7 +1489,7 @@ class Table(object):
             ordd = ordered & filt
             ordd = sorted(ordered.get_indexer(ordd))
             return obj.reindex_axis(ordered.take(ordd), axis = obj._get_axis_number(axis_name), copy = False)
-            
+
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:
             for axis, filt in self.selection.filter:
@@ -1558,7 +1558,7 @@ class LegacyTable(Table):
 
         """
     _indexables = [IndexCol(name = 'index',  axis = 1, pos = 0),
-                   IndexCol(name = 'column', axis = 2, pos = 1, index_kind = 'columns_kind'), 
+                   IndexCol(name = 'column', axis = 2, pos = 1, index_kind = 'columns_kind'),
                    DataCol( name = 'fields', cname = 'values', kind_attr = 'fields', pos = 2) ]
     table_type = 'legacy'
     ndim       = 3
@@ -1569,7 +1569,7 @@ class LegacyTable(Table):
     def read(self, where=None):
         """ we have n indexable columns, with an arbitrary number of data axes """
 
-        
+
         if not self.read_axes(where): return None
 
         factors  = [ Categorical.from_array(a.values) for a in self.index_axes ]
@@ -1591,7 +1591,7 @@ class LegacyTable(Table):
 
                 # the data need to be sorted
                 sorted_values = c.take_data().take(sorter, axis=0)
-                
+
                 take_labels   = [ l.take(sorter) for l in labels ]
                 items         = Index(c.values)
                 block         = block2d_to_blocknd(sorted_values, items, tuple(N), take_labels)
@@ -1767,7 +1767,7 @@ class AppendableTable(LegacyTable):
             # final element
             if groups[-1] != ln:
                 groups.append(ln)
-            
+
             # initial element
             if groups[0] != 0:
                 groups.insert(0,0)
@@ -1893,7 +1893,7 @@ def create_table(parent, group, typ = None, **kwargs):
 
 def _itemsize_string_array(arr):
     """ return the maximum size of elements in a strnig array """
-    return max([ str_len(arr[v]).max() for v in range(arr.shape[0]) ])
+    return max([ str_len(arr[v].ravel()).max() for v in range(arr.shape[0]) ])
 
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
@@ -2289,4 +2289,3 @@ def _get_index_factory(klass):
                                              tz=tz)
         return f
     return klass
-

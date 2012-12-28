@@ -86,18 +86,30 @@ def _length_check(others):
 
 def _na_map(f, arr, na_result=np.nan):
     # should really _check_ for NA
-    def g(x):
-        try:
-            return f(x)
-        except (TypeError, AttributeError):
-            return na_result
-    return _map(g, arr)
+    return _map(f, arr, na_mask=True, na_value=na_result)
 
 
-def _map(f, arr):
+def _map(f, arr, na_mask=False, na_value=np.nan):
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
-    return lib.map_infer(arr, f)
+    if na_mask:
+        mask = isnull(arr)
+        try:
+            result = lib.map_infer_mask(arr, f, mask.view(np.uint8))
+        except (TypeError, AttributeError):
+            def g(x):
+                try:
+                    return f(x)
+                except (TypeError, AttributeError):
+                    return na_value
+            return _map(g, arr)
+        if na_value is not np.nan:
+            np.putmask(result, mask, na_value)
+            if result.dtype == object:
+                result = lib.maybe_convert_objects(result)
+        return result
+    else:
+        return lib.map_infer(arr, f)
 
 
 def str_count(arr, pat, flags=0):
