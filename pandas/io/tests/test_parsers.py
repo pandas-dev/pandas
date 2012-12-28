@@ -1861,6 +1861,9 @@ a,b,c
 
             result = self.read_csv('__tmp__', compression='gzip')
             tm.assert_frame_equal(result, expected)
+
+            result = self.read_csv(open('__tmp__', 'rb'), compression='gzip')
+            tm.assert_frame_equal(result, expected)
         finally:
             # try:
             #     os.remove('__tmp__')
@@ -1875,6 +1878,9 @@ a,b,c
 
             result = self.read_csv('__tmp__', compression='bz2')
             tm.assert_frame_equal(result, expected)
+
+            # result = self.read_csv(open('__tmp__', 'rb'), compression='bz2')
+            # tm.assert_frame_equal(result, expected)
 
             self.assertRaises(ValueError, self.read_csv,
                               '__tmp__', compression='bz3')

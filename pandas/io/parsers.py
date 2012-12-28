@@ -1085,6 +1085,16 @@ def TextParser(*args, **kwds):
 def count_empty_vals(vals):
     return sum([1 for v in vals if v == '' or v is None])
 
+def _wrap_compressed(f, compression):
+    compression = compression.lower()
+    if compression == 'gzip':
+        import gzip
+        return gzip.GzipFile(fileobj=f)
+    elif compression == 'bz2':
+        raise ValueError('Python cannot read bz2 data from file handle')
+    else:
+        raise ValueError('do not recognize compression method %s'
+                         % compression)
 
 class PythonParser(ParserBase):
 
@@ -1130,6 +1140,8 @@ class PythonParser(ParserBase):
         if isinstance(f, basestring):
             f = com._get_handle(f, 'r', encoding=self.encoding,
                                 compression=self.compression)
+        elif self.compression:
+            f = _wrap_compressed(f, self.compression)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)

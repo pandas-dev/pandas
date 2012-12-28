@@ -469,13 +469,20 @@ cdef class TextReader:
         self.parser.cb_io = NULL
         self.parser.cb_cleanup = NULL
 
-        if isinstance(source, basestring) and self.compression:
+        if self.compression:
             if self.compression == 'gzip':
                 import gzip
-                source = gzip.GzipFile(source, 'rb')
+                if isinstance(source, basestring):
+                    source = gzip.GzipFile(source, 'rb')
+                else:
+                    source = gzip.GzipFile(fileobj=source)
             elif self.compression == 'bz2':
                 import bz2
-                source = bz2.BZ2File(source, 'rb')
+                if isinstance(source, basestring):
+                    source = bz2.BZ2File(source, 'rb')
+                else:
+                    raise ValueError('Python cannot read bz2 from open file '
+                                     'handle')
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
@@ -1789,4 +1796,3 @@ def _maybe_encode(values):
     if values is None:
         return []
     return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
-
