@@ -58,6 +58,7 @@ pandas 0.10.1
     - raise correctly on non-implemented column types (unicode/date)
     - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index
       is ``Int64``), (closes GH512_)
+  - Fix DataFrame.info bug with UTF8-encoded columns. (GH2576_)
 
 **API Changes**
 
@@ -68,6 +69,7 @@ pandas 0.10.1
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277
 .. _GH2327: https://github.com/pydata/pandas/issues/2327
+.. _GH2576: https://github.com/pydata/pandas/issues/2576
 
 pandas 0.10.0
 =============

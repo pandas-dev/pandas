@@ -1628,8 +1628,7 @@ class DataFrame(NDFrame):
             if len(cols) != len(counts):
                 raise AssertionError('Columns must equal counts')
             for col, count in counts.iteritems():
-                if not isinstance(col, basestring):
-                    col = str(col)
+                col = com.pprint_thing(col)
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
         else:

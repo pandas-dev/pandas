@@ -159,6 +159,13 @@ class TestDataFrameFormatting(unittest.TestCase):
         result = self.frame.to_string()
         self.assert_(isinstance(result, unicode))
 
+    def test_to_string_utf8_columns(self):
+        n = u"\u05d0".encode('utf-8')
+
+        with option_context('display.max_rows', 1):
+            df = pd.DataFrame([1,2], columns=[n])
+            repr(df)
+
     def test_to_string_unicode_two(self):
         dm = DataFrame({u'c/\u03c3': []})
         buf = StringIO()
