@@ -211,4 +211,4 @@ index = rng.repeat(10)
 """
 
 datetimeindex_unique = Benchmark('index.unique()', setup,
-                                 date=datetime(2012, 7, 1))
+                                 start_date=datetime(2012, 7, 1))
