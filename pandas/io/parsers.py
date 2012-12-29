@@ -1789,8 +1789,7 @@ class ExcelFile(object):
     Parameters
     ----------
     path : string or file-like object
-        Path to xls file
-    kind : {'xls', 'xlsx', None}, default None
+        Path to xls or xlsx file
     """
     def __init__(self, path_or_buf):
         self.use_xlsx = True
