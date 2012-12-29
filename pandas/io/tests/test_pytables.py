@@ -1735,25 +1735,59 @@ class TestHDFStore(unittest.TestCase):
             store.select(k)
         store.close()
 
-    def test_legacy_copy_to(self):
+    def test_copy(self):
         pth = curpath()
+        def do_copy(f = None, keys = None, propindexes = True, **kwargs):
+            try:
+                import os
+
+                if f is None:
+                    f = os.path.join(pth, 'legacy_0.10.h5')
+
+                store = HDFStore(f, 'r')
+                import tempfile
+                tmp = tempfile.mkstemp()[1]
+                tstore = store.copy(tmp, keys = keys, propindexes = propindexes, **kwargs)
+                
+                # check keys
+                if keys is None:
+                    keys = store.keys()
+                self.assert_(set(keys) == set(tstore.keys()))
+
+                # check indicies & nrows
+                for k in tstore.keys():
+                    if tstore.is_table(k):
+                        new_t = tstore.get_table(k)
+                        orig_t = store.get_table(k)
+
+                        self.assert_(orig_t.nrows == new_t.nrows)
+                        for a in orig_t.axes:
+                            if a.is_indexed:
+                                self.assert_(new_t[a.name].is_indexed == True)
+
+            except:
+                pass
+            finally:
+                store.close()
+                tstore.close()
+                import os
+                os.remove(tmp)
+
+        do_copy()
+        do_copy(keys = ['df'])
+        do_copy(propindexes = False)
+
+        # new table
+        df = tm.makeDataFrame()
         try:
-            import os
-            store = HDFStore(os.path.join(pth, 'legacy_0.10.h5'), 'r')
-            import tempfile
-            tmp = tempfile.mkstemp()[1]
-            tstore = store.copy_to(tmp)
-            
-            # the tmp store
-            for k in tstore.keys():
-                self.assert_(k in store)
-        except:
-            pass
+            st = HDFStore(self.scratchpath)
+            st.append('df', df, data_columns = ['A'])
+            st.close()
+            do_copy(f = self.scratchpath)
+            do_copy(f = self.scratchpath, propindexes = False)
         finally:
-            store.close()
-            tstore.close()
             import os
-            os.remove(tmp)
+            os.remove(self.scratchpath)
 
     def test_legacy_table_write(self):
         raise nose.SkipTest

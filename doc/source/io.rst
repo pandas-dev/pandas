@@ -1343,7 +1343,7 @@ Or on-the-fly compression (this only applies to tables). You can turn off file c
 
    - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
 
-Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow you to reuse previously deleted space (alternatively, one can simply remove the file and write again).
+Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow you to reuse previously deleted space. Aalternatively, one can simply remove the file and write again, or use the ``copy`` method.
 
 Notes & Caveats
 ~~~~~~~~~~~~~~~
@@ -1367,9 +1367,7 @@ Notes & Caveats
 Compatibility
 ~~~~~~~~~~~~~
 
-0.10.1 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas
-however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire
-file and write it out using the new format to take advantage of the updates. The group attribute ``pandas_version`` contains the version information.
+0.10.1 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire file and write it out using the new format, using the method ``copy`` to take advantage of the updates. The group attribute ``pandas_version`` contains the version information. ``copy`` takes a number of options, please see the docstring.
 
 
      .. ipython:: python
@@ -1380,7 +1378,7 @@ file and write it out using the new format to take advantage of the updates. The
         legacy_store
 
         # copy (and return the new handle)
-	new_store = legacy_store.copy_to('store_new.h5')
+	new_store = legacy_store.copy('store_new.h5')
 	new_store
         new_store.close()
 

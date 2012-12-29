@@ -630,15 +630,45 @@ class HDFStore(object):
         t.infer_axes()
         return t
 
-    def copy_to(self, file):
-        """ copy the existing store to a new file, upgrading in place """
-        new_store = HDFStore(file, mode = 'w')
-        for k, g in self.iteritems():
-            data = self.select(k)
-            if _is_table_type(g):
-                new_store.append(k,data)
-            else:
-                new_store.put(k,data)
+    def is_table(self, key):
+        """ return a boolean if I am a table """
+        group = self.get_node(key)
+        if group is None:
+            raise KeyError('No object named %s in the file' % key)
+        return _is_table_type(group)
+
+    def copy(self, file, mode = 'w', propindexes = True, keys = None, complib = None, complevel = None, fletcher32 = False):
+        """ copy the existing store to a new file, upgrading in place
+
+            Parameters
+            ----------
+            propindexes: restore indexes in copied file (defaults to True)
+            keys       : list of keys to include in the copy (defaults to all)
+            mode, complib, complevel, fletcher32 same as in HDFStore.__init__
+
+            Returns
+            -------
+            open file handle of the new store
+
+        """
+        new_store = HDFStore(file, mode = mode, complib = complib, complevel = complevel, fletcher32 = fletcher32)
+        if keys is None:
+            keys = self.keys()
+        if not isinstance(keys, (tuple,list)):
+            keys = [ keys ]
+        for k in keys:
+            n    = self.get_node(k)
+            if n is not None:
+                data = self.select(k)
+                if _is_table_type(n):
+
+                    t = self.get_table(k)
+                    index = False
+                    if propindexes:
+                        index = [ a.name for a in t.axes if a.is_indexed ]
+                    new_store.append(k,data, index=index, data_columns=getattr(t,'data_columns',None))
+                else:
+                    new_store.put(k,data)
         return new_store
 
     ###### private methods ######
@@ -1131,6 +1161,14 @@ class IndexCol(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    @property
+    def is_indexed(self):
+        """ return whether I am an indexed column """
+        try:
+            return getattr(self.table.cols,self.cname).is_indexed
+        except:
+            False
+
     def copy(self):
         new_self = copy.copy(self)
         return new_self
@@ -1542,6 +1580,13 @@ class Table(object):
                                                               dc)
     
     __str__ = __repr__
+
+    def __getitem__(self, c):
+        """ return the axis for c """
+        for a in self.axes:
+            if c == a.name:
+                return a
+        return None
 
     def copy(self):
         new_self = copy.copy(self)

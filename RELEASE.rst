@@ -50,7 +50,7 @@ pandas 0.10.1
       to do multiple-table append/selection
     - added support for datetime64 in columns
     - added method ``unique`` to select the unique values in an indexable or data column
-    - added method ``copy_to`` to copy an existing store (and possibly upgrade)
+    - added method ``copy`` to copy an existing store (and possibly upgrade)
   - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
   - Support reading gzipped data from file-like object
   - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
