@@ -637,13 +637,14 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         return _is_table_type(group)
 
-    def copy(self, file, mode = 'w', propindexes = True, keys = None, complib = None, complevel = None, fletcher32 = False):
+    def copy(self, file, mode = 'w', propindexes = True, keys = None, complib = None, complevel = None, fletcher32 = False, overwrite = True):
         """ copy the existing store to a new file, upgrading in place
 
             Parameters
             ----------
             propindexes: restore indexes in copied file (defaults to True)
             keys       : list of keys to include in the copy (defaults to all)
+            overwrite  : overwrite (remove and replace) existing nodes in the new store (default is True)
             mode, complib, complevel, fletcher32 same as in HDFStore.__init__
 
             Returns
@@ -659,6 +660,11 @@ class HDFStore(object):
         for k in keys:
             n    = self.get_node(k)
             if n is not None:
+
+                if k in new_store:
+                    if overwrite:
+                        new_store.remove(k)
+
                 data = self.select(k)
                 if _is_table_type(n):
 
@@ -666,9 +672,10 @@ class HDFStore(object):
                     index = False
                     if propindexes:
                         index = [ a.name for a in t.axes if a.is_indexed ]
-                    new_store.append(k,data, index=index, data_columns=getattr(t,'data_columns',None))
+                        new_store.append(k,data, index=index, data_columns=getattr(t,'data_columns',None))
                 else:
                     new_store.put(k,data)
+
         return new_store
 
     ###### private methods ######

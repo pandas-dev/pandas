@@ -1737,7 +1737,7 @@ class TestHDFStore(unittest.TestCase):
 
     def test_copy(self):
         pth = curpath()
-        def do_copy(f = None, keys = None, propindexes = True, **kwargs):
+        def do_copy(f = None, new_f = None, keys = None, propindexes = True, **kwargs):
             try:
                 import os
 
@@ -1745,9 +1745,12 @@ class TestHDFStore(unittest.TestCase):
                     f = os.path.join(pth, 'legacy_0.10.h5')
 
                 store = HDFStore(f, 'r')
-                import tempfile
-                tmp = tempfile.mkstemp()[1]
-                tstore = store.copy(tmp, keys = keys, propindexes = propindexes, **kwargs)
+
+                if new_f is None:
+                    import tempfile
+                    new_f = tempfile.mkstemp()[1]
+
+                tstore = store.copy(new_f, keys = keys, propindexes = propindexes, **kwargs)
                 
                 # check keys
                 if keys is None:
@@ -1771,7 +1774,7 @@ class TestHDFStore(unittest.TestCase):
                 store.close()
                 tstore.close()
                 import os
-                os.remove(tmp)
+                os.remove(new_f)
 
         do_copy()
         do_copy(keys = ['df'])
