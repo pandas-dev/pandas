@@ -34,9 +34,9 @@ pandas 0.10.1
 **Improvements to existing features**
 
   - ``HDFStore``
+
     - enables storing of multi-index dataframes (closes GH1277_)
-    - support data column indexing and selection, via ``data_columns`` keyword
-      in append
+    - support data column indexing and selection, via ``data_columns`` keyword in append
     - support write chunking to reduce memory footprint, via ``chunksize``
       keyword to append
     - support automagic indexing via ``index`` keywork to append
@@ -58,6 +58,7 @@ pandas 0.10.1
 **Bug fixes**
 
   - ``HDFStore``
+
     - correctly handle ``nan`` elements in string columns; serialize via the
       ``nan_rep`` keyword to append
     - raise correctly on non-implemented column types (unicode/date)
@@ -77,6 +78,7 @@ pandas 0.10.1
 **API Changes**
 
   - ``HDFStore``
+
     - removed keyword ``compression`` from ``put`` (replaced by keyword
       ``complib`` to be consistent across library)
 
