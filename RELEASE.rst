@@ -61,6 +61,10 @@ pandas 0.10.1
     - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index
       is ``Int64``), (closes GH512_)
   - Fix DataFrame.info bug with UTF8-encoded columns. (GH2576_)
+  - Fix DatetimeIndex handling of FixedOffset tz (GH2604_)
+  - More robust detection of being in IPython session for wide DataFrame
+    console formatting (GH2585_)
+  - Fix platform issues with ``file:///`` in unit test (#2564)
 
 **API Changes**
 
@@ -72,6 +76,8 @@ pandas 0.10.1
 .. _GH1277: https://github.com/pydata/pandas/issues/1277
 .. _GH2327: https://github.com/pydata/pandas/issues/2327
 .. _GH2576: https://github.com/pydata/pandas/issues/2576
+.. _GH2585: https://github.com/pydata/pandas/issues/2585
+.. _GH2604: https://github.com/pydata/pandas/issues/2604
 
 pandas 0.10.0
 =============

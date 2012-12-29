@@ -102,11 +102,13 @@ g,7,seven
 
     def test_read_csv(self):
         if not py3compat.PY3:
-            fname=u"file:///"+unicode(self.csv1)
-            try:
-                df1 = read_csv(fname, index_col=0, parse_dates=True)
-            except IOError:
-                assert(False), "read_csv should accept unicode objects as urls"
+            if 'win' in sys.platform:
+                prefix = u"file:///"
+            else:
+                prefix = u"file://"
+            fname = prefix + unicode(self.csv1)
+            # it works!
+            df1 = read_csv(fname, index_col=0, parse_dates=True)
 
     def test_dialect(self):
         data = """\

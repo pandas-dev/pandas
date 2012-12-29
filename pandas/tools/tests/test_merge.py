@@ -1510,8 +1510,8 @@ class TestConcatenate(unittest.TestCase):
         self.assertTrue(np.array_equal(result.columns, range(2)))
 
         # must reindex, #2603
-        s = Series(randn(5), name='A')
-        s2 = Series(randn(6), name='B')
+        s = Series(randn(3), index=['c', 'a', 'b'], name='A')
+        s2 = Series(randn(4), index=['d', 'a', 'b', 'c'], name='B')
         result = concat([s, s2], axis=1)
         expected = DataFrame({'A': s, 'B': s2})
         assert_frame_equal(result, expected)
