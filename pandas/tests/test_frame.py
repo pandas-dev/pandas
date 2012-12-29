@@ -7010,6 +7010,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         desc = df.describe()
         assert(desc.time['first'] == min(self.tsframe.index))
 
+    def test_describe_empty_int_columns(self):
+        df = DataFrame([[0, 1], [1, 2]])
+        desc = df[df[0] < 0].describe() #works
+        assert_series_equal(desc.xs('count'),
+                            Series([0, 0], dtype=float, name='count'))
+        self.assert_(isnull(desc.ix[1:]).all().all())
+
     def test_get_axis_etc(self):
         f = self.frame
 

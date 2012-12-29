@@ -177,7 +177,7 @@ def _nanmin(values, axis=None, skipna=True):
     else:
         if ((axis is not None and values.shape[axis] == 0)
              or values.size == 0):
-            result = values.sum(axis)
+            result = com.ensure_float(values.sum(axis))
             result.fill(np.nan)
         else:
             result = values.min(axis)
@@ -216,7 +216,7 @@ def _nanmax(values, axis=None, skipna=True):
     else:
         if ((axis is not None and values.shape[axis] == 0)
              or values.size == 0):
-            result = values.sum(axis)
+            result = com.ensure_float(values.sum(axis))
             result.fill(np.nan)
         else:
             result = values.max(axis)
