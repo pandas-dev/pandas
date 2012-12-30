@@ -68,6 +68,7 @@ pandas 0.10.1
   - Fix bug and possible segfault when grouping by hierarchical level that
     contains NA values (GH2616_)
   - Ensure that MultiIndex tuples can be constructed with NAs (seen in #2616)
+  - Fix int64 overflow issue when unstacking MultiIndex with many levels (#2616)
 
 **API Changes**
 

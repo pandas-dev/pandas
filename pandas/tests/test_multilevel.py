@@ -1267,6 +1267,39 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(unstacked['E', 1].dtype == np.object_)
         self.assert_(unstacked['F', 1].dtype == np.float64)
 
+    def test_unstack_group_index_overflow(self):
+        labels = np.tile(np.arange(500), 2)
+        level = np.arange(500)
+
+        index = MultiIndex(levels=[level] * 8 + [[0, 1]],
+                           labels=[labels] * 8 + [np.arange(2).repeat(500)])
+
+        s = Series(np.arange(1000), index=index)
+        result = s.unstack()
+        self.assertEqual(result.shape, (500, 2))
+
+        # test roundtrip
+        stacked = result.stack()
+        assert_series_equal(s.astype(np.float64),
+                            stacked.reindex(s.index))
+
+        # put it at beginning
+        index = MultiIndex(levels=[[0, 1]] + [level] * 8,
+                           labels=[np.arange(2).repeat(500)] + [labels] * 8)
+
+        s = Series(np.arange(1000), index=index)
+        result = s.unstack(0)
+        self.assertEqual(result.shape, (500, 2))
+
+        # put it in middle
+        index = MultiIndex(levels=[level] * 4 + [[0, 1]] + [level] * 4,
+                           labels=([labels] * 4 + [np.arange(2).repeat(500)]
+                                   + [labels] * 4))
+
+        s = Series(np.arange(1000), index=index)
+        result = s.unstack(4)
+        self.assertEqual(result.shape, (500, 2))
+
     def test_getitem_lowerdim_corner(self):
         self.assertRaises(KeyError, self.frame.ix.__getitem__,
                           (('bar', 'three'), 'B'))

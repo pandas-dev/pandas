@@ -83,8 +83,11 @@ class _Unstacker(object):
         to_sort = labs[:v] + labs[v + 1:] + [labs[v]]
         sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
-        group_index = get_group_index(to_sort, sizes)
-        comp_index, obs_ids = _compress_group_index(group_index)
+        comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
+
+        # group_index = get_group_index(to_sort, sizes)
+        # comp_index, obs_ids = _compress_group_index(group_index)
+
         ngroups = len(obs_ids)
 
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
@@ -97,10 +100,10 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = get_group_index(self.sorted_labels[:-1],
-                                      [len(x) for x in new_levels])
+        remaining_labels = self.sorted_labels[:-1]
+        level_sizes = [len(x) for x in new_levels]
 
-        comp_index, obs_ids = _compress_group_index(group_index)
+        comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
 
         comp_index = _ensure_platform_int(comp_index)
@@ -391,6 +394,36 @@ def _unstack_frame(obj, level):
                                value_columns=obj.columns)
         return unstacker.get_result()
 
+def get_compressed_ids(labels, sizes):
+    # no overflow
+    if _long_prod(sizes) < 2**63:
+        group_index = get_group_index(labels, sizes)
+        comp_index, obs_ids = _compress_group_index(group_index)
+    else:
+        n = len(labels[0])
+        mask = np.zeros(n, dtype=bool)
+        for v in labels:
+            mask |= v < 0
+
+        while _long_prod(sizes) >= 2**63:
+            i = len(sizes)
+            while _long_prod(sizes[:i]) >= 2**63:
+                i -= 1
+
+            rem_index, rem_ids = get_compressed_ids(labels[:i],
+                                                    sizes[:i])
+            sizes = [len(rem_ids)] + sizes[i:]
+            labels = [rem_index] + labels[i:]
+
+        return get_compressed_ids(labels, sizes)
+
+    return comp_index, obs_ids
+
+def _long_prod(vals):
+    result = 1L
+    for x in vals:
+        result *= x
+    return result
 
 def stack(frame, level=-1, dropna=True):
     """
