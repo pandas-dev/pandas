@@ -6549,6 +6549,35 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
+    def test_weighted_mean_1d_weights(self):
+        # axis = 0
+        weights = Series(np.random.randint(1, 100,
+                         len(self.frame)).astype(float),
+                         self.frame.index)
+        weights[np.random.randint(0, len(self.frame), 10)] = np.NaN
+
+        def wgt_mean(data, skipna=True):
+            # check the result is correct
+            wgts = weights.reindex(data.index)
+            if skipna:
+                mask = notnull(wgts) & notnull(data)
+                wgts = wgts[mask]
+                data = data[mask]
+            vals = np.asarray(wgts) * np.asarray(data)
+            return vals.sum() / np.asarray(wgts).sum()
+
+        self._check_stat_op('mean', wgt_mean, axis=0, weights=weights,
+                            inject_skipna=True)
+
+        # axis = 1
+        weights = Series(np.random.randint(1, 100,
+                         len(self.frame.columns)).astype(float),
+                         self.frame.columns)
+        weights[3:4] = np.NaN
+
+        self._check_stat_op('mean', wgt_mean, axis=1, weights=weights,
+                            inject_skipna=True)
+
     def test_product(self):
         self._check_stat_op('product', np.prod)
 
@@ -6674,7 +6703,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(df.kurt(), df.kurt(level=0).xs('bar'))
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
-                       has_numeric_only=False):
+                       has_numeric_only=False, axis=None, **kwargs):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -6684,29 +6713,47 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         f = getattr(frame, name)
 
         if has_skipna:
+            inject_arg = kwargs.pop('inject_skipna', False)
+
             def skipna_wrapper(x):
                 nona = x.dropna().values
                 if len(nona) == 0:
                     return np.nan
-                return alternative(nona)
+                if inject_arg:
+                    return alternative(x, True)
+                else:
+                    return alternative(nona)
 
             def wrapper(x):
+                if inject_arg:
+                    return alternative(x, False)
                 return alternative(x.values)
 
-            result0 = f(axis=0, skipna=False)
-            result1 = f(axis=1, skipna=False)
-            assert_series_equal(result0, frame.apply(wrapper))
-            assert_series_equal(result1, frame.apply(wrapper, axis=1),
-                                check_dtype=False) # HACK: win32
+            if axis is None:
+                result0 = f(axis=0, skipna=False, **kwargs)
+                result1 = f(axis=1, skipna=False, **kwargs)
+                assert_series_equal(result0, frame.apply(wrapper))
+                assert_series_equal(result1, frame.apply(wrapper, axis=1),
+                                    check_dtype=False) # HACK: win32
+            else:
+                result = f(axis=axis, skipna=False, **kwargs)
+                assert_series_equal(result, frame.apply(wrapper, axis=axis),
+                                    check_dtype=False)
+
         else:
             skipna_wrapper = alternative
             wrapper = alternative
 
-        result0 = f(axis=0)
-        result1 = f(axis=1)
-        assert_series_equal(result0, frame.apply(skipna_wrapper))
-        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
-                            check_dtype=False)
+        if axis is None:
+            result0 = f(axis=0, **kwargs)
+            result1 = f(axis=1, **kwargs)
+            assert_series_equal(result0, frame.apply(skipna_wrapper))
+            assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
+                                check_dtype=False)
+        else:
+            result = f(axis=axis, **kwargs)
+            assert_series_equal(result, frame.apply(skipna_wrapper, axis=axis),
+                                check_dtype=False)
 
         # result = f(axis=1)
         # comp = frame.apply(alternative, axis=1).reindex(result.index)
@@ -6715,22 +6762,39 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, f, axis=2)
 
         # make sure works on mixed-type frame
-        getattr(self.mixed_frame, name)(axis=0)
-        getattr(self.mixed_frame, name)(axis=1)
+        if axis is None:
+            getattr(self.mixed_frame, name)(axis=0, **kwargs)
+            getattr(self.mixed_frame, name)(axis=1, **kwargs)
+        else:
+            getattr(self.mixed_frame, name)(axis=axis, **kwargs)
 
         if has_numeric_only:
-            getattr(self.mixed_frame, name)(axis=0, numeric_only=True)
-            getattr(self.mixed_frame, name)(axis=1, numeric_only=True)
-            getattr(self.frame, name)(axis=0, numeric_only=False)
-            getattr(self.frame, name)(axis=1, numeric_only=False)
+            if axis is None:
+                getattr(self.mixed_frame, name)(axis=0, numeric_only=True,
+                                                **kwargs)
+                getattr(self.mixed_frame, name)(axis=1, numeric_only=True,
+                                                **kwargs)
+                getattr(self.frame, name)(axis=0, numeric_only=False,
+                                          **kwargs)
+                getattr(self.frame, name)(axis=1, numeric_only=False,
+                                          **kwargs)
+            else:
+                getattr(self.mixed_frame, name)(axis=axis, numeric_only=True,
+                                                **kwargs)
+                getattr(self.frame, name)(axis=axis, numeric_only=False,
+                                          **kwargs)
 
         # all NA case
         if has_skipna:
             all_na = self.frame * np.NaN
-            r0 = getattr(all_na, name)(axis=0)
-            r1 = getattr(all_na, name)(axis=1)
-            self.assert_(np.isnan(r0).all())
-            self.assert_(np.isnan(r1).all())
+            if axis is None:
+                r0 = getattr(all_na, name)(axis=0, **kwargs)
+                r1 = getattr(all_na, name)(axis=1, **kwargs)
+                self.assert_(np.isnan(r0).all())
+                self.assert_(np.isnan(r1).all())
+            else:
+                rs = getattr(all_na, name)(axis=axis, **kwargs)
+                self.assert_(np.isnan(rs).all())
 
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)

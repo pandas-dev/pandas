@@ -3735,7 +3735,7 @@ class DataFrame(NDFrame):
         return self.combine(other, combiner)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
-                     raise_conflict=False):
+               raise_conflict=False):
         """
         Modify DataFrame in place using non-NA values from passed
         DataFrame. Aligns on indices
@@ -4710,15 +4710,41 @@ class DataFrame(NDFrame):
         return self._reduce(nanops.nansum, axis=axis, skipna=skipna,
                             numeric_only=numeric_only)
 
-    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
+    @Substitution(name='mean (optionally weighted)', shortname='mean',
+                  na_action=_doc_exclude_na,
                   extras='')
     @Appender(_stat_doc)
-    def mean(self, axis=0, skipna=True, level=None):
+    def mean(self, axis=0, skipna=True, level=None, weights=None):
         if level is not None:
+            if weights is not None:
+                raise NotImplementedError()
             return self._agg_by_level('mean', axis=axis, level=level,
                                       skipna=skipna)
-        return self._reduce(nanops.nanmean, axis=axis, skipna=skipna,
-                            numeric_only=None)
+
+        def helper(values, axis, skipna, weights=None):
+            if weights is None:
+                return nanops.nanmean(values, axis=axis, skipna=skipna)
+
+            if isinstance(weights, (Series, Index)):
+                weights = weights.values
+            elif not isinstance(weights, np.ndarray):
+                weights = np.asarray(weights)
+
+            if com.is_datetime64_dtype(weights):
+                weights = weights.view('i8')
+            elif not com.is_integer_dtype(weights):
+                weights = com.ensure_float(weights)
+
+            if com.is_datetime64_dtype(values):
+                values = values.view('i8')
+            elif not com.is_integer_dtype(values):
+                values = com.ensure_float(values)
+
+            return nanops.weighted_nanmean(values, weights, axis=axis,
+                                           skipna=skipna)
+
+        return self._reduce(helper, axis=axis, skipna=skipna,
+                            numeric_only=None, weights=weights)
 
     @Substitution(name='minimum', shortname='min', na_action=_doc_exclude_na,
                   extras='')
@@ -4832,35 +4858,34 @@ class DataFrame(NDFrame):
         return grouped.aggregate(applyf)
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+                filter_type=None, weights=None, **kwds):
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
+
         labels = self._get_agg_axis(axis)
+        if weights is not None:
+            weights = weights.reindex(self._get_axis(axis))
+            kwds['weights'] = weights
+
         if numeric_only is None:
             try:
                 values = self.values
                 result = f(values)
             except Exception:
-                if filter_type is None or filter_type == 'numeric':
-                    data = self._get_numeric_data()
-                elif filter_type == 'bool':
-                    data = self._get_bool_data()
-                else:
-                    raise NotImplementedError
+                data, labels = self._numeric_or_bool(filter_type, axis)
+                if weights is not None:
+                    weights = weights.reindex(data._get_axis(axis))
+                    kwds['weights'] = weights
+
                 result = f(data.values)
-                labels = data._get_agg_axis(axis)
         else:
+            data = self
             if numeric_only:
-                if filter_type is None or filter_type == 'numeric':
-                    data = self._get_numeric_data()
-                elif filter_type == 'bool':
-                    data = self._get_bool_data()
-                else:
-                    raise NotImplementedError
-                values = data.values
-                labels = data._get_agg_axis(axis)
-            else:
-                values = self.values
-            result = f(values)
+                data, labels = self._numeric_or_bool(filter_type, axis)
+
+                if weights is not None:
+                    weights = weights.reindex(data._get_axis(axis))
+                    kwds['weights'] = weights
+            result = f(data.values)
 
         if result.dtype == np.object_:
             try:
@@ -4873,6 +4898,16 @@ class DataFrame(NDFrame):
                 pass
 
         return Series(result, index=labels)
+
+    def _numeric_or_bool(self, filter_type, axis):
+        if filter_type is None or filter_type == 'numeric':
+            data = self._get_numeric_data()
+        elif filter_type == 'bool':
+            data = self._get_bool_data()
+        else:
+            raise NotImplementedError
+        labels = data._get_agg_axis(axis)
+        return data, labels
 
     def idxmin(self, axis=0, skipna=True):
         """

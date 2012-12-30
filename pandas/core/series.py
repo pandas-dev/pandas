@@ -1308,9 +1308,42 @@ copy : boolean, default False
         return Series(duplicated, index=self.index, name=self.name)
 
     sum = _make_stat_func(nanops.nansum, 'sum', 'sum')
-    mean = _make_stat_func(nanops.nanmean, 'mean', 'mean')
     median = _make_stat_func(nanops.nanmedian, 'median', 'median', extras='')
     prod = _make_stat_func(nanops.nanprod, 'product', 'prod', extras='')
+
+    @Substitution(name='mean (optionally weighted)', shortname='mean',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def mean(self, axis=None, dtype=None, out=None, weights=None, skipna=True,
+             level=None):
+        if level is not None:
+
+            if weights is None:
+                return self._agg_by_level('mean', level=level, skipna=skipna)
+
+            #TODO weighted_mean_bin for performance
+            grouped = self.groupby(level=level)
+            if weights.index.nlevels < self.index.nlevels:
+                wgt_f = lambda x: weights.reindex(x.index, level=level)
+            else:
+                weights = weights.reindex(self.index)
+                wgt_f = lambda x: grouped.get_group(x.name, weights)
+
+            return grouped.aggregate(lambda x: x.mean(skipna=skipna,
+                                                      weights=wgt_f(x)))
+
+
+        if weights is None:
+            return nanops.nanmean(self.values, skipna=skipna)
+
+        weights = _align_clean(self, weights, axis)
+        values = self.values
+        if com.is_datetime64_dtype(values):
+            values = values.view('i8')
+        elif not com.is_integer_dtype(values):
+            values = com.ensure_float(values)
+        return nanops.weighted_nanmean(values, weights, axis=axis,
+                                       skipna=skipna)
 
     @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')
@@ -3125,6 +3158,29 @@ def _get_fill_func(method):
     elif method == 'backfill':
         fill_f = com.backfill_1d
     return fill_f
+
+def _align_clean(data, weights, axis):
+    if isinstance(weights, Series):
+        if weights.index is data.index:
+            weights = weights.values
+        else:
+            weights = weights.reindex(data.index).values
+    elif isinstance(weights, Index):
+        weights = weights.values
+    elif len(weights) != len(data):
+        raise ValueError('ndarray weights must be same size as data')
+    elif isinstance(weights, (list, tuple)):
+        weights = com._asarray_tuplesafe(weights)
+
+    if weights.ndim > 1:
+        raise ValueError('Weights must be 1-dimensional')
+
+    if com.is_datetime64_dtype(weights):
+        weights = weights.view('i8')
+    elif not com.is_integer_dtype(weights):
+        weights = com.ensure_float(weights)
+
+    return weights
 
 #----------------------------------------------------------------------
 # Add plotting methods to Series

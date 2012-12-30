@@ -118,6 +118,14 @@ def _nanmean(values, axis=None, skipna=True):
         the_mean = the_sum / count if count > 0 else np.nan
     return the_mean
 
+def weighted_nanmean(values, weights, axis=None, skipna=True):
+    if values.ndim == 1:
+        return algos.weighted_nanmean_1d(values, weights, skipna)
+    elif values.ndim == 2 and weights.ndim == 1:
+        return algos.weighted_nanmean_2d_1d_weights(values, weights, axis,
+                                                    skipna)
+    else:
+        raise NotImplementedError()
 
 def _nanmedian(values, axis=None, skipna=True):
     def get_median(x):
@@ -490,7 +498,6 @@ nanlt = make_nancomp(operator.lt)
 nanle = make_nancomp(operator.le)
 naneq = make_nancomp(operator.eq)
 nanne = make_nancomp(operator.ne)
-
 
 def unique1d(values):
     """
