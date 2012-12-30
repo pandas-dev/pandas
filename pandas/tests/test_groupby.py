@@ -1157,6 +1157,27 @@ class TestGroupBy(unittest.TestCase):
         # raise exception for non-MultiIndex
         self.assertRaises(ValueError, self.df.groupby, level=1)
 
+    def test_groupby_level_with_nas(self):
+        index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
+                           labels=[[1, 1, 1, 1, 0, 0, 0, 0],
+                                   [0, 1, 2, 3, 0, 1, 2, 3]])
+
+        # factorizing doesn't confuse things
+        s = Series(np.arange(8.), index=index)
+        result = s.groupby(level=0).sum()
+        expected = Series([22., 6.], index=[1, 0])
+        assert_series_equal(result, expected)
+
+        index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
+                           labels=[[1, 1, 1, 1, -1, 0, 0, 0],
+                                   [0, 1, 2, 3, 0, 1, 2, 3]])
+
+        # factorizing doesn't confuse things
+        s = Series(np.arange(8.), index=index)
+        result = s.groupby(level=0).sum()
+        expected = Series([18., 6.], index=[1, 0])
+        assert_series_equal(result, expected)
+
     def test_groupby_level_apply(self):
         frame = self.mframe
 

@@ -65,6 +65,9 @@ pandas 0.10.1
   - More robust detection of being in IPython session for wide DataFrame
     console formatting (GH2585_)
   - Fix platform issues with ``file:///`` in unit test (#2564)
+  - Fix bug and possible segfault when grouping by hierarchical level that
+    contains NA values (GH2616_)
+  - Ensure that MultiIndex tuples can be constructed with NAs (seen in #2616)
 
 **API Changes**
 
@@ -78,6 +81,7 @@ pandas 0.10.1
 .. _GH2576: https://github.com/pydata/pandas/issues/2576
 .. _GH2585: https://github.com/pydata/pandas/issues/2585
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
+.. _GH2616: https://github.com/pydata/pandas/issues/2616
 
 pandas 0.10.0
 =============

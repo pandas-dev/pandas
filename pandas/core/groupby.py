@@ -1109,6 +1109,15 @@ class Grouping(object):
                 # all levels may not be observed
                 labels, uniques = algos.factorize(inds, sort=True)
 
+                if len(uniques) > 0 and uniques[0] == -1:
+                    # handle NAs
+                    mask = inds != -1
+                    ok_labels, uniques = algos.factorize(inds[mask], sort=True)
+
+                    labels = np.empty(len(inds), dtype=inds.dtype)
+                    labels[mask] = ok_labels
+                    labels[-mask] = -1
+
                 if len(uniques) < len(level_index):
                     level_index = level_index.take(uniques)
 

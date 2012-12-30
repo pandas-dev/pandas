@@ -1684,6 +1684,14 @@ Thur,Lunch,Yes,51.51,17"""
         df.index = l
         repr(df)
 
+    def test_tuples_have_na(self):
+        index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
+                           labels=[[1, 1, 1, 1, -1, 0, 0, 0],
+                                   [0, 1, 2, 3, 0, 1, 2, 3]])
+
+        self.assertTrue(isnull(index[4][0]))
+        self.assertTrue(isnull(index.values[4][0]))
+
 
 if __name__ == '__main__':
 

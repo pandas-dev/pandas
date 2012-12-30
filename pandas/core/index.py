@@ -1467,7 +1467,7 @@ class MultiIndex(Index):
 
             values = []
             for lev, lab in zip(self.levels, self.labels):
-                taken = ndtake(lev.values, lab)
+                taken = com.take_1d(lev.values, lab)
                 # Need to box timestamps, etc.
                 if hasattr(lev, '_box_values'):
                     taken = lev._box_values(taken)
