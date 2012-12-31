@@ -103,6 +103,7 @@ pandas 0.10.1
   - Upconvert datetime + datetime64 values when concatenating frames (GH2624_)
   - Raise a more helpful error message in merge operations when one DataFrame
     has duplicate columns (GH2649_)
+  - Fix partial date parsing issue occuring only when code is run at EOM  (GH2618_)
 
 **API Changes**
 
@@ -140,6 +141,7 @@ pandas 0.10.1
 .. _GH2700: https://github.com/pydata/pandas/issues/2700
 .. _GH2694: https://github.com/pydata/pandas/issues/2694
 .. _GH2686: https://github.com/pydata/pandas/issues/2686
+.. _GH2618: https://github.com/pydata/pandas/issues/2618
 
 pandas 0.10.0
 =============
