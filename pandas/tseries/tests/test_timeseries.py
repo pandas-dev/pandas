@@ -1395,6 +1395,38 @@ def _simple_ts(start, end, freq='D'):
 
 class TestDatetimeIndex(unittest.TestCase):
     _multiprocess_can_split_ = True
+
+    def test_partial_date_at_eom(self):
+        from datetime import datetime
+        import time
+        def faketime():
+            return datetime(2012,12,31)
+        # GH2618
+        try:
+            _time = time.time
+            time.time = faketime
+            assert datetime.now().day == 31
+            res=lib.try_parse_dates(np.array(["1800 2"],dtype=object))
+            self.assertEqual(type(res[0]),datetime)
+        finally:
+            time.time = _time
+
+    def test_partial_date_and_time_at_eom(self):
+        from datetime import datetime
+        import time
+        def faketime():
+            return datetime(2012,12,31)
+        # GH2618
+        try:
+            _time = time.time
+            time.time = faketime
+            assert datetime.now().day == 31
+            res=lib.try_parse_date_and_time(np.array(["1800 2"],dtype=object),
+                                            np.array(["00:00:00"],dtype=object))
+            self.assertEqual(type(res[0]),datetime)
+        finally:
+            time.time = _time
+
     def test_append_join_nondatetimeindex(self):
         rng = date_range('1/1/2000', periods=10)
         idx = Index(['a', 'b', 'c', 'd'])
