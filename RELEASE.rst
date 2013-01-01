@@ -51,6 +51,7 @@ pandas 0.10.1
     - added support for datetime64 in columns
     - added method ``unique`` to select the unique values in an indexable or data column
   - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
+  - Support reading gzipped data from file-like object
 
 **Bug fixes**
 
