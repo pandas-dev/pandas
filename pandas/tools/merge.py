@@ -34,7 +34,8 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
                          right_index=right_index, sort=sort, suffixes=suffixes,
                          copy=copy)
     return op.get_result()
-if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
+if __debug__:
+    merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 
 class MergeError(Exception):
@@ -144,11 +145,8 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
         return _merger(left, right)
 
 
-
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
-
-
 class _MergeOperation(object):
     """
     Perform a database (SQL) merge operation between two DataFrame objects
@@ -216,8 +214,9 @@ class _MergeOperation(object):
                         continue
 
                     right_na_indexer = right_indexer.take(na_indexer)
-                    key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
-                                                        right_na_indexer))
+                    key_col.put(
+                        na_indexer, com.take_1d(self.right_join_keys[i],
+                                                right_na_indexer))
                 elif name in self.right and right_indexer is not None:
                     na_indexer = (right_indexer == -1).nonzero()[0]
                     if len(na_indexer) == 0:
@@ -368,7 +367,7 @@ class _MergeOperation(object):
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
         if (self.on is None and self.left_on is None
-            and self.right_on is None):
+                and self.right_on is None):
 
             if self.left_index and self.right_index:
                 self.left_on, self.right_on = (), ()
@@ -380,14 +379,15 @@ class _MergeOperation(object):
                     raise MergeError('Must pass left_on or left_index=True')
             else:
                 # use the common columns
-                common_cols = self.left.columns.intersection(self.right.columns)
+                common_cols = self.left.columns.intersection(
+                    self.right.columns)
                 if len(common_cols) == 0:
                     raise MergeError('No common columns to perform merge on')
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
                 raise MergeError('Can only pass on OR left_on and '
-                                'right_on')
+                                 'right_on')
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
             n = len(self.left_on)
@@ -578,8 +578,10 @@ def _factorize_keys(lk, rk, sort=True):
         llab, rlab = _sort_labels(uniques, llab, rlab)
 
     # NA group
-    lmask = llab == -1; lany = lmask.any()
-    rmask = rlab == -1; rany = rmask.any()
+    lmask = llab == -1
+    lany = lmask.any()
+    rmask = rlab == -1
+    rany = rmask.any()
 
     if lany or rany:
         if lany:
@@ -701,7 +703,7 @@ class _BlockJoinOperation(object):
 
         sofar = 0
         for unit, blk in merge_chunks:
-            out_chunk = out[sofar : sofar + len(blk)]
+            out_chunk = out[sofar: sofar + len(blk)]
 
             if unit.indexer is None:
             # is this really faster than assigning to arr.flat?
@@ -1038,7 +1040,7 @@ class _Concatenator(object):
             return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
             offsets = np.r_[0, np.cumsum([len(x._data.axes[0]) for
-                                            x in self.objs])]
+                                          x in self.objs])]
             indexer = np.concatenate([offsets[i] + b.ref_locs
                                       for i, b in enumerate(blocks)
                                       if b is not None])
@@ -1176,7 +1178,7 @@ def _concat_indexes(indexes):
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if ((levels is None and isinstance(keys[0], tuple)) or
-        (levels is not None and len(levels) > 1)):
+            (levels is not None and len(levels) > 1)):
         zipped = zip(*keys)
         if names is None:
             names = [None] * len(zipped)

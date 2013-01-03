@@ -1,7 +1,7 @@
 from vbench.api import Benchmark
 from datetime import datetime
 
-start_date = datetime(2012,7,1)
+start_date = datetime(2012, 7, 1)
 
 common_setup = """from pandas_vb_common import *
 import os
@@ -28,7 +28,7 @@ store = HDFStore(f)
 store.put('df1',df)
 """
 
-read_store = Benchmark("store.get('df1')", setup1, cleanup = "store.close()",
+read_store = Benchmark("store.get('df1')", setup1, cleanup="store.close()",
                        start_date=start_date)
 
 
@@ -44,8 +44,9 @@ remove(f)
 store = HDFStore(f)
 """
 
-write_store = Benchmark("store.put('df2',df)", setup2, cleanup = "store.close()",
-                        start_date=start_date)
+write_store = Benchmark(
+    "store.put('df2',df)", setup2, cleanup="store.close()",
+    start_date=start_date)
 
 #----------------------------------------------------------------------
 # get from a store (mixed)
@@ -63,8 +64,9 @@ store = HDFStore(f)
 store.put('df3',df)
 """
 
-read_store_mixed = Benchmark("store.get('df3')", setup3, cleanup = "store.close()",
-                             start_date=start_date)
+read_store_mixed = Benchmark(
+    "store.get('df3')", setup3, cleanup="store.close()",
+    start_date=start_date)
 
 
 #----------------------------------------------------------------------
@@ -82,8 +84,9 @@ remove(f)
 store = HDFStore(f)
 """
 
-write_store_mixed = Benchmark("store.put('df4',df)", setup4, cleanup = "store.close()",
-                               start_date=start_date)
+write_store_mixed = Benchmark(
+    "store.put('df4',df)", setup4, cleanup="store.close()",
+    start_date=start_date)
 
 #----------------------------------------------------------------------
 # get from a table (mixed)
@@ -102,8 +105,9 @@ store = HDFStore(f)
 store.append('df5',df)
 """
 
-read_store_table_mixed = Benchmark("store.select('df5')", setup5, cleanup = "store.close()",
-                                   start_date=start_date)
+read_store_table_mixed = Benchmark(
+    "store.select('df5')", setup5, cleanup="store.close()",
+    start_date=start_date)
 
 
 #----------------------------------------------------------------------
@@ -121,8 +125,9 @@ remove(f)
 store = HDFStore(f)
 """
 
-write_store_table_mixed = Benchmark("store.append('df6',df)", setup6, cleanup = "store.close()",
-                                    start_date=start_date)
+write_store_table_mixed = Benchmark(
+    "store.append('df6',df)", setup6, cleanup="store.close()",
+    start_date=start_date)
 
 #----------------------------------------------------------------------
 # select from a table
@@ -138,8 +143,9 @@ store = HDFStore(f)
 store.append('df7',df)
 """
 
-read_store_table = Benchmark("store.select('df7')", setup7, cleanup = "store.close()",
-                             start_date=start_date)
+read_store_table = Benchmark(
+    "store.select('df7')", setup7, cleanup="store.close()",
+    start_date=start_date)
 
 
 #----------------------------------------------------------------------
@@ -154,8 +160,9 @@ remove(f)
 store = HDFStore(f)
 """
 
-write_store_table = Benchmark("store.append('df8',df)", setup8, cleanup = "store.close()",
-                              start_date=start_date)
+write_store_table = Benchmark(
+    "store.append('df8',df)", setup8, cleanup="store.close()",
+    start_date=start_date)
 
 #----------------------------------------------------------------------
 # get from a table (wide)
@@ -168,8 +175,9 @@ store = HDFStore(f)
 store.append('df9',df)
 """
 
-read_store_table_wide = Benchmark("store.select('df9')", setup9, cleanup = "store.close()",
-                             start_date=start_date)
+read_store_table_wide = Benchmark(
+    "store.select('df9')", setup9, cleanup="store.close()",
+    start_date=start_date)
 
 
 #----------------------------------------------------------------------
@@ -182,8 +190,9 @@ remove(f)
 store = HDFStore(f)
 """
 
-write_store_table_wide = Benchmark("store.append('df10',df)", setup10, cleanup = "store.close()",
-                              start_date=start_date)
+write_store_table_wide = Benchmark(
+    "store.append('df10',df)", setup10, cleanup="store.close()",
+    start_date=start_date)
 
 #----------------------------------------------------------------------
 # get from a table (wide) (indexed)
@@ -198,8 +207,9 @@ store.append('df11',df)
 store.create_table_index('df11')
 """
 
-query_store_table_wide = Benchmark("store.select('df11', [ ('index', '>', df.index[10000]), ('index', '<', df.index[15000]) ])", setup11, cleanup = "store.close()",
-                                   start_date=start_date)
+query_store_table_wide = Benchmark(
+    "store.select('df11', [ ('index', '>', df.index[10000]), ('index', '<', df.index[15000]) ])", setup11, cleanup="store.close()",
+    start_date=start_date)
 
 
 #----------------------------------------------------------------------
@@ -217,8 +227,9 @@ store.append('df12',df)
 store.create_table_index('df12')
 """
 
-query_store_table = Benchmark("store.select('df12', [ ('index', '>', df.index[10000]), ('index', '<', df.index[15000]) ])", setup12, cleanup = "store.close()",
-                              start_date=start_date)
+query_store_table = Benchmark(
+    "store.select('df12', [ ('index', '>', df.index[10000]), ('index', '<', df.index[15000]) ])", setup12, cleanup="store.close()",
+    start_date=start_date)
 
 #----------------------------------------------------------------------
 # select from a panel table
@@ -232,8 +243,9 @@ store = HDFStore(f)
 store.append('p1',p)
 """
 
-read_store_table_panel = Benchmark("store.select('p1')", setup13, cleanup = "store.close()",
-                                   start_date=start_date)
+read_store_table_panel = Benchmark(
+    "store.select('p1')", setup13, cleanup="store.close()",
+    start_date=start_date)
 
 
 #----------------------------------------------------------------------
@@ -247,6 +259,6 @@ remove(f)
 store = HDFStore(f)
 """
 
-write_store_table_panel = Benchmark("store.append('p2',p)", setup14, cleanup = "store.close()",
-                                    start_date=start_date)
-
+write_store_table_panel = Benchmark(
+    "store.append('p2',p)", setup14, cleanup="store.close()",
+    start_date=start_date)

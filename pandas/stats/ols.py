@@ -181,8 +181,8 @@ class OLS(object):
 
         try:
             intercept = cols.get_loc('intercept')
-            R = np.concatenate((R[0 : intercept], R[intercept + 1:]))
-            r = np.concatenate((r[0 : intercept], r[intercept + 1:]))
+            R = np.concatenate((R[0: intercept], R[intercept + 1:]))
+            r = np.concatenate((r[0: intercept], r[intercept + 1:]))
         except KeyError:
             # no intercept
             pass
@@ -485,7 +485,7 @@ class OLS(object):
             p_value = results['p_value'][name]
 
             line = coef_template % (name,
-                beta[name], std_err, t_stat, p_value, CI1, CI2)
+                                    beta[name], std_err, t_stat, p_value, CI1, CI2)
 
             buf.write(line)
 
@@ -941,8 +941,8 @@ class MovingOLS(OLS):
 
         try:
             intercept = items.get_loc('intercept')
-            R = np.concatenate((R[0 : intercept], R[intercept + 1:]))
-            r = np.concatenate((r[0 : intercept], r[intercept + 1:]))
+            R = np.concatenate((R[0: intercept], R[intercept + 1:]))
+            r = np.concatenate((r[0: intercept], r[intercept + 1:]))
         except KeyError:
             # no intercept
             pass
@@ -1313,6 +1313,8 @@ def _combine_rhs(rhs):
 
 # A little kludge so we can use this method for both
 # MovingOLS and MovingPanelOLS
+
+
 def _y_converter(y):
     y = y.values.squeeze()
     if y.ndim == 0:  # pragma: no cover

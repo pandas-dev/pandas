@@ -4,15 +4,14 @@ from pandas.core.panelnd import create_nd_panel_factory
 from pandas.core.panel import Panel
 
 Panel4D = create_nd_panel_factory(
-    klass_name   = 'Panel4D',
-    axis_orders  = [ 'labels','items','major_axis','minor_axis'],
-    axis_slices  = { 'labels' : 'labels', 'items' : 'items',
-                     'major_axis' : 'major_axis',
-                     'minor_axis' : 'minor_axis' },
-    slicer       = Panel,
-    axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
-    stat_axis    = 2)
-
+    klass_name='Panel4D',
+    axis_orders=['labels', 'items', 'major_axis', 'minor_axis'],
+    axis_slices={'labels': 'labels', 'items': 'items',
+                 'major_axis': 'major_axis',
+                 'minor_axis': 'minor_axis'},
+    slicer=Panel,
+    axis_aliases={'major': 'major_axis', 'minor': 'minor_axis'},
+    stat_axis=2)
 
 
 def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,
@@ -39,5 +38,3 @@ def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,
                     copy=copy, dtype=dtype)
 
 Panel4D.__init__ = panel4d_init
-
-

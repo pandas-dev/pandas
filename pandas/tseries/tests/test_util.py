@@ -12,6 +12,7 @@ from datetime import datetime, date
 from pandas.tseries.tools import normalize_date
 from pandas.tseries.util import pivot_annual, isleapyear
 
+
 class TestPivotAnnual(unittest.TestCase):
     """
     New pandas of scikits.timeseries pivot_annual
@@ -38,7 +39,8 @@ class TestPivotAnnual(unittest.TestCase):
         tm.assert_series_equal(annual[day].dropna(), leaps)
 
     def test_hourly(self):
-        rng_hourly = date_range('1/1/1994', periods=(18* 8760 + 4*24), freq='H')
+        rng_hourly = date_range(
+            '1/1/1994', periods=(18 * 8760 + 4 * 24), freq='H')
         data_hourly = np.random.randint(100, 350, rng_hourly.size)
         ts_hourly = Series(data_hourly, index=rng_hourly)
 
@@ -101,5 +103,5 @@ def test_normalize_date():
     assert(result == datetime(2012, 9, 7))
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

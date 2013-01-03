@@ -28,6 +28,7 @@ def register():
     units.registry[pydt.date] = DatetimeConverter()
     units.registry[pydt.time] = TimeConverter()
 
+
 def _to_ordinalf(tm):
     tot_sec = (tm.hour * 3600 + tm.minute * 60 + tm.second +
                float(tm.microsecond / 1e6))
@@ -51,7 +52,7 @@ class TimeConverter(units.ConversionInterface):
     def convert(value, unit, axis):
         valid_types = (str, pydt.time)
         if (isinstance(value, valid_types) or com.is_integer(value) or
-            com.is_float(value)):
+                com.is_float(value)):
             return time2num(value)
         if isinstance(value, Index):
             return value.map(time2num)
@@ -106,7 +107,7 @@ class PeriodConverter(dates.DateConverter):
             raise TypeError('Axis must have `freq` set to convert to Periods')
         valid_types = (str, datetime, Period, pydt.date, pydt.time)
         if (isinstance(values, valid_types) or com.is_integer(values) or
-            com.is_float(values)):
+                com.is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
@@ -207,12 +208,12 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
         if self._tz is dates.UTC:
             self._tz._utcoffset = self._tz.utcoffset(None)
         self.scaled = {
-           365.0: '%Y',
-           30.: '%b %Y',
-           1.0: '%b %d %Y',
-           1. / 24.: '%H:%M:%S',
-           1. / 24. / 3600. / 1000.: '%H:%M:%S.%f'
-           }
+            365.0: '%Y',
+            30.: '%b %Y',
+            1.0: '%b %d %Y',
+            1. / 24.: '%H:%M:%S',
+            1. / 24. / 3600. / 1000.: '%H:%M:%S.%f'
+        }
 
     def _get_fmt(self, x):
 
@@ -317,7 +318,7 @@ class MilliSecondLocator(dates.DateLocator):
             raise RuntimeError(('MillisecondLocator estimated to generate %d '
                                 'ticks from %s to %s: exceeds Locator.MAXTICKS'
                                 '* 2 (%d) ') %
-                                (estimate, dmin, dmax, self.MAXTICKS * 2))
+                              (estimate, dmin, dmax, self.MAXTICKS * 2))
 
         freq = '%dL' % self._get_interval()
         tz = self.tz.tzname(None)
@@ -329,7 +330,7 @@ class MilliSecondLocator(dates.DateLocator):
             if len(all_dates) > 0:
                 locs = self.raise_if_exceeds(dates.date2num(all_dates))
                 return locs
-        except Exception, e: #pragma: no cover
+        except Exception, e:  # pragma: no cover
             pass
 
         lims = dates.date2num([dmin, dmax])
@@ -497,7 +498,7 @@ def _daily_finder(vmin, vmax, freq):
 
     def first_label(label_flags):
         if (label_flags[0] == 0) and (label_flags.size > 1) and \
-            ((vmin_orig % 1) > 0.0):
+                ((vmin_orig % 1) > 0.0):
                 return label_flags[1]
         else:
             return label_flags[0]
@@ -542,26 +543,43 @@ def _daily_finder(vmin, vmax, freq):
             info['min'][second_start & (_second % label_interval == 0)] = True
             year_start = period_break(dates_, 'year')
             info_fmt = info['fmt']
-            info_fmt[second_start & (_second % label_interval == 0)] = '%H:%M:%S'
+            info_fmt[second_start & (_second %
+                                     label_interval == 0)] = '%H:%M:%S'
             info_fmt[day_start] = '%H:%M:%S\n%d-%b'
             info_fmt[year_start] = '%H:%M:%S\n%d-%b\n%Y'
 
-        if span < periodsperday / 12000.0: _second_finder(1)
-        elif span < periodsperday / 6000.0: _second_finder(2)
-        elif span < periodsperday / 2400.0: _second_finder(5)
-        elif span < periodsperday / 1200.0: _second_finder(10)
-        elif span < periodsperday / 800.0: _second_finder(15)
-        elif span < periodsperday / 400.0: _second_finder(30)
-        elif span < periodsperday / 150.0: _minute_finder(1)
-        elif span < periodsperday / 70.0: _minute_finder(2)
-        elif span < periodsperday / 24.0: _minute_finder(5)
-        elif span < periodsperday / 12.0: _minute_finder(15)
-        elif span < periodsperday / 6.0:  _minute_finder(30)
-        elif span < periodsperday / 2.5: _hour_finder(1, False)
-        elif span < periodsperday / 1.5: _hour_finder(2, False)
-        elif span < periodsperday * 1.25: _hour_finder(3, False)
-        elif span < periodsperday * 2.5: _hour_finder(6, True)
-        elif span < periodsperday * 4: _hour_finder(12, True)
+        if span < periodsperday / 12000.0:
+            _second_finder(1)
+        elif span < periodsperday / 6000.0:
+            _second_finder(2)
+        elif span < periodsperday / 2400.0:
+            _second_finder(5)
+        elif span < periodsperday / 1200.0:
+            _second_finder(10)
+        elif span < periodsperday / 800.0:
+            _second_finder(15)
+        elif span < periodsperday / 400.0:
+            _second_finder(30)
+        elif span < periodsperday / 150.0:
+            _minute_finder(1)
+        elif span < periodsperday / 70.0:
+            _minute_finder(2)
+        elif span < periodsperday / 24.0:
+            _minute_finder(5)
+        elif span < periodsperday / 12.0:
+            _minute_finder(15)
+        elif span < periodsperday / 6.0:
+            _minute_finder(30)
+        elif span < periodsperday / 2.5:
+            _hour_finder(1, False)
+        elif span < periodsperday / 1.5:
+            _hour_finder(2, False)
+        elif span < periodsperday * 1.25:
+            _hour_finder(3, False)
+        elif span < periodsperday * 2.5:
+            _hour_finder(6, True)
+        elif span < periodsperday * 4:
+            _hour_finder(12, True)
         else:
             info_maj[month_start] = True
             info_min[day_start] = True
@@ -887,6 +905,8 @@ class TimeSeries_DateLocator(Locator):
 #####-------------------------------------------------------------------------
 #---- --- Formatter ---
 #####-------------------------------------------------------------------------
+
+
 class TimeSeries_DateFormatter(Formatter):
     """
     Formats the ticks along an axis controlled by a :class:`PeriodIndex`.

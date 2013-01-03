@@ -16,11 +16,14 @@ import psutil
 pid = os.getpid()
 proc = psutil.Process(pid)
 
+
 def object_test_data(n):
     pass
 
+
 def string_test_data(n):
     return np.array([rands(10) for _ in xrange(n)], dtype='O')
+
 
 def int_test_data(n):
     return np.arange(n, dtype='i8')
@@ -30,16 +33,20 @@ N = 1000000
 #----------------------------------------------------------------------
 # Benchmark 1: map_locations
 
+
 def map_locations_python_object():
     arr = string_test_data(N)
     return _timeit(lambda: lib.map_indices_object(arr))
 
+
 def map_locations_khash_object():
     arr = string_test_data(N)
+
     def f():
         table = sbx.PyObjectHashTable(len(arr))
         table.map_locations(arr)
     return _timeit(f)
+
 
 def _timeit(f, iterations=10):
     start = time.time()
@@ -51,9 +58,11 @@ def _timeit(f, iterations=10):
 #----------------------------------------------------------------------
 # Benchmark 2: lookup_locations
 
+
 def lookup_python(values):
     table = lib.map_indices_object(values)
     return _timeit(lambda: lib.merge_indexer_object(values, table))
+
 
 def lookup_khash(values):
     table = sbx.PyObjectHashTable(len(values))
@@ -61,6 +70,7 @@ def lookup_khash(values):
     locs = table.lookup_locations(values)
     # elapsed = _timeit(lambda: table.lookup_locations2(values))
     return table
+
 
 def leak(values):
     for _ in xrange(100):
@@ -75,4 +85,3 @@ arr = string_test_data(N)
 
 #----------------------------------------------------------------------
 # Benchmark 4: factorize
-

@@ -136,7 +136,7 @@ frame_drop_duplicates = Benchmark(statement, setup,
 
 statement = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
 frame_drop_dup_inplace = Benchmark(statement, setup,
-                                  start_date=datetime(2012, 5, 16))
+                                   start_date=datetime(2012, 5, 16))
 
 lib_fast_zip = Benchmark('lib.fast_zip(col_array_list)', setup,
                          name='lib_fast_zip',
@@ -154,7 +154,7 @@ lib_fast_zip_fillna = Benchmark('lib.fast_zip_fillna(col_array_list)', setup,
 
 statement2 = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
 frame_drop_dup_na_inplace = Benchmark(statement2, setup,
-                                  start_date=datetime(2012, 5, 16))
+                                      start_date=datetime(2012, 5, 16))
 
 setup = common_setup + """
 s = Series(np.random.randint(0, 1000, size=10000))

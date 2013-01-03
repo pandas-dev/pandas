@@ -3,6 +3,8 @@ from pandas.util.testing import rands
 
 n = 1000000
 # indices = Index([rands(10) for _ in xrange(n)])
+
+
 def sample(values, k):
     sampler = np.random.permutation(len(values))
     return values.take(sampler[:k])
@@ -32,4 +34,3 @@ ts2 = Series(np.random.randn(sz), idx2)
 
 # df1 = DataFrame(np.random.randn(1000000, 5), idx1, columns=range(5))
 # df2 = DataFrame(np.random.randn(1000000, 5), idx2, columns=range(5, 10))
-

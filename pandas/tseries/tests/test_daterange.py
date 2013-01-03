@@ -14,11 +14,13 @@ import pandas.tseries.tools as tools
 
 import pandas.core.datetools as datetools
 
+
 def eq_gen_range(kwargs, expected):
     rng = generate_range(**kwargs)
     assert(np.array_equal(list(rng), expected))
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
+
 
 class TestGenRangeGeneration(unittest.TestCase):
     def test_generate(self):
@@ -38,9 +40,10 @@ class TestGenRangeGeneration(unittest.TestCase):
                       datetime(2008, 1, 3)])
 
     def test_3(self):
-        eq_gen_range(dict(start = datetime(2008, 1, 5),
-                          end = datetime(2008, 1, 6)),
+        eq_gen_range(dict(start=datetime(2008, 1, 5),
+                          end=datetime(2008, 1, 6)),
                      [])
+
 
 class TestDateRange(unittest.TestCase):
 
@@ -235,8 +238,8 @@ class TestDateRange(unittest.TestCase):
 
     def test_intersection_bug(self):
         # GH #771
-        a = bdate_range('11/30/2011','12/31/2011')
-        b = bdate_range('12/10/2011','12/20/2011')
+        a = bdate_range('11/30/2011', '12/31/2011')
+        b = bdate_range('12/10/2011', '12/20/2011')
         result = a.intersection(b)
         self.assert_(result.equals(b))
 
@@ -296,9 +299,7 @@ class TestDateRange(unittest.TestCase):
         self.assert_(np.array_equal(result, DatetimeIndex(exp_values)))
 
 
-
-
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

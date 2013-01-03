@@ -1,8 +1,10 @@
-import time, os
+import time
+import os
 import numpy as np
 
 import la
 import pandas
+
 
 def timeit(f, iterations):
     start = time.clock()
@@ -11,6 +13,7 @@ def timeit(f, iterations):
         f()
 
     return time.clock() - start
+
 
 def roundtrip_archive(N, iterations=10):
 
@@ -52,11 +55,13 @@ def roundtrip_archive(N, iterations=10):
     print 'larry (HDF5)  %7.4f seconds' % larry_time
     print 'pandas (HDF5) %7.4f seconds' % pandas_time
 
+
 def numpy_roundtrip(filename, arr1, arr2):
     np.savez(filename, arr1=arr1, arr2=arr2)
     npz = np.load(filename)
     arr1 = npz['arr1']
     arr2 = npz['arr2']
+
 
 def larry_roundtrip(filename, lar1, lar2):
     io = la.IO(filename)
@@ -65,6 +70,7 @@ def larry_roundtrip(filename, lar1, lar2):
     lar1 = io['lar1']
     lar2 = io['lar2']
 
+
 def pandas_roundtrip(filename, dma1, dma2):
     from pandas.io.pytables import HDFStore
     store = HDFStore(filename)
@@ -72,6 +78,7 @@ def pandas_roundtrip(filename, dma1, dma2):
     store['dma2'] = dma2
     dma1 = store['dma1']
     dma2 = store['dma2']
+
 
 def pandas_roundtrip_pickle(filename, dma1, dma2):
     dma1.save(filename)

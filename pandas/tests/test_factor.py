@@ -17,9 +17,10 @@ import pandas.util.testing as tm
 
 class TestCategorical(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def setUp(self):
         self.factor = Categorical.from_array(['a', 'b', 'b', 'a',
-                                         'a', 'c', 'c', 'c'])
+                                              'a', 'c', 'c', 'c'])
 
     def test_getitem(self):
         self.assertEqual(self.factor[0], 'a')
@@ -112,6 +113,6 @@ class TestCategorical(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
-                         # '--with-coverage', '--cover-package=pandas.core'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)

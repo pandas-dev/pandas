@@ -11,6 +11,7 @@ except ImportError:
 N = 1000
 K = 500
 
+
 def horribly_unconsolidated():
     index = np.arange(N)
 
@@ -21,15 +22,18 @@ def horribly_unconsolidated():
 
     return df
 
+
 def bench_reindex_index(df, it=100):
     new_idx = np.arange(0, N, 2)
     for i in xrange(it):
         df.reindex(new_idx)
 
+
 def bench_reindex_columns(df, it=100):
     new_cols = np.arange(0, K, 2)
     for i in xrange(it):
         df.reindex(columns=new_cols)
+
 
 def bench_join_index(df, it=10):
     left = df.reindex(index=np.arange(0, N, 2),

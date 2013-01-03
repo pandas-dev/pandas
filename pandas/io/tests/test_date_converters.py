@@ -23,6 +23,7 @@ from pandas.util import py3compat
 from pandas.lib import Timestamp
 import pandas.io.date_converters as conv
 
+
 class TestConverters(unittest.TestCase):
 
     def setUp(self):
@@ -52,16 +53,16 @@ date, time, a, b
         self.assert_('date_time' in df)
         self.assert_(df.date_time.ix[0] == datetime(2001, 1, 5, 10, 0, 0))
 
-        data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
-                 "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
-                 "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
-                 "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
-                 "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
-                 "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
+        data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
+                "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
+                "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
+                "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
+                "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
+                "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
 
         date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
         df = read_csv(StringIO(data), header=None, parse_dates=date_spec,
-                 date_parser=conv.parse_date_time)
+                      date_parser=conv.parse_date_time)
 
     def test_parse_date_fields(self):
         result = conv.parse_date_fields(self.years, self.months, self.days)
@@ -122,5 +123,5 @@ year, month, day, hour, minute, second, a, b
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

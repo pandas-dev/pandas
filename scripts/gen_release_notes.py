@@ -15,9 +15,10 @@ class Milestone(object):
             return self.number == other.number
         return False
 
+
 class Issue(object):
 
-    def __init__(self, title, labels, number, milestone,  body, state):
+    def __init__(self, title, labels, number, milestone, body, state):
         self.title = title
         self.labels = set([x['name'] for x in labels])
         self.number = number
@@ -30,6 +31,7 @@ class Issue(object):
             return self.number == other.number
         return False
 
+
 def get_issues():
     all_issues = []
     page_number = 1
@@ -40,6 +42,7 @@ def get_issues():
         page_number += 1
         all_issues.extend(iss)
     return all_issues
+
 
 def _get_page(page_number):
     gh_url = ('https://api.github.com/repos/pydata/pandas/issues?'
@@ -52,10 +55,12 @@ def _get_page(page_number):
               for x in jsondata]
     return issues
 
+
 def get_milestone(data):
     if data is None:
         return None
     return Milestone(data['title'], data['number'])
+
 
 def collate_label(issues, label):
     lines = []
@@ -64,6 +69,7 @@ def collate_label(issues, label):
             lines.append('\t- %s(#%d)' % (x.title, x.number))
 
     return '\n'.join(lines)
+
 
 def release_notes(milestone):
     issues = get_issues()

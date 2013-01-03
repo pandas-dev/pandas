@@ -247,6 +247,7 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
             flags |= re.IGNORECASE
         regex = re.compile(pat, flags=flags)
         n = n if n >= 0 else 0
+
         def f(x):
             return regex.sub(repl, x, count=n)
     else:

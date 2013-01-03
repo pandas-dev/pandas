@@ -3,10 +3,13 @@
 from random import random
 from math import log, ceil
 
+
 class Node(object):
     __slots__ = 'value', 'next', 'width'
+
     def __init__(self, value, next, width):
         self.value, self.next, self.width = value, next, width
+
 
 class End(object):
     'Sentinel object that always compares greater than another object'
@@ -15,13 +18,14 @@ class End(object):
 
 NIL = Node(End(), [], [])               # Singleton terminator node
 
+
 class IndexableSkiplist:
     'Sorted collection supporting O(lg n) insertion, removal, and lookup by rank.'
 
     def __init__(self, expected_size=100):
         self.size = 0
         self.maxlevels = int(1 + log(expected_size, 2))
-        self.head = Node('HEAD', [NIL]*self.maxlevels, [1]*self.maxlevels)
+        self.head = Node('HEAD', [NIL] * self.maxlevels, [1] * self.maxlevels)
 
     def __len__(self):
         return self.size
@@ -48,7 +52,7 @@ class IndexableSkiplist:
 
         # insert a link to the newnode at each level
         d = min(self.maxlevels, 1 - int(log(random(), 2.0)))
-        newnode = Node(value, [None]*d, [None]*d)
+        newnode = Node(value, [None] * d, [None] * d)
         steps = 0
         for level in range(d):
             prevnode = chain[level]
@@ -92,6 +96,7 @@ class IndexableSkiplist:
 from collections import deque
 from itertools import islice
 
+
 class RunningMedian:
     'Fast running median with O(lg n) updates where n is the window size'
 
@@ -121,6 +126,7 @@ K = 10000
 
 import time
 
+
 def test():
     from numpy.random import randn
 
@@ -135,11 +141,13 @@ def test():
 from numpy.random import randn
 from pandas.lib.skiplist import rolling_median
 
+
 def test2():
 
     arr = randn(N)
 
     return rolling_median(arr, K)
+
 
 def runmany(f, arr, arglist):
     timings = []
@@ -151,6 +159,7 @@ def runmany(f, arr, arglist):
         timings.append(tot / 5)
 
     return timings
+
 
 def _time(f, *args):
     _start = time.clock()

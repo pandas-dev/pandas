@@ -14,6 +14,7 @@ import pandas as pd
 
 locale.setlocale(locale.LC_ALL, '')
 
+
 class PyPIDownloadAggregator(object):
 
     def __init__(self, package_name, include_hidden=True):
@@ -30,7 +31,8 @@ class PyPIDownloadAggregator(object):
                                              self.include_hidden)
 
         if len(result) == 0:
-            # no matching package--search for possibles, and limit to 15 results
+            # no matching package--search for possibles, and limit to 15
+            # results
             results = self.proxy.search({
                 'name': self.package_name,
                 'description': self.package_name
