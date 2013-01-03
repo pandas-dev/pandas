@@ -360,20 +360,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         import pandas.tslib as tslib
 
         s = Series(tslib.iNaT, dtype='M8[ns]', index=range(5))
-        self.assert_(isnull(s).all() is True)
+        self.assert_(isnull(s).all() == True)
 
         s = Series(tslib.NaT, dtype='M8[ns]', index=range(5))
-        self.assert_(isnull(s).all() is True)
+        self.assert_(isnull(s).all() == True)
 
         s = Series(nan, dtype='M8[ns]', index=range(5))
-        self.assert_(isnull(s).all() is True)
+        self.assert_(isnull(s).all() == True)
 
         s = Series([datetime(2001, 1, 2, 0, 0), tslib.iNaT], dtype='M8[ns]')
-        self.assert_(isnull(s[1]) is True)
+        self.assert_(isnull(s[1]) == True)
         self.assert_(s.dtype == 'M8[ns]')
 
         s = Series([datetime(2001, 1, 2, 0, 0), nan], dtype='M8[ns]')
-        self.assert_(isnull(s[1]) is True)
+        self.assert_(isnull(s[1]) == True)
         self.assert_(s.dtype == 'M8[ns]')
 
     def test_constructor_dict(self):

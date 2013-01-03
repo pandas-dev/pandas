@@ -1482,7 +1482,7 @@ class TestHDFStore(unittest.TestCase):
         df = tm.makeTimeDataFrame()
 
         def check(x, y):
-            self.assert_((np.unique(x) == np.unique(y)).all() is True)
+            self.assert_((np.unique(x) == np.unique(y)).all() == True)
 
         self.store.remove('df')
         self.store.append('df', df)
@@ -1521,7 +1521,7 @@ class TestHDFStore(unittest.TestCase):
 
         # all
         c = self.store.select_as_coordinates('df')
-        assert((c.values == np.arange(len(df.index))).all() is True)
+        assert((c.values == np.arange(len(df.index))).all() == True)
 
         # get coordinates back & test vs frame
         self.store.remove('df')
@@ -1529,13 +1529,13 @@ class TestHDFStore(unittest.TestCase):
         df = DataFrame(dict(A=range(5), B=range(5)))
         self.store.append('df', df)
         c = self.store.select_as_coordinates('df', ['index<3'])
-        assert((c.values == np.arange(3)).all() is True)
+        assert((c.values == np.arange(3)).all() == True)
         result = self.store.select('df', where=c)
         expected = df.ix[0:2, :]
         tm.assert_frame_equal(result, expected)
 
         c = self.store.select_as_coordinates('df', ['index>=3', 'index<=4'])
-        assert((c.values == np.arange(2) + 3).all() is True)
+        assert((c.values == np.arange(2) + 3).all() == True)
         result = self.store.select('df', where=c)
         expected = df.ix[3:4, :]
         tm.assert_frame_equal(result, expected)

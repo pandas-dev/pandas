@@ -1096,7 +1096,7 @@ class CheckIndexing(object):
 
         # allow this syntax
         df.ix['d', :] = nan
-        self.assert_(com.isnull(df.ix['c', :]).all() is False)
+        self.assert_(com.isnull(df.ix['c', :]).all() == False)
 
         # try to set with a list like item
         self.assertRaises(
