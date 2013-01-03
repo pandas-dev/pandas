@@ -1565,6 +1565,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # it works!
         _ = s1 * s2
 
+    def test_operators_datetime64(self):
+        v1 = date_range('2012-1-1', periods=3, freq='D')
+        v2 = date_range('2012-1-2', periods=3, freq='D')
+        rs = Series(v2) - Series(v1)
+        xp = Series(1e9 * 3600 * 24, rs.index).astype('timedelta64[ns]')
+        assert_series_equal(rs, xp)
+
     # NumPy limitiation =(
 
     # def test_logical_range_select(self):

@@ -42,6 +42,7 @@ __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
 _np_version_under1p6 = LooseVersion(_np_version) < '1.6'
+_np_version_under1p7 = LooseVersion(_np_version) < '1.7'
 
 _SHOW_WARNINGS = True
 
@@ -71,18 +72,29 @@ def _arith_method(op, name):
 
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
+        wrap_results = lambda x: x
 
-        if isinstance(other, Series):
+        lvalues, rvalues = self, other
+
+        if (com.is_datetime64_dtype(self) and
+            com.is_datetime64_dtype(other)):
+            lvalues = lvalues.view('i8')
+            rvalues = rvalues.view('i8')
+
+            wrap_results = lambda rs: rs.astype('timedelta64[ns]')
+
+        if isinstance(rvalues, Series):
+            lvalues = lvalues.values
+            rvalues = rvalues.values
+
+
             if self.index.equals(other.index):
                 name = _maybe_match_name(self, other)
-                return Series(na_op(self.values, other.values),
+                return Series(wrap_results(na_op(lvalues, rvalues)),
                               index=self.index, name=name)
 
             join_idx, lidx, ridx = self.index.join(other.index, how='outer',
                                                    return_indexers=True)
-
-            lvalues = self.values
-            rvalues = other.values
 
             if lidx is not None:
                 lvalues = com.take_1d(lvalues, lidx)
@@ -98,7 +110,7 @@ def _arith_method(op, name):
             return NotImplemented
         else:
             # scalars
-            return Series(na_op(self.values, other),
+            return Series(na_op(lvalues.values, rvalues),
                           index=self.index, name=self.name)
     return wrapper
 
