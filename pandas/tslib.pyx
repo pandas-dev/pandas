@@ -48,7 +48,7 @@ except NameError: # py3
     basestring = str
 
 
-cpdef ndarray[object] ints_to_pydatetime(ndarray[i8] arr, tz=None):
+cpdef object[:] ints_to_pydatetime(ndarray[i8] arr, tz=None):
     cdef:
         Py_ssize_t i, n = len(arr)
         pandas_datetimestruct dts
