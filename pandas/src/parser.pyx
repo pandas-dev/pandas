@@ -1649,20 +1649,31 @@ def _concatenate_chunks(list chunks):
 #----------------------------------------------------------------------
 
 # NA values
+def _compute_na_values():
+    int64info = np.iinfo(np.int64)
+    int32info = np.iinfo(np.int32)
+    int16info = np.iinfo(np.int16)
+    int8info = np.iinfo(np.int8)
+    uint64info = np.iinfo(np.uint64)
+    uint32info = np.iinfo(np.uint32)
+    uint16info = np.iinfo(np.uint16)
+    uint8info = np.iinfo(np.uint8)
+    na_values = {
+        np.float64 : np.nan,
+        np.int64 : int64info.min,
+        np.int32 : int32info.min,
+        np.int16 : int16info.min,
+        np.int8  : int8info.min,
+        np.uint64 : uint64info.max,
+        np.uint32 : uint32info.max,
+        np.uint16 : uint16info.max,
+        np.uint8 : uint8info.max,
+        np.bool_ : uint8info.max,
+        np.object_ : np.nan    # oof
+    }
+    return na_values
 
-na_values = {
-    np.float64 : np.nan,
-    np.int64 : INT64_MIN,
-    np.int32 : INT32_MIN,
-    np.int16 : INT16_MIN,
-    np.int8  : INT8_MIN,
-    np.uint64 : UINT64_MAX,
-    np.uint32 : UINT32_MAX,
-    np.uint16 : UINT16_MAX,
-    np.uint8 : UINT8_MAX,
-    np.bool_ : UINT8_MAX,
-    np.object_ : np.nan    # oof
-}
+na_values = _compute_na_values()
 
 for k in list(na_values):
     na_values[np.dtype(k)] = na_values[k]
