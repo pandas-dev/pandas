@@ -73,6 +73,22 @@ class TestHDFStore(unittest.TestCase):
         self.store['d'] = tm.makePanel()
         self.store['foo/bar'] = tm.makePanel()
         self.store.append('e', tm.makePanel())
+        
+        df = tm.makeDataFrame()
+        df['obj1'] = 'foo'
+        df['obj2'] = 'bar'
+        df['bool1'] = df['A'] > 0
+        df['bool2'] = df['B'] > 0
+        df['bool3'] = True
+        df['int1'] = 1
+        df['int2'] = 2
+        df['timestamp1'] = Timestamp('20010102')
+        df['timestamp2'] = Timestamp('20010103')
+        df['datetime1']  = datetime.datetime(2001,1,2,0,0)
+        df['datetime2']  = datetime.datetime(2001,1,3,0,0)
+        df.ix[3:6,['obj1']] = np.nan
+        df = df.consolidate().convert_objects()
+        self.store['df'] = df
         repr(self.store)
         str(self.store)
 
@@ -172,11 +188,11 @@ class TestHDFStore(unittest.TestCase):
 
         # node does not currently exist, test _is_table_type returns False in
         # this case
-        self.assertRaises(
-            ValueError, self.store.put, 'f', df[10:], append=True)
+        #self.store.remove('f')
+        #self.assertRaises(ValueError, self.store.put, 'f', df[10:], append=True)
 
-        # OK
-        self.store.put('c', df[10:], append=True)
+        # can't put to a table (use append instead)
+        self.assertRaises(ValueError, self.store.put, 'c', df[10:], append=True)
 
         # overwrite table
         self.store.put('c', df[:10], table=True, append=False)
@@ -398,9 +414,8 @@ class TestHDFStore(unittest.TestCase):
         wp2 = wp.rename_axis(
             dict([(x, "%s_extra" % x) for x in wp.minor_axis]), axis=2)
 
-        def check_col(key, name, size):
-            self.assert_(getattr(self.store.get_table(
-                key).table.description, name).itemsize == size)
+        def check_col(key,name,size):
+            self.assert_(getattr(self.store.get_storer(key).table.description,name).itemsize == size)
 
         self.store.append('s1', wp, min_itemsize=20)
         self.store.append('s1', wp2)
@@ -499,9 +514,8 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # using min_itemsize and a data column
-        def check_col(key, name, size):
-            self.assert_(getattr(self.store.get_table(
-                key).table.description, name).itemsize == size)
+        def check_col(key,name,size):
+            self.assert_(getattr(self.store.get_storer(key).table.description,name).itemsize == size)
 
         self.store.remove('df')
         self.store.append('df', df_new, data_columns=['string'],
@@ -575,8 +589,8 @@ class TestHDFStore(unittest.TestCase):
         
     def test_create_table_index(self):
 
-        def col(t, column):
-            return getattr(self.store.get_table(t).table.cols, column)
+        def col(t,column):
+            return getattr(self.store.get_storer(t).table.cols,column)
 
         # index=False
         wp = tm.makePanel()
@@ -626,6 +640,7 @@ class TestHDFStore(unittest.TestCase):
         assert(col('f2', 'string2').is_indexed is False)
 
         # try to index a non-table
+        self.store.remove('f2')
         self.store.put('f2', df)
         self.assertRaises(Exception, self.store.create_table_index, 'f2')
 
@@ -1421,6 +1436,14 @@ class TestHDFStore(unittest.TestCase):
         expected = df[df.A > 0].reindex(columns=['C', 'D'])
         tm.assert_frame_equal(expected, result)
 
+        # with a Timestamp data column (GH #2637)
+        df = DataFrame(dict(ts=bdate_range('2012-01-01', periods=300), A=np.random.randn(300))) 
+        self.store.remove('df') 
+        self.store.append('df', df, data_columns=['ts', 'A']) 
+        result = self.store.select('df', [Term('ts', '>=', Timestamp('2012-02-01'))]) 
+        expected = df[df.ts >= Timestamp('2012-02-01')] 
+        tm.assert_frame_equal(expected, result) 
+
     def test_panel_select(self):
         wp = tm.makePanel()
         self.store.put('wp', wp, table=True)
@@ -1760,8 +1783,8 @@ class TestHDFStore(unittest.TestCase):
                 # check indicies & nrows
                 for k in tstore.keys():
                     if tstore.is_table(k):
-                        new_t = tstore.get_table(k)
-                        orig_t = store.get_table(k)
+                        new_t = tstore.get_storer(k)
+                        orig_t = store.get_storer(k)
 
                         self.assert_(orig_t.nrows == new_t.nrows)
                         for a in orig_t.axes:

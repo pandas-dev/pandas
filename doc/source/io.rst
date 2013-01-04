@@ -1263,11 +1263,11 @@ To retrieve the *unique* values of an indexable or data column, use the method `
 
 **Table Object**
 
-If you want to inspect the table object, retrieve via ``get_table``. You could use this progamatically to say get the number of rows in the table.
+If you want to inspect the stored object, retrieve via ``get_storer``. You could use this progamatically to say get the number of rows in an object.
 
 .. ipython:: python
 
-   store.get_table('df_dc').nrows
+   store.get_storer('df_dc').nrows
 
 Multiple Table Queries
 ~~~~~~~~~~~~~~~~~~~~~~
