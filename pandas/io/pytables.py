@@ -109,7 +109,11 @@ def _tables():
 
     return _table_mod
 
-
+def h5_open(path, mode):
+    tables = _tables()
+    return tables.openFile(path, mode)
+    
+    
 @contextmanager
 def get_store(path, mode='a', complevel=None, complib=None,
               fletcher32=False):
@@ -288,11 +292,11 @@ class HDFStore(object):
                                              fletcher32=self.fletcher32)
 
         try:
-            self.handle = _tables().openFile(self.path, self.mode)
+            self.handle = h5_open(self.path, self.mode)
         except IOError, e:  # pragma: no cover
             if 'can not be written' in str(e):
                 print 'Opening %s in read-only mode' % self.path
-                self.handle = _tables().openFile(self.path, 'r')
+                self.handle = h5_open(self.path, 'r')
             else:
                 raise
 
