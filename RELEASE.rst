@@ -52,6 +52,7 @@ pandas 0.10.1
     - added method ``unique`` to select the unique values in an indexable or data column
   - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
   - Support reading gzipped data from file-like object
+  - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
 
 **Bug fixes**
 
@@ -86,6 +87,7 @@ pandas 0.10.1
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
+.. _GH2643: https://github.com/pydata/pandas/issues/2643
 
 pandas 0.10.0
 =============
