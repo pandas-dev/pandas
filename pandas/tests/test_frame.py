@@ -6798,6 +6798,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         q = DataFrame({'x':[],'y':[]}).quantile(0.1, axis=0)
         assert(np.isnan(q['x']) and np.isnan(q['y']))
 
+        # non-numeric exclusion
+        df = DataFrame({'col1':['A','A','B','B'], 'col2':[1,2,3,4]})
+        rs = df.quantile(0.5)
+        xp = df.median()
+        assert_series_equal(rs, xp)
+
     def test_cumsum(self):
         self.tsframe.ix[5:10, 0] = nan
         self.tsframe.ix[10:15, 1] = nan

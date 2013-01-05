@@ -4235,7 +4235,7 @@ class DataFrame(NDFrame):
         -------
         applied : DataFrame
         """
-        
+
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if x.dtype == 'M8[ns]':
@@ -4947,7 +4947,7 @@ class DataFrame(NDFrame):
             else:
                 return self.ix[:, []]
 
-    def quantile(self, q=0.5, axis=0):
+    def quantile(self, q=0.5, axis=0, numeric_only=True):
         """
         Return values at the given quantile over requested axis, a la
         scoreatpercentile in scipy.stats
@@ -4975,7 +4975,8 @@ class DataFrame(NDFrame):
             else:
                 return _quantile(arr, per)
 
-        return self.apply(f, axis=axis)
+        data = self._get_numeric_data() if numeric_only else self
+        return data.apply(f, axis=axis)
 
     def clip(self, upper=None, lower=None):
         """

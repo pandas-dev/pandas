@@ -69,6 +69,7 @@ pandas 0.10.1
     contains NA values (GH2616_)
   - Ensure that MultiIndex tuples can be constructed with NAs (seen in #2616)
   - Fix int64 overflow issue when unstacking MultiIndex with many levels (#2616)
+  - Exclude non-numeric data from DataFrame.quantile by default (GH2625_)
 
 **API Changes**
 
@@ -83,6 +84,7 @@ pandas 0.10.1
 .. _GH2585: https://github.com/pydata/pandas/issues/2585
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
+.. _GH2625: https://github.com/pydata/pandas/issues/2625
 
 pandas 0.10.0
 =============
