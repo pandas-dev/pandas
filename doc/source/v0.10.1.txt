@@ -17,6 +17,9 @@ New features
 HDFStore
 ~~~~~~~~
 
+You may need to upgrade your existing data files. Please visit the **compatibility** section in the main docs.
+
+
 .. ipython:: python
    :suppress:
    :okexcept:

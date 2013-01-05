@@ -1106,7 +1106,7 @@ Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
-Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools, datetime64`` are currently supported. For string columns, passing ``nan_rep = 'my_nan_rep'`` to append will change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
+Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools, datetime64`` are currently supported. For string columns, passing ``nan_rep = 'nan'`` to append will change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
 
 .. ipython:: python
 
@@ -1115,9 +1115,6 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
     df_mixed['int']      = 1
     df_mixed['bool']     = True
     df_mixed['datetime64'] = Timestamp('20010102')
-
-    # make sure that we have datetime64[ns] types
-    df_mixed = df_mixed.convert_objects()
     df_mixed.ix[3:5,['A','B','string','datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = { 'values' : 50 })
@@ -1127,8 +1124,6 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
 
     # we have provided a minimum string column size
     store.root.df_mixed.table
-
-It is ok to store ``np.nan`` in a ``float or string``. Make sure to do a ``convert_objects()`` on the frame before storing a ``np.nan`` in a datetime64 column. Storing a column with a ``np.nan`` in a ``int, bool`` will currently throw an ``Exception`` as these columns will have converted to ``object`` type.
 
 Storing Multi-Index DataFrames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1268,11 +1263,11 @@ To retrieve the *unique* values of an indexable or data column, use the method `
 
 **Table Object**
 
-If you want to inspect the table object, retrieve via ``get_table``. You could use this progamatically to say get the number of rows in the table.
+If you want to inspect the stored object, retrieve via ``get_storer``. You could use this progamatically to say get the number of rows in an object.
 
 .. ipython:: python
 
-   store.get_table('df_dc').nrows
+   store.get_storer('df_dc').nrows
 
 Multiple Table Queries
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -1348,7 +1343,7 @@ Or on-the-fly compression (this only applies to tables). You can turn off file c
 
    - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
 
-Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow you to reuse previously deleted space (alternatively, one can simply remove the file and write again).
+Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow you to reuse previously deleted space. Aalternatively, one can simply remove the file and write again, or use the ``copy`` method.
 
 Notes & Caveats
 ~~~~~~~~~~~~~~~
@@ -1372,10 +1367,28 @@ Notes & Caveats
 Compatibility
 ~~~~~~~~~~~~~
 
-0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas,
-however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire
-file and write it out using the new format to take advantage of the updates. The group attribute ``pandas_version`` contains the version information.
+0.10.1 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire file and write it out using the new format, using the method ``copy`` to take advantage of the updates. The group attribute ``pandas_version`` contains the version information. ``copy`` takes a number of options, please see the docstring.
 
+
+     .. ipython:: python
+
+        # a legacy store
+	import os
+        legacy_store = HDFStore('legacy_0.10.h5', 'r')
+        legacy_store
+
+        # copy (and return the new handle)
+	new_store = legacy_store.copy('store_new.h5')
+	new_store
+        new_store.close()
+
+     .. ipython:: python
+        :suppress:
+ 
+        legacy_store.close()
+        import os
+        os.remove('store_new.h5')
+     
 
 Performance
 ~~~~~~~~~~~
