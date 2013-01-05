@@ -2426,7 +2426,7 @@ class AppendableTable(LegacyTable):
     _indexables = None
     table_type = 'appendable'
 
-    def write(self, axes, obj, append=False, complib=None,
+    def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None, chunksize=50000,
               expectedrows=None, **kwargs):
 

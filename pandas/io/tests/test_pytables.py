@@ -609,7 +609,7 @@ class TestHDFStore(unittest.TestCase):
         assert(col('p5i', 'minor_axis').is_indexed is True)
 
         # default optlevels
-        self.store.get_table('p5').create_index()
+        self.store.get_storer('p5').create_index()
         assert(col('p5', 'major_axis').index.optlevel == 6)
         assert(col('p5', 'minor_axis').index.kind == 'medium')
 
