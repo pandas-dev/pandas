@@ -753,6 +753,22 @@ class Index(np.ndarray):
         """
         self._engine.set_value(arr, key, value)
 
+    def get_level_values(self, level):
+        """
+        Return vector of label values for requested level, equal to the length
+        of the index
+
+        Parameters
+        ----------
+        level : int
+
+        Returns
+        -------
+        values : ndarray
+        """
+        num = self._get_level_number(level)
+        return self
+
     def get_indexer(self, target, method=None, limit=None):
         """
         Compute indexer and mask for new index given the current index. The

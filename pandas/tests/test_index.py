@@ -515,6 +515,11 @@ class TestIndex(unittest.TestCase):
         self.assert_(res.dtype == 'bool')
         self.assert_(not isinstance(res, Index))
 
+    def test_get_level_values(self):
+        result = self.strIndex.get_level_values(0)
+        self.assert_(result.equals(self.strIndex))
+
+
 class TestInt64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
     def setUp(self):

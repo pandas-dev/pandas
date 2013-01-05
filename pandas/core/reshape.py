@@ -244,8 +244,10 @@ def _unstack_multiple(data, clocs):
         new_labels = recons_labels
     else:
         if isinstance(data.columns, MultiIndex):
-            raise NotImplementedError('Unstacking multiple levels with '
-                                      'hierarchical columns not yet supported')
+            result = data
+            for val in clocs:
+                result = result.unstack(val)
+            return result
 
         dummy = DataFrame(data.values, index=dummy_index,
                           columns=data.columns)
