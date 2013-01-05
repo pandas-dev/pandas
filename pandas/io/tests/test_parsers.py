@@ -1511,6 +1511,15 @@ A,B,C
         result = self.read_csv(StringIO(data), header=None, sep='\s+')
         self.assertTrue(result[0].dtype == np.float64)
 
+    def test_int64_min_issues(self):
+        # #2599
+        data = 'A,B\n0,0\n0,'
+
+        result = self.read_csv(StringIO(data))
+        expected = DataFrame({'A': [0, 0], 'B': [0, np.nan]})
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 
