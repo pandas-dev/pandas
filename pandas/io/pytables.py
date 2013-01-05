@@ -4,7 +4,6 @@ to disk
 """
 
 # pylint: disable-msg=E1101,W0613,W0603
-
 from datetime import datetime, date
 import time
 import re
