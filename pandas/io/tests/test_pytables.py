@@ -29,18 +29,15 @@ _multiprocess_can_split_ = False
 
 
 class TestHDFStore(unittest.TestCase):
-    path = '__test__.h5'
     scratchpath = '__scratch__.h5'
 
     def setUp(self):
+        self.path = '__%s__.h5' % tm.rands(10)
         self.store = HDFStore(self.path)
 
     def tearDown(self):
         self.store.close()
-        try:
-            os.remove(self.path)
-        except os.error:
-            pass
+        os.remove(self.path)
 
     def test_factory_fun(self):
         try:
@@ -575,7 +572,7 @@ class TestHDFStore(unittest.TestCase):
         expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (
             df_dc.string == 'foo')]
         tm.assert_frame_equal(result, expected)
-
+        
     def test_create_table_index(self):
 
         def col(t, column):
