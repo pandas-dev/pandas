@@ -517,10 +517,12 @@ class HDFStore(object):
 
         Parameters
         ----------
-        d : a dict of table_name to table_columns, None is acceptable as the values of one node (this will get all the remaining columns)
+        d : a dict of table_name to table_columns, None is acceptable as the values of
+            one node (this will get all the remaining columns)
         value : a pandas object
-        selector : a string that designates the indexable table; all of its columns will be designed as data_columns, unless data_columns is passed,
-                   in which case these are used
+        selector : a string that designates the indexable table; all of its columns will
+                   be designed as data_columns, unless data_columns is passed, in which
+                   case these are used
 
         Notes
         -----
@@ -1051,7 +1053,8 @@ class IndexCol(object):
     is_data_indexable = True
     is_searchable = False
 
-    def __init__(self, values=None, kind=None, typ=None, cname=None, itemsize=None, name=None, axis=None, kind_attr=None, pos=None, **kwargs):
+    def __init__(self, values=None, kind=None, typ=None, cname=None, itemsize=None,
+                 name=None, axis=None, kind_attr=None, pos=None, **kwargs):
         self.values = values
         self.kind = kind
         self.typ = typ
@@ -1182,7 +1185,8 @@ class IndexCol(object):
                 if itemsize is None:
                     itemsize = self.itemsize
                 if c.itemsize < itemsize:
-                    raise Exception("[%s] column has a min_itemsize of [%s] but itemsize [%s] is required!" % (self.cname, itemsize, c.itemsize))
+                    raise Exception("[%s] column has a min_itemsize of [%s] but itemsize [%s] is required!"
+                                    % (self.cname, itemsize, c.itemsize))
                 return c.itemsize
 
         return None
@@ -1524,7 +1528,8 @@ class Table(object):
 
         for c in ['index_axes', 'non_index_axes', 'values_axes']:
             if getattr(self, c, None) != getattr(other, c, None):
-                raise Exception("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c, getattr(self, c, None), getattr(other, c, None)))
+                raise Exception("invalid combinate of [%s] on appending data [%s] vs current table [%s]"
+                    % (c, getattr(self, c, None), getattr(other, c, None)))
 
     @property
     def nrows(self):
@@ -1616,7 +1621,8 @@ class Table(object):
         """ are we trying to operate on an old version? """
         if where is not None:
             if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
-                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]" % '.'.join([str(x) for x in self.version]), IncompatibilityWarning)
+                warnings.warn("where criteria is being ignored as we this version is too old (or not-defined) [%s]"
+                    % '.'.join([str(x) for x in self.version]), IncompatibilityWarning)
 
     @property
     def indexables(self):

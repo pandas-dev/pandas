@@ -1013,7 +1013,9 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_panel_equal(result, expected)
 
         # p4d
-        result = self.store.select('p4d', [Term('major_axis<20000108'), Term('minor_axis', '=', ['A', 'B']), Term('items', '=', ['ItemA', 'ItemB'])])
+        result = self.store.select('p4d', [Term('major_axis<20000108'),
+                                           Term('minor_axis', '=', ['A', 'B']),
+                                           Term('items', '=', ['ItemA', 'ItemB'])])
         expected = p4d.truncate(after='20000108').reindex(
             minor=['A', 'B'], items=['ItemA', 'ItemB'])
         tm.assert_panel4d_equal(result, expected)

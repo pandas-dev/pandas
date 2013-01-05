@@ -1,4 +1,4 @@
-# reasonably effecient
+# reasonably efficient
 
 
 def create_panels_append(cls, panels):
@@ -36,7 +36,8 @@ def create_panels_append(cls, panels):
         try:
                 values = np.concatenate([p.values for p in panels], axis=1)
         except (Exception), detail:
-                raise Exception("cannot append values that dont' match dimensions! -> [%s] %s" % (','.join(["%s" % p for p in panels]), str(detail)))
+                raise Exception("cannot append values that dont' match dimensions! -> [%s] %s"
+                                % (','.join(["%s" % p for p in panels]), str(detail)))
         # pm('append - create_panel')
         p = Panel(values, items=items, major_axis=major,
                   minor_axis=minor)
@@ -75,7 +76,10 @@ def create_panels_join(cls, panels):
         major = sorted(list(major))
         items = sorted(list(items))
         # create the 3d stack (items x columns x indicies)
-        data = np.dstack([np.asarray([np.asarray([d.get((minor_i, major_i, item), np.nan) for item in items]) for major_i in major]).transpose() for minor_i in minor])
+        data = np.dstack([np.asarray([np.asarray([d.get((minor_i, major_i, item), np.nan)
+                                                  for item in items])
+                                      for major_i in major]).transpose()
+                          for minor_i in minor])
         # construct the panel
         return Panel(data, items, major, minor)
 add_class_method(Panel, create_panels_join, 'join_many')
