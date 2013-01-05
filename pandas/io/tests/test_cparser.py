@@ -35,6 +35,7 @@ def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
 
+
 class TestCParser(unittest.TestCase):
 
     def setUp(self):
@@ -222,7 +223,7 @@ aaaaa,5"""
 
         def _make_reader(**kwds):
             return TextReader(StringIO(data), delimiter=',', header=None,
-                                **kwds)
+                              **kwds)
 
         reader = _make_reader(dtype='S5,i4')
         result = reader.read()
@@ -254,6 +255,7 @@ one,two
 2,b
 3,c
 4,d"""
+
         def _make_reader(**kwds):
             return TextReader(StringIO(data), delimiter=',', **kwds)
 
@@ -280,6 +282,7 @@ a,b,c
 4,5,6
 7,8,9
 10,11,12"""
+
         def _make_reader(**kwds):
             return TextReader(StringIO(data), delimiter=',', **kwds)
 
@@ -331,6 +334,5 @@ def assert_array_dicts_equal(left, right):
         assert(np.array_equal(v, right[k]))
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-

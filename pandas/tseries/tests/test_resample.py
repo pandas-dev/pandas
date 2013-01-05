@@ -22,6 +22,7 @@ import pandas.util.testing as tm
 
 bday = BDay()
 
+
 def _skip_if_no_pytz():
     try:
         import pytz
@@ -31,18 +32,19 @@ def _skip_if_no_pytz():
 
 class TestResample(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def setUp(self):
-        dti = DatetimeIndex(start=datetime(2005,1,1),
-                            end=datetime(2005,1,10), freq='Min')
+        dti = DatetimeIndex(start=datetime(2005, 1, 1),
+                            end=datetime(2005, 1, 10), freq='Min')
 
         self.series = Series(np.random.rand(len(dti)), dti)
 
     def test_custom_grouper(self):
 
-        dti = DatetimeIndex(freq='Min', start=datetime(2005,1,1),
-                            end=datetime(2005,1,10))
+        dti = DatetimeIndex(freq='Min', start=datetime(2005, 1, 1),
+                            end=datetime(2005, 1, 10))
 
-        data = np.array([1]*len(dti))
+        data = np.array([1] * len(dti))
         s = Series(data, index=dti)
 
         b = TimeGrouper(Minute(5))
@@ -59,7 +61,6 @@ class TestResample(unittest.TestCase):
         funcs = ['add', 'mean', 'prod', 'ohlc', 'min', 'max', 'var']
         for f in funcs:
             g._cython_agg_general(f)
-
 
         self.assertEquals(g.ngroups, 2593)
         self.assert_(notnull(g.mean()).all())
@@ -105,8 +106,9 @@ class TestResample(unittest.TestCase):
 
     def test_resample_basic_from_daily(self):
         # from daily
-        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
-                            freq='D', name='index')
+        dti = DatetimeIndex(
+            start=datetime(2005, 1, 1), end=datetime(2005, 1, 10),
+            freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -114,45 +116,45 @@ class TestResample(unittest.TestCase):
         result = s.resample('w-sun', how='last')
 
         self.assertEquals(len(result), 3)
-        self.assert_((result.index.dayofweek == [6,6,6]).all())
+        self.assert_((result.index.dayofweek == [6, 6, 6]).all())
         self.assertEquals(result.irow(0), s['1/2/2005'])
         self.assertEquals(result.irow(1), s['1/9/2005'])
         self.assertEquals(result.irow(2), s.irow(-1))
 
         result = s.resample('W-MON', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [0,0]).all())
+        self.assert_((result.index.dayofweek == [0, 0]).all())
         self.assertEquals(result.irow(0), s['1/3/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-TUE', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [1,1]).all())
+        self.assert_((result.index.dayofweek == [1, 1]).all())
         self.assertEquals(result.irow(0), s['1/4/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-WED', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [2,2]).all())
+        self.assert_((result.index.dayofweek == [2, 2]).all())
         self.assertEquals(result.irow(0), s['1/5/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-THU', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [3,3]).all())
+        self.assert_((result.index.dayofweek == [3, 3]).all())
         self.assertEquals(result.irow(0), s['1/6/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         result = s.resample('W-FRI', how='last')
         self.assertEquals(len(result), 2)
-        self.assert_((result.index.dayofweek == [4,4]).all())
+        self.assert_((result.index.dayofweek == [4, 4]).all())
         self.assertEquals(result.irow(0), s['1/7/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
         # to biz day
         result = s.resample('B', how='last')
         self.assertEquals(len(result), 7)
-        self.assert_((result.index.dayofweek == [4,0,1,2,3,4,0]).all())
+        self.assert_((result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all())
         self.assertEquals(result.irow(0), s['1/2/2005'])
         self.assertEquals(result.irow(1), s['1/3/2005'])
         self.assertEquals(result.irow(5), s['1/9/2005'])
@@ -189,19 +191,22 @@ class TestResample(unittest.TestCase):
                           index=idx + timedelta(minutes=1))
         assert_series_equal(result, expected)
 
-        expected = s.resample('5min', how='mean', closed='right', label='right',
-                              loffset='1min')
+        expected = s.resample(
+            '5min', how='mean', closed='right', label='right',
+            loffset='1min')
         assert_series_equal(result, expected)
 
-        expected = s.resample('5min', how='mean', closed='right', label='right',
-                              loffset=Minute(1))
+        expected = s.resample(
+            '5min', how='mean', closed='right', label='right',
+            loffset=Minute(1))
         assert_series_equal(result, expected)
 
         self.assert_(result.index.freq == Minute(5))
 
                 # from daily
-        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
-                            freq='D')
+        dti = DatetimeIndex(
+            start=datetime(2005, 1, 1), end=datetime(2005, 1, 10),
+            freq='D')
         ser = Series(np.random.rand(len(dti)), dti)
 
         # to weekly
@@ -211,8 +216,9 @@ class TestResample(unittest.TestCase):
 
     def test_resample_upsample(self):
         # from daily
-        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
-                            freq='D', name='index')
+        dti = DatetimeIndex(
+            start=datetime(2005, 1, 1), end=datetime(2005, 1, 10),
+            freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -255,8 +261,9 @@ class TestResample(unittest.TestCase):
         self.assertEquals(xs['close'], s[4])
 
     def test_resample_reresample(self):
-        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
-                            freq='D')
+        dti = DatetimeIndex(
+            start=datetime(2005, 1, 1), end=datetime(2005, 1, 10),
+            freq='D')
         s = Series(np.random.rand(len(dti)), dti)
         bs = s.resample('B', closed='right', label='right')
         result = bs.resample('8H')
@@ -388,7 +395,7 @@ class TestResample(unittest.TestCase):
 
         rng = date_range('1/1/2000 04:00:00', periods=86400, freq='s')
         ts = Series(np.random.randn(len(rng)), index=rng)
-        ts[:2] = np.nan # so results are the same
+        ts[:2] = np.nan  # so results are the same
 
         freqs = ['t', '5t', '15t', '30t', '4h', '12h']
         for freq in freqs:
@@ -408,7 +415,7 @@ class TestResample(unittest.TestCase):
     def test_resample_daily_anchored(self):
         rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
         ts = Series(np.random.randn(len(rng)), index=rng)
-        ts[:2] = np.nan # so results are the same
+        ts[:2] = np.nan  # so results are the same
 
         result = ts[2:].resample('D', closed='left', label='left')
         expected = ts.resample('D', closed='left', label='left')
@@ -417,7 +424,7 @@ class TestResample(unittest.TestCase):
     def test_resample_to_period_monthly_buglet(self):
         # GH #1259
 
-        rng = date_range('1/1/2000','12/31/2000')
+        rng = date_range('1/1/2000', '12/31/2000')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.resample('M', kind='period')
@@ -539,8 +546,8 @@ class TestResample(unittest.TestCase):
         assert_series_equal(result, exp)
 
     def test_resample_median_bug_1688(self):
-        df = DataFrame([1, 2], index=[datetime(2012,1,1,0,0,0),
-                                      datetime(2012,1,1,0,5,0)])
+        df = DataFrame([1, 2], index=[datetime(2012, 1, 1, 0, 0, 0),
+                                      datetime(2012, 1, 1, 0, 5, 0)])
 
         result = df.resample("T", how=lambda x: x.mean())
         exp = df.asfreq('T')
@@ -574,7 +581,7 @@ class TestResample(unittest.TestCase):
         # end hour is less than start
         end = datetime(2012, 7, 31, 4)
         bad_ind = date_range(start, end, freq="30min")
-        df = DataFrame({'close':1}, index=bad_ind)
+        df = DataFrame({'close': 1}, index=bad_ind)
 
         # it works!
         df.resample('AS', 'sum')
@@ -583,6 +590,7 @@ class TestResample(unittest.TestCase):
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
+
 
 def _simple_pts(start, end, freq='D'):
     rng = period_range(start, end, freq=freq)
@@ -687,7 +695,7 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
     def test_annual_upsample(self):
         ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-DEC')
-        df = DataFrame({'a' : ts})
+        df = DataFrame({'a': ts})
         rdf = df.resample('D', fill_method='ffill')
         exp = df['a'].resample('D', fill_method='ffill')
         assert_series_equal(rdf['a'], exp)
@@ -866,9 +874,9 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts_local.resample('D')
 
         # #2245
-        idx = date_range('2001-09-20 15:59','2001-09-20 16:00', freq='T',
+        idx = date_range('2001-09-20 15:59', '2001-09-20 16:00', freq='T',
                          tz='Australia/Sydney')
-        s = Series([1,2], index=idx)
+        s = Series([1, 2], index=idx)
 
         result = s.resample('D', closed='right', label='right')
         ex_index = date_range('2001-09-21', periods=1, freq='D',
@@ -890,12 +898,12 @@ class TestResamplePeriodIndex(unittest.TestCase):
                                     freq='1min', periods=21))
         s[0] = np.nan
 
-        result = s.resample('10min', how='mean',closed='left', label='right')
-        exp = s[1:].resample('10min', how='mean',closed='left', label='right')
+        result = s.resample('10min', how='mean', closed='left', label='right')
+        exp = s[1:].resample('10min', how='mean', closed='left', label='right')
         assert_series_equal(result, exp)
 
-        result = s.resample('10min', how='mean',closed='left', label='left')
-        exp = s[1:].resample('10min', how='mean',closed='left', label='left')
+        result = s.resample('10min', how='mean', closed='left', label='left')
+        exp = s[1:].resample('10min', how='mean', closed='left', label='left')
 
         ex_index = date_range(start='1/1/2012 9:30', freq='10min', periods=3)
 
@@ -1004,7 +1012,7 @@ class TestTimeGrouper(unittest.TestCase):
         # #2300
         N = 1000
         ind = pd.date_range(start="2000-01-01", freq="D", periods=N)
-        df = DataFrame({'open':1, 'close':2}, index=ind)
+        df = DataFrame({'open': 1, 'close': 2}, index=ind)
         tg = TimeGrouper('M')
 
         grouper = tg.get_grouper(df)
@@ -1020,7 +1028,7 @@ class TestTimeGrouper(unittest.TestCase):
 
     def test_panel_aggregation(self):
         ind = pd.date_range('1/1/2000', periods=100)
-        data = np.random.randn(2,len(ind),4)
+        data = np.random.randn(2, len(ind), 4)
         wp = pd.Panel(data, items=['Item1', 'Item2'], major_axis=ind,
                       minor_axis=['A', 'B', 'C', 'D'])
 
@@ -1037,5 +1045,5 @@ class TestTimeGrouper(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

@@ -9,10 +9,11 @@ K = 1
 pct_overlap = 0.2
 
 a = np.arange(n, dtype=np.int64)
-b = np.arange(n * pct_overlap, n*(1+pct_overlap), dtype=np.int64)
+b = np.arange(n * pct_overlap, n * (1 + pct_overlap), dtype=np.int64)
 
 dr1 = DateRange('1/1/2000', periods=n, offset=datetools.Minute())
-dr2 = DateRange(dr1[int(pct_overlap*n)], periods=n, offset=datetools.Minute(2))
+dr2 = DateRange(
+    dr1[int(pct_overlap * n)], periods=n, offset=datetools.Minute(2))
 
 aobj = a.astype(object)
 bobj = b.astype(object)
@@ -29,10 +30,12 @@ b_series = Series(bv, index=b)
 a_frame = DataFrame(avf, index=a, columns=range(K))
 b_frame = DataFrame(bvf, index=b, columns=range(K, 2 * K))
 
+
 def do_left_join(a, b, av, bv):
     out = np.empty((len(a), 2))
     lib.left_join_1d(a, b, av, bv, out)
     return out
+
 
 def do_outer_join(a, b, av, bv):
     result_index, aindexer, bindexer = lib.outer_join_indexer(a, b)
@@ -40,6 +43,7 @@ def do_outer_join(a, b, av, bv):
     lib.take_1d(av, aindexer, result[0])
     lib.take_1d(bv, bindexer, result[1])
     return result_index, result
+
 
 def do_inner_join(a, b, av, bv):
     result_index, aindexer, bindexer = lib.inner_join_indexer(a, b)
@@ -52,6 +56,7 @@ from line_profiler import LineProfiler
 prof = LineProfiler()
 
 from pandas.util.testing import set_trace
+
 
 def do_left_join_python(a, b, av, bv):
     indexer, mask = lib.ordered_left_join_int64(a, b)
@@ -68,11 +73,13 @@ def do_left_join_python(a, b, av, bv):
     np.putmask(bchunk, np.tile(mask, bk), np.nan)
     return result
 
+
 def _take_multi(data, indexer, out):
     if not data.flags.c_contiguous:
         data = data.copy()
     for i in xrange(data.shape[0]):
         data[i].take(indexer, out=out[i])
+
 
 def do_left_join_multi(a, b, av, bv):
     n, ak = av.shape
@@ -80,6 +87,7 @@ def do_left_join_multi(a, b, av, bv):
     result = np.empty((n, ak + bk), dtype=np.float64)
     lib.left_join_2d(a, b, av, bv, result)
     return result
+
 
 def do_outer_join_multi(a, b, av, bv):
     n, ak = av.shape
@@ -92,6 +100,7 @@ def do_outer_join_multi(a, b, av, bv):
     # lib.take_axis0(bv, lindexer, out=result[ak:].T)
     return result_index, result
 
+
 def do_inner_join_multi(a, b, av, bv):
     n, ak = av.shape
     _, bk = bv.shape
@@ -103,6 +112,7 @@ def do_inner_join_multi(a, b, av, bv):
     # lib.take_axis0(bv, lindexer, out=result[ak:].T)
     return result_index, result
 
+
 def do_left_join_multi_v2(a, b, av, bv):
     indexer, mask = lib.ordered_left_join_int64(a, b)
     bv_taken = bv.take(indexer, axis=0)
@@ -112,6 +122,7 @@ def do_left_join_multi_v2(a, b, av, bv):
 
 def do_left_join_series(a, b):
     return b.reindex(a.index)
+
 
 def do_left_join_frame(a, b):
     a.index._indexMap = None
@@ -125,13 +136,15 @@ def do_left_join_frame(a, b):
 
 out = np.empty((10, 120000))
 
+
 def join(a, b, av, bv, how="left"):
-    func_dict = {'left' : do_left_join_multi,
-                 'outer' : do_outer_join_multi,
-                 'inner' : do_inner_join_multi}
+    func_dict = {'left': do_left_join_multi,
+                 'outer': do_outer_join_multi,
+                 'inner': do_inner_join_multi}
 
     f = func_dict[how]
     return f(a, b, av, bv)
+
 
 def bench_python(n=100000, pct_overlap=0.20, K=1):
     import gc
@@ -142,7 +155,7 @@ def bench_python(n=100000, pct_overlap=0.20, K=1):
 
     all_results = {}
     for logn in ns:
-        n = 10**logn
+        n = 10 ** logn
         a = np.arange(n, dtype=np.int64)
         b = np.arange(n * pct_overlap, n * pct_overlap + n, dtype=np.int64)
 
@@ -171,6 +184,7 @@ def bench_python(n=100000, pct_overlap=0.20, K=1):
 
     return DataFrame(all_results, index=kinds)
 
+
 def bench_xts(n=100000, pct_overlap=0.20):
     from pandas.rpy.common import r
     r('a <- 5')
@@ -194,4 +208,3 @@ def bench_xts(n=100000, pct_overlap=0.20):
         elapsed = r('as.list(system.time(%s, gcFirst=F))$elapsed' % stmt)[0]
         result[kind] = (elapsed / iterations) * 1000
     return Series(result)
-

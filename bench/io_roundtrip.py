@@ -1,9 +1,11 @@
-import time, os
+import time
+import os
 import numpy as np
 
 import la
 import pandas
 from pandas import datetools, DateRange
+
 
 def timeit(f, iterations):
     start = time.clock()
@@ -12,6 +14,7 @@ def timeit(f, iterations):
         f()
 
     return time.clock() - start
+
 
 def rountrip_archive(N, K=50, iterations=10):
     # Create data
@@ -75,11 +78,13 @@ def rountrip_archive(N, K=50, iterations=10):
     except:
         pass
 
+
 def numpy_roundtrip(filename, arr1, arr2):
     np.savez(filename, arr1=arr1, arr2=arr2)
     npz = np.load(filename)
     arr1 = npz['arr1']
     arr2 = npz['arr2']
+
 
 def larry_roundtrip(filename, lar1, lar2):
     io = la.IO(filename)
@@ -87,6 +92,7 @@ def larry_roundtrip(filename, lar1, lar2):
     io['lar2'] = lar2
     lar1 = io['lar1']
     lar2 = io['lar2']
+
 
 def pandas_roundtrip(filename, dma1, dma2):
     # What's the best way to code this?
@@ -96,6 +102,7 @@ def pandas_roundtrip(filename, dma1, dma2):
     store['dma2'] = dma2
     dma1 = store['dma1']
     dma2 = store['dma2']
+
 
 def pandas_roundtrip_pickle(filename, dma1, dma2):
     dma1.save(filename)

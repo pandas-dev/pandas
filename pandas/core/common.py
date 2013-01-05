@@ -53,6 +53,7 @@ def isnull(obj):
     '''
     return _isnull(obj)
 
+
 def _isnull_new(obj):
     if lib.isscalar(obj):
         return lib.checknull(obj)
@@ -67,6 +68,7 @@ def _isnull_new(obj):
         return _isnull_ndarraylike(obj)
     else:
         return obj is None
+
 
 def _isnull_old(obj):
     '''
@@ -96,6 +98,7 @@ def _isnull_old(obj):
 
 _isnull = _isnull_new
 
+
 def _use_inf_as_null(key):
     '''Option change callback for null/inf behaviour
     Choose which replacement for numpy.isnan / -numpy.isfinite is used.
@@ -116,11 +119,10 @@ def _use_inf_as_null(key):
       programmatically-creating-variables-in-python/4859312#4859312
     '''
     flag = get_option(key)
-    if flag == True:
+    if flag:
         globals()['_isnull'] = _isnull_old
     else:
         globals()['_isnull'] = _isnull_new
-
 
 
 def _isnull_ndarraylike(obj):
@@ -175,6 +177,7 @@ def _isnull_ndarraylike_old(obj):
     else:
         result = -np.isfinite(obj)
     return result
+
 
 def notnull(obj):
     '''
@@ -278,7 +281,7 @@ _take2d_axis1_dict = {
     'object': algos.take_2d_axis1_object,
     'bool': _view_wrapper(algos.take_2d_axis1_bool, np.uint8),
     'datetime64[ns]': _view_wrapper(algos.take_2d_axis1_int64, np.int64,
-                                     na_override=tslib.iNaT),
+                                    na_override=tslib.iNaT),
 }
 
 _take2d_multi_dict = {
@@ -458,6 +461,7 @@ _diff_special = {
     'int32': algos.diff_2d_int32
 }
 
+
 def diff(arr, n, axis=0):
     n = int(n)
     dtype = arr.dtype
@@ -628,6 +632,7 @@ def _consensus_name_attr(objs):
 #----------------------------------------------------------------------
 # Lots of little utilities
 
+
 def _possibly_cast_to_datetime(value, dtype):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
 
@@ -648,8 +653,9 @@ def _possibly_cast_to_datetime(value, dtype):
                     value = tslib.array_to_datetime(value)
                 except:
                     pass
-            
+
     return value
+
 
 def _infer_dtype(value):
     if isinstance(value, (float, np.floating)):
@@ -671,6 +677,7 @@ def _possibly_cast_item(obj, item, dtype):
         elif not issubclass(dtype, (np.integer, np.bool_)):  # pragma: no cover
             raise ValueError("Unexpected dtype encountered: %s" % dtype)
 
+
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
         key = np.asarray(key)
@@ -690,6 +697,7 @@ def _is_bool_indexer(key):
             return False
 
     return False
+
 
 def _default_index(n):
     from pandas.core.index import Int64Index
@@ -805,23 +813,25 @@ def iterpairs(seq):
 
     return itertools.izip(seq_it, seq_it_next)
 
+
 def split_ranges(mask):
     """ Generates tuples of ranges which cover all True value in mask
 
     >>> list(split_ranges([1,0,0,1,0]))
     [(0, 1), (3, 4)]
     """
-    ranges = [(0,len(mask))]
+    ranges = [(0, len(mask))]
 
-    for pos,val in enumerate(mask):
-        if not val: # this pos should be ommited, split off the prefix range
+    for pos, val in enumerate(mask):
+        if not val:  # this pos should be ommited, split off the prefix range
             r = ranges.pop()
-            if pos > r[0]: # yield non-zero range
-                yield (r[0],pos)
-            if pos+1 < len(mask): # save the rest for processing
-                ranges.append((pos+1,len(mask)))
+            if pos > r[0]:  # yield non-zero range
+                yield (r[0], pos)
+            if pos + 1 < len(mask):  # save the rest for processing
+                ranges.append((pos + 1, len(mask)))
     if ranges:
         yield ranges[-1]
+
 
 def indent(string, spaces=4):
     dent = ' ' * spaces
@@ -972,6 +982,7 @@ def is_integer_dtype(arr_or_dtype):
             (issubclass(tipo, np.datetime64) or
              issubclass(tipo, np.timedelta64)))
 
+
 def _is_int_or_datetime_dtype(arr_or_dtype):
     # also timedelta64
     if isinstance(arr_or_dtype, np.dtype):
@@ -979,6 +990,7 @@ def _is_int_or_datetime_dtype(arr_or_dtype):
     else:
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.integer)
+
 
 def is_datetime64_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -1022,7 +1034,7 @@ def _astype_nansafe(arr, dtype):
         if dtype == object:
             return tslib.ints_to_pydatetime(arr.view(np.int64))
     elif (np.issubdtype(arr.dtype, np.floating) and
-        np.issubdtype(dtype, np.integer)):
+          np.issubdtype(dtype, np.integer)):
 
         if np.isnan(arr).any():
             raise ValueError('Cannot convert NA to integer')
@@ -1089,8 +1101,6 @@ def load(path):
         return pickle.load(f)
     finally:
         f.close()
-
-
 
 
 class UTF8Recoder:
@@ -1214,6 +1224,7 @@ def _concat_compat(to_concat, axis=0):
     else:
         return np.concatenate(to_concat, axis=axis)
 
+
 def in_interactive_session():
     """ check if we're running in an interactive shell
 
@@ -1228,6 +1239,7 @@ def in_interactive_session():
         return __IPYTHON__ or check_main()
     except:
         return check_main()
+
 
 def in_qtconsole():
     """
@@ -1277,6 +1289,7 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     fmt = u"[%s]" if hasattr(seq, '__setitem__') else u"(%s)"
     return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1, **kwds) for e in seq)
 
+
 def _pprint_dict(seq, _nest_lvl=0):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -1314,14 +1327,14 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None):
 
     if thing is None:
         result = ''
-    elif (py3compat.PY3 and hasattr(thing,'__next__')) or \
-         hasattr(thing,'next'):
+    elif (py3compat.PY3 and hasattr(thing, '__next__')) or \
+            hasattr(thing, 'next'):
         return unicode(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl)
     elif _is_sequence(thing) and _nest_lvl < \
-		get_option("display.pprint_nest_depth"):
+            get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars)
     else:
         # when used internally in the package, everything
@@ -1344,14 +1357,14 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None):
                      }
         escape_chars = escape_chars or tuple()
         for c in escape_chars:
-            result=result.replace(c,translate[c])
+            result = result.replace(c, translate[c])
 
     return unicode(result)  # always unicode
 
 
 def pprint_thing_encoded(object, encoding='utf-8', errors='replace', **kwds):
     value = pprint_thing(object)  # get unicode representation of object
-    return value.encode(encoding, errors,**kwds)
+    return value.encode(encoding, errors, **kwds)
 
 
 def console_encode(object, **kwds):
@@ -1363,4 +1376,4 @@ def console_encode(object, **kwds):
     where you output to the console.
     """
     return pprint_thing_encoded(object,
-             get_option("display.encoding"))
+                                get_option("display.encoding"))

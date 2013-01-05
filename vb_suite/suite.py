@@ -57,7 +57,7 @@ try:
     DB_PATH = config.get('setup', 'db_path')
     TMP_DIR = config.get('setup', 'tmp_dir')
 except:
-    REPO_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
+    REPO_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
     REPO_URL = 'git@github.com:pydata/pandas.git'
     DB_PATH = os.path.join(REPO_PATH, 'vb_suite/benchmarks.db')
     TMP_DIR = os.path.join(HOME, 'tmp/vb_pandas')
@@ -78,7 +78,8 @@ RST_BASE = 'source'
 
 # HACK!
 
-#timespan = [datetime(2011, 1, 1), datetime(2012, 1, 1)]
+# timespan = [datetime(2011, 1, 1), datetime(2012, 1, 1)]
+
 
 def generate_rst_files(benchmarks):
     import matplotlib as mpl

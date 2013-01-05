@@ -121,7 +121,7 @@ class Index(np.ndarray):
                 return Int64Index(subarr.astype('i8'), name=name)
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
-                    tslib.is_timestamp_array(subarr)):
+                        tslib.is_timestamp_array(subarr)):
                     from pandas.tseries.index import DatetimeIndex
                     return DatetimeIndex(subarr, copy=copy, name=name)
 
@@ -162,7 +162,7 @@ class Index(np.ndarray):
         Yields a bytestring in both py2/py3.
         """
         encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding , 'replace')
+        return self.__unicode__().encode(encoding, 'replace')
 
     def __unicode__(self):
         """
@@ -175,7 +175,7 @@ class Index(np.ndarray):
         else:
             data = self
 
-        prepr = com.pprint_thing(data, escape_chars=('\t','\r','\n'))
+        prepr = com.pprint_thing(data, escape_chars=('\t', '\r', '\n'))
         return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
 
     def __repr__(self):
@@ -426,7 +426,7 @@ class Index(np.ndarray):
         header = []
         if name:
             header.append(com.pprint_thing(self.name,
-                                           escape_chars=('\t','\r','\n'))
+                                           escape_chars=('\t', '\r', '\n'))
                           if self.name is not None else '')
 
         if formatter is not None:
@@ -447,7 +447,7 @@ class Index(np.ndarray):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
-            result = [com.pprint_thing(x,escape_chars=('\t','\r','\n'))
+            result = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
                       for x in values]
         else:
             result = _trim_front(format_array(values, None, justify='left'))
@@ -1316,7 +1316,8 @@ class MultiIndex(Index):
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
         if len(levels) != len(labels):
-            raise AssertionError('Length of levels and labels must be the same')
+            raise AssertionError(
+                'Length of levels and labels must be the same')
         if len(levels) == 0:
             raise Exception('Must pass non-zero number of levels/labels')
 
@@ -1399,7 +1400,7 @@ class MultiIndex(Index):
         Yields a bytestring in both py2/py3.
         """
         encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding , 'replace')
+        return self.__unicode__().encode(encoding, 'replace')
 
     def __unicode__(self):
         """
@@ -1418,7 +1419,7 @@ class MultiIndex(Index):
         else:
             values = self.values
 
-        summary = com.pprint_thing(values, escape_chars=('\t','\r','\n'))
+        summary = com.pprint_thing(values, escape_chars=('\t', '\r', '\n'))
 
         np.set_printoptions(threshold=options['threshold'])
 
@@ -1573,7 +1574,7 @@ class MultiIndex(Index):
         values : ndarray
         """
         num = self._get_level_number(level)
-        unique_vals = self.levels[num] # .values
+        unique_vals = self.levels[num]  # .values
         labels = self.labels[num]
         return unique_vals.take(labels)
 
@@ -1588,7 +1589,7 @@ class MultiIndex(Index):
                 formatted = lev.take(lab).format(formatter=formatter)
             else:
                 # weird all NA case
-                formatted = [com.pprint_thing(x,escape_chars=('\t','\r','\n'))
+                formatted = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
                              for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
 
@@ -1597,7 +1598,7 @@ class MultiIndex(Index):
             level = []
 
             if names:
-                level.append(com.pprint_thing(name,escape_chars=('\t','\r','\n'))
+                level.append(com.pprint_thing(name, escape_chars=('\t', '\r', '\n'))
                              if name is not None else '')
 
             level.extend(np.array(lev, dtype=object))

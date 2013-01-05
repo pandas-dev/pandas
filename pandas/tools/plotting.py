@@ -19,9 +19,10 @@ from pandas.tseries.offsets import DateOffset
 
 try:  # mpl optional
     import pandas.tseries.converter as conv
-    conv.register() # needs to override so set_xlim works with str/number
+    conv.register()  # needs to override so set_xlim works with str/number
 except ImportError:
     pass
+
 
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
@@ -35,8 +36,8 @@ class _Options(dict):
     format that makes it easy to breakdown into groups later
     """
 
-    #alias so the names are same as plotting method parameter names
-    _ALIASES = {'x_compat' : 'xaxis.compat'}
+    # alias so the names are same as plotting method parameter names
+    _ALIASES = {'x_compat': 'xaxis.compat'}
     _DEFAULT_KEYS = ['xaxis.compat']
 
     def __init__(self):
@@ -90,6 +91,7 @@ class _Options(dict):
 
 
 plot_params = _Options()
+
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    diagonal='hist', marker='.', **kwds):
@@ -147,7 +149,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 common = (mask[a] & mask[b]).values
 
                 ax.scatter(df[b][common], df[a][common],
-                                   marker=marker, alpha=alpha, **kwds)
+                           marker=marker, alpha=alpha, **kwds)
 
             ax.set_xlabel('')
             ax.set_ylabel('')
@@ -321,7 +323,7 @@ def andrews_curves(data, class_column, ax=None, samples=200):
             harmonic = 1.0
             for x_even, x_odd in zip(amplitudes[1::2], amplitudes[2::2]):
                 result += (x_even * sin(harmonic * x) +
-                            x_odd * cos(harmonic * x))
+                           x_odd * cos(harmonic * x))
                 harmonic += 1.0
             if len(amplitudes) % 2 != 0:
                 result += amplitudes[-1] * sin(harmonic * x)
@@ -337,7 +339,7 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     columns = [data[col] for col in data.columns if (col != class_column)]
     x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
     used_legends = set([])
-    if ax == None:
+    if ax is None:
         ax = plt.gca(xlim=(-pi, pi))
     for i in range(n):
         row = [columns[c][i] for c in range(len(columns))]
@@ -381,7 +383,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     medians = np.array([np.median(sampling) for sampling in samplings])
     midranges = np.array([(min(sampling) + max(sampling)) * 0.5
                           for sampling in samplings])
-    if fig == None:
+    if fig is None:
         fig = plt.figure()
     x = range(samples)
     axes = []
@@ -484,7 +486,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     else:
         x = range(ncols)
 
-    if ax == None:
+    if ax is None:
         ax = plt.gca()
 
     # if user has not specified colors to use, choose at random
@@ -535,7 +537,7 @@ def lag_plot(series, ax=None, **kwds):
     data = series.values
     y1 = data[:-1]
     y2 = data[1:]
-    if ax == None:
+    if ax is None:
         ax = plt.gca()
     ax.set_xlabel("y(t)")
     ax.set_ylabel("y(t + 1)")
@@ -558,7 +560,7 @@ def autocorrelation_plot(series, ax=None):
     import matplotlib.pyplot as plt
     n = len(series)
     data = np.asarray(series)
-    if ax == None:
+    if ax is None:
         ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
     mean = np.mean(data)
     c0 = np.sum((data - mean) ** 2) / float(n)
@@ -614,6 +616,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.5, wspace=0.3)
     return axes
+
 
 class MPLPlot(object):
     """
@@ -691,10 +694,9 @@ class MPLPlot(object):
 
         if ('color' in self.kwds and
             (isinstance(self.data, Series) or
-             isinstance(self.data, DataFrame) and len(self.data.columns) ==1 )):
-            #support series.plot(color='green')
+             isinstance(self.data, DataFrame) and len(self.data.columns) == 1)):
+            # support series.plot(color='green')
             self.kwds['color'] = [self.kwds['color']]
-
 
     def _iter_data(self):
         from pandas.core.frame import DataFrame
@@ -940,7 +942,7 @@ class MPLPlot(object):
             return self.secondary_y
 
         if (isinstance(self.data, DataFrame) and
-            isinstance(self.secondary_y, (tuple, list, np.ndarray))):
+                isinstance(self.secondary_y, (tuple, list, np.ndarray))):
             return self.data.columns[i] in self.secondary_y
 
     def _get_style(self, i, col_name):
@@ -978,7 +980,7 @@ class KdePlot(MPLPlot):
             gkde = gaussian_kde(y)
             sample_range = max(y) - min(y)
             ind = np.linspace(min(y) - 0.5 * sample_range,
-                max(y) + 0.5 * sample_range, 1000)
+                              max(y) + 0.5 * sample_range, 1000)
             ax.set_ylabel("Density")
 
             y = gkde.evaluate(ind)
@@ -1005,7 +1007,7 @@ class LinePlot(MPLPlot):
         MPLPlot.__init__(self, data, **kwargs)
         self.x_compat = plot_params['x_compat']
         if 'x_compat' in self.kwds:
-           self.x_compat = bool(self.kwds.pop('x_compat'))
+            self.x_compat = bool(self.kwds.pop('x_compat'))
 
     def _index_freq(self):
         from pandas.core.frame import DataFrame
@@ -1074,7 +1076,7 @@ class LinePlot(MPLPlot):
                 kwds = self.kwds.copy()
                 self._maybe_add_color(colors, kwds, style, i)
 
-                label = com.pprint_thing(label) # .encode('utf-8')
+                label = com.pprint_thing(label)  # .encode('utf-8')
 
                 mask = com.isnull(y)
                 if mask.any():
@@ -1178,7 +1180,7 @@ class LinePlot(MPLPlot):
         # over and over for DataFrames
         from pandas.core.frame import DataFrame
         if (isinstance(data.index, DatetimeIndex) and
-            isinstance(data, DataFrame)):
+                isinstance(data, DataFrame)):
             freq = getattr(data.index, 'freq', None)
 
             if freq is None:
@@ -1280,7 +1282,8 @@ class BarPlot(MPLPlot):
 
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
-                rect = bar_f(ax, self.ax_pos, y, self.bar_width, start=pos_prior, **kwds)
+                rect = bar_f(ax, self.ax_pos, y,
+                             self.bar_width, start=pos_prior, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
@@ -1296,7 +1299,7 @@ class BarPlot(MPLPlot):
             labels.append(label)
 
         if self.legend and not self.subplots:
-            patches =[r[0] for r in rects]
+            patches = [r[0] for r in rects]
             self.axes[0].legend(patches, labels, loc='best',
                                 title=self.legend_title)
 
@@ -1323,7 +1326,7 @@ class BarPlot(MPLPlot):
                 if name is not None:
                     ax.set_ylabel(name)
 
-        #if self.subplots and self.legend:
+        # if self.subplots and self.legend:
         #    self.axes[0].legend(loc='best')
 
 
@@ -1442,6 +1445,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     else:
         return plot_obj.axes[0]
 
+
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,
                 ax=None, style=None, grid=None, legend=False, logx=False,
@@ -1556,7 +1560,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         else:
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
 
-    if column == None:
+    if column is None:
         columns = None
     else:
         if isinstance(column, (list, tuple)):
@@ -1645,9 +1649,10 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
     return fig
 
 
-def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None, xrot=None,
-               ylabelsize=None, yrot=None, ax=None,
-               sharex=False, sharey=False, **kwds):
+def hist_frame(
+    data, column=None, by=None, grid=True, xlabelsize=None, xrot=None,
+    ylabelsize=None, yrot=None, ax=None,
+        sharex=False, sharey=False, **kwds):
     """
     Draw Histogram the DataFrame's series using matplotlib / pylab.
 
@@ -1725,6 +1730,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None, xrot=None
     ax.get_figure().subplots_adjust(wspace=0.3, hspace=0.3)
 
     return axes
+
 
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, **kwds):
@@ -2068,7 +2074,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     # Note off-by-one counting because add_subplot uses the MATLAB 1-based
     # convention.
     for i in range(1, nplots):
-        ax = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
+        ax = fig.add_subplot(nrows, ncols, i + 1, **subplot_kw)
         if on_right(i):
             orig_ax = ax
             ax = ax.twinx()
@@ -2079,11 +2085,13 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         if sharex and nrows > 1:
             for i, ax in enumerate(axarr):
                 if np.ceil(float(i + 1) / ncols) < nrows:  # only last row
-                    [label.set_visible(False) for label in ax.get_xticklabels()]
+                    [label.set_visible(
+                        False) for label in ax.get_xticklabels()]
         if sharey and ncols > 1:
             for i, ax in enumerate(axarr):
                 if (i % ncols) != 0:  # only first column
-                    [label.set_visible(False) for label in ax.get_yticklabels()]
+                    [label.set_visible(
+                        False) for label in ax.get_yticklabels()]
 
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
@@ -2099,6 +2107,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     return fig, axes
 
+
 def _get_xlim(lines):
     import pandas.tseries.converter as conv
     left, right = np.inf, -np.inf
@@ -2107,6 +2116,7 @@ def _get_xlim(lines):
         left = min(_maybe_convert_date(x[0]), left)
         right = max(_maybe_convert_date(x[-1]), right)
     return left, right
+
 
 def _maybe_convert_date(x):
     if not com.is_integer(x):

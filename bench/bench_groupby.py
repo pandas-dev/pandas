@@ -12,16 +12,19 @@ foo2 = list(foo)
 random.shuffle(foo)
 random.shuffle(foo2)
 
-df = DataFrame({'A' : foo,
-                'B' : foo2,
-                'C' : np.random.randn(n * k)})
+df = DataFrame({'A': foo,
+                'B': foo2,
+                'C': np.random.randn(n * k)})
 
 import pandas._sandbox as sbx
+
 
 def f():
     table = sbx.StringHashTable(len(df))
     ret = table.factorize(df['A'])
     return ret
+
+
 def g():
     table = sbx.PyObjectHashTable(len(df))
     ret = table.factorize(df['A'])

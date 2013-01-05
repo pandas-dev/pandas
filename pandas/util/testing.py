@@ -114,7 +114,7 @@ def assert_almost_equal(a, b):
 
     if isinstance(a, (bool, float, int)):
         if np.isinf(a):
-            assert np.isinf(b), err_msg(a,b)
+            assert np.isinf(b), err_msg(a, b)
         # case for zero
         elif abs(a) < 1e-5:
             np.testing.assert_almost_equal(
@@ -202,6 +202,7 @@ def assert_panel_equal(left, right, check_panel_type=False):
     for col in right:
         assert(col in left)
 
+
 def assert_panel4d_equal(left, right):
     assert(left.labels.equals(right.labels))
     assert(left.items.equals(right.items))
@@ -214,6 +215,7 @@ def assert_panel4d_equal(left, right):
 
     for col in right:
         assert(col in left)
+
 
 def assert_contains_all(iterable, dic):
     for k in iterable:
@@ -332,9 +334,11 @@ def makePanel(nper=None):
     data = dict((c, makeTimeDataFrame(nper)) for c in cols)
     return Panel.fromDict(data)
 
+
 def makePanel4D(nper=None):
-    return Panel4D(dict(l1 = makePanel(nper), l2 = makePanel(nper),
-                        l3 = makePanel(nper)))
+    return Panel4D(dict(l1=makePanel(nper), l2=makePanel(nper),
+                        l3=makePanel(nper)))
+
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
@@ -362,15 +366,15 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     if ndupe_l is None:
         ndupe_l = [1] * nentries
     assert len(ndupe_l) <= nentries
-    assert names is None or names == False or names == True or len(names) \
-        == nlevels
+    assert (names is None or names is False
+            or names is True or len(names) is nlevels)
     assert idx_type is None or \
-           (idx_type in ('i', 'f', 's', 'u', 'dt') and nlevels == 1)
+        (idx_type in ('i', 'f', 's', 'u', 'dt') and nlevels == 1)
 
-    if names == True:
+    if names is True:
         # build default names
         names = [prefix + str(i) for i in range(nlevels)]
-    if names == False:
+    if names is False:
         # pass None to index constructor for no name
         names = None
 
@@ -399,7 +403,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     tuples = []
     for i in range(nlevels):
-        #build a list of lists to create the index from
+        # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
         cnt = Counter()
         for j in range(div_factor):
@@ -409,7 +413,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         result = list(sorted(cnt.elements()))[:nentries]
         tuples.append(result)
 
-    tuples=zip(*tuples)
+    tuples = zip(*tuples)
 
     # convert tuples to index
     if nentries == 1:
@@ -417,6 +421,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     else:
         index = MultiIndex.from_tuples(tuples, names=names)
     return index
+
 
 def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
                         c_idx_nlevels=1, r_idx_nlevels=1, data_gen_f=None,
@@ -476,9 +481,9 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or \
-           (r_idx_type in ('i', 'f', 's', 'u', 'dt') and r_idx_nlevels == 1)
+        (r_idx_type in ('i', 'f', 's', 'u', 'dt') and r_idx_nlevels == 1)
     assert c_idx_type is None or \
-           (c_idx_type in ('i', 'f', 's', 'u', 'dt') and c_idx_nlevels == 1)
+        (c_idx_type in ('i', 'f', 's', 'u', 'dt') and c_idx_nlevels == 1)
 
     columns = makeCustomIndex(ncols, nlevels=c_idx_nlevels, prefix='C',
                               names=c_idx_names, ndupe_l=c_ndupe_l,
@@ -489,11 +494,12 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
 
     # by default, generate data based on location
     if data_gen_f is None:
-        data_gen_f = lambda r, c: "R%dC%d" % (r,c)
+        data_gen_f = lambda r, c: "R%dC%d" % (r, c)
 
     data = [[data_gen_f(r, c) for c in range(ncols)] for r in range(nrows)]
 
     return DataFrame(data, index, columns, dtype=dtype)
+
 
 def add_nans(panel):
     I, J, N = panel.shape
@@ -502,10 +508,12 @@ def add_nans(panel):
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
 
+
 def add_nans_panel4d(panel4d):
     for l, label in enumerate(panel4d.labels):
         panel = panel4d[label]
         add_nans(panel)
+
 
 class TestSubDict(dict):
     def __init__(self, *args, **kwargs):

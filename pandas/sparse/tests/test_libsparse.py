@@ -16,37 +16,38 @@ import pandas._sparse as splib
 
 TEST_LENGTH = 20
 
-plain_case = dict(xloc = [0, 7, 15],
-                  xlen = [3, 5, 5],
-                  yloc = [2, 9, 14],
-                  ylen = [2, 3, 5],
-                  intersect_loc = [2, 9, 15],
-                  intersect_len = [1, 3, 4])
-delete_blocks = dict(xloc = [0, 5],
-                     xlen = [4, 4],
-                     yloc = [1],
-                     ylen = [4],
-                     intersect_loc = [1],
-                     intersect_len = [3])
-split_blocks = dict(xloc = [0],
-                    xlen = [10],
-                    yloc = [0, 5],
-                    ylen = [3, 7],
-                    intersect_loc = [0, 5],
-                    intersect_len = [3, 5])
-skip_block = dict(xloc = [10],
-                  xlen = [5],
-                  yloc = [0, 12],
-                  ylen = [5, 3],
-                  intersect_loc = [12],
-                  intersect_len = [3])
+plain_case = dict(xloc=[0, 7, 15],
+                  xlen=[3, 5, 5],
+                  yloc=[2, 9, 14],
+                  ylen=[2, 3, 5],
+                  intersect_loc=[2, 9, 15],
+                  intersect_len=[1, 3, 4])
+delete_blocks = dict(xloc=[0, 5],
+                     xlen=[4, 4],
+                     yloc=[1],
+                     ylen=[4],
+                     intersect_loc=[1],
+                     intersect_len=[3])
+split_blocks = dict(xloc=[0],
+                    xlen=[10],
+                    yloc=[0, 5],
+                    ylen=[3, 7],
+                    intersect_loc=[0, 5],
+                    intersect_len=[3, 5])
+skip_block = dict(xloc=[10],
+                  xlen=[5],
+                  yloc=[0, 12],
+                  ylen=[5, 3],
+                  intersect_loc=[12],
+                  intersect_len=[3])
 
-no_intersect = dict(xloc = [0, 10],
-                    xlen = [4, 6],
-                    yloc = [5, 17],
-                    ylen = [4, 2],
-                    intersect_loc = [],
-                    intersect_len = [])
+no_intersect = dict(xloc=[0, 10],
+                    xlen=[4, 6],
+                    yloc=[5, 17],
+                    ylen=[4, 2],
+                    intersect_loc=[],
+                    intersect_len=[])
+
 
 def check_cases(_check_case):
     def _check_case_dict(case):
@@ -62,6 +63,7 @@ def check_cases(_check_case):
     # one or both is empty
     _check_case([0], [5], [], [], [], [])
     _check_case([], [], [], [], [], [])
+
 
 def test_index_make_union():
     def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
@@ -83,18 +85,24 @@ def test_index_make_union():
     y:     ----
     r: --------
     """
-    xloc = [0]; xlen = [5]
-    yloc = [5]; ylen = [4]
-    eloc = [0]; elen = [9]
+    xloc = [0]
+    xlen = [5]
+    yloc = [5]
+    ylen = [4]
+    eloc = [0]
+    elen = [9]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     """
     x: -----     -----
     y:   -----          --
     """
-    xloc = [0, 10]; xlen = [5, 5]
-    yloc = [2, 17]; ylen = [5, 2]
-    eloc = [0, 10, 17]; elen = [7, 5, 2]
+    xloc = [0, 10]
+    xlen = [5, 5]
+    yloc = [2, 17]
+    ylen = [5, 2]
+    eloc = [0, 10, 17]
+    elen = [7, 5, 2]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     """
@@ -102,9 +110,12 @@ def test_index_make_union():
     y:    -------
     r: ----------
     """
-    xloc = [1]; xlen = [5]
-    yloc = [3]; ylen = [5]
-    eloc = [1]; elen = [7]
+    xloc = [1]
+    xlen = [5]
+    yloc = [3]
+    ylen = [5]
+    eloc = [1]
+    elen = [7]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     """
@@ -112,9 +123,12 @@ def test_index_make_union():
     y:    -------
     r: -------------
     """
-    xloc = [2, 10]; xlen = [4, 4]
-    yloc = [4]; ylen = [8]
-    eloc = [2]; elen = [12]
+    xloc = [2, 10]
+    xlen = [4, 4]
+    yloc = [4]
+    ylen = [8]
+    eloc = [2]
+    elen = [12]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     """
@@ -122,9 +136,12 @@ def test_index_make_union():
     y: -------
     r: -------------
     """
-    xloc = [0, 5]; xlen = [3, 5]
-    yloc = [0]; ylen = [7]
-    eloc = [0]; elen = [10]
+    xloc = [0, 5]
+    xlen = [3, 5]
+    yloc = [0]
+    ylen = [7]
+    eloc = [0]
+    elen = [10]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     """
@@ -132,9 +149,12 @@ def test_index_make_union():
     y:    -------  ---
     r: -------------
     """
-    xloc = [2, 10]; xlen = [4, 4]
-    yloc = [4, 13]; ylen = [8, 4]
-    eloc = [2]; elen = [15]
+    xloc = [2, 10]
+    xlen = [4, 4]
+    yloc = [4, 13]
+    ylen = [8, 4]
+    eloc = [2]
+    elen = [15]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     """
@@ -142,21 +162,28 @@ def test_index_make_union():
     y:   ----  ----   ---
     r: ----------------------
     """
-    xloc = [2]; xlen = [15]
-    yloc = [4, 9, 14]; ylen = [3, 2, 2]
-    eloc = [2]; elen = [15]
+    xloc = [2]
+    xlen = [15]
+    yloc = [4, 9, 14]
+    ylen = [3, 2, 2]
+    eloc = [2]
+    elen = [15]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     """
     x: ----       ---
     y:       ---       ---
     """
-    xloc = [0, 10]; xlen = [3, 3]
-    yloc = [5, 15]; ylen = [2, 2]
-    eloc = [0, 5, 10, 15]; elen = [3, 2, 3, 2]
+    xloc = [0, 10]
+    xlen = [3, 3]
+    yloc = [5, 15]
+    ylen = [2, 2]
+    eloc = [0, 5, 10, 15]
+    elen = [3, 2, 3, 2]
     _check_case(xloc, xlen, yloc, ylen, eloc, elen)
 
     # TODO: different-length index objects
+
 
 def test_lookup():
 
@@ -179,6 +206,7 @@ def test_lookup():
     _check(iindex)
 
     # corner cases
+
 
 def test_intersect():
     def _check_correct(a, b, expected):
@@ -204,6 +232,7 @@ def test_intersect():
                           longer_index.to_int_index())
 
     check_cases(_check_case)
+
 
 class TestBlockIndex(TestCase):
 
@@ -243,6 +272,7 @@ class TestBlockIndex(TestCase):
         index = BlockIndex(10, [0, 5], [4, 5])
         self.assert_(index.to_block_index() is index)
 
+
 class TestIntIndex(TestCase):
 
     def test_equals(self):
@@ -266,6 +296,7 @@ class TestIntIndex(TestCase):
     def test_to_int_index(self):
         index = IntIndex(10, [2, 3, 4, 5, 6])
         self.assert_(index.to_int_index() is index)
+
 
 class TestSparseOperators(TestCase):
 
@@ -309,7 +340,8 @@ class TestSparseOperators(TestCase):
             xfill = 0
             yfill = 2
 
-            result_block_vals, rb_index = sparse_op(x, xindex, xfill, y, yindex, yfill)
+            result_block_vals, rb_index = sparse_op(
+                x, xindex, xfill, y, yindex, yfill)
             result_int_vals, ri_index = sparse_op(x, xdindex, xfill,
                                                   y, ydindex, yfill)
 
@@ -334,6 +366,8 @@ class TestSparseOperators(TestCase):
 # too cute? oh but how I abhor code duplication
 
 check_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
+
+
 def make_nanoptestf(op):
     def f(self):
         sparse_op = getattr(splib, 'sparse_nan%s' % op)
@@ -341,6 +375,7 @@ def make_nanoptestf(op):
         self._nan_op_tests(sparse_op, python_op)
     f.__name__ = 'test_nan%s' % op
     return f
+
 
 def make_optestf(op):
     def f(self):
@@ -360,6 +395,5 @@ for op in check_ops:
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-

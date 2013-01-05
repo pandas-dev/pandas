@@ -129,7 +129,8 @@ class VAR(object):
         for col in self._columns:
             d[col] = {}
             for i in xrange(1, 1 + self._p):
-                lagged_data = self._lagged_data[i].filter(self._columns - [col])
+                lagged_data = self._lagged_data[i].filter(
+                    self._columns - [col])
 
                 for key, value in lagged_data.iteritems():
                     d[col][_make_param_name(i, key)] = value
@@ -312,9 +313,9 @@ BIC:                            %(bic).3f
 
     def _forecast_cov_raw(self, n):
         resid = self._forecast_cov_resid_raw(n)
-        #beta = self._forecast_cov_beta_raw(n)
+        # beta = self._forecast_cov_beta_raw(n)
 
-        #return [a + b for a, b in izip(resid, beta)]
+        # return [a + b for a, b in izip(resid, beta)]
         # TODO: ignore the beta forecast std err until it's verified
 
         return resid
@@ -428,7 +429,7 @@ BIC:                            %(bic).3f
         """
         k = self._k
         b = self._beta_raw
-        return [b[k * i : k * (i + 1)].T for i in xrange(self._p)]
+        return [b[k * i: k * (i + 1)].T for i in xrange(self._p)]
 
     @cache_readonly
     def _lagged_data(self):

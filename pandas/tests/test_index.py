@@ -24,8 +24,10 @@ import pandas.tseries.offsets as offsets
 import pandas as pd
 from pandas.lib import Timestamp
 
+
 class TestIndex(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def setUp(self):
         self.unicodeIndex = tm.makeUnicodeIndex(100)
         self.strIndex = tm.makeStringIndex(100)
@@ -80,7 +82,6 @@ class TestIndex(unittest.TestCase):
         # what to do here?
         # arr = np.array(5.)
         # self.assertRaises(Exception, arr.view, Index)
-
 
     def test_constructor_corner(self):
         # corner case
@@ -182,7 +183,7 @@ class TestIndex(unittest.TestCase):
             self.assertEqual(subIndex.get_loc(val), i)
 
     def test_fancy(self):
-        sl = self.strIndex[[1,2,3]]
+        sl = self.strIndex[[1, 2, 3]]
         for i in sl:
             self.assertEqual(i, sl[sl.get_loc(i)])
 
@@ -447,19 +448,20 @@ class TestIndex(unittest.TestCase):
         expected = self.strIndex[1:]
         self.assert_(dropped.equals(expected))
 
-        ser = Index([1,2,3])
+        ser = Index([1, 2, 3])
         dropped = ser.drop(1)
-        expected = Index([2,3])
+        expected = Index([2, 3])
         self.assert_(dropped.equals(expected))
 
     def test_tuple_union_bug(self):
         import pandas
         import numpy as np
 
-        aidx1 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B')], dtype=[('num',
-        int),('let', 'a1')])
-        aidx2 = np.array([(1, 'A'),(2, 'A'),(1, 'B'),(2, 'B'),(1,'C'),(2,
-        'C')], dtype=[('num', int),('let', 'a1')])
+        aidx1 = np.array(
+            [(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')], dtype=[('num',
+                                                              int), ('let', 'a1')])
+        aidx2 = np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B'), (1, 'C'), (2,
+                                                                             'C')], dtype=[('num', int), ('let', 'a1')])
 
         idx1 = pandas.Index(aidx1)
         idx2 = pandas.Index(aidx2)
@@ -467,7 +469,7 @@ class TestIndex(unittest.TestCase):
         # intersection broken?
         int_idx = idx1.intersection(idx2)
         # needs to be 1d like idx1 and idx2
-        expected = idx1[:4] # pandas.Index(sorted(set(idx1) & set(idx2)))
+        expected = idx1[:4]  # pandas.Index(sorted(set(idx1) & set(idx2)))
         self.assert_(int_idx.ndim == 1)
         self.assert_(int_idx.equals(expected))
 
@@ -506,7 +508,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(result.dtype == np.bool_)
 
     def test_boolean_cmp(self):
-        values = [1,2,3,4]
+        values = [1, 2, 3, 4]
 
         idx = Index(values)
         res = (idx == values)
@@ -522,6 +524,7 @@ class TestIndex(unittest.TestCase):
 
 class TestInt64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def setUp(self):
         self.index = Int64Index(np.arange(0, 20, 2))
 
@@ -809,7 +812,7 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(np.array_equal(result, expected))
 
     def test_intersect_str_dates(self):
-        dt_dates = [datetime(2012,2,9) , datetime(2012,2,22)]
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
 
         i1 = Index(dt_dates, dtype=object)
         i2 = Index(['aa'], dtype=object)
@@ -847,8 +850,8 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(result.dtype == np.object_)
 
     def test_take_preserve_name(self):
-        index = Int64Index([1,2,3,4], name='foo')
-        taken = index.take([3,0,1])
+        index = Int64Index([1, 2, 3, 4], name='foo')
+        taken = index.take([3, 0, 1])
         self.assertEqual(index.name, taken.name)
 
     def test_int_name_format(self):
@@ -860,13 +863,14 @@ class TestInt64Index(unittest.TestCase):
         repr(df)
 
     def test_print_unicode_columns(self):
-        df=pd.DataFrame({u"\u05d0":[1,2,3],"\u05d1":[4,5,6],"c":[7,8,9]})
-        repr(df.columns) # should not raise UnicodeDecodeError
+        df = pd.DataFrame(
+            {u"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
+        repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_summary(self):
         r = repr(pd.Index(np.arange(10000)))
         self.assertTrue(len(r) < 100)
-        self.assertTrue( "..." in r)
+        self.assertTrue("..." in r)
 
     def test_unicode_string_with_unicode(self):
         idx = Index(range(1000))
@@ -883,8 +887,10 @@ class TestInt64Index(unittest.TestCase):
         else:
             str(idx)
 
+
 class TestMultiIndex(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def setUp(self):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
         minor_axis = Index(['one', 'two'])
@@ -1083,7 +1089,7 @@ class TestMultiIndex(unittest.TestCase):
 
         # slice
         result = self.index[2:5]
-        expected = self.index[[2,3,4]]
+        expected = self.index[[2, 3, 4]]
         self.assert_(result.equals(expected))
 
         # boolean
@@ -1282,7 +1288,7 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex(levels=[major_axis, minor_axis],
                            labels=[major_labels, minor_labels])
         idx1 = index[:5]
-        idx2 = index[[1,3,5]]
+        idx2 = index[[1, 3, 5]]
 
         r1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, [1, 3, -1])
@@ -1304,8 +1310,8 @@ class TestMultiIndex(unittest.TestCase):
         rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
 
-        r1 = idx1.get_indexer([1,2,3])
-        self.assert_( (r1 == [-1, -1, -1]).all() )
+        r1 = idx1.get_indexer([1, 2, 3])
+        self.assert_((r1 == [-1, -1, -1]).all())
 
         # self.assertRaises(Exception, idx1.get_indexer,
         #                   list(list(zip(*idx2._tuple_index))[0]))
@@ -1496,7 +1502,7 @@ class TestMultiIndex(unittest.TestCase):
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
 
-        idx = MultiIndex.from_tuples( ((1,2),(3,4)), names=['a', 'b'] )
+        idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
         self.assertEquals(len(idx), 2)
 
     def test_argsort(self):
@@ -1547,7 +1553,6 @@ class TestMultiIndex(unittest.TestCase):
 
         sorted_idx, _ = index.sortlevel(1, ascending=False)
         self.assert_(sorted_idx.equals(expected[::-1]))
-
 
     def test_dims(self):
         pass
@@ -1625,7 +1630,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assertRaises(Exception, self.index.insert, 0, ('foo2',))
 
     def test_take_preserve_name(self):
-        taken = self.index.take([3,0,1])
+        taken = self.index.take([3, 0, 1])
         self.assertEqual(taken.names, self.index.names)
 
     def test_join_level(self):
@@ -1639,7 +1644,8 @@ class TestMultiIndex(unittest.TestCase):
             self.assert_(join_index.levels[1].equals(exp_level))
 
             # pare down levels
-            mask = np.array([x[1] in exp_level for x in self.index], dtype=bool)
+            mask = np.array(
+                [x[1] in exp_level for x in self.index], dtype=bool)
             exp_values = self.index.values[mask]
             self.assert_(np.array_equal(join_index.values, exp_values))
 
@@ -1716,13 +1722,13 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(result, exp)
 
     def test_repr_with_unicode_data(self):
-        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
-        index=pd.DataFrame(d).set_index(["a","b"]).index
-        self.assertFalse("\\u" in repr(index)) # we don't want unicode-escaped
+        d = {"a": [u"\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+        index = pd.DataFrame(d).set_index(["a", "b"]).index
+        self.assertFalse("\\u" in repr(index))  # we don't want unicode-escaped
 
     def test_unicode_string_with_unicode(self):
-        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
-        idx=pd.DataFrame(d).set_index(["a","b"]).index
+        d = {"a": [u"\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+        idx = pd.DataFrame(d).set_index(["a", "b"]).index
 
         if py3compat.PY3:
             str(idx)
@@ -1730,13 +1736,14 @@ class TestMultiIndex(unittest.TestCase):
             unicode(idx)
 
     def test_bytestring_with_unicode(self):
-        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
-        idx=pd.DataFrame(d).set_index(["a","b"]).index
+        d = {"a": [u"\u05d0", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
+        idx = pd.DataFrame(d).set_index(["a", "b"]).index
 
         if py3compat.PY3:
             bytes(idx)
         else:
             str(idx)
+
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index
@@ -1745,6 +1752,6 @@ def test_get_combined_index():
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
-                         # '--with-coverage', '--cover-package=pandas.core'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)

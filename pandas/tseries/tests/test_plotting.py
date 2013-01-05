@@ -42,14 +42,14 @@ class TestTSPlot(unittest.TestCase):
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
                                     columns=['A', 'B', 'C'])
-                                    for x in idx]
+                          for x in idx]
 
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q-DEC', 'A', '1B30Min']
         idx = [date_range('12/31/1999', freq=x, periods=100) for x in freq]
         self.datetime_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.datetime_df = [DataFrame(np.random.randn(len(x), 3), index=x,
-                                    columns=['A', 'B', 'C'])
-                                    for x in idx]
+                                      columns=['A', 'B', 'C'])
+                            for x in idx]
 
     @slow
     def test_frame_inferred(self):
@@ -103,11 +103,11 @@ class TestTSPlot(unittest.TestCase):
         plt.close('all')
 
         ts = tm.makeTimeSeries()
-        ts.plot(style='b-', color='#000099') #works
+        ts.plot(style='b-', color='#000099')  # works
 
         plt.close('all')
         s = ts.reset_index(drop=True)
-        s.plot(style='b-', color='#000099') #non-tsplot
+        s.plot(style='b-', color='#000099')  # non-tsplot
 
     @slow
     def test_high_freq(self):
@@ -222,7 +222,7 @@ class TestTSPlot(unittest.TestCase):
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
 
         sec = 1. / 24 / 60 / 60
-        self.assert_((np.fabs(diffs[1:] - [sec, sec*2, sec]) < 1e-8).all())
+        self.assert_((np.fabs(diffs[1:] - [sec, sec * 2, sec]) < 1e-8).all())
 
         plt.clf()
         fig.add_subplot(111)
@@ -236,7 +236,7 @@ class TestTSPlot(unittest.TestCase):
     def test_irregular_datetime64_repr_bug(self):
         import matplotlib.pyplot as plt
         ser = tm.makeTimeSeries()
-        ser = ser[[0,1,2,7]]
+        ser = ser[[0, 1, 2, 7]]
 
         fig = plt.gcf()
         plt.clf()
@@ -313,11 +313,11 @@ class TestTSPlot(unittest.TestCase):
         ax = ser.plot()
         _test(ax)
 
-        df = DataFrame({'a' : ser, 'b' : ser + 1})
+        df = DataFrame({'a': ser, 'b': ser + 1})
         ax = df.plot()
         _test(ax)
 
-        df = DataFrame({'a' : ser, 'b' : ser + 1})
+        df = DataFrame({'a': ser, 'b': ser + 1})
         axes = df.plot(subplots=True)
         [_test(ax) for ax in axes]
 
@@ -388,7 +388,7 @@ class TestTSPlot(unittest.TestCase):
     def test_finder_monthly_long(self):
         import matplotlib.pyplot as plt
         plt.close('all')
-        rng = period_range('1988Q1', periods=24*12, freq='M')
+        rng = period_range('1988Q1', periods=24 * 12, freq='M')
         ser = Series(np.random.randn(len(rng)), rng)
         ax = ser.plot()
         xaxis = ax.get_xaxis()
@@ -705,12 +705,12 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_irreg_dtypes(self):
-        #date
+        # date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
         df = DataFrame(np.random.randn(len(idx), 3), Index(idx, dtype=object))
         _check_plot_works(df.plot)
 
-        #np.datetime64
+        # np.datetime64
         idx = date_range('1/1/2000', periods=10)
         idx = idx[[0, 2, 5, 9]].asobject
         df = DataFrame(np.random.randn(len(idx), 3), idx)
@@ -724,8 +724,8 @@ class TestTSPlot(unittest.TestCase):
         t = datetime(1, 1, 1, 3, 30, 0)
         deltas = np.random.randint(1, 20, 3).cumsum()
         ts = np.array([(t + timedelta(minutes=int(x))).time() for x in deltas])
-        df = DataFrame({'a' : np.random.randn(len(ts)),
-                        'b' : np.random.randn(len(ts))},
+        df = DataFrame({'a': np.random.randn(len(ts)),
+                        'b': np.random.randn(len(ts))},
                        index=ts)
         ax = df.plot()
 
@@ -763,8 +763,8 @@ class TestTSPlot(unittest.TestCase):
         deltas = np.random.randint(1, 20, 3).cumsum()
         ts = np.array([(t + timedelta(microseconds=int(x))).time()
                        for x in deltas])
-        df = DataFrame({'a' : np.random.randn(len(ts)),
-                        'b' : np.random.randn(len(ts))},
+        df = DataFrame({'a': np.random.randn(len(ts)),
+                        'b': np.random.randn(len(ts))},
                        index=ts)
         ax = df.plot()
 
@@ -802,7 +802,7 @@ class TestTSPlot(unittest.TestCase):
         plt.clf()
         ax = fig.add_subplot(211)
 
-        #ts
+        # ts
         df = tm.makeTimeDataFrame()
         ax = df.plot(secondary_y=['A', 'B'])
         leg = ax.get_legend()
@@ -843,7 +843,7 @@ class TestTSPlot(unittest.TestCase):
         # TODO: color cycle problems
         self.assert_(len(colors) == 4)
 
-        #non-ts
+        # non-ts
         df = tm.makeDataFrame()
         plt.clf()
         ax = fig.add_subplot(211)
@@ -915,6 +915,8 @@ class TestTSPlot(unittest.TestCase):
                            line2.get_xydata()[:, 0])
 
 PNG_PATH = 'tmp.png'
+
+
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
 
@@ -949,5 +951,5 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     os.remove(PNG_PATH)
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

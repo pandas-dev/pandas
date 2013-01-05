@@ -17,20 +17,22 @@ from pandas.util import py3compat
 
 _multiprocess_can_split_ = True
 
+
 def test_is_sequence():
-    is_seq=com._is_sequence
-    assert(is_seq((1,2)))
-    assert(is_seq([1,2]))
+    is_seq = com._is_sequence
+    assert(is_seq((1, 2)))
+    assert(is_seq([1, 2]))
     assert(not is_seq("abcd"))
     assert(not is_seq(u"abcd"))
     assert(not is_seq(np.int64))
+
 
 def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
     assert not notnull(np.NaN)
 
-    with cf.option_context("mode.use_inf_as_null",False):
+    with cf.option_context("mode.use_inf_as_null", False):
         assert notnull(np.inf)
         assert notnull(-np.inf)
 
@@ -38,7 +40,7 @@ def test_notnull():
         result = notnull(arr)
         assert result.all()
 
-    with cf.option_context("mode.use_inf_as_null",True):
+    with cf.option_context("mode.use_inf_as_null", True):
         assert not notnull(np.inf)
         assert not notnull(-np.inf)
 
@@ -46,11 +48,12 @@ def test_notnull():
         result = notnull(arr)
         assert result.sum() == 2
 
-    with cf.option_context("mode.use_inf_as_null",False):
+    with cf.option_context("mode.use_inf_as_null", False):
         float_series = Series(np.random.randn(5))
         obj_series = Series(np.random.randn(5), dtype=object)
         assert(isinstance(notnull(float_series), Series))
         assert(isinstance(notnull(obj_series), Series))
+
 
 def test_isnull():
     assert not isnull(1.)
@@ -77,7 +80,7 @@ def test_isnull_lists():
     exp = np.array([[False]])
     assert(np.array_equal(result, exp))
 
-    result = isnull([[1],[2]])
+    result = isnull([[1], [2]])
     exp = np.array([[False], [False]])
     assert(np.array_equal(result, exp))
 
@@ -103,18 +106,22 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+
 def test_any_none():
     assert(com._any_none(1, 2, 3, None))
     assert(not com._any_none(1, 2, 3, 4))
+
 
 def test_all_not_none():
     assert(com._all_not_none(1, 2, 3, 4))
     assert(not com._all_not_none(1, 2, 3, None))
     assert(not com._all_not_none(None, None, None, None))
 
+
 def test_rands():
     r = com.rands(10)
     assert(len(r) == 10)
+
 
 def test_adjoin():
     data = [['a', 'b', 'c'],
@@ -126,6 +133,7 @@ def test_adjoin():
 
     assert(adjoined == expected)
 
+
 def test_iterpairs():
     data = [1, 2, 3, 4]
     expected = [(1, 2),
@@ -136,17 +144,18 @@ def test_iterpairs():
 
     assert(result == expected)
 
+
 def test_split_ranges():
     def _bin(x, width):
         "return int(x) as a base2 string of given width"
-        return ''.join(str((x>>i)&1) for i in xrange(width-1,-1,-1))
+        return ''.join(str((x >> i) & 1) for i in xrange(width - 1, -1, -1))
 
     def test_locs(mask):
         nfalse = sum(np.array(mask) == 0)
 
-        remaining=0
+        remaining = 0
         for s, e in com.split_ranges(mask):
-            remaining += e-s
+            remaining += e - s
 
             assert 0 not in mask[s:e]
 
@@ -154,10 +163,10 @@ def test_split_ranges():
         assert remaining + nfalse == len(mask)
 
     # exhaustively test all possible mask sequences of length 8
-    ncols=8
-    for i in range(2**ncols):
-        cols=map(int,list(_bin(i,ncols))) # count up in base2
-        mask=[cols[i] == 1 for i in range(len(cols))]
+    ncols = 8
+    for i in range(2 ** ncols):
+        cols = map(int, list(_bin(i, ncols)))  # count up in base2
+        mask = [cols[i] == 1 for i in range(len(cols))]
         test_locs(mask)
 
     # base cases
@@ -165,23 +174,27 @@ def test_split_ranges():
     test_locs([0])
     test_locs([1])
 
+
 def test_indent():
     s = 'a b c\nd e f'
     result = com.indent(s, spaces=6)
 
     assert(result == '      a b c\n      d e f')
 
+
 def test_banner():
     ban = com.banner('hi')
     assert(ban == ('%s\nhi\n%s' % ('=' * 80, '=' * 80)))
 
+
 def test_map_indices_py():
     data = [4, 3, 2, 1]
-    expected = {4 : 0, 3 : 1, 2 : 2, 1 : 3}
+    expected = {4: 0, 3: 1, 2: 2, 1: 3}
 
     result = com.map_indices_py(data)
 
     assert(result == expected)
+
 
 def test_union():
     a = [1, 2, 3]
@@ -191,6 +204,7 @@ def test_union():
 
     assert((a + b) == union)
 
+
 def test_difference():
     a = [1, 2, 3]
     b = [1, 2, 3, 4, 5, 6]
@@ -198,6 +212,7 @@ def test_difference():
     inter = sorted(com.difference(b, a))
 
     assert([4, 5, 6] == inter)
+
 
 def test_intersection():
     a = [1, 2, 3]
@@ -207,16 +222,18 @@ def test_intersection():
 
     assert(a == inter)
 
+
 def test_groupby():
     values = ['foo', 'bar', 'baz', 'baz2', 'qux', 'foo3']
-    expected = {'f' : ['foo', 'foo3'],
-                'b' : ['bar', 'baz', 'baz2'],
-                'q' : ['qux']}
+    expected = {'f': ['foo', 'foo3'],
+                'b': ['bar', 'baz', 'baz2'],
+                'q': ['qux']}
 
     grouped = com.groupby(values, lambda x: x[0])
 
     for k, v in grouped:
         assert v == expected[k]
+
 
 def test_ensure_int32():
     values = np.arange(10, dtype=np.int32)
@@ -242,26 +259,26 @@ def test_ensure_int32():
 #         expected = u"\u05d0".encode('utf-8')
 #         assert (result == expected)
 
+
 def test_pprint_thing():
     if py3compat.PY3:
         raise nose.SkipTest
 
-    pp_t=com.pprint_thing
+    pp_t = com.pprint_thing
 
-    assert(pp_t('a')==u'a')
-    assert(pp_t(u'a')==u'a')
-    assert(pp_t(None)=='')
-    assert(pp_t(u'\u05d0')==u'\u05d0')
-    assert(pp_t((u'\u05d0',u'\u05d1'))==u'(\u05d0, \u05d1)')
-    assert(pp_t((u'\u05d0',(u'\u05d1',u'\u05d2')))==
+    assert(pp_t('a') == u'a')
+    assert(pp_t(u'a') == u'a')
+    assert(pp_t(None) == '')
+    assert(pp_t(u'\u05d0') == u'\u05d0')
+    assert(pp_t((u'\u05d0', u'\u05d1')) == u'(\u05d0, \u05d1)')
+    assert(pp_t((u'\u05d0', (u'\u05d1', u'\u05d2'))) ==
            u'(\u05d0, (\u05d1, \u05d2))')
-    assert(pp_t(('foo',u'\u05d0',(u'\u05d0',u'\u05d0')))==
+    assert(pp_t(('foo', u'\u05d0', (u'\u05d0', u'\u05d0'))) ==
            u'(foo, \u05d0, (\u05d0, \u05d0))')
-
 
     # escape embedded tabs in string
     # GH #2038
-    assert not "\t" in pp_t("a\tb",escape_chars=("\t",))
+    assert not "\t" in pp_t("a\tb", escape_chars=("\t",))
 
 
 class TestTake(unittest.TestCase):
@@ -391,7 +408,7 @@ class TestTake(unittest.TestCase):
 
         # test with float64 out buffer
         out = np.empty((len(indexer), arr.shape[1]), dtype='f8')
-        com.take_2d(arr, indexer, out=out) # it works!
+        com.take_2d(arr, indexer, out=out)  # it works!
 
         # axis=1
         result = com.take_2d(arr, indexer, axis=1)
@@ -404,5 +421,5 @@ class TestTake(unittest.TestCase):
         tm.assert_almost_equal(result, expected)
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

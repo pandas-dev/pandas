@@ -117,7 +117,7 @@ def ols(**kwargs):
                 del kwargs[rolling_field]
 
         if panel:
-            if pool == False:
+            if pool is False:
                 klass = NonPooledPanelOLS
             else:
                 klass = PanelOLS
@@ -125,7 +125,7 @@ def ols(**kwargs):
             klass = OLS
     else:
         if panel:
-            if pool == False:
+            if pool is False:
                 klass = NonPooledPanelOLS
             else:
                 klass = MovingPanelOLS

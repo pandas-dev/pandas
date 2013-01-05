@@ -156,8 +156,8 @@ class _Unstacker(object):
 
         # is there a simpler / faster way of doing this?
         for i in xrange(values.shape[1]):
-            chunk = new_values[:, i * width : (i + 1) * width]
-            mask_chunk = new_mask[:, i * width : (i + 1) * width]
+            chunk = new_values[:, i * width: (i + 1) * width]
+            mask_chunk = new_mask[:, i * width: (i + 1) * width]
 
             chunk.flat[self.mask] = self.sorted_values[:, i]
             mask_chunk.flat[self.mask] = True
@@ -396,9 +396,10 @@ def _unstack_frame(obj, level):
                                value_columns=obj.columns)
         return unstacker.get_result()
 
+
 def get_compressed_ids(labels, sizes):
     # no overflow
-    if _long_prod(sizes) < 2**63:
+    if _long_prod(sizes) < 2 ** 63:
         group_index = get_group_index(labels, sizes)
         comp_index, obs_ids = _compress_group_index(group_index)
     else:
@@ -407,9 +408,9 @@ def get_compressed_ids(labels, sizes):
         for v in labels:
             mask |= v < 0
 
-        while _long_prod(sizes) >= 2**63:
+        while _long_prod(sizes) >= 2 ** 63:
             i = len(sizes)
-            while _long_prod(sizes[:i]) >= 2**63:
+            while _long_prod(sizes[:i]) >= 2 ** 63:
                 i -= 1
 
             rem_index, rem_ids = get_compressed_ids(labels[:i],
@@ -421,11 +422,13 @@ def get_compressed_ids(labels, sizes):
 
     return comp_index, obs_ids
 
+
 def _long_prod(vals):
     result = 1L
     for x in vals:
         result *= x
     return result
+
 
 def stack(frame, level=-1, dropna=True):
     """
@@ -795,6 +798,7 @@ def block2d_to_block3d(values, items, shape, major_labels, minor_labels,
 
     return make_block(pvalues, items, ref_items)
 
+
 def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
     """ pivot to the labels shape """
     from pandas.core.internals import make_block
@@ -804,7 +808,7 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
     # Create observation selection vector using major and minor
     # labels, for converting to panel format.
-    selector = factor_indexer(shape[1:],labels)
+    selector = factor_indexer(shape[1:], labels)
     mask = np.zeros(np.prod(shape), dtype=bool)
     mask.put(selector, True)
 
@@ -824,7 +828,8 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
     return make_block(pvalues, items, ref_items)
 
+
 def factor_indexer(shape, labels):
     """ given a tuple of shape and a list of Factor lables, return the expanded label indexer """
-    mult   = np.array(shape)[::-1].cumprod()[::-1]
-    return np.sum(np.array(labels).T * np.append(mult,[1]), axis=1).T
+    mult = np.array(shape)[::-1].cumprod()[::-1]
+    return np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T
