@@ -37,7 +37,10 @@ class TestHDFStore(unittest.TestCase):
 
     def tearDown(self):
         self.store.close()
-        os.remove(self.path)
+        try:
+            os.remove(self.path)
+        except:
+            pass
 
     def test_factory_fun(self):
         try:
