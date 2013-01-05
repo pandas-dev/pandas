@@ -233,8 +233,8 @@ class HDFStore(object):
             for k in self.keys():
                 s = self.get_storer(k)
                 if s is not None:
-                    keys.append(str(s.pathname))
-                    values.append(str(s))
+                    keys.append(str(s.pathname or k))
+                    values.append(str(s or 'invalid_HDFStore node'))
 
             output += adjoin(12, keys, values)
         else:
@@ -671,15 +671,22 @@ class HDFStore(object):
     def _create_storer(self, group, value = None, table = False, append = False, **kwargs):
         """ return a suitable Storer class to operate """
 
+        def error(t):
+            raise Exception("cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
+                            (t,group,type(value),table,append,kwargs))
+        
         pt = getattr(group._v_attrs,'pandas_type',None)
         tt = getattr(group._v_attrs,'table_type',None)
 
-        # infer the typ from the passed value
+        # infer the pt from the passed value
         if pt is None:
             if value is None:
                 raise Exception("cannot create a storer if the object is not existing nor a value are passed")
 
-            pt = _TYPE_MAP[type(value)]
+            try:
+                pt = _TYPE_MAP[type(value)]
+            except:
+                error('_TYPE_MAP')
 
             # we are actually a table
             if table or append:
@@ -690,8 +697,7 @@ class HDFStore(object):
             try:
                 return globals()[_STORER_MAP[pt]](self, group, **kwargs)
             except:
-                raise Exception("cannot properly create the storer for: [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
-                                (group,value,table,append,kwargs))
+                error('_STORER_MAP')
 
         # existing node (and must be a table)
         if tt is None:
@@ -718,10 +724,9 @@ class HDFStore(object):
                     pass
 
         try:
-            return globals()[_TABLE_MAP[tt or 'appendable_panel']](self, group, **kwargs)
+            return globals()[_TABLE_MAP[tt]](self, group, **kwargs)
         except:
-            raise Exception("cannot properly create the storer for: [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
-                            (group,value,table,append,kwargs))
+            error('_TABLE_MAP')
 
     def _write_to_group(self, key, value, index=True, table=False, append=False, complib=None, **kwargs):
         group = self.get_node(key)
@@ -1834,12 +1839,13 @@ class Table(Storer):
         if self.is_old_version:
             ver = "[%s]" % '.'.join([ str(x) for x in self.version ])
 
-        return "%-12.12s%s (typ->%s,nrows->%s,indexers->[%s]%s)" % (self.pandas_type,
-                                                                    ver,
-                                                                    self.table_type_short,
-                                                                    self.nrows,
-                                                                    ','.join([ a.name for a in self.index_axes ]),
-                                                                    dc)
+        return "%-12.12s%s (typ->%s,nrows->%s,ncols->%s,indexers->[%s]%s)" % (self.pandas_type,
+                                                                              ver,
+                                                                              self.table_type_short,
+                                                                              self.nrows,
+                                                                              self.ncols,
+                                                                              ','.join([ a.name for a in self.index_axes ]),
+                                                                              dc)
     
     def __getitem__(self, c):
         """ return the axis for c """
@@ -1886,6 +1892,11 @@ class Table(Storer):
     @property
     def axes(self):
         return itertools.chain(self.index_axes, self.values_axes)
+
+    @property
+    def ncols(self):
+        """ the number of total columns in the values axes """
+        return sum([ len(a.values) for a in self.values_axes ])
 
     @property
     def is_transposed(self):

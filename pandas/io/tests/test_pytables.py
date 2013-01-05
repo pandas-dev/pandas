@@ -89,6 +89,10 @@ class TestHDFStore(unittest.TestCase):
         df.ix[3:6,['obj1']] = np.nan
         df = df.consolidate().convert_objects()
         self.store['df'] = df
+        
+        # make a random group in hdf space
+        self.store.handle.createGroup(self.store.handle.root,'bah')
+
         repr(self.store)
         str(self.store)
 
@@ -775,6 +779,20 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_frame_equal(result, df)
 
     def test_append_misc(self):
+
+        # unsuported data types for non-tables
+        p4d = tm.makePanel4D()
+        self.assertRaises(Exception, self.store.put,'p4d',p4d)
+
+        # unsupported data type for table
+        s = tm.makeStringSeries()
+        self.assertRaises(Exception, self.store.append,'s',s)
+
+        # unsuported data types
+        self.assertRaises(Exception, self.store.put,'abc',None)
+        self.assertRaises(Exception, self.store.put,'abc','123')
+        self.assertRaises(Exception, self.store.put,'abc',123)
+        self.assertRaises(Exception, self.store.put,'abc',np.arange(5))
 
         df = tm.makeDataFrame()
         self.store.append('df', df, chunksize=1)
