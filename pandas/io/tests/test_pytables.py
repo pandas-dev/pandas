@@ -1818,7 +1818,10 @@ class TestHDFStore(unittest.TestCase):
                 store.close()
                 tstore.close()
                 import os
-                os.remove(new_f)
+                try:
+                    os.remove(new_f)
+                except:
+                    pass
 
         do_copy()
         do_copy(keys = ['df'])
