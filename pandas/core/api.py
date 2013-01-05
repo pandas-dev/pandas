@@ -27,8 +27,8 @@ from pandas.tseries.index import (DatetimeIndex, Timestamp,
 from pandas.tseries.period import Period, PeriodIndex
 
 # legacy
-from pandas.core.daterange import DateRange # deprecated
+from pandas.core.daterange import DateRange  # deprecated
 import pandas.core.datetools as datetools
 
-from pandas.core.config import get_option,set_option,reset_option,\
-                               describe_option, options
+from pandas.core.config import get_option, set_option, reset_option,\
+    describe_option, options

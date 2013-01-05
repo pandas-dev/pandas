@@ -38,4 +38,3 @@ try:
     from io import BytesIO
 except:
     from cStringIO import StringIO as BytesIO
-

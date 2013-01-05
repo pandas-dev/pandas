@@ -42,11 +42,11 @@ wes = []
 for sz, n in zip(group_sizes, numbers):
     # wes_timer =  timeit.Timer(stmt='better_unique(arr)',
     #                           setup=setup % sz)
-    wes_timer =  timeit.Timer(stmt='_tseries.fast_unique(arr)',
-                              setup=setup % sz)
+    wes_timer = timeit.Timer(stmt='_tseries.fast_unique(arr)',
+                             setup=setup % sz)
 
-    numpy_timer =  timeit.Timer(stmt='np.unique(arr)',
-                                setup=setup % sz)
+    numpy_timer = timeit.Timer(stmt='np.unique(arr)',
+                               setup=setup % sz)
 
     print n
     numpy_result = numpy_timer.timeit(number=n) / n
@@ -57,7 +57,8 @@ for sz, n in zip(group_sizes, numbers):
     wes.append(wes_result)
     numpy.append(numpy_result)
 
-result = DataFrame({'wes' : wes, 'numpy' : numpy}, index=group_sizes)
+result = DataFrame({'wes': wes, 'numpy': numpy}, index=group_sizes)
+
 
 def make_plot(numpy, wes):
     pass

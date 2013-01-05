@@ -12,4 +12,3 @@ for i in range(1, K + 1):
     this_rng = rng2[:-i]
     data[100:] = np.nan
     series[i] = SparseSeries(data, index=this_rng)
-

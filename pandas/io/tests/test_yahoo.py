@@ -11,6 +11,7 @@ from pandas.util.testing import network
 from numpy.testing.decorators import slow
 import urllib2
 
+
 class TestYahoo(unittest.TestCase):
 
     @slow
@@ -19,8 +20,8 @@ class TestYahoo(unittest.TestCase):
         # asserts that yahoo is minimally working and that it throws
         # an excecption when DataReader can't get a 200 response from
         # yahoo
-        start = datetime(2010,1,1)
-        end = datetime(2012,1,24)
+        start = datetime(2010, 1, 1)
+        end = datetime(2012, 1, 24)
 
         try:
             self.assertEquals(
@@ -41,5 +42,5 @@ class TestYahoo(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

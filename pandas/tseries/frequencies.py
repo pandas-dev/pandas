@@ -23,6 +23,7 @@ class FreqGroup(object):
     FR_MIN = 8000
     FR_SEC = 9000
 
+
 class Resolution(object):
 
     RESO_US = 0
@@ -33,14 +34,16 @@ class Resolution(object):
 
     @classmethod
     def get_str(cls, reso):
-        return {RESO_US : 'microsecond',
-                RESO_SEC : 'second',
-                RESO_MIN : 'minute',
-                RESO_HR : 'hour',
-                RESO_DAY : 'day'}.get(reso, 'day')
+        return {RESO_US: 'microsecond',
+                RESO_SEC: 'second',
+                RESO_MIN: 'minute',
+                RESO_HR: 'hour',
+                RESO_DAY: 'day'}.get(reso, 'day')
+
 
 def get_reso_string(reso):
     return Resolution.get_str(reso)
+
 
 def get_to_timestamp_base(base):
     if base <= FreqGroup.FR_WK:
@@ -78,11 +81,11 @@ def get_freq_code(freqstr):
 
     if isinstance(freqstr, tuple):
         if (com.is_integer(freqstr[0]) and
-            com.is_integer(freqstr[1])):
-            #e.g., freqstr = (2000, 1)
+                com.is_integer(freqstr[1])):
+            # e.g., freqstr = (2000, 1)
             return freqstr
         else:
-            #e.g., freqstr = ('T', 5)
+            # e.g., freqstr = ('T', 5)
             try:
                 code = _period_str_to_code(freqstr[0])
                 stride = freqstr[1]

@@ -29,8 +29,9 @@ cython_2d = []
 
 n = 1000
 
+
 def _timeit(stmt, size, k=5, iters=1000):
-    timer =  timeit.Timer(stmt=stmt, setup=setup % (sz, k))
+    timer = timeit.Timer(stmt=stmt, setup=setup % (sz, k))
     return timer.timeit(n) / n
 
 for sz, its in zip(sizes, iters):
@@ -39,9 +40,9 @@ for sz, its in zip(sizes, iters):
     take_2d.append(_timeit('arr.take(indexer, axis=0)', sz, iters=its))
     cython_2d.append(_timeit('lib.take_axis0(arr, indexer)', sz, iters=its))
 
-df = DataFrame({'fancy' : fancy_2d,
-                'take' : take_2d,
-                'cython' : cython_2d})
+df = DataFrame({'fancy': fancy_2d,
+                'take': take_2d,
+                'cython': cython_2d})
 
 print df
 

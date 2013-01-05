@@ -39,6 +39,7 @@ Returns
 aggregated : DataFrame
 """
 
+
 class GroupByError(Exception):
     pass
 
@@ -563,7 +564,6 @@ class Grouper(object):
         return get_splitter(data, comp_ids, ngroups, axis=axis,
                             keep_internal=keep_internal)
 
-
     def _get_group_keys(self):
         if len(self.groupings) == 1:
             return self.levels[0]
@@ -777,7 +777,7 @@ class Grouper(object):
                                                  (counts > 0).view(np.uint8))
                 else:
                     result = lib.row_bool_subset_object(result,
-                                 (counts > 0).view(np.uint8))
+                                                       (counts > 0).view(np.uint8))
             else:
                 result = result[counts > 0]
 
@@ -961,7 +961,6 @@ class BinGrouper(Grouper):
             if edge < n:
                 inds = range(edge, n)
                 yield self.binlabels[-1], data.take(inds, axis=axis)
-
 
     def apply(self, f, data, axis=0, keep_internal=False):
         result_keys = []
@@ -1228,7 +1227,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if (not any_callable and not all_in_columns
         and not any_arraylike and match_axis_length
-        and level is None):
+            and level is None):
         keys = [com._asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
@@ -1759,9 +1758,9 @@ class NDFrameGroupBy(GroupBy):
 
             if isinstance(values[0], np.ndarray):
                 if (isinstance(values[0], Series) and
-                    not _all_indexes_same([x.index for x in values])):
+                        not _all_indexes_same([x.index for x in values])):
                     return self._concat_objects(keys, values,
-                            not_indexed_same=not_indexed_same)
+                                                not_indexed_same=not_indexed_same)
 
                 if self.axis == 0:
                     stacked_values = np.vstack([np.asarray(x)
@@ -2118,6 +2117,7 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata, slice_obj):
         return sdata._get_values(slice_obj)
 
+
 class FrameSplitter(DataSplitter):
 
     def __init__(self, data, labels, ngroups, axis=0, keep_internal=False):
@@ -2141,7 +2141,8 @@ class FrameSplitter(DataSplitter):
         if self.axis == 0:
             return sdata[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1) # ix[:, slice_obj]
+            return sdata._slice(slice_obj, axis=1)  # ix[:, slice_obj]
+
 
 class NDFrameSplitter(DataSplitter):
 
@@ -2201,6 +2202,8 @@ def get_group_index(label_list, shape):
     return group_index
 
 _INT64_MAX = np.iinfo(np.int64).max
+
+
 def _int64_overflow_possible(shape):
     the_prod = 1L
     for x in shape:
@@ -2294,7 +2297,6 @@ class _KeyMapper(object):
                      for table, level in izip(self.tables, self.levels))
 
 
-
 def _get_indices_dict(label_list, keys):
     shape = [len(x) for x in keys]
     group_index = get_group_index(label_list, shape)
@@ -2369,6 +2371,7 @@ _cython_table = {
     np.median: 'median'
 }
 
+
 def _is_numeric_dtype(dt):
     typ = dt.type
     return (issubclass(typ, (np.number, np.bool_))
@@ -2413,7 +2416,7 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(DataFrameGroupBy)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.obj.columns
-                    if isinstance(c, basestring) and py3compat.isidentifier(c)]
+                                   if isinstance(c, basestring) and py3compat.isidentifier(c)]
 
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless

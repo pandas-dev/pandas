@@ -6,7 +6,7 @@ try:
     from . import hashtable, tslib, lib
 except Exception:  # pragma: no cover
     import sys
-    e = sys.exc_info()[1] # Py25 and Py3 current exception syntax conflict
+    e = sys.exc_info()[1]  # Py25 and Py3 current exception syntax conflict
     print e
     if 'No module named lib' in str(e):
         raise ImportError('C extensions not built: if you installed already '

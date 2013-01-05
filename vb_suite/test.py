@@ -22,14 +22,17 @@ bmk = 'c22ca82e0cfba8dc42595103113c7da3'
 bmk = 'e0e651a8e9fbf0270ab68137f8b9df5f'
 bmk = '96bda4b9a60e17acf92a243580f2a0c3'
 
+
 def get_results(bmk):
-    results = con.execute("select * from results where checksum='%s'" % bmk).fetchall()
+    results = con.execute(
+        "select * from results where checksum='%s'" % bmk).fetchall()
     x = Series(dict((t[1], t[3]) for t in results))
     x.index = x.index.map(repo.timestamps.get)
     x = x.sort_index()
     return x
 
 x = get_results(bmk)
+
 
 def graph1():
     dm_getitem = get_results('459225186023853494bc345fd180f395')
@@ -43,6 +46,7 @@ def graph1():
 
     plt.ylabel('ms')
     plt.legend(loc='best')
+
 
 def graph2():
     bm = get_results('96bda4b9a60e17acf92a243580f2a0c3')
@@ -61,4 +65,3 @@ fig.autofmt_xdate()
 plt.xlim([bm.dropna().index[0] - datetools.MonthEnd(),
           bm.dropna().index[-1] + datetools.MonthEnd()])
 plt.ylabel('ms')
-

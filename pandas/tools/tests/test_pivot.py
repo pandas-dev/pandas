@@ -7,27 +7,28 @@ from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
 
+
 class TestPivotTable(unittest.TestCase):
 
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        self.data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
-                                      'bar', 'bar', 'bar', 'bar',
-                                      'foo', 'foo', 'foo'],
-                               'B' : ['one', 'one', 'one', 'two',
-                                      'one', 'one', 'one', 'two',
-                                      'two', 'two', 'one'],
-                               'C' : ['dull', 'dull', 'shiny', 'dull',
-                                      'dull', 'shiny', 'shiny', 'dull',
-                                      'shiny', 'shiny', 'shiny'],
-                               'D' : np.random.randn(11),
-                               'E' : np.random.randn(11),
-                               'F' : np.random.randn(11)})
+        self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
+                                     'bar', 'bar', 'bar', 'bar',
+                                     'foo', 'foo', 'foo'],
+                               'B': ['one', 'one', 'one', 'two',
+                                     'one', 'one', 'one', 'two',
+                                     'two', 'two', 'one'],
+                               'C': ['dull', 'dull', 'shiny', 'dull',
+                                     'dull', 'shiny', 'shiny', 'dull',
+                                     'shiny', 'shiny', 'shiny'],
+                               'D': np.random.randn(11),
+                               'E': np.random.randn(11),
+                               'F': np.random.randn(11)})
 
     def test_pivot_table(self):
         rows = ['A', 'B']
-        cols=  'C'
+        cols = 'C'
         table = pivot_table(self.data, values='D', rows=rows, cols=cols)
 
         table2 = self.data.pivot_table(values='D', rows=rows, cols=cols)
@@ -63,7 +64,7 @@ class TestPivotTable(unittest.TestCase):
 
     def test_pivot_table_multiple(self):
         rows = ['A', 'B']
-        cols=  'C'
+        cols = 'C'
         table = pivot_table(self.data, rows=rows, cols=cols)
         expected = self.data.groupby(rows + [cols]).agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
@@ -136,7 +137,7 @@ class TestPivotTable(unittest.TestCase):
 
         # no rows
         rtable = self.data.pivot_table(cols=['AA', 'BB'], margins=True,
-                                      aggfunc=np.mean)
+                                       aggfunc=np.mean)
         self.assert_(isinstance(rtable, Series))
         for item in ['DD', 'EE', 'FF']:
             gmarg = table[item]['All', '']
@@ -150,12 +151,12 @@ class TestPivotTable(unittest.TestCase):
 
         d = datetime.date.min
         data = list(product(['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
-                [d + datetime.timedelta(i) for i in xrange(20)], [1.0]))
+                            [d + datetime.timedelta(i) for i in xrange(20)], [1.0]))
         df = pandas.DataFrame(data)
-        table = df.pivot_table(values=4, rows=[0,1,3],cols=[2])
+        table = df.pivot_table(values=4, rows=[0, 1, 3], cols=[2])
 
         df2 = df.rename(columns=str)
-        table2 = df2.pivot_table(values='4', rows=['0','1','3'], cols=['2'])
+        table2 = df2.pivot_table(values='4', rows=['0', '1', '3'], cols=['2'])
 
         tm.assert_frame_equal(table, table2)
 
@@ -221,21 +222,22 @@ class TestPivotTable(unittest.TestCase):
 
         self.assert_(pivoted.columns.is_monotonic)
 
+
 class TestCrosstab(unittest.TestCase):
 
     def setUp(self):
-        df = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
-                               'bar', 'bar', 'bar', 'bar',
-                               'foo', 'foo', 'foo'],
-                        'B' : ['one', 'one', 'one', 'two',
-                               'one', 'one', 'one', 'two',
-                               'two', 'two', 'one'],
-                        'C' : ['dull', 'dull', 'shiny', 'dull',
-                               'dull', 'shiny', 'shiny', 'dull',
-                               'shiny', 'shiny', 'shiny'],
-                        'D' : np.random.randn(11),
-                        'E' : np.random.randn(11),
-                        'F' : np.random.randn(11)})
+        df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
+                              'bar', 'bar', 'bar', 'bar',
+                              'foo', 'foo', 'foo'],
+                        'B': ['one', 'one', 'one', 'two',
+                              'one', 'one', 'one', 'two',
+                              'two', 'two', 'one'],
+                        'C': ['dull', 'dull', 'shiny', 'dull',
+                              'dull', 'shiny', 'shiny', 'dull',
+                              'shiny', 'shiny', 'shiny'],
+                        'D': np.random.randn(11),
+                        'E': np.random.randn(11),
+                        'F': np.random.randn(11)})
 
         self.df = df.append(df, ignore_index=True)
 
@@ -250,7 +252,8 @@ class TestCrosstab(unittest.TestCase):
 
         result = crosstab(df['A'], [df['B'], df['C']])
         expected = df.groupby(['A', 'B', 'C']).size()
-        expected = expected.unstack('B').unstack('C').fillna(0).astype(np.int64)
+        expected = expected.unstack(
+            'B').unstack('C').fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 
         result = crosstab([df['B'], df['C']], df['A'])
@@ -314,7 +317,7 @@ class TestCrosstab(unittest.TestCase):
         table = crosstab([a, b], c, values, aggfunc=np.sum,
                          rownames=['foo', 'bar'], colnames=['baz'])
 
-        df = DataFrame({'foo': a, 'bar': b, 'baz': c, 'values' : values})
+        df = DataFrame({'foo': a, 'bar': b, 'baz': c, 'values': values})
 
         expected = df.pivot_table('values', rows=['foo', 'bar'], cols='baz',
                                   aggfunc=np.sum)
@@ -322,5 +325,5 @@ class TestCrosstab(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

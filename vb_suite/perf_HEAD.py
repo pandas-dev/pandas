@@ -10,19 +10,21 @@ from __future__ import print_function
 import urllib2
 import json
 
-import  pandas as pd
+import pandas as pd
 
 WEB_TIMEOUT = 10
+
 
 def get_travis_data():
     """figure out what worker we're running on,  and the number of jobs it's running
     """
     import os
-    jobid=os.environ.get("TRAVIS_JOB_ID")
+    jobid = os.environ.get("TRAVIS_JOB_ID")
     if not jobid:
         return None, None
 
-    workers=json.loads(urllib2.urlopen("https://api.travis-ci.org/workers/").read())
+    workers = json.loads(
+        urllib2.urlopen("https://api.travis-ci.org/workers/").read())
 
     host = njobs = None
     for item in workers:
@@ -31,9 +33,11 @@ def get_travis_data():
         if id and str(id) == str(jobid):
             break
         if host:
-           njobs =  len([x for x in workers if host in x['host'] and x['payload']])
+            njobs = len(
+                [x for x in workers if host in x['host'] and x['payload']])
 
     return host, njobs
+
 
 def get_utcdatetime():
     try:
@@ -42,26 +46,28 @@ def get_utcdatetime():
     except:
         pass
 
-def dump_as_gist(data,desc="The Commit",njobs=None):
+
+def dump_as_gist(data, desc="The Commit", njobs=None):
     host, njobs2 = get_travis_data()[:2]
 
-    if njobs: # be slightly more reliable
-        njobs= max(njobs,njobs2)
+    if njobs:  # be slightly more reliable
+        njobs = max(njobs, njobs2)
 
-    content=dict(version="0.1.1",
-                 timings=data,
-                 datetime=get_utcdatetime() ,   # added in 0.1.1
-                 hostname=host ,   # added in 0.1.1
-                 njobs=njobs    # added in 0.1.1, a measure of load on the travis box
-        )
+    content = dict(version="0.1.1",
+                   timings=data,
+                   datetime=get_utcdatetime(),   # added in 0.1.1
+                   hostname=host,   # added in 0.1.1
+                   njobs=njobs    # added in 0.1.1, a measure of load on the travis box
+                   )
 
-    payload=dict(description=desc,
-                 public=True,
-                 files={'results.json': dict(content=json.dumps(content))})
+    payload = dict(description=desc,
+                   public=True,
+                   files={'results.json': dict(content=json.dumps(content))})
     try:
-        r=urllib2.urlopen("https://api.github.com/gists", json.dumps(payload),timeout=WEB_TIMEOUT)
-        if 200 <=r.getcode() <300:
-            print("\n\n"+ "-"*80)
+        r = urllib2.urlopen("https://api.github.com/gists",
+                            json.dumps(payload), timeout=WEB_TIMEOUT)
+        if 200 <= r.getcode() < 300:
+            print("\n\n" + "-" * 80)
 
             gist = json.loads(r.read())
             file_raw_url = gist['files'].items()[0][1]['raw_url']
@@ -69,48 +75,49 @@ def dump_as_gist(data,desc="The Commit",njobs=None):
             print("[vbench-html-url] %s" % gist['html_url'])
             print("[vbench-api-url] %s" % gist['url'])
 
-            print("-"*80 +"\n\n")
+            print("-" * 80 + "\n\n")
         else:
             print("api.github.com returned status %d" % r.getcode())
     except:
         print("Error occured while dumping to gist")
 
+
 def main():
     import warnings
     from suite import benchmarks
 
-    exit_code=0
-    warnings.filterwarnings('ignore',category=FutureWarning)
+    exit_code = 0
+    warnings.filterwarnings('ignore', category=FutureWarning)
 
     host, njobs = get_travis_data()[:2]
-    results=[]
+    results = []
     for b in benchmarks:
         try:
-            d=b.run()
+            d = b.run()
             d.update(dict(name=b.name))
             results.append(d)
-            msg="{name:<40}: {timing:> 10.4f} [ms]"
+            msg = "{name:<40}: {timing:> 10.4f} [ms]"
             print(msg.format(name=results[-1]['name'],
                              timing=results[-1]['timing']))
 
         except Exception as e:
-            exit_code=1
+            exit_code = 1
             if (type(e) == KeyboardInterrupt or
-                'KeyboardInterrupt' in str(d)) :
+                    'KeyboardInterrupt' in str(d)):
                 raise KeyboardInterrupt()
 
-            msg="{name:<40}: ERROR:\n<-------"
+            msg = "{name:<40}: ERROR:\n<-------"
             print(msg.format(name=results[-1]['name']))
-            if isinstance(d,dict):
+            if isinstance(d, dict):
                 if d['succeeded']:
                     print("\nException:\n%s\n" % str(e))
                 else:
-                    for k,v in sorted(d.iteritems()):
-                        print("{k}: {v}".format(k=k,v=v))
+                    for k, v in sorted(d.iteritems()):
+                        print("{k}: {v}".format(k=k, v=v))
 
             print("------->\n")
 
-    dump_as_gist(results,"testing",njobs=njobs)
+    dump_as_gist(results, "testing", njobs=njobs)
 
     return exit_code
 
@@ -122,102 +129,111 @@ if __name__ == "__main__":
 #####################################################
 # functions for retrieving and processing the results
 
+
 def get_vbench_log(build_url):
-    r=urllib2.urlopen(build_url)
+    r = urllib2.urlopen(build_url)
     if not (200 <= r.getcode() < 300):
         return
 
-    s=json.loads(r.read())
-    s=[x for x in s['matrix'] if "VBENCH" in ((x.get('config',{}) or {}).get('env',{}) or {})]
-            #s=[x for x in s['matrix']]
+    s = json.loads(r.read())
+    s = [x for x in s['matrix'] if "VBENCH" in ((x.get('config', {})
+                                                or {}).get('env', {}) or {})]
+            # s=[x for x in s['matrix']]
     if not s:
         return
-    id=s[0]['id'] # should be just one for now
-    r2=urllib2.urlopen("https://api.travis-ci.org/jobs/%s" % id)
+    id = s[0]['id']  # should be just one for now
+    r2 = urllib2.urlopen("https://api.travis-ci.org/jobs/%s" % id)
     if (not 200 <= r.getcode() < 300):
         return
-    s2=json.loads(r2.read())
+    s2 = json.loads(r2.read())
     return s2.get('log')
+
 
 def get_results_raw_url(build):
     "Taks a Travis a build number, retrieves the build log and extracts the gist url"
     import re
-    log=get_vbench_log("https://api.travis-ci.org/builds/%s" % build)
+    log = get_vbench_log("https://api.travis-ci.org/builds/%s" % build)
     if not log:
         return
-    l=[x.strip() for x in log.split("\n") if re.match(".vbench-gist-raw_url",x)]
+    l = [x.strip(
+    ) for x in log.split("\n") if re.match(".vbench-gist-raw_url", x)]
     if l:
-        s=l[0]
-        m = re.search("(https://[^\s]+)",s)
+        s = l[0]
+        m = re.search("(https://[^\s]+)", s)
         if m:
             return m.group(0)
+
 
 def convert_json_to_df(results_url):
     """retrieve json results file from url and return df
 
     df contains timings for all successful vbenchmarks
     """
-    res=json.loads(urllib2.urlopen(results_url).read())
-    timings=res.get("timings")
+    res = json.loads(urllib2.urlopen(results_url).read())
+    timings = res.get("timings")
     if not timings:
         return
-    res=[x for x in timings if x.get('succeeded')]
+    res = [x for x in timings if x.get('succeeded')]
     df = pd.DataFrame(res)
     df = df.set_index("name")
     return df
 
+
 def get_build_results(build):
     "Returns a df with the results of the VBENCH job associated with the travis build"
-    r_url=get_results_raw_url(build)
+    r_url = get_results_raw_url(build)
     if not r_url:
         return
 
     return convert_json_to_df(r_url)
 
-def get_all_results(repo_id=53976): # travis pydata/pandas id
-     """Fetches the VBENCH results for all travis builds, and returns a list of result df
 
-    unsuccesful individual vbenches are dropped.
-     """
-     from collections import OrderedDict
-     def get_results_from_builds(builds):
-         dfs=OrderedDict()
-         for build in builds:
-             build_id = build['id']
-             build_number = build['number']
-             print(build_number)
-             res = get_build_results(build_id)
-             if res is not None:
-                 dfs[build_number]=res
-         return dfs
+def get_all_results(repo_id=53976):  # travis pydata/pandas id
+    """Fetches the VBENCH results for all travis builds, and returns a list of result df
 
-     base_url='https://api.travis-ci.org/builds?url=%2Fbuilds&repository_id={repo_id}'
-     url=base_url.format(repo_id=repo_id)
-     url_after=url+'&after_number={after}'
-     dfs=OrderedDict()
+   unsuccesful individual vbenches are dropped.
+    """
+    from collections import OrderedDict
 
-     while True:
-         r=urllib2.urlopen(url)
-         if not (200 <= r.getcode() < 300):
-             break
-         builds=json.loads(r.read())
-         res = get_results_from_builds(builds)
-         if not res:
-             break
-         last_build_number= min(res.keys())
-         dfs.update(res)
-         url=url_after.format(after=last_build_number)
+    def get_results_from_builds(builds):
+        dfs = OrderedDict()
+        for build in builds:
+            build_id = build['id']
+            build_number = build['number']
+            print(build_number)
+            res = get_build_results(build_id)
+            if res is not None:
+                dfs[build_number] = res
+        return dfs
 
-     return dfs
+    base_url = 'https://api.travis-ci.org/builds?url=%2Fbuilds&repository_id={repo_id}'
+    url = base_url.format(repo_id=repo_id)
+    url_after = url + '&after_number={after}'
+    dfs = OrderedDict()
+
+    while True:
+        r = urllib2.urlopen(url)
+        if not (200 <= r.getcode() < 300):
+            break
+        builds = json.loads(r.read())
+        res = get_results_from_builds(builds)
+        if not res:
+            break
+        last_build_number = min(res.keys())
+        dfs.update(res)
+        url = url_after.format(after=last_build_number)
+
+    return dfs
+
 
 def get_all_results_joined(repo_id=53976):
-     def mk_unique(df):
-         for dupe in df.index.get_duplicates():
-             df=df.ix[df.index != dupe]
-         return df
-     dfs = get_all_results(repo_id)
-     for k in dfs:
-         dfs[k]=mk_unique(dfs[k])
-     ss=[pd.Series(v.timing,name=k) for k,v in dfs.iteritems()]
-     results = pd.concat(reversed(ss),1)
-     return results
+    def mk_unique(df):
+        for dupe in df.index.get_duplicates():
+            df = df.ix[df.index != dupe]
+        return df
+    dfs = get_all_results(repo_id)
+    for k in dfs:
+        dfs[k] = mk_unique(dfs[k])
+    ss = [pd.Series(v.timing, name=k) for k, v in dfs.iteritems()]
+    results = pd.concat(reversed(ss), 1)
+    return results

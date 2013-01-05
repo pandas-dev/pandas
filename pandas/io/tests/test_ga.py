@@ -8,6 +8,7 @@ from pandas import DataFrame
 from pandas.util.testing import network, assert_frame_equal
 from numpy.testing.decorators import slow
 
+
 class TestGoogle(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -32,10 +33,10 @@ class TestGoogle(unittest.TestCase):
             df = reader.get_data(
                 metrics=['avgTimeOnSite', 'visitors', 'newVisits',
                          'pageviewsPerVisit'],
-                start_date = start_date,
-                end_date = end_date,
+                start_date=start_date,
+                end_date=end_date,
                 dimensions=['date', 'hour'],
-                parse_dates={'ts' : ['date', 'hour']})
+                parse_dates={'ts': ['date', 'hour']})
 
             assert isinstance(df, DataFrame)
             assert isinstance(df.index, pd.DatetimeIndex)
@@ -54,7 +55,7 @@ class TestGoogle(unittest.TestCase):
                 start_date=start_date,
                 end_date=end_date,
                 dimensions=['date', 'hour'],
-                parse_dates={'ts' : ['date', 'hour']})
+                parse_dates={'ts': ['date', 'hour']})
 
             assert_frame_equal(df, df2)
 
@@ -112,5 +113,5 @@ class TestGoogle(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

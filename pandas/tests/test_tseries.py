@@ -9,8 +9,10 @@ import pandas.lib as lib
 import pandas.algos as algos
 from datetime import datetime
 
+
 class TestTseriesUtil(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def test_combineFunc(self):
         pass
 
@@ -59,6 +61,7 @@ class TestTseriesUtil(unittest.TestCase):
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
+
 def test_left_join_indexer_unique():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
@@ -66,6 +69,7 @@ def test_left_join_indexer_unique():
     result = algos.left_join_indexer_unique_int64(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
     assert(np.array_equal(result, expected))
+
 
 def test_left_outer_join_bug():
     left = np.array([0, 1, 0, 1, 1, 2, 3, 1, 0, 2, 1, 2, 0, 1, 1, 2, 3, 2, 3,
@@ -87,6 +91,7 @@ def test_left_outer_join_bug():
 
     assert(np.array_equal(lidx, exp_lidx))
     assert(np.array_equal(ridx, exp_ridx))
+
 
 def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
@@ -110,6 +115,7 @@ def test_inner_join_indexer():
     assert_almost_equal(ares, [0])
     assert_almost_equal(bres, [0])
 
+
 def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
@@ -132,6 +138,7 @@ def test_outer_join_indexer():
     assert_almost_equal(ares, [0])
     assert_almost_equal(bres, [0])
 
+
 def test_left_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
@@ -153,9 +160,10 @@ def test_left_join_indexer():
     assert_almost_equal(ares, [0])
     assert_almost_equal(bres, [0])
 
+
 def test_left_join_indexer2():
-    idx = Index([1,1,2,5])
-    idx2 = Index([1,2,5,7,9])
+    idx = Index([1, 1, 2, 5])
+    idx2 = Index([1, 2, 5, 7, 9])
 
     res, lidx, ridx = algos.left_join_indexer_int64(idx2, idx)
 
@@ -168,9 +176,10 @@ def test_left_join_indexer2():
     exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
     assert_almost_equal(ridx, exp_ridx)
 
+
 def test_outer_join_indexer2():
-    idx = Index([1,1,2,5])
-    idx2 = Index([1,2,5,7,9])
+    idx = Index([1, 1, 2, 5])
+    idx2 = Index([1, 2, 5, 7, 9])
 
     res, lidx, ridx = algos.outer_join_indexer_int64(idx2, idx)
 
@@ -183,9 +192,10 @@ def test_outer_join_indexer2():
     exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
     assert_almost_equal(ridx, exp_ridx)
 
+
 def test_inner_join_indexer2():
-    idx = Index([1,1,2,5])
-    idx2 = Index([1,2,5,7,9])
+    idx = Index([1, 1, 2, 5])
+    idx2 = Index([1, 2, 5, 7, 9])
 
     res, lidx, ridx = algos.inner_join_indexer_int64(idx2, idx)
 
@@ -203,21 +213,21 @@ def test_is_lexsorted():
     failure = [
         np.array([3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
                   3, 3,
-               3, 3,
-           3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-           2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
-           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-           1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-           0, 0, 0, 0, 0, 0, 0, 0, 0]),
+                  3, 3,
+                  3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
+                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0]),
         np.array([30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
                   15, 14,
-       13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 30, 29, 28,
-       27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
-       10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 30, 29, 28, 27, 26, 25,
-       24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10,  9,  8,
-        7,  6,  5,  4,  3,  2,  1,  0, 30, 29, 28, 27, 26, 25, 24, 23, 22,
-       21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,
-        4,  3,  2,  1,  0])]
+                  13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 30, 29, 28,
+                  27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
+                  10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 30, 29, 28, 27, 26, 25,
+                  24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8,
+                  7, 6, 5, 4, 3, 2, 1, 0, 30, 29, 28, 27, 26, 25, 24, 23, 22,
+                  21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5,
+                  4, 3, 2, 1, 0])]
 
     assert(not algos.is_lexsorted(failure))
 
@@ -229,6 +239,7 @@ def test_is_lexsorted():
 #     result = lib.get_group_index([a, b], (3, 4))
 
 #     assert(np.array_equal(result, expected))
+
 
 def test_groupsort_indexer():
     a = np.random.randint(0, 1000, 100).astype(np.int64)
@@ -246,11 +257,13 @@ def test_groupsort_indexer():
     expected = np.lexsort((b, a))
     assert(np.array_equal(result, expected))
 
+
 def test_ensure_platform_int():
     arr = np.arange(100)
 
     result = algos.ensure_platform_int(arr)
     assert(result is arr)
+
 
 def test_duplicated_with_nas():
     keys = np.array([0, 1, nan, 0, 2, nan], dtype=object)
@@ -264,7 +277,7 @@ def test_duplicated_with_nas():
     assert(np.array_equal(result, expected))
 
     keys = np.empty(8, dtype=object)
-    for i, t in enumerate(zip([0, 0, nan, nan]*2, [0, nan, 0, nan]*2)):
+    for i, t in enumerate(zip([0, 0, nan, nan] * 2, [0, nan, 0, nan] * 2)):
         keys[i] = t
 
     result = lib.duplicated(keys)
@@ -277,6 +290,7 @@ def test_duplicated_with_nas():
     expected = trues + falses
     assert(np.array_equal(result, expected))
 
+
 def test_maybe_booleans_to_slice():
     arr = np.array([0, 0, 1, 1, 1, 0, 1], dtype=np.uint8)
     result = lib.maybe_booleans_to_slice(arr)
@@ -285,10 +299,12 @@ def test_maybe_booleans_to_slice():
     result = lib.maybe_booleans_to_slice(arr[:0])
     assert(result == slice(0, 0))
 
+
 def test_convert_objects():
     arr = np.array(['a', 'b', nan, nan, 'd', 'e', 'f'], dtype='O')
     result = lib.maybe_convert_objects(arr)
     assert(result.dtype == np.object_)
+
 
 def test_convert_infs():
     arr = np.array(['inf', 'inf', 'inf'], dtype='O')
@@ -310,12 +326,14 @@ def test_convert_objects_ints():
         result = lib.maybe_convert_objects(arr)
         assert(issubclass(result.dtype.type, np.integer))
 
+
 def test_convert_objects_complex_number():
     for dtype in np.sctypes['complex']:
         arr = np.array(list(1j * np.arange(20, dtype=dtype)), dtype='O')
         assert(arr[0].dtype == np.dtype(dtype))
         result = lib.maybe_convert_objects(arr)
         assert(issubclass(result.dtype.type, np.complexfloating))
+
 
 def test_rank():
     from pandas.compat.scipy import rankdata
@@ -332,11 +350,13 @@ def test_rank():
     _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
     _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
 
+
 def test_get_reverse_indexer():
     indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.int64)
     result = lib.get_reverse_indexer(indexer, 5)
     expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
     assert(np.array_equal(result, expected))
+
 
 def test_pad_backfill_object_segfault():
     from datetime import datetime
@@ -359,10 +379,12 @@ def test_pad_backfill_object_segfault():
     expected = np.array([], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
+
 def test_arrmap():
     values = np.array(['foo', 'foo', 'bar', 'bar', 'baz', 'qux'], dtype='O')
     result = algos.arrmap_object(values, lambda x: x in ['foo', 'bar'])
     assert(result.dtype == np.bool_)
+
 
 def test_series_grouper():
     from pandas import Series
@@ -380,6 +402,7 @@ def test_series_grouper():
     exp_counts = np.array([3, 4], dtype=np.int64)
     assert_almost_equal(counts, exp_counts)
 
+
 def test_series_bin_grouper():
     from pandas import Series
     obj = Series(np.random.randn(10))
@@ -396,8 +419,10 @@ def test_series_bin_grouper():
     exp_counts = np.array([3, 3, 4], dtype=np.int64)
     assert_almost_equal(counts, exp_counts)
 
+
 class TestBinGroupers(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def setUp(self):
         self.obj = np.random.randn(10, 1)
         self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
@@ -405,8 +430,8 @@ class TestBinGroupers(unittest.TestCase):
 
     def test_generate_bins(self):
         from pandas.core.groupby import generate_bins_generic
-        values = np.array([1,2,3,4,5,6], dtype=np.int64)
-        binner = np.array([0,3,6,9], dtype=np.int64)
+        values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
+        binner = np.array([0, 3, 6, 9], dtype=np.int64)
 
         for func in [lib.generate_bins_dt64, generate_bins_generic]:
             bins = func(values, binner, closed='left')
@@ -416,8 +441,8 @@ class TestBinGroupers(unittest.TestCase):
             assert((bins == np.array([3, 6, 6])).all())
 
         for func in [lib.generate_bins_dt64, generate_bins_generic]:
-            values = np.array([1,2,3,4,5,6], dtype=np.int64)
-            binner = np.array([0,3,6], dtype=np.int64)
+            values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
+            binner = np.array([0, 3, 6], dtype=np.int64)
 
             bins = func(values, binner, closed='right')
             assert((bins == np.array([3, 6])).all())
@@ -441,7 +466,7 @@ class TestBinGroupers(unittest.TestCase):
             'prod': np.prod,
             'min': np.min,
             'max': np.max,
-            'var': lambda x: x.var(ddof=1) if len(x) >=2 else np.nan
+            'var': lambda x: x.var(ddof=1) if len(x) >= 2 else np.nan
         }
 
         for fname in funcs:
@@ -459,14 +484,14 @@ class TestBinGroupers(unittest.TestCase):
 
         # bin-based version
         bins = np.array([3, 6], dtype=np.int64)
-        out  = np.zeros((3, 1), np.float64)
+        out = np.zeros((3, 1), np.float64)
         counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
 
         assert_almost_equal(out, exp)
 
         bins = np.array([3, 9, 10], dtype=np.int64)
-        out  = np.zeros((3, 1), np.float64)
+        out = np.zeros((3, 1), np.float64)
         counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
@@ -476,7 +501,7 @@ class TestBinGroupers(unittest.TestCase):
 
         # duplicate bins
         bins = np.array([3, 6, 10, 10], dtype=np.int64)
-        out  = np.zeros((4, 1), np.float64)
+        out = np.zeros((4, 1), np.float64)
         counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
@@ -489,7 +514,7 @@ def test_group_ohlc():
     obj = np.random.randn(20)
 
     bins = np.array([6, 12], dtype=np.int64)
-    out  = np.zeros((3, 4), np.float64)
+    out = np.zeros((3, 4), np.float64)
     counts = np.zeros(len(out), dtype=np.int64)
 
     algos.group_ohlc(out, counts, obj[:, None], bins)
@@ -510,6 +535,7 @@ def test_group_ohlc():
     expected[0] = nan
     assert_almost_equal(out, expected)
 
+
 def test_try_parse_dates():
     from dateutil.parser import parse
 
@@ -522,6 +548,7 @@ def test_try_parse_dates():
 
 class TestTypeInference(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
         self.assertEqual(result, 'empty')
@@ -597,7 +624,7 @@ class TestTypeInference(unittest.TestCase):
         self.assert_(index.inferred_type == 'date')
 
     def test_to_object_array_tuples(self):
-        r = (5,6)
+        r = (5, 6)
         values = [r]
         result = lib.to_object_array_tuples(values)
 
@@ -632,7 +659,8 @@ class TestReducer(unittest.TestCase):
         assert_almost_equal(result, expected)
 
         dummy = Series(0., index=np.arange(100))
-        result = lib.reduce(arr, np.sum, dummy=dummy, labels=Index(np.arange(4)))
+        result = lib.reduce(
+            arr, np.sum, dummy=dummy, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
@@ -644,5 +672,5 @@ class TestReducer(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
