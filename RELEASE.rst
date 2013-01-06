@@ -72,6 +72,8 @@ pandas 0.10.1
   - Ensure that MultiIndex tuples can be constructed with NAs (seen in #2616)
   - Fix int64 overflow issue when unstacking MultiIndex with many levels (#2616)
   - Exclude non-numeric data from DataFrame.quantile by default (GH2625_)
+  - Fix a Cython C int64 boxing issue causing read_csv to return incorrect
+    results (GH2599_)
 
 **API Changes**
 
@@ -84,6 +86,7 @@ pandas 0.10.1
 .. _GH2327: https://github.com/pydata/pandas/issues/2327
 .. _GH2576: https://github.com/pydata/pandas/issues/2576
 .. _GH2585: https://github.com/pydata/pandas/issues/2585
+.. _GH2599: https://github.com/pydata/pandas/issues/2599
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
