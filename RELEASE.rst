@@ -34,9 +34,9 @@ pandas 0.10.1
 **Improvements to existing features**
 
   - ``HDFStore``
+
     - enables storing of multi-index dataframes (closes GH1277_)
-    - support data column indexing and selection, via ``data_columns`` keyword
-      in append
+    - support data column indexing and selection, via ``data_columns`` keyword in append
     - support write chunking to reduce memory footprint, via ``chunksize``
       keyword to append
     - support automagic indexing via ``index`` keywork to append
@@ -50,6 +50,8 @@ pandas 0.10.1
       to do multiple-table append/selection
     - added support for datetime64 in columns
     - added method ``unique`` to select the unique values in an indexable or data column
+    - added method ``copy`` to copy an existing store (and possibly upgrade)
+    - show the shape of the data on disk for non-table stores when printing the store
   - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
   - Support reading gzipped data from file-like object
   - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
@@ -57,11 +59,13 @@ pandas 0.10.1
 **Bug fixes**
 
   - ``HDFStore``
+
     - correctly handle ``nan`` elements in string columns; serialize via the
       ``nan_rep`` keyword to append
     - raise correctly on non-implemented column types (unicode/date)
     - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index
       is ``Int64``), (closes GH512_)
+    - handle Timestamp correctly in data_columns (closes GH2637_)
   - Fix DataFrame.info bug with UTF8-encoded columns. (GH2576_)
   - Fix DatetimeIndex handling of FixedOffset tz (GH2604_)
   - More robust detection of being in IPython session for wide DataFrame
@@ -78,19 +82,22 @@ pandas 0.10.1
 **API Changes**
 
   - ``HDFStore``
+
+    - refactored HFDStore to deal with non-table stores as objects, will allow future enhancements
     - removed keyword ``compression`` from ``put`` (replaced by keyword
       ``complib`` to be consistent across library)
 
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277
 .. _GH2327: https://github.com/pydata/pandas/issues/2327
-.. _GH2576: https://github.com/pydata/pandas/issues/2576
 .. _GH2585: https://github.com/pydata/pandas/issues/2585
 .. _GH2599: https://github.com/pydata/pandas/issues/2599
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
+.. _GH2576: https://github.com/pydata/pandas/issues/2576
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
+.. _GH2637: https://github.com/pydata/pandas/issues/2637
 
 pandas 0.10.0
 =============

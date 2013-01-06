@@ -76,6 +76,26 @@ class TestHDFStore(unittest.TestCase):
         self.store['d'] = tm.makePanel()
         self.store['foo/bar'] = tm.makePanel()
         self.store.append('e', tm.makePanel())
+
+        df = tm.makeDataFrame()
+        df['obj1'] = 'foo'
+        df['obj2'] = 'bar'
+        df['bool1'] = df['A'] > 0
+        df['bool2'] = df['B'] > 0
+        df['bool3'] = True
+        df['int1'] = 1
+        df['int2'] = 2
+        df['timestamp1'] = Timestamp('20010102')
+        df['timestamp2'] = Timestamp('20010103')
+        df['datetime1']  = datetime.datetime(2001,1,2,0,0)
+        df['datetime2']  = datetime.datetime(2001,1,3,0,0)
+        df.ix[3:6,['obj1']] = np.nan
+        df = df.consolidate().convert_objects()
+        self.store['df'] = df
+
+        # make a random group in hdf space
+        self.store.handle.createGroup(self.store.handle.root,'bah')
+
         repr(self.store)
         str(self.store)
 
@@ -175,11 +195,11 @@ class TestHDFStore(unittest.TestCase):
 
         # node does not currently exist, test _is_table_type returns False in
         # this case
-        self.assertRaises(
-            ValueError, self.store.put, 'f', df[10:], append=True)
+        #self.store.remove('f')
+        #self.assertRaises(ValueError, self.store.put, 'f', df[10:], append=True)
 
-        # OK
-        self.store.put('c', df[10:], append=True)
+        # can't put to a table (use append instead)
+        self.assertRaises(ValueError, self.store.put, 'c', df[10:], append=True)
 
         # overwrite table
         self.store.put('c', df[:10], table=True, append=False)
@@ -401,9 +421,8 @@ class TestHDFStore(unittest.TestCase):
         wp2 = wp.rename_axis(
             dict([(x, "%s_extra" % x) for x in wp.minor_axis]), axis=2)
 
-        def check_col(key, name, size):
-            self.assert_(getattr(self.store.get_table(
-                key).table.description, name).itemsize == size)
+        def check_col(key,name,size):
+            self.assert_(getattr(self.store.get_storer(key).table.description,name).itemsize == size)
 
         self.store.append('s1', wp, min_itemsize=20)
         self.store.append('s1', wp2)
@@ -502,9 +521,8 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # using min_itemsize and a data column
-        def check_col(key, name, size):
-            self.assert_(getattr(self.store.get_table(
-                key).table.description, name).itemsize == size)
+        def check_col(key,name,size):
+            self.assert_(getattr(self.store.get_storer(key).table.description,name).itemsize == size)
 
         self.store.remove('df')
         self.store.append('df', df_new, data_columns=['string'],
@@ -575,11 +593,11 @@ class TestHDFStore(unittest.TestCase):
         expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (
             df_dc.string == 'foo')]
         tm.assert_frame_equal(result, expected)
-        
+
     def test_create_table_index(self):
 
-        def col(t, column):
-            return getattr(self.store.get_table(t).table.cols, column)
+        def col(t,column):
+            return getattr(self.store.get_storer(t).table.cols,column)
 
         # index=False
         wp = tm.makePanel()
@@ -594,7 +612,7 @@ class TestHDFStore(unittest.TestCase):
         assert(col('p5i', 'minor_axis').is_indexed is True)
 
         # default optlevels
-        self.store.get_table('p5').create_index()
+        self.store.get_storer('p5').create_index()
         assert(col('p5', 'major_axis').index.optlevel == 6)
         assert(col('p5', 'minor_axis').index.kind == 'medium')
 
@@ -629,6 +647,7 @@ class TestHDFStore(unittest.TestCase):
         assert(col('f2', 'string2').is_indexed is False)
 
         # try to index a non-table
+        self.store.remove('f2')
         self.store.put('f2', df)
         self.assertRaises(Exception, self.store.create_table_index, 'f2')
 
@@ -763,6 +782,20 @@ class TestHDFStore(unittest.TestCase):
         tm.assert_frame_equal(result, df)
 
     def test_append_misc(self):
+
+        # unsuported data types for non-tables
+        p4d = tm.makePanel4D()
+        self.assertRaises(Exception, self.store.put,'p4d',p4d)
+
+        # unsupported data type for table
+        s = tm.makeStringSeries()
+        self.assertRaises(Exception, self.store.append,'s',s)
+
+        # unsuported data types
+        self.assertRaises(Exception, self.store.put,'abc',None)
+        self.assertRaises(Exception, self.store.put,'abc','123')
+        self.assertRaises(Exception, self.store.put,'abc',123)
+        self.assertRaises(Exception, self.store.put,'abc',np.arange(5))
 
         df = tm.makeDataFrame()
         self.store.append('df', df, chunksize=1)
@@ -1424,6 +1457,14 @@ class TestHDFStore(unittest.TestCase):
         expected = df[df.A > 0].reindex(columns=['C', 'D'])
         tm.assert_frame_equal(expected, result)
 
+        # with a Timestamp data column (GH #2637)
+        df = DataFrame(dict(ts=bdate_range('2012-01-01', periods=300), A=np.random.randn(300)))
+        self.store.remove('df')
+        self.store.append('df', df, data_columns=['ts', 'A'])
+        result = self.store.select('df', [Term('ts', '>=', Timestamp('2012-02-01'))])
+        expected = df[df.ts >= Timestamp('2012-02-01')]
+        tm.assert_frame_equal(expected, result)
+
     def test_panel_select(self):
         wp = tm.makePanel()
         self.store.put('wp', wp, table=True)
@@ -1737,6 +1778,66 @@ class TestHDFStore(unittest.TestCase):
         for k in store.keys():
             store.select(k)
         store.close()
+
+    def test_copy(self):
+        pth = curpath()
+        def do_copy(f = None, new_f = None, keys = None, propindexes = True, **kwargs):
+            try:
+                import os
+
+                if f is None:
+                    f = os.path.join(pth, 'legacy_0.10.h5')
+
+                store = HDFStore(f, 'r')
+
+                if new_f is None:
+                    import tempfile
+                    new_f = tempfile.mkstemp()[1]
+
+                tstore = store.copy(new_f, keys = keys, propindexes = propindexes, **kwargs)
+
+                # check keys
+                if keys is None:
+                    keys = store.keys()
+                self.assert_(set(keys) == set(tstore.keys()))
+
+                # check indicies & nrows
+                for k in tstore.keys():
+                    if tstore.is_table(k):
+                        new_t = tstore.get_storer(k)
+                        orig_t = store.get_storer(k)
+
+                        self.assert_(orig_t.nrows == new_t.nrows)
+                        for a in orig_t.axes:
+                            if a.is_indexed:
+                                self.assert_(new_t[a.name].is_indexed == True)
+
+            except:
+                pass
+            finally:
+                store.close()
+                tstore.close()
+                import os
+                try:
+                    os.remove(new_f)
+                except:
+                    pass
+
+        do_copy()
+        do_copy(keys = ['df'])
+        do_copy(propindexes = False)
+
+        # new table
+        df = tm.makeDataFrame()
+        try:
+            st = HDFStore(self.scratchpath)
+            st.append('df', df, data_columns = ['A'])
+            st.close()
+            do_copy(f = self.scratchpath)
+            do_copy(f = self.scratchpath, propindexes = False)
+        finally:
+            import os
+            os.remove(self.scratchpath)
 
     def test_legacy_table_write(self):
         raise nose.SkipTest
