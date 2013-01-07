@@ -245,8 +245,11 @@ def _unstack_multiple(data, clocs):
     else:
         if isinstance(data.columns, MultiIndex):
             result = data
-            for val in clocs:
+            for i in range(len(clocs)):
+                val = clocs[i]
                 result = result.unstack(val)
+                clocs = [val if i > val else val - 1 for val in clocs]
+
             return result
 
         dummy = DataFrame(data.values, index=dummy_index,

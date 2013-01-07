@@ -882,6 +882,18 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
         assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
 
+    def test_unstack_multiple_hierarchical(self):
+        df = DataFrame(index=[[0, 0, 0, 0, 1, 1, 1, 1],
+                              [0, 0, 1, 1, 0, 0, 1, 1],
+                              [0, 1, 0, 1, 0, 1, 0, 1]],
+                       columns=[[0, 0, 1, 1], [0, 1, 0, 1]])
+
+        df.index.names = ['a', 'b', 'c']
+        df.columns.names = ['d', 'e']
+
+        # it works!
+        df.unstack(['b', 'c'])
+
     def test_groupby_transform(self):
         s = self.frame['A']
         grouper = s.index.get_level_values(0)
