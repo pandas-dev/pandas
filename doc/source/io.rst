@@ -1255,8 +1255,8 @@ These, by default, index the three axes ``items, major_axis, minor_axis``. On an
 
 .. _io.sql:
 
-DataBase Queries
-----------------
+SQL Queries
+-----------
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. There
@@ -1337,12 +1337,16 @@ Of course, you can specify more "complex" query.
    cu.close()
    cnx.close()
 
+
+There are a few other available functions:
+
+  - ``tquery`` returns list of tuples corresponding to each row.
+  - ``uquery`` does the same thing as tquery, but instead of returning results,
+    it returns the number of related rows.
+  - ``write_frame`` writes records stored in a DataFrame into the SQL table.
+  - ``has_table`` checks if a given SQLite table exists.
+
 .. note::
 
    For now, writing your DataFrame into a database works only with
-   SQLite. Moreover, the index will currently be dropped.
-
-.. todo::
-
-   - methods list
-
+   **SQLite**. Moreover, the **index** will currently be **dropped**.
