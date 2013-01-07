@@ -178,6 +178,15 @@ def write_frame(frame, name=None, con=None, flavor='sqlite', append=False):
 
 
 def has_table(name, con):
+    """
+    Check if a given SQLite table exists.
+
+    Parameters
+    ----------
+    name: string
+        SQLite table name
+    con: DB connection object
+    """
     sqlstr = "SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name
     rs = tquery(sqlstr, con)
     return len(rs) > 0
