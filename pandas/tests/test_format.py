@@ -143,9 +143,12 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assert_(len(line) == line_len)
 
         # it works even if sys.stdin in None
-        sys.stdin = None
-        repr(df)
-        sys.stdin = sys.__stdin__
+        _stdin= sys.stdin
+        try:
+            sys.stdin = None
+            repr(df)
+        finally:
+            sys.stdin = _stdin
 
     def test_to_string_unicode_columns(self):
         df = DataFrame({u'\u03c3': np.arange(10.)})
