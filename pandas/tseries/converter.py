@@ -52,12 +52,15 @@ class TimeConverter(units.ConversionInterface):
     def convert(value, unit, axis):
         valid_types = (str, pydt.time)
         if (isinstance(value, valid_types) or com.is_integer(value) or
-                com.is_float(value)):
+            com.is_float(value)):
             return time2num(value)
+
         if isinstance(value, Index):
             return value.map(time2num)
+
         if isinstance(value, (list, tuple, np.ndarray)):
             return [time2num(x) for x in value]
+
         return value
 
     @staticmethod
@@ -95,7 +98,6 @@ class TimeFormatter(Formatter):
 
         return pydt.time(h, m, s, us).strftime(fmt)
 
-
 ### Period Conversion
 
 
@@ -107,7 +109,7 @@ class PeriodConverter(dates.DateConverter):
             raise TypeError('Axis must have `freq` set to convert to Periods')
         valid_types = (str, datetime, Period, pydt.date, pydt.time)
         if (isinstance(values, valid_types) or com.is_integer(values) or
-                com.is_float(values)):
+            com.is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
@@ -286,19 +288,19 @@ class MilliSecondLocator(dates.DateLocator):
 
         if dmin > dmax:
             dmax, dmin = dmin, dmax
-        delta = relativedelta(dmax, dmin)
+        # delta = relativedelta(dmax, dmin)
 
         # We need to cap at the endpoints of valid datetime
-        try:
-            start = dmin - delta
-        except ValueError:
-            start = _from_ordinal(1.0)
+        # try:
+        #     start = dmin - delta
+        # except ValueError:
+        #     start = _from_ordinal(1.0)
 
-        try:
-            stop = dmax + delta
-        except ValueError:
-            # The magic number!
-            stop = _from_ordinal(3652059.9999999)
+        # try:
+        #     stop = dmax + delta
+        # except ValueError:
+        #     # The magic number!
+        #     stop = _from_ordinal(3652059.9999999)
 
         nmax, nmin = dates.date2num((dmax, dmin))
 
@@ -318,7 +320,7 @@ class MilliSecondLocator(dates.DateLocator):
             raise RuntimeError(('MillisecondLocator estimated to generate %d '
                                 'ticks from %s to %s: exceeds Locator.MAXTICKS'
                                 '* 2 (%d) ') %
-                              (estimate, dmin, dmax, self.MAXTICKS * 2))
+                               (estimate, dmin, dmax, self.MAXTICKS * 2))
 
         freq = '%dL' % self._get_interval()
         tz = self.tz.tzname(None)
@@ -330,7 +332,7 @@ class MilliSecondLocator(dates.DateLocator):
             if len(all_dates) > 0:
                 locs = self.raise_if_exceeds(dates.date2num(all_dates))
                 return locs
-        except Exception, e:  # pragma: no cover
+        except Exception:  # pragma: no cover
             pass
 
         lims = dates.date2num([dmin, dmax])
@@ -347,19 +349,19 @@ class MilliSecondLocator(dates.DateLocator):
         if dmin > dmax:
             dmax, dmin = dmin, dmax
 
-        delta = relativedelta(dmax, dmin)
+        # delta = relativedelta(dmax, dmin)
 
         # We need to cap at the endpoints of valid datetime
-        try:
-            start = dmin - delta
-        except ValueError:
-            start = _from_ordinal(1.0)
+        # try:
+        #     start = dmin - delta
+        # except ValueError:
+        #     start = _from_ordinal(1.0)
 
-        try:
-            stop = dmax + delta
-        except ValueError:
-            # The magic number!
-            stop = _from_ordinal(3652059.9999999)
+        # try:
+        #     stop = dmax + delta
+        # except ValueError:
+        #     # The magic number!
+        #     stop = _from_ordinal(3652059.9999999)
 
         dmin, dmax = self.datalim_to_dt()
 
@@ -454,7 +456,9 @@ def _daily_finder(vmin, vmax, freq):
     periodsperday = -1
 
     if freq >= FreqGroup.FR_HR:
-        if freq == FreqGroup.FR_SEC:
+        if freq == FreqGroup.FR_USEC:
+            periodsperday = 24 * 60 * 60 * 1000000
+        elif freq == FreqGroup.FR_SEC:
             periodsperday = 24 * 60 * 60
         elif freq == FreqGroup.FR_MIN:
             periodsperday = 24 * 60
@@ -497,11 +501,8 @@ def _daily_finder(vmin, vmax, freq):
     info_fmt = info['fmt']
 
     def first_label(label_flags):
-        if (label_flags[0] == 0) and (label_flags.size > 1) and \
-                ((vmin_orig % 1) > 0.0):
-                return label_flags[1]
-        else:
-            return label_flags[0]
+        conds = label_flags[0] == 0, label_flags.size > 1, vmin_orig % 1 > 0.0
+        return label_flags[int(all(conds))]
 
     # Case 1. Less than a month
     if span <= periodspermonth:
@@ -543,8 +544,7 @@ def _daily_finder(vmin, vmax, freq):
             info['min'][second_start & (_second % label_interval == 0)] = True
             year_start = period_break(dates_, 'year')
             info_fmt = info['fmt']
-            info_fmt[second_start & (_second %
-                                     label_interval == 0)] = '%H:%M:%S'
+            info_fmt[second_start & (_second % label_interval == 0)] = '%H:%M:%S'
             info_fmt[day_start] = '%H:%M:%S\n%d-%b'
             info_fmt[year_start] = '%H:%M:%S\n%d-%b\n%Y'
 
@@ -588,6 +588,7 @@ def _daily_finder(vmin, vmax, freq):
             info_fmt[day_start] = '%d'
             info_fmt[month_start] = '%d\n%b'
             info_fmt[year_start] = '%d\n%b\n%Y'
+
             if not has_level_label(year_start, vmin_orig):
                 if not has_level_label(month_start, vmin_orig):
                     info_fmt[first_label(day_start)] = '%d\n%b\n%Y'
@@ -902,11 +903,10 @@ class TimeSeries_DateLocator(Locator):
             vmax += 1
         return nonsingular(vmin, vmax)
 
+
 #####-------------------------------------------------------------------------
 #---- --- Formatter ---
 #####-------------------------------------------------------------------------
-
-
 class TimeSeries_DateFormatter(Formatter):
     """
     Formats the ticks along an axis controlled by a :class:`PeriodIndex`.

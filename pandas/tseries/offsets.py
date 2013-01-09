@@ -116,7 +116,7 @@ class DateOffset(object):
         attrs = []
         for attr in self.__dict__:
             if ((attr == 'kwds' and len(self.kwds) == 0)
-                    or attr.startswith('_')):
+                or attr.startswith('_')):
                 continue
             if attr not in exclude:
                 attrs.append('='.join((attr, repr(getattr(self, attr)))))
@@ -415,8 +415,7 @@ class BusinessMonthEnd(CacheableOffset, DateOffset):
         n = self.n
 
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                       % 7) - 4, 0)
+        lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
@@ -587,7 +586,8 @@ class WeekOfMonth(DateOffset, CacheableOffset):
             else:
                 months = self.n + 1
 
-        return self.getOffsetOfMonth(other + relativedelta(months=months, day=1))
+        return self.getOffsetOfMonth(other + relativedelta(months=months,
+                                                           day=1))
 
     def getOffsetOfMonth(self, dt):
         w = Week(weekday=self.weekday)
@@ -631,8 +631,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         n = self.n
 
         wkday, days_in_month = tslib.monthrange(other.year, other.month)
-        lastBDay = days_in_month - max(((wkday + days_in_month - 1)
-                                       % 7) - 4, 0)
+        lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -826,11 +825,11 @@ class BYearEnd(DateOffset, CacheableOffset):
         years = n
         if n > 0:
             if (other.month < self.month or
-                    (other.month == self.month and other.day < lastBDay)):
+                (other.month == self.month and other.day < lastBDay)):
                 years -= 1
         elif n <= 0:
             if (other.month > self.month or
-                    (other.month == self.month and other.day > lastBDay)):
+                (other.month == self.month and other.day > lastBDay)):
                 years += 1
 
         other = other + relativedelta(years=years)
@@ -874,11 +873,11 @@ class BYearBegin(DateOffset, CacheableOffset):
 
         if n > 0:  # roll back first for positive n
             if (other.month < self.month or
-                    (other.month == self.month and other.day < first)):
+                (other.month == self.month and other.day < first)):
                 years -= 1
         elif n <= 0:  # roll forward
             if (other.month > self.month or
-                    (other.month == self.month and other.day > first)):
+                (other.month == self.month and other.day > first)):
                 years += 1
 
         # set first bday for result
@@ -930,7 +929,7 @@ class YearEnd(DateOffset, CacheableOffset):
 
         def _rollf(date):
             if (date.month != self.month or
-                    date.day < tslib.monthrange(date.year, date.month)[1]):
+                date.day < tslib.monthrange(date.year, date.month)[1]):
                 date = _increment(date)
             return date
 
