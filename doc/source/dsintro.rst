@@ -129,7 +129,7 @@ We will address array-based indexing in a separate :ref:`section <indexing>`.
 Series is dict-like
 ~~~~~~~~~~~~~~~~~~~
 
-A Series is alike a fixed-size dict in that you can get and set values by index
+A Series is like a fixed-size dict in that you can get and set values by index
 label:
 
 .. ipython :: python
