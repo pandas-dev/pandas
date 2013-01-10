@@ -245,6 +245,9 @@ def dateutil_parse(timestr, default,
                    ignoretz=False, tzinfos=None,
                    **kwargs):
     """ lifted from dateutil to get resolution"""
+    from dateutil import tz
+    import time
+
     res = DEFAULTPARSER._parse(StringIO(timestr), **kwargs)
 
     if res is None:
