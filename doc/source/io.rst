@@ -1,4 +1,3 @@
-
 .. _io:
 
 .. currentmodule:: pandas
@@ -43,7 +42,7 @@ data into a DataFrame object. They can take a number of arguments:
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some
     cases by "sniffing." The separator may be specified as a regular
-    expression; for instance you may use '\|\s*' to indicate a pipe plus
+    expression; for instance you may use '\|\\s*' to indicate a pipe plus
     arbitrary whitespace.
   - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
     (much faster than using a regular expression)
