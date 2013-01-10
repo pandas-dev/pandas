@@ -1238,6 +1238,8 @@ class Storer(object):
         self.infer_axes()
         s = self.shape
         if s is not None:
+            if isinstance(s, (list,tuple)):
+                s = "[%s]" % ','.join([ str(x) for x in s ])
             return "%-12.12s (shape->%s)" % (self.pandas_type,s)
         return self.pandas_type
     
@@ -1618,7 +1620,7 @@ class SeriesStorer(GenericStorer):
     @property
     def shape(self):
         try:
-            return "[%s]" % len(getattr(self.group,'values',None))
+            return len(getattr(self.group,'values')),
         except:
             return None
 
@@ -1748,7 +1750,7 @@ class BlockManagerStorer(GenericStorer):
             if self.is_shape_reversed:
                 shape = shape[::-1]
 
-            return "[%s]" % ','.join([ str(x) for x in shape ])
+            return shape
         except:
             return None
 
@@ -1908,7 +1910,7 @@ class Table(Storer):
     @property
     def data_orientation(self):
         """ return a tuple of my permutated axes, non_indexable at the front """
-        return tuple(itertools.chain([a[0] for a in self.non_index_axes], [a.axis for a in self.index_axes]))
+        return tuple(itertools.chain([int(a[0]) for a in self.non_index_axes], [int(a.axis) for a in self.index_axes]))
 
     def queryables(self):
         """ return a dict of the kinds allowable columns for this object """
