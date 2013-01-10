@@ -137,7 +137,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         line_len = len(rs[0])
         for line in rs[1:]:
             try:
-                line = line.decode('utf-8')
+                line = line.decode(get_option("display.encoding"))
             except:
                 pass
             self.assert_(len(line) == line_len)
