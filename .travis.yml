@@ -16,6 +16,8 @@ matrix:
     - python: 2.7
       env: VBENCH=true
     - python: 2.7
+      env: LOCALE_OVERRIDE="zh_CN.GB18030"  # simplified chinese
+    - python: 2.7
       env: FULL_DEPS=true
     - python: 3.2
       env: FULL_DEPS=true

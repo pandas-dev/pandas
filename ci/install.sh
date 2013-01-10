@@ -67,3 +67,8 @@ if [ x"$FULL_DEPS" == x"true" ]; then
     # pick recent 0.5dev dec/2012
     pip install git+git://github.com/statsmodels/statsmodels@c9062e43b8a5f7385537ca95#egg=statsmodels
 fi;
+
+# make sure the desired locale is generated
+if [ x"$LOCALE_OVERRIDE" != x"" ]; then
+    sudo locale-gen "$LOCALE_OVERRIDE"
+fi
