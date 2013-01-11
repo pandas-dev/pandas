@@ -707,7 +707,13 @@ copy : boolean, default False
                 else:
                     return self._set_values(key, value)
             elif key_type == 'boolean':
-                self._set_values(key, value)
+
+                # scalar setting with boolean key
+                if np.isscalar(value):
+                    self._set_values(key, value)
+                # we have a key mask and a value that is np.array like
+                else:
+                    np.putmask(self.values, key, value)
             else:
                 self._set_labels(key, value)
 

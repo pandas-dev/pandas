@@ -1044,6 +1044,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEquals(self.series[d1], 4)
         self.assertEquals(self.series[d2], 6)
 
+    def test_setitem_boolean(self):
+        mask = self.series > self.series.median()
+
+        result = self.series.copy()
+        result[mask] = self.series*2
+        expected = self.series*2
+        assert_series_equal(result[mask], expected[mask])
+
     def test_ix_setitem_boolean(self):
         mask = self.series > self.series.median()
 
@@ -3218,9 +3226,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s.copy()
         bad = isnull(expected.values)
         good = -bad
-        expected[bad] = np.interp(vals[bad], vals[good], s.values[good])
+        expected = Series(np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad])
 
-        assert_series_equal(result, expected)
+        assert_series_equal(result[bad], expected)
 
     def test_weekday(self):
         # Just run the function
