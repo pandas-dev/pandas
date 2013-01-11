@@ -13,4 +13,3 @@ df['H'] = df['A'] > 0
 
 blocks = df._data.blocks
 items = df.columns
-

@@ -37,6 +37,7 @@ from pandas.util.py3compat import StringIO
 
 from test_array import assert_sp_array_equal
 
+
 def _test_data1():
     # nan-based
     arr = np.arange(20, dtype=float)
@@ -47,6 +48,7 @@ def _test_data1():
 
     return arr, index
 
+
 def _test_data2():
     # nan-based
     arr = np.arange(15, dtype=float)
@@ -55,17 +57,20 @@ def _test_data2():
     arr[-1:] = nan
     return arr, index
 
+
 def _test_data1_zero():
     # zero-based
     arr, index = _test_data1()
     arr[np.isnan(arr)] = 0
     return arr, index
 
+
 def _test_data2_zero():
     # zero-based
     arr, index = _test_data2()
     arr[np.isnan(arr)] = 0
     return arr, index
+
 
 def assert_sp_series_equal(a, b):
     assert(a.index.equals(b.index))
@@ -95,6 +100,7 @@ def assert_sp_frame_equal(left, right, exact_indices=True):
     for col in right:
         assert(col in left)
 
+
 def assert_sp_panel_equal(left, right, exact_indices=True):
     for item, frame in left.iterkv():
         assert(item in right)
@@ -108,9 +114,11 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
     for item in right:
         assert(item in left)
 
+
 class TestSparseSeries(TestCase,
                        test_series.CheckNameIntegration):
     _multiprocess_can_split_ = True
+
     def setUp(self):
         arr, index = _test_data1()
 
@@ -143,7 +151,7 @@ class TestSparseSeries(TestCase,
 
     def test_construct_DataFrame_with_sp_series(self):
         # it works!
-        df = DataFrame({'col' : self.bseries})
+        df = DataFrame({'col': self.bseries})
 
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
@@ -558,6 +566,7 @@ class TestSparseSeries(TestCase,
             self.assertEquals(sparse_result, dense_result)
 
         to_compare = ['count', 'sum', 'mean', 'std', 'var', 'skew']
+
         def _compare_all(obj):
             for op in to_compare:
                 _compare_with_dense(obj, op)
@@ -608,19 +617,19 @@ class TestSparseSeries(TestCase,
                 assert(v.sp_index.equals(expected))
 
         indices1 = [BlockIndex(10, [2], [7]),
-                   BlockIndex(10, [1, 6], [3, 4]),
-                   BlockIndex(10, [0], [10])]
+                    BlockIndex(10, [1, 6], [3, 4]),
+                    BlockIndex(10, [0], [10])]
         expected1 = BlockIndex(10, [2, 6], [2, 3])
         _check_matches(indices1, expected1)
 
         indices2 = [BlockIndex(10, [2], [7]),
-                   BlockIndex(10, [2], [7])]
+                    BlockIndex(10, [2], [7])]
         expected2 = indices2[0]
         _check_matches(indices2, expected2)
 
         # must have NaN fill value
-        data = {'a' : SparseSeries(np.arange(7), sparse_index=expected2,
-                                   fill_value=0)}
+        data = {'a': SparseSeries(np.arange(7), sparse_index=expected2,
+                                  fill_value=0)}
         nose.tools.assert_raises(Exception, spf.homogenize, data)
 
     def test_fill_value_corner(self):
@@ -681,17 +690,20 @@ class TestSparseSeries(TestCase,
         assert_sp_series_equal(result, result2)
         assert_sp_series_equal(result, expected)
 
+
 class TestSparseTimeSeries(TestCase):
     pass
+
 
 class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
     klass = SparseDataFrame
     _multiprocess_can_split_ = True
+
     def setUp(self):
-        self.data = {'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
-                     'B' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-                     'C' : np.arange(10),
-                     'D' : [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
+        self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+                     'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+                     'C': np.arange(10),
+                     'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
 
         self.dates = bdate_range('1/1/2011', periods=10)
 
@@ -821,8 +833,8 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self._check_all(_test_roundtrip)
 
     def test_dense_to_sparse(self):
-        df = DataFrame({'A' : [nan, nan, nan, 1, 2],
-                        'B' : [1, 2, nan, nan, nan]})
+        df = DataFrame({'A': [nan, nan, nan, 1, 2],
+                        'B': [1, 2, nan, nan, nan]})
         sdf = df.to_sparse()
         self.assert_(isinstance(sdf, SparseDataFrame))
         self.assert_(np.isnan(sdf.default_fill_value))
@@ -832,8 +844,8 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sdf = df.to_sparse(kind='integer')
         self.assert_(isinstance(sdf['A'].sp_index, IntIndex))
 
-        df = DataFrame({'A' : [0, 0, 0, 1, 2],
-                        'B' : [1, 2, 0, 0, 0]}, dtype=float)
+        df = DataFrame({'A': [0, 0, 0, 1, 2],
+                        'B': [1, 2, 0, 0, 0]}, dtype=float)
         sdf = df.to_sparse(fill_value=0)
         self.assertEquals(sdf.default_fill_value, 0)
         tm.assert_frame_equal(sdf.to_dense(), df)
@@ -957,7 +969,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_getitem(self):
         # #1585 select multiple columns
-        sdf = SparseDataFrame(index=[0, 1, 2], columns=['a', 'b','c'])
+        sdf = SparseDataFrame(index=[0, 1, 2], columns=['a', 'b', 'c'])
 
         result = sdf[['a', 'b']]
         exp = sdf.reindex(columns=['a', 'b'])
@@ -972,7 +984,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_sp_series_equal(result, self.frame['A'])
 
         # preserve sparse index type. #2251
-        data = {'A' : [0,1 ]}
+        data = {'A': [0, 1]}
         iframe = SparseDataFrame(data, default_kind='integer')
         self.assertEquals(type(iframe['A'].sp_index),
                           type(iframe.icol(0).sp_index))
@@ -1062,7 +1074,6 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             frame['K'] = frame.default_fill_value
             self.assertEquals(len(frame['K'].sp_values), 0)
 
-
         self._check_all(_check_frame)
 
     def test_setitem_corner(self):
@@ -1134,17 +1145,18 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assert_(self.empty.apply(np.sqrt) is self.empty)
 
     def test_apply_nonuq(self):
-        df_orig = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        df_orig = DataFrame(
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
         df = df_orig.to_sparse()
         rs = df.apply(lambda s: s[0], axis=1)
         xp = Series([1., 4., 7.], ['a', 'a', 'c'])
         assert_series_equal(rs, xp)
 
-        #df.T breaks
+        # df.T breaks
         df = df_orig.T.to_sparse()
         rs = df.apply(lambda s: s[0], axis=0)
-        #no non-unique columns supported in sparse yet
-        #assert_series_equal(rs, xp)
+        # no non-unique columns supported in sparse yet
+        # assert_series_equal(rs, xp)
 
     def test_applymap(self):
         # just test that it works
@@ -1261,10 +1273,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_sp_frame_equal(result, expected)
 
     def test_density(self):
-        df = SparseDataFrame({'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
-                              'B' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-                              'C' : np.arange(10),
-                              'D' : [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]})
+        df = SparseDataFrame({'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+                              'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+                              'C': np.arange(10),
+                              'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]})
 
         self.assertEquals(df.density, 0.75)
 
@@ -1279,14 +1291,13 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         def _check(frame):
             dense_frame = frame.to_dense()
 
-            wp = Panel.from_dict({'foo' : frame})
+            wp = Panel.from_dict({'foo': frame})
             from_dense_lp = wp.to_frame()
 
             from_sparse_lp = spf.stack_sparse_frame(frame)
 
             self.assert_(np.array_equal(from_dense_lp.values,
                                         from_sparse_lp.values))
-
 
         _check(self.frame)
         _check(self.iframe)
@@ -1375,15 +1386,15 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_sparse_pow_issue(self):
         # #2220
-        df = SparseDataFrame({'A' : [1.1,3.3],'B' : [2.5,-3.9]})
+        df = SparseDataFrame({'A': [1.1, 3.3], 'B': [2.5, -3.9]})
 
         # note : no error without nan
-        df = SparseDataFrame({'A' : [nan, 0, 1]    })
+        df = SparseDataFrame({'A': [nan, 0, 1]})
 
         # note that 2 ** df works fine, also df ** 1
         result = 1 ** df
 
-        r1 = result.take([0],1)['A']
+        r1 = result.take([0], 1)['A']
         r2 = result['A']
 
         self.assertEqual(len(r2.sp_values), len(r1.sp_values))
@@ -1395,58 +1406,62 @@ def _dense_series_compare(s, f):
     dense_result = f(s.to_dense())
     assert_series_equal(result.to_dense(), dense_result)
 
+
 def _dense_frame_compare(frame, f):
     result = f(frame)
     assert(isinstance(frame, SparseDataFrame))
     dense_result = f(frame.to_dense())
     assert_frame_equal(result.to_dense(), dense_result)
 
+
 def panel_data1():
     index = bdate_range('1/1/2011', periods=8)
 
     return DataFrame({
-        'A' : [nan, nan, nan, 0, 1, 2, 3, 4],
-        'B' : [0, 1, 2, 3, 4, nan, nan, nan],
-        'C' : [0, 1, 2, nan, nan, nan, 3, 4],
-        'D' : [nan, 0, 1, nan, 2, 3, 4, nan]
-        }, index=index)
+        'A': [nan, nan, nan, 0, 1, 2, 3, 4],
+        'B': [0, 1, 2, 3, 4, nan, nan, nan],
+        'C': [0, 1, 2, nan, nan, nan, 3, 4],
+        'D': [nan, 0, 1, nan, 2, 3, 4, nan]
+    }, index=index)
 
 
 def panel_data2():
     index = bdate_range('1/1/2011', periods=9)
 
     return DataFrame({
-        'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5],
-        'B' : [0, 1, 2, 3, 4, 5, nan, nan, nan],
-        'C' : [0, 1, 2, nan, nan, nan, 3, 4, 5],
-        'D' : [nan, 0, 1, nan, 2, 3, 4, 5, nan]
-        }, index=index)
+        'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5],
+        'B': [0, 1, 2, 3, 4, 5, nan, nan, nan],
+        'C': [0, 1, 2, nan, nan, nan, 3, 4, 5],
+        'D': [nan, 0, 1, nan, 2, 3, 4, 5, nan]
+    }, index=index)
 
 
 def panel_data3():
     index = bdate_range('1/1/2011', periods=10).shift(-2)
 
     return DataFrame({
-        'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
-        'B' : [0, 1, 2, 3, 4, 5, 6, nan, nan, nan],
-        'C' : [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
-        'D' : [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
-        }, index=index)
+        'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+        'B': [0, 1, 2, 3, 4, 5, 6, nan, nan, nan],
+        'C': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+        'D': [nan, 0, 1, nan, 2, 3, 4, 5, 6, nan]
+    }, index=index)
+
 
 class TestSparsePanel(TestCase,
                       test_panel.SafeForLongAndSparse,
                       test_panel.SafeForSparse):
     _multiprocess_can_split_ = True
+
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_sp_panel_equal(x, y)
 
     def setUp(self):
         self.data_dict = {
-            'ItemA' : panel_data1(),
-            'ItemB' : panel_data2(),
-            'ItemC' : panel_data3(),
-            'ItemD' : panel_data1(),
+            'ItemA': panel_data1(),
+            'ItemB': panel_data2(),
+            'ItemC': panel_data3(),
+            'ItemD': panel_data1(),
         }
         self.panel = SparsePanel(self.data_dict)
 
@@ -1628,7 +1643,7 @@ class TestSparsePanel(TestCase,
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
 
     # nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure',

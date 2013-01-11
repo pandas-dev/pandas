@@ -418,7 +418,7 @@ def apply_frame_axis0(object frame, object f, object names,
             item_cache.clear() # ugh
             gin.clear_mapping()
 
-            setattr(slider.dummy, 'name', names[i])
+            object.__setattr__(slider.dummy, 'name', names[i])
             piece = f(slider.dummy)
 
             # I'm paying the price for index-sharing, ugh

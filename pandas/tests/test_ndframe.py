@@ -5,6 +5,7 @@ import numpy as np
 from pandas.core.generic import NDFrame
 import pandas.util.testing as t
 
+
 class TestNDFrame(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -27,5 +28,5 @@ class TestNDFrame(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

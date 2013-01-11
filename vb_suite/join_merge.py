@@ -86,10 +86,8 @@ join_dataframe_integer_2key = Benchmark("merge(df, df3)", setup,
 # DataFrame joins on index
 
 
-
 #----------------------------------------------------------------------
 # Merges
-
 setup = common_setup + """
 N = 10000
 

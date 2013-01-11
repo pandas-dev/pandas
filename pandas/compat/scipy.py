@@ -63,7 +63,7 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='fraction'):
     if limit:
         values = values[(limit[0] <= values) & (values <= limit[1])]
 
-    idx = per /100. * (values.shape[0] - 1)
+    idx = per / 100. * (values.shape[0] - 1)
     if (idx % 1 == 0):
         score = values[idx]
     else:
@@ -75,7 +75,7 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='fraction'):
         elif interpolation_method == 'higher':
             score = values[np.ceil(idx)]
         else:
-            raise ValueError("interpolation_method can only be 'fraction', " \
+            raise ValueError("interpolation_method can only be 'fraction', "
                              "'lower' or 'higher'")
 
     return score
@@ -85,7 +85,7 @@ def _interpolate(a, b, fraction):
     """Returns the point at the given fraction between a and b, where
     'fraction' must be between 0 and 1.
     """
-    return a + (b - a)*fraction
+    return a + (b - a) * fraction
 
 
 def rankdata(a):
@@ -121,9 +121,9 @@ def rankdata(a):
     for i in xrange(n):
         sumranks += i
         dupcount += 1
-        if i==n-1 or svec[i] != svec[i+1]:
+        if i == n - 1 or svec[i] != svec[i + 1]:
             averank = sumranks / float(dupcount) + 1
-            for j in xrange(i-dupcount+1,i+1):
+            for j in xrange(i - dupcount + 1, i + 1):
                 newarray[ivec[j]] = averank
             sumranks = 0
             dupcount = 0

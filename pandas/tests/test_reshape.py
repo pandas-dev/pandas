@@ -19,6 +19,7 @@ import pandas.util.testing as tm
 
 _multiprocess_can_split_ = True
 
+
 def test_melt():
     df = tm.makeTimeDataFrame()[:10]
     df['id1'] = (df['A'] > 0).astype(int)
@@ -32,29 +33,31 @@ def test_melt():
     molten5 = melt(df, id_vars=['id1', 'id2'],
                    value_vars=['A', 'B'])
 
+
 def test_convert_dummies():
-    df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                           'foo', 'bar', 'foo', 'foo'],
-                    'B' : ['one', 'one', 'two', 'three',
-                           'two', 'two', 'one', 'three'],
-                    'C' : np.random.randn(8),
-                    'D' : np.random.randn(8)})
+    df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                          'foo', 'bar', 'foo', 'foo'],
+                    'B': ['one', 'one', 'two', 'three',
+                          'two', 'two', 'one', 'three'],
+                    'C': np.random.randn(8),
+                    'D': np.random.randn(8)})
 
     result = convert_dummies(df, ['A', 'B'])
     result2 = convert_dummies(df, ['A', 'B'], prefix_sep='.')
 
-    expected = DataFrame({'A_foo' : [1, 0, 1, 0, 1, 0, 1, 1],
-                          'A_bar' : [0, 1, 0, 1, 0, 1, 0, 0],
-                          'B_one' : [1, 1, 0, 0, 0, 0, 1, 0],
-                          'B_two' : [0, 0, 1, 0, 1, 1, 0, 0],
-                          'B_three' : [0, 0, 0, 1, 0, 0, 0, 1],
-                          'C' : df['C'].values,
-                          'D' : df['D'].values},
+    expected = DataFrame({'A_foo': [1, 0, 1, 0, 1, 0, 1, 1],
+                          'A_bar': [0, 1, 0, 1, 0, 1, 0, 0],
+                          'B_one': [1, 1, 0, 0, 0, 0, 1, 0],
+                          'B_two': [0, 0, 1, 0, 1, 1, 0, 0],
+                          'B_three': [0, 0, 0, 1, 0, 0, 0, 1],
+                          'C': df['C'].values,
+                          'D': df['D'].values},
                          columns=result.columns, dtype=float)
     expected2 = expected.rename(columns=lambda x: x.replace('_', '.'))
 
     tm.assert_frame_equal(result, expected)
     tm.assert_frame_equal(result2, expected2)
+
 
 class Test_lreshape(unittest.TestCase):
 
@@ -130,5 +133,5 @@ class Test_lreshape(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

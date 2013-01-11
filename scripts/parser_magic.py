@@ -6,10 +6,12 @@ import ast
 import inspect
 import sys
 
+
 def merge(a, b):
     f, args, _ = parse_stmt(inspect.currentframe().f_back)
-    return DataFrame({args[0] : a,
-                      args[1] : b})
+    return DataFrame({args[0]: a,
+                      args[1]: b})
+
 
 def parse_stmt(frame):
     info = inspect.getframeinfo(frame)
@@ -21,6 +23,7 @@ def parse_stmt(frame):
     elif isinstance(body, ast.Call):
         call = body
     return _parse_call(call)
+
 
 def _parse_call(call):
     func = _maybe_format_attribute(call.func)
@@ -34,6 +37,7 @@ def _parse_call(call):
             str_args.append(formatted)
 
     return func, str_args, {}
+
 
 def _format_call(call):
     func, args, kwds = _parse_call(call)
@@ -49,10 +53,12 @@ def _format_call(call):
             content += joined_kwds
     return '%s(%s)' % (func, content)
 
+
 def _maybe_format_attribute(name):
     if isinstance(name, ast.Attribute):
         return _format_attribute(name)
     return name.id
+
 
 def _format_attribute(attr):
     obj = attr.value

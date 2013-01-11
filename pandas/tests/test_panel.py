@@ -22,6 +22,7 @@ from pandas.util.testing import (assert_panel_equal,
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
+
 def _skip_if_no_scipy():
     try:
         import scipy.stats
@@ -42,8 +43,10 @@ class PanelTests(object):
         cumsum = self.panel.cumsum()
         assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
 
+
 class SafeForLongAndSparse(object):
     _multiprocess_can_split_ = True
+
     def test_repr(self):
         foo = repr(self.panel)
 
@@ -82,6 +85,7 @@ class SafeForLongAndSparse(object):
             from scipy.stats import skew
         except ImportError:
             raise nose.SkipTest
+
         def this_skew(x):
             if len(x) < 3:
                 return np.nan
@@ -149,8 +153,10 @@ class SafeForLongAndSparse(object):
 
         self.assertRaises(Exception, f, axis=obj.ndim)
 
+
 class SafeForSparse(object):
     _multiprocess_can_split_ = True
+
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
@@ -240,7 +246,7 @@ class SafeForSparse(object):
         self._test_op(self.panel, lambda x, y: x - y)  # panel - 1
         self._test_op(self.panel, lambda x, y: x * y)  # panel * 1
         self._test_op(self.panel, lambda x, y: x / y)  # panel / 1
-        self._test_op(self.panel, lambda x, y: x ** y) # panel ** 1
+        self._test_op(self.panel, lambda x, y: x ** y)  # panel ** 1
 
         self.assertRaises(Exception, self.panel.__add__, self.panel['ItemA'])
 
@@ -351,9 +357,11 @@ class SafeForSparse(object):
         expected = np.abs(s)
         assert_series_equal(result, expected)
 
+
 class CheckIndexing(object):
 
     _multiprocess_can_split_ = True
+
     def test_getitem(self):
         self.assertRaises(Exception, self.panel.__getitem__, 'ItemQ')
 
@@ -427,15 +435,15 @@ class CheckIndexing(object):
     def test_setitem_ndarray(self):
         from pandas import date_range, datetools
 
-        timeidx = date_range(start=datetime(2009,1,1),
-                             end=datetime(2009,12,31),
+        timeidx = date_range(start=datetime(2009, 1, 1),
+                             end=datetime(2009, 12, 31),
                              freq=datetools.MonthEnd())
         lons_coarse = np.linspace(-177.5, 177.5, 72)
         lats_coarse = np.linspace(-87.5, 87.5, 36)
         P = Panel(items=timeidx, major_axis=lons_coarse,
                   minor_axis=lats_coarse)
-        data = np.random.randn(72*36).reshape((72,36))
-        key = datetime(2009,2,28)
+        data = np.random.randn(72 * 36).reshape((72, 36))
+        key = datetime(2009, 2, 28)
         P[key] = data
 
         assert_almost_equal(P[key].values, data)
@@ -588,9 +596,10 @@ class CheckIndexing(object):
         self._check_view((NS, date, 'C'), comp)
 
     def test_ix_setitem_slice_dataframe(self):
-        a = Panel(items=[1,2,3],major_axis=[11,22,33],minor_axis=[111,222,333])
-        b = DataFrame(np.random.randn(2,3), index=[111,333],
-                      columns=[1,2,3])
+        a = Panel(items=[1, 2, 3], major_axis=[11, 22, 33],
+                  minor_axis=[111, 222, 333])
+        b = DataFrame(np.random.randn(2, 3), index=[111, 333],
+                      columns=[1, 2, 3])
 
         a.ix[:, 22, [111, 333]] = b
 
@@ -643,14 +652,15 @@ class CheckIndexing(object):
         comp(cp.ix[indexer].reindex_like(obj), obj)
 
     def test_logical_with_nas(self):
-        d = Panel({ 'ItemA' : {'a': [np.nan, False] }, 'ItemB' : { 'a': [True, True] } })
+        d = Panel({'ItemA': {'a': [np.nan, False]}, 'ItemB': {
+                  'a': [True, True]}})
 
         result = d['ItemA'] | d['ItemB']
-        expected = DataFrame({ 'a' : [np.nan, True] })
+        expected = DataFrame({'a': [np.nan, True]})
         assert_frame_equal(result, expected)
 
         result = d['ItemA'].fillna(False) | d['ItemB']
-        expected = DataFrame({ 'a' : [True, True] }, dtype=object)
+        expected = DataFrame({'a': [True, True]}, dtype=object)
         assert_frame_equal(result, expected)
 
     def test_neg(self):
@@ -658,13 +668,13 @@ class CheckIndexing(object):
         assert_panel_equal(-self.panel, -1 * self.panel)
 
     def test_invert(self):
-        assert_panel_equal(-(self.panel < 0), ~(self.panel <0))
+        assert_panel_equal(-(self.panel < 0), ~(self.panel < 0))
 
     def test_comparisons(self):
         p1 = tm.makePanel()
         p2 = tm.makePanel()
 
-        tp = p1.reindex(items = p1.items + ['foo'])
+        tp = p1.reindex(items=p1.items + ['foo'])
         df = p1[p1.items[0]]
 
         def test_comp(func):
@@ -719,12 +729,14 @@ class CheckIndexing(object):
 _panel = tm.makePanel()
 tm.add_nans(_panel)
 
+
 class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 SafeForLongAndSparse,
                 SafeForSparse):
     _multiprocess_can_split_ = True
+
     @classmethod
-    def assert_panel_equal(cls,x, y):
+    def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
 
     def setUp(self):
@@ -743,8 +755,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(wp, self.panel)
 
         # strings handled prop
-        wp = Panel([[['foo', 'foo', 'foo',],
-                         ['foo', 'foo', 'foo']]])
+        wp = Panel([[['foo', 'foo', 'foo', ],
+                     ['foo', 'foo', 'foo']]])
         self.assert_(wp.values.dtype == np.object_)
 
         vals = self.panel.values
@@ -796,14 +808,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         itema = self.panel['ItemA']
         itemb = self.panel['ItemB']
 
-        d = {'A' : itema, 'B' : itemb[5:]}
-        d2 = {'A' : itema._series, 'B' : itemb[5:]._series}
-        d3 = {'A' : None,
-              'B' : DataFrame(itemb[5:]._series),
-              'C' : DataFrame(itema._series)}
+        d = {'A': itema, 'B': itemb[5:]}
+        d2 = {'A': itema._series, 'B': itemb[5:]._series}
+        d3 = {'A': None,
+              'B': DataFrame(itemb[5:]._series),
+              'C': DataFrame(itema._series)}
 
         wp = Panel.from_dict(d)
-        wp2 = Panel.from_dict(d2) # nested Dict
+        wp2 = Panel.from_dict(d2)  # nested Dict
         wp3 = Panel.from_dict(d3)
         self.assert_(wp.major_axis.equals(self.panel.major_axis))
         assert_panel_equal(wp, wp2)
@@ -818,9 +830,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(Panel(d3), Panel.from_dict(d3))
 
         # a pathological case
-        d4 = { 'A' : None, 'B' : None }
+        d4 = {'A': None, 'B': None}
         wp4 = Panel.from_dict(d4)
-        assert_panel_equal(Panel(d4), Panel(items = ['A','B']))
+        assert_panel_equal(Panel(d4), Panel(items=['A', 'B']))
 
         # cast
         dcasted = dict((k, v.reindex(wp.major_axis).fillna(0))
@@ -879,8 +891,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         df = tm.makeDataFrame()
         df['foo'] = 'bar'
 
-        data = {'k1' : df,
-                'k2' : df}
+        data = {'k1': df,
+                'k2': df}
 
         panel = Panel.from_dict(data, orient='minor')
 
@@ -1174,12 +1186,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(result, expected)
 
     def test_multiindex_get(self):
-        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b',2)],
+        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)],
                                      names=['first', 'second'])
-        wp = Panel(np.random.random((4,5,5)),
-                                    items=ind,
-                                    major_axis=np.arange(5),
-                                    minor_axis=np.arange(5))
+        wp = Panel(np.random.random((4, 5, 5)),
+                   items=ind,
+                   major_axis=np.arange(5),
+                   minor_axis=np.arange(5))
         f1 = wp['a']
         f2 = wp.ix['a']
         assert_panel_equal(f1, f2)
@@ -1198,7 +1210,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         f1 = wp['a']
         self.assert_((f1.items == [1, 2]).all())
 
-        f1 = wp[('b',1)]
+        f1 = wp[('b', 1)]
         self.assert_((f1.columns == ['A', 'B', 'C', 'D']).all())
 
     def test_repr_empty(self):
@@ -1207,9 +1219,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_rename(self):
         mapper = {
-            'ItemA' : 'foo',
-            'ItemB' : 'bar',
-            'ItemC' : 'baz'
+            'ItemA': 'foo',
+            'ItemB': 'bar',
+            'ItemC': 'baz'
         }
 
         renamed = self.panel.rename_axis(mapper, axis=0)
@@ -1239,14 +1251,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert(agged[2][0] == 4.5)
 
         # test a function that doesn't aggregate
-        f2 = lambda x: np.zeros((2,2))
+        f2 = lambda x: np.zeros((2, 2))
         self.assertRaises(Exception, group_agg, values, bounds, f2)
 
     def test_from_frame_level1_unsorted(self):
         tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2),
                   ('AAPL', 1), ('MSFT', 1)]
         midx = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.rand(5,4), index=midx)
+        df = DataFrame(np.random.rand(5, 4), index=midx)
         p = df.to_panel()
         assert_frame_equal(p.minor_xs(2), df.xs(2, level=1).sort_index())
 
@@ -1265,7 +1277,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
             self.panel.to_excel(path)
             reader = ExcelFile(path)
             for item, df in self.panel.iterkv():
-                recdf = reader.parse(str(item),index_col=0)
+                recdf = reader.parse(str(item), index_col=0)
                 assert_frame_equal(df, recdf)
             os.remove(path)
 
@@ -1305,21 +1317,21 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.]],
-                   [[1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.]]])
+            [[1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.]]])
 
         other = Panel([[[3.6, 2., np.nan],
-                           [np.nan, np.nan, 7]]], items=[1])
+                        [np.nan, np.nan, 7]]], items=[1])
 
         pan.update(other)
 
         expected = Panel([[[1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]],
-                             [[3.6, 2., 3],
+                           [1.5, np.nan, 3.],
+                           [1.5, np.nan, 3.],
+                           [1.5, np.nan, 3.]],
+                          [[3.6, 2., 3],
                               [1.5, np.nan, 7],
                               [1.5, np.nan, 3.],
                               [1.5, np.nan, 3.]]])
@@ -1328,27 +1340,27 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_update_from_dict(self):
         pan = Panel({'one': DataFrame([[1.5, np.nan, 3],
-                              [1.5, np.nan, 3],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]]),
-                      'two': DataFrame([[1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]])})
+                                       [1.5, np.nan, 3],
+                                       [1.5, np.nan, 3.],
+                                       [1.5, np.nan, 3.]]),
+                     'two': DataFrame([[1.5, np.nan, 3.],
+                                       [1.5, np.nan, 3.],
+                                       [1.5, np.nan, 3.],
+                                       [1.5, np.nan, 3.]])})
 
         other = {'two': DataFrame([[3.6, 2., np.nan],
-                               [np.nan, np.nan, 7]])}
+                                   [np.nan, np.nan, 7]])}
 
         pan.update(other)
 
         expected = Panel({'two': DataFrame([[3.6, 2., 3],
-                              [1.5, np.nan, 7],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]]),
+                                            [1.5, np.nan, 7],
+                                            [1.5, np.nan, 3.],
+                                            [1.5, np.nan, 3.]]),
                           'one': DataFrame([[1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]])})
+                                            [1.5, np.nan, 3.],
+                                            [1.5, np.nan, 3.],
+                                            [1.5, np.nan, 3.]])})
 
         assert_panel_equal(pan, expected)
 
@@ -1357,10 +1369,10 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.]],
-                   [[1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.]]])
+            [[1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.]]])
 
         other = Panel([[[3.6, 2., np.nan],
                         [np.nan, np.nan, 7]]], items=[1])
@@ -1368,10 +1380,10 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         pan.update(other, overwrite=False)
 
         expected = Panel([[[1.5, np.nan, 3],
-                              [1.5, np.nan, 3],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]],
-                             [[1.5, 2., 3.],
+                           [1.5, np.nan, 3],
+                           [1.5, np.nan, 3.],
+                           [1.5, np.nan, 3.]],
+                          [[1.5, 2., 3.],
                               [1.5, np.nan, 3.],
                               [1.5, np.nan, 3.],
                               [1.5, np.nan, 3.]]])
@@ -1383,21 +1395,21 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.]],
-                   [[1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.]]])
+            [[1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.]]])
 
         other = Panel([[[3.6, 2., np.nan],
-                           [np.nan, np.nan, 7]]], items=[1])
+                        [np.nan, np.nan, 7]]], items=[1])
 
         pan.update(other, filter_func=lambda x: x > 2)
 
         expected = Panel([[[1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.],
-                              [1.5, np.nan, 3.]],
-                             [[1.5, np.nan, 3],
+                           [1.5, np.nan, 3.],
+                           [1.5, np.nan, 3.],
+                           [1.5, np.nan, 3.]],
+                          [[1.5, np.nan, 3],
                               [1.5, np.nan, 7],
                               [1.5, np.nan, 3.],
                               [1.5, np.nan, 3.]]])
@@ -1409,19 +1421,21 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.]],
-                   [[1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.]]])
+            [[1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.],
+             [1.5, np.nan, 3.]]])
 
         np.testing.assert_raises(Exception, pan.update, *(pan,),
-            **{'raise_conflict': True})
+                                 **{'raise_conflict': True})
+
 
 class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...
     """
     _multiprocess_can_split_ = True
+
     def setUp(self):
         panel = tm.makePanel()
         tm.add_nans(panel)
@@ -1546,13 +1560,13 @@ class TestLongPanel(unittest.TestCase):
         self.assertEqual(len(major_dummies.columns),
                          len(self.panel.index.levels[0]))
 
-        mapping = {'A' : 'one',
-                   'B' : 'one',
-                   'C' : 'two',
-                   'D' : 'two'}
+        mapping = {'A': 'one',
+                   'B': 'one',
+                   'C': 'two',
+                   'D': 'two'}
 
         transformed = make_axis_dummies(self.panel, 'minor',
-                                                  transform=mapping.get)
+                                        transform=mapping.get)
         self.assertEqual(len(transformed.columns), 2)
         self.assert_(np.array_equal(transformed.columns, ['one', 'two']))
 
@@ -1633,6 +1647,7 @@ class TestLongPanel(unittest.TestCase):
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
 
+
 def test_monotonic():
     pos = np.array([1, 2, 3, 5])
 
@@ -1646,13 +1661,14 @@ def test_monotonic():
 
     assert not panelm._monotonic(neg2)
 
+
 def test_panel_index():
-    index = panelm.panel_index([1,2,3,4], [1,2,3])
-    expected = MultiIndex.from_arrays([np.tile([1,2,3,4], 3),
-                                       np.repeat([1,2,3], 4)])
+    index = panelm.panel_index([1, 2, 3, 4], [1, 2, 3])
+    expected = MultiIndex.from_arrays([np.tile([1, 2, 3, 4], 3),
+                                       np.repeat([1, 2, 3], 4)])
     assert(index.equals(expected))
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

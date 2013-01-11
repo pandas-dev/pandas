@@ -49,7 +49,7 @@ def win32_clipboard_get():
         import win32clipboard
     except ImportError:
         message = ("Getting text from the clipboard requires the pywin32 "
-            "extensions: http://sourceforge.net/projects/pywin32/")
+                   "extensions: http://sourceforge.net/projects/pywin32/")
         raise Exception(message)
     win32clipboard.OpenClipboard()
     text = win32clipboard.GetClipboardData(win32clipboard.CF_TEXT)
@@ -62,7 +62,7 @@ def osx_clipboard_get():
     """ Get the clipboard's text on OS X.
     """
     p = subprocess.Popen(['pbpaste', '-Prefer', 'ascii'],
-        stdout=subprocess.PIPE)
+                         stdout=subprocess.PIPE)
     text, stderr = p.communicate()
     # Text comes in with old Mac \r line endings. Change them to \n.
     text = text.replace('\r', '\n')
@@ -80,7 +80,7 @@ def tkinter_clipboard_get():
         import Tkinter
     except ImportError:
         message = ("Getting text from the clipboard on this platform "
-            "requires Tkinter.")
+                   "requires Tkinter.")
         raise Exception(message)
     root = Tkinter.Tk()
     root.withdraw()
@@ -109,7 +109,7 @@ def osx_clipboard_set(text):
     """ Get the clipboard's text on OS X.
     """
     p = subprocess.Popen(['pbcopy', '-Prefer', 'ascii'],
-        stdin=subprocess.PIPE)
+                         stdin=subprocess.PIPE)
     p.communicate(input=text)
 
 

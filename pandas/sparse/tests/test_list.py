@@ -12,6 +12,7 @@ from test_sparse import assert_sp_array_equal
 def assert_sp_list_equal(left, right):
     assert_sp_array_equal(left.to_array(), right.to_array())
 
+
 class TestSparseList(unittest.TestCase):
 
     _multiprocess_can_split_ = True
@@ -101,5 +102,5 @@ class TestSparseList(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

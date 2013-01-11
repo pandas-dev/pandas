@@ -3,20 +3,21 @@ Easy integration of DataFrame into pyqt framework
 
 @author: Jev Kuznetsov
 '''
-from PyQt4.QtCore import (QAbstractTableModel,Qt,QVariant,QModelIndex, SIGNAL)
-from PyQt4.QtGui import (QApplication,QDialog,QVBoxLayout, QTableView, QWidget)
+from PyQt4.QtCore import (
+    QAbstractTableModel, Qt, QVariant, QModelIndex, SIGNAL)
+from PyQt4.QtGui import (
+    QApplication, QDialog, QVBoxLayout, QTableView, QWidget)
 
 from pandas import DataFrame, Index
-
 
 
 class DataFrameModel(QAbstractTableModel):
     ''' data model for a DataFrame class '''
     def __init__(self):
-        super(DataFrameModel,self).__init__()
+        super(DataFrameModel, self).__init__()
         self.df = DataFrame()
 
-    def setDataFrame(self,dataFrame):
+    def setDataFrame(self, dataFrame):
         self.df = dataFrame
 
     def signalUpdate(self):
@@ -25,7 +26,7 @@ class DataFrameModel(QAbstractTableModel):
         self.layoutChanged.emit()
 
     #------------- table display functions -----------------
-    def headerData(self,section,orientation,role=Qt.DisplayRole):
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role != Qt.DisplayRole:
             return QVariant()
 
@@ -36,7 +37,7 @@ class DataFrameModel(QAbstractTableModel):
                 return QVariant()
         elif orientation == Qt.Vertical:
             try:
-                #return self.df.index.tolist()
+                # return self.df.index.tolist()
                 return self.df.index.tolist()[section]
             except (IndexError, ):
                 return QVariant()
@@ -48,7 +49,7 @@ class DataFrameModel(QAbstractTableModel):
         if not index.isValid():
             return QVariant()
 
-        return QVariant(str(self.df.ix[index.row(),index.column()]))
+        return QVariant(str(self.df.ix[index.row(), index.column()]))
 
     def flags(self, index):
             flags = super(DataFrameModel, self).flags(index)
@@ -59,7 +60,7 @@ class DataFrameModel(QAbstractTableModel):
         self.df.set_value(self.df.index[index.row()],
                           self.df.columns[index.column()],
                           value.toPyObject())
-        return  True
+        return True
 
     def rowCount(self, index=QModelIndex()):
         return self.df.shape[0]
@@ -70,8 +71,8 @@ class DataFrameModel(QAbstractTableModel):
 
 class DataFrameWidget(QWidget):
     ''' a simple widget for using DataFrames in a gui '''
-    def __init__(self,dataFrame, parent=None):
-        super(DataFrameWidget,self).__init__(parent)
+    def __init__(self, dataFrame, parent=None):
+        super(DataFrameWidget, self).__init__(parent)
 
         self.dataModel = DataFrameModel()
         self.dataModel.setDataFrame(dataFrame)
@@ -84,26 +85,25 @@ class DataFrameWidget(QWidget):
         layout.addWidget(self.dataTable)
         self.setLayout(layout)
 
-
-
     def resizeColumnsToContents(self):
         self.dataTable.resizeColumnsToContents()
 
 #-----------------stand alone test code
 
+
 def testDf():
     ''' creates test dataframe '''
-    data = {'int':[1,2,3], 'float':[1.5,2.5,3.5],
-            'string':['a','b','c'], 'nan':[np.nan,np.nan,np.nan]}
-    return DataFrame(data, index=Index(['AAA','BBB','CCC']),
-                     columns=['int','float','string','nan'])
+    data = {'int': [1, 2, 3], 'float': [1.5, 2.5, 3.5],
+            'string': ['a', 'b', 'c'], 'nan': [np.nan, np.nan, np.nan]}
+    return DataFrame(data, index=Index(['AAA', 'BBB', 'CCC']),
+                     columns=['int', 'float', 'string', 'nan'])
 
 
 class Form(QDialog):
-    def __init__(self,parent=None):
-        super(Form,self).__init__(parent)
+    def __init__(self, parent=None):
+        super(Form, self).__init__(parent)
 
-        df = testDf() # make up some data
+        df = testDf()  # make up some data
         widget = DataFrameWidget(df)
         widget.resizeColumnsToContents()
 
@@ -111,7 +111,7 @@ class Form(QDialog):
         layout.addWidget(widget)
         self.setLayout(layout)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     import sys
     import numpy as np
 
@@ -119,9 +119,3 @@ if __name__=='__main__':
     form = Form()
     form.show()
     app.exec_()
-
-
-
-
-
-

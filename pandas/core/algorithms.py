@@ -115,13 +115,14 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     Returns
     -------
     """
-    values = np.asarray(values)
-    is_datetime = com.is_datetime64_dtype(values)
-    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
+    from pandas.tseries.period import PeriodIndex
+    vals = np.asarray(values)
+    is_datetime = com.is_datetime64_dtype(vals)
+    (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
 
-    table = hash_klass(len(values))
+    table = hash_klass(len(vals))
     uniques = vec_klass()
-    labels = table.get_labels(values, uniques, 0, na_sentinel)
+    labels = table.get_labels(vals, uniques, 0, na_sentinel)
 
     labels = com._ensure_platform_int(labels)
 
@@ -140,6 +141,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     if is_datetime:
         uniques = uniques.view('M8[ns]')
+    if isinstance(values, PeriodIndex):
+        uniques = PeriodIndex(ordinal=uniques, freq=values.freq)
 
     return labels, uniques
 

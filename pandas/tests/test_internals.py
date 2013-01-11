@@ -9,7 +9,9 @@ from pandas.core.internals import *
 import pandas.core.internals as internals
 import pandas.util.testing as tm
 
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal, randn)
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, randn)
+
 
 def assert_block_equal(left, right):
     assert_almost_equal(left.values, right.values)
@@ -17,19 +19,23 @@ def assert_block_equal(left, right):
     assert(left.items.equals(right.items))
     assert(left.ref_items.equals(right.ref_items))
 
+
 def get_float_mat(n, k):
     return np.repeat(np.atleast_2d(np.arange(k, dtype=float)), n, axis=0)
 
 TEST_COLS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 N = 10
 
+
 def get_float_ex(cols=['a', 'c', 'e']):
     floats = get_float_mat(N, len(cols)).T
     return make_block(floats, cols, TEST_COLS)
 
+
 def get_complex_ex(cols=['h']):
     complexes = (get_float_mat(N, 1).T * 1j).astype(np.complex128)
     return make_block(complexes, cols, TEST_COLS)
+
 
 def get_obj_ex(cols=['b', 'd']):
     mat = np.empty((N, 2), dtype=object)
@@ -37,21 +43,26 @@ def get_obj_ex(cols=['b', 'd']):
     mat[:, 1] = 'bar'
     return make_block(mat.T, cols, TEST_COLS)
 
+
 def get_bool_ex(cols=['f']):
     mat = np.ones((N, 1), dtype=bool)
     return make_block(mat.T, cols, TEST_COLS)
+
 
 def get_int_ex(cols=['g']):
     mat = randn(N, 1).astype(int)
     return make_block(mat.T, cols, TEST_COLS)
 
+
 def get_int32_ex(cols):
     mat = randn(N, 1).astype(np.int32)
     return make_block(mat.T, cols, TEST_COLS)
 
+
 def get_dt_ex(cols=['h']):
     mat = randn(N, 1).astype(int).astype('M8[ns]')
     return make_block(mat.T, cols, TEST_COLS)
+
 
 class TestBlock(unittest.TestCase):
 
@@ -158,21 +169,21 @@ class TestBlock(unittest.TestCase):
 
     def test_split_block_at(self):
         bs = list(self.fblock.split_block_at('a'))
-        self.assertEqual(len(bs),1)
+        self.assertEqual(len(bs), 1)
         self.assertTrue(np.array_equal(bs[0].items, ['c', 'e']))
 
         bs = list(self.fblock.split_block_at('c'))
-        self.assertEqual(len(bs),2)
+        self.assertEqual(len(bs), 2)
         self.assertTrue(np.array_equal(bs[0].items, ['a']))
         self.assertTrue(np.array_equal(bs[1].items, ['e']))
 
         bs = list(self.fblock.split_block_at('e'))
-        self.assertEqual(len(bs),1)
+        self.assertEqual(len(bs), 1)
         self.assertTrue(np.array_equal(bs[0].items, ['a', 'c']))
 
         bblock = get_bool_ex(['f'])
         bs = list(bblock.split_block_at('f'))
-        self.assertEqual(len(bs),0)
+        self.assertEqual(len(bs), 0)
 
     def test_unicode_repr(self):
         mat = np.empty((N, 2), dtype=object)
@@ -229,7 +240,7 @@ class TestBlockManager(unittest.TestCase):
         for b in blocks:
             b.ref_items = items
 
-        mgr = BlockManager(blocks, [items,  np.arange(N)])
+        mgr = BlockManager(blocks, [items, np.arange(N)])
         self.assert_(not mgr.is_mixed_dtype())
 
     def test_is_indexed_like(self):
@@ -273,8 +284,8 @@ class TestBlockManager(unittest.TestCase):
         self.assert_(mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items)
 
         # GH2431
-        self.assertTrue(hasattr(mgr2,"_is_consolidated"))
-        self.assertTrue(hasattr(mgr2,"_known_consolidated"))
+        self.assertTrue(hasattr(mgr2, "_is_consolidated"))
+        self.assertTrue(hasattr(mgr2, "_known_consolidated"))
 
         # reset to False on load
         self.assertFalse(mgr2._is_consolidated)
@@ -403,17 +414,17 @@ class TestBlockManager(unittest.TestCase):
         bool_ser = Series(np.array([True, False, True]))
         obj_ser = Series(np.array([1, 'a', 5]))
         dt_ser = Series(tm.makeDateIndex(3))
-        #check types
-        df = DataFrame({'int' : int_ser, 'float' : float_ser,
-                        'complex' : complex_ser, 'str' : str_ser,
-                        'bool' : bool_ser, 'obj' : obj_ser,
-                        'dt' : dt_ser})
-        xp = DataFrame({'int' : int_ser, 'float' : float_ser,
-                        'complex' : complex_ser})
+        # check types
+        df = DataFrame({'int': int_ser, 'float': float_ser,
+                        'complex': complex_ser, 'str': str_ser,
+                        'bool': bool_ser, 'obj': obj_ser,
+                        'dt': dt_ser})
+        xp = DataFrame({'int': int_ser, 'float': float_ser,
+                        'complex': complex_ser})
         rs = DataFrame(df._data.get_numeric_data())
         assert_frame_equal(xp, rs)
 
-        xp = DataFrame({'bool' : bool_ser})
+        xp = DataFrame({'bool': bool_ser})
         rs = DataFrame(df._data.get_numeric_data(type_list=bool))
         assert_frame_equal(xp, rs)
 
@@ -428,16 +439,16 @@ class TestBlockManager(unittest.TestCase):
         self.assertEqual(rs.ix[0, 'bool'], not df.ix[0, 'bool'])
 
     def test_missing_unicode_key(self):
-        df=DataFrame({"a":[1]})
+        df = DataFrame({"a": [1]})
         try:
-            df.ix[:,u"\u05d0"] # should not raise UnicodeEncodeError
+            df.ix[:, u"\u05d0"]  # should not raise UnicodeEncodeError
         except KeyError:
-            pass # this is the expected exception
+            pass  # this is the expected exception
 
 if __name__ == '__main__':
     # unittest.main()
     import nose
     # nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
     #                exit=False)
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

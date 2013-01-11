@@ -33,17 +33,17 @@ import tempfile
 import time
 
 DEFAULT_MIN_DURATION = 0.01
-BASELINE_COMMIT = '2149c50' # 0.9.1 + regression fix + vb fixes # TODO: detect upstream/master
+BASELINE_COMMIT = '2149c50'  # 0.9.1 + regression fix + vb fixes # TODO: detect upstream/master
 
 parser = argparse.ArgumentParser(description='Use vbench to generate a report comparing performance between two commits.')
 parser.add_argument('-a', '--auto',
                     help='Execute a run using the defaults for the base and target commits.',
                     action='store_true',
                     default=False)
-parser.add_argument('-b','--base-commit',
+parser.add_argument('-b', '--base-commit',
                     help='The commit serving as performance baseline (default: %s).' % BASELINE_COMMIT,
                     type=str)
-parser.add_argument('-t','--target-commit',
+parser.add_argument('-t', '--target-commit',
                     help='The commit to compare against the baseline (default: HEAD).',
                     type=str)
 parser.add_argument('-m', '--min-duration',
@@ -55,7 +55,8 @@ parser.add_argument('-o', '--output',
                     dest='log_file',
                     help='path of file in which to save the report (default: vb_suite.log).')
 
-def get_results_df(db,rev):
+
+def get_results_df(db, rev):
     from pandas import DataFrame
     """Takes a git commit hash and returns a Dataframe of benchmark results
     """
@@ -68,8 +69,10 @@ def get_results_df(db,rev):
     results = results.join(bench['name'], on='checksum').set_index("checksum")
     return results
 
+
 def prprint(s):
-    print("*** %s"%s)
+    print("*** %s" % s)
+
 
 def main():
     from pandas import DataFrame
@@ -86,77 +89,85 @@ def main():
         args.target_commit = args.target_commit[:7]
 
     if not args.log_file:
-        args.log_file = os.path.abspath(os.path.join(REPO_PATH, 'vb_suite.log'))
+        args.log_file = os.path.abspath(
+            os.path.join(REPO_PATH, 'vb_suite.log'))
 
-    TMP_DIR =  tempfile.mkdtemp()
+    TMP_DIR = tempfile.mkdtemp()
     prprint("TMP_DIR = %s" % TMP_DIR)
     prprint("LOG_FILE = %s\n" % args.log_file)
 
     try:
         logfile = open(args.log_file, 'w')
 
-        prprint( "Opening DB at '%s'...\n" % DB_PATH)
+        prprint("Opening DB at '%s'...\n" % DB_PATH)
         db = BenchmarkDB(DB_PATH)
 
         prprint("Initializing Runner...")
-        runner = BenchmarkRunner(benchmarks, REPO_PATH, REPO_PATH, BUILD, DB_PATH,
-                                 TMP_DIR, PREPARE, always_clean=True,
-            #                             run_option='eod', start_date=START_DATE,
-                                 module_dependencies=dependencies)
+        runner = BenchmarkRunner(
+            benchmarks, REPO_PATH, REPO_PATH, BUILD, DB_PATH,
+            TMP_DIR, PREPARE, always_clean=True,
+            # run_option='eod', start_date=START_DATE,
+            module_dependencies=dependencies)
 
-        repo = runner.repo #(steal the parsed git repo used by runner)
+        repo = runner.repo  # (steal the parsed git repo used by runner)
 
         # ARGH. reparse the repo, without discarding any commits,
         # then overwrite the previous parse results
-        #prprint ("Slaughtering kittens..." )
+        # prprint ("Slaughtering kittens..." )
         (repo.shas, repo.messages,
          repo.timestamps, repo.authors) = _parse_commit_log(REPO_PATH)
 
         h_head = args.target_commit or repo.shas[-1]
         h_baseline = args.base_commit
 
-        prprint('Target [%s] : %s\n' % (h_head, repo.messages.get(h_head,"")))
-        prprint('Baseline [%s] : %s\n' % (h_baseline,repo.messages.get(h_baseline,"")))
+        prprint('Target [%s] : %s\n' % (h_head, repo.messages.get(h_head, "")))
+        prprint('Baseline [%s] : %s\n' % (h_baseline,
+                repo.messages.get(h_baseline, "")))
 
-        prprint ("removing any previous measurements for the commits." )
+        prprint("removing any previous measurements for the commits.")
         db.delete_rev_results(h_baseline)
         db.delete_rev_results(h_head)
 
         # TODO: we could skip this, but we need to make sure all
         # results are in the DB, which is a little tricky with
         # start dates and so on.
-        prprint( "Running benchmarks for baseline [%s]" % h_baseline)
+        prprint("Running benchmarks for baseline [%s]" % h_baseline)
         runner._run_and_write_results(h_baseline)
 
-        prprint ("Running benchmarks for target [%s]" % h_head)
+        prprint("Running benchmarks for target [%s]" % h_head)
         runner._run_and_write_results(h_head)
 
-        prprint( 'Processing results...')
+        prprint('Processing results...')
 
-        head_res = get_results_df(db,h_head)
-        baseline_res = get_results_df(db,h_baseline)
-        ratio = head_res['timing']/baseline_res['timing']
+        head_res = get_results_df(db, h_head)
+        baseline_res = get_results_df(db, h_baseline)
+        ratio = head_res['timing'] / baseline_res['timing']
         totals = DataFrame(dict(t_head=head_res['timing'],
                                 t_baseline=baseline_res['timing'],
                                 ratio=ratio,
-                                name=baseline_res.name),columns=["t_head","t_baseline","ratio","name"])
-        totals = totals.ix[totals.t_head > args.min_duration] # ignore below threshold
-        totals = totals.dropna().sort("ratio").set_index('name') # sort in ascending order
+                                name=baseline_res.name), columns=["t_head", "t_baseline", "ratio", "name"])
+        totals = totals.ix[totals.t_head > args.min_duration]
+            # ignore below threshold
+        totals = totals.dropna(
+        ).sort("ratio").set_index('name')  # sort in ascending order
 
         s = "\n\nResults:\n"
-        s += totals.to_string(float_format=lambda x: "{:4.4f}".format(x).rjust(10))
+        s += totals.to_string(
+            float_format=lambda x: "{:4.4f}".format(x).rjust(10))
         s += "\n\n"
         s += "Columns: test_name | target_duration [ms] | baseline_duration [ms] | ratio\n\n"
         s += "- a Ratio of 1.30 means the target commit is 30% slower then the baseline.\n\n"
 
-        s += 'Target [%s] : %s\n' % (h_head, repo.messages.get(h_head,""))
-        s += 'Baseline [%s] : %s\n\n' % (h_baseline,repo.messages.get(h_baseline,""))
+        s += 'Target [%s] : %s\n' % (h_head, repo.messages.get(h_head, ""))
+        s += 'Baseline [%s] : %s\n\n' % (
+            h_baseline, repo.messages.get(h_baseline, ""))
 
         logfile.write(s)
         logfile.close()
 
-        prprint(s )
-        prprint("Results were also written to the logfile at '%s'\n" % args.log_file)
+        prprint(s)
+        prprint("Results were also written to the logfile at '%s'\n" %
+                args.log_file)
 
     finally:
         #        print("Disposing of TMP_DIR: %s" % TMP_DIR)
@@ -172,7 +183,7 @@ def _parse_commit_log(repo_path):
     from pandas import Series
     git_cmd = 'git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path)
     githist = git_cmd + ('log --graph --pretty=format:'
-                          '\"::%h::%cd::%s::%an\" > githist.txt')
+                         '\"::%h::%cd::%s::%an\" > githist.txt')
     os.system(githist)
     githist = open('githist.txt').read()
     os.remove('githist.txt')
@@ -182,7 +193,7 @@ def _parse_commit_log(repo_path):
     messages = []
     authors = []
     for line in githist.split('\n'):
-        if '*' not in line.split("::")[0]: # skip non-commit lines
+        if '*' not in line.split("::")[0]:  # skip non-commit lines
             continue
 
         _, sha, stamp, message, author = line.split('::', 4)

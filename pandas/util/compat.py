@@ -34,7 +34,8 @@ class _OrderedDict(dict):
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
     # The remaining methods are order-aware.
-    # Big-O running times for all methods are the same as for regular dictionaries.
+    # Big-O running times for all methods are the same as for regular
+    # dictionaries.
 
     # The internal self.__map dictionary maps keys to links in a doubly linked list.
     # The circular doubly linked list starts and ends with a sentinel element.
@@ -60,7 +61,8 @@ class _OrderedDict(dict):
     def __setitem__(self, key, value, dict_setitem=dict.__setitem__):
         'od.__setitem__(i, y) <==> od[i]=y'
         # Setting a new item creates a new link which goes at the end of the linked
-        # list, and the inherited dictionary is updated with the new key/value pair.
+        # list, and the inherited dictionary is updated with the new key/value
+        # pair.
         if key not in self:
             root = self.__root
             last = root[0]
@@ -70,7 +72,8 @@ class _OrderedDict(dict):
     def __delitem__(self, key, dict_delitem=dict.__delitem__):
         'od.__delitem__(y) <==> del od[y]'
         # Deleting an existing item uses self.__map to find the link which is
-        # then removed by updating the links in the predecessor and successor nodes.
+        # then removed by updating the links in the predecessor and successor
+        # nodes.
         dict_delitem(self, key)
         link_prev, link_next, key = self.__map.pop(key)
         link_prev[1] = link_next
@@ -254,7 +257,7 @@ class _OrderedDict(dict):
 
         '''
         if isinstance(other, OrderedDict):
-            return len(self)==len(other) and self.items() == other.items()
+            return len(self) == len(other) and self.items() == other.items()
         return dict.__eq__(self, other)
 
     def __ne__(self, other):
@@ -283,6 +286,7 @@ try:
     from itertools import repeat, ifilter
 except ImportError:
     pass
+
 
 class _Counter(dict):
     '''Dict subclass for counting hashable objects.  Sometimes called a bag
@@ -364,7 +368,8 @@ class _Counter(dict):
                     for elem, count in iterable.iteritems():
                         self[elem] = self_get(elem, 0) + count
                 else:
-                    dict.update(self, iterable) # fast path when counter is empty
+                    dict.update(
+                        self, iterable)  # fast path when counter is empty
             else:
                 self_get = self.get
                 for elem in iterable:
@@ -465,8 +470,8 @@ class _Counter(dict):
                 result[elem] = newcount
         return result
 
-if sys.version_info[:2] < (2,7):
-    OrderedDict=_OrderedDict
-    Counter=_Counter
+if sys.version_info[:2] < (2, 7):
+    OrderedDict = _OrderedDict
+    Counter = _Counter
 else:
     from collections import OrderedDict, Counter

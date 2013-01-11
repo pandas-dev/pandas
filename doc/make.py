@@ -25,11 +25,13 @@ os.environ['PYTHONPATH'] = '..'
 
 SPHINX_BUILD = 'sphinxbuild'
 
+
 def upload_dev():
     'push a copy to the pydata dev directory'
     if os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/dev/ -essh'):
         raise SystemExit('Upload to Pydata Dev failed')
+
 
 def upload_dev_pdf():
     'push a copy to the pydata dev directory'
@@ -37,17 +39,20 @@ def upload_dev_pdf():
                  ':/usr/share/nginx/pandas/pandas-docs/dev/'):
         raise SystemExit('PDF upload to Pydata Dev failed')
 
+
 def upload_stable():
     'push a copy to the pydata stable directory'
     if os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh'):
         raise SystemExit('Upload to stable failed')
 
+
 def upload_stable_pdf():
     'push a copy to the pydata dev directory'
     if os.system('cd build/latex; scp pandas.pdf pandas@pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/stable/'):
         raise SystemExit('PDF upload to stable failed')
+
 
 def upload_prev(ver, doc_root='./'):
     'push a copy of older release to appropriate version directory'
@@ -57,13 +62,15 @@ def upload_prev(ver, doc_root='./'):
     cmd = cmd % (local_dir, remote_dir)
     print cmd
     if os.system(cmd):
-        raise SystemExit('Upload to %s from %s failed' % (remote_dir, local_dir))
+        raise SystemExit(
+            'Upload to %s from %s failed' % (remote_dir, local_dir))
 
     local_dir = doc_root + 'build/latex'
     pdf_cmd = 'cd %s; scp pandas.pdf pandas@pandas.pydata.org:%s'
     pdf_cmd = pdf_cmd % (local_dir, remote_dir)
     if os.system(pdf_cmd):
         raise SystemExit('Upload PDF to %s from %s failed' % (ver, doc_root))
+
 
 def build_prev(ver):
     if os.system('git checkout v%s' % ver) != 1:
@@ -76,6 +83,7 @@ def build_prev(ver):
         os.system('python make.py latex')
         os.system('git checkout master')
 
+
 def clean():
     if os.path.exists('build'):
         shutil.rmtree('build')
@@ -83,11 +91,13 @@ def clean():
     if os.path.exists('source/generated'):
         shutil.rmtree('source/generated')
 
+
 def html():
     check_build()
     if os.system('sphinx-build -P -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
+
 
 def latex():
     check_build()
@@ -108,6 +118,7 @@ def latex():
     else:
         print('latex build has not been tested on windows')
 
+
 def check_build():
     build_dirs = [
         'build', 'build/doctrees', 'build/html',
@@ -119,9 +130,11 @@ def check_build():
         except OSError:
             pass
 
+
 def all():
     # clean()
     html()
+
 
 def auto_dev_build(debug=False):
     msg = ''
@@ -144,6 +157,7 @@ def auto_dev_build(debug=False):
     except (Exception, SystemExit), inst:
         msg = str(inst) + '\n'
         sendmail(step, '[ERROR] ' + msg)
+
 
 def sendmail(step=None, err_msg=None):
     from_name, to_name = _get_config()
@@ -177,6 +191,7 @@ def sendmail(step=None, err_msg=None):
     finally:
         server.close()
 
+
 def _get_dir(subdir=None):
     import getpass
     USERNAME = getpass.getuser()
@@ -189,6 +204,7 @@ def _get_dir(subdir=None):
         subdir = '/code/scripts/config'
     conf_dir = '%s/%s' % (HOME, subdir)
     return conf_dir
+
 
 def _get_credentials():
     tmp_dir = _get_dir()
@@ -204,6 +220,7 @@ def _get_credentials():
 
     return server, port, login, pwd
 
+
 def _get_config():
     tmp_dir = _get_dir()
     with open('%s/addresses' % tmp_dir, 'r') as fh:
@@ -211,17 +228,17 @@ def _get_config():
     return from_name, to_name
 
 funcd = {
-    'html'     : html,
-    'upload_dev' : upload_dev,
-    'upload_stable' : upload_stable,
-    'upload_dev_pdf' : upload_dev_pdf,
-    'upload_stable_pdf' : upload_stable_pdf,
-    'latex'    : latex,
-    'clean'    : clean,
-    'auto_dev' : auto_dev_build,
-    'auto_debug' : lambda: auto_dev_build(True),
-    'all'      : all,
-    }
+    'html': html,
+    'upload_dev': upload_dev,
+    'upload_stable': upload_stable,
+    'upload_dev_pdf': upload_dev_pdf,
+    'upload_stable_pdf': upload_stable_pdf,
+    'latex': latex,
+    'clean': clean,
+    'auto_dev': auto_dev_build,
+    'auto_debug': lambda: auto_dev_build(True),
+    'all': all,
+}
 
 small_docs = False
 
@@ -240,10 +257,10 @@ elif len(sys.argv) > 1:
     for arg in sys.argv[1:]:
         func = funcd.get(arg)
         if func is None:
-            raise SystemExit('Do not know how to handle %s; valid args are %s'%(
-                    arg, funcd.keys()))
+            raise SystemExit('Do not know how to handle %s; valid args are %s' % (
+                arg, funcd.keys()))
         func()
 else:
     small_docs = False
     all()
-#os.chdir(current_dir)
+# os.chdir(current_dir)

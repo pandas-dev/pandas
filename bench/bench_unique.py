@@ -14,8 +14,10 @@ labels = np.tile(groups, N // K)
 labels2 = np.tile(groups2, N // K)
 data = np.random.randn(N)
 
+
 def timeit(f, niter):
-    import gc, time
+    import gc
+    import time
     gc.disable()
     start = time.time()
     for _ in xrange(niter):
@@ -24,11 +26,13 @@ def timeit(f, niter):
     gc.enable()
     return elapsed
 
+
 def algo1():
     unique_labels = np.unique(labels)
     result = np.empty(len(unique_labels))
     for i, label in enumerate(unique_labels):
         result[i] = data[labels == label].sum()
+
 
 def algo2():
     unique_labels = np.unique(labels)
@@ -38,12 +42,14 @@ def algo2():
     for i, label in enumerate(unique_labels):
         result[i] = data.take(indices[label]).sum()
 
+
 def algo3_nosort():
     rizer = lib.DictFactorizer()
     labs, counts = rizer.factorize(labels, sort=False)
     k = len(rizer.uniques)
     out = np.empty(k)
     lib.group_add(out, counts, data, labs)
+
 
 def algo3_sort():
     rizer = lib.DictFactorizer()
@@ -67,6 +73,7 @@ xarr = x
 x = [int(y) for y in x]
 data = np.random.uniform(0, 1, 100000)
 
+
 def f():
     from itertools import izip
     # groupby sum
@@ -76,12 +83,14 @@ def f():
         except KeyError:
             counts[k] = v
 
+
 def f2():
     rizer = lib.DictFactorizer()
     labs, counts = rizer.factorize(xarr, sort=False)
     k = len(rizer.uniques)
     out = np.empty(k)
     lib.group_add(out, counts, data, labs)
+
 
 def algo4():
     rizer = lib.DictFactorizer()
@@ -137,6 +146,7 @@ import gc
 pid = os.getpid()
 proc = psutil.Process(pid)
 
+
 def dict_unique(values, expected_K, sort=False, memory=False):
     if memory:
         gc.collect()
@@ -153,6 +163,7 @@ def dict_unique(values, expected_K, sort=False, memory=False):
         result.sort()
     assert(len(result) == expected_K)
     return result
+
 
 def khash_unique(values, expected_K, size_hint=False, sort=False,
                  memory=False):
@@ -176,8 +187,9 @@ def khash_unique(values, expected_K, size_hint=False, sort=False,
         result.sort()
     assert(len(result) == expected_K)
 
+
 def khash_unique_str(values, expected_K, size_hint=False, sort=False,
-                 memory=False):
+                     memory=False):
     if memory:
         gc.collect()
         before_mem = proc.get_memory_info().rss
@@ -198,6 +210,7 @@ def khash_unique_str(values, expected_K, size_hint=False, sort=False,
         result.sort()
     assert(len(result) == expected_K)
 
+
 def khash_unique_int64(values, expected_K, size_hint=False, sort=False):
     if size_hint:
         rizer = lib.Int64HashTable(len(values))
@@ -210,6 +223,7 @@ def khash_unique_int64(values, expected_K, size_hint=False, sort=False):
     if sort:
         result.sort()
     assert(len(result) == expected_K)
+
 
 def hash_bench():
     numpy = []
@@ -248,9 +262,9 @@ def hash_bench():
     #                                     'dict, sort', 'numpy.unique'],
     #                            index=Ks)
 
-    unique_timings = DataFrame({'dict' : dict_based,
-                                'khash, preallocate' : khash_hint,
-                                'khash' : khash_nohint},
+    unique_timings = DataFrame({'dict': dict_based,
+                                'khash, preallocate': khash_hint,
+                                'khash': khash_nohint},
                                columns=['khash, preallocate', 'khash', 'dict'],
                                index=Ks)
 
@@ -259,6 +273,5 @@ def hash_bench():
     plt.title('Unique on 100,000 values, int64')
     plt.xlabel('Number of unique labels')
     plt.ylabel('Mean execution time')
-
 
     plt.show()

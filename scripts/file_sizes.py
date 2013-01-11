@@ -17,8 +17,10 @@ else:
     loc = '.'
 walked = os.walk(loc)
 
+
 def _should_count_file(path):
     return path.endswith('.py') or path.endswith('.pyx')
+
 
 def _is_def_line(line):
     """def/cdef/cpdef, but not `cdef class`"""
@@ -27,6 +29,7 @@ def _is_def_line(line):
              line.startswith('cdef ') or
              line.startswith('cpdef ') or
              ' def ' in line or ' cdef ' in line or ' cpdef ' in line))
+
 
 class LengthCounter(object):
     """
@@ -100,14 +103,17 @@ class LengthCounter(object):
 
         self.counts.append(len(func_lines))
 
+
 def _get_indent_level(line):
     level = 0
     while line.startswith('    ' * level):
         level += 1
     return level
 
+
 def _is_triplequote(line):
     return line.startswith('"""') or line.startswith("'''")
+
 
 def _get_file_function_lengths(path):
     lines = [x.rstrip() for x in open(path).readlines()]
@@ -145,6 +151,7 @@ counter = LengthCounter(lines)
 result = counter.get_counts()
 assert(result == expected)
 
+
 def doit():
     for directory, _, files in walked:
         print directory
@@ -160,8 +167,9 @@ def doit():
             names.append(path)
             lengths.append(lines)
 
-    result = DataFrame({'dirs' : dirs, 'names' : names,
-                        'lengths' : lengths})
+    result = DataFrame({'dirs': dirs, 'names': names,
+                        'lengths': lengths})
+
 
 def doit2():
     counts = {}

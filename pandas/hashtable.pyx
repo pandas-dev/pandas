@@ -225,8 +225,6 @@ cdef class StringHashTable(HashTable):
             if k == self.table.n_buckets:
                 k = kh_put_str(self.table, buf, &ret)
                 # print 'putting %s, %s' % (val, count)
-                if not ret:
-                    kh_del_str(self.table, k)
                 count += 1
                 uniques.append(val)
 
@@ -254,8 +252,6 @@ cdef class StringHashTable(HashTable):
             else:
                 k = kh_put_str(self.table, buf, &ret)
                 # print 'putting %s, %s' % (val, count)
-                if not ret:
-                    kh_del_str(self.table, k)
 
                 self.table.vals[k] = count
                 reverse[count] = val
@@ -356,8 +352,6 @@ cdef class Int32HashTable(HashTable):
                 labels[i] = idx
             else:
                 k = kh_put_int32(self.table, val, &ret)
-                if not ret:
-                    kh_del_int32(self.table, k)
                 self.table.vals[k] = count
                 reverse[count] = val
                 labels[i] = count
