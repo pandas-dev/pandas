@@ -1047,9 +1047,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
 
+        # similiar indexed series
         result = self.series.copy()
         result[mask] = self.series*2
         expected = self.series*2
+        assert_series_equal(result[mask], expected[mask])
+
+        # needs alignment
+        result = self.series.copy()
+        result[mask] = (self.series*2)[0:5]
+        expected = (self.series*2)[0:5].reindex_like(self.series)
+        expected[-mask] = self.series[mask]
         assert_series_equal(result[mask], expected[mask])
 
     def test_ix_setitem_boolean(self):
@@ -1524,6 +1532,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         check(self.ts, self.ts * 2)
         check(self.ts, self.ts[::2])
         check(self.ts, 5)
+
+    def test_neg(self):
+        assert_series_equal(-self.series, -1 * self.series)
+
+    def test_invert(self):
+        assert_series_equal(-(self.series < 0), ~(self.series < 0))
 
     def test_operators(self):
 
