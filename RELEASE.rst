@@ -62,6 +62,7 @@ pandas 0.10.1
     values. (GH2631_)
   - Attempt to parse ISO8601 format dates when parse_dates=True in read_csv for
     major performance boost in such cases (GH2698_)
+  - Add methods ``neg`` and ``inv`` to Series
 
 **Bug fixes**
 
@@ -95,6 +96,7 @@ pandas 0.10.1
   - Fix C parser-tokenizer bug with trailing fields. (GH2668_)
   - Don't exclude non-numeric data from GroupBy.max/min (GH2700_)
   - Don't lose time zone when calling DatetimeIndex.drop (GH2621_)
+  - Fix setitem on a Series with a boolean key and a non-scalar as value (GH2686_)
 
 **API Changes**
 
@@ -126,6 +128,7 @@ pandas 0.10.1
 .. _GH2699: https://github.com/pydata/pandas/issues/2699
 .. _GH2700: https://github.com/pydata/pandas/issues/2700
 .. _GH2694: https://github.com/pydata/pandas/issues/2694
+.. _GH2686: https://github.com/pydata/pandas/issues/2686
 
 pandas 0.10.0
 =============

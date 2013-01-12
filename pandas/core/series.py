@@ -616,7 +616,7 @@ copy : boolean, default False
         if len(cond) != len(self):
             raise ValueError('condition must have same length as series')
 
-        if not cond.dtype == np.bool_:
+        if cond.dtype != np.bool_:
             cond = cond.astype(np.bool_)
 
         ser = self if inplace else self.copy()
@@ -675,7 +675,6 @@ copy : boolean, default False
             # Could not hash item
 
         if _is_bool_indexer(key):
-            #import pdb; pdb.set_
             key = self._check_bool_indexer(key)
             self.where(~key,value,inplace=True)
         else:
@@ -759,7 +758,7 @@ copy : boolean, default False
         # coerce to bool type
         if not hasattr(result, 'shape'):
             result = np.array(result)
-        if not result.dtype == np.bool_:
+        if result.dtype != np.bool_:
             result = result.astype(np.bool_)
 
         return result
