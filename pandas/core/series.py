@@ -604,6 +604,9 @@ copy : boolean, default False
         if len(cond) != len(self):
             raise ValueError('condition must have same length as series')
 
+        if cond.dtype != np.bool_:
+            cond = cond.astype(np.bool_)
+
         ser = self if inplace else self.copy()
         if not isinstance(other, (list, tuple, np.ndarray)):
             ser._set_with(~cond, other)
@@ -661,9 +664,9 @@ copy : boolean, default False
 
         if _is_bool_indexer(key):
             key = self._check_bool_indexer(key)
-            key = np.asarray(key, dtype=bool)
-
-        self._set_with(key, value)
+            self.where(~key,value,inplace=True)
+        else:
+            self._set_with(key, value)
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
@@ -695,7 +698,7 @@ copy : boolean, default False
                 else:
                     return self._set_values(key, value)
             elif key_type == 'boolean':
-                self._set_values(key, value)
+                    self._set_values(key, value)
             else:
                 self._set_labels(key, value)
 
@@ -739,6 +742,12 @@ copy : boolean, default False
             if mask.any():
                 raise ValueError('cannot index with vector containing '
                                  'NA / NaN values')
+
+        # coerce to bool type
+        if not hasattr(result, 'shape'):
+            result = np.array(result)
+        if result.dtype != np.bool_:
+            result = result.astype(np.bool_)
 
         return result
 
@@ -1097,6 +1106,15 @@ copy : boolean, default False
     __le__ = _comp_method(operator.le, '__le__')
     __eq__ = _comp_method(operator.eq, '__eq__')
     __ne__ = _comp_method(operator.ne, '__ne__')
+    
+    # inversion
+    def __neg__(self):
+        arr = operator.neg(self.values)
+        return Series(arr, self.index, name=self.name)
+
+    def __invert__(self):
+        arr = operator.inv(self.values)
+        return Series(arr, self.index, name=self.name)
 
     # binary logic
     __or__ = _bool_method(operator.or_, '__or__')
