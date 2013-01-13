@@ -311,7 +311,7 @@ standard database join operations between DataFrame objects:
 
     merge(left, right, how='left', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
-          suffixes=('.x', '.y'), copy=True)
+          suffixes=('_x', '_y'), copy=True)
 
 Here's a description of what each argument is for:
 
@@ -336,7 +336,7 @@ Here's a description of what each argument is for:
     order. Defaults to ``True``, setting to ``False`` will improve performance
     substantially in many cases
   - ``suffixes``: A tuple of string suffixes to apply to overlapping
-    columns. Defaults to ``('.x', '.y')``.
+    columns. Defaults to ``('_x', '_y')``.
   - ``copy``: Always copy data (default ``True``) from the passed DataFrame
     objects, even when reindexing is not necessary. Cannot be avoided in many
     cases but may improve performance / memory usage. The cases where copying
