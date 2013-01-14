@@ -111,6 +111,12 @@ class TestHDFStore(unittest.TestCase):
         self.assert_('/foo/b' not in self.store)
         self.assert_('bar' not in self.store)
 
+        # GH 2694
+        warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+        self.store['node())'] = tm.makeDataFrame()
+        self.assert_('node())' in self.store)
+        warnings.filterwarnings('always', category=tables.NaturalNameWarning)
+
     def test_versioning(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store['b'] = tm.makeDataFrame()

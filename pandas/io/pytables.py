@@ -220,7 +220,7 @@ class HDFStore(object):
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
-            return re.search(key, name) is not None
+            if name == key or name[1:] == key: return True
         return False
 
     def __len__(self):
