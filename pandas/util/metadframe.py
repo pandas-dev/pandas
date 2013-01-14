@@ -1,7 +1,8 @@
-''' Provides composition class, MetaDataframe, which is an oridinary python object that stores a Dataframe and 
+''' Provides composition class, MetaDataframe, which is an ordinary python object that stores a Dataframe and 
 attempts to promote attributes and methods to the instance level (eg self.x instead of self.df.x).  This object
-can be subclassed and persists custom attributes.  The goal of this class is to provide a subclassing api beyond 
-monkey patching (which currently fails in persisting attributes upon most method returns and upon derialization.'''
+can be subclassed and ensures persistence of custom attributes.  The goal of this MetaDataFrame is to provide a 
+subclassing api beyond monkey patching (which currently fails in persisting attributes upon most method returns 
+and upon derialization.'''
 
 from types import MethodType
 import copy
@@ -30,15 +31,11 @@ def mloads(string):
 
 
 class MetaDataframe(object):
-    ''' Provides composition class that is essentially stores a DataFrame; however, all methods/attributes of the dataframe
-    are directly accessible by the user.  As such, this object "quacks" like a dataframe, but is merely a Python object.  Thus,
-    it can be subclassed easily and also has persistent custom attributes.'''
+    ''' Base composition for subclassing dataframe.'''
 
     def __init__(self, *dfargs, **dfkwargs):
         ''' Stores a dataframe under reserved attribute name, self._df'''
         self._df=DataFrame(*dfargs, **dfkwargs)
-        self.a=50
-
 
     ### Save /Load methods    
     def save(self, outname):
