@@ -754,7 +754,7 @@ class TestHDFStore(unittest.TestCase):
         x = time.time()
         try:
             store = HDFStore(self.scratchpath)
-            store.prof_append('wp', wp)
+            store.append('wp', wp)
             rows = store.root.wp.table.nrows
             recons = store.select('wp')
         finally:
@@ -1748,9 +1748,11 @@ class TestHDFStore(unittest.TestCase):
     def test_pytables_native_read(self):
         pth = curpath()
         store = HDFStore(os.path.join(pth, 'pytables_native.h5'), 'r')
+        d2 = store['detector/readout']
+        store.close()
+        store = HDFStore(os.path.join(pth, 'pytables_native2.h5'), 'r')
+        str(store)
         d1 = store['detector']
-        d2 = store['detector/table']
-        assert_frame_equal(d1, d2)
         store.close()
 
     def test_legacy_read(self):
@@ -1826,7 +1828,7 @@ class TestHDFStore(unittest.TestCase):
                             if a.is_indexed:
                                 self.assert_(new_t[a.name].is_indexed == True)
 
-            except:
+            except (Exception), detail:
                 pass
             finally:
                 store.close()

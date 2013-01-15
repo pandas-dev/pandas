@@ -612,7 +612,7 @@ class HDFStore(object):
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
         _tables()
-        return [ g for g in self.handle.walkGroups() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or isinstance(g,_table_mod.table.Table) ]
+        return [ g for g in self.handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != 'table') ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
