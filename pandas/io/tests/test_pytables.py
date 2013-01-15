@@ -1748,8 +1748,9 @@ class TestHDFStore(unittest.TestCase):
     def test_pytables_native_read(self):
         pth = curpath()
         store = HDFStore(os.path.join(pth, 'pytables_native.h5'), 'r')
-        d = store['detector']
-        str(store)
+        d1 = store['detector']
+        d2 = store['detector/table']
+        assert_frame_equal(d1, d2)
         store.close()
 
     def test_legacy_read(self):

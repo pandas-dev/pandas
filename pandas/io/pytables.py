@@ -611,7 +611,8 @@ class HDFStore(object):
 
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
-        return [ g for g in self.handle.walkGroups() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) ]
+        _tables()
+        return [ g for g in self.handle.walkGroups() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or isinstance(g,_table_mod.table.Table) ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
@@ -687,7 +688,8 @@ class HDFStore(object):
         if pt is None:
             if value is None:
 
-                if getattr(group,'table',None):
+                _tables()
+                if getattr(group,'table',None) or isinstance(group,_table_mod.table.Table):
                     pt = 'frame_table'
                     tt = 'generic_table'
                 else:
@@ -2551,8 +2553,6 @@ class AppendableTable(LegacyTable):
                 self.table.append(rows)
                 self.table.flush()
         except (Exception), detail:
-            import pdb
-            pdb.set_trace()
             raise Exception(
                 "tables cannot write this data -> %s" % str(detail))
 
@@ -2674,6 +2674,10 @@ class GenericTable(AppendableFrameTable):
     @property
     def pandas_type(self):
         return self.pandas_kind
+
+    @property
+    def storable(self):
+        return getattr(self.group,'table',None) or self.group
 
     def get_attrs(self):
         """ retrieve our attributes """
