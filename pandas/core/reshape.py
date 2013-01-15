@@ -834,5 +834,5 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
 def factor_indexer(shape, labels):
     """ given a tuple of shape and a list of Factor lables, return the expanded label indexer """
-    mult = np.array(shape)[::-1].cumprod()[::-1]
-    return np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T
+    mult = np.array(shape, dtype = 'i8')[::-1].cumprod()[::-1]
+    return np.sum(np.array(labels, dtype = 'i8').T * np.append(mult, [1]), axis=1).T

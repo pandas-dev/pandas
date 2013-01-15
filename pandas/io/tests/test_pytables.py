@@ -1745,6 +1745,13 @@ class TestHDFStore(unittest.TestCase):
             store.close()
             os.remove(self.scratchpath)
 
+    def test_pytables_native_read(self):
+        pth = curpath()
+        store = HDFStore(os.path.join(pth, 'pytables_native.h5'), 'r')
+        d = store['detector']
+        str(store)
+        store.close()
+
     def test_legacy_read(self):
         pth = curpath()
         store = HDFStore(os.path.join(pth, 'legacy.h5'), 'r')

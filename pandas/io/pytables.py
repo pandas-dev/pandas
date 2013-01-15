@@ -24,6 +24,7 @@ from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.reshape import block2d_to_block3d, block2d_to_blocknd, factor_indexer
+from pandas.core.index import Int64Index
 import pandas.core.common as com
 from pandas.tools.merge import concat
 
@@ -71,6 +72,7 @@ _STORER_MAP = {
 
 # table class map
 _TABLE_MAP = {
+    'generic_table'    : 'GenericTable',
     'appendable_frame'      : 'AppendableFrameTable',
     'appendable_multiframe' : 'AppendableMultiFrameTable',
     'appendable_panel' : 'AppendablePanelTable',
@@ -609,7 +611,7 @@ class HDFStore(object):
 
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
-        return [ g for g in self.handle.walkGroups() if getattr(g._v_attrs,'pandas_type',None) ]
+        return [ g for g in self.handle.walkGroups() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
@@ -684,16 +686,22 @@ class HDFStore(object):
         # infer the pt from the passed value
         if pt is None:
             if value is None:
-                raise Exception("cannot create a storer if the object is not existing nor a value are passed")
 
-            try:
-                pt = _TYPE_MAP[type(value)]
-            except:
-                error('_TYPE_MAP')
+                if getattr(group,'table',None):
+                    pt = 'frame_table'
+                    tt = 'generic_table'
+                else:
+                    raise Exception("cannot create a storer if the object is not existing nor a value are passed")
+            else:
 
-            # we are actually a table
-            if table or append:
-                pt += '_table'
+                try:
+                    pt = _TYPE_MAP[type(value)]
+                except:
+                    error('_TYPE_MAP')
+
+                # we are actually a table
+                if table or append:
+                    pt += '_table'
 
         # a storer node
         if 'table' not in pt:
@@ -959,6 +967,24 @@ class IndexCol(object):
         """ set the kind for this colummn """
         setattr(self.attrs, self.kind_attr, self.kind)
 
+class GenericIndexCol(IndexCol):
+    """ an index which is not represented in the data of the table """
+
+    @property
+    def is_indexed(self):
+        return False
+
+    def convert(self, values, nan_rep):
+        """ set the values from this selection: take = take ownership """
+        
+        self.values = Int64Index(np.arange(self.table.nrows))
+        return self
+
+    def get_attr(self):
+        pass
+
+    def set_attr(self):
+        pass
 
 class DataCol(IndexCol):
     """ a data holding column, by definition this is not indexable
@@ -1193,6 +1219,12 @@ class DataIndexableCol(DataCol):
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col()
+
+class GenericDataIndexableCol(DataIndexableCol):
+    """ represent a generic pytables data column """
+
+    def get_attr(self):
+        pass
 
 class Storer(object):
     """ represent an object in my store
@@ -2631,6 +2663,47 @@ class AppendableFrameTable(AppendableTable):
 
         return df
 
+
+class GenericTable(AppendableFrameTable):
+    """ a table that read/writes the generic pytables table format """
+    pandas_kind = 'frame_table'
+    table_type = 'generic_table'
+    ndim = 2
+    obj_type = DataFrame
+
+    @property
+    def pandas_type(self):
+        return self.pandas_kind
+
+    def get_attrs(self):
+        """ retrieve our attributes """
+        self.non_index_axes   = []
+        self.nan_rep          = None
+        self.levels           = []
+        t = self.table
+        self.index_axes       = [ a.infer(t) for a in self.indexables if     a.is_an_indexable ]
+        self.values_axes      = [ a.infer(t) for a in self.indexables if not a.is_an_indexable ]
+        self.data_columns     = [ a.name for a in self.values_axes ]
+
+    @property
+    def indexables(self):
+        """ create the indexables from the table description """
+        if self._indexables is None:
+
+            d = self.description
+
+            # the index columns is just a simple index
+            self._indexables = [ GenericIndexCol(name='index',axis=0) ]
+
+            for i, n in enumerate(d._v_names):
+
+                dc = GenericDataIndexableCol(name = n, pos=i, values = [ n ], version = self.version)
+                self._indexables.append(dc)
+
+        return self._indexables
+
+    def write(self, **kwargs):
+        raise NotImplementedError("cannot write on an generic table")
 
 class AppendableMultiFrameTable(AppendableFrameTable):
     """ a frame with a multi-index """

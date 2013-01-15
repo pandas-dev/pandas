@@ -52,6 +52,7 @@ pandas 0.10.1
     - added method ``unique`` to select the unique values in an indexable or data column
     - added method ``copy`` to copy an existing store (and possibly upgrade)
     - show the shape of the data on disk for non-table stores when printing the store
+    - added ability to read PyTables flavor tables (allows compatiblity to other HDF5 systems)
   - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
   - Support reading gzipped data from file-like object
   - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
