@@ -88,6 +88,7 @@ pandas 0.10.1
     - refactored HFDStore to deal with non-table stores as objects, will allow future enhancements
     - removed keyword ``compression`` from ``put`` (replaced by keyword
       ``complib`` to be consistent across library)
+    - warn `PerformanceWarning` if you are attempting to store types that will be pickled by PyTables
 
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277

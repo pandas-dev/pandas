@@ -1211,7 +1211,7 @@ You can create/modify an index for a table with ``create_table_index`` after dat
 
 Query via Data Columns
 ~~~~~~~~~~~~~~~~~~~~~~
-You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query.
+You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query. You can specify ``data_columns = True`` to force all columns to be data_columns
 
 .. ipython:: python
 
@@ -1377,9 +1377,9 @@ External Compatibility
      .. ipython:: python
         :suppress:
  
-        legacy_store.close()
+        store_export.close()
         import os
-        os.remove('store_export.h5')
+        os.remove('export.h5')
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1388,10 +1388,15 @@ Backwards Compatibility
 
 
      .. ipython:: python
+        :suppress:
+ 
+        import os
+        legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
+
+     .. ipython:: python
 
         # a legacy store
-	import os
-        legacy_store = HDFStore('legacy_0.10.h5', 'r')
+        legacy_store = HDFStore(legacy_file_path,'r')
         legacy_store
 
         # copy (and return the new handle)
@@ -1415,6 +1420,7 @@ Performance
    - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
    - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
    - Duplicate rows can be written to tables, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+   - A ``PerformanceWarning`` will be raised if you are attempting to store types that will be pickled by PyTables (rather than stored as endemic types). See <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190> for more information and some solutions.
 
 Experimental
 ~~~~~~~~~~~~

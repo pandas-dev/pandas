@@ -42,6 +42,11 @@ incompatibility_doc = """
 where criteria is being ignored as this version [%s] is too old (or not-defined),
 read the file in and write it out to a new file to upgrade (with the copy_to method)
 """
+class PerformanceWarning(Warning): pass
+performance_doc = """
+your performance may suffer as PyTables swill pickle object types that it cannot map
+directly to c-types [inferred_type->%s,key->%s]
+"""
 
 # map object types
 _TYPE_MAP = {
@@ -510,7 +515,7 @@ class HDFStore(object):
 
         Optional Parameters
         -------------------
-        data_columns : list of columns to create as data columns
+        data_columns : list of columns to create as data columns, or True to use all columns
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
         chunksize    : size to chunk the writing
@@ -1606,6 +1611,17 @@ class GenericStorer(Storer):
                 return
 
         if value.dtype.type == np.object_:
+
+            # infer the type, warn if we have a non-string type here (for performance)
+            inferred_type = lib.infer_dtype(value.flatten())
+            if empty_array:
+                pass
+            elif inferred_type == 'string':
+                pass
+            else:
+                ws = performance_doc % (inferred_type,key)
+                warnings.warn(ws, PerformanceWarning)
+
             vlarr = self.handle.createVLArray(self.group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
@@ -1846,7 +1862,7 @@ class Table(Storer):
         index_axes    : a list of tuples of the (original indexing axis and index column)
         non_index_axes: a list of tuples of the (original index axis and columns on a non-indexing axis)
         values_axes   : a list of the columns which comprise the data of this table
-        data_columns  : a list of the columns that we are allowing indexing (these become single columns in values_axes)
+        data_columns  : a list of the columns that we are allowing indexing (these become single columns in values_axes), or True to force all columns
         nan_rep       : the string to use for nan representations for string objects
         levels        : the names of levels
 
@@ -2111,7 +2127,7 @@ class Table(Storer):
             validate: validate the obj against an existiing object already written
             min_itemsize: a dict of the min size for a column in bytes
             nan_rep : a values to use for string column nan_rep
-            data_columns : a list of columns that we want to create separate to allow indexing
+            data_columns : a list of columns that we want to create separate to allow indexing (or True will force all colummns)
 
         """
 
@@ -2196,6 +2212,9 @@ class Table(Storer):
         if data_columns is not None and len(self.non_index_axes):
             axis = self.non_index_axes[0][0]
             axis_labels = self.non_index_axes[0][1]
+            if data_columns is True:
+                data_columns = axis_labels
+
             data_columns = [c for c in data_columns if c in axis_labels]
             if len(data_columns):
                 blocks = block_obj.reindex_axis(Index(axis_labels) - Index(
@@ -2238,7 +2257,7 @@ class Table(Storer):
             except (NotImplementedError):
                 raise
             except (Exception), detail:
-                raise Exception("cannot find the correct atom type -> [dtype->%s] %s" % (b.dtype.name, str(detail)))
+                raise Exception("cannot find the correct atom type -> [dtype->%s,items->%s] %s" % (b.dtype.name, b.items, str(detail)))
             j += 1
 
         # validate the axes if we have an existing table
@@ -2722,6 +2741,8 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     def write(self, obj, data_columns=None, **kwargs):
         if data_columns is None:
             data_columns = []
+        elif data_columns is True:
+            data_columns = obj.columns[:]
         for n in obj.index.names:
             if n not in data_columns:
                 data_columns.insert(0, n)

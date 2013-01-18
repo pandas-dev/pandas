@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, Index)
-from pandas.io.pytables import HDFStore, get_store, Term, IncompatibilityWarning
+from pandas.io.pytables import HDFStore, get_store, Term, IncompatibilityWarning, PerformanceWarning
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
@@ -259,6 +259,28 @@ class TestHDFStore(unittest.TestCase):
         # non-date, non-string index
         df = DataFrame(np.random.randn(50, 100))
         self._check_roundtrip(df, tm.assert_frame_equal)
+
+    def test_put_mixed_type(self):
+        df = tm.makeTimeDataFrame()
+        df['obj1'] = 'foo'
+        df['obj2'] = 'bar'
+        df['bool1'] = df['A'] > 0
+        df['bool2'] = df['B'] > 0
+        df['bool3'] = True
+        df['int1'] = 1
+        df['int2'] = 2
+        df['timestamp1'] = Timestamp('20010102')
+        df['timestamp2'] = Timestamp('20010103')
+        df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
+        df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
+        df.ix[3:6, ['obj1']] = np.nan
+        df = df.consolidate().convert_objects()
+        self.store.remove('df')
+        warnings.filterwarnings('ignore', category=PerformanceWarning)
+        self.store.put('df',df)
+        expected = self.store.get('df')
+        tm.assert_frame_equal(expected,df)
+        warnings.filterwarnings('always', category=PerformanceWarning)
 
     def test_append(self):
 
@@ -703,7 +725,7 @@ class TestHDFStore(unittest.TestCase):
         print "\nbig_table frame [%s] -> %5.2f" % (rows, time.time() - x)
 
     def test_big_table2_frame(self):
-        # this is a really big table: 2.5m rows x 300 float columns, 20 string
+        # this is a really big table: 1m rows x 60 float columns, 20 string, 20 datetime
         # columns
         raise nose.SkipTest('no big table2 frame')
 
@@ -711,10 +733,12 @@ class TestHDFStore(unittest.TestCase):
         print "\nbig_table2 start"
         import time
         start_time = time.time()
-        df = DataFrame(np.random.randn(2.5 * 1000 * 1000, 300), index=range(int(
-            2.5 * 1000 * 1000)), columns=['E%03d' % i for i in xrange(300)])
-        for x in range(20):
+        df = DataFrame(np.random.randn(1000 * 1000, 60), index=xrange(int(
+            1000 * 1000)), columns=['E%03d' % i for i in xrange(60)])
+        for x in xrange(20):
             df['String%03d' % x] = 'string%03d' % x
+        for x in xrange(20):
+            df['datetime%03d' % x] = datetime.datetime(2001, 1, 2, 0, 0)
 
         print "\nbig_table2 frame (creation of df) [rows->%s] -> %5.2f" % (len(df.index), time.time() - start_time)
         fn = 'big_table2.h5'
@@ -728,11 +752,40 @@ class TestHDFStore(unittest.TestCase):
                 store.close()
                 return r
 
-            for c in [10000, 50000, 100000, 250000]:
+            for c in [10000, 50000, 250000]:
                 start_time = time.time()
                 print "big_table2 frame [chunk->%s]" % c
                 rows = f(c)
                 print "big_table2 frame [rows->%s,chunk->%s] -> %5.2f" % (rows, c, time.time() - start_time)
+
+        finally:
+            os.remove(fn)
+
+    def test_big_put_frame(self):
+        raise nose.SkipTest('no big put frame')
+
+        print "\nbig_put start"
+        import time
+        start_time = time.time()
+        df = DataFrame(np.random.randn(1000 * 1000, 60), index=xrange(int(
+            1000 * 1000)), columns=['E%03d' % i for i in xrange(60)])
+        for x in xrange(20):
+            df['String%03d' % x] = 'string%03d' % x
+        for x in xrange(20):
+            df['datetime%03d' % x] = datetime.datetime(2001, 1, 2, 0, 0)
+
+        print "\nbig_put frame (creation of df) [rows->%s] -> %5.2f" % (len(df.index), time.time() - start_time)
+        fn = 'big_put.h5'
+
+        try:
+
+            start_time = time.time()
+            store = HDFStore(fn, mode='w')
+            store.put('df', df)
+            store.close()
+
+            print df.get_dtype_counts()
+            print "big_put frame [shape->%s] -> %5.2f" % (df.shape, time.time() - start_time)
 
         finally:
             os.remove(fn)
@@ -823,15 +876,23 @@ class TestHDFStore(unittest.TestCase):
 
     def test_table_values_dtypes_roundtrip(self):
         df1 = DataFrame({'a': [1, 2, 3]}, dtype='f8')
-        self.store.append('df1', df1)
-        assert df1.dtypes == self.store['df1'].dtypes
+        self.store.append('df_f8', df1)
+        assert df1.dtypes == self.store['df_f8'].dtypes
 
         df2 = DataFrame({'a': [1, 2, 3]}, dtype='i8')
-        self.store.append('df2', df2)
-        assert df2.dtypes == self.store['df2'].dtypes
+        self.store.append('df_i8', df2)
+        assert df2.dtypes == self.store['df_i8'].dtypes
 
         # incompatible dtype
-        self.assertRaises(Exception, self.store.append, 'df2', df1)
+        self.assertRaises(Exception, self.store.append, 'df_i8', df1)
+
+        #df1 = DataFrame({'a': Series([1, 2, 3], dtype='f4')})
+        #self.store.append('df_f4', df1)
+        #assert df1.dtypes == self.store['df_f4'].dtypes
+
+        #df2 = DataFrame({'a': Series([1, 2, 3], dtype='i4')})
+        #self.store.append('df_i4', df2)
+        #assert df2.dtypes == self.store['df_i4'].dtypes
 
     def test_table_mixed_dtypes(self):
 
@@ -1165,15 +1226,19 @@ class TestHDFStore(unittest.TestCase):
         idx = [(0., 1.), (2., 3.), (4., 5.)]
         data = np.random.randn(30).reshape((3, 10))
         DF = DataFrame(data, index=idx, columns=col)
+        warnings.filterwarnings('ignore', category=PerformanceWarning)
         self._check_roundtrip(DF, tm.assert_frame_equal)
+        warnings.filterwarnings('always', category=PerformanceWarning)
 
     def test_index_types(self):
         values = np.random.randn(2)
 
         func = lambda l, r: tm.assert_series_equal(l, r, True, True, True)
 
+        warnings.filterwarnings('ignore', category=PerformanceWarning)
         ser = Series(values, [0, 'y'])
         self._check_roundtrip(ser, func)
+        warnings.filterwarnings('always', category=PerformanceWarning)
 
         ser = Series(values, [datetime.datetime.today(), 0])
         self._check_roundtrip(ser, func)
@@ -1181,11 +1246,15 @@ class TestHDFStore(unittest.TestCase):
         ser = Series(values, ['y', 0])
         self._check_roundtrip(ser, func)
 
+        warnings.filterwarnings('ignore', category=PerformanceWarning)
         ser = Series(values, [datetime.date.today(), 'a'])
         self._check_roundtrip(ser, func)
+        warnings.filterwarnings('always', category=PerformanceWarning)
 
+        warnings.filterwarnings('ignore', category=PerformanceWarning)
         ser = Series(values, [1.23, 'b'])
         self._check_roundtrip(ser, func)
+        warnings.filterwarnings('always', category=PerformanceWarning)
 
         ser = Series(values, [1, 1.53])
         self._check_roundtrip(ser, func)
@@ -1452,6 +1521,13 @@ class TestHDFStore(unittest.TestCase):
         # with a data column
         self.store.remove('df')
         self.store.append('df', df, data_columns=['A'])
+        result = self.store.select('df', ['A > 0'], columns=['A', 'B'])
+        expected = df[df.A > 0].reindex(columns=['A', 'B'])
+        tm.assert_frame_equal(expected, result)
+
+        # all a data columns
+        self.store.remove('df')
+        self.store.append('df', df, data_columns=True)
         result = self.store.select('df', ['A > 0'], columns=['A', 'B'])
         expected = df[df.A > 0].reindex(columns=['A', 'B'])
         tm.assert_frame_equal(expected, result)
@@ -1776,7 +1852,6 @@ class TestHDFStore(unittest.TestCase):
         store.select('df2', typ='legacy_frame')
 
         # old version warning
-        import warnings
         warnings.filterwarnings('ignore', category=IncompatibilityWarning)
         self.assertRaises(
             Exception, store.select, 'wp1', Term('minor_axis', '=', 'B'))
@@ -1915,9 +1990,11 @@ class TestHDFStore(unittest.TestCase):
 
     def test_unicode_index(self):
         unicode_values = [u'\u03c3', u'\u03c3\u03c3']
-
+        warnings.filterwarnings('ignore', category=PerformanceWarning)
         s = Series(np.random.randn(len(unicode_values)), unicode_values)
         self._check_roundtrip(s, tm.assert_series_equal)
+        warnings.filterwarnings('always', category=PerformanceWarning)
+
 
     def test_store_datetime_mixed(self):
         df = DataFrame(
