@@ -6,6 +6,7 @@ Parts derived from scikits.timeseries code, original authors:
 
 """
 
+from unittest import TestCase
 from datetime import datetime, date, timedelta
 import unittest
 
@@ -32,7 +33,7 @@ class TestPeriodProperties(TestCase):
     "Test properties such as year, month, weekday, etc...."
     #
     def __init__(self, *args, **kwds):
-        unittest.TestCase.__init__(self, *args, **kwds)
+        TestCase.__init__(self, *args, **kwds)
 
     def test_quarterly_negative_ordinals(self):
         p = Period(ordinal=-1, freq='Q-DEC')
@@ -462,7 +463,7 @@ class TestFreqConversion(TestCase):
     "Test frequency conversion of date objects"
 
     def __init__(self, *args, **kwds):
-        unittest.TestCase.__init__(self, *args, **kwds)
+        TestCase.__init__(self, *args, **kwds)
 
     def test_asfreq_corner(self):
         val = Period(freq='A', year=2007)
@@ -508,8 +509,8 @@ class TestFreqConversion(TestCase):
         ival_ANOV_to_D_start = Period(freq='D', year=2006, month=12, day=1)
 
         assert_equal(ival_A.asfreq('Q', 'S'), ival_A_to_Q_start)
-        assert_equal(ival_A.asfreq('Q', 'E'), ival_A_to_Q_end)
-        assert_equal(ival_A.asfreq('M', 'S'), ival_A_to_M_start)
+        assert_equal(ival_A.asfreq('Q', 'e'), ival_A_to_Q_end)
+        assert_equal(ival_A.asfreq('M', 's'), ival_A_to_M_start)
         assert_equal(ival_A.asfreq('M', 'E'), ival_A_to_M_end)
         assert_equal(ival_A.asfreq('WK', 'S'), ival_A_to_W_start)
         assert_equal(ival_A.asfreq('WK', 'E'), ival_A_to_W_end)
@@ -1040,7 +1041,7 @@ class TestFreqConversion(TestCase):
 
 class TestPeriodIndex(TestCase):
     def __init__(self, *args, **kwds):
-        unittest.TestCase.__init__(self, *args, **kwds)
+        TestCase.__init__(self, *args, **kwds)
 
     def setUp(self):
         pass
@@ -1932,11 +1933,11 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestMethods(unittest.TestCase):
+class TestMethods(TestCase):
     "Base test class for MaskedArrays."
 
     def __init__(self, *args, **kwds):
-        unittest.TestCase.__init__(self, *args, **kwds)
+        TestCase.__init__(self, *args, **kwds)
 
     def test_add(self):
         dt1 = Period(freq='D', year=2008, month=1, day=1)

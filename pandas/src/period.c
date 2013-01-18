@@ -110,7 +110,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
     /* Calculate the absolute date */
     {
         int leap;
-        npy_int64 absdate;
+		npy_int64 absdate;
         int yearoffset;
 
         /* Range check */
@@ -191,7 +191,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
        than with this iterative approach... */
 static
 int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
-               npy_int64 absdate, int calendar)
+							 npy_int64 absdate, int calendar)
 {
     register npy_int64 year;
     npy_int64 yearoffset;

@@ -177,7 +177,6 @@ class Period(object):
         end = how == 'E'
         new_ordinal = tslib.period_asfreq(self.ordinal, base1, base2, end)
 
-        #print self.freq, '->', freq, 'end' if end else 'start', ':', self.ordinal, '->', new_ordinal
         return Period(ordinal=new_ordinal, freq=base2)
 
     @property

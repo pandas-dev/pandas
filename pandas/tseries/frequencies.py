@@ -124,15 +124,15 @@ from pandas.tseries.offsets import (Day, BDay, Hour, Minute, Second, Milli,
                                     QuarterEnd, BQuarterBegin, BQuarterEnd)
 
 _offset_map = {
-    'D'     : Day(),
-    'B'     : BDay(),
-    'H'     : Hour(),
-    'T'     : Minute(),
-    'S'     : Second(),
-    'L'     : Milli(),
-    'U'     : Micro(),
-    'N'     : Nano(),
-    None    : None,
+    'D': Day(),
+    'B': BDay(),
+    'H': Hour(),
+    'T': Minute(),
+    'S': Second(),
+    'L': Milli(),
+    'U': Micro(),
+    'N': Nano(),
+    None: None,
 
     # Monthly - Calendar
     'M': MonthEnd(),
@@ -271,28 +271,28 @@ _offset_map = {
 }
 
 _offset_to_period_map = {
-    'WEEKDAY' : 'D',
-    'EOM' : 'M',
-    'BM' : 'M',
-    'BQS' : 'Q',
-    'QS' : 'Q',
-    'BQ' : 'Q',
-    'BA' : 'A',
-    'AS' : 'A',
-    'BAS' : 'A',
-    'MS' : 'M',
-    'D' : 'D',
-    'B' : 'B',
-    'T' : 'T',
-    'S' : 'S',
-    'L' : 'L',
-    'U' : 'U',
-    'N' : 'N',
-    'H' : 'H',
-    'Q' : 'Q',
-    'A' : 'A',
-    'W' : 'W',
-    'M' : 'M'
+    'WEEKDAY': 'D',
+    'EOM': 'M',
+    'BM': 'M',
+    'BQS': 'Q',
+    'QS': 'Q',
+    'BQ': 'Q',
+    'BA': 'A',
+    'AS': 'A',
+    'BAS': 'A',
+    'MS': 'M',
+    'D': 'D',
+    'B': 'B',
+    'T': 'T',
+    'S': 'S',
+    'L': 'L',
+    'U': 'U',
+    'N': 'N',
+    'H': 'H',
+    'Q': 'Q',
+    'A': 'A',
+    'W': 'W',
+    'M': 'M'
 }
 
 need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
@@ -577,37 +577,37 @@ _period_code_map = {
 
     # Quarterly frequencies with various fiscal year ends.
     # eg, Q42005 for Q-OCT runs Aug 1, 2005 to Oct 31, 2005
-    "Q-DEC" : 2000 ,    # Quarterly - December year end
-    "Q-JAN" : 2001,    # Quarterly - January year end
-    "Q-FEB" : 2002,    # Quarterly - February year end
-    "Q-MAR" : 2003,    # Quarterly - March year end
-    "Q-APR" : 2004,    # Quarterly - April year end
-    "Q-MAY" : 2005,    # Quarterly - May year end
-    "Q-JUN" : 2006,    # Quarterly - June year end
-    "Q-JUL" : 2007,    # Quarterly - July year end
-    "Q-AUG" : 2008,    # Quarterly - August year end
-    "Q-SEP" : 2009,    # Quarterly - September year end
-    "Q-OCT" : 2010,    # Quarterly - October year end
-    "Q-NOV" : 2011,    # Quarterly - November year end
+    "Q-DEC": 2000,    # Quarterly - December year end
+    "Q-JAN": 2001,    # Quarterly - January year end
+    "Q-FEB": 2002,    # Quarterly - February year end
+    "Q-MAR": 2003,    # Quarterly - March year end
+    "Q-APR": 2004,    # Quarterly - April year end
+    "Q-MAY": 2005,    # Quarterly - May year end
+    "Q-JUN": 2006,    # Quarterly - June year end
+    "Q-JUL": 2007,    # Quarterly - July year end
+    "Q-AUG": 2008,    # Quarterly - August year end
+    "Q-SEP": 2009,    # Quarterly - September year end
+    "Q-OCT": 2010,    # Quarterly - October year end
+    "Q-NOV": 2011,    # Quarterly - November year end
 
-    "M"     : 3000,   # Monthly
+    "M": 3000,        # Monthly
 
-    "W-SUN" : 4000,    # Weekly - Sunday end of week
-    "W-MON" : 4001,    # Weekly - Monday end of week
-    "W-TUE" : 4002,    # Weekly - Tuesday end of week
-    "W-WED" : 4003,    # Weekly - Wednesday end of week
-    "W-THU" : 4004,    # Weekly - Thursday end of week
-    "W-FRI" : 4005,    # Weekly - Friday end of week
-    "W-SAT" : 4006,    # Weekly - Saturday end of week
+    "W-SUN": 4000,    # Weekly - Sunday end of week
+    "W-MON": 4001,    # Weekly - Monday end of week
+    "W-TUE": 4002,    # Weekly - Tuesday end of week
+    "W-WED": 4003,    # Weekly - Wednesday end of week
+    "W-THU": 4004,    # Weekly - Thursday end of week
+    "W-FRI": 4005,    # Weekly - Friday end of week
+    "W-SAT": 4006,    # Weekly - Saturday end of week
 
-    "B"      : 5000,   # Business days
-    "D"      : 6000,   # Daily
-    "H"      : 7000,   # Hourly
-    "T"      : 8000,   # Minutely
-    "S"      : 9000,   # Secondly
-    "L"      : 10000,  # Millisecondly
-    "U"      : 11000,  # Microsecondly
-    "N"      : 12000,  # Nanosecondly
+    "B": 5000,        # Business days
+    "D": 6000,        # Daily
+    "H": 7000,        # Hourly
+    "T": 8000,        # Minutely
+    "S": 9000,        # Secondly
+    "L": 10000,       # Millisecondly
+    "U": 11000,       # Microsecondly
+    "N": 12000,       # Nanosecondly
 }
 
 _reverse_period_code_map = {}
@@ -726,13 +726,13 @@ def _period_alias_dictionary():
     return alias_dict
 
 _reso_period_map = {
-    "year"        : "A",
-    "quarter"     : "Q",
-    "month"       : "M",
-    "day"         : "D",
-    "hour"        : "H",
-    "minute"      : "T",
-    "second"      : "S",
+    "year": "A",
+    "quarter": "Q",
+    "month": "M",
+    "day": "D",
+    "hour": "H",
+    "minute": "T",
+    "second": "S",
     "millisecond" : "L",
     "microsecond" : "U",
     "nanosecond"  : "N",
