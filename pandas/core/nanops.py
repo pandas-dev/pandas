@@ -32,7 +32,8 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
                 if values.ndim == 1:
                     return 0
                 else:
-                    result_shape = values.shape[:axis] + values.shape[axis + 1:]
+                    result_shape = values.shape[:
+                                                axis] + values.shape[axis + 1:]
                     result = np.empty(result_shape)
                     result.fill(0)
                     return result
@@ -50,6 +51,7 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
         return result
 
     return f
+
 
 def _bn_ok_dtype(dt):
     # Bottleneck chokes on datetime64
@@ -167,7 +169,7 @@ def _nanmin(values, axis=None, skipna=True):
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
-        and sys.version_info[0] >= 3):  # pragma: no cover
+            and sys.version_info[0] >= 3):  # pragma: no cover
         import __builtin__
         if values.ndim > 1:
             apply_ax = axis if axis is not None else 0
@@ -176,8 +178,8 @@ def _nanmin(values, axis=None, skipna=True):
             result = __builtin__.min(values)
     else:
         if ((axis is not None and values.shape[axis] == 0)
-             or values.size == 0):
-            result = values.sum(axis)
+                or values.size == 0):
+            result = com.ensure_float(values.sum(axis))
             result.fill(np.nan)
         else:
             result = values.min(axis)
@@ -205,7 +207,7 @@ def _nanmax(values, axis=None, skipna=True):
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
-        and sys.version_info[0] >= 3):  # pragma: no cover
+            and sys.version_info[0] >= 3):  # pragma: no cover
         import __builtin__
 
         if values.ndim > 1:
@@ -215,8 +217,8 @@ def _nanmax(values, axis=None, skipna=True):
             result = __builtin__.max(values)
     else:
         if ((axis is not None and values.shape[axis] == 0)
-             or values.size == 0):
-            result = values.sum(axis)
+                or values.size == 0):
+            result = com.ensure_float(values.sum(axis))
             result.fill(np.nan)
         else:
             result = values.max(axis)

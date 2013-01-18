@@ -172,7 +172,7 @@ def _bool_method(op, name):
 
             if isinstance(y, np.ndarray):
                 if (x.dtype == np.bool_ and
-                    y.dtype == np.bool_):  # pragma: no cover
+                        y.dtype == np.bool_):  # pragma: no cover
                     result = op(x, y)  # when would this be hit?
                 else:
                     x = com._ensure_object(x)
@@ -245,7 +245,16 @@ def _flex_method(op, name):
 
     @Appender(doc)
     def f(self, other, level=None, fill_value=None):
-        return self._binop(other, op, level=level, fill_value=fill_value)
+        if isinstance(other, Series):
+            return self._binop(other, op, level=level, fill_value=fill_value)
+        elif isinstance(other, (np.ndarray, list, tuple)):
+            if len(other) != len(self):
+                raise ValueError('Lengths must be equal')
+            return self._binop(Series(other, self.index), op,
+                               level=level, fill_value=fill_value)
+        else:
+            return Series(op(self.values, other), self.index,
+                          name=self.name)
 
     f.__name__ = name
     return f
@@ -635,7 +644,7 @@ copy : boolean, default False
                 return
         except KeyError:
             if (com.is_integer(key)
-                and not self.index.inferred_type == 'integer'):
+                    and not self.index.inferred_type == 'integer'):
 
                 values[key] = value
                 return
@@ -759,7 +768,7 @@ copy : boolean, default False
         """
         if self.dtype == np.object_:
             return Series(lib.maybe_convert_objects(
-                    self, convert_datetime=convert_dates), self.index)
+                self, convert_datetime=convert_dates), self.index)
         return self
 
     def repeat(self, reps):
@@ -923,7 +932,6 @@ copy : boolean, default False
 
             return df.reset_index(level=level, drop=drop)
 
-
     def __str__(self):
         """
         Return a string representation for a particular DataFrame
@@ -944,7 +952,7 @@ copy : boolean, default False
         Yields a bytestring in both py2/py3.
         """
         encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding , 'replace')
+        return self.__unicode__().encode(encoding, 'replace')
 
     def __unicode__(self):
         """
@@ -992,7 +1000,8 @@ copy : boolean, default False
         return unicode(result)
 
     def _repr_footer(self):
-        namestr = u"Name: %s, " % com.pprint_thing(self.name) if self.name is not None else ""
+        namestr = u"Name: %s, " % com.pprint_thing(
+            self.name) if self.name is not None else ""
         return u'%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
@@ -1054,7 +1063,7 @@ copy : boolean, default False
         else:
             return iter(self.values)
 
-    def iteritems(self, index=True):
+    def iteritems(self):
         """
         Lazily iterate over (index, value) tuples
         """
@@ -1332,7 +1341,7 @@ copy : boolean, default False
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc +
-        """
+              """
         Normalized by N-1 (unbiased estimator).
         """)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
@@ -1345,7 +1354,7 @@ copy : boolean, default False
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc +
-        """
+              """
         Normalized by N-1 (unbiased estimator).
         """)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
@@ -1623,10 +1632,11 @@ copy : boolean, default False
             names = ['count']
             data = [self.count()]
             names += ['mean', 'std', 'min', pretty_name(lb), '50%',
-                    pretty_name(ub), 'max']
+                      pretty_name(ub), 'max']
             data += [self.mean(), self.std(), self.min(),
-                    self.quantile(lb), self.median(), self.quantile(ub),
-                    self.max()]
+                     self.quantile(
+                     lb), self.median(), self.quantile(ub),
+                     self.max()]
 
         return Series(data, index=names)
 
@@ -1923,7 +1933,7 @@ copy : boolean, default False
             true_base = true_base.base
 
         if (true_base is not None and
-            (true_base.ndim != 1 or true_base.shape != self.shape)):
+                (true_base.ndim != 1 or true_base.shape != self.shape)):
             raise Exception('This Series is a view of some other array, to '
                             'sort in-place you must create a copy')
 
@@ -2348,7 +2358,7 @@ copy : boolean, default False
             return Series(nan, index=index, name=self.name)
 
         new_index, indexer = self.index.reindex(index, method=method,
-                                                 level=level, limit=limit)
+                                                level=level, limit=limit)
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
@@ -2983,12 +2993,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     def _try_cast(arr):
         try:
-            subarr = np.array(data, dtype=dtype, copy=copy)
+            arr = com._possibly_cast_to_datetime(arr, dtype)
+            subarr = np.array(arr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if dtype is not None and raise_cast_failure:
                 raise
             else:  # pragma: no cover
-                subarr = np.array(data, dtype=object, copy=copy)
+                subarr = np.array(arr, dtype=object, copy=copy)
         return subarr
 
     # GH #846
@@ -3004,7 +3015,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     subarr = data.copy()
             else:
                 if (com.is_datetime64_dtype(data.dtype) and
-                    not com.is_datetime64_dtype(dtype)):
+                        not com.is_datetime64_dtype(dtype)):
                     if dtype == object:
                         ints = np.asarray(data).view('i8')
                         subarr = tslib.ints_to_pydatetime(ints)
@@ -3047,6 +3058,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 value, dtype = _dtype_from_scalar(value)
                 subarr = np.empty(len(index), dtype=dtype)
             else:
+                # need to possibly convert the value here
+                value = com._possibly_cast_to_datetime(value, dtype)
                 subarr = np.empty(len(index), dtype=dtype)
             subarr.fill(value)
         else:
@@ -3133,7 +3146,8 @@ class TimeSeries(Series):
         else:
             freqstr = ''
 
-        namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
+        namestr = "Name: %s, " % str(
+            self.name) if self.name is not None else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
     def to_timestamp(self, freq=None, how='start', copy=True):

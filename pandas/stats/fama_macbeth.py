@@ -90,7 +90,7 @@ class FamaMacBeth(object):
     def _coef_table(self):
         buffer = StringIO()
         buffer.write('%13s %13s %13s %13s %13s %13s\n' %
-            ('Variable', 'Beta', 'Std Err', 't-stat', 'CI 2.5%', 'CI 97.5%'))
+                    ('Variable', 'Beta', 'Std Err', 't-stat', 'CI 2.5%', 'CI 97.5%'))
         template = '%13s %13.4f %13.4f %13.2f %13.4f %13.4f\n'
 
         for i, name in enumerate(self._cols):
@@ -178,7 +178,7 @@ class MovingFamaMacBeth(FamaMacBeth):
             else:
                 begin = 0
 
-            B = betas[max(obs_total[begin] - 1, 0) : obs_total[i]]
+            B = betas[max(obs_total[begin] - 1, 0): obs_total[i]]
             mean_beta, std_beta, t_stat = _calc_t_stat(B, self._nw_lags_beta)
             mean_betas.append(mean_beta)
             std_betas.append(std_beta)

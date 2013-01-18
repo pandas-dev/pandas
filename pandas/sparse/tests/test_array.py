@@ -10,6 +10,7 @@ from pandas.core.common import notnull
 from pandas.sparse.api import SparseArray
 from pandas.util.testing import assert_almost_equal
 
+
 def assert_sp_array_equal(left, right):
     assert_almost_equal(left.sp_values, right.sp_values)
     assert(left.sp_index.equals(right.sp_index))
@@ -21,6 +22,7 @@ def assert_sp_array_equal(left, right):
 
 class TestSparseArray(unittest.TestCase):
     _multiprocess_can_split_ = True
+
     def setUp(self):
         self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.arr = SparseArray(self.arr_data)
@@ -150,5 +152,5 @@ class TestSparseArray(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

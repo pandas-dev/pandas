@@ -298,6 +298,8 @@ def is_period_array(ndarray[object] values):
 cdef extern from "parse_helper.h":
     inline int floatify(object, double *result) except -1
 
+cdef double fINT64_MAX = <double> INT64_MAX
+cdef double fINT64_MIN = <double> INT64_MIN
 
 def maybe_convert_numeric(ndarray[object] values, set na_values,
                           convert_empty=True):
@@ -351,8 +353,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     seen_float = 1
                 elif 'inf' in val:  # special case to handle +/-inf
                     seen_float = 1
-                else:
+                elif fval < fINT64_MAX and fval > fINT64_MIN:
                     ints[i] = <int64_t> fval
+                else:
+                    seen_float = 1
 
     if seen_complex:
         return complexes

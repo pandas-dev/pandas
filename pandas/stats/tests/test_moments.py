@@ -10,13 +10,14 @@ import numpy as np
 from pandas import Series, DataFrame, bdate_range, isnull, notnull
 from pandas.util.testing import (
     assert_almost_equal, assert_series_equal, assert_frame_equal
-    )
+)
 from pandas.util.py3compat import PY3
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.util.testing as tm
 
 N, K = 100, 10
+
 
 class TestMoments(unittest.TestCase):
 
@@ -157,8 +158,8 @@ class TestMoments(unittest.TestCase):
             raise nose.SkipTest
 
         win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
-        kwds = [{'beta' : 1.}, {'std' : 1.}, {'power' : 2., 'width' : 2.},
-                {'width' : 0.5}]
+        kwds = [{'beta': 1.}, {'std': 1.}, {'power': 2., 'width': 2.},
+                {'width': 0.5}]
 
         for wt, k in zip(win_types, kwds):
             vals = np.random.randn(10)
@@ -174,28 +175,30 @@ class TestMoments(unittest.TestCase):
     def test_rolling_min(self):
         self._check_moment_func(mom.rolling_min, np.min)
 
-        a = np.array([1,2,3,4,5])
+        a = np.array([1, 2, 3, 4, 5])
         b = mom.rolling_min(a, window=100, min_periods=1)
         assert_almost_equal(b, np.ones(len(a)))
 
-        self.assertRaises(ValueError, mom.rolling_min, np.array([1,2,3]), window=3, min_periods=5)
+        self.assertRaises(ValueError, mom.rolling_min, np.array([1,
+                          2, 3]), window=3, min_periods=5)
 
     def test_rolling_max(self):
         self._check_moment_func(mom.rolling_max, np.max)
 
-        a = np.array([1,2,3,4,5])
+        a = np.array([1, 2, 3, 4, 5])
         b = mom.rolling_max(a, window=100, min_periods=1)
         assert_almost_equal(a, b)
 
-        self.assertRaises(ValueError, mom.rolling_max, np.array([1,2,3]), window=3, min_periods=5)
+        self.assertRaises(ValueError, mom.rolling_max, np.array([1,
+                          2, 3]), window=3, min_periods=5)
 
     def test_rolling_quantile(self):
         qs = [.1, .5, .9]
 
         def scoreatpercentile(a, per):
-            values = np.sort(a,axis=0)
+            values = np.sort(a, axis=0)
 
-            idx = per /1. * (values.shape[0] - 1)
+            idx = per / 1. * (values.shape[0] - 1)
             return values[int(idx)]
 
         for q in qs:
@@ -204,6 +207,7 @@ class TestMoments(unittest.TestCase):
                                             min_periods=min_periods,
                                             freq=freq,
                                             center=center)
+
             def alt(x):
                 return scoreatpercentile(x, q)
 
@@ -211,7 +215,8 @@ class TestMoments(unittest.TestCase):
 
     def test_rolling_apply(self):
         ser = Series([])
-        assert_series_equal(ser, mom.rolling_apply(ser, 10, lambda x:x.mean()))
+        assert_series_equal(
+            ser, mom.rolling_apply(ser, 10, lambda x: x.mean()))
 
         def roll_mean(x, window, min_periods=None, freq=None, center=False):
             return mom.rolling_apply(x, window,
@@ -239,13 +244,13 @@ class TestMoments(unittest.TestCase):
                                 lambda x: np.std(x, ddof=0))
 
     def test_rolling_std_1obs(self):
-        result = mom.rolling_std(np.array([1.,2.,3.,4.,5.]),
+        result = mom.rolling_std(np.array([1., 2., 3., 4., 5.]),
                                  1, min_periods=1)
         expected = np.zeros(5)
 
         assert_almost_equal(result, expected)
 
-        result = mom.rolling_std(np.array([np.nan,np.nan,3.,4.,5.]),
+        result = mom.rolling_std(np.array([np.nan, np.nan, 3., 4., 5.]),
                                  3, min_periods=2)
         self.assert_(np.isnan(result[2]))
 
@@ -378,7 +383,6 @@ class TestMoments(unittest.TestCase):
             result = func(arr, 50)
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))
 
-
         if has_center:
             if has_min_periods:
                 result = func(arr, 20, min_periods=15, center=True)
@@ -457,7 +461,6 @@ class TestMoments(unittest.TestCase):
                 frame_xp = frame_xp.fillna(fill_value)
             assert_series_equal(series_xp, series_rs)
             assert_frame_equal(frame_xp, frame_rs)
-
 
     def test_legacy_time_rule_arg(self):
         from StringIO import StringIO
@@ -624,9 +627,9 @@ class TestMoments(unittest.TestCase):
 
         def expanding_mean(x, min_periods=1, freq=None):
             return mom.expanding_apply(x,
-                                         lambda x: x.mean(),
-                                         min_periods=min_periods,
-                                         freq=freq)
+                                       lambda x: x.mean(),
+                                       min_periods=min_periods,
+                                       freq=freq)
         self._check_expanding(expanding_mean, np.mean)
 
     def test_expanding_corr(self):
@@ -728,5 +731,5 @@ class TestMoments(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

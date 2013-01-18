@@ -11,6 +11,7 @@ import pandas.tslib as tslib
 
 from pandas.util import py3compat
 
+
 class Block(object):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
@@ -64,8 +65,8 @@ class Block(object):
     def __repr__(self):
         shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
         name = type(self).__name__
-        result = '%s: %s, %s, dtype %s' % (name, com.pprint_thing(self.items)
-                                           , shape, self.dtype)
+        result = '%s: %s, %s, dtype %s' % (
+            name, com.pprint_thing(self.items), shape, self.dtype)
         if py3compat.PY3:
             return unicode(result)
         return com.console_encode(result)
@@ -194,12 +195,12 @@ class Block(object):
         loc = self.items.get_loc(item)
 
         if type(loc) == slice or type(loc) == int:
-            mask = [True]*len(self)
+            mask = [True] * len(self)
             mask[loc] = False
-        else: # already a mask, inverted
+        else:  # already a mask, inverted
             mask = -loc
 
-        for s,e in com.split_ranges(mask):
+        for s, e in com.split_ranges(mask):
             yield make_block(self.values[s:e],
                              self.items[s:e].copy(),
                              self.ref_items)
@@ -270,7 +271,7 @@ class Block(object):
 
         if missing is None:
             mask = None
-        else: # todo create faster fill func without masking
+        else:  # todo create faster fill func without masking
             mask = _mask_missing(transf(values), missing)
 
         if method == 'pad':
@@ -323,7 +324,7 @@ class FloatBlock(Block):
     def _try_cast(self, element):
         try:
             return float(element)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             return element
 
     def should_store(self, value):
@@ -341,7 +342,7 @@ class ComplexBlock(Block):
     def _try_cast(self, element):
         try:
             return complex(element)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             return element
 
     def should_store(self, value):
@@ -357,7 +358,7 @@ class IntBlock(Block):
     def _try_cast(self, element):
         try:
             return int(element)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             return element
 
     def should_store(self, value):
@@ -373,7 +374,7 @@ class BoolBlock(Block):
     def _try_cast(self, element):
         try:
             return bool(element)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             return element
 
     def should_store(self, value):
@@ -395,6 +396,7 @@ class ObjectBlock(Block):
                                np.datetime64, np.bool_))
 
 _NS_DTYPE = np.dtype('M8[ns]')
+
 
 class DatetimeBlock(Block):
     _can_hold_na = True
@@ -446,6 +448,7 @@ class DatetimeBlock(Block):
 def make_block(values, items, ref_items):
     dtype = values.dtype
     vtype = dtype.type
+    klass = None
 
     if issubclass(vtype, np.floating):
         klass = FloatBlock
@@ -459,7 +462,22 @@ def make_block(values, items, ref_items):
         klass = IntBlock
     elif dtype == np.bool_:
         klass = BoolBlock
-    else:
+
+    # try to infer a datetimeblock
+    if klass is None and np.prod(values.shape):
+        flat = values.flatten()
+        inferred_type = lib.infer_dtype(flat)
+        if inferred_type == 'datetime':
+
+            # we have an object array that has been inferred as datetime, so
+            # convert it
+            try:
+                values = tslib.array_to_datetime(flat).reshape(values.shape)
+                klass = DatetimeBlock
+            except:  # it already object, so leave it
+                pass
+
+    if klass is None:
         klass = ObjectBlock
 
     return klass(values, items, ref_items, ndim=values.ndim)
@@ -495,7 +513,6 @@ class BlockManager(object):
                 raise AssertionError(('Number of Block dimensions (%d) must '
                                       'equal number of axes (%d)')
                                      % (block.values.ndim, ndim))
-
 
         if do_integrity_check:
             self._verify_integrity()
@@ -659,12 +676,12 @@ class BlockManager(object):
             except TypeError:
                 type_list = (type_list,)
 
-        type_map = {int : IntBlock, float : FloatBlock,
-                    complex : ComplexBlock,
-                    np.datetime64 : DatetimeBlock,
-                    datetime : DatetimeBlock,
-                    bool : BoolBlock,
-                    object : ObjectBlock}
+        type_map = {int: IntBlock, float: FloatBlock,
+                    complex: ComplexBlock,
+                    np.datetime64: DatetimeBlock,
+                    datetime: DatetimeBlock,
+                    bool: BoolBlock,
+                    object: ObjectBlock}
 
         type_list = tuple([type_map.get(t, t) for t in type_list])
         return type_list
@@ -875,14 +892,14 @@ class BlockManager(object):
             # ugh
             try:
                 inds, = (self.items == item).nonzero()
-            except AttributeError: #MultiIndex
+            except AttributeError:  # MultiIndex
                 inds, = self.items.map(lambda x: x == item).nonzero()
 
             _, block = self._find_block(item)
 
             try:
                 binds, = (block.items == item).nonzero()
-            except AttributeError: #MultiIndex
+            except AttributeError:  # MultiIndex
                 binds, = block.items.map(lambda x: x == item).nonzero()
 
             for j, (k, b) in enumerate(zip(inds, binds)):
@@ -910,8 +927,8 @@ class BlockManager(object):
         loc = self.items.get_loc(item)
 
         self._delete_from_block(i, item)
-        if com._is_bool_indexer(loc): # dupe keys may return mask
-            loc = [i for i,v in enumerate(loc) if v]
+        if com._is_bool_indexer(loc):  # dupe keys may return mask
+            loc = [i for i, v in enumerate(loc) if v]
 
         new_items = self.items.delete(loc)
 
@@ -945,7 +962,8 @@ class BlockManager(object):
             else:
                 subset = self.items[loc]
                 if len(value) != len(subset):
-                    raise AssertionError('Number of items to set did not match')
+                    raise AssertionError(
+                        'Number of items to set did not match')
                 for i, (item, arr) in enumerate(zip(subset, value)):
                     _set_item(item, arr[None, :])
         except KeyError:
@@ -990,7 +1008,7 @@ class BlockManager(object):
         # hm, elaborate hack?
         if loc is None:
             loc = self.items.get_loc(item)
-        new_block = make_block(value, self.items[loc:loc+1].copy(),
+        new_block = make_block(value, self.items[loc:loc + 1].copy(),
                                self.items)
         self.blocks.append(new_block)
 
@@ -1296,6 +1314,7 @@ class BlockManager(object):
             raise AssertionError('Some items were not in any block')
         return result
 
+
 def form_blocks(arrays, names, axes):
     # pre-filter out items if we passed it
     items = axes[0]
@@ -1329,7 +1348,7 @@ def form_blocks(arrays, names, axes):
         elif issubclass(v.dtype.type, np.integer):
             if v.dtype == np.uint64:
                 # HACK #2355 definite overflow
-                if (v > 2**63 - 1).any():
+                if (v > 2 ** 63 - 1).any():
                     object_items.append((k, v))
                     continue
             int_items.append((k, v))
@@ -1377,13 +1396,15 @@ def form_blocks(arrays, names, axes):
 
     return blocks
 
+
 def _simple_blockify(tuples, ref_items, dtype):
     block_items, values = _stack_arrays(tuples, ref_items, dtype)
     # CHECK DTYPE?
-    if values.dtype != dtype: # pragma: no cover
+    if values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
     return make_block(values, block_items, ref_items)
+
 
 def _stack_arrays(tuples, ref_items, dtype):
     from pandas.core.series import Series
@@ -1417,6 +1438,7 @@ def _stack_arrays(tuples, ref_items, dtype):
 
     return items, stacked
 
+
 def _blocks_to_series_dict(blocks, index=None):
     from pandas.core.series import Series
 
@@ -1426,6 +1448,7 @@ def _blocks_to_series_dict(blocks, index=None):
         for item, vec in zip(block.items, block.values):
             series_dict[item] = Series(vec, index=index, name=item)
     return series_dict
+
 
 def _interleaved_dtype(blocks):
     from collections import defaultdict
@@ -1443,7 +1466,7 @@ def _interleaved_dtype(blocks):
 
     if (have_object or
         (have_bool and have_numeric) or
-        (have_numeric and have_dt64)):
+            (have_numeric and have_dt64)):
         return np.dtype(object)
     elif have_bool:
         return np.dtype(bool)
@@ -1455,6 +1478,7 @@ def _interleaved_dtype(blocks):
         return np.dtype('c16')
     else:
         return np.dtype('f8')
+
 
 def _consolidate(blocks, items):
     """
@@ -1483,6 +1507,7 @@ def _merge_blocks(blocks, items):
     new_items = blocks[0].items.append([b.items for b in blocks[1:]])
     new_block = make_block(new_values, new_items, items)
     return new_block.reindex_items_from(items)
+
 
 def _vstack(to_stack):
     if all(x.dtype == _NS_DTYPE for x in to_stack):

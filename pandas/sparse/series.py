@@ -119,7 +119,7 @@ class SparseSeries(SparseArray, Series):
             length = len(index)
 
             if data == fill_value or (isnull(data)
-                    and isnull(fill_value)):
+                                      and isnull(fill_value)):
                 if kind == 'block':
                     sparse_index = BlockIndex(length, [], [])
                 else:
@@ -160,11 +160,11 @@ class SparseSeries(SparseArray, Series):
         self.__class__ = SparseTimeSeries
 
     @classmethod
-    def from_array(cls, arr, index=None, name=None, copy=False,fill_value=None):
+    def from_array(cls, arr, index=None, name=None, copy=False, fill_value=None):
         """
         Simplified alternate constructor
         """
-        return SparseSeries(arr, index=index, name=name, copy=copy,fill_value=fill_value)
+        return SparseSeries(arr, index=index, name=name, copy=copy, fill_value=fill_value)
 
     def __init__(self, data, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, copy=False):

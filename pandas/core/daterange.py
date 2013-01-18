@@ -18,7 +18,7 @@ class DateRange(Index):
 
         import warnings
         warnings.warn("DateRange is deprecated, use DatetimeIndex instead",
-                       FutureWarning)
+                      FutureWarning)
 
         if time_rule is None:
             time_rule = kwds.get('timeRule')

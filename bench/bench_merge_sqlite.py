@@ -13,10 +13,10 @@ indices2 = np.array([rands(10) for _ in xrange(N)], dtype='O')
 key = np.tile(indices[:8000], 10)
 key2 = np.tile(indices2[:8000], 10)
 
-left = DataFrame({'key' : key, 'key2':key2,
-                  'value' : np.random.randn(80000)})
-right = DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
-                   'value2' : np.random.randn(8000)})
+left = DataFrame({'key': key, 'key2': key2,
+                  'value': np.random.randn(80000)})
+right = DataFrame({'key': indices[2000:], 'key2': indices2[2000:],
+                   'value2': np.random.randn(8000)})
 
 # right2 = right.append(right, ignore_index=True)
 # right = right2
@@ -30,8 +30,10 @@ import sqlite3
 create_sql_indexes = True
 
 conn = sqlite3.connect(':memory:')
-conn.execute('create table left( key varchar(10), key2 varchar(10), value int);')
-conn.execute('create table right( key varchar(10), key2 varchar(10), value2 int);')
+conn.execute(
+    'create table left( key varchar(10), key2 varchar(10), value int);')
+conn.execute(
+    'create table right( key varchar(10), key2 varchar(10), value2 int);')
 conn.executemany('insert into left values (?, ?, ?)',
                  zip(key, key2, left['value']))
 conn.executemany('insert into right values (?, ?, ?)',
@@ -43,7 +45,7 @@ if create_sql_indexes:
     conn.execute('create index right_ix on right(key, key2)')
 
 
-join_methods = ['inner', 'left outer', 'left'] # others not supported
+join_methods = ['inner', 'left outer', 'left']  # others not supported
 sql_results = DataFrame(index=join_methods, columns=[False])
 niter = 5
 for sort in [False]:
@@ -61,8 +63,8 @@ for sort in [False]:
 
         if sort:
             sql = '%s order by key, key2' % sql
-        f = lambda: list(conn.execute(sql)) # list fetches results
-        g = lambda: conn.execute(sql) # list fetches results
+        f = lambda: list(conn.execute(sql))  # list fetches results
+        g = lambda: conn.execute(sql)  # list fetches results
         gc.disable()
         start = time.time()
         # for _ in xrange(niter):
@@ -74,7 +76,7 @@ for sort in [False]:
         conn.commit()
 
         sql_results[sort][join_method] = elapsed
-        sql_results.columns = ['sqlite3'] # ['dont_sort', 'sort']
+        sql_results.columns = ['sqlite3']  # ['dont_sort', 'sort']
         sql_results.index = ['inner', 'outer', 'left']
 
         sql = """select *

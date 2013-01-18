@@ -36,7 +36,7 @@ class PandasObject(object):
     def _get_axis_number(cls, axis):
         axis = cls._AXIS_ALIASES.get(axis, axis)
 
-        if isinstance(axis, int):
+        if com.is_integer(axis):
             if axis in cls._AXIS_NAMES:
                 return axis
             else:

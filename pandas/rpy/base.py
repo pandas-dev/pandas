@@ -10,4 +10,3 @@ class lm(object):
     """
     def __init__(self, formula, data):
         pass
-

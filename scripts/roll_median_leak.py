@@ -20,5 +20,5 @@ lst.append(np.repeat(np.nan, 1000000))
 
 for _ in xrange(10000):
     print proc.get_memory_info()
-    sdf = SparseDataFrame({'A' : lst.to_array()})
+    sdf = SparseDataFrame({'A': lst.to_array()})
     chunk = sdf[sdf['A'] == 5]

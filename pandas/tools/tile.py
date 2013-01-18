@@ -62,7 +62,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     >>> cut(np.ones(5), 4, labels=False)
     array([2, 2, 2, 2, 2])
     """
-    #NOTE: this binning code is changed a bit from histogram for var(x) == 0
+    # NOTE: this binning code is changed a bit from histogram for var(x) == 0
     if not np.iterable(bins):
         if np.isscalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
@@ -190,6 +190,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     return fac, bins
 
+
 def _format_levels(bins, prec, right=True,
                    include_lowest=False):
     fmt = lambda v: _format_label(v, precision=prec)
@@ -209,7 +210,7 @@ def _format_levels(bins, prec, right=True,
             levels[0] = '[' + levels[0][1:]
     else:
         levels = ['[%s, %s)' % (fmt(a), fmt(b))
-                   for a, b in zip(bins, bins[1:])]
+                  for a, b in zip(bins, bins[1:])]
 
     return levels
 

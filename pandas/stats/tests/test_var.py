@@ -35,6 +35,7 @@ DECIMAL_4 = 4
 DECIMAL_3 = 3
 DECIMAL_2 = 2
 
+
 class CheckVAR(object):
     def test_params(self):
         assert_almost_equal(self.res1.params, self.res2.params, DECIMAL_3)
@@ -51,21 +52,21 @@ class CheckVAR(object):
     def test_rmse(self):
         results = self.res1.results
         for i in range(len(results)):
-            assert_almost_equal(results[i].mse_resid**.5,
-                    eval('self.res2.rmse_'+str(i+1)), DECIMAL_6)
+            assert_almost_equal(results[i].mse_resid ** .5,
+                                eval('self.res2.rmse_' + str(i + 1)), DECIMAL_6)
 
     def test_rsquared(self):
         results = self.res1.results
         for i in range(len(results)):
             assert_almost_equal(results[i].rsquared,
-                    eval('self.res2.rsquared_'+str(i+1)), DECIMAL_3)
+                                eval('self.res2.rsquared_' + str(i + 1)), DECIMAL_3)
 
     def test_llf(self):
         results = self.res1.results
         assert_almost_equal(self.res1.llf, self.res2.llf, DECIMAL_2)
         for i in range(len(results)):
             assert_almost_equal(results[i].llf,
-                    eval('self.res2.llf_'+str(i+1)), DECIMAL_2)
+                                eval('self.res2.llf_' + str(i + 1)), DECIMAL_2)
 
     def test_aic(self):
         assert_almost_equal(self.res1.aic, self.res2.aic)
@@ -89,8 +90,8 @@ class CheckVAR(object):
 class Foo(object):
     def __init__(self):
         data = sm.datasets.macrodata.load()
-        data = data.data[['realinv','realgdp','realcons']].view((float,3))
-        data = diff(log(data),axis=0)
+        data = data.data[['realinv', 'realgdp', 'realcons']].view((float, 3))
+        data = diff(log(data), axis=0)
         self.res1 = VAR2(endog=data).fit(maxlag=2)
         from results import results_var
         self.res2 = results_var.MacrodataResults()
@@ -137,13 +138,14 @@ class RVAR(object):
     def serial_test(self, lags_pt=16, type='PT.asymptotic'):
         f = r['serial.test']
 
-        test = f(self._estimate, **{'lags.pt' : lags_pt,
-                                    'type' : type})
+        test = f(self._estimate, **{'lags.pt': lags_pt,
+                                    'type': type})
 
         return test
 
     def data_summary(self):
         print r.summary(self.rdata)
+
 
 class TestVAR(TestCase):
 

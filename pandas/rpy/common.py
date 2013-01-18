@@ -219,10 +219,11 @@ def convert_to_r_posixct(obj):
     vals = robj.vectors.FloatSexpVector(obj.values.view('i8') / 1E9)
     as_posixct = robj.baseenv.get('as.POSIXct')
     origin = StrSexpVector([time.strftime("%Y-%m-%d",
-                                          time.gmtime(0)),])
+                                          time.gmtime(0)), ])
 
     # We will be sending ints as UTC
-    tz = obj.tz.zone if hasattr(obj, 'tz') and hasattr(obj.tz, 'zone') else 'UTC'
+    tz = obj.tz.zone if hasattr(
+        obj, 'tz') and hasattr(obj.tz, 'zone') else 'UTC'
     tz = StrSexpVector([tz])
     utc_tz = StrSexpVector(['UTC'])
 
@@ -232,14 +233,14 @@ def convert_to_r_posixct(obj):
 
 
 VECTOR_TYPES = {np.float64: robj.FloatVector,
-               np.float32: robj.FloatVector,
-               np.float: robj.FloatVector,
-               np.int: robj.IntVector,
-               np.int32: robj.IntVector,
-               np.int64: robj.IntVector,
-               np.object_: robj.StrVector,
-               np.str: robj.StrVector,
-               np.bool: robj.BoolVector}
+                np.float32: robj.FloatVector,
+                np.float: robj.FloatVector,
+                np.int: robj.IntVector,
+                np.int32: robj.IntVector,
+                np.int64: robj.IntVector,
+                np.object_: robj.StrVector,
+                np.str: robj.StrVector,
+                np.bool: robj.BoolVector}
 
 NA_TYPES = {np.float64: robj.NA_Real,
             np.float32: robj.NA_Real,
@@ -271,7 +272,7 @@ def convert_to_r_dataframe(df, strings_as_factors=False):
 
     columns = rlc.OrdDict()
 
-    #FIXME: This doesn't handle MultiIndex
+    # FIXME: This doesn't handle MultiIndex
 
     for column in df:
         value = df[column]
@@ -379,7 +380,7 @@ def test_convert_r_dataframe():
     seriesd = _test.getSeriesData()
     frame = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
 
-    #Null data
+    # Null data
     frame["E"] = [np.nan for item in frame["A"]]
     # Some mixed type data
     frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
@@ -411,7 +412,7 @@ def test_convert_r_matrix():
 
     seriesd = _test.getSeriesData()
     frame = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
-    #Null data
+    # Null data
     frame["E"] = [np.nan for item in frame["A"]]
 
     r_dataframe = convert_to_r_matrix(frame)
@@ -429,7 +430,7 @@ def test_convert_r_matrix():
     # Pandas bug 1282
     frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
 
-    #FIXME: Ugly, this whole module needs to be ported to nose/unittest
+    # FIXME: Ugly, this whole module needs to be ported to nose/unittest
     try:
         wrong_matrix = convert_to_r_matrix(frame)
     except TypeError:

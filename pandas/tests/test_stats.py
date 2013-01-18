@@ -11,6 +11,7 @@ from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
 
+
 class TestRank(unittest.TestCase):
     _multiprocess_can_split_ = True
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
@@ -113,5 +114,5 @@ class TestRank(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
