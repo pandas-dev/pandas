@@ -83,15 +83,15 @@ static int dInfoCalc_YearOffset(npy_int64 year, int calendar)
     year--;
     if (calendar == GREGORIAN_CALENDAR) {
     if (year >= 0 || -1/4 == -1)
-	return year*365 + year/4 - year/100 + year/400;
+        return year*365 + year/4 - year/100 + year/400;
     else
-	return year*365 + (year-3)/4 - (year-99)/100 + (year-399)/400;
+        return year*365 + (year-3)/4 - (year-99)/100 + (year-399)/400;
     }
     else if (calendar == JULIAN_CALENDAR) {
     if (year >= 0 || -1/4 == -1)
-	return year*365 + year/4 - 2;
+        return year*365 + year/4 - 2;
     else
-	return year*365 + (year-3)/4 - 2;
+        return year*365 + (year-3)/4 - 2;
     }
     Py_Error(PyExc_ValueError, "unknown calendar");
  onError:
@@ -110,7 +110,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
     /* Calculate the absolute date */
     {
         int leap;
-    npy_int64 absdate;
+        npy_int64 absdate;
         int yearoffset;
 
         /* Range check */
@@ -433,20 +433,20 @@ static npy_int64 DtoB_WeekendToMonday(npy_int64 absdate, int day_of_week) {
     return DtoB_weekday(absdate);
 }
 
-static npy_int64 absdate_from_ymd(int y, int m, int d) {
-    struct date_info tempDate;
-    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
-        return INT_ERR_CODE;
-    }
-    return tempDate.absdate;
-}
-
 static npy_int64 DtoB_WeekendToFriday(npy_int64 absdate, int day_of_week) {
     if (day_of_week > 4) {
         //change to friday before weekend
         absdate -= (day_of_week - 4);
     }
     return DtoB_weekday(absdate);
+}
+
+static npy_int64 absdate_from_ymd(int y, int m, int d) {
+    struct date_info tempDate;
+    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
+        return INT_ERR_CODE;
+    }
+    return tempDate.absdate;
 }
 
 //************ FROM DAILY ***************
