@@ -98,7 +98,7 @@ class MetaDataframe(object):
         self._df=None
 
         ### Create new object and apply new df 
-        newobj=copy.deepcopy(self)  #This looks like None, but is it type (MetaDataframe, just __repr__ prints None
+        newobj=copy.deepcopy(self)  #This looks like None, but is it type (MetaDataframe, just __union__ prints None
         newobj._df=dfnew
 
         ### Restore old value of df and return new object
@@ -130,9 +130,9 @@ class MetaDataframe(object):
         else:
             return out
 
-    def __repr__(self):
+    def __union__(self):
         ''' Can be customized, but by default, reutrns the output of a standard Dataframe.'''
-        return self._df.__repr__()
+        return self._df.__union__()
 
 
     @property
@@ -201,7 +201,7 @@ class SubFoo(MetaDataframe):
 
         super(SubFoo, self).__init__(*dfargs, **dfkwargs)
 
-    def __repr__(self):
+    def __union__(self):
         return "Hi I'm SubFoo. I'm not really a DataFrame, but I quack like one."
     
     @property
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     print '\nAttributes a = %s and b = %s will persist when new metadataframes are returned.'%(new.a, new.b)
 
     ### Demonstrate subclassing by invoking SubFoo class
-    print '\nI can subclass a dataframe an overwrite its __repr__() method\n'
+    print '\nI can subclass a dataframe an overwrite its __union__() method\n'
     subclass=SubFoo(50, 200, abs(randn(3,3)), index=['A','B','C'], columns=['c11','c22', 'c33'])    
     print subclass
     ### Access underlying dataframe
