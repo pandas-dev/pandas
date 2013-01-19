@@ -24,6 +24,7 @@ from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.reshape import block2d_to_block3d, block2d_to_blocknd, factor_indexer
+from pandas.core.index import Int64Index
 import pandas.core.common as com
 from pandas.tools.merge import concat
 
@@ -40,6 +41,11 @@ class IncompatibilityWarning(Warning): pass
 incompatibility_doc = """
 where criteria is being ignored as this version [%s] is too old (or not-defined),
 read the file in and write it out to a new file to upgrade (with the copy_to method)
+"""
+class PerformanceWarning(Warning): pass
+performance_doc = """
+your performance may suffer as PyTables swill pickle object types that it cannot map
+directly to c-types [inferred_type->%s,key->%s]
 """
 
 # map object types
@@ -71,6 +77,7 @@ _STORER_MAP = {
 
 # table class map
 _TABLE_MAP = {
+    'generic_table'    : 'GenericTable',
     'appendable_frame'      : 'AppendableFrameTable',
     'appendable_multiframe' : 'AppendableMultiFrameTable',
     'appendable_panel' : 'AppendablePanelTable',
@@ -220,7 +227,7 @@ class HDFStore(object):
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
-            return re.search(key, name) is not None
+            if name == key or name[1:] == key: return True
         return False
 
     def __len__(self):
@@ -508,7 +515,7 @@ class HDFStore(object):
 
         Optional Parameters
         -------------------
-        data_columns : list of columns to create as data columns
+        data_columns : list of columns to create as data columns, or True to use all columns
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
         chunksize    : size to chunk the writing
@@ -609,7 +616,8 @@ class HDFStore(object):
 
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
-        return [ g for g in self.handle.walkGroups() if getattr(g._v_attrs,'pandas_type',None) ]
+        _tables()
+        return [ g for g in self.handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != 'table') ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
@@ -684,16 +692,23 @@ class HDFStore(object):
         # infer the pt from the passed value
         if pt is None:
             if value is None:
-                raise Exception("cannot create a storer if the object is not existing nor a value are passed")
 
-            try:
-                pt = _TYPE_MAP[type(value)]
-            except:
-                error('_TYPE_MAP')
+                _tables()
+                if getattr(group,'table',None) or isinstance(group,_table_mod.table.Table):
+                    pt = 'frame_table'
+                    tt = 'generic_table'
+                else:
+                    raise Exception("cannot create a storer if the object is not existing nor a value are passed")
+            else:
 
-            # we are actually a table
-            if table or append:
-                pt += '_table'
+                try:
+                    pt = _TYPE_MAP[type(value)]
+                except:
+                    error('_TYPE_MAP')
+
+                # we are actually a table
+                if table or append:
+                    pt += '_table'
 
         # a storer node
         if 'table' not in pt:
@@ -959,6 +974,24 @@ class IndexCol(object):
         """ set the kind for this colummn """
         setattr(self.attrs, self.kind_attr, self.kind)
 
+class GenericIndexCol(IndexCol):
+    """ an index which is not represented in the data of the table """
+
+    @property
+    def is_indexed(self):
+        return False
+
+    def convert(self, values, nan_rep):
+        """ set the values from this selection: take = take ownership """
+        
+        self.values = Int64Index(np.arange(self.table.nrows))
+        return self
+
+    def get_attr(self):
+        pass
+
+    def set_attr(self):
+        pass
 
 class DataCol(IndexCol):
     """ a data holding column, by definition this is not indexable
@@ -1096,7 +1129,7 @@ class DataCol(IndexCol):
     def set_atom_data(self, block):
         self.kind = block.dtype.name
         self.typ = self.get_atom_data(block)
-        self.set_data(block.values.astype(self.typ._deftype))
+        self.set_data(block.values.astype(self.typ.type))
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -1194,6 +1227,12 @@ class DataIndexableCol(DataCol):
     def get_atom_datetime64(self, block):
         return _tables().Int64Col()
 
+class GenericDataIndexableCol(DataIndexableCol):
+    """ represent a generic pytables data column """
+
+    def get_attr(self):
+        pass
+
 class Storer(object):
     """ represent an object in my store
           facilitate read/write of various types of objects
@@ -1238,6 +1277,8 @@ class Storer(object):
         self.infer_axes()
         s = self.shape
         if s is not None:
+            if isinstance(s, (list,tuple)):
+                s = "[%s]" % ','.join([ str(x) for x in s ])
             return "%-12.12s (shape->%s)" % (self.pandas_type,s)
         return self.pandas_type
     
@@ -1570,6 +1611,17 @@ class GenericStorer(Storer):
                 return
 
         if value.dtype.type == np.object_:
+
+            # infer the type, warn if we have a non-string type here (for performance)
+            inferred_type = lib.infer_dtype(value.flatten())
+            if empty_array:
+                pass
+            elif inferred_type == 'string':
+                pass
+            else:
+                ws = performance_doc % (inferred_type,key)
+                warnings.warn(ws, PerformanceWarning)
+
             vlarr = self.handle.createVLArray(self.group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
@@ -1618,7 +1670,7 @@ class SeriesStorer(GenericStorer):
     @property
     def shape(self):
         try:
-            return "[%s]" % len(getattr(self.group,'values',None))
+            return len(getattr(self.group,'values')),
         except:
             return None
 
@@ -1748,7 +1800,7 @@ class BlockManagerStorer(GenericStorer):
             if self.is_shape_reversed:
                 shape = shape[::-1]
 
-            return "[%s]" % ','.join([ str(x) for x in shape ])
+            return shape
         except:
             return None
 
@@ -1810,7 +1862,7 @@ class Table(Storer):
         index_axes    : a list of tuples of the (original indexing axis and index column)
         non_index_axes: a list of tuples of the (original index axis and columns on a non-indexing axis)
         values_axes   : a list of the columns which comprise the data of this table
-        data_columns  : a list of the columns that we are allowing indexing (these become single columns in values_axes)
+        data_columns  : a list of the columns that we are allowing indexing (these become single columns in values_axes), or True to force all columns
         nan_rep       : the string to use for nan representations for string objects
         levels        : the names of levels
 
@@ -1908,7 +1960,7 @@ class Table(Storer):
     @property
     def data_orientation(self):
         """ return a tuple of my permutated axes, non_indexable at the front """
-        return tuple(itertools.chain([a[0] for a in self.non_index_axes], [a.axis for a in self.index_axes]))
+        return tuple(itertools.chain([int(a[0]) for a in self.non_index_axes], [int(a.axis) for a in self.index_axes]))
 
     def queryables(self):
         """ return a dict of the kinds allowable columns for this object """
@@ -2075,7 +2127,7 @@ class Table(Storer):
             validate: validate the obj against an existiing object already written
             min_itemsize: a dict of the min size for a column in bytes
             nan_rep : a values to use for string column nan_rep
-            data_columns : a list of columns that we want to create separate to allow indexing
+            data_columns : a list of columns that we want to create separate to allow indexing (or True will force all colummns)
 
         """
 
@@ -2108,12 +2160,6 @@ class Table(Storer):
         if nan_rep is None:
             nan_rep = 'nan'
         self.nan_rep = nan_rep
-
-        # convert the objects if we can to better divine dtypes
-        try:
-            obj = obj.convert_objects()
-        except:
-            pass
 
         # create axes to index and non_index
         index_axes_map = dict()
@@ -2160,6 +2206,9 @@ class Table(Storer):
         if data_columns is not None and len(self.non_index_axes):
             axis = self.non_index_axes[0][0]
             axis_labels = self.non_index_axes[0][1]
+            if data_columns is True:
+                data_columns = axis_labels
+
             data_columns = [c for c in data_columns if c in axis_labels]
             if len(data_columns):
                 blocks = block_obj.reindex_axis(Index(axis_labels) - Index(
@@ -2202,7 +2251,7 @@ class Table(Storer):
             except (NotImplementedError):
                 raise
             except (Exception), detail:
-                raise Exception("cannot find the correct atom type -> [dtype->%s] %s" % (b.dtype.name, str(detail)))
+                raise Exception("cannot find the correct atom type -> [dtype->%s,items->%s] %s" % (b.dtype.name, b.items, str(detail)))
             j += 1
 
         # validate the axes if we have an existing table
@@ -2517,8 +2566,6 @@ class AppendableTable(LegacyTable):
                 self.table.append(rows)
                 self.table.flush()
         except (Exception), detail:
-            import pdb
-            pdb.set_trace()
             raise Exception(
                 "tables cannot write this data -> %s" % str(detail))
 
@@ -2630,6 +2677,51 @@ class AppendableFrameTable(AppendableTable):
         return df
 
 
+class GenericTable(AppendableFrameTable):
+    """ a table that read/writes the generic pytables table format """
+    pandas_kind = 'frame_table'
+    table_type = 'generic_table'
+    ndim = 2
+    obj_type = DataFrame
+
+    @property
+    def pandas_type(self):
+        return self.pandas_kind
+
+    @property
+    def storable(self):
+        return getattr(self.group,'table',None) or self.group
+
+    def get_attrs(self):
+        """ retrieve our attributes """
+        self.non_index_axes   = []
+        self.nan_rep          = None
+        self.levels           = []
+        t = self.table
+        self.index_axes       = [ a.infer(t) for a in self.indexables if     a.is_an_indexable ]
+        self.values_axes      = [ a.infer(t) for a in self.indexables if not a.is_an_indexable ]
+        self.data_columns     = [ a.name for a in self.values_axes ]
+
+    @property
+    def indexables(self):
+        """ create the indexables from the table description """
+        if self._indexables is None:
+
+            d = self.description
+
+            # the index columns is just a simple index
+            self._indexables = [ GenericIndexCol(name='index',axis=0) ]
+
+            for i, n in enumerate(d._v_names):
+
+                dc = GenericDataIndexableCol(name = n, pos=i, values = [ n ], version = self.version)
+                self._indexables.append(dc)
+
+        return self._indexables
+
+    def write(self, **kwargs):
+        raise NotImplementedError("cannot write on an generic table")
+
 class AppendableMultiFrameTable(AppendableFrameTable):
     """ a frame with a multi-index """
     table_type = 'appendable_multiframe'
@@ -2643,6 +2735,8 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     def write(self, obj, data_columns=None, **kwargs):
         if data_columns is None:
             data_columns = []
+        elif data_columns is True:
+            data_columns = obj.columns[:]
         for n in obj.index.names:
             if n not in data_columns:
                 data_columns.insert(0, n)

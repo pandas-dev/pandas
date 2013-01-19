@@ -52,6 +52,7 @@ pandas 0.10.1
     - added method ``unique`` to select the unique values in an indexable or data column
     - added method ``copy`` to copy an existing store (and possibly upgrade)
     - show the shape of the data on disk for non-table stores when printing the store
+    - added ability to read PyTables flavor tables (allows compatiblity to other HDF5 systems)
   - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
   - Support reading gzipped data from file-like object
   - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
@@ -66,6 +67,8 @@ pandas 0.10.1
     - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index
       is ``Int64``), (closes GH512_)
     - handle Timestamp correctly in data_columns (closes GH2637_)
+    - contains correctly matches on non-natural names
+    - correctly store ``float32`` dtypes in tables (if not other float types in the same table)
   - Fix DataFrame.info bug with UTF8-encoded columns. (GH2576_)
   - Fix DatetimeIndex handling of FixedOffset tz (GH2604_)
   - More robust detection of being in IPython session for wide DataFrame
@@ -86,6 +89,7 @@ pandas 0.10.1
     - refactored HFDStore to deal with non-table stores as objects, will allow future enhancements
     - removed keyword ``compression`` from ``put`` (replaced by keyword
       ``complib`` to be consistent across library)
+    - warn `PerformanceWarning` if you are attempting to store types that will be pickled by PyTables
 
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277
@@ -98,6 +102,7 @@ pandas 0.10.1
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
+.. _GH2694: https://github.com/pydata/pandas/issues/2694
 
 pandas 0.10.0
 =============
