@@ -254,3 +254,13 @@ groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,
 
 groupbym_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
                                  start_date=datetime(2011, 10, 1))
+
+#----------------------------------------------------------------------
+# Sum booleans #2692
+
+setup = common_setup + """
+N = 500
+df = DataFrame({'ii':range(N),'bb':[True for x in range(N)]})
+"""
+
+groupby_sum_booleans = Benchmark("df.groupby('ii').sum()", setup)

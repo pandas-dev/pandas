@@ -78,6 +78,7 @@ pandas 0.10.1
   - Exclude non-numeric data from DataFrame.quantile by default (GH2625_)
   - Fix a Cython C int64 boxing issue causing read_csv to return incorrect
     results (GH2599_)
+  - Fix groupby summing performance issue on boolean data (GH2692_)
 
 **API Changes**
 
@@ -98,6 +99,7 @@ pandas 0.10.1
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
+.. _GH2692: https://github.com/pydata/pandas/issues/2692
 
 pandas 0.10.0
 =============
