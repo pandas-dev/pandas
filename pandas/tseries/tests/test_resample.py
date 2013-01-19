@@ -442,6 +442,10 @@ class TestResample(unittest.TestCase):
         self.assert_(len(result) == 0)
         self.assert_(result.index.freqstr == 'A-DEC')
 
+        xp = DataFrame()
+        rs = xp.resample('A')
+        assert_frame_equal(xp, rs)
+
     def test_weekly_resample_buglet(self):
         # #1327
         rng = date_range('1/1/2000', freq='B', periods=20)

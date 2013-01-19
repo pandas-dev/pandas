@@ -94,6 +94,8 @@ class TimeGrouper(CustomGrouper):
             else:
                 obj = obj.to_timestamp(how=self.convention)
                 rs = self._resample_timestamps(obj)
+        elif len(axis) == 0:
+            return obj
         else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
 
