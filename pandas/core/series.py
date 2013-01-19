@@ -1379,18 +1379,25 @@ class Series(pa.Array, generic.PandasObject):
 
         return notnull(self.values).sum()
 
-    def value_counts(self):
+    def value_counts(self, normalize=False):
         """
         Returns Series containing counts of unique values. The resulting Series
         will be in descending order so that the first element is the most
         frequently-occurring element. Excludes NA values
+
+        Parameters
+        ----------
+        normalize: boolean, default False
+            If True then the Series returned will contain the relative
+            frequencies of the unique values.
 
         Returns
         -------
         counts : Series
         """
         from pandas.core.algorithms import value_counts
-        return value_counts(self.values, sort=True, ascending=False)
+        return value_counts(self.values, sort=True, ascending=False,
+                            normalize=normalize)
 
     def unique(self):
         """
