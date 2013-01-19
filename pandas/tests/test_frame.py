@@ -2928,6 +2928,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame.from_records(tups)
         assert_frame_equal(result, expected)
 
+    def test_from_records_len0_with_columns(self):
+        # #2633
+        result = DataFrame.from_records([], index='foo',
+                                        columns=['foo', 'bar'])
+
+        self.assertTrue(np.array_equal(result.columns, ['bar']))
+        self.assertEqual(len(result), 0)
+        self.assertEqual(result.index.name, 'foo')
+
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
         self.assert_(cols is self.frame.columns)

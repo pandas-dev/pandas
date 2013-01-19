@@ -1030,7 +1030,10 @@ class DataFrame(NDFrame):
                     not hasattr(index, "__iter__")):
                 i = columns.get_loc(index)
                 exclude.add(index)
-                result_index = Index(arrays[i], name=index)
+                if len(arrays) > 0:
+                    result_index = Index(arrays[i], name=index)
+                else:
+                    result_index = Index([], name=index)
             else:
                 try:
                     to_remove = [arr_columns.get_loc(field) for field in index]
@@ -1043,9 +1046,11 @@ class DataFrame(NDFrame):
                     result_index = index
 
         if any(exclude):
-            to_remove = [arr_columns.get_loc(col) for col in exclude]
+            arr_exclude = [x for x in exclude if x in arr_columns]
+            to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
-            arr_columns = arr_columns.drop(exclude)
+
+            arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
         mgr = _arrays_to_mgr(arrays, arr_columns, result_index,
