@@ -81,6 +81,7 @@ pandas 0.10.1
   - Fix a Cython C int64 boxing issue causing read_csv to return incorrect
     results (GH2599_)
   - Fix groupby summing performance issue on boolean data (GH2692_)
+  - Don't bork Series containing datetime64 values with to_datetime (GH2699_)
 
 **API Changes**
 
@@ -103,6 +104,7 @@ pandas 0.10.1
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
+.. _GH2699: https://github.com/pydata/pandas/issues/2699
 
 pandas 0.10.0
 =============

@@ -673,6 +673,13 @@ class TestTimeSeries(unittest.TestCase):
         xp = datetime(2001, 1, 1)
         self.assert_(rs, xp)
 
+    def test_to_datetime_on_datetime64_series(self):
+        # #2699
+        s = Series(date_range('1/1/2000', periods=10))
+
+        result = to_datetime(s)
+        self.assertEquals(result[0], s[0])
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 

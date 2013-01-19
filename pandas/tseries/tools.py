@@ -89,7 +89,9 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     elif isinstance(arg, datetime):
         return arg
     elif isinstance(arg, Series):
-        values = _convert_f(arg.values)
+        values = arg.values
+        if not com.is_datetime64_dtype(values):
+            values = _convert_f(values)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
