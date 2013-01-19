@@ -126,6 +126,8 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_as_mu
 - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
 - ``Select`` now supports passing ``start`` and ``stop`` to provide selection space limiting in selection.
 
+**Bug Fixes**
+- ``HDFStore`` tables can now store ``float32`` types correctly (cannot be mixed with ``float64`` however)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker

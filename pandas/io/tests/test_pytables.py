@@ -886,13 +886,25 @@ class TestHDFStore(unittest.TestCase):
         # incompatible dtype
         self.assertRaises(Exception, self.store.append, 'df_i8', df1)
 
-        #df1 = DataFrame({'a': Series([1, 2, 3], dtype='f4')})
-        #self.store.append('df_f4', df1)
-        #assert df1.dtypes == self.store['df_f4'].dtypes
+        # check creation/storage/retrieval of float32 (a bit hacky to actually create them thought)
+        df1 = DataFrame(np.array([[1],[2],[3]],dtype='f4'),columns = ['A'])
+        self.store.append('df_f4', df1)
+        assert df1.dtypes == self.store['df_f4'].dtypes
+        assert df1.dtypes[0] == 'float32'
 
-        #df2 = DataFrame({'a': Series([1, 2, 3], dtype='i4')})
-        #self.store.append('df_i4', df2)
-        #assert df2.dtypes == self.store['df_i4'].dtypes
+        # check with mixed dtypes (but not multi float types)
+        df1 = DataFrame(np.array([[1],[2],[3]],dtype='f4'),columns = ['float32'])
+        df1['string'] = 'foo'
+        self.store.append('df_mixed_dtypes1', df1)
+        assert (df1.dtypes == self.store['df_mixed_dtypes1'].dtypes).all() == True
+        assert df1.dtypes[0] == 'float32'
+        assert df1.dtypes[1] == 'object'
+
+        ### this is not supported, e.g. mixed float32/float64 blocks ###
+        #df1 = DataFrame(np.array([[1],[2],[3]],dtype='f4'),columns = ['float32'])
+        #df1['float64'] = 1.0
+        #self.store.append('df_mixed_dtypes2', df1)
+        #assert df1.dtypes == self.store['df_mixed_dtypes2'].dtypes).all() == True
 
     def test_table_mixed_dtypes(self):
 

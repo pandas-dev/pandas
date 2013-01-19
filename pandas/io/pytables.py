@@ -1129,7 +1129,7 @@ class DataCol(IndexCol):
     def set_atom_data(self, block):
         self.kind = block.dtype.name
         self.typ = self.get_atom_data(block)
-        self.set_data(block.values.astype(self.typ._deftype))
+        self.set_data(block.values.astype(self.typ.type))
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -2116,6 +2116,22 @@ class Table(Storer):
         """ return the data for this obj """
         return obj
 
+    def convert_objects(self, obj):
+        """ attempt to convert any object fields; don't touch other fields
+            if we are converting anything, copy the object and modify the copy """
+        new_obj = None
+        convert_f = lambda x: lib.maybe_convert_objects(x, convert_datetime=True)
+
+        for col, s in obj.iteritems():
+            if s.dtype == np.object_:
+                if new_obj is None:
+                    new_obj = obj.copy()
+                new_obj[col] = convert_f(s)
+                    
+        if new_obj is not None:
+            return new_obj
+        return obj
+
     def create_axes(self, axes, obj, validate=True, nan_rep=None, data_columns=None, min_itemsize=None, **kwargs):
         """ create and return the axes
               leagcy tables create an indexable column, indexable index, non-indexable fields
@@ -2162,10 +2178,7 @@ class Table(Storer):
         self.nan_rep = nan_rep
 
         # convert the objects if we can to better divine dtypes
-        try:
-            obj = obj.convert_objects()
-        except:
-            pass
+        obj = self.convert_objects(obj)
 
         # create axes to index and non_index
         index_axes_map = dict()
@@ -2765,6 +2778,9 @@ class AppendablePanelTable(AppendableTable):
         """ these are written transposed """
         if self.is_transposed:
             obj = obj.transpose(*self.data_orientation)
+        return obj
+
+    def convert_objects(self, obj):
         return obj
 
     @property

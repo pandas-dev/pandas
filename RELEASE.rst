@@ -68,6 +68,7 @@ pandas 0.10.1
       is ``Int64``), (closes GH512_)
     - handle Timestamp correctly in data_columns (closes GH2637_)
     - contains correctly matches on non-natural names
+    - correctly store ``float32`` dtypes in tables (if not other float types in the same table)
   - Fix DataFrame.info bug with UTF8-encoded columns. (GH2576_)
   - Fix DatetimeIndex handling of FixedOffset tz (GH2604_)
   - More robust detection of being in IPython session for wide DataFrame
