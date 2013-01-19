@@ -425,18 +425,20 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
         right_labels.append(rlab)
         group_sizes.append(count)
 
-    left_group_key = get_group_index(left_labels, group_sizes)
-    right_group_key = get_group_index(right_labels, group_sizes)
-
     max_groups = 1L
     for x in group_sizes:
         max_groups *= long(x)
 
     if max_groups > 2 ** 63:  # pragma: no cover
-        raise MergeError('Combinatorial explosion! (boom)')
+        left_group_key, right_group_key, max_groups = \
+            _factorize_keys(lib.fast_zip(left_labels),
+                            lib.fast_zip(right_labels))
+    else:
+        left_group_key = get_group_index(left_labels, group_sizes)
+        right_group_key = get_group_index(right_labels, group_sizes)
 
-    left_group_key, right_group_key, max_groups = \
-        _factorize_keys(left_group_key, right_group_key, sort=sort)
+        left_group_key, right_group_key, max_groups = \
+            _factorize_keys(left_group_key, right_group_key, sort=sort)
 
     join_func = _join_functions[how]
     return join_func(left_group_key, right_group_key, max_groups)

@@ -55,6 +55,8 @@ pandas 0.10.1
   - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
   - Support reading gzipped data from file-like object
   - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
+  - Implement DataFrame merges in case where set cardinalities might overflow
+    64-bit integer (GH2690_)
 
 **Bug fixes**
 
@@ -99,6 +101,7 @@ pandas 0.10.1
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
+.. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
 
 pandas 0.10.0

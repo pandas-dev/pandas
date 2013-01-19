@@ -849,6 +849,16 @@ class TestMergeMulti(unittest.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_int64_overflow_issues(self):
+        # #2690, combinatorial explosion
+        df1 = DataFrame(np.random.randn(1000, 7),
+                        columns=list('ABCDEF') + ['G1'])
+        df2 = DataFrame(np.random.randn(1000, 7),
+                        columns=list('ABCDEF') + ['G2'])
+
+        # it works!
+        result = merge(df1, df2, how='outer')
+        self.assertTrue(len(result) == 2000)
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):
