@@ -2383,6 +2383,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([4, 3, 2, 1], index=['b', 'a', 'd', 'c'])
         assert_series_equal(hist, expected)
 
+        # relative histogram.
+        hist = s.value_counts(normalize=True)
+        expected = Series([.4, .3, .2, .1], index=['b', 'a', 'd', 'c'])
+        assert_series_equal(hist, expected)
+
         self.assertEquals(s.nunique(), 4)
 
         # handle NA's properly
