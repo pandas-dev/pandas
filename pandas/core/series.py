@@ -779,18 +779,23 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
-    def convert_objects(self, convert_dates=True):
+    def convert_objects(self, convert_dates=True, convert_numeric=True):
         """
         Attempt to infer better dtype
+        Always return a copy
+
+        Parameters
+        ----------
+        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
+        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
 
         Returns
         -------
         converted : Series
         """
         if self.dtype == np.object_:
-            return Series(lib.maybe_convert_objects(
-                self, convert_datetime=convert_dates), self.index)
-        return self
+            return Series(com._possibly_convert_objects(self.values,convert_dates=convert_dates,convert_numeric=convert_numeric), index=self.index, name=self.name)
+        return self.copy()
 
     def repeat(self, reps):
         """
@@ -1027,7 +1032,8 @@ copy : boolean, default False
     def _repr_footer(self):
         namestr = u"Name: %s, " % com.pprint_thing(
             self.name) if self.name is not None else ""
-        return u'%sLength: %d' % (namestr, len(self))
+        return u'%sLength: %d, Dtype: %s' % (namestr, len(self), 
+                                             com.pprint_thing(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, name=False):
@@ -2401,6 +2407,12 @@ copy : boolean, default False
                                                 level=level, limit=limit)
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
+
+    def reindex_axis(self, labels, axis=0, **kwargs):
+        """ for compatibility with higher dims """
+        if axis != 0:
+            raise ValueError("cannot reindex series on non-zero axis!")
+        return self.reindex(index=labels,**kwargs)
 
     def reindex_like(self, other, method=None, limit=None):
         """

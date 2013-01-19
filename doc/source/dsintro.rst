@@ -450,14 +450,100 @@ DataFrame:
    df.xs('b')
    df.ix[2]
 
-Note if a DataFrame contains columns of multiple dtypes, the dtype of the row
-will be chosen to accommodate all of the data types (dtype=object is the most
-general).
-
 For a more exhaustive treatment of more sophisticated label-based indexing and
 slicing, see the :ref:`section on indexing <indexing>`. We will address the
 fundamentals of reindexing / conforming to new sets of lables in the
 :ref:`section on reindexing <basics.reindexing>`.
+
+DataTypes
+~~~~~~~~~
+
+.. _dsintro.column_types:
+
+The main types stored in pandas objects are float, int, boolean, datetime64[ns],
+and object. A convenient ``dtypes`` attribute return a Series with the data type of
+each column.
+
+.. ipython:: python
+
+   df['integer'] = 1
+   df['int32']   = df['integer'].astype('int32')
+   df['float32'] = Series([1.0]*len(df),dtype='float32')
+   df['timestamp'] = Timestamp('20010102')
+   df.dtypes
+
+If a DataFrame contains columns of multiple dtypes, the dtype of the column
+will be chosen to accommodate all of the data types (dtype=object is the most
+general).
+
+The related method ``get_dtype_counts`` will return the number of columns of
+each type:
+
+.. ipython:: python
+
+   df.get_dtype_counts()
+
+Numeric dtypes will propgate and can coexist in DataFrames (starting in v0.10.2). 
+If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, 
+or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
+
+.. ipython:: python
+
+   df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
+   df1
+   df1.dtypes
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), 
+                         B = Series(randn(8)), 
+                         C = Series(np.array(randn(8),dtype='uint8')) ))
+   df2
+   df2.dtypes
+
+   # here you get some upcasting
+   df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
+   df3
+   df3.dtypes
+
+   # this is lower-common-denomicator upcasting (meaning you get the dtype which can accomodate all of the types)
+   df3.values.dtype
+
+Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation, then the more *general* one will be used as the result of the operation.
+
+DataType Conversion
+~~~~~~~~~~~~~~~~~~~
+
+You can use the ``astype`` method to convert dtypes from one to another. These *always* return a copy. 
+In addition, ``convert_objects`` will attempt to *soft* conversion of any *object* dtypes, meaning that if all the objects in a Series are of the same type, the Series
+will have that dtype.
+
+.. ipython:: python
+
+   df3
+   df3.dtypes
+
+   # conversion of dtypes
+   df3.astype('float32').dtypes
+
+To force conversion of specific types of number conversion, pass ``convert_numeric = True``. 
+This will force strings and numbers alike to be numbers if possible, otherwise the will be set to ``np.nan``.
+To force conversion to ``datetime64[ns]``, pass ``convert_dates = 'coerce'``. 
+This will convert any datetimelike object to dates, forcing other values to ``NaT``.
+
+.. ipython:: python
+
+   # mixed type conversions
+   df3['D'] = '1.'
+   df3['E'] = '1'
+   df3.convert_objects(convert_numeric=True).dtypes
+
+   # same, but specific dtype conversion
+   df3['D'] = df3['D'].astype('float16')
+   df3['E'] = df3['E'].astype('int32')
+   df3.dtypes
+
+   # forcing date coercion
+   s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1, Timestamp('20010104'), '20010105'],dtype='O')
+   s
+   s.convert_objects(convert_dates='coerce')
 
 Data alignment and arithmetic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -632,26 +718,6 @@ You can also disable this feature via the ``expand_frame_repr`` option:
 
    reset_option('expand_frame_repr')
 
-
-DataFrame column types
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. _dsintro.column_types:
-
-The four main types stored in pandas objects are float, int, boolean, and
-object. A convenient ``dtypes`` attribute return a Series with the data type of
-each column:
-
-.. ipython:: python
-
-   baseball.dtypes
-
-The related method ``get_dtype_counts`` will return the number of columns of
-each type:
-
-.. ipython:: python
-
-   baseball.get_dtype_counts()
 
 DataFrame column attribute access and IPython completion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -88,7 +88,7 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
-def assert_almost_equal(a, b):
+def assert_almost_equal(a, b, check_less_precise = False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
@@ -103,7 +103,7 @@ def assert_almost_equal(a, b):
             return True
         else:
             for i in xrange(len(a)):
-                assert_almost_equal(a[i], b[i])
+                assert_almost_equal(a[i], b[i], check_less_precise)
         return True
 
     err_msg = lambda a, b: 'expected %.5f but got %.5f' % (a, b)
@@ -112,16 +112,29 @@ def assert_almost_equal(a, b):
         np.testing.assert_(isnull(b))
         return
 
-    if isinstance(a, (bool, float, int)):
+    if isinstance(a, (bool, float, int, np.float32)):
+        decimal = 5
+
+        # deal with differing dtypes
+        if check_less_precise:
+            dtype_a = np.dtype(a)
+            dtype_b = np.dtype(b)
+            if dtype_a.kind == 'i' and dtype_b == 'i':
+                pass
+            if dtype_a.kind == 'f' and dtype_b == 'f':
+                if dtype_a.itemsize <= 4 and dtype_b.itemsize <= 4:
+                    decimal = 3
+
         if np.isinf(a):
             assert np.isinf(b), err_msg(a, b)
+
         # case for zero
         elif abs(a) < 1e-5:
             np.testing.assert_almost_equal(
-                a, b, decimal=5, err_msg=err_msg(a, b), verbose=False)
+                a, b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
         else:
             np.testing.assert_almost_equal(
-                1, a / b, decimal=5, err_msg=err_msg(a, b), verbose=False)
+                1, a / b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
     else:
         assert(a == b)
 
@@ -144,10 +157,11 @@ def assert_dict_equal(a, b, compare_keys=True):
 def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
                         check_index_freq=False,
-                        check_series_type=False):
+                        check_series_type=False,
+                        check_less_precise=False):
     if check_series_type:
         assert(type(left) == type(right))
-    assert_almost_equal(left.values, right.values)
+    assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
         assert(left.dtype == right.dtype)
     assert(left.index.equals(right.index))
@@ -160,9 +174,11 @@ def assert_series_equal(left, right, check_dtype=True,
                getattr(right, 'freqstr', None))
 
 
-def assert_frame_equal(left, right, check_index_type=False,
+def assert_frame_equal(left, right, check_dtype=True, 
+                       check_index_type=False,
                        check_column_type=False,
-                       check_frame_type=False):
+                       check_frame_type=False,
+                       check_less_precise=False):
     if check_frame_type:
         assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
@@ -175,7 +191,10 @@ def assert_frame_equal(left, right, check_index_type=False,
         assert(col in right)
         lcol = left.icol(i)
         rcol = right.icol(i)
-        assert_series_equal(lcol, rcol)
+        assert_series_equal(lcol, rcol, 
+                            check_dtype=check_dtype,
+                            check_index_type=check_index_type,
+                            check_less_precise=check_less_precise)
 
     if check_index_type:
         assert(type(left.index) == type(right.index))
@@ -187,7 +206,9 @@ def assert_frame_equal(left, right, check_index_type=False,
         assert(left.columns.inferred_type == right.columns.inferred_type)
 
 
-def assert_panel_equal(left, right, check_panel_type=False):
+def assert_panel_equal(left, right, 
+                       check_panel_type=False,
+                       check_less_precise=False):
     if check_panel_type:
         assert(type(left) == type(right))
 
@@ -197,13 +218,14 @@ def assert_panel_equal(left, right, check_panel_type=False):
 
     for col, series in left.iterkv():
         assert(col in right)
-        assert_frame_equal(series, right[col])
+        assert_frame_equal(series, right[col], check_less_precise=check_less_precise)
 
     for col in right:
         assert(col in left)
 
 
-def assert_panel4d_equal(left, right):
+def assert_panel4d_equal(left, right,
+                         check_less_precise=False):
     assert(left.labels.equals(right.labels))
     assert(left.items.equals(right.items))
     assert(left.major_axis.equals(right.major_axis))
@@ -211,7 +233,7 @@ def assert_panel4d_equal(left, right):
 
     for col, series in left.iterkv():
         assert(col in right)
-        assert_panel_equal(series, right[col])
+        assert_panel_equal(series, right[col], check_less_precise=check_less_precise)
 
     for col in right:
         assert(col in left)

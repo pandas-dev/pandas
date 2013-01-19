@@ -362,11 +362,11 @@ class ExcelTests(unittest.TestCase):
         self.frame.to_excel(path, 'test1', index=False)
 
         # Test np.int64, values read come back as float
-        frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)))
+        frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)), dtype=np.int64)
         frame.to_excel(path, 'test1')
         reader = ExcelFile(path)
         recons = reader.parse('test1').astype(np.int64)
-        tm.assert_frame_equal(frame, recons)
+        tm.assert_frame_equal(frame, recons, check_dtype=False)
 
         os.remove(path)
 

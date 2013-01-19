@@ -177,14 +177,23 @@ labels = np.arange(10000).repeat(10)
 data = Series(randn(len(labels)))
 data[::3] = np.nan
 data[1::3] = np.nan
+data2 = Series(randn(len(labels)),dtype='float32')
+data2[::3] = np.nan
+data2[1::3] = np.nan
 labels = labels.take(np.random.permutation(len(labels)))
 """
 
 groupby_first = Benchmark('data.groupby(labels).first()', setup,
                           start_date=datetime(2012, 5, 1))
 
+groupby_first_float32 = Benchmark('data2.groupby(labels).first()', setup,
+                          start_date=datetime(2013, 1, 1))
+
 groupby_last = Benchmark('data.groupby(labels).last()', setup,
                          start_date=datetime(2012, 5, 1))
+
+groupby_last_float32 = Benchmark('data2.groupby(labels).last()', setup,
+                         start_date=datetime(2013, 1, 1))
 
 
 #----------------------------------------------------------------------

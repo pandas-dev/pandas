@@ -137,7 +137,7 @@ class CheckNameIntegration(object):
                     "qux    one       7",
                     "       two       8",
                     "       three     9",
-                    "Name: sth"]
+                    "Name: sth, Dtype: int64"]
         expected = "\n".join(expected)
         self.assertEquals(repr(s), expected)
 
@@ -2704,6 +2704,64 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         f = lambda x: x if x > 0 else np.nan
         result = s.apply(f, convert_dtype=False)
         self.assert_(result.dtype == object)
+
+    def test_convert_objects(self):
+
+        s = Series([1., 2, 3],index=['a','b','c'])
+        result = s.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(s,result)
+
+        # force numeric conversion
+        r = s.copy().astype('O')
+        r['a'] = '1'
+        result = r.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(s,result)
+
+        r = s.copy().astype('O')
+        r['a'] = '1.'
+        result = r.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(s,result)
+
+        r = s.copy().astype('O')
+        r['a'] = 'garbled'
+        expected = s.copy()
+        expected['a'] = np.nan
+        result = r.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(expected,result)
+
+        # dates
+        s = Series([datetime(2001,1,1,0,0), datetime(2001,1,2,0,0), datetime(2001,1,3,0,0) ])
+        s2 = Series([datetime(2001,1,1,0,0), datetime(2001,1,2,0,0), datetime(2001,1,3,0,0), 'foo', 1.0, 1, Timestamp('20010104'), '20010105'],dtype='O')
+
+        result = s.convert_objects(convert_dates=True,convert_numeric=False)
+        expected = Series([Timestamp('20010101'),Timestamp('20010102'),Timestamp('20010103')],dtype='M8[ns]')
+        assert_series_equal(expected,result)
+        
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(expected,result)
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=True)
+        assert_series_equal(expected,result)
+
+        expected = Series([Timestamp('20010101'),Timestamp('20010102'),Timestamp('20010103'),lib.NaT,lib.NaT,lib.NaT,Timestamp('20010104'),Timestamp('20010105')],dtype='M8[ns]')
+        result = s2.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(expected,result)
+        result = s2.convert_objects(convert_dates='coerce',convert_numeric=True)
+        assert_series_equal(expected,result)
+
+        # preserver all-nans (if convert_dates='coerce')
+        s = Series(['foo','bar',1,1.0],dtype='O')
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(result,s)
+
+        # preserver if non-object
+        s = Series([1],dtype='float32')
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(result,s)
+
+        #r = s.copy()
+        #r[0] = np.nan
+        #result = r.convert_objects(convert_dates=True,convert_numeric=False)
+        #self.assert_(result.dtype == 'M8[ns]')
 
     def test_apply_args(self):
         s = Series(['foo,bar'])

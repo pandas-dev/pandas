@@ -486,19 +486,23 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
-    def astype(self, dtype):
+    def astype(self, dtype, copy = True, raise_on_error = True):
         """
         Cast object to input numpy.dtype
+        Return a copy when copy = True (be really careful with this!)
 
         Parameters
         ----------
         dtype : numpy.dtype or Python type
+        raise_on_error : raise on invalid input
 
         Returns
         -------
         casted : type of caller
         """
-        return self._constructor(self._data, dtype=dtype)
+
+        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
+        return self._constructor(mgr)
 
     @property
     def _constructor(self):

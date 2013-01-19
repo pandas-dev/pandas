@@ -304,6 +304,34 @@ so that the original data can be modified without creating a copy:
 
    df.mask(df >= 0)
 
+Upcasting Gotchas
+~~~~~~~~~~~~~~~~~
+
+Performing indexing operations on ``integer`` type data can easily upcast the data to ``floating``.
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced (coming soon).
+
+.. ipython:: python
+
+   dfi = df.astype('int32')
+   dfi['E'] = 1
+   dfi
+   dfi.dtypes
+
+   casted = dfi[dfi>0]
+   casted
+   casted.dtypes
+
+While float dtypes are unchanged.
+
+.. ipython:: python
+
+   df2 = df.copy()
+   df2['A'] = df2['A'].astype('float32')
+   df2.dtypes
+
+   casted = df2[df2>0]
+   casted
+   casted.dtypes
 
 Take Methods
 ~~~~~~~~~~~~

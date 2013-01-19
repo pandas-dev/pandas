@@ -302,7 +302,7 @@ cdef double fINT64_MAX = <double> INT64_MAX
 cdef double fINT64_MIN = <double> INT64_MIN
 
 def maybe_convert_numeric(ndarray[object] values, set na_values,
-                          convert_empty=True):
+                          convert_empty=True, coerce_numeric=False):
     '''
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
@@ -346,17 +346,25 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             complexes[i] = val
             seen_complex = 1
         else:
-            status = floatify(val, &fval)
-            floats[i] = fval
-            if not seen_float:
-                if '.' in val or fval == INF or fval == NEGINF:
-                    seen_float = 1
-                elif 'inf' in val:  # special case to handle +/-inf
-                    seen_float = 1
-                elif fval < fINT64_MAX and fval > fINT64_MIN:
-                    ints[i] = <int64_t> fval
-                else:
-                    seen_float = 1
+            try:
+                status = floatify(val, &fval)
+                floats[i] = fval
+                if not seen_float:
+                    if '.' in val or fval == INF or fval == NEGINF:
+                        seen_float = 1
+                    elif 'inf' in val:  # special case to handle +/-inf
+                        seen_float = 1
+                    elif fval < fINT64_MAX and fval > fINT64_MIN:
+                        ints[i] = <int64_t> fval
+                    else:
+                        seen_float = 1
+            except:
+                if not coerce_numeric:
+                    raise
+
+                floats[i] = nan
+                seen_float = 1
+               
 
     if seen_complex:
         return complexes

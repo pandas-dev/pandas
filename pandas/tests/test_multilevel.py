@@ -616,12 +616,22 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(rs, self.frame.sortlevel(0))
 
     def test_sortlevel_large_cardinality(self):
-        # #2684
+
+        # #2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)]*3)
-        df = DataFrame(np.random.randn(4000), index=index)
+        df = DataFrame(np.random.randn(4000), index=index, dtype = np.int64)
 
         # it works!
         result = df.sortlevel(0)
+        self.assertTrue(result.index.lexsort_depth == 3)
+
+        # #2684 (int32)
+        index = MultiIndex.from_arrays([np.arange(4000)]*3)
+        df = DataFrame(np.random.randn(4000), index=index, dtype = np.int32)
+
+        # it works!
+        result = df.sortlevel(0)
+        self.assert_((result.dtypes.values == df.dtypes.values).all() == True)
         self.assertTrue(result.index.lexsort_depth == 3)
 
     def test_delevel_infer_dtype(self):
@@ -723,7 +733,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = self.frame[:0]
         result = df.count(level=0)
         expected = DataFrame({}, index=s.index.levels[0],
-                             columns=df.columns).fillna(0).astype(int)
+                             columns=df.columns).fillna(0).astype(np.int64)
         assert_frame_equal(result, expected)
 
     def test_unstack(self):
@@ -733,6 +743,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # test that ints work
         unstacked = self.ymd.astype(int).unstack()
+
+        # test that int32 work
+        unstacked = self.ymd.astype(np.int32).unstack()
 
     def test_unstack_multiple_no_empty_columns(self):
         index = MultiIndex.from_tuples([(0, 'foo', 0), (0, 'bar', 0),
