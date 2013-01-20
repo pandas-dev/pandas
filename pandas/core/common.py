@@ -1216,13 +1216,26 @@ def _concat_compat(to_concat, axis=0):
     # filter empty arrays
     to_concat = [x for x in to_concat if x.shape[axis] > 0]
 
-    if all(x.dtype == _NS_DTYPE for x in to_concat):
+    is_datetime64 = [x.dtype == _NS_DTYPE for x in to_concat]
+    if all(is_datetime64):
         # work around NumPy 1.6 bug
         new_values = np.concatenate([x.view(np.int64) for x in to_concat],
                                     axis=axis)
         return new_values.view(_NS_DTYPE)
-    else:
-        return np.concatenate(to_concat, axis=axis)
+    elif any(is_datetime64):
+        to_concat = [_to_pydatetime(x) for x in to_concat]
+
+    return np.concatenate(to_concat, axis=axis)
+
+
+def _to_pydatetime(x):
+    if x.dtype == _NS_DTYPE:
+        shape = x.shape
+        x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
+        x = x.reshape(shape)
+
+    return x
+
 
 def _where_compat(mask, arr1, arr2):
     if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:

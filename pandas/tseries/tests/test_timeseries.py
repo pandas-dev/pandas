@@ -18,6 +18,7 @@ from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.frequencies as fmod
+import pandas as pd
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -1315,7 +1316,6 @@ class TestTimeSeries(unittest.TestCase):
 
     def test_series_interpolate_intraday(self):
         # #1698
-        import pandas as pd
         index = pd.date_range('1/1/2012', periods=4, freq='12D')
         ts = pd.Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(days=1)).order()
@@ -1408,6 +1408,21 @@ class TestTimeSeries(unittest.TestCase):
         s.map(f)
         s.apply(f)
         DataFrame(s).applymap(f)
+
+    def test_concat_datetime_datetime64_frame(self):
+        # #2624
+        rows = []
+        rows.append([datetime(2010, 1, 1), 1])
+        rows.append([datetime(2010, 1, 2), 'hi'])
+
+        df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
+
+        ind = date_range(start="2000/1/1", freq="D", periods=10)
+        df1 = DataFrame({'date': ind, 'test':range(10)})
+
+        # it works!
+        pd.concat([df1, df2_obj])
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

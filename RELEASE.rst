@@ -100,6 +100,7 @@ pandas 0.10.1
   - Don't lose time zone when calling DatetimeIndex.drop (GH2621_)
   - Fix setitem on a Series with a boolean key and a non-scalar as value (GH2686_)
   - Box datetime64 values in Series.apply/map (GH2627_, GH2689_)
+  - Upconvert datetime + datetime64 values when concatenating frames (GH2624_)
 
 **API Changes**
 
@@ -120,6 +121,7 @@ pandas 0.10.1
 .. _GH2613: https://github.com/pydata/pandas/issues/2613
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2621: https://github.com/pydata/pandas/issues/2621
+.. _GH2624: https://github.com/pydata/pandas/issues/2624
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
 .. _GH2627: https://github.com/pydata/pandas/issues/2627
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
