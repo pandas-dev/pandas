@@ -234,17 +234,25 @@ class ExcelTests(unittest.TestCase):
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
 
-    def test_specify_kind(self):
+    def test_specify_kind_xls(self):
+        _skip_if_no_xlrd()
         xlsx_file = os.path.join(self.dirpath, 'test.xlsx')
         xls_file = os.path.join(self.dirpath, 'test.xls')
 
         self.assertRaises(Exception, ExcelFile, xlsx_file, kind='xls')
-        self.assertRaises(Exception, ExcelFile, xls_file, kind='xlsx')
-
-        ExcelFile(open(xlsx_file, 'rb'), kind='xlsx')
         ExcelFile(open(xls_file, 'rb'), kind='xls')
         self.assertRaises(Exception, ExcelFile, open(xlsx_file, 'rb'),
                           kind='xls')
+
+    def test_specify_kind_xlsx(self):
+        _skip_if_no_openpyxl()
+        xlsx_file = os.path.join(self.dirpath, 'test.xlsx')
+        xls_file = os.path.join(self.dirpath, 'test.xls')
+
+        self.assertRaises(Exception, ExcelFile, xls_file, kind='xlsx')
+
+        ExcelFile(open(xlsx_file, 'rb'), kind='xlsx')
+
         self.assertRaises(Exception, ExcelFile, open(xls_file, 'rb'),
                           kind='xlsx')
 
