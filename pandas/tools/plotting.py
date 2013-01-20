@@ -870,7 +870,7 @@ class MPLPlot(object):
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
-                index = index.to_timestamp()
+                index = index.to_timestamp().order()
                 x = index._mpl_repr()
             elif index.is_numeric() or is_datetype:
                 """
@@ -879,7 +879,7 @@ class MPLPlot(object):
                 matplotlib raises exception when using non numeric/datetime
                 values for xaxis, several actions are already taken by plt.
                 """
-                x = index._mpl_repr()
+                x = index.order()._mpl_repr()
             else:
                 self._need_to_set_index = True
                 x = range(len(index))

@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from datetime import datetime
+from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
@@ -601,6 +601,16 @@ class TestDataFramePlots(unittest.TestCase):
             rs = l.get_color()
             self.assert_(xp == rs)
 
+    @slow
+    def test_unordered_ts(self):
+        df = DataFrame(np.random.randn(3, 1),
+                       index=[date(2012, 10, 1),
+                              date(2012, 9, 1),
+                              date(2012, 8, 1)],
+                       columns=['test'])
+        ax = df.plot()
+        xticks = ax.lines[0].get_xdata()
+        self.assert_(xticks[0] < xticks[1])
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
