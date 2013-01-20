@@ -126,6 +126,75 @@ class TestGoogle(unittest.TestCase):
             except httplib2.ServerNotFoundError:
                 raise nose.SkipTest
 
+    @slow
+    @network
+    def test_segment(self):
+        try:
+            import httplib2
+            from pandas.io.ga import GAnalytics, read_ga
+            from pandas.io.auth import AuthenticationConfigError
+        except ImportError:
+            raise nose.SkipTest
+
+        try:
+            end_date = datetime.now()
+            start_date = end_date - pd.offsets.Day() * 5
+            end_date = end_date.strftime('%Y-%m-%d')
+            start_date = start_date.strftime('%Y-%m-%d')
+
+            reader = GAnalytics()
+            df = reader.get_data(
+                metrics=['avgTimeOnSite', 'visitors', 'newVisits',
+                         'pageviewsPerVisit'],
+                start_date=start_date,
+                end_date=end_date,
+                segment=-2,
+                dimensions=['date', 'hour'],
+                parse_dates={'ts': ['date', 'hour']})
+
+            assert isinstance(df, DataFrame)
+            assert isinstance(df.index, pd.DatetimeIndex)
+            assert len(df) > 1
+            assert 'date' not in df
+            assert 'hour' not in df
+            assert df.index.name == 'ts'
+            assert 'avgTimeOnSite' in df
+            assert 'visitors' in df
+            assert 'newVisits' in df
+            assert 'pageviewsPerVisit' in df
+
+            #dynamic
+            df = read_ga(
+                metrics=['avgTimeOnSite', 'visitors', 'newVisits',
+                         'pageviewsPerVisit'],
+                start_date=start_date,
+                end_date=end_date,
+                segment="source=~twitter",
+                dimensions=['date', 'hour'],
+                parse_dates={'ts': ['date', 'hour']})
+
+            assert isinstance(df, DataFrame)
+            assert isinstance(df.index, pd.DatetimeIndex)
+            assert len(df) > 1
+            assert 'date' not in df
+            assert 'hour' not in df
+            assert df.index.name == 'ts'
+            assert 'avgTimeOnSite' in df
+            assert 'visitors' in df
+            assert 'newVisits' in df
+            assert 'pageviewsPerVisit' in df
+
+        except AuthenticationConfigError:
+            raise nose.SkipTest
+        except httplib2.ServerNotFoundError:
+            try:
+                h = httplib2.Http()
+                response, content = h.request("http://www.google.com")
+                raise
+            except httplib2.ServerNotFoundError:
+                raise nose.SkipTest
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
