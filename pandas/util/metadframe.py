@@ -9,11 +9,16 @@ import copy
 import functools
 import cPickle
 
-from pandas import DataFrame, DatetimeIndex, Index, Series
+from pandas import DataFrame
 
 ## for testing
 from numpy.random import randn
 
+#----------------------------------------------------------------------
+# Store attributes/methods of dataframe for later inspection with __setattr__
+# Note: This is preferred to a storing individual instances of self._df with custom 
+#       attr as if user tried self.a and self._df.a existed, it would call this...
+_dfattrs=[x for x in dir(DataFrame) if '__' not in x]
 
 #----------------------------------------------------------------------
 # Loading (perhaps change name?) ... Doesn't work correctly as instance methods
@@ -34,9 +39,9 @@ class MetaDataframe(object):
     ''' Base composition for subclassing dataframe.'''
 
     def __init__(self, *dfargs, **dfkwargs):
-        ''' Stores a dataframe under reserved attribute name, self._df'''
+        ''' Stores a dataframe under reserved attribute name, self._df'''      
         self._df=DataFrame(*dfargs, **dfkwargs)
-
+                
     ### Save /Load methods    
     def save(self, outname):
         ''' Takes in str or opened file and saves. cPickle.dump wrapper.'''
@@ -86,6 +91,23 @@ class MetaDataframe(object):
         else:         
             return functools.partial(self._dfgetattr, attr, *fcnargs, **fcnkwargs)
             ### This is a reference to the fuction (aka a wrapper) not the function itself
+            
+    #def __setattr__(self, attr, value):
+        #print 'im here'
+        #self.__dict__[name]= value
+
+    def __setattr__(self, name, value):
+        ''' When user sets an attribute, this tries to intercept any name conflicts.  For example, if user attempts to set
+        self.columns=50, this will actually try self._df.columns=50, which throws an error.  The behavior is acheived by
+        using dir() on the data frame created upon initialization, filtering __x__ type methods.   Not guaranteed to work 100%
+        of the time due to implicit possible issues with dir() and inspection in Python.  Best practice is for users to avoid name
+        conflicts when possible.'''
+        
+        super(MetaDataframe, self).__setattr__(name, value)        
+        if name in _dfattrs:
+            setattr(self._df, name, value)
+        else:
+            self.__dict__[name]=value
 
 
     def _deepcopy(self, dfnew):
@@ -197,19 +219,19 @@ class SubFoo(MetaDataframe):
 
     def __init__(self, a, b, *dfargs, **dfkwargs):
         self.a = a
-	self.b = b    
+        self.b = b    
 
         super(SubFoo, self).__init__(*dfargs, **dfkwargs)
 
     def __union__(self):
         return "Hi I'm SubFoo. I'm not really a DataFrame, but I quack like one."
-    
+
     @property
     def data(self):
-	''' Return underyling dataframe attribute self._df'''
-	return self._data
-    
-        
+        ''' Return underyling dataframe attribute self._df'''
+        return self._data
+
+
 #### TESTING ###
 if __name__ == '__main__':
 
@@ -239,13 +261,12 @@ if __name__ == '__main__':
     ### Access underlying dataframe
     print '\nMy underlying dataframe is stored in the "data" attribute.\n'
     print subclass.data
-    
+
     ### Pickle
     print '\nSave me by using x.save() / x.dumps() and load using mload(x) / mloads(x).'
 #    df.save('outpath')
 #    f=open('outpath', 'r')
 #    df2=load(f)    
-    
 
 
 
