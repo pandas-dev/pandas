@@ -128,6 +128,19 @@ class CheckIndexing(object):
         assert_series_equal(self.frame['B'], data['A'])
         assert_series_equal(self.frame['A'], data['B'])
 
+        df = DataFrame(0, range(3), ['tt1', 'tt2'])
+        df.ix[1, ['tt1', 'tt2']] = [1, 2]
+
+        result = df.ix[1, ['tt1', 'tt2']]
+        expected = Series([1, 2], df.columns)
+        assert_series_equal(result, expected)
+
+        df['tt1'] = df['tt2'] = '0'
+        df.ix[1, ['tt1', 'tt2']] = ['1', '2']
+        result = df.ix[1, ['tt1', 'tt2']]
+        expected = Series(['1', '2'], df.columns)
+        assert_series_equal(result, expected)
+
     def test_setitem_list_not_dataframe(self):
         data = np.random.randn(len(self.frame), 2)
         self.frame[['A', 'B']] = data
