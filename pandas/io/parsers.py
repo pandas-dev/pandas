@@ -19,6 +19,7 @@ from pandas.io.date_converters import generic_parser
 from pandas.util.decorators import Appender
 
 import pandas.lib as lib
+import pandas.tslib as tslib
 import pandas._parser as _parser
 from pandas.tseries.period import Period
 import json
@@ -1531,8 +1532,12 @@ class PythonParser(ParserBase):
 def _make_date_converter(date_parser=None, dayfirst=False):
     def converter(*date_cols):
         if date_parser is None:
-            return lib.try_parse_dates(_concat_date_cols(date_cols),
-                                       dayfirst=dayfirst)
+            strs = _concat_date_cols(date_cols)
+            try:
+                return tslib.array_to_datetime(com._ensure_object(strs),
+                                               utc=None, dayfirst=dayfirst)
+            except:
+                return lib.try_parse_dates(strs, dayfirst=dayfirst)
         else:
             try:
                 return date_parser(*date_cols)
@@ -1720,7 +1725,11 @@ def _get_col_names(colspec, columns):
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        return np.array([unicode(x) for x in date_cols[0]], dtype=object)
+        if py3compat.PY3:
+            return np.array([unicode(x) for x in date_cols[0]], dtype=object)
+        else:
+            return np.array([str(x) if not isinstance(x, basestring) else x
+                             for x in date_cols[0]], dtype=object)
 
     # stripped = [map(str.strip, x) for x in date_cols]
     rs = np.array([' '.join([unicode(y) for y in x])

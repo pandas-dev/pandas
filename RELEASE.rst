@@ -59,6 +59,8 @@ pandas 0.10.1
     64-bit integer (GH2690_)
   - Raise exception in C file parser if integer dtype specified and have NA
     values. (GH2631_)
+  - Attempt to parse ISO8601 format dates when parse_dates=True in read_csv for
+    major performance boost in such cases (GH2698_)
 
 **Bug fixes**
 
@@ -114,6 +116,7 @@ pandas 0.10.1
 .. _GH2668: https://github.com/pydata/pandas/issues/2668
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
+.. _GH2698: https://github.com/pydata/pandas/issues/2698
 .. _GH2699: https://github.com/pydata/pandas/issues/2699
 .. _GH2700: https://github.com/pydata/pandas/issues/2700
 
