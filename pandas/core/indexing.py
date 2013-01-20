@@ -298,6 +298,9 @@ class _NDFrameIndexer(object):
                 except KeyError:
                     raise e1
 
+        if len(tup) > self.obj.ndim:
+            raise IndexingError
+
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
         # df.ix[0, ['C', 'B', A']] -> rows first (False)

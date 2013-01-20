@@ -234,6 +234,20 @@ class ExcelTests(unittest.TestCase):
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
 
+    def test_specify_kind(self):
+        xlsx_file = os.path.join(self.dirpath, 'test.xlsx')
+        xls_file = os.path.join(self.dirpath, 'test.xls')
+
+        self.assertRaises(Exception, ExcelFile, xlsx_file, kind='xls')
+        self.assertRaises(Exception, ExcelFile, xls_file, kind='xlsx')
+
+        ExcelFile(open(xlsx_file, 'rb'), kind='xlsx')
+        ExcelFile(open(xls_file, 'rb'), kind='xls')
+        self.assertRaises(Exception, ExcelFile, open(xlsx_file, 'rb'),
+                          kind='xls')
+        self.assertRaises(Exception, ExcelFile, open(xls_file, 'rb'),
+                          kind='xlsx')
+
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = 'python'

@@ -63,6 +63,8 @@ pandas 0.10.1
   - Attempt to parse ISO8601 format dates when parse_dates=True in read_csv for
     major performance boost in such cases (GH2698_)
   - Add methods ``neg`` and ``inv`` to Series
+  - Implement ``kind`` option in ``ExcelFile`` to indicate whether it's an XLS
+    or XLSX file (GH2613_)
 
 **Bug fixes**
 
@@ -114,6 +116,7 @@ pandas 0.10.1
 .. _GH2599: https://github.com/pydata/pandas/issues/2599
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
 .. _GH2576: https://github.com/pydata/pandas/issues/2576
+.. _GH2613: https://github.com/pydata/pandas/issues/2613
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2621: https://github.com/pydata/pandas/issues/2621
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
