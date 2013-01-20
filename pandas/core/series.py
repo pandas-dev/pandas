@@ -2234,6 +2234,8 @@ copy : boolean, default False
             same index as caller
         """
         values = self.values
+        if com.is_datetime64_dtype(values.dtype):
+            values = lib.map_infer(values, lib.Timestamp)
 
         if na_action == 'ignore':
             mask = isnull(values)
@@ -2283,7 +2285,11 @@ copy : boolean, default False
         if isinstance(f, np.ufunc):
             return f(self)
 
-        mapped = lib.map_infer(self.values, f, convert=convert_dtype)
+        values = self.values
+        if com.is_datetime64_dtype(values.dtype):
+            values = lib.map_infer(values, lib.Timestamp)
+
+        mapped = lib.map_infer(values, f, convert=convert_dtype)
         if isinstance(mapped[0], Series):
             from pandas.core.frame import DataFrame
             return DataFrame(mapped.tolist(), index=self.index)

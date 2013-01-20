@@ -99,6 +99,7 @@ pandas 0.10.1
   - Don't exclude non-numeric data from GroupBy.max/min (GH2700_)
   - Don't lose time zone when calling DatetimeIndex.drop (GH2621_)
   - Fix setitem on a Series with a boolean key and a non-scalar as value (GH2686_)
+  - Box datetime64 values in Series.apply/map (GH2627_, GH2689_)
 
 **API Changes**
 
@@ -120,11 +121,13 @@ pandas 0.10.1
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2621: https://github.com/pydata/pandas/issues/2621
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
+.. _GH2627: https://github.com/pydata/pandas/issues/2627
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
 .. _GH2631: https://github.com/pydata/pandas/issues/2631
 .. _GH2633: https://github.com/pydata/pandas/issues/2633
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
 .. _GH2668: https://github.com/pydata/pandas/issues/2668
+.. _GH2689: https://github.com/pydata/pandas/issues/2689
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
 .. _GH2698: https://github.com/pydata/pandas/issues/2698

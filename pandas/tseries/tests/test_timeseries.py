@@ -1397,6 +1397,17 @@ class TestTimeSeries(unittest.TestCase):
         result = buf.getvalue()
         self.assert_('2000-01-01' in result)
 
+    def test_series_map_box_timestamps(self):
+        # #2689, #2627
+        s = Series(date_range('1/1/2000', periods=10))
+
+        def f(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        s.map(f)
+        s.apply(f)
+        DataFrame(s).applymap(f)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
