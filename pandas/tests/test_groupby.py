@@ -2186,7 +2186,6 @@ class TestGroupBy(unittest.TestCase):
         got_dt = result.dtype
         self.assert_(issubclass(got_dt.type, np.datetime64))
 
-
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())
 

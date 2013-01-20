@@ -1081,6 +1081,9 @@ class Grouping(object):
         if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
 
+        if isinstance(grouper, MultiIndex):
+            self.grouper = grouper.values
+
         # pre-computed
         self._was_factor = False
         self._should_compress = True
