@@ -119,17 +119,13 @@ pandas 0.10.1
 .. _GH2631: https://github.com/pydata/pandas/issues/2631
 .. _GH2633: https://github.com/pydata/pandas/issues/2633
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
-<<<<<<< HEAD
 .. _GH2668: https://github.com/pydata/pandas/issues/2668
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
 .. _GH2698: https://github.com/pydata/pandas/issues/2698
 .. _GH2699: https://github.com/pydata/pandas/issues/2699
 .. _GH2700: https://github.com/pydata/pandas/issues/2700
-||||||| merged common ancestors
-=======
 .. _GH2694: https://github.com/pydata/pandas/issues/2694
->>>>>>> jreback/pytables_update6
 
 pandas 0.10.0
 =============
