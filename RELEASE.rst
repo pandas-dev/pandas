@@ -57,6 +57,8 @@ pandas 0.10.1
   - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
   - Implement DataFrame merges in case where set cardinalities might overflow
     64-bit integer (GH2690_)
+  - Raise exception in C file parser if integer dtype specified and have NA
+    values. (GH2631_)
 
 **Bug fixes**
 
@@ -103,6 +105,7 @@ pandas 0.10.1
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
+.. _GH2631: https://github.com/pydata/pandas/issues/2631
 .. _GH2633: https://github.com/pydata/pandas/issues/2633
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
 .. _GH2690: https://github.com/pydata/pandas/issues/2690

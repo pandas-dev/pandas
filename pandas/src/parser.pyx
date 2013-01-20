@@ -870,7 +870,7 @@ cdef class TextReader:
                         col_dtype = np.dtype(col_dtype).str
 
                 return self._convert_with_dtype(col_dtype, i, start, end,
-                                                na_filter, na_hashset)
+                                                na_filter, 1, na_hashset)
 
         if i in self.noconvert:
             return self._string_convert(i, start, end, na_filter, na_hashset)
@@ -879,10 +879,10 @@ cdef class TextReader:
             for dt in dtype_cast_order:
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, na_hashset)
+                        dt, i, start, end, na_filter, 0, na_hashset)
                 except OverflowError:
                     col_res, na_count = self._convert_with_dtype(
-                        '|O8', i, start, end, na_filter, na_hashset)
+                        '|O8', i, start, end, na_filter, 0, na_hashset)
 
                 if col_res is not None:
                     break
@@ -891,14 +891,16 @@ cdef class TextReader:
 
     cdef _convert_with_dtype(self, object dtype, Py_ssize_t i,
                              int start, int end,
-                             bint na_filter, kh_str_t *na_hashset):
+                             bint na_filter,
+                             bint user_dtype,
+                             kh_str_t *na_hashset):
         cdef kh_str_t *true_set, *false_set
 
         if dtype[1] == 'i' or dtype[1] == 'u':
             result, na_count = _try_int64(self.parser, i, start, end,
                                           na_filter, na_hashset)
-            # if na_count > 0:
-            #     raise Exception('Integer column has NA values')
+            if user_dtype and na_count > 0:
+                raise Exception('Integer column has NA values')
 
             if dtype[1:] != 'i8':
                 result = result.astype(dtype)

@@ -2007,6 +2007,16 @@ No,No,No"""
         result = self.assertRaises(ValueError, read_csv, StringIO(data2),
                                    lineterminator='~~')
 
+    def test_raise_on_passed_int_dtype_with_nas(self):
+        # #2631
+        data = """YEAR, DOY, a
+2001,106380451,10
+2001,,11
+2001,106380451,67"""
+        self.assertRaises(Exception, read_csv, StringIO(data), sep=",",
+                          skipinitialspace=True,
+                          dtype={'DOY': np.int64})
+
 
 class TestParseSQL(unittest.TestCase):
 
