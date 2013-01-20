@@ -14,6 +14,21 @@ API changes
 New features
 ~~~~~~~~~~~~
 
+Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, in additional to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way. Furthermore datetime64 columns are created by default, when using ``datetime.datetime`` or ``Timestamp`` objects, rather than default as object dtype.
+
+.. ipython:: python
+
+   df = DataFrame(randn(6,2),date_range('20010102',periods=6),columns=['A','B'])
+   df['timestamp'] = Timestamp('20010103')
+   df
+
+   # datetime64[ns] out of the box
+   df.get_dtype_counts()
+
+   # use the traditional nan, which is mapped to NaT internally
+   df.ix[2:4,['A','timestamp']] = np.nan
+   df
+
 HDFStore
 ~~~~~~~~
 
@@ -59,7 +74,7 @@ You can now store ``datetime64`` in data columns
 
     df_mixed               = df.copy()
     df_mixed['datetime64'] = Timestamp('20010102')
-    df_mixed.ix[3:4,['A','B']] = np.nan
+    df_mixed.ix[3:4,['A','B','datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed)
     df_mixed1 = store.select('df_mixed')
