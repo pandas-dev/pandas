@@ -401,8 +401,8 @@ class GroupBy(object):
 
     sum = _groupby_function('sum', 'add', np.sum)
     prod = _groupby_function('prod', 'prod', np.prod)
-    min = _groupby_function('min', 'min', np.min)
-    max = _groupby_function('max', 'max', np.max)
+    min = _groupby_function('min', 'min', np.min, numeric_only=False)
+    max = _groupby_function('max', 'max', np.max, numeric_only=False)
     first = _groupby_function('first', 'first', _first_compat,
                               numeric_only=False, _convert=True)
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,

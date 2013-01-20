@@ -88,6 +88,7 @@ pandas 0.10.1
   - Fix DataFrame.from_records corner case when passed columns, index column,
     but empty record list (GH2633_)
   - Fix C parser-tokenizer bug with trailing fields. (GH2668_)
+  - Don't exclude non-numeric data from GroupBy.max/min (GH2700_)
 
 **API Changes**
 
@@ -114,6 +115,7 @@ pandas 0.10.1
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
 .. _GH2699: https://github.com/pydata/pandas/issues/2699
+.. _GH2700: https://github.com/pydata/pandas/issues/2700
 
 pandas 0.10.0
 =============

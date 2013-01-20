@@ -1083,6 +1083,16 @@ class TestGroupBy(unittest.TestCase):
         _testit(lambda x: x.min())
         _testit(lambda x: x.max())
 
+    def test_max_min_non_numeric(self):
+        # #2700
+        aa = DataFrame({'nn':[11,11,22,22],'ii':[1,2,3,4],'ss':4*['mama']})
+
+        result = aa.groupby('nn').max()
+        self.assertTrue('ss' in result)
+
+        result = aa.groupby('nn').min()
+        self.assertTrue('ss' in result)
+
     def test_cython_agg_boolean(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': np.random.randint(0, 2, 50).astype('bool')})
