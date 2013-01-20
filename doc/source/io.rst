@@ -1211,7 +1211,7 @@ You can create/modify an index for a table with ``create_table_index`` after dat
 
 Query via Data Columns
 ~~~~~~~~~~~~~~~~~~~~~~
-You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query.
+You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query. You can specify ``data_columns = True`` to force all columns to be data_columns
 
 .. ipython:: python
 
@@ -1260,7 +1260,7 @@ To retrieve the *unique* values of an indexable or data column, use the method `
 
    concat([ store.select('df_dc',c) for c in [ crit1, crit2 ] ])
 
-**Table Object**
+**Storer Object**
 
 If you want to inspect the stored object, retrieve via ``get_storer``. You could use this progamatically to say get the number of rows in an object.
 
@@ -1363,17 +1363,40 @@ Notes & Caveats
 	# we have provided a minimum minor_axis indexable size
 	store.root.wp_big_strings.table
 
-Compatibility
-~~~~~~~~~~~~~
+External Compatibility
+~~~~~~~~~~~~~~~~~~~~~~
+
+``HDFStore`` write storer objects in specific formats suitable for producing loss-less roundtrips to pandas objects. For external compatibility, ``HDFStore`` can read native ``PyTables`` format tables. It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the ``rhdf5`` library. Create a table format store like this:
+
+     .. ipython:: python
+
+        store_export = HDFStore('export.h5')
+	store_export.append('df_dc',df_dc,data_columns=df_dc.columns)
+	store_export
+
+     .. ipython:: python
+        :suppress:
+ 
+        store_export.close()
+        import os
+        os.remove('export.h5')
+
+Backwards Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~
 
 0.10.1 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire file and write it out using the new format, using the method ``copy`` to take advantage of the updates. The group attribute ``pandas_version`` contains the version information. ``copy`` takes a number of options, please see the docstring.
 
 
      .. ipython:: python
+        :suppress:
+ 
+        import os
+        legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
+
+     .. ipython:: python
 
         # a legacy store
-	import os
-        legacy_store = HDFStore('legacy_0.10.h5', 'r')
+        legacy_store = HDFStore(legacy_file_path,'r')
         legacy_store
 
         # copy (and return the new handle)
@@ -1397,6 +1420,7 @@ Performance
    - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
    - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
    - Duplicate rows can be written to tables, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+   - A ``PerformanceWarning`` will be raised if you are attempting to store types that will be pickled by PyTables (rather than stored as endemic types). See <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190> for more information and some solutions.
 
 Experimental
 ~~~~~~~~~~~~
