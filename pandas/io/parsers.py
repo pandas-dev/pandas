@@ -45,6 +45,8 @@ quoting : string
 skipinitialspace : boolean, default False
     Skip spaces after delimiter
 escapechar : string
+dtype : Type name or dict of column -> type
+    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
 compression : {'gzip', 'bz2', None}, default None
     For on-the-fly decompression of on-disk data
 dialect : string or csv.Dialect instance, default None
