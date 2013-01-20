@@ -1118,7 +1118,7 @@ copy : boolean, default False
     __le__ = _comp_method(operator.le, '__le__')
     __eq__ = _comp_method(operator.eq, '__eq__')
     __ne__ = _comp_method(operator.ne, '__ne__')
-    
+
     # inversion
     def __neg__(self):
         arr = operator.neg(self.values)
@@ -1924,8 +1924,8 @@ copy : boolean, default False
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
         name = _maybe_match_name(self, other)
-        return Series(np.where(isnull(this), other, this), index=new_index,
-                      name=name)
+        rs_vals = com._where_compat(isnull(this), other, this)
+        return Series(rs_vals, index=new_index, name=name)
 
     def update(self, other):
         """

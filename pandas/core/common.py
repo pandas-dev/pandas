@@ -1224,6 +1224,19 @@ def _concat_compat(to_concat, axis=0):
     else:
         return np.concatenate(to_concat, axis=axis)
 
+def _where_compat(mask, arr1, arr2):
+    if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:
+        new_vals = np.where(mask, arr1.view(np.int64), arr2.view(np.int64))
+        return new_vals.view(_NS_DTYPE)
+
+    import pandas.tslib as tslib
+    if arr1.dtype == _NS_DTYPE:
+        arr1 = tslib.ints_to_pydatetime(arr1.view(np.int64))
+    if arr2.dtype == _NS_DTYPE:
+        arr2 = tslib.ints_to_pydatetime(arr2.view(np.int64))
+
+    return np.where(mask, arr1, arr2)
+
 
 def in_interactive_session():
     """ check if we're running in an interactive shell
