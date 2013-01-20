@@ -274,6 +274,16 @@ class TestBusinessDay(unittest.TestCase):
         result = dt + BDay(100) - BDay(100)
         self.assertEqual(result, dt)
 
+        off = BDay() * 6
+        rs = datetime(2012, 1, 1) - off
+        xp = datetime(2011, 12, 23)
+        self.assertEqual(rs, xp)
+
+        st = datetime(2011, 12, 18)
+        rs = st + off
+        xp = datetime(2011, 12, 26)
+        self.assertEqual(rs, xp)
+
     def test_apply_corner(self):
         self.assertRaises(Exception, BDay().apply, BMonthEnd())
 
