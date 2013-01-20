@@ -13,6 +13,21 @@ class TestGoogle(unittest.TestCase):
 
     _multiprocess_can_split_ = True
 
+    def test_remove_token_store(self):
+        import os
+        try:
+            import pandas.io.auth as auth
+            from pandas.io.ga import reset_token_store
+        except ImportError:
+            raise nose.SkipTest
+
+        auth.DEFAULT_TOKEN_FILE = 'test.dat'
+        with open(auth.DEFAULT_TOKEN_FILE, 'w') as fh:
+            fh.write('test')
+
+        reset_token_store()
+        self.assert_(not os.path.exists(auth.DEFAULT_TOKEN_FILE))
+
     @slow
     @network
     def test_getdata(self):
