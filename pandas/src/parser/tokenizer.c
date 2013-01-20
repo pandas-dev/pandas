@@ -494,6 +494,7 @@ static int end_line(parser_t *self) {
         if (self->lines >= self->header + 1 && self->lines > 0) {
             while (fields < ex_fields){
                 end_field(self);
+                /* printf("Prior word: %s\n", self->words[self->words_len - 2]); */
                 fields++;
             }
         }
@@ -502,6 +503,10 @@ static int end_line(parser_t *self) {
         self->file_lines++;
 
         self->lines++;
+
+        /* coliter_t it; */
+        /* coliter_setup(&it, self, 5, self->lines - 1); */
+        /* printf("word at column 5: %s\n", COLITER_NEXT(it)); */
 
         // good line, set new start point
         self->line_start[self->lines] = (self->line_start[self->lines - 1] +
@@ -601,13 +606,13 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     if (end_line(self) < 0) {                                           \
         goto parsingerror;                                              \
     }                                                                   \
+    stream = self->stream + self->stream_len;                           \
+    slen = self->stream_len;                                            \
     self->state = STATE;                                                \
     if (line_limit > 0 && self->lines == start_lines + line_limit) {    \
         goto linelimit;                                                 \
                                                                         \
-    }                                                                   \
-    stream = self->stream + self->stream_len;                           \
-    slen = self->stream_len;
+    }
 
 #define END_LINE_AND_FIELD_STATE(STATE)                                 \
     self->stream_len = slen;                                            \

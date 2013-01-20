@@ -70,6 +70,7 @@ pandas 0.10.1
     - handle correctly ``Term`` passed types (e.g. ``index<1000``, when index
       is ``Int64``), (closes GH512_)
     - handle Timestamp correctly in data_columns (closes GH2637_)
+
   - Fix DataFrame.info bug with UTF8-encoded columns. (GH2576_)
   - Fix DatetimeIndex handling of FixedOffset tz (GH2604_)
   - More robust detection of being in IPython session for wide DataFrame
@@ -86,6 +87,7 @@ pandas 0.10.1
   - Don't bork Series containing datetime64 values with to_datetime (GH2699_)
   - Fix DataFrame.from_records corner case when passed columns, index column,
     but empty record list (GH2633_)
+  - Fix C parser-tokenizer bug with trailing fields. (GH2668_)
 
 **API Changes**
 
@@ -108,6 +110,7 @@ pandas 0.10.1
 .. _GH2631: https://github.com/pydata/pandas/issues/2631
 .. _GH2633: https://github.com/pydata/pandas/issues/2633
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
+.. _GH2668: https://github.com/pydata/pandas/issues/2668
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
 .. _GH2699: https://github.com/pydata/pandas/issues/2699

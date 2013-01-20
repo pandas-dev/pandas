@@ -2017,6 +2017,15 @@ No,No,No"""
                           skipinitialspace=True,
                           dtype={'DOY': np.int64})
 
+    def test_na_trailing_columns(self):
+        data = """Date,Currenncy,Symbol,Type,Units,UnitPrice,Cost,Tax
+2012-03-14,USD,AAPL,BUY,1000
+2012-05-12,USD,SBUX,SELL,500"""
+
+        result = self.read_csv(StringIO(data))
+        self.assertEquals(result['Date'][1], '2012-05-12')
+        self.assertTrue(result['UnitPrice'].isnull().all())
+
 
 class TestParseSQL(unittest.TestCase):
 
