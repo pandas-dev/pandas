@@ -1304,7 +1304,7 @@ def _pprint_dict(seq, _nest_lvl=0):
     return fmt % ", ".join(pairs)
 
 
-def pprint_thing(thing, _nest_lvl=0, escape_chars=None):
+def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False):
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -1316,8 +1316,13 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None):
     ----------
     thing : anything to be formatted
     _nest_lvl : internal use only. pprint_thing() is mutually-recursive
-       with pprint_sequence, this argument is used to keep track of the
-       current nesting level, and limit it.
+        with pprint_sequence, this argument is used to keep track of the
+        current nesting level, and limit it.
+    escape_chars : list or dict, optional
+        Characters to escape. If a dict is passed the values are the
+        replacements
+    default_escapes : bool, default False
+        Whether the input escape characters replaces or adds to the defaults
 
     Returns
     -------
@@ -1355,7 +1360,14 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None):
                      '\n': r'\n',
                      '\r': r'\r',
                      }
-        escape_chars = escape_chars or tuple()
+        if isinstance(escape_chars, dict):
+            if default_escapes:
+                translate.update(escape_chars)
+            else:
+                translate = escape_chars
+            escape_chars = escape_chars.keys()
+        else:
+            escape_chars = escape_chars or tuple()
         for c in escape_chars:
             result = result.replace(c, translate[c])
 

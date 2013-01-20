@@ -249,6 +249,35 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'A': [u'\u03c3']})
         df.to_html()
 
+    def test_to_html_escaped(self):
+        a = 'str<ing1'
+        b = 'stri>ng2'
+
+        test_dict = {'co<l1':{a:type(a), b:type(b)},'co>l2':{a:type(a), b:type(b)}}
+        rs = pd.DataFrame(test_dict).to_html()
+        xp = """<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>co&lt;l1</th>
+      <th>co&gt;l2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>str&lt;ing1</th>
+      <td> &lt;type 'str'&gt;</td>
+      <td> &lt;type 'str'&gt;</td>
+    </tr>
+    <tr>
+      <th>stri&gt;ng2</th>
+      <td> &lt;type 'str'&gt;</td>
+      <td> &lt;type 'str'&gt;</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(xp, rs)
+
     def test_to_html_multiindex_sparsify(self):
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
                                           names=['foo', None])
@@ -273,24 +302,24 @@ class TestDataFrameFormatting(unittest.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td rowspan="2" valign="top"><strong>0</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">0</th>
+      <th>0</th>
       <td> 0</td>
       <td> 1</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 2</td>
       <td> 3</td>
     </tr>
     <tr>
-      <td rowspan="2" valign="top"><strong>1</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">1</th>
+      <th>0</th>
       <td> 4</td>
       <td> 5</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 6</td>
       <td> 7</td>
     </tr>
@@ -326,24 +355,24 @@ class TestDataFrameFormatting(unittest.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td rowspan="2" valign="top"><strong>0</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">0</th>
+      <th>0</th>
       <td> 0</td>
       <td> 1</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 2</td>
       <td> 3</td>
     </tr>
     <tr>
-      <td rowspan="2" valign="top"><strong>1</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">1</th>
+      <th>0</th>
       <td> 4</td>
       <td> 5</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 6</td>
       <td> 7</td>
     </tr>
@@ -368,22 +397,22 @@ class TestDataFrameFormatting(unittest.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td><strong>a</strong></td>
+      <th>a</th>
       <td> 0</td>
       <td> 1</td>
     </tr>
     <tr>
-      <td><strong>b</strong></td>
+      <th>b</th>
       <td> 2</td>
       <td> 3</td>
     </tr>
     <tr>
-      <td><strong>c</strong></td>
+      <th>c</th>
       <td> 4</td>
       <td> 5</td>
     </tr>
     <tr>
-      <td><strong>d</strong></td>
+      <th>d</th>
       <td> 6</td>
       <td> 7</td>
     </tr>
@@ -795,7 +824,7 @@ c  10  11  12  13  14\
     def test_to_html_with_no_bold(self):
         x = DataFrame({'x': randn(5)})
         ashtml = x.to_html(bold_rows=False)
-        assert('<strong>' not in ashtml)
+        assert('<strong>' not in ashtml[ashtml.find('</thead>')])
 
     def test_to_html_columns_arg(self):
         result = self.frame.to_html(columns=['A'])
@@ -824,14 +853,14 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td> a</td>\n'
                     '      <td> b</td>\n'
                     '      <td> c</td>\n'
                     '      <td> d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> e</td>\n'
                     '      <td> f</td>\n'
                     '      <td> g</td>\n'
@@ -866,14 +895,14 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td> a</td>\n'
                     '      <td> b</td>\n'
                     '      <td> c</td>\n'
                     '      <td> d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> e</td>\n'
                     '      <td> f</td>\n'
                     '      <td> g</td>\n'
@@ -901,19 +930,19 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td>     6</td>\n'
                     '      <td>     1</td>\n'
                     '      <td> 223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> 30000</td>\n'
                     '      <td>     2</td>\n'
                     '      <td>      0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>2</strong></td>\n'
+                    '      <th>2</th>\n'
                     '      <td>     2</td>\n'
                     '      <td> 70000</td>\n'
                     '      <td>      1</td>\n'
@@ -935,19 +964,19 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td>     6</td>\n'
                     '      <td>     1</td>\n'
                     '      <td> 223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> 30000</td>\n'
                     '      <td>     2</td>\n'
                     '      <td>      0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>2</strong></td>\n'
+                    '      <th>2</th>\n'
                     '      <td>     2</td>\n'
                     '      <td> 70000</td>\n'
                     '      <td>      1</td>\n'

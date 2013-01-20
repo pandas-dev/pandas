@@ -486,20 +486,11 @@ class HTMLFormatter(TableFormatter):
         self.frame = self.fmt.frame
         self.columns = formatter.columns
         self.elements = []
-
-        _bold_row = self.fmt.kwds.get('bold_rows', False)
-        _temp = '<strong>%s</strong>'
-
-        def _maybe_bold_row(x):
-            if _bold_row:
-                return ([_temp % y for y in x] if isinstance(x, tuple)
-                        else _temp % x)
-            else:
-                return x
-        self._maybe_bold_row = _maybe_bold_row
+        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
 
     def write(self, s, indent=0):
-        self.elements.append(' ' * indent + com.pprint_thing(s))
+        rs = com.pprint_thing(s)
+        self.elements.append(' ' * indent + rs)
 
     def write_th(self, s, indent=0, tags=None):
         if (self.fmt.col_space is not None
@@ -517,11 +508,14 @@ class HTMLFormatter(TableFormatter):
             start_tag = '<%s %s>' % (kind, tags)
         else:
             start_tag = '<%s>' % kind
+
+        esc = {'<' : r'&lt;', '>' : r'&gt;'}
+        rs = com.pprint_thing(s, escape_chars=esc)
         self.write(
-            '%s%s</%s>' % (start_tag, com.pprint_thing(s), kind), indent)
+            '%s%s</%s>' % (start_tag, rs, kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=4, header=False,
-                 align=None, tags=None):
+                 align=None, tags=None, nindex_levels=0):
         if tags is None:
             tags = {}
 
@@ -533,7 +527,7 @@ class HTMLFormatter(TableFormatter):
 
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
-            if header:
+            if header or (self.bold_rows and i < nindex_levels):
                 self.write_th(s, indent, tags=val_tag)
             else:
                 self.write_td(s, indent, tags=val_tag)
@@ -683,9 +677,10 @@ class HTMLFormatter(TableFormatter):
 
         for i in range(len(self.frame)):
             row = []
-            row.append(self._maybe_bold_row(index_values[i]))
+            row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
-            self.write_tr(row, indent, self.indent_delta, tags=None)
+            self.write_tr(row, indent, self.indent_delta, tags=None,
+                          nindex_levels=1)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="%d" valign="top"'
@@ -706,27 +701,32 @@ class HTMLFormatter(TableFormatter):
                 row = []
                 tags = {}
 
+                sparse_offset = 0
                 j = 0
                 for records, v in zip(level_lengths, idx_values[i]):
                     if i in records:
                         if records[i] > 1:
                             tags[j] = template % records[i]
                     else:
+                        sparse_offset += 1
                         continue
+
                     j += 1
-                    row.append(self._maybe_bold_row(v))
+                    row.append(v)
 
                 row.extend(fmt_values[j][i] for j in range(ncols))
-                self.write_tr(row, indent, self.indent_delta, tags=tags)
+                self.write_tr(row, indent, self.indent_delta, tags=tags,
+                              nindex_levels=len(levels) - sparse_offset)
         else:
             for i in range(len(frame)):
                 idx_values = zip(*frame.index.format(sparsify=False,
                                                      adjoin=False,
                                                      names=False))
                 row = []
-                row.extend(self._maybe_bold_row(x) for x in idx_values[i])
+                row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(ncols))
-                self.write_tr(row, indent, self.indent_delta, tags=None)
+                self.write_tr(row, indent, self.indent_delta, tags=None,
+                              nindex_levels=len(frame.index.nlevels))
 
 
 def _get_level_lengths(levels):
