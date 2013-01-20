@@ -31,7 +31,6 @@ def mload(inname):
 
 def mloads(string):
     ''' Load a MetaDataframe from string stored in memory.'''
-    ### BUG WHY DOESNT THIS WORK
     return cPickle.loads(string)   
 
 
@@ -42,13 +41,12 @@ class MetaDataframe(object):
         ''' Stores a dataframe under reserved attribute name, self._df'''      
         self._df=DataFrame(*dfargs, **dfkwargs)
                 
-    ### Save /Load methods    
+    ### Save methods    
     def save(self, outname):
         ''' Takes in str or opened file and saves. cPickle.dump wrapper.'''
         if isinstance(outname, basestring):
             outname=open(outname, 'w')
         cPickle.dump(self, outname)
-
 
     def dumps(self):
         ''' Output TimeSpectra into a pickled string in memory.'''
@@ -92,10 +90,6 @@ class MetaDataframe(object):
             return functools.partial(self._dfgetattr, attr, *fcnargs, **fcnkwargs)
             ### This is a reference to the fuction (aka a wrapper) not the function itself
             
-    #def __setattr__(self, attr, value):
-        #print 'im here'
-        #self.__dict__[name]= value
-
     def __setattr__(self, name, value):
         ''' When user sets an attribute, this tries to intercept any name conflicts.  For example, if user attempts to set
         self.columns=50, this will actually try self._df.columns=50, which throws an error.  The behavior is acheived by
