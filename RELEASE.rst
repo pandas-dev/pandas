@@ -91,6 +91,7 @@ pandas 0.10.1
     but empty record list (GH2633_)
   - Fix C parser-tokenizer bug with trailing fields. (GH2668_)
   - Don't exclude non-numeric data from GroupBy.max/min (GH2700_)
+  - Don't lose time zone when calling DatetimeIndex.drop (GH2621_)
 
 **API Changes**
 
@@ -108,6 +109,7 @@ pandas 0.10.1
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
 .. _GH2576: https://github.com/pydata/pandas/issues/2576
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
+.. _GH2621: https://github.com/pydata/pandas/issues/2621
 .. _GH2625: https://github.com/pydata/pandas/issues/2625
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
 .. _GH2631: https://github.com/pydata/pandas/issues/2631

@@ -1346,6 +1346,17 @@ class DatetimeIndex(Int64Index):
                                     self[loc:].asi8))
         return DatetimeIndex(new_index, freq='infer')
 
+    def delete(self, loc):
+        """
+        Make new DatetimeIndex with passed location deleted
+
+        Returns
+        -------
+        new_index : DatetimeIndex
+        """
+        arr = np.delete(self.values, loc)
+        return DatetimeIndex(arr, tz=self.tz)
+
     def _view_like(self, ndarray):
         result = ndarray.view(type(self))
         result.offset = self.offset

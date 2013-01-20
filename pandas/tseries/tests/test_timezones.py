@@ -589,6 +589,12 @@ class TestTimeZoneSupport(unittest.TestCase):
                                  tzinfo=pytz.timezone('Europe/Berlin'))
         self.assertEqual(ts[time_pandas], ts[time_datetime])
 
+    def test_index_drop_dont_lose_tz(self):
+        # #2621
+        ind = date_range("2012-12-01", periods=10, tz="utc")
+        ind = ind.drop(ind[-1])
+
+        self.assertTrue(ind.tz is not None)
 
 class TestTimeZones(unittest.TestCase):
     _multiprocess_can_split_ = True
