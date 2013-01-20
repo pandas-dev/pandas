@@ -713,6 +713,19 @@ class TestMerge(unittest.TestCase):
 
         self.assert_((df.var3.unique() == result.var3.unique()).all())
 
+    def test_overlapping_columns_error_message(self):
+        # #2649
+        df = DataFrame({'key': [1, 2, 3],
+                        'v1': [4, 5, 6],
+                        'v2': [7, 8, 9]})
+        df2 = DataFrame({'key': [1, 2, 3],
+                         'v1': [4, 5, 6],
+                         'v2': [7, 8, 9]})
+
+        df.columns = ['key', 'foo', 'foo']
+        df2.columns = ['key', 'bar', 'bar']
+
+        self.assertRaises(Exception, merge, df, df2)
 
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
