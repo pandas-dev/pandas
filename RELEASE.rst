@@ -106,6 +106,7 @@ pandas 0.10.1
   - Fix partial date parsing issue occuring only when code is run at EOM  (GH2618_)
   - Prevent MemoryError when using counting sort in sortlevel with
     high-cardinality MultiIndex objects (GH2684_)
+  - Fix Period resampling bug when all values fall into a single bin (GH2070_)
 
 **API Changes**
 
@@ -118,6 +119,7 @@ pandas 0.10.1
 
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277
+.. _GH2070: https://github.com/pydata/pandas/issues/2070
 .. _GH2327: https://github.com/pydata/pandas/issues/2327
 .. _GH2585: https://github.com/pydata/pandas/issues/2585
 .. _GH2599: https://github.com/pydata/pandas/issues/2599
