@@ -107,6 +107,8 @@ pandas 0.10.1
   - Prevent MemoryError when using counting sort in sortlevel with
     high-cardinality MultiIndex objects (GH2684_)
   - Fix Period resampling bug when all values fall into a single bin (GH2070_)
+  - Fix buggy interaction with usecols argument in read_csv when there is an
+    implicit first index column (GH2654_)
 
 **API Changes**
 
@@ -136,6 +138,7 @@ pandas 0.10.1
 .. _GH2637: https://github.com/pydata/pandas/issues/2637
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
 .. _GH2649: https://github.com/pydata/pandas/issues/2649
+.. _GH2654: https://github.com/pydata/pandas/issues/2654
 .. _GH2668: https://github.com/pydata/pandas/issues/2668
 .. _GH2684: https://github.com/pydata/pandas/issues/2684
 .. _GH2689: https://github.com/pydata/pandas/issues/2689
