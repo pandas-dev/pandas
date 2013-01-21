@@ -104,6 +104,8 @@ pandas 0.10.1
   - Raise a more helpful error message in merge operations when one DataFrame
     has duplicate columns (GH2649_)
   - Fix partial date parsing issue occuring only when code is run at EOM  (GH2618_)
+  - Prevent MemoryError when using counting sort in sortlevel with
+    high-cardinality MultiIndex objects (GH2684_)
 
 **API Changes**
 
@@ -133,6 +135,7 @@ pandas 0.10.1
 .. _GH2643: https://github.com/pydata/pandas/issues/2643
 .. _GH2649: https://github.com/pydata/pandas/issues/2649
 .. _GH2668: https://github.com/pydata/pandas/issues/2668
+.. _GH2684: https://github.com/pydata/pandas/issues/2684
 .. _GH2689: https://github.com/pydata/pandas/issues/2689
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2692: https://github.com/pydata/pandas/issues/2692

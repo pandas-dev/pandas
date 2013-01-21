@@ -2244,7 +2244,12 @@ def _indexer_from_factorized(labels, shape, compress=True):
         comp_ids = group_index
         max_group = np.prod(shape)
 
-    indexer, _ = _algos.groupsort_indexer(comp_ids.astype(np.int64), max_group)
+    if max_group > 1e6:
+        # Use mergesort to avoid memory errors in counting sort
+        indexer = comp_ids.argsort(kind='mergesort')
+    else:
+        indexer, _ = _algos.groupsort_indexer(comp_ids.astype(np.int64),
+                                              max_group)
 
     return indexer
 

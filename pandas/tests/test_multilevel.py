@@ -612,6 +612,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         rs.sortlevel(0, inplace=True)
         assert_frame_equal(rs, self.frame.sortlevel(0))
 
+    def test_sortlevel_large_cardinality(self):
+        # #2684
+        index = MultiIndex.from_arrays([np.arange(4000)]*3)
+        df = DataFrame(np.random.randn(4000), index=index)
+
+        # it works!
+        result = df.sortlevel(0)
+        self.assertTrue(result.index.lexsort_depth == 3)
+
     def test_delevel_infer_dtype(self):
         tuples = [tuple for tuple in cart_product(['foo', 'bar'],
                                                   [10, 20], [1.0, 1.1])]
