@@ -110,7 +110,7 @@ class MetaDataframe(object):
 
         dfnew is used if one wants to pass a new dataframe in.  This is used primarily in calls from __getattr__.'''
         ### Store old value of df and remove current df to copy operation will take
-        olddf=self._df.copy(deep=True)
+        olddf=self._df.copy() #Removed deepcopy
         self._df=None
 
         ### Create new object and apply new df 
