@@ -107,7 +107,7 @@ def main():
                 raise KeyboardInterrupt()
 
             msg = "{name:<40}: ERROR:\n<-------"
-            print(msg.format(name=results[-1]['name']))
+            print(msg.format(name=b.name))
             if isinstance(d, dict):
                 if d['succeeded']:
                     print("\nException:\n%s\n" % str(e))
