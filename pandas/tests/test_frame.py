@@ -787,8 +787,7 @@ class CheckIndexing(object):
         out = b.ix[:3]
         assert_frame_equal(out, b)
 
-        res = b.sort_index(inplace=True)
-        self.assertTrue(res is None)
+        b.sort_index(inplace=True)
 
         df = df_orig.copy()
         df.ix[[0, 1, 2]] = b
@@ -1558,6 +1557,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     _multiprocess_can_split_ = True
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.intframe = _intframe.copy()
@@ -1638,14 +1640,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # inplace, single
         df2 = df.copy()
 
-        res = df2.set_index('C', inplace=True)
-        self.assertTrue(res is None)
+        df2.set_index('C', inplace=True)
 
         assert_frame_equal(df2, expected)
 
         df3 = df.copy()
-        res = df3.set_index('C', drop=False, inplace=True)
-        self.assertTrue(res is None)
+        df3.set_index('C', drop=False, inplace=True)
 
         assert_frame_equal(df3, expected_nodrop)
 
@@ -4597,9 +4597,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # single column
         df = orig.copy()
-        res = df.drop_duplicates('A', inplace=True)
-        self.assertTrue(res is None)
-
+        df.drop_duplicates('A', inplace=True)
         expected = orig[:2]
         result = df
         assert_frame_equal(result, expected)
@@ -4612,8 +4610,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # multi column
         df = orig.copy()
-        res = df.drop_duplicates(['A', 'B'], inplace=True)
-        self.assertTrue(res is None)
+        df.drop_duplicates(['A', 'B'], inplace=True)
         expected = orig.ix[[0, 1, 2, 3]]
         result = df
         assert_frame_equal(result, expected)
@@ -4703,8 +4700,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.fillna(value=0)
         self.assert_(expected is not df)
 
-        res = df.fillna(value=0, inplace=True)
-        self.assert_(res is None)
+        df.fillna(value=0, inplace=True)
         assert_frame_equal(df, expected)
 
         df[1][:4] = np.nan
@@ -4712,8 +4708,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.fillna(method='ffill')
         self.assert_(expected is not df)
 
-        res = df.fillna(method='ffill', inplace=True)
-        self.assert_(res is None)
+        df.fillna(method='ffill', inplace=True)
         assert_frame_equal(df, expected)
 
     def test_fillna_dict_series(self):
@@ -4764,12 +4759,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         tsframe = self.tsframe.copy()
         res = tsframe.replace(nan, 0, inplace=True)
-        self.assertTrue(res is None)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
         tsframe = self.tsframe.copy()
         res = tsframe.replace(nan, method='pad', inplace=True)
-        self.assertTrue(res is None)
         assert_frame_equal(tsframe, self.tsframe.fillna(method='pad'))
 
         # mixed type
@@ -4782,7 +4775,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         tsframe = self.tsframe.copy()
         res = tsframe.replace([nan], [0], inplace=True)
-        self.assertTrue(res is None)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
     def test_replace(self):
@@ -5462,8 +5454,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.randn(5, 3))
 
         expected = df.mask(df < 0)
-        res = df.where(df >= 0, np.nan, inplace=True)
-        self.assertTrue(res is None)
+        df.where(df >= 0, np.nan, inplace=True)
         assert_frame_equal(df, expected)
 
     def test_mask(self):
@@ -5555,9 +5546,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         c_id = id(self.frame['C'])
         frame = self.frame.copy()
-        res = frame.rename(columns={'C': 'foo'}, inplace=True)
-
-        self.assertTrue(res is None)
+        frame.rename(columns={'C': 'foo'}, inplace=True)
 
         self.assert_('C' not in frame)
         self.assert_('foo' in frame)
@@ -6139,8 +6128,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         unordered = frame.ix[[3, 2, 4, 1]]
         a_id = id(unordered['A'])
         df = unordered.copy()
-        res = df.sort_index(inplace=True)
-        self.assertTrue(res is None)
+        df.sort_index(inplace=True)
         expected = frame
         assert_frame_equal(df, expected)
         self.assert_(a_id != id(df['A']))
@@ -6158,8 +6146,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df, expected)
 
         df = unordered.copy()
-        res = df.sort_index(axis=1, ascending=False, inplace=True)
-        self.assertTrue(res is None)
+        df.sort_index(axis=1, ascending=False, inplace=True)
         expected = frame.ix[:, ::-1]
         assert_frame_equal(df, expected)
 
@@ -6197,8 +6184,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           columns=['A', 'B', 'C', 'D'])
 
         sorted_df = frame.copy()
-        res = sorted_df.sort(columns='A', inplace=True)
-        self.assertTrue(res is None)
+        sorted_df.sort(columns='A', inplace=True)
         expected = frame.sort_index(by='A')
         assert_frame_equal(sorted_df, expected)
 
@@ -6208,8 +6194,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        res = sorted_df.sort(columns=['A', 'B'], ascending=False, inplace=True)
-        self.assertTrue(res is None)
+        sorted_df.sort(columns=['A', 'B'], ascending=False, inplace=True)
         expected = frame.sort_index(by=['A', 'B'], ascending=False)
         assert_frame_equal(sorted_df, expected)
 
@@ -7308,8 +7293,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # test resetting in place
         df = self.frame.copy()
         resetted = self.frame.reset_index()
-        res = df.reset_index(inplace=True)
-        self.assertTrue(res is None)
+        df.reset_index(inplace=True)
         assert_frame_equal(df, resetted)
 
         frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
@@ -7432,8 +7416,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.frame['F'] = 8.
         self.assert_(len(self.frame._data.blocks) == 3)
-        res = self.frame.consolidate(inplace=True)
-        self.assertTrue(res is None)
+        self.frame.consolidate(inplace=True)
         self.assert_(len(self.frame._data.blocks) == 1)
 
     def test_consolidate_inplace(self):
@@ -7799,6 +7782,73 @@ starting,ending,measure
         first = len(df.ix[isnull(df[myid]), [myid]])
         second = len(df.ix[isnull(df[myid]), [myid]])
         self.assertTrue(first == second == 0)
+
+    def test_inplace_return_self(self):
+        # re #1893, TODO: remove in 0.11
+
+        data = DataFrame({'a': ['foo', 'bar', 'baz', 'qux'],
+                          'b': [0, 0, 1, 1],
+                          'c': [1, 2, 3, 4]})
+
+        def _check_f(base, f):
+            result = f(base)
+            self.assertTrue(result is base)
+
+        # -----DataFrame-----
+
+        # set_index
+        f = lambda x: x.set_index('a', inplace=True)
+        _check_f(data.copy(), f)
+
+        # reset_index
+        f = lambda x: x.reset_index(inplace=True)
+        _check_f(data.set_index('a'), f)
+
+        # drop_duplicates
+        f = lambda x: x.drop_duplicates(inplace=True)
+        _check_f(data.copy(), f)
+
+        # sort
+        f = lambda x: x.sort('b', inplace=True)
+        _check_f(data.copy(), f)
+
+        # sort_index
+        f = lambda x: x.sort_index(inplace=True)
+        _check_f(data.copy(), f)
+
+        # sortlevel
+        f = lambda x: x.sortlevel(0, inplace=True)
+        _check_f(data.set_index(['a', 'b']), f)
+
+        # fillna
+        f = lambda x: x.fillna(0, inplace=True)
+        _check_f(data.copy(), f)
+
+        # replace
+        f = lambda x: x.replace(1, 0, inplace=True)
+        _check_f(data.copy(), f)
+
+        # rename
+        f = lambda x: x.rename({1: 'foo'}, inplace=True)
+        _check_f(data.copy(), f)
+
+        # -----Series-----
+
+        # reset_index
+        f = lambda x: x.reset_index(inplace=True, drop=True)
+        _check_f(data.set_index('a')['c'], f)
+
+        # fillna
+        f = lambda x: x.fillna(0, inplace=True)
+        _check_f(data.copy()['c'], f)
+
+        # replace
+        f = lambda x: x.replace(1, 0, inplace=True)
+        _check_f(data.copy()['c'], f)
+
+        # rename
+        f = lambda x: x.rename({1: 'foo'}, inplace=True)
+        _check_f(data.copy()['c'], f)
 
 
 if __name__ == '__main__':

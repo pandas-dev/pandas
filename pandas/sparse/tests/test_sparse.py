@@ -37,6 +37,9 @@ from pandas.util.py3compat import StringIO
 
 from test_array import assert_sp_array_equal
 
+import warnings
+warnings.filterwarnings(action='ignore', category=FutureWarning)
+
 
 def _test_data1():
     # nan-based

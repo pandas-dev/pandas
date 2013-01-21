@@ -2755,6 +2755,15 @@ class DataFrame(NDFrame):
         index._cleanup()
 
         frame.index = index
+
+        if inplace:
+            import warnings
+            warnings.warn("set_index with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
+        else:
+            return frame
+
         return frame if not inplace else None
 
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
@@ -2854,7 +2863,13 @@ class DataFrame(NDFrame):
             new_obj.insert(0, name, _maybe_cast(values))
 
         new_obj.index = new_index
-        return new_obj if not inplace else None
+        if inplace:
+            import warnings
+            warnings.warn("reset_index with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
+        else:
+            return new_obj
 
     delevel = deprecate('delevel', reset_index)
 
@@ -3014,6 +3029,10 @@ class DataFrame(NDFrame):
             inds, = (-duplicated).nonzero()
             self._data = self._data.take(inds)
             self._clear_item_cache()
+            import warnings
+            warnings.warn("drop_duplicates with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
         else:
             return self[-duplicated]
 
@@ -3168,6 +3187,10 @@ class DataFrame(NDFrame):
                 self._data = self._data.take(indexer)
 
             self._clear_item_cache()
+            import warnings
+            warnings.warn("sort/sort_index with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
         else:
             return self.take(indexer, axis=axis)
 
@@ -3210,6 +3233,10 @@ class DataFrame(NDFrame):
                 self._data = self._data.take(indexer)
 
             self._clear_item_cache()
+            import warnings
+            warnings.warn("sortlevel with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
         else:
             return self.take(indexer, axis=axis)
 
@@ -3337,6 +3364,10 @@ class DataFrame(NDFrame):
 
         if inplace:
             self._data = new_data
+            import warnings
+            warnings.warn("fillna with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
         else:
             return self._constructor(new_data)
 
@@ -3384,6 +3415,11 @@ class DataFrame(NDFrame):
         """
         self._consolidate_inplace()
 
+        if inplace:
+            import warnings
+            warnings.warn("replace with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+
         if value is None:
             return self._interpolate(to_replace, method, axis, inplace, limit)
         else:
@@ -3416,7 +3452,7 @@ class DataFrame(NDFrame):
 
                 if inplace:
                     self._data = new_data
-                    return None
+                    return self
                 else:
                     return self._constructor(new_data)
             else:
@@ -3427,7 +3463,7 @@ class DataFrame(NDFrame):
                                                   inplace=inplace)
                     if inplace:
                         self._data = new_data
-                        return None
+                        return self
                     else:
                         return self._constructor(new_data)
 
@@ -3534,7 +3570,13 @@ class DataFrame(NDFrame):
         if columns is not None:
             result._rename_columns_inplace(columns_f)
 
-        return result if not inplace else None
+        if inplace:
+            import warnings
+            warnings.warn("rename with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
+        else:
+            return result
 
     def _rename_index_inplace(self, mapper):
         self._data = self._data.rename_axis(mapper, axis=1)

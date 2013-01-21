@@ -740,6 +740,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(x, y)
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         self.panel = _panel.copy()
         self.panel.major_axis.name = None
         self.panel.minor_axis.name = None
@@ -1437,6 +1440,9 @@ class TestLongPanel(unittest.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         panel = tm.makePanel()
         tm.add_nans(panel)
 

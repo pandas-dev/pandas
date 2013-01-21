@@ -54,6 +54,9 @@ bar2,12,13,14,15
         raise NotImplementedError
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         self.dirpath = curpath()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')

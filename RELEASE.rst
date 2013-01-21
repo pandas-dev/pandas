@@ -31,6 +31,16 @@ pandas 0.10.1
 
   - Add data inferface to World Bank WDI pandas.io.wb (#2592)
 
+**API Changes**
+
+  - Restored inplace=True behavior returning self (same object) with
+    deprecation warning until 0.11 (GH1893_)
+  - ``HDFStore``
+    - refactored HFDStore to deal with non-table stores as objects, will allow future enhancements
+    - removed keyword ``compression`` from ``put`` (replaced by keyword
+      ``complib`` to be consistent across library)
+    - warn `PerformanceWarning` if you are attempting to store types that will be pickled by PyTables
+
 **Improvements to existing features**
 
   - ``HDFStore``
@@ -110,15 +120,6 @@ pandas 0.10.1
   - Fix Period resampling bug when all values fall into a single bin (GH2070_)
   - Fix buggy interaction with usecols argument in read_csv when there is an
     implicit first index column (GH2654_)
-
-**API Changes**
-
-  - ``HDFStore``
-
-    - refactored HFDStore to deal with non-table stores as objects, will allow future enhancements
-    - removed keyword ``compression`` from ``put`` (replaced by keyword
-      ``complib`` to be consistent across library)
-    - warn `PerformanceWarning` if you are attempting to store types that will be pickled by PyTables
 
 .. _GH512: https://github.com/pydata/pandas/issues/512
 .. _GH1277: https://github.com/pydata/pandas/issues/1277

@@ -937,7 +937,11 @@ copy : boolean, default False
                 self.index = new_index
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
-                return
+                import warnings
+                warnings.warn("Series.reset_index with inplace=True will "
+                              "return None from pandas 0.11 onward",
+                              FutureWarning)
+                return self
             else:
                 return Series(self.values.copy(), index=new_index,
                               name=self.name)
@@ -2469,8 +2473,13 @@ copy : boolean, default False
         -------
         filled : Series
         """
+        if inplace:
+            import warnings
+            warnings.warn("Series.fillna with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+
         if not self._can_hold_na:
-            return self.copy() if not inplace else None
+            return self.copy() if not inplace else self
 
         if value is not None:
             if method is not None:
@@ -2496,7 +2505,10 @@ copy : boolean, default False
             else:
                 result = Series(values, index=self.index, name=self.name)
 
-        return result if not inplace else None
+        if inplace:
+            return self
+        else:
+            return result
 
     def ffill(self, inplace=False, limit=None):
         return self.fillna(method='ffill', inplace=inplace, limit=limit)
@@ -2596,7 +2608,13 @@ copy : boolean, default False
             raise ValueError('Unrecognized to_replace type %s' %
                              type(to_replace))
 
-        return result if not inplace else None
+        if inplace:
+            import warnings
+            warnings.warn("Series.replace with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
+        else:
+            return result
 
     def isin(self, values):
         """
@@ -2944,7 +2962,13 @@ copy : boolean, default False
         result = self if inplace else self.copy()
         result.index = [mapper_f(x) for x in self.index]
 
-        return result if not inplace else None
+        if inplace:
+            import warnings
+            warnings.warn("Series.rename with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
+        else:
+            return result
 
     @property
     def weekday(self):
