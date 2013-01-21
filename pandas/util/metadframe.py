@@ -150,11 +150,6 @@ class MetaDataframe(object):
         ''' Can be customized, but by default, reutrns the output of a standard Dataframe.'''
         return self._df.__union__()
 
-
-    @property
-    def ix(self):    
-        return self._deepcopy(self._df.ix)
-
     ### Operator overloading ####
     ### In place operations need to overwrite self._df
     def __add__(self, x):
