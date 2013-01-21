@@ -65,7 +65,7 @@ class MetaDataframe(object):
 
     def __getitem__(self, key):
         ''' Item lookup'''
-        return self._df.__getitem__(key)    
+        return self._deepcopy(self._df.__getitem__(key) )   
 
     def __setitem__(self, key, value):
         self._df.__setitem__(key, value)    
@@ -261,6 +261,5 @@ if __name__ == '__main__':
 #    df.save('outpath')
 #    f=open('outpath', 'r')
 #    df2=load(f)    
-
 
 
