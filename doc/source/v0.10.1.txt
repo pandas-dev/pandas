@@ -11,8 +11,13 @@ to.
 API changes
 ~~~~~~~~~~~
 
+- Groupby aggregations Max/Min no longer exclude non-numeric data (GH2700_)
+-
+
 New features
 ~~~~~~~~~~~~
+
+- MySQL support for database (contribution from Dan Allan)
 
 HDFStore
 ~~~~~~~~
@@ -95,7 +100,7 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_as_mu
 
 .. ipython:: python
 
-   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8), 
+   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8),
                                   columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
 
@@ -106,7 +111,7 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_as_mu
    # indiviual tables were created
    store.select('df1_mt')
    store.select('df2_mt')
-   
+
    # as a multiple
    store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], selector = 'df1_mt')
 
@@ -125,11 +130,31 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_as_mu
 - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
 - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
 - ``Select`` now supports passing ``start`` and ``stop`` to provide selection space limiting in selection.
+- Greatly improved ISO8601 (e.g., yyyy-mm-dd) date parsing for file parsers (GH2698_)
+- Allow ``DataFrame.merge`` to handle combinatorial sizes too large for 64-bit integer (GH2690_)
 
 **Bug Fixes**
-- ``HDFStore`` tables can now store ``float32`` types correctly (cannot be mixed with ``float64`` however)
+- ``HDFStore`` tables can now store ``float32`` types correctly (cannot be
+mixed with ``float64`` however)
+- Fixed Google Analytics prefix when specifying request segment (GH2713_).
+- Function to reset Google Analytics token store so users can recover from
+improperly setup client secrets (GH2687_).
+- Fixed groupby bug resulting in segfault when passing in MultiIndex (GH2706_)
+- Fixed bug where passing a Series with datetime64 values into `to_datetime`
+results in bogus output values (GH2699_)
+- Fixed bug in ``pattern in HDFStore`` expressions when pattern is not a valid
+regex (GH2694_)
+- Fixed performance issues while aggregating boolean data (GH2692_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
+.. _GH2706: https://github.com/pydata/pandas/issues/2706
+.. _GH2700: https://github.com/pydata/pandas/issues/2700
+.. _GH2699: https://github.com/pydata/pandas/issues/2699
+.. _GH2698: https://github.com/pydata/pandas/issues/2698
+.. _GH2694: https://github.com/pydata/pandas/issues/2694
+.. _GH2692: https://github.com/pydata/pandas/issues/2692
+.. _GH2690: https://github.com/pydata/pandas/issues/2690
+.. _GH2713: https://github.com/pydata/pandas/issues/2713
