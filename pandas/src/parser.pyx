@@ -172,8 +172,8 @@ cdef extern from "parser/tokenizer.h":
 
     void debug_print_parser(parser_t *self)
 
-    int tokenize_all_rows(parser_t *self) nogil
-    int tokenize_nrows(parser_t *self, size_t nrows) nogil
+    int tokenize_all_rows(parser_t *self)
+    int tokenize_nrows(parser_t *self, size_t nrows)
 
     int64_t str_to_int64(char *p_item, int64_t int_min,
                          int64_t int_max, int *error, char tsep)
@@ -695,8 +695,7 @@ cdef class TextReader:
 
     cdef _tokenize_rows(self, size_t nrows):
         cdef int status
-        with nogil:
-            status = tokenize_nrows(self.parser, nrows)
+        status = tokenize_nrows(self.parser, nrows)
 
         if self.parser.warn_msg != NULL:
             print >> sys.stderr, self.parser.warn_msg
@@ -723,8 +722,7 @@ cdef class TextReader:
                 raise ValueError('skip_footer can only be used to read '
                                  'the whole file')
         else:
-            with nogil:
-                status = tokenize_all_rows(self.parser)
+            status = tokenize_all_rows(self.parser)
 
             if self.parser.warn_msg != NULL:
                 print >> sys.stderr, self.parser.warn_msg

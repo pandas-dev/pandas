@@ -68,6 +68,7 @@ pandas 0.10.1
 
 **Bug fixes**
 
+  - Fix read_csv/read_table multithreading issues (GH2608_)
   - ``HDFStore``
 
     - correctly handle ``nan`` elements in string columns; serialize via the
@@ -127,6 +128,7 @@ pandas 0.10.1
 .. _GH2599: https://github.com/pydata/pandas/issues/2599
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
 .. _GH2576: https://github.com/pydata/pandas/issues/2576
+.. _GH2608: https://github.com/pydata/pandas/issues/2608
 .. _GH2613: https://github.com/pydata/pandas/issues/2613
 .. _GH2616: https://github.com/pydata/pandas/issues/2616
 .. _GH2621: https://github.com/pydata/pandas/issues/2621
