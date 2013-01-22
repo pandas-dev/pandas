@@ -12,7 +12,8 @@ API changes
 ~~~~~~~~~~~
 
 - Groupby aggregations Max/Min no longer exclude non-numeric data (GH2700_)
--
+- Resampling an empty DataFrame now returns an empty DataFrame instead of raising an exception (GH2640_)
+- The file reader will now raise an exception when NA values are found in an explicitly specified integer column instead of converting the column to float (GH2631_)
 
 New features
 ~~~~~~~~~~~~
@@ -132,6 +133,11 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_as_mu
 - ``Select`` now supports passing ``start`` and ``stop`` to provide selection space limiting in selection.
 - Greatly improved ISO8601 (e.g., yyyy-mm-dd) date parsing for file parsers (GH2698_)
 - Allow ``DataFrame.merge`` to handle combinatorial sizes too large for 64-bit integer (GH2690_)
+- Series now has unary negation (-series) and inversion (~series) operators (GH2686_)
+- DataFrame.plot now includes a ``logx`` parameter to change the x-axis to log scale (GH2327_)
+- Series arithmetic operators can now handle constant and ndarray input (GH2574_)
+- ExcelFile now takes a ``kind`` argument to specify the file type (GH2613_)
+- A faster implementation for Series.str methods (GH2602_)
 
 **Bug Fixes**
 - ``HDFStore`` tables can now store ``float32`` types correctly (cannot be
@@ -145,6 +151,25 @@ results in bogus output values (GH2699_)
 - Fixed bug in ``pattern in HDFStore`` expressions when pattern is not a valid
 regex (GH2694_)
 - Fixed performance issues while aggregating boolean data (GH2692_)
+- When given a boolean mask key and a Series of new values, Series __setitem__
+will now align the incoming values with the original Series (GH2686_)
+- Fixed MemoryError caused by performing counting sort on sorting MultiIndex
+levels with a very large number of combinatorial values (GH2684_)
+- Fixed bug that causes plotting to fail when the index is a DatetimeIndex with
+a fixed-offset timezone (GH2683_)
+- Corrected businessday subtraction logic when the offset is more than 5 bdays
+and the starting date is on a weekend (GH2680_)
+- Fixed C file parser behavior when the file has more columns than data
+(GH2668_)
+- Fixed file reader bug that misaligned columns with data in the presence of an
+implicit column and a specified `usecols` value
+- DataFrames with numerical or datetime indices are now sorted prior to
+plotting (GH2609_)
+- Fixed DataFrame.from_records error when passed columns, index, but empty
+records (GH2633_)
+- Several bug fixed for Series operations when dtype is datetime64 (GH2689_,
+GH2629_, GH2626_)
+
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -158,3 +183,20 @@ on GitHub for a complete list.
 .. _GH2692: https://github.com/pydata/pandas/issues/2692
 .. _GH2690: https://github.com/pydata/pandas/issues/2690
 .. _GH2713: https://github.com/pydata/pandas/issues/2713
+.. _GH2689: https://github.com/pydata/pandas/issues/2689
+.. _GH2686: https://github.com/pydata/pandas/issues/2686
+.. _GH2684: https://github.com/pydata/pandas/issues/2684
+.. _GH2683: https://github.com/pydata/pandas/issues/2683
+.. _GH2680: https://github.com/pydata/pandas/issues/2680
+.. _GH2668: https://github.com/pydata/pandas/issues/2668
+.. _GH2640: https://github.com/pydata/pandas/issues/2640
+.. _GH2609: https://github.com/pydata/pandas/issues/2609
+.. _GH2327: https://github.com/pydata/pandas/issues/2327
+.. _GH2574: https://github.com/pydata/pandas/issues/2574
+.. _GH2609: https://github.com/pydata/pandas/issues/2609
+.. _GH2631: https://github.com/pydata/pandas/issues/2631
+.. _GH2633: https://github.com/pydata/pandas/issues/2633
+.. _GH2629: https://github.com/pydata/pandas/issues/2629
+.. _GH2626: https://github.com/pydata/pandas/issues/2626
+.. _GH2613: https://github.com/pydata/pandas/issues/2613
+.. _GH2602: https://github.com/pydata/pandas/issues/2602
