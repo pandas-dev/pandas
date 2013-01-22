@@ -845,7 +845,13 @@ def banner(message):
     bar = '=' * 80
     return '%s\n%s\n%s' % (bar, message, bar)
 
+def _long_prod(vals):
+    result = 1L
+    for x in vals:
+        result *= x
+    return result
 
+    
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.

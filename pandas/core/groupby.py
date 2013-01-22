@@ -2242,7 +2242,7 @@ def _indexer_from_factorized(labels, shape, compress=True):
         max_group = len(obs_ids)
     else:
         comp_ids = group_index
-        max_group = np.prod(shape)
+        max_group = com._long_prod(shape)
 
     if max_group > 1e6:
         # Use mergesort to avoid memory errors in counting sort
