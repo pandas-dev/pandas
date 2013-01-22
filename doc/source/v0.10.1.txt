@@ -14,7 +14,7 @@ API changes
 New features
 ~~~~~~~~~~~~
 
-Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, in additional to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way. Furthermore datetime64 columns are created by default, when using ``datetime.datetime`` or ``Timestamp`` objects, rather than default as object dtype.
+Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way. Furthermore datetime64 columns are created by default, when using ``datetime.datetime`` or ``Timestamp`` objects, rather than default as object dtype.
 
 .. ipython:: python
 
