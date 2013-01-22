@@ -4287,9 +4287,9 @@ class DataFrame(NDFrame):
         applied : DataFrame
         """
 
-        # if we have a dtype == 'M8[ns]', provide boxed values
+        # if we have a datetime64 type, provide boxed values
         def infer(x):
-            if x.dtype == 'M8[ns]':
+            if com.is_datetime64_dtype(x):
                 x = lib.map_infer(x, lib.Timestamp)
             return lib.map_infer(x, func)
         return self.apply(infer)
