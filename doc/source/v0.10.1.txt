@@ -14,6 +14,8 @@ API changes
 - Groupby aggregations Max/Min no longer exclude non-numeric data (GH2700_)
 - Resampling an empty DataFrame now returns an empty DataFrame instead of raising an exception (GH2640_)
 - The file reader will now raise an exception when NA values are found in an explicitly specified integer column instead of converting the column to float (GH2631_)
+- DatetimeIndex.unique now returns a DatetimeIndex with the same name and
+- timezone instead of an array (GH2563_)
 
 New features
 ~~~~~~~~~~~~
@@ -200,3 +202,4 @@ on GitHub for a complete list.
 .. _GH2626: https://github.com/pydata/pandas/issues/2626
 .. _GH2613: https://github.com/pydata/pandas/issues/2613
 .. _GH2602: https://github.com/pydata/pandas/issues/2602
+.. _GH2563: https://github.com/pydata/pandas/issues/2563
