@@ -9,7 +9,9 @@ import copy
 import functools
 import cPickle
 
-from pandas import DataFrame
+from pandas.core.indexing import _NDFrameIndexer
+
+from pandas import DataFrame, Series
 
 ## for testing
 from numpy.random import randn
@@ -31,8 +33,8 @@ def mload(inname):
 
 def mloads(string):
     ''' Load a MetaDataframe from string stored in memory.'''
-    return cPickle.loads(string)   
-
+    return cPickle.loads(string)        
+        
 
 class MetaDataframe(object):
     ''' Base composition for subclassing dataframe.'''
@@ -110,7 +112,7 @@ class MetaDataframe(object):
 
         dfnew is used if one wants to pass a new dataframe in.  This is used primarily in calls from __getattr__.'''
         ### Store old value of df and remove current df to copy operation will take
-        olddf=self._df.copy() #Removed deepcopy
+        olddf=self._df.copy() #Removed deep=True because series return could not implement it
         self._df=None
 
         ### Create new object and apply new df 
@@ -203,6 +205,32 @@ class MetaDataframe(object):
         return self._df.__iter__()
 
 
+    ## Fancy indexing
+    _ix=None     
+        
+    @property	  	
+    def ix(self, *args, **kwargs):      	
+        ''' This just presents user with _NDFrameIndexer, so any calls go directly to it.'''
+        if self._ix is None:
+            self._ix = _MetaIndexer(self, _NDFrameIndexer(self) )
+        return self._ix        
+    
+class _MetaIndexer(object):
+    ''' This class exists to intercept returns from .ix and assign attributes properly.  The ix property actually just
+    relays everything to _NDFrameIndexer, so this is the best way I can think of to implement the return of __getitem__.
+    I had a more simple solution before (namely to just pass self to _NDFrameIndexer and this worked for slicing unless
+    the slice was to return a single object.  EG ix[0], which then returned a series with loss of custom attributes.'''
+    def __init__(self, metadf, indexer):
+        self.indexer=indexer #_NDFrameIndexer
+        self.metadf=metadf #MetaDataframe
+    
+    def __getitem__(self, key):
+        out=self.indexer.__getitem__(key)       
+        return self.metadf._deepcopy(out)
+    
+    
+
+
 class SubFoo(MetaDataframe):
     ''' Shows an example of how to subclass MetaDataframe with custom attributes, a and b.'''
 
@@ -226,6 +254,8 @@ if __name__ == '__main__':
 
     ### Create a MetaDataFrame
     meta_df=MetaDataframe(abs(randn(3,3)), index=['A','B','C'], columns=['c11','c22', 'c33'])    
+    
+    meta_df.to_csv('deletejunkme')
 
     ### Add some new attributes
     meta_df.a=50
@@ -233,6 +263,8 @@ if __name__ == '__main__':
     print 'See the original metadataframe\n'
     print meta_df
     print '\nI can operate on it (+ - / *) and call dataframe methods like rank()'
+    
+    meta_df.ix[0]
 
     ### Perform some intrinsic DF operations
     new=meta_df*50.0
@@ -256,5 +288,6 @@ if __name__ == '__main__':
 #    df.save('outpath')
 #    f=open('outpath', 'r')
 #    df2=load(f)    
+
 
 
