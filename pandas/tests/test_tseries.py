@@ -334,6 +334,12 @@ def test_convert_objects_complex_number():
         result = lib.maybe_convert_objects(arr)
         assert(issubclass(result.dtype.type, np.complexfloating))
 
+def test_convert_objects_datetime64():
+    from pandas import DataFrame
+    # GH2722
+    li = [datetime(2262, 4, 12),  datetime(1677, 9, 21), datetime(2000,1,1)]
+    df = DataFrame(li)
+    df.convert_objects(True)  # no exception
 
 def test_rank():
     from pandas.compat.scipy import rankdata
