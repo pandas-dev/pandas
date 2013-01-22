@@ -370,6 +370,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     '''
     Type inference function-- convert object array to proper dtype
     '''
+    from tslib import Timestamp
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
@@ -411,7 +412,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
             seen_float = 1
-        elif util.is_datetime64_object(val):
+        elif util.is_datetime64_object(val) and \
+             Timestamp(np.iinfo(np.int64).min+1) <= val <= Timestamp(np.iinfo(np.int64).max) :
             if convert_datetime:
                 idatetimes[i] = convert_to_tsobject(val, None).value
                 seen_datetime = 1
@@ -427,7 +429,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
-        elif PyDateTime_Check(val) or util.is_datetime64_object(val):
+        elif PyDateTime_Check(val) and  util.is_datetime64_object(val) and \
+                Timestamp(np.iinfo(np.int64).min+1) <= val <= Timestamp(np.iinfo(np.int64).max) :
             if convert_datetime:
                 seen_datetime = 1
                 idatetimes[i] = convert_to_tsobject(val, None).value
