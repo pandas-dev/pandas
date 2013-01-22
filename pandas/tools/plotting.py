@@ -520,12 +520,13 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     return ax
 
 
-def lag_plot(series, ax=None, **kwds):
+def lag_plot(series, lag=1, ax=None, **kwds):
     """Lag plot for time series.
 
     Parameters:
     -----------
     series: Time series
+    lag: lag of the scatter plot, default 1
     ax: Matplotlib axis object, optional
     kwds: Matplotlib scatter method keyword arguments, optional
 
@@ -535,12 +536,12 @@ def lag_plot(series, ax=None, **kwds):
     """
     import matplotlib.pyplot as plt
     data = series.values
-    y1 = data[:-1]
-    y2 = data[1:]
+    y1 = data[:-lag]
+    y2 = data[lag:]
     if ax is None:
         ax = plt.gca()
     ax.set_xlabel("y(t)")
-    ax.set_ylabel("y(t + 1)")
+    ax.set_ylabel("y(t + %s)" % lag)
     ax.scatter(y1, y2, **kwds)
     return ax
 
