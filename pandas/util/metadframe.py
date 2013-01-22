@@ -67,7 +67,7 @@ class MetaDataframe(object):
 
     def __getitem__(self, key):
         ''' Item lookup'''
-        return self._deepcopy(self._df.__getitem__(key) )   
+        return self._transfer(self._df.__getitem__(key) )   
 
     def __setitem__(self, key, value):
         self._df.__setitem__(key, value)    
@@ -106,7 +106,7 @@ class MetaDataframe(object):
             self.__dict__[name]=value
 
 
-    def _deepcopy(self, dfnew):
+    def _transfer(self, dfnew):
         ''' Copies all attribtues into a new object except has to store current dataframe
         in memory as this can't be copied correctly using copy.deepcopy.  Probably a quicker way...
 
@@ -141,7 +141,7 @@ class MetaDataframe(object):
 
         ### If operation returns a dataframe, return new TimeSpectra
         if isinstance(out, DataFrame):
-            dfout=self._deepcopy(out)
+            dfout=self._transfer(out)
             return dfout
 
         ### Otherwise return whatever the method return would be
@@ -155,42 +155,42 @@ class MetaDataframe(object):
     ### Operator overloading ####
     ### In place operations need to overwrite self._df
     def __add__(self, x):
-        return self._deepcopy(self._df.__add__(x))
+        return self._transfer(self._df.__add__(x))
 
     def __sub__(self, x):
-        return self._deepcopy(self._df.__sub__(x))
+        return self._transfer(self._df.__sub__(x))
 
     def __mul__(self, x):
-        return self._deepcopy(self._df.__mul__(x))
+        return self._transfer(self._df.__mul__(x))
 
     def __div__(self, x):
-        return self._deepcopy(self._df.__div__(x))
+        return self._transfer(self._df.__div__(x))
 
     def __truediv__(self, x):
-        return self._deepcopy(self._df.__truediv__(x))
+        return self._transfer(self._df.__truediv__(x))
 
     ### From what I can tell, __pos__(), __abs__() builtin to df, just __neg__()    
     def __neg__(self):  
-        return self._deepcopy(self._df.__neg__() )
+        return self._transfer(self._df.__neg__() )
 
     ### Object comparison operators
     def __lt__(self, x):
-        return self._deepcopy(self._df.__lt__(x))
+        return self._transfer(self._df.__lt__(x))
 
     def __le__(self, x):
-        return self._deepcopy(self._df.__le__(x))
+        return self._transfer(self._df.__le__(x))
 
     def __eq__(self, x):
-        return self._deepcopy(self._df.__eq__(x))
+        return self._transfer(self._df.__eq__(x))
 
     def __ne__(self, x):
-        return self._deepcopy(self._df.__ne__(x))
+        return self._transfer(self._df.__ne__(x))
 
     def __ge__(self, x):
-        return self._deepcopy(self._df.__ge__(x))
+        return self._transfer(self._df.__ge__(x))
 
     def __gt__(self, x):
-        return self._deepcopy(self._df.__gt__(x))     
+        return self._transfer(self._df.__gt__(x))     
 
     def __len__(self):
         return self._df.__len__()
@@ -226,7 +226,7 @@ class _MetaIndexer(object):
     
     def __getitem__(self, key):
         out=self.indexer.__getitem__(key)       
-        return self.metadf._deepcopy(out)
+        return self.metadf._transfer(out)
     
     
 
