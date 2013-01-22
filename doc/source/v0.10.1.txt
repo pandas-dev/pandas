@@ -1,19 +1,26 @@
 .. _whatsnew_0101:
 
-v0.10.1 (January ??, 2013)
+v0.10.1 (January 22, 2013)
 ---------------------------
 
-This is a minor release from 0.10.0 and includes many new features and
-enhancements along with a large number of bug fixes. There are also a number of
-important API changes that long-time pandas users should pay close attention
-to.
+This is a minor release from 0.10.0 and includes new features, enhancements,
+and bug fixes. In particular, there is substantial new HDFStore functionality
+contributed by Jeff Reback.
+
+An undesired API breakage with functions taking the ``inplace`` option has been
+reverted and deprecation warnings added.
 
 API changes
 ~~~~~~~~~~~
 
+- Functions taking an ``inplace`` option return the calling object as before. A
+  deprecation message has been added
 - Groupby aggregations Max/Min no longer exclude non-numeric data (GH2700_)
-- Resampling an empty DataFrame now returns an empty DataFrame instead of raising an exception (GH2640_)
-- The file reader will now raise an exception when NA values are found in an explicitly specified integer column instead of converting the column to float (GH2631_)
+- Resampling an empty DataFrame now returns an empty DataFrame instead of
+  raising an exception (GH2640_)
+- The file reader will now raise an exception when NA values are found in an
+  explicitly specified integer column instead of converting the column to float
+  (GH2631_)
 - DatetimeIndex.unique now returns a DatetimeIndex with the same name and
 - timezone instead of an array (GH2563_)
 
@@ -25,7 +32,8 @@ New features
 HDFStore
 ~~~~~~~~
 
-You may need to upgrade your existing data files. Please visit the **compatibility** section in the main docs.
+You may need to upgrade your existing data files. Please visit the
+**compatibility** section in the main docs.
 
 
 .. ipython:: python
@@ -34,7 +42,8 @@ You may need to upgrade your existing data files. Please visit the **compatibili
 
    os.remove('store.h5')
 
-You can designate (and index) certain columns that you want to be able to perform queries on a table, by passing a list to ``data_columns``
+You can designate (and index) certain columns that you want to be able to
+perform queries on a table, by passing a list to ``data_columns``
 
 .. ipython:: python
 
@@ -74,7 +83,9 @@ You can now store ``datetime64`` in data columns
     df_mixed1
     df_mixed1.get_dtype_counts()
 
-You can pass ``columns`` keyword to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``
+You can pass ``columns`` keyword to select to filter a list of the return
+columns, this is equivalent to passing a
+``Term('columns',list_of_columns_to_filter)``
 
 .. ipython:: python
 
@@ -99,7 +110,9 @@ You can pass ``columns`` keyword to select to filter a list of the return column
    # the levels are automatically included as data columns
    store.select('mi', Term('foo=bar'))
 
-Multi-table creation via ``append_to_multiple`` and selection via ``select_as_multiple`` can create/select from multiple tables and return a combined result, by using ``where`` on a selector table.
+Multi-table creation via ``append_to_multiple`` and selection via
+``select_as_multiple`` can create/select from multiple tables and return a
+combined result, by using ``where`` on a selector table.
 
 .. ipython:: python
 
@@ -128,13 +141,29 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_as_mu
 **Enhancements**
 
 - ``HDFStore`` now can read native PyTables table format tables
-- You can pass ``nan_rep = 'my_nan_rep'`` to append, to change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
-- You can pass ``index`` to ``append``. This defaults to ``True``. This will automagically create indicies on the *indexables* and *data columns* of the table
-- You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
-- You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
-- ``Select`` now supports passing ``start`` and ``stop`` to provide selection space limiting in selection.
+
+- You can pass ``nan_rep = 'my_nan_rep'`` to append, to change the default nan
+  representation on disk (which converts to/from `np.nan`), this defaults to
+  `nan`.
+
+- You can pass ``index`` to ``append``. This defaults to ``True``. This will
+  automagically create indicies on the *indexables* and *data columns* of the
+  table
+
+- You can pass ``chunksize=an integer`` to ``append``, to change the writing
+  chunksize (default is 50000). This will signficantly lower your memory usage
+  on writing.
+
+- You can pass ``expectedrows=an integer`` to the first ``append``, to set the
+  TOTAL number of expectedrows that ``PyTables`` will expected. This will
+  optimize read/write performance.
+
+- ``Select`` now supports passing ``start`` and ``stop`` to provide selection
+  space limiting in selection.
+
 - Greatly improved ISO8601 (e.g., yyyy-mm-dd) date parsing for file parsers (GH2698_)
-- Allow ``DataFrame.merge`` to handle combinatorial sizes too large for 64-bit integer (GH2690_)
+- Allow ``DataFrame.merge`` to handle combinatorial sizes too large for 64-bit
+  integer (GH2690_)
 - Series now has unary negation (-series) and inversion (~series) operators (GH2686_)
 - DataFrame.plot now includes a ``logx`` parameter to change the x-axis to log scale (GH2327_)
 - Series arithmetic operators can now handle constant and ndarray input (GH2574_)
@@ -142,8 +171,9 @@ Multi-table creation via ``append_to_multiple`` and selection via ``select_as_mu
 - A faster implementation for Series.str methods (GH2602_)
 
 **Bug Fixes**
+
 - ``HDFStore`` tables can now store ``float32`` types correctly (cannot be
-mixed with ``float64`` however)
+  mixed with ``float64`` however)
 - Fixed Google Analytics prefix when specifying request segment (GH2713_).
 - Function to reset Google Analytics token store so users can recover from
 improperly setup client secrets (GH2687_).
