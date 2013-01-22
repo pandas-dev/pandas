@@ -160,6 +160,7 @@ class TestSeriesPlots(unittest.TestCase):
     def test_lag_plot(self):
         from pandas.tools.plotting import lag_plot
         _check_plot_works(lag_plot, self.ts)
+        _check_plot_works(lag_plot, self.ts, lag=5)
 
     @slow
     def test_bootstrap_plot(self):
