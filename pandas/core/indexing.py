@@ -435,23 +435,27 @@ class _NDFrameIndexer(object):
         if isinstance(obj, slice):
             ltype = labels.inferred_type
 
-            if ltype == 'floating':
-                int_slice = _is_int_slice(obj)
-            else:
-                # floats that are within tolerance of int used
-                int_slice = _is_index_slice(obj)
+            # in case of providing all floats, use label-based indexing
+            float_slice = (labels.inferred_type == 'floating'
+                           and _is_float_slice(obj))
+
+            # floats that are within tolerance of int used as positions
+            int_slice = _is_index_slice(obj)
 
             null_slice = obj.start is None and obj.stop is None
-            # could have integers in the first level of the MultiIndex
+
+            # could have integers in the first level of the MultiIndex,
+            # in which case we wouldn't want to do position-based slicing
             position_slice = (int_slice
                               and not ltype == 'integer'
-                              and not isinstance(labels, MultiIndex))
+                              and not isinstance(labels, MultiIndex)
+                              and not float_slice)
 
             start, stop = obj.start, obj.stop
 
             # last ditch effort: if we are mixed and have integers
             try:
-                if 'mixed' in ltype and int_slice:
+                if position_slice and 'mixed' in ltype:
                     if start is not None:
                         i = labels.get_loc(start)
                     if stop is not None:
@@ -468,7 +472,7 @@ class _NDFrameIndexer(object):
                     indexer = labels.slice_indexer(start, stop, obj.step)
                 except Exception:
                     if _is_index_slice(obj):
-                        if labels.inferred_type == 'integer':
+                        if ltype == 'integer':
                             raise
                         indexer = obj
                     else:
@@ -539,34 +543,36 @@ class _NDFrameIndexer(object):
 
         labels = obj._get_axis(axis)
 
-        int_slice = _is_index_slice(slice_obj)
-
-        start = slice_obj.start
-        stop = slice_obj.stop
+        ltype = labels.inferred_type
 
         # in case of providing all floats, use label-based indexing
         float_slice = (labels.inferred_type == 'floating'
                        and _is_float_slice(slice_obj))
 
+        # floats that are within tolerance of int used as positions
+        int_slice = _is_index_slice(slice_obj)
+
         null_slice = slice_obj.start is None and slice_obj.stop is None
 
-        # could have integers in the first level of the MultiIndex, in which
-        # case we wouldn't want to do position-based slicing
+        # could have integers in the first level of the MultiIndex,
+        # in which case we wouldn't want to do position-based slicing
         position_slice = (int_slice
-                          and labels.inferred_type != 'integer'
+                          and not ltype == 'integer'
                           and not isinstance(labels, MultiIndex)
                           and not float_slice)
 
+        start, stop = slice_obj.start, slice_obj.stop
+
         # last ditch effort: if we are mixed and have integers
         try:
-            if 'mixed' in labels.inferred_type and int_slice:
+            if position_slice and 'mixed' in ltype:
                 if start is not None:
                     i = labels.get_loc(start)
                 if stop is not None:
                     j = labels.get_loc(stop)
                 position_slice = False
         except KeyError:
-            if labels.inferred_type == 'mixed-integer-float':
+            if ltype == 'mixed-integer-float':
                 raise
 
         if null_slice or position_slice:
@@ -576,7 +582,7 @@ class _NDFrameIndexer(object):
                 indexer = labels.slice_indexer(start, stop, slice_obj.step)
             except Exception:
                 if _is_index_slice(slice_obj):
-                    if labels.inferred_type == 'integer':
+                    if ltype == 'integer':
                         raise
                     indexer = slice_obj
                 else:

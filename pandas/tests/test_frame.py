@@ -1183,6 +1183,45 @@ class CheckIndexing(object):
         self.assertRaises(Exception, df.ix.__getitem__, slice(1, 2))
         self.assertRaises(Exception, df.ix.__setitem__, slice(1, 2), 0)
 
+        # #2727
+        index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
+        df = DataFrame(np.random.randn(5, 5), index=index)
+
+        # positional slicing!
+        result = df.ix[1.0:5]
+        expected = df.reindex([2.5, 3.5, 4.5, 5.0])
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 4)
+
+        # positional again
+        result = df.ix[4:5]
+        expected = df.reindex([5.0])
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 1)
+
+        # label-based
+        result = df.ix[1.0:5.0]
+        expected = df.reindex([1.0, 2.5, 3.5, 4.5, 5.0])
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 5)
+    
+        cp = df.copy()
+        # positional slicing!
+        cp.ix[1.0:5] = 0
+        self.assert_((cp.ix[1.0:5] == 0).values.all())
+        self.assert_((cp.ix[0:1] == df.ix[0:1]).values.all())
+
+        cp = df.copy()
+        # positional again
+        cp.ix[4:5] = 0
+        self.assert_((cp.ix[4:5] == 0).values.all())
+        self.assert_((cp.ix[0:4] == df.ix[0:4]).values.all())
+        
+        cp = df.copy()
+        # label-based 
+        cp.ix[1.0:5.0] = 0
+        self.assert_((cp.ix[1.0:5.0] == 0).values.all())
+
     def test_setitem_single_column_mixed(self):
         df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
                        columns=['foo', 'bar', 'baz'])
