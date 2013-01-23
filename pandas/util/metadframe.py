@@ -148,6 +148,9 @@ class MetaDataframe(object):
         else:
             return out
 
+    def __repr__(self):
+        return self._df.__repr__()
+
     def __union__(self):
         ''' Can be customized, but by default, reutrns the output of a standard Dataframe.'''
         return self._df.__union__()
