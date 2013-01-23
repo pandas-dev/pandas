@@ -85,30 +85,30 @@ else:
                      "  use pip or easy_install."
                      "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
-try:
-    import numpy as np
-except ImportError:
-    nonumpy_msg = ("# numpy needed to finish setup.  run:\n\n"
-                   "    $ pip install numpy  # or easy_install numpy\n")
-    sys.exit(nonumpy_msg)
-
-if np.__version__ < '1.6.1':
-    msg = "pandas requires NumPy >= 1.6.1 due to datetime64 dependency"
-    sys.exit(msg)
-
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.sdist import sdist
-from distutils.command.build_ext import build_ext
+from distutils.command.build_ext import build_ext as _build_ext
 
 try:
-    from Cython.Distutils import build_ext
+    from Cython.Distutils import build_ext as _build_ext
     # from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython = True
 except ImportError:
     cython = False
 
 from os.path import splitext, basename, join as pjoin
+
+
+class build_ext(_build_ext):
+    def build_extensions(self):
+        numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
+
+        for ext in self.extensions:
+            if hasattr(ext, 'include_dirs') and not numpy_incl in ext.include_dirs:
+                ext.include_dirs.append(numpy_incl)
+        _build_ext.build_extensions(self)
+
 
 DESCRIPTION = ("Powerful data structures for data analysis, time series,"
                "and statistics")
@@ -341,10 +341,7 @@ class CheckingBuildExt(build_ext):
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
-        self.check_extensions_list(self.extensions)
-
-        for ext in self.extensions:
-            self.build_extension(ext)
+        build_ext.build_extensions(self)
 
 
 class CompilationCacheMixin(object):
@@ -577,7 +574,7 @@ else:
     lib_depends = []
     plib_depends = []
 
-common_include = [np.get_include(), 'pandas/src/klib', 'pandas/src']
+common_include = ['pandas/src/klib', 'pandas/src']
 
 
 def pxd(name):
@@ -636,7 +633,7 @@ for name, data in ext_data.items():
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
-                       include_dirs=[np.get_include()],
+                       include_dirs=[],
                        libraries=libraries)
 
 
@@ -658,7 +655,7 @@ sandbox_ext = Extension('pandas._sandbox',
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
-                           include_dirs=[np.get_include()])
+                           include_dirs=[])
 
 extensions.extend([sparse_ext, parser_ext])
 
