@@ -120,6 +120,12 @@ pc_line_width_doc = """
     Default 80
     When printing wide DataFrames, this is the width of each line.
 """
+pc_chop_threshold_doc = """
+: float or None
+    Default None
+    if set to a float value, all float values smaller then the given threshold
+    will be displayed as exactly 0 by repr and friends.
+"""
 
 with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
@@ -146,6 +152,7 @@ with cf.config_prefix('display'):
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('line_width', 80, pc_line_width_doc)
+    cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
 
 tc_sim_interactive_doc = """
 : boolean
