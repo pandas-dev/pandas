@@ -885,6 +885,17 @@ For example, using the earlier example data, we could do:
     wp.minor_axis
     wp.minor_xs('C')
 
+Squeezing
+~~~~~~~~~
+
+Another way to change the dimensionality of an object is to ``squeeze`` a 1-len object, similar to ``wp['Item1']``
+
+.. ipython:: python
+
+   wp.reindex(items=['Item1']).squeeze()
+   wp.reindex(items=['Item1'],minor=['B']).squeeze()
+
+
 Conversion to DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -899,6 +910,7 @@ method:
                  major_axis=date_range('1/1/2000', periods=5),
                  minor_axis=['a', 'b', 'c', 'd'])
    panel.to_frame()
+
 
 Panel4D (Experimental)
 ----------------------

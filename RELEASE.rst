@@ -33,6 +33,7 @@ pandas 0.11.0
     DataFrames and propogate in operations
   - Add function to pandas.io.data for retrieving stock index components from
     Yahoo! finance (#2795)
+  - Add ``squeeze`` function to reduce dimensionality of 1-len objects
 
 **Improvements to existing features**
 
