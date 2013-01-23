@@ -329,6 +329,8 @@ class BusinessDay(CacheableOffset, DateOffset):
             if abs(n) > 5:
                 k = n // 5
                 result = result + timedelta(7 * k)
+                if n < 0 and result.weekday() > 4:
+                    n += 1
                 n -= 5 * k
 
             while n != 0:

@@ -253,7 +253,10 @@ class TestDataFrameFormatting(unittest.TestCase):
         a = 'str<ing1'
         b = 'stri>ng2'
 
-        test_dict = {'co<l1':{a:type(a), b:type(b)},'co>l2':{a:type(a), b:type(b)}}
+        test_dict = {'co<l1': {a: "<type 'str'>",
+                               b: "<type 'str'>"},
+                     'co>l2':{a: "<type 'str'>",
+                              b: "<type 'str'>"}}
         rs = pd.DataFrame(test_dict).to_html()
         xp = """<table border="1" class="dataframe">
   <thead>

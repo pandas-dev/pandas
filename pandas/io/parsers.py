@@ -45,6 +45,8 @@ quoting : string
 skipinitialspace : boolean, default False
     Skip spaces after delimiter
 escapechar : string
+dtype : Type name or dict of column -> type
+    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
 compression : {'gzip', 'bz2', None}, default None
     For on-the-fly decompression of on-disk data
 dialect : string or csv.Dialect instance, default None
@@ -115,6 +117,10 @@ encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
+na_filter: boolean, default True
+    Detect missing value markers (empty strings and the value of na_values). In
+    data without any NAs, passing na_filter=False can improve the performance
+    of reading a large file
 
 Returns
 -------
@@ -820,11 +826,13 @@ class ParserBase(object):
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
             except Exception:
-                na_count = lib.sanitize_objects(values, na_values, False)
                 result = values
+                if values.dtype == np.object_:
+                    na_count = lib.sanitize_objects(result, na_values, False)
         else:
-            na_count = lib.sanitize_objects(values, na_values, False)
             result = values
+            if values.dtype == np.object_:
+                na_count = lib.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
             result = lib.maybe_convert_bool(values,
@@ -1798,18 +1806,23 @@ class ExcelFile(object):
     ----------
     path : string or file-like object
         Path to xls or xlsx file
+    kind : {'xls', 'xlsx', None}, default None
     """
-    def __init__(self, path_or_buf):
-        self.use_xlsx = True
+    def __init__(self, path_or_buf, kind=None):
+        self.kind = kind
+        self.use_xlsx = kind == 'xls'
+
         self.path_or_buf = path_or_buf
         self.tmpfile = None
 
         if isinstance(path_or_buf, basestring):
-            if path_or_buf.endswith('.xls'):
+            if kind == 'xls' or (kind is None and
+                                 path_or_buf.endswith('.xls')):
                 self.use_xlsx = False
                 import xlrd
                 self.book = xlrd.open_workbook(path_or_buf)
             else:
+                self.use_xlsx = True
                 try:
                     from openpyxl.reader.excel import load_workbook
                     self.book = load_workbook(path_or_buf, use_iterators=True)
@@ -1818,14 +1831,23 @@ class ExcelFile(object):
         else:
             data = path_or_buf.read()
 
-            try:
+            if self.kind == 'xls':
                 import xlrd
                 self.book = xlrd.open_workbook(file_contents=data)
-                self.use_xlsx = False
-            except Exception:
+            elif self.kind == 'xlsx':
                 from openpyxl.reader.excel import load_workbook
                 buf = py3compat.BytesIO(data)
                 self.book = load_workbook(buf, use_iterators=True)
+            else:
+                try:
+                    import xlrd
+                    self.book = xlrd.open_workbook(file_contents=data)
+                    self.use_xlsx = False
+                except Exception:
+                    self.use_xlsx = True
+                    from openpyxl.reader.excel import load_workbook
+                    buf = py3compat.BytesIO(data)
+                    self.book = load_workbook(buf, use_iterators=True)
 
     def __repr__(self):
         return object.__repr__(self)

@@ -845,7 +845,13 @@ def banner(message):
     bar = '=' * 80
     return '%s\n%s\n%s' % (bar, message, bar)
 
+def _long_prod(vals):
+    result = 1L
+    for x in vals:
+        result *= x
+    return result
 
+    
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.
@@ -1216,13 +1222,39 @@ def _concat_compat(to_concat, axis=0):
     # filter empty arrays
     to_concat = [x for x in to_concat if x.shape[axis] > 0]
 
-    if all(x.dtype == _NS_DTYPE for x in to_concat):
+    is_datetime64 = [x.dtype == _NS_DTYPE for x in to_concat]
+    if all(is_datetime64):
         # work around NumPy 1.6 bug
         new_values = np.concatenate([x.view(np.int64) for x in to_concat],
                                     axis=axis)
         return new_values.view(_NS_DTYPE)
-    else:
-        return np.concatenate(to_concat, axis=axis)
+    elif any(is_datetime64):
+        to_concat = [_to_pydatetime(x) for x in to_concat]
+
+    return np.concatenate(to_concat, axis=axis)
+
+
+def _to_pydatetime(x):
+    if x.dtype == _NS_DTYPE:
+        shape = x.shape
+        x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
+        x = x.reshape(shape)
+
+    return x
+
+
+def _where_compat(mask, arr1, arr2):
+    if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:
+        new_vals = np.where(mask, arr1.view(np.int64), arr2.view(np.int64))
+        return new_vals.view(_NS_DTYPE)
+
+    import pandas.tslib as tslib
+    if arr1.dtype == _NS_DTYPE:
+        arr1 = tslib.ints_to_pydatetime(arr1.view(np.int64))
+    if arr2.dtype == _NS_DTYPE:
+        arr2 = tslib.ints_to_pydatetime(arr2.view(np.int64))
+
+    return np.where(mask, arr1, arr2)
 
 
 def in_interactive_session():

@@ -127,3 +127,7 @@ def init_service(http):
     Use the given http object to build the analytics service object
     """
     return gapi.build('analytics', 'v3', http=http)
+
+def reset_default_token_store():
+    import os
+    os.remove(DEFAULT_TOKEN_FILE)

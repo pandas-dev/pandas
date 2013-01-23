@@ -86,6 +86,11 @@ redirect : str, optional
     Local host redirect if unspecified
 """
 
+def reset_token_store():
+    """
+    Deletes the default token store
+    """
+    auth.reset_default_token_store()
 
 @Substitution(extras=_AUTH_PARAMS)
 @Appender(_GA_READER_DOC)
@@ -347,9 +352,16 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
                end_date=end_date)
     qry.update(kwargs)
 
-    names = ['dimensions', 'segment', 'filters', 'sort']
-    lst = [dimensions, segment, filters, sort]
+    names = ['dimensions', 'filters', 'sort']
+    lst = [dimensions, filters, sort]
     [_maybe_add_arg(qry, n, d) for n, d in zip(names, lst)]
+
+    if isinstance(segment, basestring):
+        _maybe_add_arg(qry, 'segment', segment, 'dynamic::ga')
+    elif isinstance(segment, int):
+        _maybe_add_arg(qry, 'segment', segment, 'gaid:')
+    elif segment:
+        raise ValueError("segment must be string for dynamic and int ID")
 
     if start_index is not None:
         qry['start_index'] = str(start_index)
@@ -360,13 +372,12 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
     return qry
 
 
-def _maybe_add_arg(query, field, data):
+def _maybe_add_arg(query, field, data, prefix='ga'):
     if data is not None:
-        if isinstance(data, basestring):
+        if isinstance(data, (basestring, int)):
             data = [data]
-        data = ','.join(['ga:%s' % x for x in data])
+        data = ','.join(['%s:%s' % (prefix, x) for x in data])
         query[field] = data
-
 
 def _get_match(obj_store, name, id, **kwargs):
     key, val = None, None

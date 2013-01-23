@@ -25,6 +25,9 @@ class TestMultiLevel(unittest.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
@@ -611,6 +614,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         rs = self.frame.copy()
         rs.sortlevel(0, inplace=True)
         assert_frame_equal(rs, self.frame.sortlevel(0))
+
+    def test_sortlevel_large_cardinality(self):
+        # #2684
+        index = MultiIndex.from_arrays([np.arange(4000)]*3)
+        df = DataFrame(np.random.randn(4000), index=index)
+
+        # it works!
+        result = df.sortlevel(0)
+        self.assertTrue(result.index.lexsort_depth == 3)
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple for tuple in cart_product(['foo', 'bar'],
@@ -1745,6 +1757,16 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertTrue(isnull(index[4][0]))
         self.assertTrue(isnull(index.values[4][0]))
 
+    def test_duplicate_groupby_issues(self):
+        idx_tp = [('600809', '20061231'), ('600809', '20070331'),
+                  ('600809', '20070630'), ('600809', '20070331')]
+        dt = ['demo','demo','demo','demo']
+
+        idx = MultiIndex.from_tuples(idx_tp,names = ['STK_ID','RPT_Date'])
+        s = Series(dt, index=idx)
+
+        result = s.groupby(s.index).first()
+        self.assertEquals(len(result), 3)
 
 if __name__ == '__main__':
 

@@ -441,6 +441,15 @@ class TestTimeZoneSupport(unittest.TestCase):
         result = to_datetime(dates)
         self.assert_(result.tz == fixed_off)
 
+    def test_fixedtz_topydatetime(self):
+        dates = np.array([datetime(2000, 1, 1, tzinfo=fixed_off),
+                          datetime(2000, 1, 2, tzinfo=fixed_off),
+                          datetime(2000, 1, 3, tzinfo=fixed_off)])
+        result = to_datetime(dates).to_pydatetime()
+        self.assert_(np.array_equal(dates, result))
+        result = to_datetime(dates)._mpl_repr()
+        self.assert_(np.array_equal(dates, result))
+
     def test_convert_tz_aware_datetime_datetime(self):
         # #1581
 

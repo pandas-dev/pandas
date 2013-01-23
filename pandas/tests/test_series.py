@@ -84,6 +84,20 @@ class CheckNameIntegration(object):
         result = self.ts.combine_first(self.ts[:5])
         self.assertEquals(result.name, self.ts.name)
 
+    def test_combine_first_dt64(self):
+        from pandas.tseries.tools import to_datetime
+        s0 = to_datetime(Series(["2010", np.NaN]))
+        s1 = to_datetime(Series([np.NaN, "2011"]))
+        rs = s0.combine_first(s1)
+        xp = to_datetime(Series(['2010', '2011']))
+        assert_series_equal(rs, xp)
+
+        s0 = to_datetime(Series(["2010", np.NaN]))
+        s1 = Series([np.NaN, "2011"])
+        rs = s0.combine_first(s1)
+        xp = Series([datetime(2010, 1, 1), '2011'])
+        assert_series_equal(rs, xp)
+
     def test_getitem_preserve_name(self):
         result = self.ts[self.ts > 0]
         self.assertEquals(result.name, self.ts.name)
@@ -235,6 +249,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     _multiprocess_can_split_ = True
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         self.ts = _ts.copy()
         self.ts.name = 'ts'
 
@@ -1001,9 +1018,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         rs = s.copy()
 
-        res = rs.where(cond, inplace=True)
-        self.assertTrue(res is None)
-
+        rs.where(cond, inplace=True)
         assert_series_equal(rs.dropna(), s[cond])
         assert_series_equal(rs, s.where(cond))
 
@@ -2974,9 +2989,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_rename_inplace(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         expected = renamer(self.ts.index[0])
-        res = self.ts.rename(renamer, inplace=True)
 
-        self.assertTrue(res is None)
+        self.ts.rename(renamer, inplace=True)
         self.assertEqual(self.ts.index[0], expected)
 
     def test_preserveRefs(self):
@@ -2994,8 +3008,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         x = TimeSeries([np.nan, 1., np.nan, 3., np.nan],
                        ['z', 'a', 'b', 'c', 'd'], dtype=float)
 
-        res = x.fillna(method='pad', inplace=True)
-        self.assertTrue(res is None)
+        x.fillna(method='pad', inplace=True)
 
         expected = TimeSeries([np.nan, 1.0, 1.0, 3.0, 3.0],
                               ['z', 'a', 'b', 'c', 'd'], dtype=float)
@@ -3046,7 +3059,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
-        self.assert_(s.fillna(method='ffill', inplace=True) is None)
+        s.fillna(method='ffill', inplace=True)
         assert_series_equal(s.fillna(method='ffill', inplace=False), s)
 
 #-------------------------------------------------------------------------------
@@ -3083,8 +3096,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
         y = x.copy()
 
-        res = y.fillna(value=0, inplace=True)
-        self.assert_(res is None)
+        y.fillna(value=0, inplace=True)
 
         expected = x.fillna(value=0)
         assert_series_equal(y, expected)
@@ -3112,8 +3124,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ser[6:10] = 0
 
         # replace list with a single value
-        rs = ser.replace([np.nan], -1, inplace=True)
-        self.assertTrue(rs is None)
+        ser.replace([np.nan], -1, inplace=True)
 
         exp = ser.fillna(-1)
         assert_series_equal(ser, exp)
@@ -3159,9 +3170,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(rs4[4], ser[5])
 
         # replace inplace
-        res = ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
-
-        self.assertTrue(res is None)
+        ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
 
         self.assert_((ser[:5] == -1).all())
         self.assert_((ser[6:10] == -1).all())
@@ -3417,8 +3426,7 @@ class TestSeriesNonUnique(unittest.TestCase):
         # check inplace
         s = ser.reset_index(drop=True)
         s2 = ser
-        res = s2.reset_index(drop=True, inplace=True)
-        self.assertTrue(res is None)
+        s2.reset_index(drop=True, inplace=True)
         assert_series_equal(s, s2)
 
         # level

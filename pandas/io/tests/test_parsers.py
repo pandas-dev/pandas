@@ -54,6 +54,9 @@ bar2,12,13,14,15
         raise NotImplementedError
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         self.dirpath = curpath()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
@@ -1854,6 +1857,16 @@ a,b,c
         # length conflict, passed names and usecols disagree
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           names=['a', 'b'], usecols=[1], header=None)
+
+    def test_usecols_implicit_index_col(self):
+        # #2654
+        data = 'a,b,c\n4,apple,bat,5.7\n8,orange,cow,10'
+
+        result = self.read_csv(StringIO(data), usecols=['a', 'b'])
+        expected = DataFrame({'a': ['apple', 'orange'],
+                              'b': ['bat', 'cow']}, index=[4, 8])
+
+        tm.assert_frame_equal(result, expected)
 
     def test_pure_python_failover(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"

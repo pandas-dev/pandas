@@ -937,7 +937,11 @@ copy : boolean, default False
                 self.index = new_index
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
-                return
+                import warnings
+                warnings.warn("Series.reset_index with inplace=True will "
+                              "return None from pandas 0.11 onward",
+                              FutureWarning)
+                return self
             else:
                 return Series(self.values.copy(), index=new_index,
                               name=self.name)
@@ -1118,7 +1122,7 @@ copy : boolean, default False
     __le__ = _comp_method(operator.le, '__le__')
     __eq__ = _comp_method(operator.eq, '__eq__')
     __ne__ = _comp_method(operator.ne, '__ne__')
-    
+
     # inversion
     def __neg__(self):
         arr = operator.neg(self.values)
@@ -1924,8 +1928,8 @@ copy : boolean, default False
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
         name = _maybe_match_name(self, other)
-        return Series(np.where(isnull(this), other, this), index=new_index,
-                      name=name)
+        rs_vals = com._where_compat(isnull(this), other, this)
+        return Series(rs_vals, index=new_index, name=name)
 
     def update(self, other):
         """
@@ -2234,6 +2238,8 @@ copy : boolean, default False
             same index as caller
         """
         values = self.values
+        if com.is_datetime64_dtype(values.dtype):
+            values = lib.map_infer(values, lib.Timestamp)
 
         if na_action == 'ignore':
             mask = isnull(values)
@@ -2283,7 +2289,11 @@ copy : boolean, default False
         if isinstance(f, np.ufunc):
             return f(self)
 
-        mapped = lib.map_infer(self.values, f, convert=convert_dtype)
+        values = self.values
+        if com.is_datetime64_dtype(values.dtype):
+            values = lib.map_infer(values, lib.Timestamp)
+
+        mapped = lib.map_infer(values, f, convert=convert_dtype)
         if isinstance(mapped[0], Series):
             from pandas.core.frame import DataFrame
             return DataFrame(mapped.tolist(), index=self.index)
@@ -2463,8 +2473,13 @@ copy : boolean, default False
         -------
         filled : Series
         """
+        if inplace:
+            import warnings
+            warnings.warn("Series.fillna with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+
         if not self._can_hold_na:
-            return self.copy() if not inplace else None
+            return self.copy() if not inplace else self
 
         if value is not None:
             if method is not None:
@@ -2490,7 +2505,10 @@ copy : boolean, default False
             else:
                 result = Series(values, index=self.index, name=self.name)
 
-        return result if not inplace else None
+        if inplace:
+            return self
+        else:
+            return result
 
     def ffill(self, inplace=False, limit=None):
         return self.fillna(method='ffill', inplace=inplace, limit=limit)
@@ -2590,7 +2608,13 @@ copy : boolean, default False
             raise ValueError('Unrecognized to_replace type %s' %
                              type(to_replace))
 
-        return result if not inplace else None
+        if inplace:
+            import warnings
+            warnings.warn("Series.replace with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
+        else:
+            return result
 
     def isin(self, values):
         """
@@ -2938,7 +2962,13 @@ copy : boolean, default False
         result = self if inplace else self.copy()
         result.index = [mapper_f(x) for x in self.index]
 
-        return result if not inplace else None
+        if inplace:
+            import warnings
+            warnings.warn("Series.rename with inplace=True  will return None"
+                          " from pandas 0.11 onward", FutureWarning)
+            return self
+        else:
+            return result
 
     @property
     def weekday(self):

@@ -32,6 +32,8 @@ class TestHDFStore(unittest.TestCase):
     scratchpath = '__scratch__.h5'
 
     def setUp(self):
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         self.path = '__%s__.h5' % tm.rands(10)
         self.store = HDFStore(self.path)
 

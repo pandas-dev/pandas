@@ -105,6 +105,7 @@ Note:
 
 .. ipython:: python
 
+    data= 'a,b,c\n1,Yes,2\n3,No,4'
     print data
     pd.read_csv(StringIO(data), header=None)
     pd.read_csv(StringIO(data), header=None, prefix='X')
@@ -115,7 +116,6 @@ Note:
 
 .. ipython:: python
 
-    data= 'a,b,c\n1,Yes,2\n3,No,4'
     print data
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), true_values=['Yes'], false_values=['No'])

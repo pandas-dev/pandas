@@ -402,7 +402,7 @@ def _unstack_frame(obj, level):
 
 def get_compressed_ids(labels, sizes):
     # no overflow
-    if _long_prod(sizes) < 2 ** 63:
+    if com._long_prod(sizes) < 2 ** 63:
         group_index = get_group_index(labels, sizes)
         comp_index, obs_ids = _compress_group_index(group_index)
     else:
@@ -411,9 +411,9 @@ def get_compressed_ids(labels, sizes):
         for v in labels:
             mask |= v < 0
 
-        while _long_prod(sizes) >= 2 ** 63:
+        while com._long_prod(sizes) >= 2 ** 63:
             i = len(sizes)
-            while _long_prod(sizes[:i]) >= 2 ** 63:
+            while com._long_prod(sizes[:i]) >= 2 ** 63:
                 i -= 1
 
             rem_index, rem_ids = get_compressed_ids(labels[:i],
@@ -424,13 +424,6 @@ def get_compressed_ids(labels, sizes):
         return get_compressed_ids(labels, sizes)
 
     return comp_index, obs_ids
-
-
-def _long_prod(vals):
-    result = 1L
-    for x in vals:
-        result *= x
-    return result
 
 
 def stack(frame, level=-1, dropna=True):
