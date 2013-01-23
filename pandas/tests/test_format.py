@@ -100,6 +100,21 @@ class TestDataFrameFormatting(unittest.TestCase):
         with option_context("display.max_colwidth", max_len + 2):
             self.assert_('...' not in repr(df))
 
+    def test_repr_chop_threshold(self):
+        df = DataFrame([[0.1, 0.5],[0.5, -0.1]])
+        pd.reset_option("display.chop_threshold") # default None
+        self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+
+        with option_context("display.chop_threshold", 0.2 ):
+            self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0')
+
+        with option_context("display.chop_threshold", 0.6 ):
+            self.assertEqual(repr(df), '   0  1\n0  0  0\n1  0  0')
+
+        with option_context("display.chop_threshold", None ):
+            self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+
+
     def test_repr_should_return_str(self):
         """
         http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
