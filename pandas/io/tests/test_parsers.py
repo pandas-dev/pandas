@@ -1868,6 +1868,16 @@ a,b,c
 
         tm.assert_frame_equal(result, expected)
 
+    def test_usecols_regexp_separator(self):
+        # #2733
+        data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
+
+        result = self.read_csv(StringIO(data), sep='\s+', usecols=('a', 'b'))
+        expected = DataFrame({'a': ['apple', 'orange'],
+                              'b': ['bat', 'cow']}, index=[4, 8])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_pure_python_failover(self):
         data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
 
