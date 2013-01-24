@@ -5029,7 +5029,7 @@ class DataFrame(NDFrame):
         data = self._get_numeric_data() if numeric_only else self
         return data.apply(f, axis=axis)
 
-    def clip(self, upper=None, lower=None):
+    def clip(self, lower=None, upper=None):
         """
         Trim values at input threshold(s)
 

@@ -22,6 +22,12 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+**API Changes**
+
+  - arguments to DataFrame.clip were inconsistent to numpy and Series clipping (GH2747_)
+
+.. _GH2747: https://github.com/pydata/pandas/issues/2747
+
 pandas 0.10.1
 =============
 
