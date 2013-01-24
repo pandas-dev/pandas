@@ -1868,11 +1868,12 @@ a,b,c
 
         tm.assert_frame_equal(result, expected)
 
-    def test_usecols_regexp_separator(self):
+    def test_usecols_with_whitespace(self):
         # #2733
         data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
 
-        result = self.read_csv(StringIO(data), sep='\s+', usecols=('a', 'b'))
+        result = self.read_csv(StringIO(data), delim_whitespace=True,
+                               usecols=('a', 'b'))
         expected = DataFrame({'a': ['apple', 'orange'],
                               'b': ['bat', 'cow']}, index=[4, 8])
 
