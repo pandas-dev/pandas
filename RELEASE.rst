@@ -22,6 +22,8 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+  - Fix weird PyTables error when using too many selectors in a where
+
 pandas 0.10.1
 =============
 

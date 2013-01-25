@@ -2894,6 +2894,7 @@ class Term(object):
 
     _ops = ['<=', '<', '>=', '>', '!=', '==', '=']
     _search = re.compile("^\s*(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)\s*$" % '|'.join(_ops))
+    _max_selectors = 31
 
     def __init__(self, field, op=None, value=None, queryables=None):
         self.field = None
@@ -3006,7 +3007,7 @@ class Term(object):
             if self.is_in_table:
 
                 # too many values to create the expression?
-                if len(values) <= 61:
+                if len(values) <= self._max_selectors:
                     self.condition = "(%s)" % ' | '.join(
                         ["(%s == %s)" % (self.field, v[0]) for v in values])
 
