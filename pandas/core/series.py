@@ -72,16 +72,27 @@ def _arith_method(op, name):
 
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
+        dtype = None
         wrap_results = lambda x: x
 
         lvalues, rvalues = self, other
 
-        if (com.is_datetime64_dtype(self) and
-            com.is_datetime64_dtype(other)):
+        if com.is_datetime64_dtype(self):
+
+            if not isinstance(rvalues, np.ndarray):
+                rvalues = np.array([rvalues])
+
+            # rhs is either a timedelta or a series/ndarray
+            if lib.is_timedelta_array(rvalues):
+                rvalues = np.array([ np.timedelta64(v) for v in rvalues ],dtype='timedelta64[ns]')
+                dtype = 'M8[ns]'
+            elif com.is_datetime64_dtype(rvalues):
+                dtype = 'timedelta64[ns]'
+            else:
+                raise ValueError("cannot operate on a series with out a rhs of a series/ndarray of type datetime64[ns] or a timedelta")
+
             lvalues = lvalues.view('i8')
             rvalues = rvalues.view('i8')
-
-            wrap_results = lambda rs: rs.astype('timedelta64[ns]')
 
         if isinstance(rvalues, Series):
             lvalues = lvalues.values
@@ -91,7 +102,7 @@ def _arith_method(op, name):
             if self.index.equals(other.index):
                 name = _maybe_match_name(self, other)
                 return Series(wrap_results(na_op(lvalues, rvalues)),
-                              index=self.index, name=name)
+                              index=self.index, name=name, dtype=dtype)
 
             join_idx, lidx, ridx = self.index.join(other.index, how='outer',
                                                    return_indexers=True)
@@ -105,13 +116,13 @@ def _arith_method(op, name):
             arr = na_op(lvalues, rvalues)
 
             name = _maybe_match_name(self, other)
-            return Series(arr, index=join_idx, name=name)
+            return Series(arr, index=join_idx, name=name,dtype=dtype)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
             return Series(na_op(lvalues.values, rvalues),
-                          index=self.index, name=self.name)
+                          index=self.index, name=self.name, dtype=dtype)
     return wrapper
 
 
@@ -777,7 +788,7 @@ copy : boolean, default False
         See numpy.ndarray.astype
         """
         casted = com._astype_nansafe(self.values, dtype)
-        return self._constructor(casted, index=self.index, name=self.name)
+        return self._constructor(casted, index=self.index, name=self.name, dtype=casted.dtype)
 
     def convert_objects(self, convert_dates=True):
         """
@@ -1195,7 +1206,7 @@ copy : boolean, default False
         Overrides numpy.ndarray.tolist
         """
         if com.is_datetime64_dtype(self):
-            return self.astype(object).values.tolist()
+            return list(self)
         return self.values.tolist()
 
     def to_dict(self):
@@ -3083,8 +3094,12 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                         raise TypeError('Cannot cast datetime64 to %s' % dtype)
                 else:
                     subarr = _try_cast(data)
-        elif copy:
+        else:
+            subarr = _try_cast(data)
+
+        if copy:
             subarr = data.copy()
+
     elif isinstance(data, list) and len(data) > 0:
         if dtype is not None:
             try:
@@ -3094,12 +3109,15 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     raise
                 subarr = np.array(data, dtype=object, copy=copy)
                 subarr = lib.maybe_convert_objects(subarr)
+                subarr = com._possibly_cast_to_datetime(subarr, dtype)
         else:
             subarr = lib.list_to_object_array(data)
             subarr = lib.maybe_convert_objects(subarr)
+            subarr = com._possibly_cast_to_datetime(subarr, dtype)
     else:
         subarr = _try_cast(data)
 
+    # scalar like
     if subarr.ndim == 0:
         if isinstance(data, list):  # pragma: no cover
             subarr = np.array(data, dtype=object)
@@ -3115,7 +3133,14 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 dtype = np.object_
 
             if dtype is None:
-                value, dtype = _dtype_from_scalar(value)
+                
+                # a 1-element ndarray
+                if isinstance(value, np.ndarray):
+                    dtype = value.dtype
+                    value = value.item()
+                else:
+                    value, dtype = _dtype_from_scalar(value)
+
                 subarr = np.empty(len(index), dtype=dtype)
             else:
                 # need to possibly convert the value here
@@ -3124,6 +3149,17 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr.fill(value)
         else:
             return subarr.item()
+
+    # the result that we want
+    elif subarr.ndim == 1:
+        if index is not None:
+
+            # a 1-element ndarray
+            if len(subarr) != len(index) and len(subarr) == 1:
+                value = subarr[0]
+                subarr = np.empty(len(index), dtype=subarr.dtype)
+                subarr.fill(value)
+
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):
             raise Exception('Data must be 1-dimensional')

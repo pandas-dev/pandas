@@ -1,0 +1,54 @@
+.. _whatsnew_0102:
+
+v0.10.2 (February ??, 2013)
+---------------------------
+
+This is a minor release from 0.10.1 and includes many new features and
+enhancements along with a large number of bug fixes. There are also a number of
+important API changes that long-time pandas users should pay close attention
+to.
+
+API changes
+~~~~~~~~~~~
+
+Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way. Furthermore datetime64 columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
+
+.. ipython:: python
+
+   df = DataFrame(randn(6,2),date_range('20010102',periods=6),columns=['A','B'])
+   df['timestamp'] = Timestamp('20010103')
+   df
+
+   # datetime64[ns] out of the box
+   df.get_dtype_counts()
+
+   # use the traditional nan, which is mapped to NaT internally
+   df.ix[2:4,['A','timestamp']] = np.nan
+   df
+
+Astype conversion on datetime64[ns] to object, implicity converts ``NaT`` to ``np.nan``
+
+
+.. ipython:: python
+
+   import datetime
+   s = Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
+   s.dtype
+   s[1] = np.nan
+   s
+   s.dtype
+   s = s.astype('O')
+   s
+   s.dtype
+
+New features
+~~~~~~~~~~~~
+
+**Enhancements**
+
+**Bug Fixes**
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+

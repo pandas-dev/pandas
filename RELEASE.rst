@@ -22,6 +22,20 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+**API Changes**
+
+  - Series now automatically will try to set the correct dtype based on passed datetimelike objects (datetime/Timestamp)
+     - timedelta64 are returned in appropriate cases (e.g. Series - Series, when both are datetime64)
+     - mixed datetimes and objects (GH2751_) in a constructor witll be casted correctly
+     - astype on datetimes to object are now handled (as well as NaT conversions to np.nan)
+
+**Bug fixes**
+
+  - Single element ndarrays of datetimelike objects are handled (e.g. np.array(datetime(2001,1,1,0,0))), w/o dtype being passed
+  - 0-dim ndarrays with a passed dtype are handled correctly (e.g. np.array(0.,dtype='float32'))
+
+.. _GH2751: https://github.com/pydata/pandas/issues/2751
+
 pandas 0.10.1
 =============
 
