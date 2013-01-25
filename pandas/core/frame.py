@@ -1104,20 +1104,19 @@ class DataFrame(NDFrame):
         """
         Convert (key, value) pairs to DataFrame. The keys will be the axis
         index (usually the columns, but depends on the specified
-        orientation). The values should be arrays or Series
+        orientation). The values should be arrays or Series.
 
         Parameters
         ----------
         items : sequence of (key, value) pairs
-            Values should be arrays or Series
-        columns : sequence, optional
-            Must be passed in the
-        orient : {'columns', 'index'}, default 'items'
-            The "orientation" of the data. If the keys of the passed dict
-            should be the items of the result panel, pass 'items'
-            (default). Otherwise if the columns of the values of the passed
-            DataFrame objects should be the items (which in the case of
-            mixed-dtype data you should do), instead pass 'minor'
+            Values should be arrays or Series.
+        columns : sequence of column labels, optional
+            Must be passed if orient='index'.
+        orient : {'columns', 'index'}, default 'columns'
+            The "orientation" of the data. If the keys of the
+            input correspond to column labels, pass 'columns'
+            (default). Otherwise if the keys correspond to the index,
+            pass 'index'.
 
         Returns
         -------
@@ -1151,8 +1150,8 @@ class DataFrame(NDFrame):
             arr = np.array(values, dtype=object).T
             data = [lib.maybe_convert_objects(v) for v in arr]
             return cls._from_arrays(data, columns, keys)
-        elif orient != 'columns':  # pragma: no cover
-            raise ValueError('only recognize index or columns for orient')
+        else:  # pragma: no cover
+            raise ValueError("'orient' must be either 'columns' or 'index'")
 
     @classmethod
     def _from_arrays(cls, arrays, columns, index, dtype=None):
