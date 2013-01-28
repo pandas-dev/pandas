@@ -19,7 +19,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _asarray_tuplesafe, is_integer_dtype)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import _SeriesIndexer
+from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
@@ -532,8 +532,7 @@ copy : boolean, default False
         # special handling of boolean data with NAs stored in object
         # arrays. Since we can't represent NA with dtype=bool
         if _is_bool_indexer(key):
-            key = self._check_bool_indexer(key)
-            key = np.asarray(key, dtype=bool)
+            key = _check_bool_indexer(self.index, key)
 
         return self._get_with(key)
 
@@ -686,7 +685,7 @@ copy : boolean, default False
             # Could not hash item
 
         if _is_bool_indexer(key):
-            key = self._check_bool_indexer(key)
+            key = _check_bool_indexer(self.index, key)
             self.where(~key,value,inplace=True)
         else:
             self._set_with(key, value)
@@ -751,28 +750,6 @@ copy : boolean, default False
             j = 0
         slobj = slice(i, j)
         return self.__getitem__(slobj)
-
-    def _check_bool_indexer(self, key):
-        # boolean indexing, need to check that the data are aligned, otherwise
-        # disallowed
-        result = key
-        if isinstance(key, Series) and key.dtype == np.bool_:
-            if not key.index.equals(self.index):
-                result = key.reindex(self.index)
-
-        if isinstance(result, np.ndarray) and result.dtype == np.object_:
-            mask = isnull(result)
-            if mask.any():
-                raise ValueError('cannot index with vector containing '
-                                 'NA / NaN values')
-
-        # coerce to bool type
-        if not hasattr(result, 'shape'):
-            result = np.array(result)
-        if result.dtype != np.bool_:
-            result = result.astype(np.bool_)
-
-        return result
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""

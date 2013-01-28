@@ -26,7 +26,8 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _is_sequence)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
+from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
+                                  _is_index_slice, _check_bool_indexer)
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -313,7 +314,7 @@ def _comp_method(func, name):
             return self._combine_series_infer(other, func)
         else:
 
-            # straight boolean comparisions we want to allow all columns 
+            # straight boolean comparisions we want to allow all columns
             # (regardless of dtype to pass thru)
             return self._combine_const(other, func, raise_on_error = False).fillna(True).astype(bool)
 
@@ -1972,72 +1973,52 @@ class DataFrame(NDFrame):
         return self.get_value(row, col)
 
     def __getitem__(self, key):
-        # slice rows
         if isinstance(key, slice):
-            from pandas.core.indexing import _is_index_slice
-            idx_type = self.index.inferred_type
-            if idx_type == 'floating':
-                indexer = self.ix._convert_to_indexer(key, axis=0)
-            elif idx_type == 'integer' or _is_index_slice(key):
-                indexer = key
-            else:
-                indexer = self.ix._convert_to_indexer(key, axis=0)
-            new_data = self._data.get_slice(indexer, axis=1)
-            return self._constructor(new_data)
-        # either boolean or fancy integer index
+            # slice rows
+            return self._getitem_slice(key)
         elif isinstance(key, (np.ndarray, list)):
-            if isinstance(key, list):
-                key = lib.list_to_object_array(key)
-
-            # also raises Exception if object array with NA values
-            if com._is_bool_indexer(key):
-                key = np.asarray(key, dtype=bool)
+            # either boolean or fancy integer index
             return self._getitem_array(key)
+        elif isinstance(key, DataFrame):
+            return self._getitem_frame(key)
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
-        elif isinstance(key, DataFrame):
-            if key.values.dtype == bool:
-                return self.where(key, try_cast = False)
-            else:
-                raise ValueError('Cannot index using non-boolean DataFrame')
         else:
+            # get column
             return self._get_item_cache(key)
 
+    def _getitem_slice(self, key):
+        idx_type = self.index.inferred_type
+        if idx_type == 'floating':
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+        elif idx_type == 'integer' or _is_index_slice(key):
+            indexer = key
+        else:
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+        return self._slice(indexer, axis=0)
+
     def _getitem_array(self, key):
-        if key.dtype == np.bool_:
-            if len(key) != len(self.index):
+        # also raises Exception if object array with NA values
+        if com._is_bool_indexer(key):
+            # warning here just in case -- previously __setitem__ was
+            # reindexing but __getitem__ was not; it seems more reasonable to
+            # go with the __setitem__ behavior since that is more consistent
+            # with all other indexing behavior
+            if isinstance(key, Series) and not key.index.equals(self.index):
+                import warnings
+                warnings.warn("Boolean Series key will be reindexed to match "
+                              "DataFrame index.", UserWarning)
+            elif len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
                                  (len(key), len(self.index)))
-
-            inds, = key.nonzero()
-            return self.take(inds)
+            # _check_bool_indexer will throw exception if Series key cannot
+            # be reindexed to match DataFrame rows
+            key = _check_bool_indexer(self.index, key)
+            indexer = key.nonzero()[0]
+            return self.take(indexer, axis=0)
         else:
-            if self.columns.is_unique:
-                indexer = self.columns.get_indexer(key)
-                mask = indexer == -1
-                if mask.any():
-                    raise KeyError("No column(s) named: %s" %
-                                   com.pprint_thing(key[mask]))
-                result = self.reindex(columns=key)
-                if result.columns.name is None:
-                    result.columns.name = self.columns.name
-                return result
-            else:
-                mask = self.columns.isin(key)
-                for k in key:
-                    if k not in self.columns:
-                        raise KeyError("No column(s) named: %s" %
-                                       com.pprint_thing(k))
-                return self.take(mask.nonzero()[0], axis=1)
-
-    def _slice(self, slobj, axis=0):
-        if axis == 0:
-            mgr_axis = 1
-        else:
-            mgr_axis = 0
-
-        new_data = self._data.get_slice(slobj, axis=mgr_axis)
-        return self._constructor(new_data)
+            indexer = self.ix._convert_to_indexer(key, axis=1)
+            return self.take(indexer, axis=1)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -2062,6 +2043,20 @@ class DataFrame(NDFrame):
             return result
         else:
             return self._get_item_cache(key)
+
+    def _getitem_frame(self, key):
+        if key.values.dtype != np.bool_:
+            raise ValueError('Must pass DataFrame with boolean values only')
+        return self.where(key)
+
+    def _slice(self, slobj, axis=0):
+        if axis == 0:
+            mgr_axis = 1
+        else:
+            mgr_axis = 0
+
+        new_data = self._data.get_slice(slobj, axis=mgr_axis)
+        return self._constructor(new_data)
 
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
@@ -2096,34 +2091,56 @@ class DataFrame(NDFrame):
                 object.__setattr__(self, name, value)
 
     def __setitem__(self, key, value):
-        # support boolean setting with DataFrame input, e.g.
-        # df[df > df2] = 0
-        if isinstance(key, DataFrame):
-            self._boolean_set(key, value)
+        if isinstance(key, slice):
+            # slice rows
+            self._setitem_slice(key, value)
         elif isinstance(key, (np.ndarray, list)):
-            return self._set_item_multiple(key, value)
+            self._setitem_array(key, value)
+        elif isinstance(key, DataFrame):
+            self._setitem_frame(key, value)
         else:
             # set column
             self._set_item(key, value)
 
-    def _boolean_set(self, key, value):
+    def _setitem_slice(self, key, value):
+        idx_type = self.index.inferred_type
+        if idx_type == 'floating':
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+        elif idx_type == 'integer' or _is_index_slice(key):
+            indexer = key
+        else:
+            indexer = self.ix._convert_to_indexer(key, axis=0)
+        self.ix._setitem_with_indexer(indexer, value)
+
+    def _setitem_array(self, key, value):
+        # also raises Exception if object array with NA values
+        if com._is_bool_indexer(key):
+            if len(key) != len(self.index):
+                raise ValueError('Item wrong length %d instead of %d!' %
+                                 (len(key), len(self.index)))
+            key = _check_bool_indexer(self.index, key)
+            indexer = key.nonzero()[0]
+            self.ix._setitem_with_indexer(indexer, value)
+        else:
+            if isinstance(value, DataFrame):
+                if len(value.columns) != len(key):
+                    raise AssertionError('Columns must be same length as key')
+                for k1, k2 in zip(key, value.columns):
+                    self[k1] = value[k2]
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=1)
+                self.ix._setitem_with_indexer((slice(None), indexer), value)
+
+    def _setitem_frame(self, key, value):
+        # support boolean setting with DataFrame input, e.g.
+        # df[df > df2] = 0
         if key.values.dtype != np.bool_:
             raise ValueError('Must pass DataFrame with boolean values only')
-        self.where(-key, value, inplace=True)
 
-    def _set_item_multiple(self, keys, value):
-        if isinstance(value, DataFrame):
-            if len(value.columns) != len(keys):
-                raise AssertionError('Columns must be same length as keys')
-            for k1, k2 in zip(keys, value.columns):
-                self[k1] = value[k2]
-        else:
-            if isinstance(keys, np.ndarray) and keys.dtype == np.bool_:
-                # boolean slicing should happen on rows, consistent with
-                # behavior of getitem
-                self.ix[keys, :] = value
-            else:
-                self.ix[:, keys] = value
+        if self._is_mixed_type:
+            raise ValueError('Cannot do boolean setting on mixed-type frame')
+
+        self.where(-key, value, inplace=True)
 
     def _set_item(self, key, value):
         """
@@ -2918,7 +2935,7 @@ class DataFrame(NDFrame):
         """
         if isinstance(indices, list):
             indices = np.array(indices)
-        if self._data.is_mixed_dtype():
+        if self._is_mixed_type:
             if axis == 0:
                 new_data = self._data.take(indices, axis=1)
                 return DataFrame(new_data)
@@ -3247,7 +3264,7 @@ class DataFrame(NDFrame):
 
         new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
 
-        if self._data.is_mixed_dtype() and not inplace:
+        if self._is_mixed_type and not inplace:
             if axis == 0:
                 return self.reindex(index=new_axis)
             else:
@@ -3472,7 +3489,7 @@ class DataFrame(NDFrame):
                                          'in length. Expecting %d got %d ' %
                                          (len(to_replace), len(value)))
 
-                    new_data = self._data.replace_list(to_replace, value, 
+                    new_data = self._data.replace_list(to_replace, value,
                                                        inplace=inplace)
 
                 else:  # [NA, ''] -> 0
@@ -5055,7 +5072,7 @@ class DataFrame(NDFrame):
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
             lower, upper = min(lower,upper), max(lower,upper)
-            
+
         return self.apply(lambda x: x.clip(lower=lower, upper=upper))
 
     def clip_upper(self, threshold):
@@ -5246,25 +5263,22 @@ class DataFrame(NDFrame):
         -------
         wh : DataFrame
         """
-        if not hasattr(cond, 'shape'):
-            raise ValueError('where requires an ndarray like object for its '
-                             'condition')
-
-        if isinstance(cond, np.ndarray):
+        if isinstance(cond, DataFrame):
+            # this already checks for index/column equality
+            cond = cond.reindex(self.index, columns=self.columns)
+        else:
+            if not hasattr(cond, 'shape'):
+                raise ValueError('where requires an ndarray like object for its '
+                                 'condition')
             if cond.shape != self.shape:
                 raise ValueError('Array conditional must be same shape as self')
             cond = self._constructor(cond, index=self.index,
                                      columns=self.columns)
 
-        if cond.shape != self.shape:
-            cond = cond.reindex(self.index, columns=self.columns)
-
-            if inplace:
-                cond = -(cond.fillna(True).astype(bool))
-            else:
-                cond = cond.fillna(False).astype(bool)
-        elif inplace:
-            cond = -cond
+        if inplace:
+            cond = -(cond.fillna(True).astype(bool))
+        else:
+            cond = cond.fillna(False).astype(bool)
 
         if isinstance(other, DataFrame):
             _, other = self.align(other, join='left', fill_value=NA)
