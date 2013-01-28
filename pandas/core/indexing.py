@@ -340,28 +340,19 @@ class _NDFrameIndexer(object):
                 raise ValueError('Cannot index with multidimensional key')
 
             return self._getitem_iterable(key, axis=axis)
-        elif axis == 0:
-            is_int_index = _is_integer_index(labels)
-
-            idx = key
+        else:
             if com.is_integer(key):
-                if isinstance(labels, MultiIndex):
+                if axis == 0 and isinstance(labels, MultiIndex):
                     try:
-                        return self._get_label(key, axis=0)
+                        return self._get_label(key, axis=axis)
                     except (KeyError, TypeError):
                         if _is_integer_index(self.obj.index.levels[0]):
                             raise
 
-                if not is_int_index:
-                    return self._get_loc(key, axis=0)
+                if not _is_integer_index(labels):
+                    return self._get_loc(key, axis=axis)
 
-            return self._get_label(idx, axis=0)
-        else:
-            labels = self.obj._get_axis(axis)
-            lab = key
-            if com.is_integer(key) and not _is_integer_index(labels):
-                return self._get_loc(key, axis=axis)
-            return self._get_label(lab, axis=axis)
+            return self._get_label(key, axis=axis)
 
     def _getitem_iterable(self, key, axis=0):
         labels = self.obj._get_axis(axis)
@@ -380,8 +371,7 @@ class _NDFrameIndexer(object):
             inds, = np.asarray(key, dtype=bool).nonzero()
             return self.obj.take(inds, axis=axis)
         else:
-            was_index = isinstance(key, Index)
-            if was_index:
+            if isinstance(key, Index):
                 # want Index objects to pass through untouched
                 keyarr = key
             else:
@@ -489,8 +479,9 @@ class _NDFrameIndexer(object):
 
         elif _is_list_like(obj):
             if com._is_bool_indexer(obj):
-                objarr = _check_bool_indexer(labels, obj)
-                return objarr
+                obj = _check_bool_indexer(labels, obj)
+                inds, = np.asarray(obj, dtype=bool).nonzero()
+                return inds
             else:
                 if isinstance(obj, Index):
                     objarr = obj.values
@@ -673,7 +664,7 @@ def _check_bool_indexer(ax, key):
     # boolean indexing, need to check that the data are aligned, otherwise
     # disallowed
     result = key
-    if _is_series(key) and key.dtype == np.bool_:
+    if _is_series(key):
         if not key.index.equals(ax):
             result = key.reindex(ax)
 
