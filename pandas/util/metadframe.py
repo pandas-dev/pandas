@@ -151,10 +151,6 @@ class MetaDataframe(object):
     def __repr__(self):
         return self._df.__repr__()
 
-    def __union__(self):
-        ''' Can be customized, but by default, reutrns the output of a standard Dataframe.'''
-        return self._df.__union__()
-
     ### Operator overloading ####
     ### In place operations need to overwrite self._df
     def __add__(self, x):
@@ -243,7 +239,7 @@ class SubFoo(MetaDataframe):
 
         super(SubFoo, self).__init__(*dfargs, **dfkwargs)
 
-    def __union__(self):
+    def __repr__(self):
         return "Hi I'm SubFoo. I'm not really a DataFrame, but I quack like one."
 
     @property
@@ -279,7 +275,7 @@ if __name__ == '__main__':
     print '\nAttributes a = %s and b = %s will persist when new metadataframes are returned.'%(new.a, new.b)
 
     ### Demonstrate subclassing by invoking SubFoo class
-    print '\nI can subclass a dataframe an overwrite its __union__() method\n'
+    print '\nI can subclass a dataframe an overwrite its __repr__() or more carefully __bytes__()/__unicode__() method(s)\n'
     subclass=SubFoo(50, 200, abs(randn(3,3)), index=['A','B','C'], columns=['c11','c22', 'c33'])    
     print subclass
     ### Access underlying dataframe
