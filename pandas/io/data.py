@@ -231,7 +231,8 @@ def _parse_options_data(table):
     header = _unpack(rows[0], kind='th')
     data = [_unpack(r) for r in rows[1:]]
     # Use ',' as a thousands separator as we're pulling from the US site.
-    return TextParser(data, names=header, na_values=['N/A'], thousands=',').get_chunk()
+    return TextParser(data, names=header, na_values=['N/A'],
+                      thousands=',').get_chunk()
 
 
 class Options(object):
