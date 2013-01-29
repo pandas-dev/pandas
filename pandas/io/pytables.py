@@ -2552,6 +2552,11 @@ class AppendableTable(LegacyTable):
 
     def write_data_chunk(self, indexes, mask, search, values):
 
+        # 0 len
+        for v in values:
+            if not np.prod(v.shape):
+                return
+
         # get our function
         try:
             func = getattr(lib, "create_hdf_rows_%sd" % self.ndim)
@@ -3139,3 +3144,15 @@ class Selection(object):
         return self.table.table.getWhereList(self.condition, start=self.start, stop=self.stop, sort=True)
 
 
+### utilities ###
+
+def timeit(key,df,fn=None,remove=True,**kwargs):
+    if fn is None:
+        fn = 'timeit.h5'
+    store = HDFStore(fn,mode='w')
+    store.append(key,df,**kwargs)
+    store.close()
+
+    if remove:
+        import os
+        os.remove(fn)
