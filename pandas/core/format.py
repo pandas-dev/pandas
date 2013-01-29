@@ -55,7 +55,8 @@ docstring_to_string = """
     index_names : bool, optional
         Prints the names of the indexes, default True
     force_unicode : bool, default False
-        Always return a unicode result
+        Always return a unicode result. Deprecated in v0.10.0 as string
+        formatting is now rendered to unicode by default.
 
     Returns
     -------
@@ -88,8 +89,9 @@ class SeriesFormatter(object):
                 footer += ', '
 
             series_name = com.pprint_thing(self.series.name,
-                                           escape_chars=('\t','\r','\n'))
-            footer += ("Name: %s" % series_name) if self.series.name is not None else ""
+                                           escape_chars=('\t', '\r', '\n'))
+            footer += ("Name: %s" %
+                       series_name) if self.series.name is not None else ""
 
         if self.length:
             if footer:
@@ -152,6 +154,7 @@ def _encode_diff_func():
         _encode_diff = lambda x: 0
     else:
         encoding = get_option("display.encoding")
+
         def _encode_diff(x):
             return len(x) - len(x.decode(encoding))
 
@@ -163,6 +166,7 @@ def _strlen_func():
         _strlen = len
     else:
         encoding = get_option("display.encoding")
+
         def _strlen(x):
             try:
                 return len(x.decode(encoding))
@@ -171,8 +175,8 @@ def _strlen_func():
 
     return _strlen
 
-class TableFormatter(object):
 
+class TableFormatter(object):
 
     def _get_formatter(self, i):
         if isinstance(self.formatters, (list, tuple)):
@@ -282,8 +286,9 @@ class DataFrameFormatter(TableFormatter):
         """
         import warnings
         if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no effect",
-                          FutureWarning)
+            warnings.warn(
+                "force_unicode is deprecated, it will have no effect",
+                FutureWarning)
 
         frame = self.frame
 
@@ -336,8 +341,9 @@ class DataFrameFormatter(TableFormatter):
         """
         import warnings
         if force_unicode is not None:  # pragma: no cover
-            warnings.warn("force_unicode is deprecated, it will have no effect",
-                          FutureWarning)
+            warnings.warn(
+                "force_unicode is deprecated, it will have no effect",
+                FutureWarning)
 
         frame = self.frame
 
@@ -399,7 +405,7 @@ class DataFrameFormatter(TableFormatter):
             str_columns = zip(*[[' ' + y
                                 if y not in self.formatters and need_leadsp[x]
                                 else y for y in x]
-                               for x in fmt_columns])
+                                for x in fmt_columns])
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
@@ -480,25 +486,16 @@ class HTMLFormatter(TableFormatter):
         self.frame = self.fmt.frame
         self.columns = formatter.columns
         self.elements = []
-
-        _bold_row = self.fmt.kwds.get('bold_rows', False)
-        _temp = '<strong>%s</strong>'
-
-        def _maybe_bold_row(x):
-            if _bold_row:
-                return ([_temp % y for y in x] if isinstance(x, tuple)
-                        else _temp % x)
-            else:
-                return x
-        self._maybe_bold_row = _maybe_bold_row
+        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
 
     def write(self, s, indent=0):
-        self.elements.append(' ' * indent + com.pprint_thing(s))
+        rs = com.pprint_thing(s)
+        self.elements.append(' ' * indent + rs)
 
     def write_th(self, s, indent=0, tags=None):
         if (self.fmt.col_space is not None
-            and self.fmt.col_space > 0 ):
-            tags = (tags or "" )
+                and self.fmt.col_space > 0):
+            tags = (tags or "")
             tags += 'style="min-width: %s;"' % self.fmt.col_space
 
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
@@ -511,10 +508,14 @@ class HTMLFormatter(TableFormatter):
             start_tag = '<%s %s>' % (kind, tags)
         else:
             start_tag = '<%s>' % kind
-        self.write('%s%s</%s>' % (start_tag, com.pprint_thing(s), kind), indent)
+
+        esc = {'<' : r'&lt;', '>' : r'&gt;'}
+        rs = com.pprint_thing(s, escape_chars=esc)
+        self.write(
+            '%s%s</%s>' % (start_tag, rs, kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=4, header=False,
-                 align=None, tags=None):
+                 align=None, tags=None, nindex_levels=0):
         if tags is None:
             tags = {}
 
@@ -526,7 +527,7 @@ class HTMLFormatter(TableFormatter):
 
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
-            if header:
+            if header or (self.bold_rows and i < nindex_levels):
                 self.write_th(s, indent, tags=val_tag)
             else:
                 self.write_td(s, indent, tags=val_tag)
@@ -584,7 +585,7 @@ class HTMLFormatter(TableFormatter):
                     row.append('')
                 style = "text-align: %s;" % self.fmt.justify
                 row.extend([single_column_table(c, self.fmt.justify, style) for
-                    c in self.columns])
+                            c in self.columns])
             else:
                 if self.fmt.index:
                     row.append(self.columns.name or '')
@@ -628,7 +629,7 @@ class HTMLFormatter(TableFormatter):
             align = self.fmt.justify
 
             self.write_tr(col_row, indent, self.indent_delta, header=True,
-                    align=align)
+                          align=align)
 
         if self.fmt.has_index_names:
             row = [x if x is not None else ''
@@ -676,9 +677,10 @@ class HTMLFormatter(TableFormatter):
 
         for i in range(len(self.frame)):
             row = []
-            row.append(self._maybe_bold_row(index_values[i]))
+            row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
-            self.write_tr(row, indent, self.indent_delta, tags=None)
+            self.write_tr(row, indent, self.indent_delta, tags=None,
+                          nindex_levels=1)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="%d" valign="top"'
@@ -699,27 +701,32 @@ class HTMLFormatter(TableFormatter):
                 row = []
                 tags = {}
 
+                sparse_offset = 0
                 j = 0
                 for records, v in zip(level_lengths, idx_values[i]):
                     if i in records:
                         if records[i] > 1:
                             tags[j] = template % records[i]
                     else:
+                        sparse_offset += 1
                         continue
+
                     j += 1
-                    row.append(self._maybe_bold_row(v))
+                    row.append(v)
 
                 row.extend(fmt_values[j][i] for j in range(ncols))
-                self.write_tr(row, indent, self.indent_delta, tags=tags)
+                self.write_tr(row, indent, self.indent_delta, tags=tags,
+                              nindex_levels=len(levels) - sparse_offset)
         else:
             for i in range(len(frame)):
                 idx_values = zip(*frame.index.format(sparsify=False,
                                                      adjoin=False,
                                                      names=False))
                 row = []
-                row.extend(self._maybe_bold_row(x) for x in idx_values[i])
+                row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(ncols))
-                self.write_tr(row, indent, self.indent_delta, tags=None)
+                self.write_tr(row, indent, self.indent_delta, tags=None,
+                              nindex_levels=len(frame.index.nlevels))
 
 
 def _get_level_lengths(levels):
@@ -749,7 +756,7 @@ def _get_level_lengths(levels):
     return result
 
 
-#from collections import namedtuple
+# from collections import namedtuple
 # ExcelCell = namedtuple("ExcelCell",
 #                        'row, col, val, style, mergestart, mergeend')
 
@@ -758,7 +765,7 @@ class ExcelCell(object):
     __slots__ = __fields__
 
     def __init__(self, row, col, val,
-                       style=None, mergestart=None, mergeend=None):
+                 style=None, mergestart=None, mergeend=None):
         self.row = row
         self.col = col
         self.val = val
@@ -768,11 +775,11 @@ class ExcelCell(object):
 
 
 header_style = {"font": {"bold": True},
-              "borders": {"top": "thin",
-                        "right": "thin",
-                        "bottom": "thin",
-                        "left": "thin"},
-              "alignment": {"horizontal": "center"}}
+                "borders": {"top": "thin",
+                            "right": "thin",
+                            "bottom": "thin",
+                            "left": "thin"},
+                "alignment": {"horizontal": "center"}}
 
 
 class ExcelFormatter(object):
@@ -831,7 +838,7 @@ class ExcelFormatter(object):
             return
 
         levels = self.columns.format(sparsify=True, adjoin=False,
-                                   names=False)
+                                     names=False)
         # level_lenghts = _get_level_lengths(levels)
         coloffset = 1
         if isinstance(self.df.index, MultiIndex):
@@ -846,12 +853,12 @@ class ExcelFormatter(object):
         #             yield ExcelCell(lnum,coloffset + i + 1, values[i],
         #                     header_style, lnum, coloffset + i + records[i])
         #         else:
-        #             yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
+        # yield ExcelCell(lnum, coloffset + i + 1, values[i], header_style)
 
         #     self.rowcounter = lnum
-        lnum=0
-        for i,  values in enumerate(zip(*levels)):
-            v = ".".join(map(com.pprint_thing,values))
+        lnum = 0
+        for i, values in enumerate(zip(*levels)):
+            v = ".".join(map(com.pprint_thing, values))
             yield ExcelCell(lnum, coloffset + i, v, header_style)
 
         self.rowcounter = lnum
@@ -869,7 +876,7 @@ class ExcelFormatter(object):
             if has_aliases:
                 if len(self.header) != len(self.columns):
                     raise ValueError(('Writing %d cols but got %d aliases'
-                                       % (len(self.columns), len(self.header))))
+                                      % (len(self.columns), len(self.header))))
                 else:
                     colnames = self.header
 
@@ -906,20 +913,20 @@ class ExcelFormatter(object):
             self.rowcounter += 1
 
         coloffset = 0
-        #output index and index_label?
+        # output index and index_label?
         if self.index:
-            #chek aliases
-            #if list only take first as this is not a MultiIndex
+            # chek aliases
+            # if list only take first as this is not a MultiIndex
             if self.index_label and isinstance(self.index_label,
                                                (list, tuple, np.ndarray)):
                 index_label = self.index_label[0]
-            #if string good to go
+            # if string good to go
             elif self.index_label and isinstance(self.index_label, str):
                 index_label = self.index_label
             else:
                 index_label = self.df.index.names[0]
 
-            if index_label and self.header != False:
+            if index_label and self.header is not False:
                 # add to same level as column names
                 # if isinstance(self.df.columns, MultiIndex):
                 #     yield ExcelCell(self.rowcounter, 0,
@@ -927,9 +934,9 @@ class ExcelFormatter(object):
                 #     self.rowcounter += 1
                 # else:
                 yield ExcelCell(self.rowcounter - 1, 0,
-                            index_label, header_style)
+                                index_label, header_style)
 
-            #write index_values
+            # write index_values
             index_values = self.df.index
             if isinstance(self.df.index, PeriodIndex):
                 index_values = self.df.index.to_timestamp()
@@ -949,16 +956,17 @@ class ExcelFormatter(object):
             self.rowcounter += 1
 
         gcolidx = 0
-        #output index and index_label?
+        # output index and index_label?
         if self.index:
             index_labels = self.df.index.names
-            #check for aliases
+            # check for aliases
             if self.index_label and isinstance(self.index_label,
                                                (list, tuple, np.ndarray)):
                 index_labels = self.index_label
 
-            #if index labels are not empty go ahead and dump
-            if filter(lambda x: x is not None, index_labels) and self.header != False:
+            # if index labels are not empty go ahead and dump
+            if (filter(lambda x: x is not None, index_labels)
+                    and self.header is not False):
                 # if isinstance(self.df.columns, MultiIndex):
                 #     self.rowcounter += 1
                 # else:
@@ -980,7 +988,7 @@ class ExcelFormatter(object):
                 yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
 
     def get_formatted_cells(self):
-        for cell in itertools.chain(self._format_header(),self._format_body()
+        for cell in itertools.chain(self._format_header(), self._format_body()
                                     ):
             cell.val = self._format_value(cell.val)
             yield cell
@@ -1042,8 +1050,8 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        formatter = (lambda x: com.pprint_thing(x,escape_chars=('\t','\r','\n'))) \
-                    if self.formatter is None else self.formatter
+        formatter = (lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))) \
+            if self.formatter is None else self.formatter
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):
@@ -1196,7 +1204,7 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     def _cond(values):
         non_na = [x for x in values if x != na_rep]
         return (len(non_na) > 0 and all([x.endswith('0') for x in non_na]) and
-               not(any([('e' in x) or ('E' in x) for x in non_na])))
+                not(any([('e' in x) or ('E' in x) for x in non_na])))
 
     while _cond(trimmed):
         trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
@@ -1241,7 +1249,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify=None,
                      max_colwidth=None, notebook_repr_html=None,
                      date_dayfirst=None, date_yearfirst=None,
-                     pprint_nest_depth=None,multi_sparse=None, encoding=None):
+                     pprint_nest_depth=None, multi_sparse=None, encoding=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -1275,7 +1283,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     """
     import warnings
     warnings.warn("set_printoptions is deprecated, use set_option instead",
-                          FutureWarning)
+                  FutureWarning)
     if precision is not None:
         set_option("display.precision", precision)
     if column_space is not None:
@@ -1301,11 +1309,13 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     if encoding is not None:
         set_option("display.encoding", encoding)
 
+
 def reset_printoptions():
     import warnings
     warnings.warn("reset_printoptions is deprecated, use reset_option instead",
-                          FutureWarning)
+                  FutureWarning)
     reset_option("^display\.")
+
 
 def detect_console_encoding():
     """
@@ -1320,16 +1330,17 @@ def detect_console_encoding():
     except AttributeError:
         pass
 
-    if not encoding or encoding == 'ascii': # try again for something better
+    if not encoding or encoding == 'ascii':  # try again for something better
         try:
             encoding = locale.getpreferredencoding()
         except Exception:
             pass
 
-    if not encoding: # when all else fails. this will usually be "ascii"
+    if not encoding:  # when all else fails. this will usually be "ascii"
             encoding = sys.getdefaultencoding()
 
     return encoding
+
 
 class EngFormatter(object):
     """
@@ -1345,19 +1356,19 @@ class EngFormatter(object):
         -18: "a",
         -15: "f",
         -12: "p",
-         -9: "n",
-         -6: "u",
-         -3: "m",
-          0: "",
-          3: "k",
-          6: "M",
-          9: "G",
-         12: "T",
-         15: "P",
-         18: "E",
-         21: "Z",
-         24: "Y"
-      }
+        -9: "n",
+        -6: "u",
+        -3: "m",
+        0: "",
+        3: "k",
+        6: "M",
+        9: "G",
+        12: "T",
+        15: "P",
+        18: "E",
+        21: "Z",
+        24: "Y"
+    }
 
     def __init__(self, accuracy=None, use_eng_prefix=False):
         self.accuracy = accuracy
@@ -1420,7 +1431,7 @@ class EngFormatter(object):
 
         formatted = format_str % (mant, prefix)
 
-        return formatted  #.strip()
+        return formatted  # .strip()
 
 
 def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
@@ -1440,10 +1451,12 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
     set_option("display.column_space", max(12, accuracy + 9))
 
+
 def _put_lines(buf, lines):
     if any(isinstance(x, unicode) for x in lines):
         lines = [unicode(x) for x in lines]
     buf.write('\n'.join(lines))
+
 
 def _binify(cols, width):
     bins = []
@@ -1461,12 +1474,12 @@ if __name__ == '__main__':
     arr = np.array([746.03, 0.00, 5620.00, 1592.36])
     # arr = np.array([11111111.1, 1.55])
     # arr = [314200.0034, 1.4125678]
-    arr = np.array([  327763.3119,   345040.9076,   364460.9915,   398226.8688,
-                      383800.5172,   433442.9262,   539415.0568,   568590.4108,
-                      599502.4276,   620921.8593,   620898.5294,   552427.1093,
-                      555221.2193,   519639.7059,   388175.7   ,   379199.5854,
-                      614898.25  ,   504833.3333,   560600.    ,   941214.2857,
-                      1134250.    ,  1219550.    ,   855736.85 ,  1042615.4286,
-                      722621.3043,   698167.1818,   803750.    ])
+    arr = np.array([327763.3119, 345040.9076, 364460.9915, 398226.8688,
+                    383800.5172, 433442.9262, 539415.0568, 568590.4108,
+                    599502.4276, 620921.8593, 620898.5294, 552427.1093,
+                    555221.2193, 519639.7059, 388175.7, 379199.5854,
+                    614898.25, 504833.3333, 560600., 941214.2857,
+                    1134250., 1219550., 855736.85, 1042615.4286,
+                    722621.3043, 698167.1818, 803750.])
     fmt = FloatArrayFormatter(arr, digits=7)
     print fmt.get_result()

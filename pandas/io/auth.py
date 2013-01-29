@@ -24,12 +24,14 @@ import oauth2client.client as oauth
 import oauth2client.tools as tools
 OOB_CALLBACK_URN = oauth.OOB_CALLBACK_URN
 
+
 class AuthenticationConfigError(ValueError):
     pass
 
 FLOWS = {}
 FLAGS = gflags.FLAGS
-DEFAULT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
+DEFAULT_SECRETS = os.path.join(
+    os.path.dirname(__file__), 'client_secrets.json')
 DEFAULT_SCOPE = 'https://www.googleapis.com/auth/analytics.readonly'
 DEFAULT_TOKEN_FILE = os.path.join(os.path.dirname(__file__), 'analytics.dat')
 MISSING_CLIENT_MSG = """
@@ -53,6 +55,7 @@ gflags.DEFINE_enum('logging_level', 'ERROR',
 # the API without having to login each time. Make sure this file is in
 # a secure place.
 
+
 def process_flags(flags=[]):
     """Uses the command-line flags to set the logging level.
 
@@ -62,13 +65,14 @@ def process_flags(flags=[]):
 
     # Let the gflags module process the command-line arguments.
     try:
-      FLAGS(flags)
+        FLAGS(flags)
     except gflags.FlagsError, e:
-      print '%s\nUsage: %s ARGS\n%s' % (e, str(flags), FLAGS)
-      sys.exit(1)
+        print '%s\nUsage: %s ARGS\n%s' % (e, str(flags), FLAGS)
+        sys.exit(1)
 
     # Set the logging according to the command-line flag.
     logging.getLogger().setLevel(getattr(logging, FLAGS.logging_level))
+
 
 def get_flow(secret, scope, redirect):
     """
@@ -88,11 +92,13 @@ def get_flow(secret, scope, redirect):
         FLOWS[key] = flow
     return flow
 
+
 def make_token_store(fpath=None):
     """create token storage from give file name"""
     if fpath is None:
         fpath = DEFAULT_TOKEN_FILE
     return auth_file.Storage(fpath)
+
 
 def authenticate(flow, storage=None):
     """
@@ -115,8 +121,13 @@ def authenticate(flow, storage=None):
     http = credentials.authorize(http)
     return http
 
+
 def init_service(http):
     """
     Use the given http object to build the analytics service object
     """
     return gapi.build('analytics', 'v3', http=http)
+
+def reset_default_token_store():
+    import os
+    os.remove(DEFAULT_TOKEN_FILE)

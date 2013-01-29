@@ -55,9 +55,10 @@ labels = np.random.randint(0, 100, size=1000)
 df = DataFrame(randn(1000, 1000))
 """
 
-groupby_frame_cython_many_columns = Benchmark('df.groupby(labels).sum()', setup,
-                                              start_date=datetime(2011, 8, 1),
-                                              logy=True)
+groupby_frame_cython_many_columns = Benchmark(
+    'df.groupby(labels).sum()', setup,
+    start_date=datetime(2011, 8, 1),
+    logy=True)
 
 #----------------------------------------------------------------------
 # single key, long, integer key
@@ -183,7 +184,7 @@ groupby_first = Benchmark('data.groupby(labels).first()', setup,
                           start_date=datetime(2012, 5, 1))
 
 groupby_last = Benchmark('data.groupby(labels).last()', setup,
-                          start_date=datetime(2012, 5, 1))
+                         start_date=datetime(2012, 5, 1))
 
 
 #----------------------------------------------------------------------
@@ -253,3 +254,13 @@ groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,
 
 groupbym_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
                                  start_date=datetime(2011, 10, 1))
+
+#----------------------------------------------------------------------
+# Sum booleans #2692
+
+setup = common_setup + """
+N = 500
+df = DataFrame({'ii':range(N),'bb':[True for x in range(N)]})
+"""
+
+groupby_sum_booleans = Benchmark("df.groupby('ii').sum()", setup)

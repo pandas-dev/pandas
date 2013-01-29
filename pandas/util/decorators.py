@@ -46,7 +46,8 @@ class Substitution(object):
         "%s %s wrote the Raven"
     """
     def __init__(self, *args, **kwargs):
-        assert not (args and kwargs), "Only positional or keyword args are allowed"
+        assert not (
+            args and kwargs), "Only positional or keyword args are allowed"
         self.params = args or kwargs
 
     def __call__(self, func):
@@ -173,7 +174,7 @@ def knownfailureif(fail_condition, msg=None):
 
         def knownfailer(*args, **kwargs):
             if fail_val():
-                raise KnownFailureTest, msg
+                raise KnownFailureTest(msg)
             else:
                 return f(*args, **kwargs)
         return nose.tools.make_decorator(f)(knownfailer)

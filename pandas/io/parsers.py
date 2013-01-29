@@ -19,6 +19,7 @@ from pandas.io.date_converters import generic_parser
 from pandas.util.decorators import Appender
 
 import pandas.lib as lib
+import pandas.tslib as tslib
 import pandas._parser as _parser
 from pandas.tseries.period import Period
 import json
@@ -44,6 +45,8 @@ quoting : string
 skipinitialspace : boolean, default False
     Skip spaces after delimiter
 escapechar : string
+dtype : Type name or dict of column -> type
+    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
 compression : {'gzip', 'bz2', None}, default None
     For on-the-fly decompression of on-disk data
 dialect : string or csv.Dialect instance, default None
@@ -114,6 +117,10 @@ encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
+na_filter: boolean, default True
+    Detect missing value markers (empty strings and the value of na_values). In
+    data without any NAs, passing na_filter=False can improve the performance
+    of reading a large file
 
 Returns
 -------
@@ -167,6 +174,7 @@ def _is_url(url):
         return True
     else:
         return False
+
 
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
@@ -412,13 +420,12 @@ def read_fwf(filepath_or_buffer, colspecs=None, widths=None, **kwds):
     if widths is not None:
         colspecs, col = [], 0
         for w in widths:
-            colspecs.append((col, col+w))
+            colspecs.append((col, col + w))
             col += w
 
     kwds['colspecs'] = colspecs
     kwds['engine'] = 'python-fwf'
     return _read(filepath_or_buffer, kwds)
-
 
 
 def read_clipboard(**kwargs):  # pragma: no cover
@@ -647,6 +654,7 @@ class TextFileReader(object):
 def _is_index_col(col):
     return col is not None and col is not False
 
+
 class ParserBase(object):
 
     def __init__(self, kwds):
@@ -786,7 +794,6 @@ class ParserBase(object):
 
         return index
 
-
     def _convert_to_ndarrays(self, dct, na_values, verbose=False,
                              converters=None):
         result = {}
@@ -819,11 +826,13 @@ class ParserBase(object):
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
             except Exception:
-                na_count = lib.sanitize_objects(values, na_values, False)
                 result = values
+                if values.dtype == np.object_:
+                    na_count = lib.sanitize_objects(result, na_values, False)
         else:
-            na_count = lib.sanitize_objects(values, na_values, False)
             result = values
+            if values.dtype == np.object_:
+                na_count = lib.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
             result = lib.maybe_convert_bool(values,
@@ -904,7 +913,7 @@ class CParserWrapper(ParserBase):
 
         if not self._has_complex_date_col:
             if (self._reader.leading_cols == 0 and
-                _is_index_col(self.index_col)):
+                    _is_index_col(self.index_col)):
 
                 self._name_processed = True
                 (self.index_names, self.names,
@@ -1022,7 +1031,6 @@ class CParserWrapper(ParserBase):
         return values
 
 
-
 def TextParser(*args, **kwds):
     """
     Converts lists of lists/tuples into DataFrames with proper type inference
@@ -1086,6 +1094,18 @@ def count_empty_vals(vals):
     return sum([1 for v in vals if v == '' or v is None])
 
 
+def _wrap_compressed(f, compression):
+    compression = compression.lower()
+    if compression == 'gzip':
+        import gzip
+        return gzip.GzipFile(fileobj=f)
+    elif compression == 'bz2':
+        raise ValueError('Python cannot read bz2 data from file handle')
+    else:
+        raise ValueError('do not recognize compression method %s'
+                         % compression)
+
+
 class PythonParser(ParserBase):
 
     def __init__(self, f, **kwds):
@@ -1126,10 +1146,11 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-
         if isinstance(f, basestring):
             f = com._get_handle(f, 'r', encoding=self.encoding,
                                 compression=self.compression)
+        elif self.compression:
+            f = _wrap_compressed(f, self.compression)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -1231,13 +1252,13 @@ class PythonParser(ParserBase):
         self._first_chunk = False
 
         columns = list(self.orig_names)
-        if len(content) == 0: # pragma: no cover
+        if len(content) == 0:  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             return _get_empty_meta(self.orig_names,
                                    self.index_col,
                                    self.index_names)
 
-        #handle new style for names in index
+        # handle new style for names in index
         count_empty_content_vals = count_empty_vals(content[0])
         indexnamerow = None
         if self.has_index_names and count_empty_content_vals == len(columns):
@@ -1354,7 +1375,7 @@ class PythonParser(ParserBase):
             rl = []
             for x in l:
                 if (not isinstance(x, basestring) or
-                    self.comment not in x):
+                        self.comment not in x):
                     rl.append(x)
                 else:
                     x = x[:x.find(self.comment)]
@@ -1374,7 +1395,7 @@ class PythonParser(ParserBase):
             for x in l:
                 if (not isinstance(x, basestring) or
                     self.thousands not in x or
-                    nonnum.search(x.strip())):
+                        nonnum.search(x.strip())):
                     rl.append(x)
                 else:
                     rl.append(x.replace(',', ''))
@@ -1519,8 +1540,12 @@ class PythonParser(ParserBase):
 def _make_date_converter(date_parser=None, dayfirst=False):
     def converter(*date_cols):
         if date_parser is None:
-            return lib.try_parse_dates(_concat_date_cols(date_cols),
-                                       dayfirst=dayfirst)
+            strs = _concat_date_cols(date_cols)
+            try:
+                return tslib.array_to_datetime(com._ensure_object(strs),
+                                               utc=None, dayfirst=dayfirst)
+            except:
+                return lib.try_parse_dates(strs, dayfirst=dayfirst)
         else:
             try:
                 return date_parser(*date_cols)
@@ -1695,7 +1720,6 @@ def _get_na_values(col, na_values):
         return na_values
 
 
-
 def _get_col_names(colspec, columns):
     colset = set(columns)
     colnames = []
@@ -1709,7 +1733,11 @@ def _get_col_names(colspec, columns):
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        return np.array([unicode(x) for x in date_cols[0]], dtype=object)
+        if py3compat.PY3:
+            return np.array([unicode(x) for x in date_cols[0]], dtype=object)
+        else:
+            return np.array([str(x) if not isinstance(x, basestring) else x
+                             for x in date_cols[0]], dtype=object)
 
     # stripped = [map(str.strip, x) for x in date_cols]
     rs = np.array([' '.join([unicode(y) for y in x])
@@ -1777,20 +1805,24 @@ class ExcelFile(object):
     Parameters
     ----------
     path : string or file-like object
-        Path to xls file
+        Path to xls or xlsx file
     kind : {'xls', 'xlsx', None}, default None
     """
-    def __init__(self, path_or_buf):
-        self.use_xlsx = True
+    def __init__(self, path_or_buf, kind=None):
+        self.kind = kind
+        self.use_xlsx = kind == 'xls'
+
         self.path_or_buf = path_or_buf
         self.tmpfile = None
 
         if isinstance(path_or_buf, basestring):
-            if path_or_buf.endswith('.xls'):
+            if kind == 'xls' or (kind is None and
+                                 path_or_buf.endswith('.xls')):
                 self.use_xlsx = False
                 import xlrd
                 self.book = xlrd.open_workbook(path_or_buf)
             else:
+                self.use_xlsx = True
                 try:
                     from openpyxl.reader.excel import load_workbook
                     self.book = load_workbook(path_or_buf, use_iterators=True)
@@ -1799,14 +1831,23 @@ class ExcelFile(object):
         else:
             data = path_or_buf.read()
 
-            try:
+            if self.kind == 'xls':
                 import xlrd
                 self.book = xlrd.open_workbook(file_contents=data)
-                self.use_xlsx = False
-            except Exception:
+            elif self.kind == 'xlsx':
                 from openpyxl.reader.excel import load_workbook
                 buf = py3compat.BytesIO(data)
                 self.book = load_workbook(buf, use_iterators=True)
+            else:
+                try:
+                    import xlrd
+                    self.book = xlrd.open_workbook(file_contents=data)
+                    self.use_xlsx = False
+                except Exception:
+                    self.use_xlsx = True
+                    from openpyxl.reader.excel import load_workbook
+                    buf = py3compat.BytesIO(data)
+                    self.book = load_workbook(buf, use_iterators=True)
 
     def __repr__(self):
         return object.__repr__(self)
@@ -1848,7 +1889,7 @@ class ExcelFile(object):
         # has_index_names: boolean, default False
         #     True if the cols defined in index_col have an index name and are
         #     not in the header
-        has_index_names=False # removed as new argument of API function
+        has_index_names = False  # removed as new argument of API function
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -1881,13 +1922,13 @@ class ExcelFile(object):
             """
             def _excel2num(x):
                 "Convert Excel column name like 'AB' to 0-based column index"
-                return reduce(lambda s,a: s*26+ord(a)-ord('A')+1, x.upper().strip(), 0)-1
+                return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1, x.upper().strip(), 0) - 1
 
             cols = []
             for rng in areas.split(','):
                 if ':' in rng:
                     rng = rng.split(':')
-                    cols += range(_excel2num(rng[0]), _excel2num(rng[1])+1)
+                    cols += range(_excel2num(rng[0]), _excel2num(rng[1]) + 1)
                 else:
                     cols.append(_excel2num(rng))
             return cols
@@ -1957,7 +1998,7 @@ class ExcelFile(object):
                     if typ == XL_CELL_DATE:
                         dt = xldate_as_tuple(value, datemode)
                         # how to produce this first case?
-                        if dt[0] < datetime.MINYEAR: # pragma: no cover
+                        if dt[0] < datetime.MINYEAR:  # pragma: no cover
                             value = datetime.time(*dt[3:])
                         else:
                             value = datetime.datetime(*dt)
@@ -2011,6 +2052,7 @@ class CellStyleConverter(object):
         style_dict: style dictionary to convert
         """
         import xlwt
+
         def style_to_xlwt(item, firstlevel=True, field_sep=',', line_sep=';'):
             """helper wich recursively generate an xlwt easy style string
             for example:
@@ -2068,7 +2110,7 @@ class CellStyleConverter(object):
             for nk, nv in value.items():
                 if key == "borders":
                     (xls_style.borders.__getattribute__(nk)
-                            .__setattr__('border_style', nv))
+                     .__setattr__('border_style', nv))
                 else:
                     xls_style.__getattribute__(key).__setattr__(nk, nv)
 
@@ -2076,7 +2118,7 @@ class CellStyleConverter(object):
 
 
 def _conv_value(val):
-    #convert value for excel dump
+    # convert value for excel dump
     if isinstance(val, np.int64):
         val = int(val)
     elif isinstance(val, np.bool8):
@@ -2104,12 +2146,12 @@ class ExcelWriter(object):
             import xlwt
             self.book = xlwt.Workbook()
             self.fm_datetime = xlwt.easyxf(
-                    num_format_str='YYYY-MM-DD HH:MM:SS')
+                num_format_str='YYYY-MM-DD HH:MM:SS')
             self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
         else:
             from openpyxl.workbook import Workbook
-            self.book = Workbook()#optimized_write=True)
-            #open pyxl 1.6.1 adds a dummy sheet remove it
+            self.book = Workbook()  # optimized_write=True)
+            # open pyxl 1.6.1 adds a dummy sheet remove it
             if self.book.worksheets:
                 self.book.remove_sheet(self.book.worksheets[0])
         self.path = path
@@ -2164,15 +2206,15 @@ class ExcelWriter(object):
                 style = CellStyleConverter.to_xlsx(cell.style)
                 for field in style.__fields__:
                     xcell.style.__setattr__(field,
-                            style.__getattribute__(field))
+                                            style.__getattribute__(field))
 
             if isinstance(cell.val, datetime.datetime):
                 xcell.style.number_format.format_code = "YYYY-MM-DD HH:MM:SS"
             elif isinstance(cell.val, datetime.date):
                 xcell.style.number_format.format_code = "YYYY-MM-DD"
 
-            #merging requires openpyxl latest (works on 1.6.1)
-            #todo add version check
+            # merging requires openpyxl latest (works on 1.6.1)
+            # todo add version check
             if cell.mergestart is not None and cell.mergeend is not None:
                 cletterstart = get_column_letter(startcol + cell.col + 1)
                 cletterend = get_column_letter(startcol + cell.mergeend + 1)

@@ -105,7 +105,8 @@ grouped = df.groupby(['key1', 'key2'])
 
 # f = lambda x: x
 
-# transformed = df.groupby(lambda x: x.strftime('%m/%y')).transform(lambda x: x)
+# transformed = df.groupby(lambda x: x.strftime('%m/%y')).transform(lambda
+# x: x)
 
 # def ohlc(group):
 #     return Series([group[0], group.max(), group.min(), group[-1]],
@@ -133,9 +134,10 @@ a = np.arange(100).repeat(100)
 b = np.tile(np.arange(100), 100)
 index = MultiIndex.from_arrays([a, b])
 s = Series(np.random.randn(len(index)), index)
-df = DataFrame({'A' : s})
+df = DataFrame({'A': s})
 df['B'] = df.index.get_level_values(0)
 df['C'] = df.index.get_level_values(1)
+
 
 def f():
     for x in df.groupby(['B', 'B']):

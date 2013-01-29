@@ -3,7 +3,7 @@ language: python
 python:
   - 2.6
   - 2.7
-  - 3.1 # travis will soon EOL this
+#  - 3.1 # travis EOL
   - 3.2
   - 3.3
 
@@ -15,6 +15,8 @@ matrix:
   include:
     - python: 2.7
       env: VBENCH=true
+    - python: 2.7
+      env: LOCALE_OVERRIDE="zh_CN.GB18030"  # simplified chinese
     - python: 2.7
       env: FULL_DEPS=true
     - python: 3.2
@@ -45,8 +47,10 @@ before_install:
 install:
   - echo "Waldo2"
   - ci/install.sh
-  - ci/print_versions.py # not including stats
 
 script:
   - echo "Waldo3"
   - ci/script.sh
+
+after_script:
+  - ci/print_versions.py

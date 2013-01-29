@@ -3,6 +3,7 @@
 import numpy as np
 from scikits.statsmodels.regression import WLS, GLS, RegressionResults
 
+
 class RLS(GLS):
     """
     Restricted general least squares model that handles linear constraints
@@ -57,10 +58,12 @@ class RLS(GLS):
             self.cholsigmainv = np.diag(np.sqrt(sigma))
         else:
             self.sigma = sigma
-            self.cholsigmainv = np.linalg.cholesky(np.linalg.pinv(self.sigma)).T
+            self.cholsigmainv = np.linalg.cholesky(
+                np.linalg.pinv(self.sigma)).T
         super(GLS, self).__init__(endog, exog)
 
     _rwexog = None
+
     @property
     def rwexog(self):
         """Whitened exogenous variables augmented with restrictions"""
@@ -68,15 +71,16 @@ class RLS(GLS):
             P = self.ncoeffs
             K = self.nconstraint
             design = np.zeros((P + K, P + K))
-            design[:P, :P] = np.dot(self.wexog.T, self.wexog) #top left
+            design[:P, :P] = np.dot(self.wexog.T, self.wexog)  # top left
             constr = np.reshape(self.constraint, (K, P))
-            design[:P, P:] = constr.T #top right partition
-            design[P:, :P] = constr #bottom left partition
-            design[P:, P:] = np.zeros((K, K)) #bottom right partition
+            design[:P, P:] = constr.T  # top right partition
+            design[P:, :P] = constr  # bottom left partition
+            design[P:, P:] = np.zeros((K, K))  # bottom right partition
             self._rwexog = design
         return self._rwexog
 
     _inv_rwexog = None
+
     @property
     def inv_rwexog(self):
         """Inverse of self.rwexog"""
@@ -85,6 +89,7 @@ class RLS(GLS):
         return self._inv_rwexog
 
     _rwendog = None
+
     @property
     def rwendog(self):
         """Whitened endogenous variable augmented with restriction parameters"""
@@ -98,6 +103,7 @@ class RLS(GLS):
         return self._rwendog
 
     _ncp = None
+
     @property
     def rnorm_cov_params(self):
         """Parameter covariance under restrictions"""
@@ -107,6 +113,7 @@ class RLS(GLS):
         return self._ncp
 
     _wncp = None
+
     @property
     def wrnorm_cov_params(self):
         """
@@ -123,6 +130,7 @@ class RLS(GLS):
         return self._wncp
 
     _coeffs = None
+
     @property
     def coeffs(self):
         """Estimated parameters"""

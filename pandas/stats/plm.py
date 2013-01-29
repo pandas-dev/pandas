@@ -182,7 +182,7 @@ class PanelOLS(OLS):
                     cat_mapping[key] = dict(enumerate(distinct_values))
                     new_values = np.searchsorted(distinct_values, values)
                     x_converted[key] = DataFrame(new_values, index=df.index,
-                                                  columns=df.columns)
+                                                 columns=df.columns)
 
         if len(cat_mapping) == 0:
             x_converted = x
@@ -262,7 +262,8 @@ class PanelOLS(OLS):
 
             if dropped_dummy or not self._use_all_dummies:
                 if effect in self._dropped_dummies:
-                    to_exclude = mapped_name = self._dropped_dummies.get(effect)
+                    to_exclude = mapped_name = self._dropped_dummies.get(
+                        effect)
 
                     if val_map:
                         mapped_name = val_map[to_exclude]
@@ -273,7 +274,8 @@ class PanelOLS(OLS):
                     raise Exception('%s not in %s' % (to_exclude,
                                                       dummies.columns))
 
-                self.log('-- Excluding dummy for %s: %s' % (effect, to_exclude))
+                self.log(
+                    '-- Excluding dummy for %s: %s' % (effect, to_exclude))
 
                 dummies = dummies.filter(dummies.columns - [mapped_name])
                 dropped_dummy = True
@@ -604,8 +606,8 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
                     xx = xx - cum_xx[i - window]
 
             result = _var_beta_panel(y_slice, x_slice, beta[n], xx, rmse[n],
-                                    cluster_axis, self._nw_lags,
-                                    nobs[n], df[n], self._nw_overlap)
+                                     cluster_axis, self._nw_lags,
+                                     nobs[n], df[n], self._nw_overlap)
 
             results.append(result)
 
@@ -745,7 +747,7 @@ class NonPooledPanelOLS(object):
 
 
 def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
-                   nw_lags, nobs, df, nw_overlap):
+                    nw_lags, nobs, df, nw_overlap):
     from pandas.core.frame import group_agg
     xx_inv = math.inv(xx)
 
@@ -777,7 +779,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
 
         xox = 0
         for i in range(len(x.index.levels[0])):
-            xox += math.newey_west(m[i : i + 1], nw_lags,
+            xox += math.newey_west(m[i: i + 1], nw_lags,
                                    nobs, df, nw_overlap)
 
         return np.dot(xx_inv, np.dot(xox, xx_inv))

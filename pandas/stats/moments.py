@@ -149,7 +149,7 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
 
     converted = np.isfinite(values).astype(float)
     result = rolling_sum(converted, window, min_periods=1,
-                         center=center) # already converted
+                         center=center)  # already converted
 
     # putmask here?
     result[np.isnan(result)] = 0
@@ -164,6 +164,7 @@ def rolling_cov(arg1, arg2, window, min_periods=None, freq=None,
     arg1 = _conv_timerule(arg1, freq, time_rule)
     arg2 = _conv_timerule(arg2, freq, time_rule)
     window = min(window, len(arg1), len(arg2))
+
     def _get_cov(X, Y):
         mean = lambda x: rolling_mean(x, window, min_periods)
         count = rolling_count(X + Y, window)
@@ -179,6 +180,7 @@ def rolling_cov(arg1, arg2, window, min_periods=None, freq=None,
             rs[-offset:] = np.nan
     return rs
 
+
 @Substitution("Moving sample correlation", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
 def rolling_corr(arg1, arg2, window, min_periods=None, freq=None,
@@ -188,8 +190,8 @@ def rolling_corr(arg1, arg2, window, min_periods=None, freq=None,
                           center=center, time_rule=time_rule)
         den = (rolling_std(a, window, min_periods, freq=freq,
                            center=center, time_rule=time_rule) *
-                rolling_std(b, window, min_periods, freq=freq,
-                            center=center, time_rule=time_rule))
+               rolling_std(b, window, min_periods, freq=freq,
+                           center=center, time_rule=time_rule))
         return num / den
     return _flex_binary_moment(arg1, arg2, _get_corr)
 
@@ -288,6 +290,7 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
         rs = _center_window(rs, window, axis)
     return rs
 
+
 def _center_window(rs, window, axis):
     offset = int((window - 1) / 2.)
     if isinstance(rs, (Series, DataFrame, Panel)):
@@ -305,6 +308,7 @@ def _center_window(rs, window, axis):
         rs[tuple(rs_indexer)] = np.copy(rs[tuple(lead_indexer)])
         rs[tuple(na_indexer)] = np.nan
     return rs
+
 
 def _process_data_structure(arg, kill_inf=True):
     if isinstance(arg, DataFrame):
@@ -355,7 +359,7 @@ def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None,
     def _ewma(v):
         result = algos.ewma(v, com, int(adjust))
         first_index = _first_valid_index(v)
-        result[first_index : first_index + min_periods] = NaN
+        result[first_index: first_index + min_periods] = NaN
         return result
 
     return_hook, values = _process_data_structure(arg)
@@ -461,7 +465,7 @@ def _conv_timerule(arg, freq, time_rule):
     if time_rule is not None:
         import warnings
         warnings.warn("time_rule argument is deprecated, replace with freq",
-                       FutureWarning)
+                      FutureWarning)
 
         freq = time_rule
 
@@ -576,6 +580,7 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, center=center, time_rule=time_rule)
 
+
 def rolling_window(arg, window=None, win_type=None, min_periods=None,
                    freq=None, center=False, mean=True, time_rule=None,
                    axis=0, **kwargs):
@@ -628,14 +633,14 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
             raise ValueError(('Do not specify window type if using custom '
                               'weights'))
         window = com._asarray_tuplesafe(window).astype(float)
-    elif com.is_integer(window): #window size
+    elif com.is_integer(window):  # window size
         if win_type is None:
             raise ValueError('Must specify window type')
         try:
             import scipy.signal as sig
         except ImportError:
             raise ImportError('Please install scipy to generate window weight')
-        win_type = _validate_win_type(win_type, kwargs) # may pop from kwargs
+        win_type = _validate_win_type(win_type, kwargs)  # may pop from kwargs
         window = sig.get_window(win_type, window).astype(float)
     else:
         raise ValueError('Invalid window %s' % str(window))
@@ -653,16 +658,18 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
         rs = _center_window(rs, len(window), axis)
     return rs
 
+
 def _validate_win_type(win_type, kwargs):
     # may pop from kwargs
-    arg_map = {'kaiser' : ['beta'],
-               'gaussian' : ['std'],
-               'general_gaussian' : ['power', 'width'],
-               'slepian' : ['width']}
+    arg_map = {'kaiser': ['beta'],
+               'gaussian': ['std'],
+               'general_gaussian': ['power', 'width'],
+               'slepian': ['width']}
     if win_type in arg_map:
         return tuple([win_type] +
                      _pop_args(win_type, arg_map[win_type], kwargs))
     return win_type
+
 
 def _pop_args(win_type, arg_names, kwargs):
     msg = '%s window requires %%s' % win_type
@@ -695,17 +702,20 @@ expanding_max = _expanding_func(algos.roll_max2, 'Expanding maximum')
 expanding_min = _expanding_func(algos.roll_min2, 'Expanding minimum')
 expanding_sum = _expanding_func(algos.roll_sum, 'Expanding sum')
 expanding_mean = _expanding_func(algos.roll_mean, 'Expanding mean')
-expanding_median = _expanding_func(algos.roll_median_cython, 'Expanding median')
+expanding_median = _expanding_func(
+    algos.roll_median_cython, 'Expanding median')
 
 expanding_std = _expanding_func(_ts_std,
                                 'Unbiased expanding standard deviation',
                                 check_minp=_require_min_periods(2))
 expanding_var = _expanding_func(algos.roll_var, 'Unbiased expanding variance',
-                            check_minp=_require_min_periods(2))
-expanding_skew = _expanding_func(algos.roll_skew, 'Unbiased expanding skewness',
-                             check_minp=_require_min_periods(3))
-expanding_kurt = _expanding_func(algos.roll_kurt, 'Unbiased expanding kurtosis',
-                             check_minp=_require_min_periods(4))
+                                check_minp=_require_min_periods(2))
+expanding_skew = _expanding_func(
+    algos.roll_skew, 'Unbiased expanding skewness',
+    check_minp=_require_min_periods(3))
+expanding_kurt = _expanding_func(
+    algos.roll_kurt, 'Unbiased expanding kurtosis',
+    check_minp=_require_min_periods(4))
 
 
 def expanding_count(arg, freq=None, center=False, time_rule=None):

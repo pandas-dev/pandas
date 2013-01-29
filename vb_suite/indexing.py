@@ -42,7 +42,7 @@ col = columns[10]
 """
 statement = "df[col][idx]"
 bm_df_getitem = Benchmark(statement, setup,
-                        name='dataframe_getitem_scalar')
+                          name='dataframe_getitem_scalar')
 
 setup = common_setup + """
 try:
@@ -59,7 +59,7 @@ col = columns[10]
 """
 statement = "df[col][idx]"
 bm_df_getitem2 = Benchmark(statement, setup,
-                        name='datamatrix_getitem_scalar')
+                           name='datamatrix_getitem_scalar')
 
 setup = common_setup + """
 try:
@@ -104,9 +104,9 @@ midx = MultiIndex.from_arrays([a, b])
 midx = midx.take(np.random.permutation(np.arange(100000)))
 """
 sort_level_zero = Benchmark("midx.sortlevel(0)", setup,
-                            start_date=datetime(2012,1,1))
+                            start_date=datetime(2012, 1, 1))
 sort_level_one = Benchmark("midx.sortlevel(1)", setup,
-                           start_date=datetime(2012,1,1))
+                           start_date=datetime(2012, 1, 1))
 
 #----------------------------------------------------------------------
 # Panel subset selection

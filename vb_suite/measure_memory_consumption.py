@@ -8,6 +8,7 @@ from __future__ import print_function
 long summary
 """
 
+
 def main():
     import shutil
     import tempfile
@@ -21,27 +22,28 @@ def main():
 
     from memory_profiler import memory_usage
 
-    warnings.filterwarnings('ignore',category=FutureWarning)
+    warnings.filterwarnings('ignore', category=FutureWarning)
 
     try:
-        TMP_DIR =  tempfile.mkdtemp()
-        runner = BenchmarkRunner(benchmarks, REPO_PATH, REPO_PATH, BUILD, DB_PATH,
-                                 TMP_DIR, PREPARE, always_clean=True,
-            #                             run_option='eod', start_date=START_DATE,
-                                 module_dependencies=dependencies)
+        TMP_DIR = tempfile.mkdtemp()
+        runner = BenchmarkRunner(
+            benchmarks, REPO_PATH, REPO_PATH, BUILD, DB_PATH,
+            TMP_DIR, PREPARE, always_clean=True,
+            # run_option='eod', start_date=START_DATE,
+            module_dependencies=dependencies)
         results = {}
         for b in runner.benchmarks:
-            k=b.name
+            k = b.name
             try:
-                vs=memory_usage((b.run,))
+                vs = memory_usage((b.run,))
                 v = max(vs)
-                #print(k, v)
-                results[k]=v
+                # print(k, v)
+                results[k] = v
             except Exception as e:
                 print("Exception caught in %s\n" % k)
                 print(str(e))
 
-        s=Series(results)
+        s = Series(results)
         s.sort()
         print((s))
 
@@ -49,6 +51,5 @@ def main():
         shutil.rmtree(TMP_DIR)
 
 
-
 if __name__ == "__main__":
-	main()
+    main()

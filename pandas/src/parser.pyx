@@ -172,8 +172,8 @@ cdef extern from "parser/tokenizer.h":
 
     void debug_print_parser(parser_t *self)
 
-    int tokenize_all_rows(parser_t *self) nogil
-    int tokenize_nrows(parser_t *self, size_t nrows) nogil
+    int tokenize_all_rows(parser_t *self)
+    int tokenize_nrows(parser_t *self, size_t nrows)
 
     int64_t str_to_int64(char *p_item, int64_t int_min,
                          int64_t int_max, int *error, char tsep)
@@ -469,13 +469,20 @@ cdef class TextReader:
         self.parser.cb_io = NULL
         self.parser.cb_cleanup = NULL
 
-        if isinstance(source, basestring) and self.compression:
+        if self.compression:
             if self.compression == 'gzip':
                 import gzip
-                source = gzip.GzipFile(source, 'rb')
+                if isinstance(source, basestring):
+                    source = gzip.GzipFile(source, 'rb')
+                else:
+                    source = gzip.GzipFile(fileobj=source)
             elif self.compression == 'bz2':
                 import bz2
-                source = bz2.BZ2File(source, 'rb')
+                if isinstance(source, basestring):
+                    source = bz2.BZ2File(source, 'rb')
+                else:
+                    raise ValueError('Python cannot read bz2 from open file '
+                                     'handle')
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
@@ -597,7 +604,7 @@ cdef class TextReader:
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
             field_count = len(header)
-        elif not self.has_usecols:
+        else: # not self.has_usecols:
             field_count = self.parser.line_fields[data_line]
 
             passed_count = len(header)
@@ -607,15 +614,18 @@ cdef class TextReader:
                                    'data has %d fields'
                                    % (passed_count, field_count))
 
+            if self.has_usecols:
+                nuse = len(self.usecols)
+                if nuse == passed_count:
+                    self.leading_cols = 0
+                elif self.names is None and nuse < passed_count:
+                    self.leading_cols = field_count - passed_count
+                elif passed_count != field_count:
+                    raise ValueError('Passed header names '
+                                     'mismatches usecols')
             # oh boy, #2442
-            if self.allow_leading_cols:
+            elif self.allow_leading_cols:
                 self.leading_cols = field_count - passed_count
-        else:
-            # TODO: some better check here
-            # field_count = len(header)
-            n = len(header)
-            if n != field_count and n != len(self.usecols):
-                raise ValueError('Passed header names mismatches usecols')
 
         return header, field_count
 
@@ -685,8 +695,7 @@ cdef class TextReader:
 
     cdef _tokenize_rows(self, size_t nrows):
         cdef int status
-        with nogil:
-            status = tokenize_nrows(self.parser, nrows)
+        status = tokenize_nrows(self.parser, nrows)
 
         if self.parser.warn_msg != NULL:
             print >> sys.stderr, self.parser.warn_msg
@@ -713,8 +722,7 @@ cdef class TextReader:
                 raise ValueError('skip_footer can only be used to read '
                                  'the whole file')
         else:
-            with nogil:
-                status = tokenize_all_rows(self.parser)
+            status = tokenize_all_rows(self.parser)
 
             if self.parser.warn_msg != NULL:
                 print >> sys.stderr, self.parser.warn_msg
@@ -788,11 +796,14 @@ cdef class TextReader:
         results = {}
         nused = 0
         for i in range(self.table_width):
-            name = self._get_column_name(i, nused)
-
-            if self.has_usecols and not (i in self.usecols or
-                                         name in self.usecols):
-                continue
+            if i < self.leading_cols:
+                # Pass through leading columns always
+                name = i
+            else:
+                name = self._get_column_name(i, nused)
+                if self.has_usecols and not (i in self.usecols or
+                                             name in self.usecols):
+                    continue
 
             conv = self._get_converter(i, name)
 
@@ -830,8 +841,9 @@ cdef class TextReader:
 
             results[i] = col_res
 
-            # number of used columns
-            nused += 1
+            # number of used column names
+            if i > self.leading_cols:
+                nused += 1
 
         self.parser_start += end - start
 
@@ -863,7 +875,7 @@ cdef class TextReader:
                         col_dtype = np.dtype(col_dtype).str
 
                 return self._convert_with_dtype(col_dtype, i, start, end,
-                                                na_filter, na_hashset)
+                                                na_filter, 1, na_hashset)
 
         if i in self.noconvert:
             return self._string_convert(i, start, end, na_filter, na_hashset)
@@ -872,10 +884,10 @@ cdef class TextReader:
             for dt in dtype_cast_order:
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, na_hashset)
+                        dt, i, start, end, na_filter, 0, na_hashset)
                 except OverflowError:
                     col_res, na_count = self._convert_with_dtype(
-                        '|O8', i, start, end, na_filter, na_hashset)
+                        '|O8', i, start, end, na_filter, 0, na_hashset)
 
                 if col_res is not None:
                     break
@@ -884,14 +896,16 @@ cdef class TextReader:
 
     cdef _convert_with_dtype(self, object dtype, Py_ssize_t i,
                              int start, int end,
-                             bint na_filter, kh_str_t *na_hashset):
+                             bint na_filter,
+                             bint user_dtype,
+                             kh_str_t *na_hashset):
         cdef kh_str_t *true_set, *false_set
 
         if dtype[1] == 'i' or dtype[1] == 'u':
             result, na_count = _try_int64(self.parser, i, start, end,
                                           na_filter, na_hashset)
-            # if na_count > 0:
-            #     raise Exception('Integer column has NA values')
+            if user_dtype and na_count > 0:
+                raise Exception('Integer column has NA values')
 
             if dtype[1:] != 'i8':
                 result = result.astype(dtype)
@@ -1004,7 +1018,7 @@ cdef class TextReader:
             if len(self.names) == len(self.usecols):
                 return self.names[nused]
             else:
-                return self.names[i]
+                return self.names[i - self.leading_cols]
         else:
             if self.header is not None:
                 j = i - self.leading_cols
@@ -1642,20 +1656,31 @@ def _concatenate_chunks(list chunks):
 #----------------------------------------------------------------------
 
 # NA values
+def _compute_na_values():
+    int64info = np.iinfo(np.int64)
+    int32info = np.iinfo(np.int32)
+    int16info = np.iinfo(np.int16)
+    int8info = np.iinfo(np.int8)
+    uint64info = np.iinfo(np.uint64)
+    uint32info = np.iinfo(np.uint32)
+    uint16info = np.iinfo(np.uint16)
+    uint8info = np.iinfo(np.uint8)
+    na_values = {
+        np.float64 : np.nan,
+        np.int64 : int64info.min,
+        np.int32 : int32info.min,
+        np.int16 : int16info.min,
+        np.int8  : int8info.min,
+        np.uint64 : uint64info.max,
+        np.uint32 : uint32info.max,
+        np.uint16 : uint16info.max,
+        np.uint8 : uint8info.max,
+        np.bool_ : uint8info.max,
+        np.object_ : np.nan    # oof
+    }
+    return na_values
 
-na_values = {
-    np.float64 : np.nan,
-    np.int64 : INT64_MIN,
-    np.int32 : INT32_MIN,
-    np.int16 : INT16_MIN,
-    np.int8  : INT8_MIN,
-    np.uint64 : UINT64_MAX,
-    np.uint32 : UINT32_MAX,
-    np.uint16 : UINT16_MAX,
-    np.uint8 : UINT8_MAX,
-    np.bool_ : UINT8_MAX,
-    np.object_ : np.nan    # oof
-}
+na_values = _compute_na_values()
 
 for k in list(na_values):
     na_values[np.dtype(k)] = na_values[k]
@@ -1789,4 +1814,3 @@ def _maybe_encode(values):
     if values is None:
         return []
     return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
-

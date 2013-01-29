@@ -57,7 +57,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
                 pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
                 result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
                                      dts.min, dts.sec, dts.us, tz)
-        elif _is_tzlocal(tz):
+        elif _is_tzlocal(tz) or _is_fixed_offset(tz):
             for i in range(n):
                 pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
@@ -88,6 +88,13 @@ from dateutil.tz import tzlocal
 
 def _is_tzlocal(tz):
     return isinstance(tz, tzlocal)
+
+def _is_fixed_offset(tz):
+    try:
+        tz._transition_info
+        return False
+    except AttributeError:
+        return True
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
@@ -700,7 +707,10 @@ cdef inline object _get_zone(object tz):
         return 'UTC'
     else:
         try:
-            return tz.zone
+            zone = tz.zone
+            if zone is None:
+                return tz
+            return zone
         except AttributeError:
             return tz
 

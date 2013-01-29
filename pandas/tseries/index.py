@@ -8,8 +8,9 @@ import numpy as np
 
 from pandas.core.common import isnull
 from pandas.core.index import Index, Int64Index
-from pandas.tseries.frequencies import (infer_freq, to_offset, get_period_alias,
-                                        Resolution, get_reso_string)
+from pandas.tseries.frequencies import (
+    infer_freq, to_offset, get_period_alias,
+    Resolution, get_reso_string)
 from pandas.tseries.offsets import DateOffset, generate_range, Tick
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -256,7 +257,7 @@ class DatetimeIndex(Int64Index):
                 tz = tools._maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
-                    getattr(data, 'tz', None) is None):
+                        getattr(data, 'tz', None) is None):
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
                     subarr = tslib.tz_localize_to_utc(ints, tz)
@@ -337,7 +338,7 @@ class DatetimeIndex(Int64Index):
 
             if (offset._should_cache() and
                 not (offset._normalize_cache and not _normalized) and
-                _naive_in_cache_range(start, end)):
+                    _naive_in_cache_range(start, end)):
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
@@ -362,7 +363,7 @@ class DatetimeIndex(Int64Index):
 
             if (offset._should_cache() and
                 not (offset._normalize_cache and not _normalized) and
-                _naive_in_cache_range(start, end)):
+                    _naive_in_cache_range(start, end)):
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
@@ -770,6 +771,18 @@ class DatetimeIndex(Int64Index):
         taken = self.values.take(indices, axis=axis)
         return self._simple_new(taken, self.name, None, self.tz)
 
+    def unique(self):
+        """
+        Index.unique with handling for DatetimeIndex metadata
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
+        result = Int64Index.unique(self)
+        return DatetimeIndex._simple_new(result, tz=self.tz,
+                                         name=self.name)
+
     def union(self, other):
         """
         Specialized union for DatetimeIndex objects. If combine
@@ -897,7 +910,7 @@ class DatetimeIndex(Int64Index):
         name = self.name if self.name == other.name else None
         if (isinstance(other, DatetimeIndex)
             and self.offset == other.offset
-            and self._can_fast_union(other)):
+                and self._can_fast_union(other)):
             joined = self._view_like(joined)
             joined.name = name
             return joined
@@ -1292,7 +1305,7 @@ class DatetimeIndex(Int64Index):
             return True
 
         if (not hasattr(other, 'inferred_type') or
-            other.inferred_type != 'datetime64'):
+                other.inferred_type != 'datetime64'):
             if self.offset is not None:
                 return False
             try:
@@ -1303,7 +1316,8 @@ class DatetimeIndex(Int64Index):
         if self.tz is not None:
             if other.tz is None:
                 return False
-            same_zone = tslib.get_timezone(self.tz) == tslib.get_timezone(other.tz)
+            same_zone = tslib.get_timezone(
+                self.tz) == tslib.get_timezone(other.tz)
         else:
             if other.tz is not None:
                 return False
@@ -1331,6 +1345,17 @@ class DatetimeIndex(Int64Index):
                                     [item.view(np.int64)],
                                     self[loc:].asi8))
         return DatetimeIndex(new_index, freq='infer')
+
+    def delete(self, loc):
+        """
+        Make new DatetimeIndex with passed location deleted
+
+        Returns
+        -------
+        new_index : DatetimeIndex
+        """
+        arr = np.delete(self.values, loc)
+        return DatetimeIndex(arr, tz=self.tz)
 
     def _view_like(self, ndarray):
         result = ndarray.view(type(self))
@@ -1633,6 +1658,7 @@ def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
 
+
 def _process_concat_data(to_concat, name):
     klass = Index
     kwargs = {}
@@ -1672,7 +1698,7 @@ def _process_concat_data(to_concat, name):
                 to_concat = [x.values for x in to_concat]
 
             klass = DatetimeIndex
-            kwargs = {'tz' : tz}
+            kwargs = {'tz': tz}
             concat = com._concat_compat
     else:
         for i, x in enumerate(to_concat):

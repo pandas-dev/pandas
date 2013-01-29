@@ -4,6 +4,7 @@ from common import assert_almost_equal, BaseTest
 
 import numpy as np
 
+
 class TestFamaMacBeth(BaseTest):
     def testFamaMacBethRolling(self):
         # self.checkFamaMacBethExtended('rolling', self.panel_x, self.panel_y,
@@ -24,7 +25,7 @@ class TestFamaMacBeth(BaseTest):
                               **kwds)
         self._check_stuff_works(result)
 
-        index =  result._index
+        index = result._index
         time = len(index)
 
         for i in xrange(time - window + 1):
@@ -57,5 +58,5 @@ class TestFamaMacBeth(BaseTest):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

@@ -11,13 +11,13 @@ N = 10000.
 arr1 = np.arange(N)
 index = Index(np.arange(N))
 
-off = N//10
-arr1[off : 2 * off] = np.NaN
-arr1[4*off: 5 * off] = np.NaN
-arr1[8*off: 9 * off] = np.NaN
+off = N // 10
+arr1[off: 2 * off] = np.NaN
+arr1[4 * off: 5 * off] = np.NaN
+arr1[8 * off: 9 * off] = np.NaN
 
 arr2 = np.arange(N)
-arr2[3 * off // 2: 2 * off  + off // 2] = np.NaN
+arr2[3 * off // 2: 2 * off + off // 2] = np.NaN
 arr2[8 * off + off // 2: 9 * off + off // 2] = np.NaN
 
 s1 = SparseSeries(arr1, index=index)
@@ -38,6 +38,7 @@ dm = DataFrame.load(pth)
 
 sdf = dm.to_sparse()
 
+
 def new_data_like(sdf):
     new_data = {}
     for col, series in sdf.iteritems():
@@ -52,22 +53,22 @@ def new_data_like(sdf):
 # for col, ser in dm.iteritems():
 #     data[col] = SparseSeries(ser)
 
-dwp = Panel.fromDict({'foo' : dm})
+dwp = Panel.fromDict({'foo': dm})
 # sdf = SparseDataFrame(data)
 
 
 lp = stack_sparse_frame(sdf)
 
 
-swp = SparsePanel({'A' : sdf})
-swp = SparsePanel({'A' : sdf,
-                       'B' : sdf,
-                       'C' : sdf,
-                       'D' : sdf})
+swp = SparsePanel({'A': sdf})
+swp = SparsePanel({'A': sdf,
+                   'B': sdf,
+                   'C': sdf,
+                   'D': sdf})
 
 y = sdf
-x = SparsePanel({'x1' : sdf + new_data_like(sdf) / 10,
-                 'x2' : sdf + new_data_like(sdf) / 10})
+x = SparsePanel({'x1': sdf + new_data_like(sdf) / 10,
+                 'x2': sdf + new_data_like(sdf) / 10})
 
 dense_y = sdf
 dense_x = x.to_dense()
@@ -89,4 +90,3 @@ reload(plm)
 reload(face)
 
 # model = face.ols(y=y, x=x)
-

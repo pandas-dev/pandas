@@ -10,8 +10,10 @@ import numpy as np
 # "null slice"
 _NS = slice(None, None)
 
+
 class IndexingError(Exception):
     pass
+
 
 class _NDFrameIndexer(object):
 
@@ -36,7 +38,7 @@ class _NDFrameIndexer(object):
     def _get_label(self, label, axis=0):
         # ueber-hack
         if (isinstance(label, tuple) and
-            isinstance(label[axis], slice)):
+                isinstance(label[axis], slice)):
 
             raise IndexingError('no slices here')
 
@@ -111,6 +113,8 @@ class _NDFrameIndexer(object):
                     data = self.obj[item]
                     values = data.values
                     if np.prod(values.shape):
+                        value = com._possibly_cast_to_datetime(
+                            value, getattr(data, 'dtype', None))
                         values[plane_indexer] = value
             except ValueError:
                 for item, v in zip(item_labels[het_idx], value):
@@ -118,6 +122,7 @@ class _NDFrameIndexer(object):
                     values = data.values
                     if np.prod(values.shape):
                         values[plane_indexer] = v
+
         else:
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
@@ -249,7 +254,7 @@ class _NDFrameIndexer(object):
         elif isinstance(self.obj, Panel4D):
             conv = [self._convert_for_reindex(x, axis=i)
                     for i, x in enumerate(tup)]
-            return self.obj.reindex(labels=tup[0],items=tup[1], major=tup[2], minor=tup[3])
+            return self.obj.reindex(labels=tup[0], items=tup[1], major=tup[2], minor=tup[3])
         elif isinstance(self.obj, Panel):
             conv = [self._convert_for_reindex(x, axis=i)
                     for i, x in enumerate(tup)]
@@ -293,6 +298,9 @@ class _NDFrameIndexer(object):
                 except KeyError:
                     raise e1
 
+        if len(tup) > self.obj.ndim:
+            raise IndexingError
+
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
         # df.ix[0, ['C', 'B', A']] -> rows first (False)
@@ -310,7 +318,7 @@ class _NDFrameIndexer(object):
                     # unfortunately need an odious kludge here because of
                     # DataFrame transposing convention
                     if (isinstance(section, DataFrame) and i > 0
-                        and len(new_key) == 2):
+                            and len(new_key) == 2):
                         a, b = new_key
                         new_key = b, a
 
@@ -397,7 +405,7 @@ class _NDFrameIndexer(object):
 
             # this is not the most robust, but...
             if (isinstance(labels, MultiIndex) and
-                not isinstance(keyarr[0], tuple)):
+                    not isinstance(keyarr[0], tuple)):
                 level = 0
             else:
                 level = None
@@ -498,7 +506,7 @@ class _NDFrameIndexer(object):
 
                 # this is not the most robust, but...
                 if (isinstance(labels, MultiIndex) and
-                    not isinstance(objarr[0], tuple)):
+                        not isinstance(objarr[0], tuple)):
                     level = 0
                     _, indexer = labels.reindex(objarr, level=level)
 

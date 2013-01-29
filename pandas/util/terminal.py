@@ -27,8 +27,8 @@ def get_terminal_size():
             tuple_xy = _get_terminal_size_tput()
             # needed for window's python in cygwin's xterm!
     if current_os == 'Linux' or \
-       current_os == 'Darwin' or \
-       current_os.startswith('CYGWIN'):
+        current_os == 'Darwin' or \
+            current_os.startswith('CYGWIN'):
         tuple_xy = _get_terminal_size_linux()
     if tuple_xy is None:
         tuple_xy = (80, 25)      # default value
@@ -52,7 +52,7 @@ def _get_terminal_size_windows():
     if res:
         import struct
         (bufx, bufy, curx, cury, wattr, left, top, right, bottom, maxx,
-                maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
+         maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
         sizex = right - left + 1
         sizey = bottom - top + 1
         return sizex, sizey
@@ -88,7 +88,8 @@ def _get_terminal_size_linux():
             import termios
             import struct
             import os
-            cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+            cr = struct.unpack(
+                'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
         except:
             return None
         return cr

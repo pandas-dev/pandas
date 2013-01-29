@@ -9,6 +9,7 @@ lat = np.random.randint(0, 360, N)
 lon = np.random.randint(0, 360, N)
 data = np.random.randn(N)
 
+
 def groupby1(lat, lon, data):
     indexer = np.lexsort((lon, lat))
     lat = lat.take(indexer)
@@ -25,6 +26,7 @@ def groupby1(lat, lon, data):
 
     return dict(zip(zip(lat.take(decoder), lon.take(decoder)), result))
 
+
 def group_mean(lat, lon, data):
     indexer = np.lexsort((lon, lat))
     lat = lat.take(indexer)
@@ -39,14 +41,16 @@ def group_mean(lat, lon, data):
 
     return dict(zip(zip(lat.take(decoder), lon.take(decoder)), result))
 
+
 def group_mean_naive(lat, lon, data):
     grouped = collections.defaultdict(list)
     for lt, ln, da in zip(lat, lon, data):
-      grouped[(lt, ln)].append(da)
+        grouped[(lt, ln)].append(da)
 
     averaged = dict((ltln, np.mean(da)) for ltln, da in grouped.items())
 
     return averaged
+
 
 def group_agg(values, bounds, f):
     N = len(values)
@@ -57,7 +61,7 @@ def group_agg(values, bounds, f):
         else:
             right_bound = bounds[i + 1]
 
-        result[i] = f(values[left_bound : right_bound])
+        result[i] = f(values[left_bound: right_bound])
 
     return result
 

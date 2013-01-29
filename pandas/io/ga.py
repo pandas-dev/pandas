@@ -86,6 +86,12 @@ redirect : str, optional
     Local host redirect if unspecified
 """
 
+def reset_token_store():
+    """
+    Deletes the default token store
+    """
+    auth.reset_default_token_store()
+
 @Substitution(extras=_AUTH_PARAMS)
 @Appender(_GA_READER_DOC)
 def read_ga(metrics, dimensions, start_date, **kwargs):
@@ -94,6 +100,7 @@ def read_ga(metrics, dimensions, start_date, **kwargs):
     reader = GAnalytics(**reader_kwds)
     return reader.get_data(metrics=metrics, start_date=start_date,
                            dimensions=dimensions, **kwargs)
+
 
 class OAuthDataReader(object):
     """
@@ -280,7 +287,6 @@ class GDataReader(OAuthDataReader):
                 raise ValueError('Google API error %s: %s' % (inst.resp.status,
                                  inst._get_reason()))
 
-
         if chunksize is None:
             return _read(start_index, max_results)
 
@@ -333,7 +339,7 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
                  max_results=10000, **kwargs):
     if isinstance(metrics, basestring):
         metrics = [metrics]
-    met =','.join(['ga:%s' % x for x in metrics])
+    met = ','.join(['ga:%s' % x for x in metrics])
 
     start_date = pd.to_datetime(start_date).strftime('%Y-%m-%d')
     if end_date is None:
@@ -346,9 +352,16 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
                end_date=end_date)
     qry.update(kwargs)
 
-    names = ['dimensions', 'segment', 'filters', 'sort']
-    lst = [dimensions, segment, filters, sort]
+    names = ['dimensions', 'filters', 'sort']
+    lst = [dimensions, filters, sort]
     [_maybe_add_arg(qry, n, d) for n, d in zip(names, lst)]
+
+    if isinstance(segment, basestring):
+        _maybe_add_arg(qry, 'segment', segment, 'dynamic::ga')
+    elif isinstance(segment, int):
+        _maybe_add_arg(qry, 'segment', segment, 'gaid:')
+    elif segment:
+        raise ValueError("segment must be string for dynamic and int ID")
 
     if start_index is not None:
         qry['start_index'] = str(start_index)
@@ -358,11 +371,12 @@ def format_query(ids, metrics, start_date, end_date=None, dimensions=None,
 
     return qry
 
-def _maybe_add_arg(query, field, data):
+
+def _maybe_add_arg(query, field, data, prefix='ga'):
     if data is not None:
-        if isinstance(data, basestring):
+        if isinstance(data, (basestring, int)):
             data = [data]
-        data = ','.join(['ga:%s' % x for x in data])
+        data = ','.join(['%s:%s' % (prefix, x) for x in data])
         query[field] = data
 
 def _get_match(obj_store, name, id, **kwargs):
@@ -384,6 +398,7 @@ def _get_match(obj_store, name, id, **kwargs):
         for item in obj_store.get('items'):
             if name_ok(item) or id_ok(item) or key_ok(item):
                 return item
+
 
 def _clean_index(index_dims, parse_dates):
     _should_add = lambda lst: pd.Index(lst).isin(index_dims).all()
@@ -413,16 +428,20 @@ def _clean_index(index_dims, parse_dates):
 def _get_col_names(header_info):
     return [x['name'][3:] for x in header_info]
 
+
 def _get_column_types(header_info):
     return [(x['name'][3:], x['columnType']) for x in header_info]
+
 
 def _get_dim_names(header_info):
     return [x['name'][3:] for x in header_info
             if x['columnType'] == u'DIMENSION']
 
+
 def _get_met_names(header_info):
     return [x['name'][3:] for x in header_info
             if x['columnType'] == u'METRIC']
+
 
 def _get_data_types(header_info):
     return [(x['name'][3:], TYPE_MAP.get(x['dataType'], object))

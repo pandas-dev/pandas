@@ -18,7 +18,7 @@ from pandas.io.parsers import TextParser
 
 
 def DataReader(name, data_source=None, start=None, end=None,
-        retry_count=3, pause=0):
+               retry_count=3, pause=0):
     """
     Imports data from a number of online sources.
 
@@ -55,7 +55,7 @@ def DataReader(name, data_source=None, start=None, end=None,
 
     if(data_source == "yahoo"):
         return get_data_yahoo(name=name, start=start, end=end,
-                   retry_count=retry_count, pause=pause)
+                              retry_count=retry_count, pause=pause)
     elif(data_source == "fred"):
         return get_data_fred(name=name, start=start, end=end)
     elif(data_source == "famafrench"):
@@ -80,16 +80,17 @@ def get_quote_yahoo(symbols):
     Returns a DataFrame
     """
     if not isinstance(symbols, list):
-        raise TypeError, "symbols must be a list"
+        raise TypeError("symbols must be a list")
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
     codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
              'time': 't1', 'short_ratio': 's7'}
-    request = str.join('',codes.values())  # code request string
+    request = str.join('', codes.values())  # code request string
     header = codes.keys()
 
     data = dict(zip(codes.keys(), [[] for i in range(len(codes))]))
 
-    urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (str.join('+', symbols), request)
+    urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (
+        str.join('+', symbols), request)
 
     try:
         lines = urllib2.urlopen(urlStr).readlines()
@@ -132,14 +133,14 @@ def get_data_yahoo(name=None, start=None, end=None, retry_count=3, pause=0):
     yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
 
     url = yahoo_URL + 's=%s' % name + \
-      '&a=%s' % (start.month - 1) + \
-      '&b=%s' % start.day + \
-      '&c=%s' % start.year + \
-      '&d=%s' % (end.month - 1) + \
-      '&e=%s' % end.day + \
-      '&f=%s' % end.year + \
-      '&g=d' + \
-      '&ignore=.csv'
+        '&a=%s' % (start.month - 1) + \
+        '&b=%s' % start.day + \
+        '&c=%s' % start.year + \
+        '&d=%s' % (end.month - 1) + \
+        '&e=%s' % end.day + \
+        '&f=%s' % end.year + \
+        '&g=d' + \
+        '&ignore=.csv'
 
     for _ in range(retry_count):
         resp = urllib2.urlopen(url)
@@ -178,7 +179,7 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
     fred_URL = "http://research.stlouisfed.org/fred2/series/"
 
     url = fred_URL + '%s' % name + \
-      '/downloaddata/%s' % name + '.csv'
+        '/downloaddata/%s' % name + '.csv'
     data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True,
                     header=None, skiprows=1, names=["DATE", name])
     return data.truncate(start, end)
@@ -198,27 +199,31 @@ def get_data_famafrench(name, start=None, end=None):
 
     datasets = {}
     for i in range(len(file_edges) - 1):
-        dataset = [d.split() for d in data[(file_edges[i] + 1):file_edges[i + 1]]]
+        dataset = [d.split() for d in data[(file_edges[i] + 1):
+                                           file_edges[i + 1]]]
         if(len(dataset) > 10):
             ncol = np.median(np.array([len(d) for d in dataset]))
-            header_index = np.where(np.array([len(d) for d in dataset]) == (ncol - 1))[0][-1]
+            header_index = np.where(
+                np.array([len(d) for d in dataset]) == (ncol - 1))[0][-1]
             header = dataset[header_index]
             # to ensure the header is unique
             header = [str(j + 1) + " " + header[j] for j in range(len(header))]
-            index = np.array([d[0] for d in dataset[(header_index + 1):]], dtype=int)
-            dataset = np.array([d[1:] for d in dataset[(header_index + 1):]], dtype=float)
+            index = np.array(
+                [d[0] for d in dataset[(header_index + 1):]], dtype=int)
+            dataset = np.array(
+                [d[1:] for d in dataset[(header_index + 1):]], dtype=float)
             datasets[i] = DataFrame(dataset, index, columns=header)
 
     return datasets
 
+# Items needed for options class
 cur_month = dt.datetime.now().month
 cur_year = dt.datetime.now().year
 
 
 def _unpack(row, kind='td'):
-    elts = row.findall('.//%s' % kind)
-    return[val.text_content() for val in elts]
-
+    els = row.findall('.//%s' % kind)
+    return[val.text_content() for val in els]
 
 def _parse_options_data(table):
     rows = table.findall('.//tr')
@@ -248,8 +253,14 @@ class Options(object):
     # Fetch September 2012 call data
     >>> calls = aapl.get_call_data(9, 2012)
 
+    # Can now access aapl.calls instance variable
+    >>> aapl.calls
+
     # Fetch September 2012 put data
     >>> puts = aapl.get_put_data(9, 2012)
+
+    # Can now access aapl.puts instance variable
+    >>> aapl.puts
 
     # cut down the call data to be 3 below and 3 above the stock price.
     >>> cut_calls = aapl.get_near_stock_price(calls, above_below=3)
@@ -263,18 +274,19 @@ class Options(object):
         """ Instantiates options_data with a ticker saved as symbol """
         self.symbol = str(symbol).upper()
 
-    def get_options_data(self, month=cur_month, year=cur_year):
+    def get_options_data(self, month=None, year=None):
         """
         Gets call/put data for the stock with the expiration data in the
         given month and year
 
         Parameters
         ----------
-        month: number, int
-            The month the options expire.
+        month: number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
 
-        year: number, int
-            The year the options expire.
+        year: number, int, optional(default=None)
+            The year the options expire. This sould be a 4 digit int.
 
 
         Returns
@@ -284,112 +296,227 @@ class Options(object):
 
         put_data: pandas.DataFrame
             A DataFrame with call options data.
+
+
+        Notes
+        -----
+        When called, this function will add instance variables named
+        calls and puts. See the following example:
+
+            >>> aapl = Options('aapl')  # Create object
+            >>> aapl.calls  # will give an AttributeError
+            >>> aapl.get_options_data()  # Get data and set ivars
+            >>> aapl.calls  # Doesn't throw AttributeError
+
+        Also note that aapl.calls and appl.puts will always be the calls
+        and puts for the next expiry. If the user calls this method with
+        a different month or year, the ivar will be named callsMMYY or
+        putsMMYY where MM and YY are, repsectively, two digit
+        representations of the month and year for the expiry of the
+        options.
         """
-        from BeautifulSoup import BeautifulSoup
+        from lxml.html import parse
 
-        mon_in = month if len(str(month)) == 2 else str('0' + str(month))
+        if month and year:  # try to get specified month from yahoo finance
+            m1 = month if len(str(month)) == 2 else '0' + str(month)
+            m2 = month
 
-        url = str('http://finance.yahoo.com/q/op?s=' + self.symbol + '&m=' +
-                  str(year) + '-' + str(mon_in))
+            if m1 != cur_month and m2 != cur_month:  # if this month use other url
+                url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                          '&m=' + str(year) + '-' + str(m1))
 
-        buf = urllib2.urlopen(url)
-        soup = BeautifulSoup(buf)
-        body = soup.body
+            else:
+                url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                                                            '+Options')
 
-        tables = body.findAll('table')
+        else:  # Default to current month
+            url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                                                            '+Options')
+
+        parsed = parse(urllib2.urlopen(url))
+        doc = parsed.getroot()
+        tables = doc.findall('.//table')
         calls = tables[9]
         puts = tables[13]
 
         call_data = _parse_options_data(calls)
         put_data = _parse_options_data(puts)
 
+        if month:
+            c_name = 'calls' + str(m1) + str(year)[2:]
+            p_name = 'puts' + str(m1) + str(year)[2:]
+            self.__setattr__(c_name, call_data)
+            self.__setattr__(p_name, put_data)
+        else:
+            self.calls = call_data
+            self.calls = put_data
+
         return [call_data, put_data]
 
-    def get_call_data(self, month=cur_month, year=cur_year):
+    def get_call_data(self, month=None, year=None):
         """
         Gets call/put data for the stock with the expiration data in the
         given month and year
 
         Parameters
         ----------
-        month: number, int
-            The month the options expire.
+        month: number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
 
-        year: number, int
-            The year the options expire.
+        year: number, int, optional(default=None)
+            The year the options expire. This sould be a 4 digit int.
 
         Returns
         -------
         call_data: pandas.DataFrame
             A DataFrame with call options data.
+
+        Notes
+        -----
+        When called, this function will add instance variables named
+        calls and puts. See the following example:
+
+            >>> aapl = Options('aapl')  # Create object
+            >>> aapl.calls  # will give an AttributeError
+            >>> aapl.get_call_data()  # Get data and set ivars
+            >>> aapl.calls  # Doesn't throw AttributeError
+
+        Also note that aapl.calls will always be the calls for the next
+        expiry. If the user calls this method with a different month
+        or year, the ivar will be named callsMMYY where MM and YY are,
+        repsectively, two digit representations of the month and year
+        for the expiry of the options.
         """
-        from BeautifulSoup import BeautifulSoup
+        from lxml.html import parse
 
-        mon_in = month if len(str(month)) == 2 else str('0' + str(month))
+        if month and year:  # try to get specified month from yahoo finance
+            m1 = month if len(str(month)) == 2 else '0' + str(month)
+            m2 = month
 
-        url = str('http://finance.yahoo.com/q/op?s=' + self.symbol + '&m=' +
-                  str(year) + '-' + str(mon_in))
+            if m1 != cur_month and m2 != cur_month:  # if this month use other url
+                url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                          '&m=' + str(year) + '-' + str(m1))
 
-        buf = urllib2.urlopen(url)
-        soup = BeautifulSoup(buf)
-        body = soup.body
+            else:
+                url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                                                            '+Options')
 
-        tables = body.findAll('table')
+        else:  # Default to current month
+            url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                                                            '+Options')
+
+        parsed = parse(urllib2.urlopen(url))
+        doc = parsed.getroot()
+        tables = doc.findall('.//table')
         calls = tables[9]
 
         call_data = _parse_options_data(calls)
 
+        if month:
+            name = 'calls' + str(m1) + str(year)[2:]
+            self.__setattr__(name, call_data)
+        else:
+            self.calls = call_data
+
         return call_data
 
-    def get_put_data(self, month=cur_month, year=cur_year):
+    def get_put_data(self, month=None, year=None):
         """
         Gets put data for the stock with the expiration data in the
         given month and year
 
         Parameters
         ----------
-        month: number, int
-            The month the options expire.
+        month: number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
 
-        year: number, int
-            The year the options expire.
+        year: number, int, optional(default=None)
+            The year the options expire. This sould be a 4 digit int.
 
         Returns
         -------
         put_data: pandas.DataFrame
             A DataFrame with call options data.
+
+        Notes
+        -----
+        When called, this function will add instance variables named
+        puts. See the following example:
+
+            >>> aapl = Options('aapl')  # Create object
+            >>> aapl.puts  # will give an AttributeError
+            >>> aapl.get_put_data()  # Get data and set ivars
+            >>> aapl.puts  # Doesn't throw AttributeError
+
+                    return self.__setattr__(self, str(str(x) + str(y)))
+
+        Also note that aapl.puts will always be the puts for the next
+        expiry. If the user calls this method with a different month
+        or year, the ivar will be named putsMMYY where MM and YY are,
+        repsectively, two digit representations of the month and year
+        for the expiry of the options.
         """
-        from BeautifulSoup import BeautifulSoup
+        from lxml.html import parse
 
-        mon_in = month if len(str(month)) == 2 else str('0' + str(month))
+        if month and year:  # try to get specified month from yahoo finance
+            m1 = month if len(str(month)) == 2 else '0' + str(month)
+            m2 = month
 
-        url = str('http://finance.yahoo.com/q/op?s=' + self.symbol + '&m=' +
-                  str(year) + '-' + str(mon_in))
+            if m1 != cur_month and m2 != cur_month:  # if this month use other url
+                url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                          '&m=' + str(year) + '-' + str(m1))
 
-        buf = urllib2.urlopen(url)
-        soup = BeautifulSoup(buf)
-        body = soup.body
+            else:
+                url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                                                            '+Options')
 
-        tables = body.findAll('table')
+        else:  # Default to current month
+            url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
+                                                            '+Options')
+
+        parsed = parse(urllib2.urlopen(url))
+        doc = parsed.getroot()
+        tables = doc.findall('.//table')
         puts = tables[13]
 
         put_data = _parse_options_data(puts)
 
+        if month:
+            name = 'puts' + str(m1) + str(year)[2:]
+            self.__setattr__(name, put_data)
+        else:
+            self.puts = put_data
+
         return put_data
 
-    def get_near_stock_price(self, opt_df, above_below=2):
+    def get_near_stock_price(self, above_below=2, call=True, put=False,
+                             month=None, year=None):
         """
         Cuts the data frame opt_df that is passed in to only take
         options that are near the current stock price.
 
         Parameters
         ----------
-        opt_df: DataFrame
-            The DataFrame that will be passed in to be cut down.
-
         above_below: number, int, optional (default=2)
             The number of strike prices above and below the stock price that
             should be taken
+
+        call: bool
+            Tells the function weather or not it should be using
+            self.calls
+
+        put: bool
+            Tells the function weather or not it should be using
+            self.puts
+
+        month: number, int, optional(default=None)
+            The month the options expire. This should be either 1 or 2
+            digits.
+
+        year: number, int, optional(default=None)
+            The year the options expire. This sould be a 4 digit int.
 
         Returns
         -------
@@ -398,20 +525,74 @@ class Options(object):
             desired. If there isn't data as far out as the user has asked for
             then
         """
-        price = get_quote_yahoo([self.symbol])['last']
-        start_index = np.where(opt_df['Strike'] > price)[0][0]
+        price = float(get_quote_yahoo([self.symbol])['last'])
 
-        get_range = range(start_index - above_below,
-                          start_index + above_below + 1)
+        if call:
+            try:
+                if month:
+                    m1 = month if len(str(month)) == 2 else '0' + str(month)
+                    name = 'calls' + str(m1) + str(year)[2:]
+                    df_c = self.__getattribute__(name)
+                else:
+                    df_c = self.calls
+            except AttributeError:
+                df_c = self.get_call_data(month, year)
 
-        chopped = opt_df.ix[get_range, :]
+            # NOTE: For some reason the put commas in all values >1000. We remove
+            #       them here
+            df_c.Strike = df_c.Strike.astype(str).apply(lambda x: \
+                                                        x.replace(',', ''))
+            # Now make sure Strike column has dtype float
+            df_c.Strike = df_c.Strike.astype(float)
 
-        chopped = chopped.dropna()
-        chopped = chopped.reset_index()
+            start_index = np.where(df_c['Strike'] > price)[0][0]
 
-        return chopped
+            get_range = range(start_index - above_below,
+                              start_index + above_below + 1)
 
-    def get_forward_data(self, months, call=True, put=False):
+            chop_call = df_c.ix[get_range, :]
+
+            chop_call = chop_call.dropna()
+            chop_call = chop_call.reset_index()
+
+        if put:
+            try:
+                if month:
+                    m1 = month if len(str(month)) == 2 else '0' + str(month)
+                    name = 'puts' + str(m1) + str(year)[2:]
+                    df_p = self.__getattribute__(name)
+                else:
+                    df_p = self.puts
+            except AttributeError:
+                df_p = self.get_put_data(month, year)
+
+            # NOTE: For some reason the put commas in all values >1000. We remove
+            #       them here
+            df_p.Strike = df_p.Strike.astype(str).apply(lambda x: \
+                                                        x.replace(',', ''))
+            # Now make sure Strike column has dtype float
+            df_p.Strike = df_p.Strike.astype(float)
+
+            start_index = np.where(df_p.Strike > price)[0][0]
+
+            get_range = range(start_index - above_below,
+                              start_index + above_below + 1)
+
+            chop_put = df_p.ix[get_range, :]
+
+            chop_put = chop_put.dropna()
+            chop_put = chop_put.reset_index()
+
+        if call and put:
+            return [chop_call, chop_put]
+        else:
+            if call:
+                return chop_call
+            else:
+                return chop_put
+
+    def get_forward_data(self, months, call=True, put=False, near=False,
+                         above_below=2):
         """
         Gets either call, put, or both data for months starting in the current
         month and going out in the future a spcified amount of time.
@@ -428,6 +609,14 @@ class Options(object):
         put: bool, optional (default=False)
             Whether or not to collect data for put options.
 
+        near: bool, optional (default=False)
+            Whether this function should get only the data near the
+            current stock price. Uses Options.get_near_stock_price
+
+        above_below: number, int, optional (default=2)
+            The number of strike prices above and below the stock price that
+            should be taken if the near option is set to True
+
         Returns
         -------
         all_calls: DataFrame
@@ -439,7 +628,7 @@ class Options(object):
             month to the current month plus months.
         """
         in_months = range(cur_month, cur_month + months + 1)
-        in_years = [cur_year] * months
+        in_years = [cur_year] * (months + 1)
 
         # Figure out how many items in in_months go past 12
         to_change = 0
@@ -455,10 +644,26 @@ class Options(object):
         if call:
             all_calls = DataFrame()
             for mon in range(months):
+                m2 = in_months[mon]
+                y2 = in_years[mon]
                 try:  # This catches cases when there isn't data for a month
-                    call_frame = self.get_call_data(in_months[mon],
-                                                    in_years[mon])
-                    tick = str(call_frame.ix[0, 1])
+                    if not near:
+                        try:  # Try to access the ivar if already instantiated
+
+                            m1 = m2 if len(str(m2)) == 2 else '0' + str(m2)
+                            name = 'calls' + str(m1) + str(y2)[2:]
+                            call_frame = self.__getattribute__(name)
+                        except:
+                            call_frame = self.get_call_data(in_months[mon],
+                                                        in_years[mon])
+
+                    else:
+                        call_frame = self.get_near_stock_price(call=True,
+                                                               put=False,
+                                                    above_below=above_below,
+                                                    month=m2, year=y2)
+
+                    tick = str(call_frame.Symbol[0])
                     start = len(self.symbol)
                     year = tick[start: start + 2]
                     month = tick[start + 2: start + 4]
@@ -476,11 +681,25 @@ class Options(object):
             all_puts = DataFrame()
             for mon in range(months):
                 try:  # This catches cases when there isn't data for a month
-                    put_frame = self.get_put_data(in_months[mon],
-                                                  in_years[mon])
+                    if not near:
+                        try:  # Try to access the ivar if already instantiated
+                            m2 = in_months[mon]
+                            y2 = in_years[mon]
+
+                            m1 = m2 if len(str(m2)) == 2 else '0' + str(m2)
+                            name = 'puts' + str(m1) + str(y2)[2:]
+                            put_frame = self.__getattribute__(name)
+                        except:
+                            put_frame = self.get_call_data(in_months[mon],
+                                                        in_years[mon])
+
+                    else:
+                        put_frame = self.get_near_stock_price(call=False,
+                                                              put=True,
+                                                    above_below=above_below)
 
                     # Add column with expiry data to this frame.
-                    tick = str(put_frame.ix[0, 1])
+                    tick = str(put_frame.Symbol[0])
                     start = len(self.symbol)
                     year = tick[start: start + 2]
                     month = tick[start + 2: start + 4]

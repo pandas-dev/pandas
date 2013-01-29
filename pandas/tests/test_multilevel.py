@@ -19,11 +19,15 @@ import pandas as pd
 
 import pandas.index as _index
 
+
 class TestMultiLevel(unittest.TestCase):
 
     _multiprocess_can_split_ = True
 
     def setUp(self):
+        import warnings
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
+
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
@@ -121,7 +125,8 @@ class TestMultiLevel(unittest.TestCase):
             # Series
             op = getattr(Series, opname)
             result = op(self.ymd['A'], month_sums['A'], level='month')
-            broadcasted = self.ymd['A'].groupby(level='month').transform(np.sum)
+            broadcasted = self.ymd['A'].groupby(
+                level='month').transform(np.sum)
             expected = op(self.ymd['A'], broadcasted)
             assert_series_equal(result, expected)
 
@@ -132,6 +137,7 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_pickle(self):
         import cPickle
+
         def _test_roundtrip(frame):
             pickled = cPickle.dumps(frame)
             unpickled = cPickle.loads(pickled)
@@ -256,18 +262,18 @@ class TestMultiLevel(unittest.TestCase):
         self.assert_((cp.values[4:] != 0).all())
 
     def test_frame_getitem_setitem_multislice(self):
-        levels = [['t1', 't2'], ['a','b','c']]
-        labels = [[0,0,0,1,1], [0,1,2,0,1]]
+        levels = [['t1', 't2'], ['a', 'b', 'c']]
+        labels = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
         midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
-        df = DataFrame({'value':[1,2,3,7,8]}, index=midx)
+        df = DataFrame({'value': [1, 2, 3, 7, 8]}, index=midx)
 
-        result = df.ix[:,'value']
+        result = df.ix[:, 'value']
         assert_series_equal(df['value'], result)
 
-        result = df.ix[1:3,'value']
+        result = df.ix[1:3, 'value']
         assert_series_equal(df['value'][1:3], result)
 
-        result = df.ix[:,:]
+        result = df.ix[:, :]
         assert_frame_equal(df, result)
 
         result = df
@@ -275,8 +281,20 @@ class TestMultiLevel(unittest.TestCase):
         result['value'] = 10
         assert_frame_equal(df, result)
 
-        df.ix[:,:] = 10
+        df.ix[:, :] = 10
         assert_frame_equal(df, result)
+
+    def test_frame_getitem_multicolumn_empty_level(self):
+        f = DataFrame({'a': ['1', '2', '3'],
+                       'b': ['2', '3', '4']})
+        f.columns = [['level1 item1', 'level1 item2'],
+                     ['', 'level2 item2'],
+                     ['level3 item1', 'level3 item2']]
+
+        result = f['level1 item1']
+        expected = DataFrame([['1'], ['2'], ['3']], index=f.index,
+                             columns=['level3 item1'])
+        assert_frame_equal(result, expected)
 
     def test_frame_setitem_multi_column(self):
         df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
@@ -297,7 +315,7 @@ class TestMultiLevel(unittest.TestCase):
         df = DataFrame(index=[1, 3, 5], columns=columns)
 
         # Works, but adds a column instead of updating the two existing ones
-        df['A'] = 0.0 # Doesn't work
+        df['A'] = 0.0  # Doesn't work
         self.assertTrue((df['A'].values == 0).all())
 
         # it broadcasts
@@ -308,10 +326,10 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_getitem_tuple_plus_slice(self):
         # GH #671
-        df = DataFrame({'a' : range(10),
-                        'b' : range(10),
-                        'c' : np.random.randn(10),
-                        'd' : np.random.randn(10)})
+        df = DataFrame({'a': range(10),
+                        'b': range(10),
+                        'c': np.random.randn(10),
+                        'd': np.random.randn(10)})
 
         idf = df.set_index(['a', 'b'])
 
@@ -333,7 +351,7 @@ class TestMultiLevel(unittest.TestCase):
 
     def test_getitem_multilevel_index_tuple_unsorted(self):
         index_columns = list("abc")
-        df = DataFrame([[0, 1, 0, "x"], [0, 0, 1, "y"]] ,
+        df = DataFrame([[0, 1, 0, "x"], [0, 0, 1, "y"]],
                        columns=index_columns + ["data"])
         df = df.set_index(index_columns)
         query_index = df.index[:1]
@@ -401,7 +419,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = df.xs('a').xs(4, level='four')
         assert_frame_equal(result, expected)
 
-        #GH2107
+        # GH2107
         dates = range(20111201, 20111205)
         ids = 'abcde'
         idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
@@ -477,8 +495,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                            labels=[[0, 0, 1, 1, 2, 2],
                                    [0, 1, 0, 1, 0, 1]])
 
-        frame =  DataFrame(np.random.randn(len(index), 4), index=index,
-                           columns=['a', 'b', 'c', 'd'])
+        frame = DataFrame(np.random.randn(len(index), 4), index=index,
+                          columns=['a', 'b', 'c', 'd'])
         res = frame.ix[1:2]
         exp = frame.reindex(frame.index[2:])
         assert_frame_equal(res, exp)
@@ -486,7 +504,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         frame.ix[1:2] = 7
         self.assert_((frame.ix[1:2] == 7).values.all())
 
-        series =  Series(np.random.randn(len(index)), index=index)
+        series = Series(np.random.randn(len(index)), index=index)
 
         res = series.ix[1:2]
         exp = series.reindex(series.index[2:])
@@ -556,15 +574,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = self.frame[3:7]
         assert_frame_equal(result, expected)
 
-        result = self.ymd.ix[(2000,2):(2000,4)]
+        result = self.ymd.ix[(2000, 2):(2000, 4)]
         lev = self.ymd.index.labels[1]
         expected = self.ymd[(lev >= 1) & (lev <= 3)]
         assert_frame_equal(result, expected)
 
     def test_getitem_partial_column_select(self):
-        idx = MultiIndex(labels=[[0,0,0],[0,1,1],[1,0,1]],
-                         levels=[['a','b'],['x','y'],['p','q']])
-        df = DataFrame(np.random.rand(3,2),index=idx)
+        idx = MultiIndex(labels=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
+                         levels=[['a', 'b'], ['x', 'y'], ['p', 'q']])
+        df = DataFrame(np.random.rand(3, 2), index=idx)
 
         result = df.ix[('a', 'y'), :]
         expected = df.ix[('a', 'y')]
@@ -592,32 +610,41 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # preserve names
         self.assertEquals(a_sorted.index.names, self.frame.index.names)
 
-        #inplace
+        # inplace
         rs = self.frame.copy()
         rs.sortlevel(0, inplace=True)
         assert_frame_equal(rs, self.frame.sortlevel(0))
 
+    def test_sortlevel_large_cardinality(self):
+        # #2684
+        index = MultiIndex.from_arrays([np.arange(4000)]*3)
+        df = DataFrame(np.random.randn(4000), index=index)
+
+        # it works!
+        result = df.sortlevel(0)
+        self.assertTrue(result.index.lexsort_depth == 3)
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple for tuple in cart_product(['foo', 'bar'],
                                                   [10, 20], [1.0, 1.1])]
         index = MultiIndex.from_tuples(tuples,
                                        names=['prm0', 'prm1', 'prm2'])
-        df = DataFrame(np.random.randn(8,3), columns=['A', 'B', 'C'],
+        df = DataFrame(np.random.randn(8, 3), columns=['A', 'B', 'C'],
                        index=index)
         deleveled = df.reset_index()
         self.assert_(com.is_integer_dtype(deleveled['prm1']))
         self.assert_(com.is_float_dtype(deleveled['prm2']))
 
     def test_reset_index_with_drop(self):
-        deleveled = self.ymd.reset_index(drop = True)
+        deleveled = self.ymd.reset_index(drop=True)
         self.assertEquals(len(deleveled.columns), len(self.ymd.columns))
 
         deleveled = self.series.reset_index()
         self.assert_(isinstance(deleveled, DataFrame))
-        self.assert_(len(deleveled.columns) == len(self.series.index.levels)+1)
+        self.assert_(
+            len(deleveled.columns) == len(self.series.index.levels) + 1)
 
-        deleveled = self.series.reset_index(drop = True)
+        deleveled = self.series.reset_index(drop=True)
         self.assert_(isinstance(deleveled, Series))
 
     def test_sortlevel_by_name(self):
@@ -802,14 +829,14 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(stacked['bar'].dtype == np.float_)
 
     def test_unstack_bug(self):
-        df = DataFrame({'state': ['naive','naive','naive',
-                                  'activ','activ','activ'],
-                        'exp':['a','b','b','b','a','a'],
-                        'barcode':[1,2,3,4,1,3],
-                        'v':['hi','hi','bye','bye','bye','peace'],
+        df = DataFrame({'state': ['naive', 'naive', 'naive',
+                                  'activ', 'activ', 'activ'],
+                        'exp': ['a', 'b', 'b', 'b', 'a', 'a'],
+                        'barcode': [1, 2, 3, 4, 1, 3],
+                        'v': ['hi', 'hi', 'bye', 'bye', 'bye', 'peace'],
                         'extra': np.arange(6.)})
 
-        result = df.groupby(['state','exp','barcode','v']).apply(len)
+        result = df.groupby(['state', 'exp', 'barcode', 'v']).apply(len)
 
         unstacked = result.unstack()
         restacked = unstacked.stack()
@@ -867,6 +894,18 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
         assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
 
+    def test_unstack_multiple_hierarchical(self):
+        df = DataFrame(index=[[0, 0, 0, 0, 1, 1, 1, 1],
+                              [0, 0, 1, 1, 0, 0, 1, 1],
+                              [0, 1, 0, 1, 0, 1, 0, 1]],
+                       columns=[[0, 0, 1, 1], [0, 1, 0, 1]])
+
+        df.index.names = ['a', 'b', 'c']
+        df.columns.names = ['d', 'e']
+
+        # it works!
+        df.unstack(['b', 'c'])
+
     def test_groupby_transform(self):
         s = self.frame['A']
         grouper = s.index.get_level_values(0)
@@ -882,12 +921,12 @@ Thur,Lunch,Yes,51.51,17"""
         # Generate Long File & Test Pivot
         NUM_ROWS = 1000
 
-        df = DataFrame({'A' : np.random.randint(100, size=NUM_ROWS),
-                        'B' : np.random.randint(300, size=NUM_ROWS),
-                        'C' : np.random.randint(-7, 7, size=NUM_ROWS),
-                        'D' : np.random.randint(-19,19, size=NUM_ROWS),
-                        'E' : np.random.randint(3000, size=NUM_ROWS),
-                        'F' : np.random.randn(NUM_ROWS)})
+        df = DataFrame({'A': np.random.randint(100, size=NUM_ROWS),
+                        'B': np.random.randint(300, size=NUM_ROWS),
+                        'C': np.random.randint(-7, 7, size=NUM_ROWS),
+                        'D': np.random.randint(-19, 19, size=NUM_ROWS),
+                        'E': np.random.randint(3000, size=NUM_ROWS),
+                        'F': np.random.randn(NUM_ROWS)})
 
         idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
 
@@ -910,19 +949,20 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(recons, df)
 
     def test_groupby_corner(self):
-        midx = MultiIndex(levels=[['foo'],['bar'],['baz']],
-                          labels=[[0],[0],[0]], names=['one','two','three'])
-        df = DataFrame([np.random.rand(4)], columns=['a','b','c','d'],
+        midx = MultiIndex(levels=[['foo'], ['bar'], ['baz']],
+                          labels=[[0], [0], [0]], names=['one', 'two', 'three'])
+        df = DataFrame([np.random.rand(4)], columns=['a', 'b', 'c', 'd'],
                        index=midx)
         # should work
         df.groupby(level='three')
 
     def test_groupby_level_no_obs(self):
         # #1697
-        midx = MultiIndex.from_tuples([('f1', 's1'),('f1','s2'),
-                                       ('f2', 's1'),('f2', 's2'),
-                                       ('f3', 's1'),('f3','s2')])
-        df = DataFrame([[1,2,3,4,5,6],[7,8,9,10,11,12]], columns= midx)
+        midx = MultiIndex.from_tuples([('f1', 's1'), ('f1', 's2'),
+                                       ('f2', 's1'), ('f2', 's2'),
+                                       ('f3', 's1'), ('f3', 's2')])
+        df = DataFrame(
+            [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], columns=midx)
         df1 = df.select(lambda u: u[0] in ['f2', 'f3'], axis=1)
 
         grouped = df1.groupby(axis=1, level=0)
@@ -958,8 +998,8 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(swapped, exp)
 
     def test_swaplevel_panel(self):
-        panel = Panel({'ItemA' : self.frame,
-                       'ItemB' : self.frame * 2})
+        panel = Panel({'ItemA': self.frame,
+                       'ItemB': self.frame * 2})
 
         result = panel.swaplevel(0, 1, axis='major')
         expected = panel.copy()
@@ -989,11 +1029,11 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_((df[2000, 1, 10] == df[2000, 1, 7]).all())
 
     def test_alignment(self):
-        x = Series(data=[1,2,3],
-                   index=MultiIndex.from_tuples([("A", 1), ("A", 2), ("B",3)]))
+        x = Series(data=[1, 2, 3],
+                   index=MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3)]))
 
-        y = Series(data=[4,5,6],
-                   index=MultiIndex.from_tuples([("Z", 1), ("Z", 2), ("B",3)]))
+        y = Series(data=[4, 5, 6],
+                   index=MultiIndex.from_tuples([("Z", 1), ("Z", 2), ("B", 3)]))
 
         res = x - y
         exp_index = x.index.union(y.index)
@@ -1059,7 +1099,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_series_getitem_not_sorted(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'qux', 'qux', 'foo', 'foo'],
-        ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+                 ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
@@ -1128,6 +1168,7 @@ Thur,Lunch,Yes,51.51,17"""
             grouped = frame.groupby(level=level, axis=axis)
 
             pieces = []
+
             def aggf(x):
                 pieces.append(x)
                 return getattr(x, op)(skipna=skipna, axis=axis)
@@ -1151,9 +1192,11 @@ Thur,Lunch,Yes,51.51,17"""
         assert_series_equal(result, expected)
 
     def test_frame_any_all_group(self):
-        df = DataFrame({'data': [False, False, True, False, True, False, True]},
-                       index=[['one', 'one', 'two', 'one', 'two', 'two', 'two'],
-                              [0, 1, 0, 2, 1, 2, 3]])
+        df = DataFrame(
+            {'data': [False, False, True, False, True, False, True]},
+            index=[
+                ['one', 'one', 'two', 'one', 'two', 'two', 'two'],
+                [0, 1, 0, 2, 1, 2, 3]])
 
         result = df.any(level=0)
         ex = DataFrame({'data': [False, True]}, index=['one', 'two'])
@@ -1179,7 +1222,6 @@ Thur,Lunch,Yes,51.51,17"""
             result = getattr(df, meth)(level=0, ddof=ddof)
             expected = df.groupby(level=0).agg(alt)
             assert_frame_equal(result, expected)
-
 
     def test_frame_series_agg_multiple_levels(self):
         result = self.ymd.sum(level=['year', 'month'])
@@ -1254,6 +1296,39 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(unstacked['A', 1].dtype == np.float64)
         self.assert_(unstacked['E', 1].dtype == np.object_)
         self.assert_(unstacked['F', 1].dtype == np.float64)
+
+    def test_unstack_group_index_overflow(self):
+        labels = np.tile(np.arange(500), 2)
+        level = np.arange(500)
+
+        index = MultiIndex(levels=[level] * 8 + [[0, 1]],
+                           labels=[labels] * 8 + [np.arange(2).repeat(500)])
+
+        s = Series(np.arange(1000), index=index)
+        result = s.unstack()
+        self.assertEqual(result.shape, (500, 2))
+
+        # test roundtrip
+        stacked = result.stack()
+        assert_series_equal(s.astype(np.float64),
+                            stacked.reindex(s.index))
+
+        # put it at beginning
+        index = MultiIndex(levels=[[0, 1]] + [level] * 8,
+                           labels=[np.arange(2).repeat(500)] + [labels] * 8)
+
+        s = Series(np.arange(1000), index=index)
+        result = s.unstack(0)
+        self.assertEqual(result.shape, (500, 2))
+
+        # put it in middle
+        index = MultiIndex(levels=[level] * 4 + [[0, 1]] + [level] * 4,
+                           labels=([labels] * 4 + [np.arange(2).repeat(500)]
+                                   + [labels] * 4))
+
+        s = Series(np.arange(1000), index=index)
+        result = s.unstack(4)
+        self.assertEqual(result.shape, (500, 2))
 
     def test_getitem_lowerdim_corner(self):
         self.assertRaises(KeyError, self.frame.ix.__getitem__,
@@ -1350,65 +1425,65 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(result, expected)
 
     def test_mixed_depth_get(self):
-        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
-                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
-                  [   '',  'wx',  'wy',        '',          '',         '']]
+        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
+                  ['', 'wx', 'wy', '', '', '']]
 
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)
+        df = DataFrame(randn(4, 6), columns=index)
 
         result = df['a']
-        expected = df['a','','']
+        expected = df['a', '', '']
         assert_series_equal(result, expected)
         self.assertEquals(result.name, 'a')
 
-        result = df['routine1','result1']
-        expected = df['routine1','result1','']
+        result = df['routine1', 'result1']
+        expected = df['routine1', 'result1', '']
         assert_series_equal(result, expected)
         self.assertEquals(result.name, ('routine1', 'result1'))
 
     def test_mixed_depth_insert(self):
-        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
-                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
-                  [   '',  'wx',  'wy',        '',          '',         '']]
+        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
+                  ['', 'wx', 'wy', '', '', '']]
 
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)
+        df = DataFrame(randn(4, 6), columns=index)
 
         result = df.copy()
         expected = df.copy()
-        result['b'] = [1,2,3,4]
-        expected['b','',''] = [1,2,3,4]
+        result['b'] = [1, 2, 3, 4]
+        expected['b', '', ''] = [1, 2, 3, 4]
         assert_frame_equal(result, expected)
 
     def test_mixed_depth_drop(self):
-        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
-                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
-                  [   '',  'wx',  'wy',        '',          '',         '']]
+        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
+                  ['', 'wx', 'wy', '', '', '']]
 
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)
+        df = DataFrame(randn(4, 6), columns=index)
 
-        result = df.drop('a',axis=1)
-        expected = df.drop([('a','','')],axis=1)
+        result = df.drop('a', axis=1)
+        expected = df.drop([('a', '', '')], axis=1)
         assert_frame_equal(expected, result)
 
-        result = df.drop(['top'],axis=1)
-        expected = df.drop([('top','OD','wx')], axis=1)
-        expected = expected.drop([('top','OD','wy')], axis=1)
+        result = df.drop(['top'], axis=1)
+        expected = df.drop([('top', 'OD', 'wx')], axis=1)
+        expected = expected.drop([('top', 'OD', 'wy')], axis=1)
         assert_frame_equal(expected, result)
 
         result = df.drop(('top', 'OD', 'wx'), axis=1)
-        expected = df.drop([('top','OD','wx')], axis=1)
+        expected = df.drop([('top', 'OD', 'wx')], axis=1)
         assert_frame_equal(expected, result)
 
-        expected = df.drop([('top','OD','wy')], axis=1)
+        expected = df.drop([('top', 'OD', 'wy')], axis=1)
         expected = df.drop('top', axis=1)
 
         result = df.drop('result1', level=1, axis=1)
@@ -1417,11 +1492,11 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(expected, result)
 
     def test_drop_nonunique(self):
-        df = DataFrame([["x-a", "x", "a", 1.5],["x-a", "x", "a", 1.2],
+        df = DataFrame([["x-a", "x", "a", 1.5], ["x-a", "x", "a", 1.2],
                         ["z-c", "z", "c", 3.1], ["x-a", "x", "a", 4.1],
-                        ["x-b", "x", "b", 5.1],["x-b", "x", "b", 4.1],
+                        ["x-b", "x", "b", 5.1], ["x-b", "x", "b", 4.1],
                         ["x-b", "x", "b", 2.2],
-                        ["y-a", "y", "a", 1.2],["z-b", "z", "b", 2.1]],
+                        ["y-a", "y", "a", 1.2], ["z-b", "z", "b", 2.1]],
                        columns=["var1", "var2", "var3", "var4"])
 
         grp_size = df.groupby("var1").size()
@@ -1438,25 +1513,25 @@ Thur,Lunch,Yes,51.51,17"""
         assert_frame_equal(result, expected)
 
     def test_mixed_depth_pop(self):
-        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
-                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
-                  [   '',  'wx',  'wy',        '',          '',         '']]
+        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
+                  ['', 'wx', 'wy', '', '', '']]
 
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)
+        df = DataFrame(randn(4, 6), columns=index)
 
         df1 = df.copy()
         df2 = df.copy()
         result = df1.pop('a')
-        expected = df2.pop(('a','',''))
+        expected = df2.pop(('a', '', ''))
         assert_series_equal(expected, result)
         assert_frame_equal(df1, df2)
-        self.assertEquals(result.name,'a')
+        self.assertEquals(result.name, 'a')
 
         expected = df1['top']
-        df1 = df1.drop(['top'],axis=1)
+        df1 = df1.drop(['top'], axis=1)
         result = df2.pop('top')
         assert_frame_equal(expected, result)
         assert_frame_equal(df1, df2)
@@ -1535,7 +1610,7 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_(result.index.names == ['one', 'two'])
 
     def test_unicode_repr_issues(self):
-        levels = [Index([u'a/\u03c3', u'b/\u03c3',u'c/\u03c3']),
+        levels = [Index([u'a/\u03c3', u'b/\u03c3', u'c/\u03c3']),
                   Index([0, 1])]
         labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
         index = MultiIndex(levels=levels, labels=labels)
@@ -1550,15 +1625,16 @@ Thur,Lunch,Yes,51.51,17"""
                                        names=[u'\u0394', 'i1'])
 
         s = Series(range(2), index=index)
-        df = DataFrame(np.random.randn(2,4), index=index)
+        df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)
 
     def test_dataframe_insert_column_all_na(self):
         # GH #1534
-        mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')])
-        df = DataFrame([[1,2],[3,4],[5,6]], index=mix)
-        s = Series({(1,1): 1, (1,2): 2})
+        mix = MultiIndex.from_tuples(
+            [('1a', '2a'), ('1a', '2b'), ('1a', '2c')])
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
+        s = Series({(1, 1): 1, (1, 2): 2})
         df['new'] = s
         self.assert_(df['new'].isnull().all())
 
@@ -1583,20 +1659,21 @@ Thur,Lunch,Yes,51.51,17"""
         self.assert_((self.frame.ix[subset, 'B'] == 97).all())
 
     def test_frame_dict_constructor_empty_series(self):
-        s1 = Series([1,2,3, 4], index=MultiIndex.from_tuples([(1,2),(1,3),
-                                                              (2,2),(2,4)]))
-        s2 = Series([1,2,3,4],
-                    index=MultiIndex.from_tuples([(1,2),(1,3),(3,2),(3,4)]))
+        s1 = Series([1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3),
+                                                              (2, 2), (2, 4)]))
+        s2 = Series([1, 2, 3, 4],
+                    index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)]))
         s3 = Series()
 
         # it works!
-        df = DataFrame({'foo':s1, 'bar':s2, 'baz':s3})
-        df = DataFrame.from_dict({'foo':s1, 'baz':s3, 'bar':s2})
+        df = DataFrame({'foo': s1, 'bar': s2, 'baz': s3})
+        df = DataFrame.from_dict({'foo': s1, 'baz': s3, 'bar': s2})
 
     def test_indexing_ambiguity_bug_1678(self):
         columns = MultiIndex.from_tuples([('Ohio', 'Green'), ('Ohio', 'Red'),
                                           ('Colorado', 'Green')])
-        index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)])
+        index = MultiIndex.from_tuples(
+            [('a', 1), ('a', 2), ('b', 1), ('b', 2)])
 
         frame = DataFrame(np.arange(12).reshape((4, 3)), index=index,
                           columns=columns)
@@ -1634,7 +1711,7 @@ Thur,Lunch,Yes,51.51,17"""
         _index._SIZE_CUTOFF = old_cutoff
 
     def test_xs_mixed_no_copy(self):
-        index = MultiIndex.from_arrays([['a','a', 'b', 'b'], [1,2,1,2]],
+        index = MultiIndex.from_arrays([['a', 'a', 'b', 'b'], [1, 2, 1, 2]],
                                        names=['first', 'second'])
         data = DataFrame(np.random.rand(len(index)), index=index,
                          columns=['A'])
@@ -1659,19 +1736,37 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_assign_index_sequences(self):
         # #2200
-        df = DataFrame({"a":[1,2,3],
-                        "b":[4,5,6],
-                        "c":[7,8,9]}).set_index(["a","b"])
+        df = DataFrame({"a": [1, 2, 3],
+                        "b": [4, 5, 6],
+                        "c": [7, 8, 9]}).set_index(["a", "b"])
         l = list(df.index)
-        l[0]=("faz","boo")
+        l[0] = ("faz", "boo")
         df.index = l
         repr(df)
 
         # this travels an improper code path
-        l[0] = ["faz","boo"]
+        l[0] = ["faz", "boo"]
         df.index = l
         repr(df)
 
+    def test_tuples_have_na(self):
+        index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
+                           labels=[[1, 1, 1, 1, -1, 0, 0, 0],
+                                   [0, 1, 2, 3, 0, 1, 2, 3]])
+
+        self.assertTrue(isnull(index[4][0]))
+        self.assertTrue(isnull(index.values[4][0]))
+
+    def test_duplicate_groupby_issues(self):
+        idx_tp = [('600809', '20061231'), ('600809', '20070331'),
+                  ('600809', '20070630'), ('600809', '20070331')]
+        dt = ['demo','demo','demo','demo']
+
+        idx = MultiIndex.from_tuples(idx_tp,names = ['STK_ID','RPT_Date'])
+        s = Series(dt, index=idx)
+
+        result = s.groupby(s.index).first()
+        self.assertEquals(len(result), 3)
 
 if __name__ == '__main__':
 
@@ -1679,5 +1774,5 @@ if __name__ == '__main__':
     import nose
     # nose.runmodule(argv=[__file__,'-vvs','-x', '--pdb-failure'],
     #                exit=False)
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

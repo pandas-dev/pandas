@@ -83,8 +83,11 @@ class _Unstacker(object):
         to_sort = labs[:v] + labs[v + 1:] + [labs[v]]
         sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
-        group_index = get_group_index(to_sort, sizes)
-        comp_index, obs_ids = _compress_group_index(group_index)
+        comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
+
+        # group_index = get_group_index(to_sort, sizes)
+        # comp_index, obs_ids = _compress_group_index(group_index)
+
         ngroups = len(obs_ids)
 
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
@@ -97,10 +100,10 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = get_group_index(self.sorted_labels[:-1],
-                                      [len(x) for x in new_levels])
+        remaining_labels = self.sorted_labels[:-1]
+        level_sizes = [len(x) for x in new_levels]
 
-        comp_index, obs_ids = _compress_group_index(group_index)
+        comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
 
         comp_index = _ensure_platform_int(comp_index)
@@ -153,8 +156,8 @@ class _Unstacker(object):
 
         # is there a simpler / faster way of doing this?
         for i in xrange(values.shape[1]):
-            chunk = new_values[:, i * width : (i + 1) * width]
-            mask_chunk = new_mask[:, i * width : (i + 1) * width]
+            chunk = new_values[:, i * width: (i + 1) * width]
+            mask_chunk = new_mask[:, i * width: (i + 1) * width]
 
             chunk.flat[self.mask] = self.sorted_values[:, i]
             mask_chunk.flat[self.mask] = True
@@ -241,8 +244,13 @@ def _unstack_multiple(data, clocs):
         new_labels = recons_labels
     else:
         if isinstance(data.columns, MultiIndex):
-            raise NotImplementedError('Unstacking multiple levels with '
-                                      'hierarchical columns not yet supported')
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val)
+                clocs = [val if i > val else val - 1 for val in clocs]
+
+            return result
 
         dummy = DataFrame(data.values, index=dummy_index,
                           columns=data.columns)
@@ -390,6 +398,32 @@ def _unstack_frame(obj, level):
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                value_columns=obj.columns)
         return unstacker.get_result()
+
+
+def get_compressed_ids(labels, sizes):
+    # no overflow
+    if com._long_prod(sizes) < 2 ** 63:
+        group_index = get_group_index(labels, sizes)
+        comp_index, obs_ids = _compress_group_index(group_index)
+    else:
+        n = len(labels[0])
+        mask = np.zeros(n, dtype=bool)
+        for v in labels:
+            mask |= v < 0
+
+        while com._long_prod(sizes) >= 2 ** 63:
+            i = len(sizes)
+            while com._long_prod(sizes[:i]) >= 2 ** 63:
+                i -= 1
+
+            rem_index, rem_ids = get_compressed_ids(labels[:i],
+                                                    sizes[:i])
+            sizes = [len(rem_ids)] + sizes[i:]
+            labels = [rem_index] + labels[i:]
+
+        return get_compressed_ids(labels, sizes)
+
+    return comp_index, obs_ids
 
 
 def stack(frame, level=-1, dropna=True):
@@ -760,6 +794,7 @@ def block2d_to_block3d(values, items, shape, major_labels, minor_labels,
 
     return make_block(pvalues, items, ref_items)
 
+
 def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
     """ pivot to the labels shape """
     from pandas.core.internals import make_block
@@ -769,7 +804,7 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
     # Create observation selection vector using major and minor
     # labels, for converting to panel format.
-    selector = factor_indexer(shape[1:],labels)
+    selector = factor_indexer(shape[1:], labels)
     mask = np.zeros(np.prod(shape), dtype=bool)
     mask.put(selector, True)
 
@@ -789,7 +824,8 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
     return make_block(pvalues, items, ref_items)
 
+
 def factor_indexer(shape, labels):
     """ given a tuple of shape and a list of Factor lables, return the expanded label indexer """
-    mult   = np.array(shape)[::-1].cumprod()[::-1]
-    return np.sum(np.array(labels).T * np.append(mult,[1]), axis=1).T
+    mult = np.array(shape)[::-1].cumprod()[::-1]
+    return com._ensure_platform_int(np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)

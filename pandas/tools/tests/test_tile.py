@@ -14,6 +14,7 @@ import pandas.tools.tile as tmod
 
 from numpy.testing import assert_equal, assert_almost_equal
 
+
 class TestCut(unittest.TestCase):
 
     def test_simple(self):
@@ -26,7 +27,7 @@ class TestCut(unittest.TestCase):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1])
         result, bins = cut(data, 3, retbins=True)
         assert_equal(result.labels, [0, 0, 0, 1, 2, 0])
-        assert_almost_equal(bins, [ 0.1905, 3.36666667, 6.53333333, 9.7])
+        assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
@@ -38,13 +39,13 @@ class TestCut(unittest.TestCase):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=False, retbins=True)
         assert_equal(result.labels, [0, 0, 0, 2, 3, 0, 1])
-        assert_almost_equal(bins, [ 0.2, 2.575, 4.95, 7.325, 9.7095])
+        assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.7095])
 
     def test_arraylike(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         result, bins = cut(data, 3, retbins=True)
         assert_equal(result.labels, [0, 0, 0, 1, 2, 0])
-        assert_almost_equal(bins, [ 0.1905, 3.36666667, 6.53333333, 9.7])
+        assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
@@ -185,7 +186,6 @@ class TestCut(unittest.TestCase):
         result = tmod._format_label(117.9998, precision=3)
         self.assertEquals(result, '118')
 
-
     def test_qcut_binning_issues(self):
         # #1978, 1979
         path = os.path.join(curpath(), 'cut_data.csv')
@@ -210,13 +210,12 @@ class TestCut(unittest.TestCase):
             self.assertTrue(ep < en)
             self.assertTrue(ep <= sn)
 
+
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
 
 
 if __name__ == '__main__':
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-
-

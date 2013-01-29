@@ -5,6 +5,7 @@ import random
 N = 10000
 ngroups = 10
 
+
 def get_test_data(ngroups=100, n=N):
     unique_groups = range(ngroups)
     arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
@@ -38,10 +39,10 @@ indices2 = np.array([rands(10) for _ in xrange(N)], dtype='O')
 key = np.tile(indices[:8000], 10)
 key2 = np.tile(indices2[:8000], 10)
 
-left = DataFrame({'key' : key, 'key2':key2,
-                  'value' : np.random.randn(80000)})
-right = DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
-                   'value2' : np.random.randn(8000)})
+left = DataFrame({'key': key, 'key2': key2,
+                  'value': np.random.randn(80000)})
+right = DataFrame({'key': indices[2000:], 'key2': indices2[2000:],
+                   'value2': np.random.randn(8000)})
 
 right2 = right.append(right, ignore_index=True)
 
@@ -78,7 +79,8 @@ all_results = presults.join(r_results)
 
 all_results = all_results.div(all_results['pandas'], axis=0)
 
-all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr', 'base::merge']]
+all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr',
+                                 'base::merge']]
 
 sort_results = DataFrame.from_items([('pandas', results['sort']),
                                      ('R', r_results['base::merge'])])
@@ -102,4 +104,5 @@ right      0.6425 0.0522     0.0428
 
 all_results = presults.join(r_results)
 all_results = all_results.div(all_results['pandas'], axis=0)
-all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr', 'base::merge']]
+all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr',
+                                 'base::merge']]
