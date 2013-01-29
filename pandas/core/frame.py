@@ -26,7 +26,8 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _is_sequence)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
+from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
+                                  _is_index_slice, _check_bool_indexer)
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -1954,7 +1955,6 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _getitem_slice(self, key):
-        from pandas.core.indexing import _is_index_slice
         idx_type = self.index.inferred_type
         if idx_type == 'floating':
             indexer = self.ix._convert_to_indexer(key, axis=0)
@@ -1965,23 +1965,23 @@ class DataFrame(NDFrame):
         return self._slice(indexer, axis=0)
 
     def _getitem_array(self, key):
-        if isinstance(key, list):
-            key = lib.list_to_object_array(key)
         # also raises Exception if object array with NA values
         if com._is_bool_indexer(key):
-            if len(key) != len(self.index):
-                raise ValueError('Item wrong length %d instead of %d!' %
-                                 (len(key), len(self.index)))
             # warning here just in case -- previously __setitem__ was
             # reindexing but __getitem__ was not; it seems more reasonable to
             # go with the __setitem__ behavior since that is more consistent
             # with all other indexing behavior
-            if isinstance(key, Series):
-                if not key.index.equals(self.index):
-                    import warnings
-                    warnings.warn("Boolean Series will be reindexed to match "
-                                  "DataFrame index.", UserWarning)
-            indexer = self.ix._convert_to_indexer(key, axis=0)
+            if isinstance(key, Series) and not key.index.equals(self.index):
+                import warnings
+                warnings.warn("Boolean Series key will be reindexed to match "
+                              "DataFrame index.", UserWarning)
+            elif len(key) != len(self.index):
+                raise ValueError('Item wrong length %d instead of %d!' %
+                                 (len(key), len(self.index)))
+            # _check_bool_indexer will throw exception if Series key cannot
+            # be reindexed to match DataFrame rows
+            key = _check_bool_indexer(self.index, key)
+            indexer = key.nonzero()[0]
             return self.take(indexer, axis=0)
         else:
             indexer = self.ix._convert_to_indexer(key, axis=1)
@@ -2070,7 +2070,6 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
     
     def _setitem_slice(self, key, value):
-        from pandas.core.indexing import _is_index_slice
         idx_type = self.index.inferred_type
         if idx_type == 'floating':
             indexer = self.ix._convert_to_indexer(key, axis=0)
@@ -2081,14 +2080,13 @@ class DataFrame(NDFrame):
         self.ix._setitem_with_indexer(indexer, value)
 
     def _setitem_array(self, key, value):
-        if isinstance(key, list):
-            key = lib.list_to_object_array(key)
         # also raises Exception if object array with NA values
         if com._is_bool_indexer(key):
             if len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d!' %
                                  (len(key), len(self.index)))
-            indexer = self.ix._convert_to_indexer(key, axis=0)
+            key = _check_bool_indexer(self.index, key)
+            indexer = key.nonzero()[0]
             self.ix._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):

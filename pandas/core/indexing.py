@@ -368,7 +368,7 @@ class _NDFrameIndexer(object):
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
-            inds, = np.asarray(key, dtype=bool).nonzero()
+            inds, = key.nonzero()
             return self.obj.take(inds, axis=axis)
         else:
             if isinstance(key, Index):
@@ -480,7 +480,7 @@ class _NDFrameIndexer(object):
         elif _is_list_like(obj):
             if com._is_bool_indexer(obj):
                 obj = _check_bool_indexer(labels, obj)
-                inds, = np.asarray(obj, dtype=bool).nonzero()
+                inds, = obj.nonzero()
                 return inds
             else:
                 if isinstance(obj, Index):
@@ -663,17 +663,19 @@ class _SeriesIndexer(_NDFrameIndexer):
 def _check_bool_indexer(ax, key):
     # boolean indexing, need to check that the data are aligned, otherwise
     # disallowed
-    result = key
-    if _is_series(key):
-        if not key.index.equals(ax):
-            result = key.reindex(ax)
 
-    if isinstance(result, np.ndarray) and result.dtype == np.object_:
+    # this function assumes that com._is_bool_indexer(key) == True
+
+    result = key
+    if _is_series(key) and not key.index.equals(ax):
+        result = result.reindex(ax)
         mask = com.isnull(result)
         if mask.any():
-            raise IndexingError('cannot index with vector containing '
-                                'NA / NaN values')
+            raise IndexingError('Unalignable boolean Series key provided')
 
+    # com._is_bool_indexer has already checked for nulls in the case of an
+    # object array key, so no check needed here
+    result = np.asarray(result, dtype=bool)
     return result
 
 
