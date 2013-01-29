@@ -216,11 +216,12 @@ cur_year = dt.datetime.now().year
 
 
 def _unpack(row, kind='td'):
-    return [val.text for val in row.findAll(kind)]
+    elts = row.findall('.//%s' % kind)
+    return[val.text_content() for val in elts]
 
 
 def _parse_options_data(table):
-    rows = table.findAll('tr')
+    rows = table.findall('.//tr')
     header = _unpack(rows[0], kind='th')
     data = [_unpack(r) for r in rows[1:]]
     return TextParser(data, names=header).get_chunk()
