@@ -266,6 +266,7 @@ class CleanCommand(Command):
                 if f in self._clean_exclude:
                     continue
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
+                                               '.pyo',
                                                '.pyd', '.c', '.orig'):
                     self._clean_me.append(pjoin(root, f))
             for d in dirs:
