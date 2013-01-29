@@ -225,11 +225,13 @@ def _unpack(row, kind='td'):
     els = row.findall('.//%s' % kind)
     return[val.text_content() for val in els]
 
+
 def _parse_options_data(table):
     rows = table.findall('.//tr')
     header = _unpack(rows[0], kind='th')
     data = [_unpack(r) for r in rows[1:]]
-    return TextParser(data, names=header).get_chunk()
+    # Use ',' as a thousands separator as we're pulling from the US site.
+    return TextParser(data, names=header, na_values=['N/A'], thousands=',').get_chunk()
 
 
 class Options(object):
