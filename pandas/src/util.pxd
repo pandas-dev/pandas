@@ -12,6 +12,7 @@ cdef extern from "numpy_helper.h":
     inline int is_bool_object(object)
     inline int is_string_object(object)
     inline int is_datetime64_object(object)
+    inline int is_timedelta64_object(object)
     inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     inline cnp.int64_t get_nat()
     inline object get_value_1d(ndarray, Py_ssize_t)

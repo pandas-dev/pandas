@@ -3,10 +3,9 @@ import unittest
 import numpy as np
 
 from pandas.core.datetools import (
-    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
+    bday, Day, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
     BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
-    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Day, Micro,
-    Milli, Nano,
+    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Milli, Micro, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, inferTimeRule, hasOffsetName,
     get_standard_freq)
@@ -1394,6 +1393,33 @@ def test_Second():
 
     assert not Second().isAnchored()
 
+def test_Millisecond():
+    assertEq(Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1000))
+    assertEq(Milli(-1), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+    assertEq(2 * Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
+    assertEq(-1 * Milli(), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+
+    assert (Milli(3) + Milli(2)) == Milli(5)
+    assert (Milli(3) - Milli(2)) == Milli()
+    
+def test_Microsecond():
+    assertEq(Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1))
+    assertEq(Micro(-1), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+    assertEq(2 * Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2))
+    assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+
+    assert (Micro(3) + Micro(2)) == Micro(5)
+    assert (Micro(3) - Micro(2)) == Micro()
+    
+def test_Nanosecond():
+    timestamp = Timestamp(datetime(2010, 1, 1))
+    assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
+    assertEq(Nano(-1), timestamp + np.timedelta64(1, 'ns'), timestamp)
+    assertEq(2 * Nano(), timestamp, timestamp + np.timedelta64(2, 'ns'))
+    assertEq(-1 * Nano(), timestamp + np.timedelta64(1, 'ns'), timestamp)
+
+    assert (Nano(3) + Nano(2)) == Nano(5)
+    assert (Nano(3) - Nano(2)) == Nano()    
 
 def test_tick_offset():
     assert not Day().isAnchored()
@@ -1403,7 +1429,7 @@ def test_tick_offset():
 
 
 def test_compare_ticks():
-    offsets = [Hour, Minute, Second, Milli, Micro]
+    offsets = [Hour, Minute, Second, Milli, Micro, Nano]
 
     for kls in offsets:
         three = kls(3)

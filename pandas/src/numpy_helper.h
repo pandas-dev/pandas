@@ -86,6 +86,11 @@ is_datetime64_object(PyObject *obj) {
 }
 
 PANDAS_INLINE int
+is_timedelta64_object(PyObject *obj) {
+  return PyArray_IsScalar(obj, Timedelta);
+}
+
+PANDAS_INLINE int
 assign_value_1d(PyArrayObject* ap, Py_ssize_t _i, PyObject* v) {
   npy_intp i = (npy_intp) _i;
   char *item = (char *) PyArray_DATA(ap) + i * PyArray_STRIDE(ap, 0);

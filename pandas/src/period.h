@@ -85,6 +85,9 @@
 #define FR_HR   7000  /* Hourly */
 #define FR_MIN  8000  /* Minutely */
 #define FR_SEC  9000  /* Secondly */
+#define FR_MS 10000  /* Millisecondly */
+#define FR_US 11000  /* Microsecondly */
+#define FR_NS 12000  /* Nanosecondly */
 
 #define FR_UND  -10000 /* Undefined */
 
@@ -102,6 +105,9 @@ typedef struct asfreq_info {
 
     int from_q_year_end; // month the year ends on in the "from" frequency
     int to_q_year_end;   // month the year ends on in the "to" frequency
+
+    int sourceFreq;
+    int targetFreq; 
 } asfreq_info;
 
 

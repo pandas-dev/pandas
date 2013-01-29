@@ -1,5 +1,6 @@
 #!/bin/sh
-coverage erase
+command -v coverage >/dev/null && coverage erase
+command -v python-coverage >/dev/null && python-coverage erase
 # nosetests pandas/tests/test_index.py --with-coverage --cover-package=pandas.core --pdb-failure --pdb
 #nosetests -w pandas --with-coverage --cover-package=pandas --pdb-failure --pdb #--cover-inclusive
 #nosetests -A "not slow" -w pandas/tseries --with-coverage --cover-package=pandas.tseries $* #--cover-inclusive

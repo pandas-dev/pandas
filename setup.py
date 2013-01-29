@@ -258,6 +258,7 @@ class CleanCommand(Command):
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
                                'period.c',
+                               'test_period.c',
                                'tokenizer.c',
                                'io.c']
 

@@ -7,7 +7,7 @@ import nose
 
 import numpy as np
 
-from pandas import Index, DatetimeIndex, date_range, period_range
+from pandas import Index, DatetimeIndex, Timestamp, date_range, period_range
 
 from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
@@ -44,6 +44,11 @@ def test_to_offset_multiple():
     freqstr = '10s75L'
     result = to_offset(freqstr)
     expected = offsets.Milli(10075)
+    assert(result == expected)
+
+    freqstr = '2800N'
+    result = to_offset(freqstr)
+    expected = offsets.Nano(2800)
     assert(result == expected)
 
     # malformed
@@ -115,13 +120,10 @@ class TestFrequencyInference(unittest.TestCase):
         self._check_tick(timedelta(microseconds=1), 'U')
 
     def test_nanosecond(self):
-        idx = DatetimeIndex(np.arange(0, 100, 10))
-        inferred = idx.inferred_freq
-
-        self.assert_(inferred == '10N')
+        self._check_tick(np.timedelta64(1, 'ns'), 'N')
 
     def _check_tick(self, base_delta, code):
-        b = datetime.now()
+        b = Timestamp(datetime.now())
         for i in range(1, 5):
             inc = base_delta * i
             index = _dti([b + inc * j for j in range(3)])

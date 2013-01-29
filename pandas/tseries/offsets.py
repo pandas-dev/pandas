@@ -6,6 +6,7 @@ from pandas.tseries.tools import to_datetime
 from dateutil.relativedelta import relativedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
+import numpy as np
 
 __all__ = ['Day', 'BusinessDay', 'BDay',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
@@ -1101,8 +1102,11 @@ def _delta_to_tick(delta):
 
 
 def _delta_to_nanoseconds(delta):
-    if isinstance(delta, Tick):
+    if isinstance(delta, np.timedelta64):
+        return delta
+    elif isinstance(delta, Tick):
         delta = delta.delta
+        
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
             + delta.microseconds) * 1000
@@ -1138,7 +1142,7 @@ class Micro(Tick):
 
 
 class Nano(Tick):
-    _inc = 1
+    _inc = np.timedelta64(1, 'ns')
     _rule_base = 'N'
 
 BDay = BusinessDay

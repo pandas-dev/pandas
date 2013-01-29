@@ -11,6 +11,9 @@ from cpython cimport *
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
 
+# this is our datetime.pxd
+from datetime cimport *
+from util cimport is_integer_object, is_datetime64_object, is_timedelta64_object
 
 from libc.stdlib cimport free
 
@@ -497,7 +500,9 @@ cdef class _Timestamp(datetime):
                         dts.us, ts.tzinfo)
 
     def __add__(self, other):
-        if is_integer_object(other):
+        if is_timedelta64_object(other):
+            return Timestamp(np.datetime64(self.value, 'ns') + other, tz=self.tzinfo)
+        elif is_integer_object(other):
             if self.offset is None:
                 msg = ("Cannot add integral value to Timestamp "
                        "without offset.")
@@ -556,6 +561,8 @@ cdef class _NaT(_Timestamp):
 
 
 def _delta_to_nanoseconds(delta):
+    if isinstance(delta, np.timedelta64):
+        return delta
     try:
         delta = delta.delta
     except:
@@ -1803,7 +1810,7 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     """
     cdef:
         int64_t retval
-
+   
     if end:
         retval = asfreq(period_ordinal, freq1, freq2, END)
     else:
@@ -1896,6 +1903,12 @@ def period_format(int64_t value, int freq, object fmt=None):
             fmt = b'%Y-%m-%d %H:%M'
         elif freq_group == 9000: # SEC
             fmt = b'%Y-%m-%d %H:%M:%S'
+        elif freq_group == 10000: # MILLISEC
+            fmt = b'%Y-%m-%d %H:%M:%S.xxx'
+        elif freq_group == 11000: # MICROSEC
+            fmt = b'%Y-%m-%d %H:%M:%S.xxxxxx'
+        elif freq_group == 12000: # NANOSEC
+            fmt = b'%Y-%m-%d %H:%M:%S.xxxxxxxxx'
         else:
             raise ValueError('Unknown freq: %d' % freq)
 
