@@ -3,6 +3,7 @@ Module contains tools for collecting data from various remote sources
 
 
 """
+import warnings
 
 import numpy as np
 import datetime as dt
@@ -13,7 +14,7 @@ import time
 from zipfile import ZipFile
 from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
 
-from pandas import DataFrame, read_csv, concat
+from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.io.parsers import TextParser
 
 
@@ -54,7 +55,8 @@ def DataReader(name, data_source=None, start=None, end=None,
     start, end = _sanitize_dates(start, end)
 
     if(data_source == "yahoo"):
-        return get_data_yahoo(name=name, start=start, end=end,
+        return get_data_yahoo(symbols=name, start=start, end=end,
+                              adjust_price=False, chunk=25,
                               retry_count=retry_count, pause=pause)
     elif(data_source == "fred"):
         return get_data_fred(name=name, start=start, end=end)
@@ -73,14 +75,27 @@ def _sanitize_dates(start, end):
     return start, end
 
 
+def _in_chunks(seq, size):
+    """
+    Return sequence in 'chunks' of size defined by size
+    """
+    return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
+
+
 def get_quote_yahoo(symbols):
     """
     Get current yahoo quote
 
     Returns a DataFrame
     """
-    if not isinstance(symbols, list):
-        raise TypeError("symbols must be a list")
+    if isinstance(symbols, str):
+        sym_list = symbols
+    elif not isinstance(symbols, Series):
+        symbols  = Series(symbols)
+        sym_list = str.join('+', symbols)
+    else:
+        sym_list = str.join('+', symbols)
+
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
     codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
              'time': 't1', 'short_ratio': 's7'}
@@ -90,7 +105,7 @@ def get_quote_yahoo(symbols):
     data = dict(zip(codes.keys(), [[] for i in range(len(codes))]))
 
     urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (
-        str.join('+', symbols), request)
+        sym_list, request)
 
     try:
         lines = urllib2.urlopen(urlStr).readlines()
@@ -117,18 +132,19 @@ def get_quote_yahoo(symbols):
     return DataFrame(data, index=idx)
 
 
-def get_data_yahoo(name=None, start=None, end=None, retry_count=3, pause=0):
+def _get_hist_yahoo(name=None, start=None, end=None, retry_count=3,
+                    pause=0):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
 
     Returns a DataFrame.
     """
-    start, end = _sanitize_dates(start, end)
-
     if(name is None):
-        print "Need to provide a name"
+        warnings.warn("Need to provide a name.")
         return None
+
+    start, end = _sanitize_dates(start, end)
 
     yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
 
@@ -160,6 +176,154 @@ def get_data_yahoo(name=None, start=None, end=None, retry_count=3, pause=0):
 
     raise Exception("after %d tries, Yahoo did not "
                     "return a 200 for url %s" % (pause, url))
+
+
+def _adjust_prices(hist_data, price_list=['Open', 'High', 'Low', 'Close']):
+    """
+    Return modifed DataFrame or Panel with adjusted prices based on
+    'Adj Close' price. Adds 'Adj_Ratio' column.
+    """
+    adj_ratio = hist_data['Adj Close'] / hist_data['Close']
+
+    data = hist_data.copy()
+    for item in price_list:
+        data[item] = hist_data[item] * adj_ratio
+    data['Adj_Ratio'] = adj_ratio
+    del data['Adj Close']
+    return data
+
+
+def _calc_return_index(price_df):
+    """
+    Return a returns index from a input price df or series.
+    """
+
+    ret_index =  price_df.pct_change().add(1).cumprod()
+    ret_index.ix[0] = 1
+    return ret_index
+
+
+def get_components_yahoo(idx_sym='^DJI'):
+    """
+    Returns DataFrame containing list of component information for index
+    represented in idx_sym from yahoo. Includes component symbol
+    (ticker), exchange, and name.
+
+    Parameters
+    ----------
+    idx_sym : str
+        Index symbol, default '^DJI' (Dow Jones Industrial Average)
+        Examples:
+        '^NYA' (NYSE Composite)
+        '^IXIC' (NASDAQ Composite)
+
+        See: http://finance.yahoo.com/indices for other index symbols
+
+    Returns
+    -------
+    idx_df : DataFrame
+    """
+    stats = 'snx'
+    #URL of form:
+    #http://download.finance.yahoo.com/d/quotes.csv?s=@%5EIXIC&f=snxl1d1t1c1ohgv
+    url = 'http://download.finance.yahoo.com/d/quotes.csv?s={0}&f={1}' \
+          '&e=.csv&h={2}'
+
+    idx_mod = idx_sym.replace('^', '@%5E')
+    urlStr = url.format(idx_mod, stats, 1)
+
+    idx_df = DataFrame()
+    mask = [True]
+    comp_idx = 1
+
+    #LOOP across component index structure,
+    #break when no new components are found
+    while (True in mask):
+        urlStr = url.format(idx_mod, stats,  comp_idx)
+        lines = (urllib.urlopen(urlStr).read().strip().
+                 strip('"').split('"\r\n"'))
+
+        lines = [line.strip().split('","') for line in lines]
+
+        temp_df = DataFrame(lines, columns=['ticker', 'name', 'exchange'])
+        temp_df = temp_df.drop_duplicates()
+        temp_df = temp_df.set_index('ticker')
+        mask = ~temp_df.index.isin(idx_df.index)
+
+        comp_idx = comp_idx + 50
+        idx_df = idx_df.append(temp_df[mask])
+
+    return idx_df
+
+
+def get_data_yahoo(symbols=None, start=None, end=None, adjust_price=False,
+                   ret_index=False, chunk=25, pause=0, **kwargs):
+    """
+    Returns DataFrame/Panel of historical stock prices from symbols, over date
+    range, start to end. To avoid being penalized by Yahoo! Finance servers,
+    pauses between downloading 'chunks' of symbols can be specified.
+
+    Parameters
+    ----------
+    symbols : string, list-like object (list, tupel, Series), DataFrame
+        Single stock symbol (ticker), list-like object of symbols or
+        DataFrame with index containing of stock symbols
+    start : string, (defaults to '1/1/2010')
+        Starting date, timestamp. Parses many different kind of date
+        representations (e.g., 'JAN-01-2010', '1/1/10', 'Jan, 1, 1980')
+    end :  string, (defaults to today)
+        Ending date, timestamp. Same format as starting date.
+    adjust_price : bool, default False
+        Adjust all prices in hist_data ('Open', 'High', 'Low', 'Close') via
+        'Adj Close' price. Adds 'Adj_Ratio' column and drops 'Adj Close'.
+    ret_index: bool, default False
+        Include a simple return index 'Ret_Index' in hist_data.
+    chunk : int, default 25
+        Number of symbols to download consecutively before intiating pause.
+    pause : int, default 0
+        Time, in seconds, to pause between consecutive chunks.
+    **kwargs: additional arguments to pass to _get_hist_yahoo
+
+    Returns
+    -------
+    hist_data : DataFrame (str) or Panel (list-like object, DataFrame)
+    """
+    def dl_mult_symbols(symbols):
+        stocks = {}
+        for sym_group in _in_chunks(symbols, chunk):
+            for sym in sym_group:
+                try:
+                    stocks[sym] = _get_hist_yahoo(name=sym, start=start,
+                                                  end=end, **kwargs)
+                except:
+                    warnings.warn('Error with sym: ' + sym + '... skipping.')
+
+            time.sleep(pause)
+
+        return Panel(stocks).swapaxes('items', 'minor')
+
+    #If a scalar (single symbol, e.g. 'GOOG')
+    if isinstance(symbols, (str, int)):
+        sym = symbols
+        hist_data = _get_hist_yahoo(sym, start=start, end=end, **kwargs)
+    #Multiple symbols
+    elif isinstance(symbols, DataFrame):
+        try:
+            hist_data = dl_mult_symbols(Series(symbols.index))
+        except ValueError:
+            raise
+    else: #Guess a Series
+        try:
+            hist_data = dl_mult_symbols(symbols)
+        except TypeError:
+            hist_data = dl_mult_symbols(Series(symbols))
+
+    if(ret_index):
+        hist_data['Ret_Index'] = _calc_return_index(hist_data['Adj Close'])
+    if(adjust_price):
+        hist_data = _adjust_prices(hist_data)
+
+    return hist_data
 
 
 def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
