@@ -1,4 +1,4 @@
-''' Provides composition class, MetaDataframe, which is an ordinary python object that stores a Dataframe and 
+''' Provides composition class, MetaDataFrame, which is an ordinary python object that stores a Dataframe and 
 attempts to promote attributes and methods to the instance level (eg self.x instead of self.df.x).  This object
 can be subclassed and ensures persistence of custom attributes.  The goal of this MetaDataFrame is to provide a 
 subclassing api beyond monkey patching (which currently fails in persisting attributes upon most method returns 
@@ -26,17 +26,17 @@ _dfattrs=[x for x in dir(DataFrame) if '__' not in x]
 # Loading (perhaps change name?) ... Doesn't work correctly as instance methods
 
 def mload(inname):
-    ''' Load MetaDataframe from file'''
+    ''' Load MetaDataFrame from file'''
     if isinstance(inname, basestring):
         inname=open(inname, 'r')
     return cPickle.load(inname)
 
 def mloads(string):
-    ''' Load a MetaDataframe from string stored in memory.'''
+    ''' Load a MetaDataFrame from string stored in memory.'''
     return cPickle.loads(string)        
         
 
-class MetaDataframe(object):
+class MetaDataFrame(object):
     ''' Base composition for subclassing dataframe.'''
 
     def __init__(self, *dfargs, **dfkwargs):
@@ -99,7 +99,7 @@ class MetaDataframe(object):
         of the time due to implicit possible issues with dir() and inspection in Python.  Best practice is for users to avoid name
         conflicts when possible.'''
         
-        super(MetaDataframe, self).__setattr__(name, value)        
+        super(MetaDataFrame, self).__setattr__(name, value)        
         if name in _dfattrs:
             setattr(self._df, name, value)
         else:
@@ -116,7 +116,7 @@ class MetaDataframe(object):
         self._df=None
 
         ### Create new object and apply new df 
-        newobj=copy.deepcopy(self)  #This looks like None, but is it type (MetaDataframe, just __union__ prints None
+        newobj=copy.deepcopy(self)  #This looks like None, but is it type (MetaDataFrame, just __union__ prints None
         newobj._df=dfnew
 
         ### Restore old value of df and return new object
@@ -221,7 +221,7 @@ class _MetaIndexer(object):
     the slice was to return a single object.  EG ix[0], which then returned a series with loss of custom attributes.'''
     def __init__(self, metadf, indexer):
         self.indexer=indexer #_NDFrameIndexer
-        self.metadf=metadf #MetaDataframe
+        self.metadf=metadf #MetaDataFrame
     
     def __getitem__(self, key):
         out=self.indexer.__getitem__(key)       
@@ -230,8 +230,8 @@ class _MetaIndexer(object):
     
 
 
-class SubFoo(MetaDataframe):
-    ''' Shows an example of how to subclass MetaDataframe with custom attributes, a and b.'''
+class SubFoo(MetaDataFrame):
+    ''' Shows an example of how to subclass MetaDataFrame with custom attributes, a and b.'''
 
     def __init__(self, a, b, *dfargs, **dfkwargs):
         self.a = a
@@ -252,14 +252,14 @@ class SubFoo(MetaDataframe):
 if __name__ == '__main__':
 
     ### Create a MetaDataFrame
-    meta_df=MetaDataframe(abs(randn(3,3)), index=['A','B','C'], columns=['c11','c22', 'c33'])    
+    meta_df=MetaDataFrame(abs(randn(3,3)), index=['A','B','C'], columns=['c11','c22', 'c33'])    
     
     meta_df.to_csv('deletejunkme')
 
     ### Add some new attributes
     meta_df.a=50
     meta_df.b='Pamela'
-    print 'See the original metadataframe\n'
+    print 'See the original MetaDataFrame\n'
     print meta_df
     print '\nI can operate on it (+ - / *) and call dataframe methods like rank()'
     
@@ -272,7 +272,7 @@ if __name__ == '__main__':
     print new
 
     ### Verify attribute persistence
-    print '\nAttributes a = %s and b = %s will persist when new metadataframes are returned.'%(new.a, new.b)
+    print '\nAttributes a = %s and b = %s will persist when new MetaDataFrames are returned.'%(new.a, new.b)
 
     ### Demonstrate subclassing by invoking SubFoo class
     print '\nI can subclass a dataframe an overwrite its __repr__() or more carefully __bytes__()/__unicode__() method(s)\n'
