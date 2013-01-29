@@ -221,7 +221,7 @@ class GroupBy(object):
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, np.ndarray)):
+        if not isinstance(self._selection, (list, tuple, Series, np.ndarray)):
             return [self._selection]
         return self._selection
 
@@ -368,7 +368,11 @@ class GroupBy(object):
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
-            f = lambda x: x.median(axis=self.axis)
+
+            def f(x):
+                if isinstance(x, np.ndarray):
+                    x = Series(x)
+                return x.median(axis=self.axis)
             return self._python_agg_general(f)
 
     def std(self, ddof=1):
@@ -917,7 +921,7 @@ class Grouper(object):
         for label, group in splitter:
             res = func(group)
             if result is None:
-                if isinstance(res, np.ndarray) or isinstance(res, list):
+                if isinstance(res, (Series, np.ndarray)) or isinstance(res, list):
                     raise ValueError('Function does not reduce')
                 result = np.empty(ngroups, dtype='O')
 
@@ -1199,7 +1203,7 @@ class Grouping(object):
                     self.name = factor.name
 
             # no level passed
-            if not isinstance(self.grouper, np.ndarray):
+            if not isinstance(self.grouper, (Series, np.ndarray)):
                 self.grouper = self.index.map(self.grouper)
                 if not (hasattr(self.grouper,"__len__") and \
                    len(self.grouper) == len(self.index)):
@@ -1281,7 +1285,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     # what are we after, exactly?
     match_axis_length = len(keys) == len(group_axis)
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
-    any_arraylike = any(isinstance(g, (list, tuple, np.ndarray))
+    any_arraylike = any(isinstance(g, (list, tuple, Series, np.ndarray))
                         for g in keys)
 
     try:
@@ -1346,7 +1350,7 @@ def _convert_grouper(axis, grouper):
             return grouper.values
         else:
             return grouper.reindex(axis).values
-    elif isinstance(grouper, (list, np.ndarray)):
+    elif isinstance(grouper, (list, Series, np.ndarray)):
         if len(grouper) != len(axis):
             raise AssertionError('Grouper and axis must be same length')
         return grouper
@@ -1506,7 +1510,7 @@ class SeriesGroupBy(GroupBy):
         for name, group in self:
             group.name = name
             output = func(group, *args, **kwargs)
-            if isinstance(output, np.ndarray):
+            if isinstance(output, (Series, np.ndarray)):
                 raise Exception('Must produce aggregated value')
             result[name] = self._try_cast(output, group)
 
@@ -1998,7 +2002,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, np.ndarray)) or not self.as_index:
+        if isinstance(key, (list, tuple, Series, np.ndarray)) or not self.as_index:
             return DataFrameGroupBy(self.obj, self.grouper, selection=key,
                                     grouper=self.grouper,
                                     exclusions=self.exclusions,

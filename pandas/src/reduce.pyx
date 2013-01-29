@@ -37,17 +37,18 @@ cdef class Reducer:
         self.labels = labels
 
     def _check_dummy(self, dummy=None):
+        self.can_set_name = 0
         if dummy is None:
             dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
-            self.can_set_name = 0
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError('Dummy array must be length %d' %
                                  self.chunksize)
-            self.can_set_name = type(dummy) != np.ndarray
-
+            if not isinstance(dummy,np.ndarray):
+                dummy = dummy.values
+                
         return dummy
 
     def get_result(self):
@@ -62,7 +63,6 @@ cdef class Reducer:
 
         arr = self.arr
         chunk = self.dummy
-
         dummy_buf = chunk.data
         chunk.data = arr.data
 
@@ -117,19 +117,21 @@ cdef class SeriesBinGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy, f, bins
+        object arr, index, dummy_arr, dummy_index, values, f, bins
 
     def __init__(self, object series, object f, object bins, object dummy):
         n = len(series)
 
         self.bins = bins
         self.f = f
-        if not series.flags.c_contiguous:
-            series = series.copy('C')
-        self.arr = series
+
+        values = series.values
+        if not values.flags.c_contiguous:
+            values = values.copy('C')
+        self.arr = values
         self.index = series.index
 
-        self.dummy = self._check_dummy(dummy)
+        self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
 
         # kludge for #1688
@@ -140,14 +142,17 @@ cdef class SeriesBinGrouper:
 
     def _check_dummy(self, dummy=None):
         if dummy is None:
-            dummy = np.empty(0, dtype=self.arr.dtype)
+            values = np.empty(0, dtype=self.arr.dtype)
+            index = None
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
-            if not dummy.flags.contiguous:
-                dummy = dummy.copy()
+            values = dummy.values
+            if not values.flags.contiguous:
+                values = values.copy()
+            index = dummy.index
 
-        return dummy
+        return values, index
 
     def get_result(self):
         cdef:
@@ -169,14 +174,14 @@ cdef class SeriesBinGrouper:
                 else:
                     counts[i] = self.bins[i] - self.bins[i-1]
 
-        chunk = self.dummy
+        chunk = self.dummy_arr
         group_size = 0
         n = len(self.arr)
 
-        vslider = Slider(self.arr, self.dummy)
-        islider = Slider(self.index, self.dummy.index)
+        vslider = Slider(self.arr, self.dummy_arr)
+        islider = Slider(self.index, self.dummy_index)
 
-        gin = self.dummy.index._engine
+        gin = self.dummy_index._engine
 
         try:
             for i in range(self.ngroups):
@@ -212,7 +217,7 @@ cdef class SeriesBinGrouper:
     def _get_result_array(self, object res):
         try:
             assert(not isinstance(res, np.ndarray))
-            assert(not (isinstance(res, list) and len(res) == len(self.dummy)))
+            assert(not (isinstance(res, list) and len(res) == len(self.dummy_arr)))
 
             result = np.empty(self.ngroups, dtype='O')
         except Exception:
@@ -230,7 +235,7 @@ cdef class SeriesGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy, f, labels
+        object arr, index, dummy_arr, dummy_index, f, labels, values
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
@@ -238,25 +243,30 @@ cdef class SeriesGrouper:
 
         self.labels = labels
         self.f = f
-        if not series.flags.c_contiguous:
-            series = series.copy('C')
-        self.arr = series
+
+        values = series.values
+        if not values.flags.c_contiguous:
+            values = values.copy('C')
+        self.arr = values
         self.index = series.index
 
-        self.dummy = self._check_dummy(dummy)
+        self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
         self.ngroups = ngroups
 
     def _check_dummy(self, dummy=None):
         if dummy is None:
-            dummy = np.empty(0, dtype=self.arr.dtype)
+            values = np.empty(0, dtype=self.arr.dtype)
+            index  = None
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
-            if not dummy.flags.contiguous:
-                dummy = dummy.copy()
+            values = dummy.values
+            if not values.flags.contiguous:
+                values = values.copy()
+            index  = dummy.index
 
-        return dummy
+        return values, index
 
     def get_result(self):
         cdef:
@@ -270,14 +280,14 @@ cdef class SeriesGrouper:
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
-        chunk = self.dummy
+        chunk = self.dummy_arr
         group_size = 0
         n = len(self.arr)
+	
+        vslider = Slider(self.arr, self.dummy_arr)
+        islider = Slider(self.index, self.dummy_index)
 
-        vslider = Slider(self.arr, self.dummy)
-        islider = Slider(self.index, self.dummy.index)
-
-        gin = self.dummy.index._engine
+        gin = self.dummy_index._engine
         try:
             for i in range(n):
                 group_size += 1
@@ -324,7 +334,7 @@ cdef class SeriesGrouper:
     def _get_result_array(self, object res):
         try:
             assert(not isinstance(res, np.ndarray))
-            assert(not (isinstance(res, list) and len(res) == len(self.dummy)))
+            assert(not (isinstance(res, list) and len(res) == len(self.dummy_arr)))
 
             result = np.empty(self.ngroups, dtype='O')
         except Exception:

@@ -17,7 +17,6 @@ from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 
-from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
 import pandas.lib as lib
@@ -668,7 +667,7 @@ class _BlockJoinOperation(object):
             join_blocks = unit.get_upcasted_blocks()
             type_map = {}
             for blk in join_blocks:
-                type_map.setdefault(blk.dtype, []).append(blk)
+                type_map.setdefault(blk.ftype, []).append(blk)
             blockmaps.append((unit, type_map))
 
         return blockmaps
@@ -881,8 +880,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
 class _Concatenator(object):
     """
-    Orchestrates a concatenation operation for BlockManagers, with little hacks
-    to support sparse data structures, etc.
+    Orchestrates a concatenation operation for BlockManagers
     """
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
@@ -952,17 +950,22 @@ class _Concatenator(object):
         if self._is_series and self.axis == 0:
             new_data = com._concat_compat([x.values for x in self.objs])
             name = com._consensus_name_attr(self.objs)
+            new_data = self._post_merge(new_data)
             return Series(new_data, index=self.new_axes[0], name=name)
         elif self._is_series:
-            data = dict(itertools.izip(xrange(len(self.objs)), self.objs))
-            index, columns = self.new_axes
-            tmpdf = DataFrame(data, index=index)
-            if columns is not None:
-                tmpdf.columns = columns
-            return tmpdf
+            new_data = dict(zip(self.new_axes[1], self.objs))
+            new_data = self._post_merge(new_data)
+            return DataFrame(new_data, index=self.new_axes[0],
+                             columns=self.new_axes[1])
         else:
             new_data = self._get_concatenated_data()
+            new_data = self._post_merge(new_data)
             return self.objs[0]._from_axes(new_data, self.new_axes)
+
+    def _post_merge(self, data):
+        if isinstance(data, BlockManager):
+            data = data.post_merge(self.objs)
+        return data
 
     def _get_fresh_axis(self):
         return Index(np.arange(len(self._get_concat_axis())))
@@ -970,23 +973,28 @@ class _Concatenator(object):
     def _prepare_blocks(self):
         reindexed_data = self._get_reindexed_data()
 
+        # we are consolidating as we go, so just add the blocks, no-need for dtype mapping
         blockmaps = []
         for data in reindexed_data:
             data = data.consolidate()
-
-            type_map = dict((blk.dtype, blk) for blk in data.blocks)
-            blockmaps.append(type_map)
+            blockmaps.append(data.get_block_map(typ='dict'))
         return blockmaps, reindexed_data
 
     def _get_concatenated_data(self):
         try:
             # need to conform to same other (joined) axes for block join
+
             blockmaps, rdata = self._prepare_blocks()
             kinds = _get_all_block_kinds(blockmaps)
 
             new_blocks = []
             for kind in kinds:
-                klass_blocks = [mapping.get(kind) for mapping in blockmaps]
+                klass_blocks = []
+                for mapping in blockmaps:
+                    l = mapping.get(kind)
+                    if l is None:
+                        l = [ None ]
+                    klass_blocks.extend(l)
                 stacked_block = self._concat_blocks(klass_blocks)
                 new_blocks.append(stacked_block)
 
@@ -997,7 +1005,7 @@ class _Concatenator(object):
                 blk.ref_items = self.new_axes[0]
 
             new_data = BlockManager(new_blocks, self.new_axes)
-        except Exception:  # EAFP
+        except (Exception), detail:  # EAFP
             # should not be possible to fail here for the expected reason with
             # axis = 0
             if self.axis == 0:  # pragma: no cover
@@ -1013,21 +1021,19 @@ class _Concatenator(object):
         # HACK: ugh
 
         reindexed_data = []
-        if isinstance(self.objs[0], SparseDataFrame):
-            pass
-        else:
-            axes_to_reindex = list(enumerate(self.new_axes))
-            axes_to_reindex.pop(self.axis)
+        axes_to_reindex = list(enumerate(self.new_axes))
+        axes_to_reindex.pop(self.axis)
 
-            for obj in self.objs:
-                data = obj._data
-                for i, ax in axes_to_reindex:
-                    data = data.reindex_axis(ax, axis=i, copy=False)
-                reindexed_data.append(data)
+        for obj in self.objs:
+            data = obj._data.prepare_for_merge()
+            for i, ax in axes_to_reindex:
+                data = data.reindex_axis(ax, axis=i, copy=False)
+            reindexed_data.append(data)
 
         return reindexed_data
 
     def _concat_blocks(self, blocks):
+
         values_list = [b.values for b in blocks if b is not None]
         concat_values = com._concat_compat(values_list, axis=self.axis)
 
@@ -1057,10 +1063,6 @@ class _Concatenator(object):
     def _concat_single_item(self, objs, item):
         all_values = []
         dtypes = set()
-
-        # le sigh
-        if isinstance(self.objs[0], SparseDataFrame):
-            objs = [x._data for x in self.objs]
 
         for data, orig in zip(objs, self.objs):
             if item in orig:

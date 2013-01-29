@@ -12,6 +12,7 @@ import numpy as np
 from pandas.core.api import DataFrame, Series, Panel, notnull
 import pandas.algos as algos
 import pandas.core.common as com
+from pandas.core.common import _values_from_object
 
 from pandas.util.decorators import Substitution, Appender
 
@@ -191,11 +192,11 @@ def rolling_corr(arg1, arg2, window, min_periods=None, freq=None,
 
 
 def _flex_binary_moment(arg1, arg2, f):
-    if not (isinstance(arg1,(np.ndarray, DataFrame)) and
-            isinstance(arg1,(np.ndarray, DataFrame))):
+    if not (isinstance(arg1,(np.ndarray, Series, DataFrame)) and
+            isinstance(arg1,(np.ndarray, Series, DataFrame))):
         raise ValueError("arguments to moment function must be of type ndarray/DataFrame")
 
-    if isinstance(arg1, np.ndarray) and isinstance(arg2, np.ndarray):
+    if isinstance(arg1, (np.ndarray,Series)) and isinstance(arg2, (np.ndarray,Series)):
         X, Y = _prep_binary(arg1, arg2)
         return f(X, Y)
     elif isinstance(arg1, DataFrame):

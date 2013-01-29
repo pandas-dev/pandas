@@ -111,8 +111,10 @@ to sparse
     fill_value = None
 
     def __new__(cls, data, sparse_index=None, kind='integer', fill_value=None,
-                copy=False):
+                dtype=np.float64, copy=False):
 
+        if dtype is not None:
+            dtype = np.dtype(dtype)
         is_sparse_array = isinstance(data, SparseArray)
         if fill_value is None:
             if is_sparse_array:
@@ -135,14 +137,19 @@ to sparse
 
         # Create array, do *not* copy data by default
         if copy:
-            subarr = np.array(values, dtype=np.float64, copy=True)
+            subarr = np.array(values, dtype=dtype, copy=True)
         else:
-            subarr = np.asarray(values, dtype=np.float64)
+            subarr = np.asarray(values, dtype=dtype)
+
+
+        # if we have a bool type, make sure that we have a bool fill_value
+        if (dtype is not None and issubclass(dtype.type,np.bool_)) or (data is not None and lib.is_bool_array(subarr)):
+            fill_value = bool(fill_value)
 
         # Change the class of the array to be the subclass type.
         output = subarr.view(cls)
         output.sp_index = sparse_index
-        output.fill_value = np.float64(fill_value)
+        output.fill_value = fill_value
         return output
 
     @property
@@ -182,11 +189,15 @@ to sparse
         self.fill_value = fill_value
 
     def __len__(self):
-        return self.sp_index.length
+        try:
+            return self.sp_index.length
+        except:
+            return 0
 
     def __repr__(self):
-        return '%s\n%s' % (np.ndarray.__repr__(self),
-                           repr(self.sp_index))
+        return '%s\nFill: %s\n%s' % (np.ndarray.__repr__(self),
+                                     repr(self.fill_value),
+                                     repr(self.sp_index))
 
     # Arithmetic operators
 
@@ -237,6 +248,11 @@ to sparse
         # caching not an option, leaks memory
         return self.view(np.ndarray)
 
+    def __iter__(self):
+        for i in xrange(len(self)):
+            yield self._get_val_at(i)
+        raise StopIteration
+
     def __getitem__(self, key):
         """
 
@@ -260,7 +276,7 @@ to sparse
         if loc < 0:
             loc += n
 
-        if loc >= len(self) or loc < 0:
+        if loc >= n or loc < 0:
             raise Exception('Out of bounds access')
 
         sp_loc = self.sp_index.lookup(loc)
@@ -282,13 +298,21 @@ to sparse
         indices = np.asarray(indices, dtype=int)
 
         n = len(self)
-        if (indices < 0).any() or (indices >= n).any():
+        if (indices >= n).any():
             raise Exception('out of bounds access')
 
         if self.sp_index.npoints > 0:
-            locs = np.array([self.sp_index.lookup(loc) for loc in indices])
+            locs = np.array([self.sp_index.lookup(loc) if loc > -1 else -1 for loc in indices ])
             result = self.sp_values.take(locs)
-            result[locs == -1] = self.fill_value
+            mask = locs == -1
+            if mask.any():
+                try:
+                    result[mask] = self.fill_value
+                except (ValueError):
+                    # wrong dtype
+                    result = result.astype('float64')
+                    result[mask] = self.fill_value
+
         else:
             result = np.empty(len(indices))
             result.fill(self.fill_value)
@@ -296,10 +320,24 @@ to sparse
         return result
 
     def __setitem__(self, key, value):
-        raise Exception('SparseArray objects are immutable')
+        #if com.is_integer(key):
+        #    self.values[key] = value
+        #else:
+        #    raise Exception("SparseArray does not support seting non-scalars via setitem")
+        raise Exception("SparseArray does not support setting via setitem")
 
     def __setslice__(self, i, j, value):
-        raise Exception('SparseArray objects are immutable')
+        if i < 0:
+            i = 0
+        if j < 0:
+            j = 0
+        slobj = slice(i, j)
+
+        #if not np.isscalar(value):
+        #    raise Exception("SparseArray does not support seting non-scalars via slices")
+
+        #self.values[slobj] = value
+        raise Exception("SparseArray does not support seting via slices")
 
     def to_dense(self):
         """
@@ -326,6 +364,7 @@ to sparse
         else:
             values = self.sp_values
         return SparseArray(values, sparse_index=self.sp_index,
+                           dtype = self.dtype,
                            fill_value=self.fill_value)
 
     def count(self):

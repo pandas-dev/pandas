@@ -38,10 +38,6 @@ pandas 0.12.0
     including TimeStamp and *Index now produces valid python code strings and
     can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
 
-**New features**
-
-**Improvements to existing features**
-
 **API Changes**
 
   - When removing an object from a store, **store.remove(key)**, raises
@@ -70,6 +66,36 @@ pandas 0.12.0
     - filter supports same api as original DataFrame filter
 
   - Reindex called with no arguments will now return a copy of the input object
+
+  - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
+    There are several minor changes that affect the API.
+
+    - numpy functions that do not support the array interface will now
+      return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.where``
+    - ``Series(0.5)`` would previously return the scalar ``0.5``, this is not
+      longer supported
+    - several methods from frame/series have moved to ``NDFrame``
+      (convert_objects,where,mask)
+    - legacy pickle support is disabled (meaning that going forward will not read
+      pickles from previous versions)
+    - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
+      can be used to distinguish (if desired) 
+
+  - Refactor of axis creation and setup; moved to generic.py, using _setup_axes
+  - Refactor of Sparse objects to use BlockManager
+
+    - Created a new block type in internals, SparseBlock, which can hold multi-dtypes
+      and is non-consolidatable. SparseSeries and SparseDataFrame now inherit
+      more methods from there hierarchy (Series/DataFrame), and no longer inherit
+      from SparseArray (which instead is the object of the SparseBlock)
+    - Sparse suite now supports integration with non-sparse data. Non-float sparse
+      data is supportable (not-yet implemented)
+    - Operations on sparse structures within DataFrames should preserve sparseness,
+      merging type operations will convert to dense (and back to sparse), so might
+      be somewhat inefficient (and currently the indicies are not == to prior)
+
+  - added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
+    if the underlying is sparse/dense (as well as the dtype)
 
 **Bug Fixes**
 

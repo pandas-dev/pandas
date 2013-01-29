@@ -57,10 +57,18 @@ cdef class SeriesIndex(object):
     def __set__(self, obj, value):
         if len(obj) != len(value):
             raise AssertionError('Index length did not match values')
-        obj._index = val = self._check_type(value)
-        if hasattr(val, 'tz'):
-            # hack for #2139
-            obj._make_time_series()
+
+        val = self._check_type(value)
+        if val.is_all_dates:
+            from pandas.tseries.index import DatetimeIndex
+            from pandas.tseries.period import PeriodIndex
+            if not isinstance(val, (DatetimeIndex, PeriodIndex)):
+                val = DatetimeIndex(val)
+            obj._typ = 'time_series'
+        else:
+            obj._typ = 'series'
+
+        obj._index = val
 
 
 cdef class ValuesProperty(object):

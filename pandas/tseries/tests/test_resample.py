@@ -570,10 +570,10 @@ class TestResample(unittest.TestCase):
         tm.assert_series_equal(result, exp)
 
         self.assertRaises(Exception, ts.resample, 'M',
-                          how=[lambda x: x.mean(), lambda x: x.std()])
+                          how=[lambda x: x.mean(), lambda x: x.std(ddof=1)])
 
         result = ts.resample('M', how={'foo': lambda x: x.mean(),
-                                       'bar': lambda x: x.std()})
+                                       'bar': lambda x: x.std(ddof=1)})
         foo_exp = ts.resample('M', how='mean')
         bar_exp = ts.resample('M', how='std')
 

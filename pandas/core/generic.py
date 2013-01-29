@@ -785,6 +785,37 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
 
+    @classmethod
+    def _setup_axes(cls, axes, het_axis = None, stat_axis = None, aliases = None, slicers = None,
+                    build_axes = True):
+        """ provide axes setup for the major PandasObjects
+
+            axes : the names of the axes in order (lowest to highest)
+            het_axis : the axis of the selector dimension (int)
+            stat_axis : the number of axis for the default stats
+            aliases : other names for a single axis (dict)
+            slicers : how axes slice to others (dict)
+            build_axes : setup the axis properties (default True)
+            """
+
+        cls._AXIS_ORDERS  = axes
+        cls._AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(axes) ])
+        cls._AXIS_LEN     = len(axes)
+        cls._AXIS_ALIASES = aliases or dict()
+        cls._AXIS_NAMES   = dict([(i, a) for i, a in enumerate(axes) ])
+        cls._AXIS_SLICEMAP = slicers or None
+        if het_axis is not None:
+            cls._het_axis     = het_axis
+            cls._info_axis    = axes[het_axis]
+
+        if stat_axis is not None:
+            cls._default_stat_axis = stat_axis
+
+        # setup the actual axis
+        if build_axes:
+            for i, a in cls._AXIS_NAMES.items():
+                setattr(cls,a,lib.AxisProperty(i))
+
     def __init__(self, data, axes=None, copy=False, dtype=None):
         if dtype is not None:
             data = data.astype(dtype)
@@ -810,6 +841,26 @@ class NDFrame(PandasObject):
         """ we do it this way because if we have reversed axes, then 
         the block manager shows then reversed """
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
+
+    def _construct_axes_dict(self, axes=None, **kwargs):
+        """ return an axes dictionary for myself """
+        d = dict([(a, getattr(self, a)) for a in (axes or self._AXIS_ORDERS)])
+        d.update(kwargs)
+        return d
+
+    @staticmethod
+    def _construct_axes_dict_from(self, axes, **kwargs):
+        """ return an axes dictionary for the passed axes """
+        d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
+        d.update(kwargs)
+        return d
+
+    def __repr__(self):
+        return 'NDFrame'
+
+    @property
+    def values(self):
+        return self._data.as_matrix()
 
     @property
     def ndim(self):
@@ -893,6 +944,109 @@ class NDFrame(PandasObject):
             new_values = new_values.copy()
 
         return self._constructor(new_values, *new_axes)
+
+    def convert_objects(self, convert_dates=True, convert_numeric=True):
+        """
+        Attempt to infer better dtype for object columns
+        Always returns a copy (even if no object columns)
+
+        Parameters
+        ----------
+        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
+        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
+
+        Returns
+        -------
+        converted : same as input
+        """
+        mgr = self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric)
+        return self._constructor(mgr)
+
+    def astype(self, dtype, copy = True, raise_on_error = True):
+        """
+        Cast object to input numpy.dtype
+        Return a copy when copy = True (be really careful with this!)
+
+        Parameters
+        ----------
+        dtype : numpy.dtype or Python type
+        raise_on_error : raise on invalid input
+
+        Returns
+        -------
+        casted : type of caller
+        """
+
+        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
+        return self._constructor(mgr)
+
+    def where(self, cond, other=np.nan, inplace=False, try_cast=False, raise_on_error=True):
+        """
+        Return an object with the same shape as self and whose corresponding
+        entries are from self where cond is True and otherwise are from other.
+
+        Parameters
+        ----------
+        cond : boolean object or array
+        other : scalar or DataFrame
+        inplace : boolean, default False
+            Whether to perform the operation in place on the data
+        try_cast : boolean, default False
+            try to cast the result back to the input type (if possible),
+        raise_on_error : boolean, default True
+            Whether to raise on invalid data types (e.g. trying to where on
+            strings)
+
+        Returns
+        -------
+        wh : same as self
+        """
+        if isinstance(cond, PandasObject):
+            cond = cond.reindex(**self._construct_axes_dict())
+        else:
+            if not hasattr(cond, 'shape'):
+                raise ValueError('where requires an ndarray like object for its '
+                                 'condition')
+            if cond.shape != self.shape:
+                raise ValueError('Array conditional must be same shape as self')
+            cond = self._constructor(cond, **self._construct_axes_dict())
+
+        if inplace:
+            cond = -(cond.fillna(True).astype(bool))
+        else:
+            cond = cond.fillna(False).astype(bool)
+
+        if isinstance(other, PandasObject):
+            _, other = self.align(other, join='left', fill_value=np.nan)
+        elif isinstance(other,np.ndarray):
+            if other.shape != self.shape:
+                raise ValueError('other must be the same shape as self '
+                                 'when an ndarray')
+            other = self._constructor(other, **self._construct_axes_dict())
+
+        if inplace:
+            # we may have different type blocks come out of putmask, so reconstruct the block manager
+            self._data = self._data.putmask(cond,other,inplace=True)
+
+        else:
+            new_data = self._data.where(other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+
+            return self._constructor(new_data)
+
+    def mask(self, cond):
+        """
+        Returns copy of self whose values are replaced with nan if the
+        inverted condition is True
+
+        Parameters
+        ----------
+        cond: boolean object or array same shape as input (or alignable)
+
+        Returns
+        -------
+        wh: same shape as input
+        """
+        return self.where(~cond, np.nan)
 
     def pop(self, item):
         """

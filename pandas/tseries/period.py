@@ -12,9 +12,8 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _maybe_box
 from pandas.util import py3compat
-
 from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -912,7 +911,7 @@ class PeriodIndex(Int64Index):
         know what you're doing
         """
         try:
-            return super(PeriodIndex, self).get_value(series, key)
+            return _maybe_box(self, super(PeriodIndex, self).get_value(series, key), series, key)
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -935,14 +934,16 @@ class PeriodIndex(Int64Index):
                     return series[key]
                 else:
                     key = Period(asdt, freq=self.freq)
-                    return self._engine.get_value(series, key.ordinal)
+                    s = series.values if hasattr(series,'values') else series
+                    return _maybe_box(self, self._engine.get_value(s, key.ordinal), series, key)
             except TypeError:
                 pass
             except KeyError:
                 pass
 
             key = Period(key, self.freq)
-            return self._engine.get_value(series, key.ordinal)
+            s = series.values if hasattr(series,'values') else series
+            return _maybe_box(self, self._engine.get_value(s, key.ordinal), series, key)
 
     def get_loc(self, key):
         """

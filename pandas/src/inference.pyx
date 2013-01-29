@@ -331,7 +331,7 @@ def is_period(object o):
 
 def is_period_array(ndarray[object] values):
     cdef int i, n = len(values)
-    from pandas import Period
+    from pandas.tseries.period import Period
 
     if n == 0:
         return False

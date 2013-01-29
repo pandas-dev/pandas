@@ -13,6 +13,7 @@ from pandas.lib import Timestamp
 from pandas.util.decorators import cache_readonly
 from pandas.core.common import isnull
 import pandas.core.common as com
+from pandas.core.common import _values_from_object
 from pandas.util import py3compat
 from pandas.core.config import get_option
 
@@ -752,21 +753,23 @@ class Index(np.ndarray):
         -------
         loc : int if unique index, possibly slice or mask if not
         """
-        return self._engine.get_loc(key)
+        return self._engine.get_loc(_values_from_object(key))
 
     def get_value(self, series, key):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        s = _values_from_object(series)
+        k = _values_from_object(key)
         try:
-            return self._engine.get_value(series, key)
+            return self._engine.get_value(s, k)
         except KeyError, e1:
             if len(self) > 0 and self.inferred_type == 'integer':
                 raise
 
             try:
-                return tslib.get_value_box(series, key)
+                return tslib.get_value_box(s, key)
             except IndexError:
                 raise
             except TypeError:
@@ -788,7 +791,7 @@ class Index(np.ndarray):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        self._engine.set_value(arr, key, value)
+        self._engine.set_value(_values_from_object(arr), _values_from_object(key), value)
 
     def get_level_values(self, level):
         """
@@ -1629,8 +1632,10 @@ class MultiIndex(Index):
         from pandas.core.series import Series
 
         # Label-based
+        s = _values_from_object(series)
+        k = _values_from_object(key)
         try:
-            return self._engine.get_value(series, key)
+            return self._engine.get_value(s, k)
         except KeyError, e1:
             try:
                 # TODO: what if a level contains tuples??
@@ -1643,7 +1648,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return _index.get_value_at(series, key)
+                return _index.get_value_at(s, k)
             except IndexError:
                 raise
             except TypeError:
@@ -2284,7 +2289,7 @@ class MultiIndex(Index):
         if isinstance(key, tuple):
             if len(key) == self.nlevels:
                 if self.is_unique:
-                    return self._engine.get_loc(key)
+                    return self._engine.get_loc(_values_from_object(key))
                 else:
                     return slice(*self.slice_locs(key, key))
             else:
@@ -2350,7 +2355,7 @@ class MultiIndex(Index):
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
                     if self.is_unique:
-                        return self._engine.get_loc(key), None
+                        return self._engine.get_loc(_values_from_object(key)), None
                     else:
                         indexer = slice(*self.slice_locs(key, key))
                         return indexer, self[indexer]

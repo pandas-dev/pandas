@@ -6,7 +6,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _values_from_object, _maybe_box
 from pandas.core.index import Index, Int64Index
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
@@ -1134,12 +1134,10 @@ class DatetimeIndex(Int64Index):
         know what you're doing
         """
         if isinstance(key, datetime):
-            # needed to localize naive datetimes
-            stamp = Timestamp(key, tz=self.tz)
-            return self._engine.get_value(series, stamp)
+            return self.get_value_maybe_box(series, key)
 
         try:
-            return Index.get_value(self, series, key)
+            return _maybe_box(self, Index.get_value(self, series, key), series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -1152,10 +1150,15 @@ class DatetimeIndex(Int64Index):
                 return series.take(locs)
 
             try:
-                stamp = Timestamp(key, tz=self.tz)
-                return self._engine.get_value(series, stamp)
-            except (KeyError, ValueError):
+                return self.get_value_maybe_box(series, key)
+            except KeyError:
                 raise KeyError(key)
+
+    def get_value_maybe_box(self, series, key):
+        # needed to localize naive datetimes
+        stamp = Timestamp(key, tz=self.tz)
+        values = self._engine.get_value(_values_from_object(series), stamp)
+        return _maybe_box(self, values, series, stamp)
 
     def get_loc(self, key):
         """

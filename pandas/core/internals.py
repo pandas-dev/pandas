@@ -1,5 +1,7 @@
 import itertools
 from datetime import datetime
+import copy
+from collections import defaultdict
 
 from numpy import nan
 import numpy as np
@@ -8,13 +10,13 @@ from pandas.core.common import _possibly_downcast_to_dtype, isnull
 from pandas.core.index import Index, MultiIndex, _ensure_index, _handle_legacy_indexes
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
+from pandas.sparse.array import SparseArray, make_sparse
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.expressions as expressions
 
 from pandas.tslib import Timestamp
-from pandas.util import py3compat
-
+from pandas.util import py3compat, rwproperty
 
 class Block(object):
     """
@@ -27,10 +29,17 @@ class Block(object):
     is_numeric = False
     is_bool = False
     is_object = False
+    is_sparse = False
     _can_hold_na = False
     _downcast_dtype = None
+    _can_consolidate = True
+    _verify_integrity = True
+    _ftype = 'dense'
 
-    def __init__(self, values, items, ref_items, ndim=2, fastpath=False):
+    def __init__(self, values, items, ref_items, ndim=None, fastpath=False):
+
+        if ndim is None:
+            ndim = values.ndim
 
         if values.ndim != ndim:
             raise ValueError('Wrong number of dimensions')
@@ -54,6 +63,14 @@ class Block(object):
         return self.values[arg]
 
     @property
+    def _consolidate_key(self):
+        return (self._can_consolidate, self.dtype.name)
+
+    @property
+    def _is_single_block(self):
+        return self.ndim == 1
+
+    @property
     def ref_locs(self):
         if self._ref_locs is None:
             indexer = self.ref_items.get_indexer(self.items)
@@ -75,10 +92,20 @@ class Block(object):
         self.ref_items = ref_items
 
     def __repr__(self):
-        shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
         name = type(self).__name__
-        result = '%s: %s, %s, dtype %s' % (
-            name, com.pprint_thing(self.items), shape, self.dtype)
+
+        # don't want to print out all of the items here
+        if self._is_single_block:
+
+            result = '%s: %s dtype: %s' % (
+                name, len(self), self.dtype)
+
+        else:
+
+            shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
+            result = '%s: %s, %s, dtype: %s' % (
+                name, com.pprint_thing(self.items), shape, self.dtype)
+
         if py3compat.PY3:
             return unicode(result)
         return com.console_encode(result)
@@ -121,6 +148,10 @@ class Block(object):
             ref_items = self.ref_items
         return make_block(values, self.items, ref_items, klass=self.__class__, fastpath=True)
 
+    @property
+    def ftype(self):
+        return "%s:%s" % (self.dtype,self._ftype)
+
     def merge(self, other):
         if not self.ref_items.equals(other.ref_items):
             raise AssertionError('Merge operands must have same ref_items')
@@ -138,7 +169,11 @@ class Block(object):
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis,
                                  fill_value=fill_value, mask_info=mask_info)
+<<<<<<< HEAD
         return make_block(new_values, self.items, self.ref_items, fastpath=True)
+=======
+        return make_block(new_values, self.items, self.ref_items, ndim=self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def reindex_items_from(self, new_ref_items, copy=True):
         """
@@ -160,7 +195,11 @@ class Block(object):
             new_values = com.take_nd(self.values, masked_idx, axis=0,
                                      allow_fill=False)
             new_items = self.items.take(masked_idx)
+<<<<<<< HEAD
         return make_block(new_values, new_items, new_ref_items, fastpath=True)
+=======
+        return make_block(new_values, new_items, new_ref_items, ndim=self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def get(self, item):
         loc = self.items.get_loc(item)
@@ -186,7 +225,7 @@ class Block(object):
         loc = self.items.get_loc(item)
         new_items = self.items.delete(loc)
         new_values = np.delete(self.values, loc, 0)
-        return make_block(new_values, new_items, self.ref_items, klass=self.__class__, fastpath=True)
+        return make_block(new_values, new_items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
 
     def split_block_at(self, item):
         """
@@ -210,6 +249,7 @@ class Block(object):
             yield make_block(self.values[s:e],
                              self.items[s:e].copy(),
                              self.ref_items,
+                             ndim = self.ndim,
                              klass=self.__class__,
                              fastpath=True)
 
@@ -256,9 +296,18 @@ class Block(object):
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
         """
+        if self.dtype == dtype:
+            if copy:
+                return self.copy()
+            return self
+
         try:
             newb = make_block(com._astype_nansafe(self.values, dtype, copy = copy),
+<<<<<<< HEAD
                               self.items, self.ref_items, fastpath=True)
+=======
+                              self.items, self.ref_items, ndim = self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
         except:
             if raise_on_error is True:
                 raise
@@ -279,6 +328,30 @@ class Block(object):
             by definition we are not an ObjectBlock here!  """
 
         return self.copy() if copy else self
+
+    def prepare_for_merge(self, **kwargs):
+        """ a regular block is ok to merge as is """
+        return self
+
+    def post_merge(self, items, **kwargs):
+        """ we are non-sparse block, try to convert to a sparse block(s) """
+        overlap = set(items.keys()) & set(self.items)
+        if len(overlap):
+            overlap = _ensure_index(overlap)
+
+            new_blocks = []
+            for item in overlap:
+                dtypes = set(items[item])
+
+                # this is a safe bet with multiple dtypes
+                dtype  = list(dtypes)[0] if len(dtypes) == 1 else np.float64
+
+                b = make_block(SparseArray(self.get(item), dtype=dtype), [ item ], self.ref_items)
+                new_blocks.append(b)
+
+            return new_blocks
+
+        return self
 
     def _can_hold_element(self, value):
         raise NotImplementedError()
@@ -377,9 +450,13 @@ class Block(object):
             return new_blocks
 
         if inplace:
-            return [ self ]
+            return self
 
+<<<<<<< HEAD
         return [ make_block(new_values, self.items, self.ref_items, fastpath=True) ]
+=======
+        return make_block(new_values, self.items, self.ref_items)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None, coerce=False):
@@ -410,22 +487,34 @@ class Block(object):
         else:
             com.backfill_2d(transf(values), limit=limit, mask=mask)
 
+<<<<<<< HEAD
         return make_block(values, self.items, self.ref_items, klass=self.__class__, fastpath=True)
+=======
+        return make_block(values, self.items, self.ref_items, ndim = self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def take(self, indexer, ref_items, axis=1):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis=axis,
                                  allow_fill=False)
+<<<<<<< HEAD
         return make_block(new_values, self.items, ref_items, klass=self.__class__, fastpath=True)
+=======
+        return make_block(new_values, self.items, self.ref_items, ndim = self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
-    def get_values(self, dtype):
+    def get_values(self, dtype=None):
         return self.values
 
     def diff(self, n):
         """ return block for the diff of the values """
         new_values = com.diff(self.values, n, axis=1)
+<<<<<<< HEAD
         return make_block(new_values, self.items, self.ref_items, fastpath=True)
+=======
+        return make_block(new_values, self.items, self.ref_items, ndim = self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def shift(self, indexer, periods):
         """ shift the block by periods, possibly upcast """
@@ -438,7 +527,11 @@ class Block(object):
             new_values[:, :periods] = fill_value
         else:
             new_values[:, periods:] = fill_value
+<<<<<<< HEAD
         return make_block(new_values, self.items, self.ref_items, fastpath=True)
+=======
+        return make_block(new_values, self.items, self.ref_items, ndim = self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def eval(self, func, other, raise_on_error = True, try_cast = False):
         """
@@ -493,7 +586,11 @@ class Block(object):
         if try_cast:
             result = self._try_cast_result(result)
 
+<<<<<<< HEAD
         return make_block(result, self.items, self.ref_items, fastpath=True)
+=======
+        return make_block(result, self.items, self.ref_items, ndim = self.ndim)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def where(self, other, cond, raise_on_error = True, try_cast = False):
         """
@@ -570,7 +667,7 @@ class Block(object):
             if try_cast:
                 result = self._try_cast_result(result)
 
-            return make_block(result, items, self.ref_items)
+            return make_block(result, items, self.ref_items, ndim = self.ndim)
 
         # see if we can operate on the entire block, or need item-by-item
         if not self._can_hold_na:
@@ -701,7 +798,7 @@ class ObjectBlock(Block):
         """ we can be a bool if we have only bool values but are of type object """
         return lib.is_bool_array(self.values.ravel())
 
-    def convert(self, convert_dates = True, convert_numeric = True, copy = True):
+    def convert(self, convert_dates = True, convert_numeric = True, copy = True, by_item = True):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
             by definition we ARE an ObjectBlock!!!!!
@@ -711,14 +808,22 @@ class ObjectBlock(Block):
 
         # attempt to create new type blocks
         blocks = []
-        for i, c in enumerate(self.items):
-            values = self.get(c)
 
-            values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
-            values = _block_shape(values)
-            items = self.items.take([i])
-            newb = make_block(values, items, self.ref_items, fastpath=True)
-            blocks.append(newb)
+        if by_item:
+
+            for i, c in enumerate(self.items):
+                values = self.get(c)
+
+                values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
+                values = _block_shape(values)
+                items = self.items.take([i])
+                newb = make_block(values, items, self.ref_items, ndim = self.ndim)
+                blocks.append(newb)
+
+        else:
+
+            values = com._possibly_convert_objects(self.values, convert_dates=convert_dates, convert_numeric=convert_numeric)
+            blocks.append(make_block(values, self.items, self.ref_items, ndim = self.ndim))
 
         return blocks
 
@@ -740,11 +845,11 @@ _TD_DTYPE = np.dtype('m8[ns]')
 class DatetimeBlock(Block):
     _can_hold_na = True
 
-    def __init__(self, values, items, ref_items, ndim=2, fastpath=True):
+    def __init__(self, values, items, ref_items, fastpath=True, **kwargs):
         if values.dtype != _NS_DTYPE:
             values = tslib.cast_to_nanoseconds(values)
 
-        super(DatetimeBlock, self).__init__(values, items, ref_items, ndim=ndim, fastpath=fastpath)
+        Block.__init__(self, values, items, ref_items, fastpath=fastpath, **kwargs)
 
     def _gi(self, arg):
         return lib.Timestamp(self.values[arg])
@@ -803,6 +908,28 @@ class DatetimeBlock(Block):
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)
 
+    def astype(self, dtype, copy = True, raise_on_error = True):
+        """
+        handle convert to object as a special case
+        """
+        if self.dtype == dtype:
+            if copy:
+                return self.copy()
+            return self
+
+        if np.dtype(dtype).type == np.object_:
+            try:
+                newb = ObjectBlock(com._astype_nansafe(self.values, dtype, copy = copy),
+                                   self.items, self.ref_items)
+            except:
+                if raise_on_error is True:
+                    raise
+                newb = self.copy() if copy else self
+        else:
+            newb = super(DatetimeBlock, self).astype(dtype, copy = copy, raise_on_error = raise_on_error)
+
+        return newb
+
     def set(self, item, value):
         """
         Modify Block in-place with new item value
@@ -818,13 +945,157 @@ class DatetimeBlock(Block):
 
         self.values[loc] = value
 
-    def get_values(self, dtype):
+    def get_values(self, dtype = None):
         if dtype == object:
             flat_i8 = self.values.ravel().view(np.int64)
             res = tslib.ints_to_pydatetime(flat_i8)
             return res.reshape(self.values.shape)
         return self.values
 
+class SparseBlock(Block):
+    """ implement as a list of sparse arrays of the same dtype """
+    __slots__ = ['items', 'ref_items', '_ref_locs', 'ndim', 'values']
+    is_sparse = True
+    is_numeric = True
+    _can_consolidate = False
+    _verify_integrity = False
+    _ftype = 'sparse'
+
+    def __init__(self, values, items, ref_items, ndim=None):
+
+        if ndim == 1:
+            if len(items) != len(values):
+                raise AssertionError('Wrong number of items passed (%d vs %d)'
+                                     % (len(items), len(values)))
+            self.ndim = 1
+        else:
+            if len(items) != 1:
+                raise AssertionError('Must only have 1 item for a SparseBlock of ndim=2')
+            self.ndim = 2
+
+        self._ref_locs = None
+        self.values = values
+        self.items = _ensure_index(items)
+        self.ref_items = _ensure_index(ref_items)
+
+    @property
+    def shape(self):
+        return (len(self.items),self.sp_index.length)
+
+    @property
+    def itemsize(self):
+        return self.dtype.itemsize
+
+    @rwproperty.getproperty
+    def fill_value(self):
+        return self.values.fill_value
+
+    @rwproperty.setproperty
+    def fill_value(self, v):
+        self.values.fill_value = v
+
+    @property
+    def sp_index(self):
+        return self.values.sp_index
+
+    @property
+    def kind(self):
+        return self.values.kind
+
+    def __len__(self):
+        try:
+            return self.sp_index.length
+        except:
+            return 0
+
+    def should_store(self, value):
+        return isinstance(value, SparseArray)
+
+    def prepare_for_merge(self, **kwargs):
+        """ create a dense block """
+        return make_block(self.get_values(), self.items, self.ref_items)
+
+    def post_merge(self, items, **kwargs):
+        return self
+
+    def get(self, item):
+        if self.ndim == 1:
+            loc = self.items.get_loc(item)
+            return self.values[loc]
+        else:
+            return self.values
+
+    def get_values(self, dtype=None):
+        """ need to to_dense myself (and always return a ndim sized object) """
+        values = self.values.to_dense()
+        if values.ndim == self.ndim - 1:
+            values = values.reshape((1,) + values.shape)
+        return values
+
+    def make_block(self, values, items=None, ref_items=None, sparse_index=None, kind=None, dtype=None, fill_value=None, copy=False):
+        """ return a new block """
+        if dtype is None:
+            dtype = self.dtype
+        if fill_value is None:
+            fill_value = self.fill_value
+        if items is None:
+            items = self.items
+        if ref_items is None:
+            ref_items = self.ref_items
+        new_values = SparseArray(values,sparse_index=sparse_index,kind=kind or self.kind,dtype=dtype,fill_value=fill_value,copy=copy)
+        return make_block(new_values, items, ref_items, ndim=self.ndim)
+
+    def take(self, indexer, axis=1):
+        """ going to take our items """
+        if axis < 1:
+            raise AssertionError('axis must be at least 1, got %d' % axis)
+
+        items = self.ref_items.take(indexer)
+        overlap = items & self.items
+        if not len(overlap):
+            return []
+        return self.make_block(self.values, items=overlap)
+
+    def reindex_axis(self, indexer, axis=1, fill_value=np.nan, mask_info=None):
+        """
+        Reindex using pre-computed indexer information
+        """
+        if axis < 1:
+            raise AssertionError('axis must be at least 1, got %d' % axis)
+
+        # taking on the 0th axis always here
+        return self.make_block(self.values.take(indexer),items=self.items,fill_value=fill_value)
+
+    def reindex_items_from(self, new_ref_items, copy=True):
+        """
+        Reindex to only those items contained in the input set of items
+
+        E.g. if you have ['a', 'b'], and the input items is ['b', 'c', 'd'],
+        then the resulting items will be ['b']
+
+        Returns
+        -------
+        reindexed : Block
+        """
+        new_ref_items, indexer = self.items.reindex(new_ref_items)
+        if indexer is None:
+            indexer = np.arange(len(self.items))
+        masked_idx = indexer[indexer != -1]
+
+        return self.make_block(self.values.take(masked_idx),items=self.items.take(masked_idx),ref_items=new_ref_items,copy=copy)
+
+
+    def sparse_reindex(self, new_index):
+        """ sparse reindex and return a new block
+            current reindex only works for float64 dtype! """
+        values = self.values
+        values = values.sp_index.to_int_index().reindex(values.sp_values.astype('float64'),values.fill_value,new_index)
+        return self.make_block(values,sparse_index=new_index)
+
+    def split_block_at(self, item):
+        if len(self.items) == 1 and item == self.items[0]:
+            return []
+        return super(SparseBlock, self).split_block_at(self, item)
 
 def make_block(values, items, ref_items, klass = None, fastpath=False):
 
@@ -862,6 +1133,12 @@ def make_block(values, items, ref_items, klass = None, fastpath=False):
 
     return klass(values, items, ref_items, ndim=values.ndim, fastpath=fastpath)
 
+def is_sparse(values):
+    from pandas.sparse.series import SparseSeries
+    from pandas.sparse.list   import SparseList
+    return isinstance(values, (SparseArray,SparseList,SparseSeries))
+
+
 # TODO: flexible with index=None and/or items=None
 
 
@@ -887,12 +1164,12 @@ class BlockManager(object):
         self.axes = [_ensure_index(ax) for ax in axes]
         self.blocks = blocks
 
-        ndim = len(axes)
+        ndim = self.ndim
         for block in blocks:
-            if ndim != block.values.ndim:
+            if ndim != block.ndim:
                 raise AssertionError(('Number of Block dimensions (%d) must '
                                       'equal number of axes (%d)')
-                                     % (block.values.ndim, ndim))
+                                     % (block.ndim, ndim))
 
         if do_integrity_check:
             self._verify_integrity()
@@ -900,8 +1177,8 @@ class BlockManager(object):
         self._consolidate_check()
 
     @classmethod
-    def make_empty(self):
-        return BlockManager([], [[], []])
+    def make_empty(cls):
+        return cls([], [[], []])
 
     def __nonzero__(self):
         return True
@@ -963,7 +1240,7 @@ class BlockManager(object):
         return len(self.items)
 
     def __repr__(self):
-        output = 'BlockManager'
+        output = str(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
                 output += '\nItems: %s' % ax
@@ -987,7 +1264,6 @@ class BlockManager(object):
                                      "items")
             if block.values.shape[1:] != mgr_shape[1:]:
                 construction_error(tot_items,block.values.shape[1:],self.axes)
-
         if len(self.items) != tot_items:
             raise AssertionError('Number of manager items must equal union of '
                                  'block items')
@@ -1005,7 +1281,6 @@ class BlockManager(object):
         axes = kwargs.pop('axes',None)
         filter = kwargs.get('filter')
         do_integrity_check = kwargs.pop('do_integrity_check',False)
-
         result_blocks = []
         for blk in self.blocks:
             if filter is not None:
@@ -1093,6 +1368,27 @@ class BlockManager(object):
         bm._consolidate_inplace()
         return bm
 
+    def prepare_for_merge(self, *args, **kwargs):
+        """ prepare for merging, return a new block manager with Sparse -> Dense """
+        return self.apply('prepare_for_merge', *args, **kwargs)
+
+    def post_merge(self, objs, **kwargs):
+        """ try to sparsify items that were previously sparse """
+        is_sparse = defaultdict(list)
+        for o in objs:
+            for blk in o._data.blocks:
+                if blk.is_sparse:
+
+                    # record the dtype of each item
+                    for i in blk.items:
+                        is_sparse[i].append(blk.dtype)
+
+        if len(is_sparse):
+            return self.apply('post_merge', items = is_sparse)
+
+        return self
+        
+
     def is_consolidated(self):
         """
         Return True if more than one block with the same dtype
@@ -1102,8 +1398,8 @@ class BlockManager(object):
         return self._is_consolidated
 
     def _consolidate_check(self):
-        dtypes = [blk.dtype.type for blk in self.blocks]
-        self._is_consolidated = len(dtypes) == len(set(dtypes))
+        ftypes = [blk.ftype for blk in self.blocks]
+        self._is_consolidated = len(ftypes) == len(set(ftypes))
         self._known_consolidated = True
 
     @property
@@ -1116,61 +1412,94 @@ class BlockManager(object):
         self._consolidate_inplace()
         return all([ block.is_numeric for block in self.blocks ])
 
-    def get_numeric_data(self, copy=False, type_list=None, as_blocks = False):
+    def get_block_map(self, copy=False, typ=None, columns=None, is_numeric=False, is_bool=False):
+        """ return a dictionary mapping the ftype -> block list
+
+            Parameters
+            ----------
+            typ : return a list/dict
+            copy : copy if indicated
+            columns : a column filter list
+            filter if the type is indicated """
+
+        self._consolidate_inplace()
+
+        if is_numeric:
+            filter_blocks = lambda block: block.is_numeric
+        elif is_bool:
+            filter_blocks = lambda block: block.is_bool
+        else:
+            filter_blocks = lambda block: True
+
+        def filter_columns(b):
+            if columns:
+                if not columns in b.items:
+                    return None
+                b = b.reindex_items_from(columns)
+            return b
+
+        maybe_copy = lambda b: b.copy() if copy else b
+        def maybe_copy(b):
+            if copy:
+                b = b.copy()
+            return b
+
+        if typ == 'list':
+            bm = []
+            for b in self.blocks:
+                if filter_blocks(b):
+                    b = filter_columns(b)
+                    if b is not None:
+                        bm.append(maybe_copy(b))
+
+        else:
+            if typ == 'dtype':
+                key = lambda b: b.dtype
+            else:
+                key = lambda b: b.ftype
+            bm = defaultdict(list)
+            for b in self.blocks:
+                if filter_blocks(b):
+                    b = filter_columns(b)
+                    if b is not None:
+                        bm[str(key(b))].append(maybe_copy(b))
+        return bm
+
+    def get_bool_data(self, **kwargs):
+        kwargs['is_bool'] = True
+        return self.get_data(**kwargs)
+
+    def get_numeric_data(self, **kwargs):
+        kwargs['is_numeric'] = True
+        return self.get_data(**kwargs)
+
+    def get_data(self, copy=False, columns=None, **kwargs):
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
         """
         Parameters
         ----------
         copy : boolean, default False
             Whether to copy the blocks
-        type_list : tuple of type, default None
-            Numeric types by default (Float/Complex/Int but not Datetime)
         """
-        if type_list is None:
-            filter_blocks = lambda block: block.is_numeric
-        else:
-            type_list = self._get_clean_block_types(type_list)
-            filter_blocks = lambda block: isinstance(block, type_list)
+        blocks = self.get_block_map(typ='list', copy=copy, columns=columns, **kwargs)
+        if len(blocks) == 0:
+            return self.__class__.make_empty()
 
-        maybe_copy = lambda b: b.copy() if copy else b
-        num_blocks = [maybe_copy(b) for b in self.blocks if filter_blocks(b)]
-        if as_blocks:
-            return num_blocks
+        return self.combine(blocks)
 
-        if len(num_blocks) == 0:
-            return BlockManager.make_empty()
-
-        indexer = np.sort(np.concatenate([b.ref_locs for b in num_blocks]))
+    def combine(self, blocks):
+        """ reutrn a new manager with the blocks """
+        indexer = np.sort(np.concatenate([b.ref_locs for b in blocks]))
         new_items = self.items.take(indexer)
 
         new_blocks = []
-        for b in num_blocks:
+        for b in blocks:
             b = b.copy(deep=False)
             b.ref_items = new_items
             new_blocks.append(b)
         new_axes = list(self.axes)
         new_axes[0] = new_items
-        return BlockManager(new_blocks, new_axes, do_integrity_check=False)
-
-    def _get_clean_block_types(self, type_list):
-        if not isinstance(type_list, tuple):
-            try:
-                type_list = tuple(type_list)
-            except TypeError:
-                type_list = (type_list,)
-
-        type_map = {int: IntBlock, float: FloatBlock,
-                    complex: ComplexBlock,
-                    np.datetime64: DatetimeBlock,
-                    datetime: DatetimeBlock,
-                    bool: BoolBlock,
-                    object: ObjectBlock}
-
-        type_list = tuple([type_map.get(t, t) for t in type_list])
-        return type_list
-
-    def get_bool_data(self, copy=False, as_blocks=False):
-        return self.get_numeric_data(copy=copy, type_list=(BoolBlock,),
-                                     as_blocks=as_blocks)
+        return self.__class__(new_blocks, new_axes, do_integrity_check=False)
 
     def get_slice(self, slobj, axis=0, raise_on_error=False):
         new_axes = list(self.axes)
@@ -1195,7 +1524,7 @@ class BlockManager(object):
         else:
             new_blocks = self._slice_blocks(slobj, axis)
 
-        return BlockManager(new_blocks, new_axes, do_integrity_check=False)
+        return self.__class__(new_blocks, new_axes, do_integrity_check=False)
 
     def _slice_blocks(self, slobj, axis):
         new_blocks = []
@@ -1247,7 +1576,7 @@ class BlockManager(object):
             blk = self.blocks[0]
             if items is None or blk.items.equals(items):
                 # if not, then just call interleave per below
-                mat = blk.values
+                mat = blk.get_values()
             else:
                 mat = self.reindex_items(items).as_matrix()
         else:
@@ -1333,7 +1662,7 @@ class BlockManager(object):
                                      klass=block.__class__,
                                      fastpath=True)]
 
-        return BlockManager(new_blocks, new_axes)
+        return self.__class__(new_blocks, new_axes)
 
     def fast_2d_xs(self, loc, copy=False):
         """
@@ -1373,7 +1702,9 @@ class BlockManager(object):
             return self
 
         new_blocks = _consolidate(self.blocks, self.items)
-        return BlockManager(new_blocks, self.axes)
+        self._is_consolidated = True
+        self._known_consolidated = True
+        return self.__class__(new_blocks, self.axes)
 
     def _consolidate_inplace(self):
         if not self.is_consolidated():
@@ -1445,6 +1776,12 @@ class BlockManager(object):
         if value.shape[1:] != self.shape[1:]:
             raise AssertionError('Shape of new values must be compatible '
                                  'with manager shape')
+        if not is_sparse(value):
+            if value.ndim == self.ndim - 1:
+                value = value.reshape((1,) + value.shape)
+            if value.shape[1:] != self.shape[1:]:
+                raise AssertionError('Shape of new values must be compatible '
+                                     'with manager shape')
 
         def _set_item(item, arr):
             i, block = self._find_block(item)
@@ -1574,7 +1911,7 @@ class BlockManager(object):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
-        return BlockManager(new_blocks, new_axes)
+        return self.__class__(new_blocks, new_axes)
 
     def _reindex_indexer_items(self, new_items, indexer, fill_value):
         # TODO: less efficient than I'd like
@@ -1607,7 +1944,7 @@ class BlockManager(object):
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
-        return BlockManager(new_blocks, [new_items] + list(self.axes[1:]))
+        return self.__class__(new_blocks, [new_items] + self.axes[1:])
 
     def reindex_items(self, new_items, copy=True, fill_value=np.nan):
         """
@@ -1637,15 +1974,19 @@ class BlockManager(object):
                 if len(newb.items) > 0:
                     new_blocks.append(newb)
 
-            mask = indexer == -1
-            if mask.any():
-                extra_items = new_items[mask]
-                na_block = self._make_na_block(extra_items, new_items,
-                                               fill_value=fill_value)
-                new_blocks.append(na_block)
-                new_blocks = _consolidate(new_blocks, new_items)
+            # little bit hacky here, if we have a SingleBlockManger,
+            # we cannot have more than 1 block, so don't create
+            # guess could return a BlockManager instead (but this is really for sparse anyhow)
+            if self.ndim > 1 and not (len(new_blocks) and new_blocks[0].is_sparse):
+                mask = indexer == -1
+                if mask.any():
+                    extra_items = new_items[mask]
+                    na_block = self._make_na_block(extra_items, new_items,
+                                                   fill_value=fill_value)
+                    new_blocks.append(na_block)
+                    new_blocks = _consolidate(new_blocks, new_items)
 
-        return BlockManager(new_blocks, [new_items] + self.axes[1:])
+        return self.__class__(new_blocks, [new_items] + self.axes[1:])
 
     def _make_na_block(self, items, ref_items, fill_value=np.nan):
         # TODO: infer dtypes other than float64 from fill_value
@@ -1663,6 +2004,9 @@ class BlockManager(object):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
+        if isinstance(indexer, list):
+            indexer = np.array(indexer)
+
         indexer = com._ensure_platform_int(indexer)
         n = len(self.axes[axis])
 
@@ -1674,11 +2018,16 @@ class BlockManager(object):
                             'the axis length')
 
         new_axes = list(self.axes)
+<<<<<<< HEAD
         if new_index is None:
             new_index = self.axes[axis].take(indexer)
 
         new_axes[axis] = new_index 
         return self.apply('take',axes=new_axes,indexer=indexer,ref_items=new_axes[0],axis=axis)
+=======
+        new_axes[axis] = self.axes[axis].take(indexer)
+        return self.apply('take', axes = new_axes, indexer = indexer, axis=axis)
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def merge(self, other, lsuffix=None, rsuffix=None):
         if not self._is_indexed_like(other):
@@ -1692,7 +2041,7 @@ class BlockManager(object):
         new_axes = list(this.axes)
         new_axes[0] = cons_items
 
-        return BlockManager(consolidated, new_axes)
+        return self.__class__(consolidated, new_axes)
 
     def _maybe_rename_join(self, other, lsuffix, rsuffix, copydata=True):
         to_rename = self.items.intersection(other.items)
@@ -1742,7 +2091,7 @@ class BlockManager(object):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
-        return BlockManager(self.blocks, new_axes)
+        return self.__class__(self.blocks, new_axes)
 
     def rename_items(self, mapper, copydata=True):
         new_items = Index([mapper(x) for x in self.items])
@@ -1755,7 +2104,7 @@ class BlockManager(object):
             new_blocks.append(newb)
         new_axes = list(self.axes)
         new_axes[0] = new_items
-        return BlockManager(new_blocks, new_axes)
+        return self.__class__(new_blocks, new_axes)
 
     def add_prefix(self, prefix):
         f = (('%s' % prefix) + '%s').__mod__
@@ -1787,12 +2136,86 @@ class BlockManager(object):
         mask = np.zeros(len(self.items), dtype=bool)
         for i, blk in enumerate(self.blocks):
             indexer = self.items.get_indexer(blk.items)
-            result.put(indexer, blk.values.dtype.name)
+            result.put(indexer, blk.dtype.name)
             mask.put(indexer, 1)
         if not (mask.all()):
             raise AssertionError('Some items were not in any block')
         return result
 
+class SingleBlockMix(object):
+    """ provide single block mixins """
+
+    def reindex(self, index):
+        return self.reindex_axis(index)
+
+    @property
+    def index(self):
+        return self.axes[0]
+
+    def convert(self, *args, **kwargs):
+        """ convert the whole block as one """
+        kwargs['by_item'] = False
+        return self.apply('convert', *args, **kwargs)
+
+    @property
+    def block(self):
+        return self.blocks[0]
+
+    @property
+    def dtype(self):
+        return self.block.dtype
+
+    @property
+    def ftype(self):
+        return self.block.ftype
+
+    @property
+    def itemsize(self):
+        return self.block.itemsize
+
+    @property
+    def values(self):
+        return self.block.values
+
+    @property
+    def _can_hold_na(self):
+        return self.block._can_hold_na
+
+class SingleBlockManager(SingleBlockMix, BlockManager):
+    """ manage a single block with """
+
+    def __init__(self, block, axis, do_integrity_check=True):
+
+        if isinstance(axis, list):
+            if len(axis) != 1:
+                import pdb; pdb.set_trace()
+                raise ValueError("cannot create SingleBlockManager with more than 1 axis")
+            axis = axis[0]
+        self.axes   = [ _ensure_index(axis) ]
+
+        # create the block here
+        if isinstance(block, list):
+
+            # provide consolidation to the interleaved_dtype
+            if len(block) > 1:
+                dtype = _interleaved_dtype(block)
+                block = [ b.astype(dtype) for b in block ]
+                block = _consolidate(block, axis)
+
+            if len(block) != 1:
+                raise ValueError("cannot create SingleBlockManager with more than 1 block")
+            block = block[0]
+            
+        if not isinstance(block, Block):
+            block = make_block(block, axis, axis, ndim = 1)
+
+        self.blocks = [ block ]
+
+        if do_integrity_check:
+            self._verify_integrity()
+
+        self._is_consolidated = True
+        self._known_consolidated = True
 
 def construction_error(tot_items, block_shape, axes):
     """ raise a helpful message about our construction """
@@ -1843,9 +2266,12 @@ def form_blocks(arrays, names, axes):
     int_items = []
     bool_items = []
     object_items = []
+    sparse_items = []
     datetime_items = []
     for k, v in zip(names, arrays):
-        if issubclass(v.dtype.type, np.floating):
+        if is_sparse(v):
+            sparse_items.append((k,v))
+        elif issubclass(v.dtype.type, np.floating):
             float_items.append((k, v))
         elif issubclass(v.dtype.type, np.complexfloating):
             complex_items.append((k, v))
@@ -1894,6 +2320,10 @@ def form_blocks(arrays, names, axes):
         object_blocks = _simple_blockify(object_items, items, np.object_)
         blocks.extend(object_blocks)
 
+    if len(sparse_items) > 0:
+        sparse_blocks = _sparse_blockify(sparse_items, items)
+        blocks.extend(sparse_blocks)
+
     if len(extra_items):
         shape = (len(extra_items),) + tuple(len(x) for x in axes[1:])
 
@@ -1935,19 +2365,40 @@ def _multi_blockify(tuples, ref_items, dtype = None):
 
     return new_blocks
 
+def _sparse_blockify(tuples, ref_items, dtype = None):
+    """ return an array of blocks that potentially have different dtypes (and are sparse) """
+    from pandas.sparse.series import SparseSeries
+    from pandas.sparse.list   import SparseList
+
+    new_blocks = []
+    for names, array in tuples:
+
+        if not isinstance(names, (list,tuple)):
+            names = [ names ]
+        items = ref_items[ref_items.isin(names)]
+
+        # make sure that we only have SpareseArrays here
+        if isinstance(array,SparseSeries):
+            array = array.values
+        elif isintance(array,SparseList):
+            array = SparseArray(array)
+
+        block = make_block(array, items, ref_items)
+        new_blocks.append(block)
+
+    return new_blocks
+
 def _stack_arrays(tuples, ref_items, dtype):
     from pandas.core.series import Series
 
     # fml
     def _asarray_compat(x):
-        # asarray shouldn't be called on SparseSeries
         if isinstance(x, Series):
             return x.values
         else:
             return np.asarray(x)
 
     def _shape_compat(x):
-        # sparseseries
         if isinstance(x, Series):
             return len(x),
         else:
@@ -1982,7 +2433,6 @@ def _blocks_to_series_dict(blocks, index=None):
 def _interleaved_dtype(blocks):
     if not len(blocks): return None
 
-    from collections import defaultdict
     counts = defaultdict(lambda: [])
     for x in blocks:
         counts[type(x)].append(x)
@@ -2001,6 +2451,7 @@ def _interleaved_dtype(blocks):
     have_float = len(counts[FloatBlock]) > 0
     have_complex = len(counts[ComplexBlock]) > 0
     have_dt64 = len(counts[DatetimeBlock]) > 0
+    have_sparse = len(counts[SparseBlock]) > 0
     have_numeric = have_float or have_complex or have_int
 
     if (have_object or
@@ -2016,41 +2467,41 @@ def _interleaved_dtype(blocks):
     elif have_complex:
         return np.dtype('c16')
     else:
-        return _lcd_dtype(counts[FloatBlock])
+        return _lcd_dtype(counts[FloatBlock] + counts[SparseBlock])
 
 
 def _consolidate(blocks, items):
     """
-    Merge blocks having same dtype
+    Merge blocks having same dtype, exclude non-consolidating blocks
     """
-    get_dtype = lambda x: x.dtype.name
 
-    # sort by dtype
-    grouper = itertools.groupby(sorted(blocks, key=get_dtype),
-                                lambda x: x.dtype)
+    # sort by _can_consolidate, dtype
+    gkey = lambda x: x._consolidate_key
+    grouper = itertools.groupby(sorted(blocks, key=gkey), gkey)
 
     new_blocks = []
-    for dtype, group_blocks in grouper:
-        new_block = _merge_blocks(list(group_blocks), items, dtype)
-        new_blocks.append(new_block)
+    for (_can_consolidate, dtype), group_blocks in grouper:
+        merged_blocks = _merge_blocks(list(group_blocks), items, _can_consolidate)
+        if isinstance(merged_blocks, list):
+            new_blocks.extend(merged_blocks)
+        else:
+            new_blocks.append(merged_blocks)
 
     return new_blocks
 
 
-def _merge_blocks(blocks, items, dtype=None):
+def _merge_blocks(blocks, items, _can_consolidate = True):
     if len(blocks) == 1:
         return blocks[0]
 
-    if dtype is None:
-        if len(set([ b.dtype for b in blocks ])) != 1:
-            raise AssertionError("_merge_blocks are invalid!")
-        dtype = blocks[0].dtype
+    if _can_consolidate:
+        new_values = _vstack([b.values for b in blocks])
+        new_items = blocks[0].items.append([b.items for b in blocks[1:]])
+        new_block = make_block(new_values, new_items, items)
+        return new_block.reindex_items_from(items)
 
-    new_values = _vstack([ b.values for b in blocks ], dtype)
-    new_items = blocks[0].items.append([b.items for b in blocks[1:]])
-    new_block = make_block(new_values, new_items, items)
-    return new_block.reindex_items_from(items)
-
+    # no merge
+    return blocks
 
 def _block_shape(values, ndim=1, shape=None):
     """ guarantee the shape of the values to be at least 1 d """

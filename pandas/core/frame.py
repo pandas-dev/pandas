@@ -24,7 +24,7 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
-                                _infer_dtype_from_scalar)
+                                _infer_dtype_from_scalar, _values_from_object)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
@@ -35,6 +35,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
+from pandas.sparse.array import SparseArray
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
@@ -196,7 +197,7 @@ def _arith_method(op, name, str_rep = None, default_axis='columns'):
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, np.ndarray):
+            if isinstance(y, (np.ndarray, Series)):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 result[mask] = op(xrav[mask], yrav[mask])
@@ -251,7 +252,7 @@ def _flex_comp_method(op, name, str_rep = None, default_axis='columns'):
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, np.ndarray):
+            if isinstance(y, (np.ndarray, Series)):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 result[mask] = op(np.array(list(xrav[mask])),
@@ -398,7 +399,7 @@ class DataFrame(NDFrame):
                 data = data.copy()
             mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                      copy=copy)
-        elif isinstance(data, np.ndarray):
+        elif isinstance(data, (np.ndarray,Series)):
             if data.dtype.names:
                 data_columns, data = _rec_to_dict(data)
                 if columns is None:
@@ -522,6 +523,10 @@ class DataFrame(NDFrame):
             else:
                 values = values.reindex(index)
 
+            # zero len case (GH #2234)
+            if not len(values) and len(columns):
+                values = np.empty((0,1), dtype=object)
+
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
@@ -564,10 +569,6 @@ class DataFrame(NDFrame):
     @property
     def axes(self):
         return [self.index, self.columns]
-
-    @property
-    def _constructor(self):
-        return self.__class__
 
     @property
     def shape(self):
@@ -720,9 +721,7 @@ class DataFrame(NDFrame):
         """
         columns = self.columns
         for k, v in izip(self.index, self.values):
-            s = v.view(Series)
-            s.index = columns
-            s.name = k
+            s = Series(v,index=columns,name=k)
             yield k, s
 
     def itertuples(self, index=True):
@@ -1559,6 +1558,76 @@ class DataFrame(NDFrame):
     def dtypes(self):
         return self.apply(lambda x: x.dtype)
 
+    @property
+    def ftypes(self):
+        return self.apply(lambda x: x.ftype)
+
+    def get_ftype_counts(self):
+        """ return the counts of ftypes in this frame """
+        return Series(dict([ (dtype, len(df.columns)) for dtype, df in self.as_blocks(typ='ftype').iteritems() ]))
+
+    #----------------------------------------------------------------------
+    # properties for index and columns
+
+    columns = lib.AxisProperty(0)
+    index = lib.AxisProperty(1)
+
+    def as_matrix(self, columns=None):
+        """
+        Convert the frame to its Numpy-array matrix representation. Columns
+        are presented in sorted order unless a specific list of columns is
+        provided.
+
+        NOTE: the dtype will be a lower-common-denominator dtype (implicit upcasting)
+              that is to say if the dtypes (even of numeric types) are mixed, the one that accomodates all will be chosen
+              use this with care if you are not dealing with the blocks
+
+              e.g. if the dtypes are float16,float32         -> float32
+                                     float16,float32,float64 -> float64
+                                     int32,uint8             -> int32
+
+        Parameters
+        ----------
+        columns : array-like
+            Specific column order
+
+        Returns
+        -------
+        values : ndarray
+            If the DataFrame is heterogeneous and contains booleans or objects,
+            the result will be of dtype=object
+        """
+        self._consolidate_inplace()
+        return self._data.as_matrix(columns).T
+
+    values = property(fget=as_matrix)
+    get_values = as_matrix
+
+    def as_blocks(self, columns=None, typ=None):
+        """
+        Convert the frame to a dict of dtype -> DataFrames that each has a homogeneous dtype.
+        are presented in sorted order unless a specific list of columns is
+        provided.
+
+        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in as_matrix)
+
+        Parameters
+        ----------
+        columns : array-like
+            Specific column order
+
+        Returns
+        -------
+        values : a list of DataFrames
+        """
+        bm = dict()
+        for k, blocks in self._data.get_block_map(typ=typ, columns=columns).items():
+            bm[str(k)] = DataFrame(self._data.combine(blocks))
+        return bm
+
+    blocks = property(fget=as_blocks)
+
+>>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
     def transpose(self):
         return super(DataFrame, self).transpose(1,0)
 
@@ -1618,7 +1687,7 @@ class DataFrame(NDFrame):
         """
         series = self._get_item_cache(col)
         engine = self.index._engine
-        return engine.get_value(series, index)
+        return engine.get_value(series.values, index)
 
     def set_value(self, index, col, value):
         """
@@ -1639,7 +1708,7 @@ class DataFrame(NDFrame):
         try:
             series = self._get_item_cache(col)
             engine = self.index._engine
-            engine.set_value(series, index, value)
+            engine.set_value(series.values, index, value)
             return self
         except KeyError:
             new_index, new_columns = self._expand_axes((index, col))
@@ -1723,7 +1792,7 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._getitem_slice(indexer)
 
-        if isinstance(key, (np.ndarray, list)):
+        if isinstance(key, (Series, np.ndarray, list)):
             # either boolean or fancy integer index
             return self._getitem_array(key)
         elif isinstance(key, DataFrame):
@@ -1762,7 +1831,7 @@ class DataFrame(NDFrame):
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
-        if isinstance(loc, (slice, np.ndarray)):
+        if isinstance(loc, (slice, Series, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = _maybe_droplevels(new_columns, key)
             if self._is_mixed_type:
@@ -1800,7 +1869,14 @@ class DataFrame(NDFrame):
         if values.ndim == 2:
             return self._constructor(values.T, columns=items, index=self.index)
         else:
-            return Series.from_array(values, index=self.index, name=items)
+            return self._box_col_values(values, items)
+
+    def _box_col_values(self, values, items):
+        """ provide boxed values for a column """
+        if isinstance(values, SparseArray):
+            from pandas.sparse.series import SparseSeries
+            return SparseSeries(values, index=self.index, name=items)
+        return Series(values, index=self.index, name=items)
 
     def __setitem__(self, key, value):
         # see if we can slice the rows
@@ -1808,7 +1884,7 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, (np.ndarray, list)):
+        if isinstance(key, (Series, np.ndarray, list)):
             self._setitem_array(key, value)
         elif isinstance(key, DataFrame):
             self._setitem_frame(key, value)
@@ -1864,17 +1940,6 @@ class DataFrame(NDFrame):
         NDFrame._set_item(self, key, value)
 
     def insert(self, loc, column, value):
-        """
-        Insert column into DataFrame at specified location. Raises Exception if
-        column is already contained in the DataFrame
-
-        Parameters
-        ----------
-        loc : int
-            Must have 0 <= loc <= len(columns)
-        column : object
-        value : int, Series, or array-like
-        """
         value = self._sanitize_column(column, value)
         self._data.insert(loc, column, value)
 
@@ -2515,13 +2580,13 @@ class DataFrame(NDFrame):
             if np.iterable(cols) and not isinstance(cols, basestring):
                 if isinstance(cols, tuple):
                     if cols in self.columns:
-                        values = [self[cols]]
+                        values = [self[cols].values]
                     else:
                         values = [_m8_to_i8(self[x].values) for x in cols]
                 else:
                     values = [_m8_to_i8(self[x].values) for x in cols]
             else:
-                values = [self[cols]]
+                values = [self[cols].values]
 
         keys = lib.fast_zip_fillna(values)
         duplicated = lib.duplicated(keys, take_last=take_last)
@@ -3564,8 +3629,7 @@ class DataFrame(NDFrame):
                     # How to determine this better?
                     is_reduction = False
                     try:
-                        is_reduction = not isinstance(f(_EMPTY_SERIES),
-                                                      np.ndarray)
+                        is_reduction = not isinstance(f(_EMPTY_SERIES), Series)
                     except Exception:
                         pass
 
@@ -3715,11 +3779,12 @@ class DataFrame(NDFrame):
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if com.is_datetime64_dtype(x):
-                x = lib.map_infer(x, lib.Timestamp)
-            return lib.map_infer(x, func)
+                x = lib.map_infer(_values_from_object(x), lib.Timestamp)
+            return lib.map_infer(_values_from_object(x), func)
         #GH2786
         if not self.columns.is_unique:
             raise ValueError("applymap does not support dataframes having duplicate column labels")
+
         return self.apply(infer)
 
     #----------------------------------------------------------------------
@@ -4642,83 +4707,8 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
-<<<<<<< HEAD
-    def where(self, cond, other=NA, inplace=False, try_cast=False, raise_on_error=True):
-        """
-        Return a DataFrame with the same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from other.
-
-        Parameters
-        ----------
-        cond : boolean DataFrame or array
-        other : scalar or DataFrame
-        inplace : boolean, default False
-            Whether to perform the operation in place on the data
-        try_cast : boolean, default False
-            try to cast the result back to the input type (if possible),
-        raise_on_error : boolean, default True
-            Whether to raise on invalid data types (e.g. trying to where on
-            strings)
-
-        Returns
-        -------
-        wh : DataFrame
-        """
-        if isinstance(cond, DataFrame):
-            # this already checks for index/column equality
-            cond = cond.reindex(self.index, columns=self.columns)
-        else:
-            if not hasattr(cond, 'shape'):
-                raise ValueError('where requires an ndarray like object for its '
-                                 'condition')
-            if cond.shape != self.shape:
-                raise ValueError('Array conditional must be same shape as self')
-            cond = self._constructor(cond, index=self.index,
-                                     columns=self.columns)
-
-        if inplace:
-            cond = -(cond.fillna(True).astype(bool))
-        else:
-            cond = cond.fillna(False).astype(bool)
-
-        if isinstance(other, DataFrame):
-            _, other = self.align(other, join='left', fill_value=NA)
-        elif isinstance(other,np.ndarray):
-            if other.shape != self.shape:
-                raise ValueError('other must be the same shape as self '
-                                 'when an ndarray')
-            other = self._constructor(other, self.index, self.columns)
-
-        if inplace:
-            # we may have different type blocks come out of putmask, so
-            # reconstruct the block manager
-            self._data = self._data.putmask(cond,other,inplace=True)
-
-        else:
-            new_data = self._data.where(other, cond,
-                                        raise_on_error=raise_on_error,
-                                        try_cast=try_cast)
-
-            return self._constructor(new_data)
-
-    def mask(self, cond):
-        """
-        Returns copy of self whose values are replaced with nan if the
-        inverted condition is True
-
-        Parameters
-        ----------
-        cond: boolean DataFrame or array
-
-        Returns
-        -------
-        wh: DataFrame
-        """
-        return self.where(~cond, NA)
-
-=======
->>>>>>> ENH: moved filter and added axis arg
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
+
 _EMPTY_SERIES = Series([])
 
 
@@ -4886,7 +4876,7 @@ def _prep_ndarray(values, copy=True):
 
 
 def _rec_to_dict(arr):
-    if isinstance(arr, np.ndarray):
+    if isinstance(arr, (np.ndarray, Series)):
         columns = list(arr.dtype.names)
         sdict = dict((k, arr[k]) for k in columns)
     elif isinstance(arr, DataFrame):
@@ -4928,7 +4918,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_of_series_to_arrays(data, columns,
                                          coerce_float=coerce_float,
                                          dtype=dtype)
-    elif isinstance(data, np.ndarray):
+    elif isinstance(data, (np.ndarray, Series)):
         columns = list(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns

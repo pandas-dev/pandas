@@ -3,6 +3,7 @@
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.common as com
+from pandas.core.common import (_is_bool_indexer, _conform_bool_indexer)
 import pandas.lib as lib
 
 import numpy as np
@@ -971,15 +972,18 @@ def _check_bool_indexer(ax, key):
     result = key
     if _is_series(key) and not key.index.equals(ax):
         result = result.reindex(ax)
-        mask = com.isnull(result)
+        mask = com.isnull(result.values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series key provided')
 
-    # com._is_bool_indexer has already checked for nulls in the case of an
-    # object array key, so no check needed here
-    result = np.asarray(result, dtype=bool)
-    return result
+        result = result.astype(bool).values
 
+    else:
+        # com._is_bool_indexer has already checked for nulls in the case of an
+        # object array key, so no check needed here
+        result = np.asarray(result, dtype=bool)
+
+    return result
 
 def _is_series(obj):
     from pandas.core.series import Series
@@ -1004,9 +1008,11 @@ def _maybe_convert_ix(*args):
     """
     We likely want to take the cross-product
     """
+    from pandas.core.series import Series
+
     ixify = True
     for arg in args:
-        if not isinstance(arg, (np.ndarray, list)):
+        if not isinstance(arg, (np.ndarray, list, Series)):
             ixify = False
 
     if ixify:

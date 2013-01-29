@@ -1,7 +1,7 @@
 import numpy as np
 
 from itertools import izip
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _values_from_object
 from pandas.core.series import Series
 import re
 import pandas.lib as lib
@@ -90,6 +90,8 @@ def _na_map(f, arr, na_result=np.nan):
 
 
 def _map(f, arr, na_mask=False, na_value=np.nan):
+    if isinstance(arr, Series):
+        arr = arr.values
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
@@ -293,7 +295,7 @@ def str_repeat(arr, repeats):
             except TypeError:
                 return unicode.__mul__(x, r)
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(arr, repeats, rep)
+        result = lib.vec_binop(_values_from_object(arr), repeats, rep)
         return result
 
 

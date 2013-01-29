@@ -64,14 +64,14 @@ class OLS(object):
         if self._weights is not None:
             self._x_trans = self._x.mul(np.sqrt(self._weights), axis=0)
             self._y_trans = self._y * np.sqrt(self._weights)
-            self.sm_ols = sm.WLS(self._y.values,
-                                 self._x.values,
+            self.sm_ols = sm.WLS(self._y.get_values(),
+                                 self._x.get_values(),
                                  weights=self._weights.values).fit()
         else:
             self._x_trans = self._x
             self._y_trans = self._y
-            self.sm_ols = sm.OLS(self._y.values,
-                                 self._x.values).fit()
+            self.sm_ols = sm.OLS(self._y.get_values(),
+                                 self._x.get_values()).fit()
 
     def _prepare_data(self):
         """

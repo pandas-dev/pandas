@@ -1008,9 +1008,33 @@ def _consensus_name_attr(objs):
 #----------------------------------------------------------------------
 # Lots of little utilities
 
+def _maybe_box(indexer, values, obj, key):
+
+    # if we have multiples coming back, box em
+    if isinstance(values, np.ndarray):
+        return obj[indexer.get_loc(key)]
+
+    # return the value
+    return values
+
+def _maybe_to_dense(obj):
+    """ try to convert to dense """
+    if hasattr(obj,'to_dense'):
+        return obj.to_dense()
+    return obj
+
+def _values_from_object(series):
+    # compat with ndarray or series
+    return series.values if hasattr(series,'values') else series
 
 def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     """ if we have an object dtype, try to coerce dates and/or numers """
+
+    # if we have passed in a list or scalar
+    if isinstance(values, (list,tuple)):
+        values = np.array(values,dtype=np.object_)
+    if not hasattr(values,'dtype'):
+        values = np.array([values],dtype=np.object_)
 
     # convert dates
     if convert_dates and values.dtype == np.object_:
@@ -1049,6 +1073,8 @@ def _possibly_convert_platform(values):
     if isinstance(values, (list,tuple)):
         values = lib.list_to_object_array(values)
     if getattr(values,'dtype',None) == np.object_:
+        if hasattr(values,'values'):
+            values = values.values
         values = lib.maybe_convert_objects(values)
 
     return values
@@ -1131,25 +1157,65 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
 
 
 def _is_bool_indexer(key):
-    if isinstance(key, np.ndarray) and key.dtype == np.object_:
-        key = np.asarray(key)
+    from pandas import Series
+    if isinstance(key, (np.ndarray, Series)) and key.dtype == np.object_:
+        key = np.asarray(_values_from_object(key))
 
-        if not lib.is_bool_array(key):
+        if len(key) and not lib.is_bool_array(key):
             if isnull(key).any():
                 raise ValueError('cannot index with vector containing '
                                  'NA / NaN values')
             return False
         return True
-    elif isinstance(key, np.ndarray) and key.dtype == np.bool_:
+    elif isinstance(key, (np.ndarray,Series)) and key.dtype == np.bool_:
         return True
     elif isinstance(key, list):
         try:
-            return np.asarray(key).dtype == np.bool_
+            arr = np.asarray(key)
+            return arr.dtype == np.bool_ and len(arr) == len(key)
         except TypeError:  # pragma: no cover
             return False
 
     return False
 
+
+def _conform_bool_indexer(ax, key, as_array = False):
+    """ boolean indexing, need to check that the data are aligned, otherwise
+        disallowed
+
+        ax is the passed object (could be a series/frame/index itself
+        key is a boolean indexing key
+        as_array, return as a ndarray if True (otherwise don't coerce)
+    """
+
+    from pandas.core.series import Series
+
+    # boolean indexing, need to check that the data are aligned, otherwise
+    # disallowed
+    result = key
+    if isinstance(key, Series) and key.dtype == np.bool_:
+        index = getattr(ax,'index',ax)
+        if not key.index.equals(index):
+            result = key.reindex(index)
+        result = result.values
+    
+    if isinstance(result, np.ndarray) and result.dtype == np.object_:
+        mask = isnull(result)
+        if mask.any():
+            raise ValueError('cannot index with vector containing '
+                             'NA / NaN values')
+
+    # coerce to bool type
+    if not hasattr(result, 'shape'):
+        result = np.array(result)
+    if result.dtype != np.bool_:
+        result = result.astype(np.bool_)
+
+    # return as an ndarray
+    if as_array:
+        result = np.asarray(result, dtype=bool)
+
+    return result
 
 def _default_index(n):
     from pandas.core.index import Int64Index
@@ -1748,14 +1814,14 @@ def _to_pydatetime(x):
 
 def _where_compat(mask, arr1, arr2):
     if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:
-        new_vals = np.where(mask, arr1.view(np.int64), arr2.view(np.int64))
+        new_vals = np.where(mask, arr1.view('i8'), arr2.view('i8'))
         return new_vals.view(_NS_DTYPE)
 
     import pandas.tslib as tslib
     if arr1.dtype == _NS_DTYPE:
-        arr1 = tslib.ints_to_pydatetime(arr1.view(np.int64))
+        arr1 = tslib.ints_to_pydatetime(arr1.view('i8'))
     if arr2.dtype == _NS_DTYPE:
-        arr2 = tslib.ints_to_pydatetime(arr2.view(np.int64))
+        arr2 = tslib.ints_to_pydatetime(arr2.view('i8'))
 
     return np.where(mask, arr1, arr2)
 
