@@ -2,6 +2,8 @@
 pandas: powerful Python data analysis toolkit
 =============================================
 
+.. image:: https://travis-ci.org/pydata/pandas.png
+
 What is it
 ==========
 
