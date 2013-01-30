@@ -462,20 +462,19 @@ class _NDFrameIndexer(object):
                     raise
 
             if null_slice or position_slice:
-                slicer = obj
+                indexer = obj
             else:
                 try:
-                    i, j = labels.slice_locs(start, stop)
-                    slicer = slice(i, j, obj.step)
+                    indexer = labels.slice_indexer(start, stop, obj.step)
                 except Exception:
                     if _is_index_slice(obj):
                         if labels.inferred_type == 'integer':
                             raise
-                        slicer = obj
+                        indexer = obj
                     else:
                         raise
 
-            return slicer
+            return indexer
 
         elif _is_list_like(obj):
             if com._is_bool_indexer(obj):
@@ -535,8 +534,10 @@ class _NDFrameIndexer(object):
     def _get_slice_axis(self, slice_obj, axis=0):
         obj = self.obj
 
-        axis_name = obj._get_axis_name(axis)
-        labels = getattr(obj, axis_name)
+        if not _need_slice(slice_obj):
+            return obj
+
+        labels = obj._get_axis(axis)
 
         int_slice = _is_index_slice(slice_obj)
 
@@ -569,23 +570,22 @@ class _NDFrameIndexer(object):
                 raise
 
         if null_slice or position_slice:
-            slicer = slice_obj
+            indexer = slice_obj
         else:
             try:
-                i, j = labels.slice_locs(start, stop)
-                slicer = slice(i, j, slice_obj.step)
+                indexer = labels.slice_indexer(start, stop, slice_obj.step)
             except Exception:
                 if _is_index_slice(slice_obj):
                     if labels.inferred_type == 'integer':
                         raise
-                    slicer = slice_obj
+                    indexer = slice_obj
                 else:
                     raise
 
-        if not _need_slice(slice_obj):
-            return obj
-
-        return self._slice(slicer, axis=axis)
+        if isinstance(indexer, slice):
+            return self._slice(indexer, axis=axis)
+        else:
+            return self.obj.take(indexer, axis=axis)
 
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps

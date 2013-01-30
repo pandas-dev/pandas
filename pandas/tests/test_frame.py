@@ -1,6 +1,6 @@
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from StringIO import StringIO
 import cPickle as pickle
 import operator
@@ -4552,7 +4552,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(result is not zero_length)
 
     def test_asfreq_datetimeindex(self):
-        from pandas import DatetimeIndex
         df = DataFrame({'A': [1, 2, 3]},
                        index=[datetime(2011, 11, 01), datetime(2011, 11, 2),
                               datetime(2011, 11, 3)])
@@ -4561,6 +4560,44 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         ts = df['A'].asfreq('B')
         self.assert_(isinstance(ts.index, DatetimeIndex))
+
+    def test_attime_betweentime_datetimeindex(self):
+        index = pan.date_range("2012-01-01", "2012-01-05", freq='30min')
+        df = DataFrame(randn(len(index), 5), index=index)
+
+        result = df.at_time(time(12, 0, 0))
+        expected = df.ix[time(12, 0, 0)]
+        assert_frame_equal(result, expected)
+        self.assert_(len(result) == 4)
+
+        result = df.between_time(time(13, 0, 0), time(14, 0, 0))
+        expected = df.ix[time(13, 0, 0):time(14, 0, 0)]
+        assert_frame_equal(result, expected)
+        self.assert_(len(result) == 12)
+
+        result = df.copy()
+        result.ix[time(12, 0, 0)] = 0
+        result = result.ix[time(12, 0, 0)]
+        expected = df.ix[time(12, 0, 0)].copy()
+        expected.ix[:] = 0
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.ix[time(12, 0, 0)] = 0
+        result.ix[time(12, 0, 0)] = df # also checks reindexing
+        assert_frame_equal(result, df)
+
+        result = df.copy()
+        result.ix[time(13, 0, 0):time(14, 0, 0)] = 0
+        result = result.ix[time(13, 0, 0):time(14, 0, 0)]
+        expected = df.ix[time(13, 0, 0):time(14, 0, 0)].copy()
+        expected.ix[:] = 0
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.ix[time(13, 0, 0):time(14, 0, 0)] = 0
+        result.ix[time(13, 0, 0):time(14, 0, 0)] = df # also checks reindexing
+        assert_frame_equal(result, df)
 
     def test_as_matrix(self):
         frame = self.frame
