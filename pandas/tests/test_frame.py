@@ -171,6 +171,25 @@ class CheckIndexing(object):
 
         self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
 
+        # test that Series work
+        indexer_obj = Series(indexer_obj, self.tsframe.index)
+
+        subframe_obj = self.tsframe[indexer_obj]
+        assert_frame_equal(subframe_obj, subframe)
+
+        # test that Series indexers reindex
+        import warnings
+        warnings.filterwarnings(action='ignore', category=UserWarning)
+
+        indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
+
+        subframe_obj = self.tsframe[indexer_obj]
+        print '\n'+str(subframe_obj)+'\n'
+        print '\n'+str(subframe)+'\n'
+        assert_frame_equal(subframe_obj, subframe)
+
+        warnings.filterwarnings(action='default', category=UserWarning)
+
         # test df[df >0] works
         bif = self.tsframe[self.tsframe > 0]
         bifw = DataFrame(np.where(self.tsframe > 0, self.tsframe, np.nan),
@@ -307,6 +326,17 @@ class CheckIndexing(object):
         df = self.frame.copy()
         values = self.frame.values
 
+        df[df['A'] > 0] = 4
+        values[values[:, 0] > 0] = 4
+        assert_almost_equal(df.values, values)
+
+        # test that column reindexing works
+        series = df['A'] == 4
+        series = series.reindex(df.index[::-1])
+        df[series] = 1
+        values[values[:, 0] == 4] = 1
+        assert_almost_equal(df.values, values)
+
         df[df > 0] = 5
         values[values > 0] = 5
         assert_almost_equal(df.values, values)
@@ -318,6 +348,11 @@ class CheckIndexing(object):
         # a df that needs alignment first
         df[df[:-1] < 0] = 2
         np.putmask(values[:-1], values[:-1] < 0, 2)
+        assert_almost_equal(df.values, values)
+
+        # indexed with same shape but rows-reversed df
+        df[df[::-1] == 2] = 3
+        values[values == 2] = 3
         assert_almost_equal(df.values, values)
 
         self.assertRaises(Exception, df.__setitem__, df * 0, 2)
@@ -807,6 +842,15 @@ class CheckIndexing(object):
         result = df.ix[start:end]
         result2 = df[start:end]
         expected = df[5:11]
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        result = df.copy()
+        result.ix[start:end] = 0
+        result2 = df.copy()
+        result2[start:end] = 0
+        expected = df.copy()
+        expected[5:11] = 0
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 

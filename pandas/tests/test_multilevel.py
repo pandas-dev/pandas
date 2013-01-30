@@ -248,6 +248,29 @@ class TestMultiLevel(unittest.TestCase):
     def test_series_slice_partial(self):
         pass
 
+    def test_frame_getitem_setitem_boolean(self):
+        df = self.frame.T.copy()
+        values = df.values
+
+        result = df[df > 0]
+        expected = df.where(df > 0)
+        assert_frame_equal(result, expected)
+
+        df[df > 0] = 5
+        values[values > 0] = 5
+        assert_almost_equal(df.values, values)
+
+        df[df == 5] = 0
+        values[values == 5] = 0
+        assert_almost_equal(df.values, values)
+
+        # a df that needs alignment first
+        df[df[:-1] < 0] = 2
+        np.putmask(values[:-1], values[:-1] < 0, 2)
+        assert_almost_equal(df.values, values)
+
+        self.assertRaises(Exception, df.__setitem__, df * 0, 2)
+
     def test_frame_getitem_setitem_slice(self):
         # getitem
         result = self.frame.ix[:4]
