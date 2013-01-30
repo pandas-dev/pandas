@@ -1117,6 +1117,30 @@ class Index(np.ndarray):
         name = self.name if self.name == other.name else None
         return Index(joined, name=name)
 
+    def slice_indexer(self, start=None, end=None, step=None):
+        """
+        For an ordered Index, compute the slice indexer for input labels and
+        step
+
+        Parameters
+        ----------
+        start : label, default None
+            If None, defaults to the beginning
+        end : label, default None
+            If None, defaults to the end
+        step : int, default None 
+
+        Returns
+        -------
+        indexer : ndarray or slice
+
+        Notes
+        -----
+        This function assumes that the data is sorted, so use at your own peril
+        """
+        start_slice, end_slice = self.slice_locs(start, end)
+        return slice(start_slice, end_slice, step)
+
     def slice_locs(self, start=None, end=None):
         """
         For an ordered Index, compute the slice locations for input labels
@@ -1125,27 +1149,27 @@ class Index(np.ndarray):
         ----------
         start : label, default None
             If None, defaults to the beginning
-        end : label
+        end : label, default None
             If None, defaults to the end
 
         Returns
         -------
-        (begin, end) : (int, int)
+        (start, end) : (int, int)
 
         Notes
         -----
         This function assumes that the data is sorted, so use at your own peril
         """
         if start is None:
-            beg_slice = 0
+            start_slice = 0
         else:
             try:
-                beg_slice = self.get_loc(start)
-                if isinstance(beg_slice, slice):
-                    beg_slice = beg_slice.start
+                start_slice = self.get_loc(start)
+                if isinstance(start_slice, slice):
+                    start_slice = start_slice.start
             except KeyError:
                 if self.is_monotonic:
-                    beg_slice = self.searchsorted(start, side='left')
+                    start_slice = self.searchsorted(start, side='left')
                 else:
                     raise
 
@@ -1164,7 +1188,7 @@ class Index(np.ndarray):
                 else:
                     raise
 
-        return beg_slice, end_slice
+        return start_slice, end_slice
 
     def delete(self, loc):
         """
@@ -2106,7 +2130,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        (begin, end) : (int, int)
+        (start, end) : (int, int)
 
         Notes
         -----

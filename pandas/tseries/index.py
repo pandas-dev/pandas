@@ -1152,6 +1152,20 @@ class DatetimeIndex(Int64Index):
         loc = self._partial_date_slice(reso, parsed)
         return loc
 
+    def slice_indexer(self, start=None, end=None, step=None):
+        """
+        Index.slice_indexer, customized to handle time slicing
+        """
+        if isinstance(start, time) and isinstance(end, time):
+            if step is not None and step != 1:
+                raise ValueError('Must have step size of 1 with time slices')
+            return self.indexer_between_time(start, end)
+
+        if isinstance(start, time) or isinstance(end, time):
+            raise KeyError('Cannot mix time and non-time slice keys')
+
+        return Index.slice_indexer(self, start, end, step)
+
     def slice_locs(self, start=None, end=None):
         """
         Index.slice_locs, customized to handle partial ISO-8601 string slicing
@@ -1171,6 +1185,9 @@ class DatetimeIndex(Int64Index):
                 return start_loc, end_loc
             except KeyError:
                 pass
+
+        if isinstance(start, time) or isinstance(end, time):
+            raise KeyError('Cannot use slice_locs with time slice keys')
 
         return Index.slice_locs(self, start, end)
 
