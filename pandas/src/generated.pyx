@@ -826,6 +826,9 @@ def pad_inplace_float64(ndarray[float64_t] values,
 
     N = len(values)
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -854,6 +857,9 @@ def pad_inplace_object(ndarray[object] values,
     cdef int lim, fill_count = 0
 
     N = len(values)
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -884,6 +890,9 @@ def pad_inplace_int32(ndarray[int32_t] values,
 
     N = len(values)
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -913,6 +922,9 @@ def pad_inplace_int64(ndarray[int64_t] values,
 
     N = len(values)
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -941,6 +953,9 @@ def pad_inplace_bool(ndarray[uint8_t] values,
     cdef int lim, fill_count = 0
 
     N = len(values)
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -972,6 +987,9 @@ def backfill_inplace_float64(ndarray[float64_t] values,
 
     N = len(values)
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -999,6 +1017,9 @@ def backfill_inplace_object(ndarray[object] values,
     cdef int lim, fill_count = 0
 
     N = len(values)
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -1028,6 +1049,9 @@ def backfill_inplace_int32(ndarray[int32_t] values,
 
     N = len(values)
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -1055,6 +1079,9 @@ def backfill_inplace_int64(ndarray[int64_t] values,
     cdef int lim, fill_count = 0
 
     N = len(values)
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -1084,6 +1111,9 @@ def backfill_inplace_bool(ndarray[uint8_t] values,
 
     N = len(values)
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -1112,6 +1142,9 @@ def pad_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -1143,6 +1176,9 @@ def pad_2d_inplace_object(ndarray[object, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -1172,6 +1208,9 @@ def pad_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -1203,6 +1242,9 @@ def pad_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -1232,6 +1274,9 @@ def pad_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -1264,6 +1309,9 @@ def backfill_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -1293,6 +1341,9 @@ def backfill_2d_inplace_object(ndarray[object, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -1324,6 +1375,9 @@ def backfill_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -1354,6 +1408,9 @@ def backfill_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -1383,6 +1440,9 @@ def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
+
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
