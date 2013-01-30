@@ -827,7 +827,7 @@ allows storing the contents of the object as a comma-separated-values file. The
 function takes a number of arguments. Only the first is required.
 
   - ``path``: A string path to the file to write
-    ``nanRep``: A string representation of a missing value (default '')
+  - ``nanRep``: A string representation of a missing value (default '')
   - ``cols``: Columns to write (default None)
   - ``header``: Whether to write out the column names (default True)
   - ``index``: whether to write row (index) names (default True)
