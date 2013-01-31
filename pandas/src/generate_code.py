@@ -388,6 +388,7 @@ def pad_inplace_%(name)s(ndarray[%(c_type)s] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -422,6 +423,7 @@ def pad_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -457,6 +459,7 @@ def backfill_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -492,6 +495,7 @@ def backfill_inplace_%(name)s(ndarray[%(c_type)s] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 

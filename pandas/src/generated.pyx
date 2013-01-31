@@ -826,6 +826,7 @@ def pad_inplace_float64(ndarray[float64_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -858,6 +859,7 @@ def pad_inplace_object(ndarray[object] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -890,6 +892,7 @@ def pad_inplace_int32(ndarray[int32_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -922,6 +925,7 @@ def pad_inplace_int64(ndarray[int64_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -954,6 +958,7 @@ def pad_inplace_bool(ndarray[uint8_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -987,6 +992,7 @@ def backfill_inplace_float64(ndarray[float64_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1018,6 +1024,7 @@ def backfill_inplace_object(ndarray[object] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1049,6 +1056,7 @@ def backfill_inplace_int32(ndarray[int32_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1080,6 +1088,7 @@ def backfill_inplace_int64(ndarray[int64_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1111,6 +1120,7 @@ def backfill_inplace_bool(ndarray[uint8_t] values,
 
     N = len(values)
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1143,6 +1153,7 @@ def pad_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1176,6 +1187,7 @@ def pad_2d_inplace_object(ndarray[object, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1209,6 +1221,7 @@ def pad_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1242,6 +1255,7 @@ def pad_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1275,6 +1289,7 @@ def pad_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1309,6 +1324,7 @@ def backfill_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1342,6 +1358,7 @@ def backfill_2d_inplace_object(ndarray[object, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1375,6 +1392,7 @@ def backfill_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1408,6 +1426,7 @@ def backfill_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
@@ -1441,6 +1460,7 @@ def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
     if N == 0:
         return
 
