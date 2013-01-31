@@ -4561,42 +4561,50 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         ts = df['A'].asfreq('B')
         self.assert_(isinstance(ts.index, DatetimeIndex))
 
-    def test_attime_betweentime_datetimeindex(self):
+    def test_at_time_between_time_datetimeindex(self):
         index = pan.date_range("2012-01-01", "2012-01-05", freq='30min')
         df = DataFrame(randn(len(index), 5), index=index)
+        akey = time(12, 0, 0)
+        bkey = slice(time(13, 0, 0), time(14, 0, 0))
+        ainds = [24, 72, 120, 168]
+        binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
 
-        result = df.at_time(time(12, 0, 0))
-        expected = df.ix[time(12, 0, 0)]
+        result = df.at_time(akey)
+        expected = df.ix[akey]
+        expected2 = df.ix[ainds]
         assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected2)
         self.assert_(len(result) == 4)
 
-        result = df.between_time(time(13, 0, 0), time(14, 0, 0))
-        expected = df.ix[time(13, 0, 0):time(14, 0, 0)]
+        result = df.between_time(bkey.start, bkey.stop)
+        expected = df.ix[bkey]
+        expected2 = df.ix[binds]
         assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected2)
         self.assert_(len(result) == 12)
 
         result = df.copy()
-        result.ix[time(12, 0, 0)] = 0
-        result = result.ix[time(12, 0, 0)]
-        expected = df.ix[time(12, 0, 0)].copy()
+        result.ix[akey] = 0
+        result = result.ix[akey]
+        expected = df.ix[akey].copy()
         expected.ix[:] = 0
         assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.ix[time(12, 0, 0)] = 0
-        result.ix[time(12, 0, 0)] = df # also checks reindexing
+        result.ix[akey] = 0
+        result.ix[akey] = df.ix[ainds]
         assert_frame_equal(result, df)
 
         result = df.copy()
-        result.ix[time(13, 0, 0):time(14, 0, 0)] = 0
-        result = result.ix[time(13, 0, 0):time(14, 0, 0)]
-        expected = df.ix[time(13, 0, 0):time(14, 0, 0)].copy()
+        result.ix[bkey] = 0
+        result = result.ix[bkey]
+        expected = df.ix[bkey].copy()
         expected.ix[:] = 0
         assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.ix[time(13, 0, 0):time(14, 0, 0)] = 0
-        result.ix[time(13, 0, 0):time(14, 0, 0)] = df # also checks reindexing
+        result.ix[bkey] = 0
+        result.ix[bkey] = df.ix[binds]
         assert_frame_equal(result, df)
 
     def test_as_matrix(self):
