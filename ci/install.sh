@@ -3,6 +3,9 @@
 echo "inside $0"
 # Install Dependencies
 
+# workaround for travis ignoring system_site_packages in travis.yml
+rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
+
 # Hard Deps
 pip install $PIP_ARGS --use-mirrors cython nose python-dateutil pytz
 
