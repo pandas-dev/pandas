@@ -18,12 +18,10 @@ if [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
 fi
 
 # or else, get it with pip and compile it
-if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ] || \
-   [ ${TRAVIS_PYTHON_VERSION}     == "3.1" ] || \
-   [ ${TRAVIS_PYTHON_VERSION}     == "3.2" ]; then
+if [ ${TRAVIS_PYTHON_VERSION} == "2.6" ]; then
      pip $PIP_ARGS install numpy;
-else
-    pip $PIP_ARGS install https://github.com/numpy/numpy/archive/v1.7.0b2.tar.gz;
+elif [ ${TRAVIS_PYTHON_VERSION} == "3.3" ]; then # should be >=3,3
+    pip $PIP_ARGS install https://github.com/numpy/numpy/archive/v1.7.0rc1.tar.gz;
 fi
 
 # Optional Deps
