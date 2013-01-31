@@ -554,7 +554,7 @@ copy : boolean, default False
                 key = list(key)
 
             if isinstance(key, Index):
-                key_type = lib.infer_dtype(key.values)
+                key_type = key.inferred_type
             else:
                 key_type = lib.infer_dtype(key)
 
@@ -700,7 +700,7 @@ copy : boolean, default False
                 key = list(key)
 
             if isinstance(key, Index):
-                key_type = lib.infer_dtype(key.values)
+                key_type = key.inferred_type
             else:
                 key_type = lib.infer_dtype(key)
 
