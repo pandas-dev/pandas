@@ -67,12 +67,11 @@ def _dt_index_cmp(opname):
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
         if isinstance(other, datetime):
-            func = getattr(self, opname)
-            other = _to_m8(other)
+            other = _to_m8(other, tz=self.tz)
         elif isinstance(other, list):
             other = DatetimeIndex(other)
         elif isinstance(other, basestring):
-            other = _to_m8(Timestamp(other, tz=self.tz))
+            other = _to_m8(other, tz=self.tz)
         elif not isinstance(other, np.ndarray):
             other = _ensure_datetime64(other)
         result = func(other)
@@ -1092,6 +1091,11 @@ class DatetimeIndex(Int64Index):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        if isinstance(key, datetime):
+            # needed to localize naive datetimes
+            stamp = Timestamp(key, tz=self.tz)
+            return self._engine.get_value(series, stamp)
+
         try:
             return Index.get_value(self, series, key)
         except KeyError:
@@ -1106,13 +1110,10 @@ class DatetimeIndex(Int64Index):
                 return series.take(locs)
 
             try:
-                if isinstance(key, basestring):
-                    stamp = Timestamp(key, tz=self.tz)
-                else:
-                    stamp = Timestamp(key)
+                stamp = Timestamp(key, tz=self.tz)
                 return self._engine.get_value(series, stamp)
-            except KeyError:
-                raise KeyError(stamp)
+            except (KeyError, ValueError):
+                raise KeyError(key)
 
     def get_loc(self, key):
         """
@@ -1122,9 +1123,14 @@ class DatetimeIndex(Int64Index):
         -------
         loc : int
         """
+        if isinstance(key, datetime):
+            # needed to localize naive datetimes
+            stamp = Timestamp(key, tz=self.tz)
+            return self._engine.get_loc(stamp)
+
         try:
-            return self._engine.get_loc(key)
-        except KeyError:
+            return Index.get_loc(self, key)
+        except (KeyError, ValueError):
             try:
                 return self._get_string_slice(key)
             except (TypeError, KeyError, ValueError):
@@ -1132,12 +1138,9 @@ class DatetimeIndex(Int64Index):
 
             if isinstance(key, time):
                 return self.indexer_at_time(key)
-
+            
             try:
-                if isinstance(key, basestring):
-                    stamp = Timestamp(key, tz=self.tz)
-                else:
-                    stamp = Timestamp(key)
+                stamp = Timestamp(key, tz=self.tz)
                 return self._engine.get_loc(stamp)
             except (KeyError, ValueError):
                 raise KeyError(key)
@@ -1256,7 +1259,7 @@ class DatetimeIndex(Int64Index):
         if isinstance(key, np.ndarray):
             key = np.array(key, dtype=_NS_DTYPE, copy=False)
         else:
-            key = _to_m8(key)
+            key = _to_m8(key, tz=self.tz)
 
         return self.values.searchsorted(key, side=side)
 
@@ -1345,7 +1348,7 @@ class DatetimeIndex(Int64Index):
         new_index : Index
         """
         if isinstance(item, datetime):
-            item = _to_m8(item)
+            item = _to_m8(item, tz=self.tz)
 
         new_index = np.concatenate((self[:loc].asi8,
                                     [item.view(np.int64)],
@@ -1619,13 +1622,13 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                          freq=freq, tz=tz, normalize=normalize, name=name)
 
 
-def _to_m8(key):
+def _to_m8(key, tz=None):
     '''
     Timestamp-like => dt64
     '''
-    if not isinstance(key, (Timestamp, datetime)):
+    if not isinstance(key, Timestamp):
         # this also converts strings
-        key = Timestamp(key)
+        key = Timestamp(key, tz=tz)
 
     return np.int64(tslib.pydt_to_i8(key)).view(_NS_DTYPE)
 
