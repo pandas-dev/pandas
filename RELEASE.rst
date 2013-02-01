@@ -22,6 +22,19 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+**New features**
+
+  - added ``squeeze`` method that will reduce dimensionality of the object by squeezing any len-1 dimensions
+
+pandas 0.10.2
+=============
+
+**Release date:** 2013-02-??
+
+**New features**
+
+  - Add ``squeeze`` function to reduce dimensionality of 1-len objects
+
 pandas 0.10.1
 =============
 
