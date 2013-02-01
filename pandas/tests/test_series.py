@@ -2576,6 +2576,31 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = ts[4:8]
         assert_series_equal(result, expected)
 
+        # repeat all the above with naive datetimes
+        result = ts[datetime(1990, 1, 1, 4)]
+        expected = ts[4]
+        self.assert_(result == expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4)] = 0
+        result[datetime(1990, 1, 1, 4)] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = 0
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = datetime(1990, 1, 1, 4)
+        rb = datetime(1990, 1, 1, 7)
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
         result = ts[ts.index[4]]
         expected = ts[4]
         self.assert_(result == expected)
@@ -2610,14 +2635,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result["1990-01-01 03:00:00-06:00"] = ts[4]
         assert_series_equal(result, ts)
 
+        # repeat with datetimes
         result = ts.copy()
-        result[datetime(1990, 1, 1, 9, 0, 0, tzinfo=tz('UTC'))] = 0
-        result[datetime(1990, 1, 1, 9, 0, 0, tzinfo=tz('UTC'))] = ts[4]
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = 0
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = ts[4]
         assert_series_equal(result, ts)
 
         result = ts.copy()
-        result[datetime(1990, 1, 1, 3, 0, 0, tzinfo=tz('US/Central'))] = 0
-        result[datetime(1990, 1, 1, 3, 0, 0, tzinfo=tz('US/Central'))] = ts[4]
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = 0
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = ts[4]
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):
