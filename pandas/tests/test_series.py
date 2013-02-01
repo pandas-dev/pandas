@@ -2545,6 +2545,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.isnan(self.ts.asof(d)))
 
     def test_getitem_setitem_datetimeindex(self):
+        from pytz import timezone as tz
         from pandas import date_range
         N = 50
         # testing with timezone, GH #2785
@@ -2596,6 +2597,27 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = ts.copy()
         result["1990-01-02"] = 0
         result["1990-01-02"] = ts[24:48]
+        assert_series_equal(result, ts)
+
+        # also test Timestamp tz handling, GH #2789
+        result = ts.copy()
+        result["1990-01-01 09:00:00+00:00"] = 0
+        result["1990-01-01 09:00:00+00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result["1990-01-01 03:00:00-06:00"] = 0
+        result["1990-01-01 03:00:00-06:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 9, 0, 0, tzinfo=tz('UTC'))] = 0
+        result[datetime(1990, 1, 1, 9, 0, 0, tzinfo=tz('UTC'))] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 3, 0, 0, tzinfo=tz('US/Central'))] = 0
+        result[datetime(1990, 1, 1, 3, 0, 0, tzinfo=tz('US/Central'))] = ts[4]
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):

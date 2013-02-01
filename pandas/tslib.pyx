@@ -616,27 +616,26 @@ cdef convert_to_tsobject(object ts, object tz):
         if tz is not None:
             # sort of a temporary hack
             if ts.tzinfo is not None:
-                if hasattr(tz, 'normalize'):
+                if (hasattr(tz, 'normalize') and
+                        hasattr(ts.tzinfo, '_utcoffset')):
                     ts = tz.normalize(ts)
                     obj.value = _pydatetime_to_dts(ts, &obj.dts)
                     obj.tzinfo = ts.tzinfo
                 else: #tzoffset
-                    ts_offset = _get_utcoffset(ts.tzinfo, ts)
                     obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                    ts_offset = _get_utcoffset(ts.tzinfo, ts)
                     obj.value -= _delta_to_nanoseconds(ts_offset)
                     tz_offset = _get_utcoffset(tz, ts)
                     obj.value += _delta_to_nanoseconds(tz_offset)
-
+                    pandas_datetime_to_datetimestruct(obj.value,
+                                                      PANDAS_FR_ns, &obj.dts)
                     obj.tzinfo = tz
             elif not _is_utc(tz):
-                try:
+                if (hasattr(tz, 'localize')):
                     ts = tz.localize(ts)
-                except AttributeError:
+                else:
                     ts = ts.replace(tzinfo=tz)
-
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                offset = _get_utcoffset(ts.tzinfo, ts)
-                obj.value -= _delta_to_nanoseconds(offset)
                 obj.tzinfo = ts.tzinfo
             else:
                 # UTC
@@ -645,9 +644,10 @@ cdef convert_to_tsobject(object ts, object tz):
         else:
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
-            if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
-                offset = _get_utcoffset(obj.tzinfo, ts)
-                obj.value -= _delta_to_nanoseconds(offset)
+
+        if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
+            offset = _get_utcoffset(obj.tzinfo, ts)
+            obj.value -= _delta_to_nanoseconds(offset)
 
         if is_timestamp(ts):
             obj.value += ts.nanosecond
