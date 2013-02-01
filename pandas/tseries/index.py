@@ -71,6 +71,8 @@ def _dt_index_cmp(opname):
             other = _to_m8(other)
         elif isinstance(other, list):
             other = DatetimeIndex(other)
+        elif isinstance(other, basestring):
+            other = _to_m8(Timestamp(other, tz=self.tz))
         elif not isinstance(other, np.ndarray):
             other = _ensure_datetime64(other)
         result = func(other)
@@ -1042,34 +1044,36 @@ class DatetimeIndex(Int64Index):
                                   'time series.')
 
         if reso == 'year':
-            t1 = Timestamp(datetime(parsed.year, 1, 1))
-            t2 = Timestamp(datetime(parsed.year, 12, 31))
+            t1 = Timestamp(datetime(parsed.year, 1, 1), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, 12, 31), tz=self.tz)
         elif reso == 'month':
             d = tslib.monthrange(parsed.year, parsed.month)[1]
-            t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
-            t2 = Timestamp(datetime(parsed.year, parsed.month, d))
+            t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, parsed.month, d), tz=self.tz)
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
-            t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
-            t2 = Timestamp(datetime(parsed.year, qe, d))
+            t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, qe, d), tz=self.tz)
         elif reso == 'day' and self._resolution < Resolution.RESO_DAY:
             st = datetime(parsed.year, parsed.month, parsed.day)
-            t1 = Timestamp(st)
+            t1 = Timestamp(st, tz=self.tz)
             t2 = st + offsets.Day()
-            t2 = Timestamp(Timestamp(t2).value - 1)
+            t2 = Timestamp(Timestamp(t2, tz=self.tz).value - 1)
         elif (reso == 'hour' and
               self._resolution < Resolution.RESO_HR):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
-            t1 = Timestamp(st)
-            t2 = Timestamp(Timestamp(st + offsets.Hour()).value - 1)
+            t1 = Timestamp(st, tz=self.tz)
+            t2 = Timestamp(Timestamp(st + offsets.Hour(),
+                                     tz=self.tz).value - 1)
         elif (reso == 'minute' and
               self._resolution < Resolution.RESO_MIN):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
-            t1 = Timestamp(st)
-            t2 = Timestamp(Timestamp(st + offsets.Minute()).value - 1)
+            t1 = Timestamp(st, tz=self.tz)
+            t2 = Timestamp(Timestamp(st + offsets.Minute(),
+                                     tz=self.tz).value - 1)
         else:
             raise KeyError
 
@@ -1091,7 +1095,6 @@ class DatetimeIndex(Int64Index):
         try:
             return Index.get_value(self, series, key)
         except KeyError:
-
             try:
                 loc = self._get_string_slice(key)
                 return series[loc]
@@ -1102,11 +1105,11 @@ class DatetimeIndex(Int64Index):
                 locs = self.indexer_at_time(key)
                 return series.take(locs)
 
-            if isinstance(key, basestring):
-                stamp = Timestamp(key, tz=self.tz)
-            else:
-                stamp = Timestamp(key)
             try:
+                if isinstance(key, basestring):
+                    stamp = Timestamp(key, tz=self.tz)
+                else:
+                    stamp = Timestamp(key)
                 return self._engine.get_value(series, stamp)
             except KeyError:
                 raise KeyError(stamp)
@@ -1131,15 +1134,18 @@ class DatetimeIndex(Int64Index):
                 return self.indexer_at_time(key)
 
             try:
-                return self._engine.get_loc(Timestamp(key))
+                if isinstance(key, basestring):
+                    stamp = Timestamp(key, tz=self.tz)
+                else:
+                    stamp = Timestamp(key)
+                return self._engine.get_loc(stamp)
             except (KeyError, ValueError):
                 raise KeyError(key)
 
     def _get_string_slice(self, key):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
-        asdt, parsed, reso = parse_time_string(key, freq)
-        key = asdt
+        _, parsed, reso = parse_time_string(key, freq)
         loc = self._partial_date_slice(reso, parsed)
         return loc
 
@@ -1617,7 +1623,7 @@ def _to_m8(key):
     '''
     Timestamp-like => dt64
     '''
-    if not isinstance(key, datetime):
+    if not isinstance(key, (Timestamp, datetime)):
         # this also converts strings
         key = Timestamp(key)
 
