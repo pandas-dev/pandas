@@ -3,6 +3,7 @@ pandas: powerful Python data analysis toolkit
 =============================================
 
 .. image:: https://travis-ci.org/pydata/pandas.png
+        :target: https://travis-ci.org/pydata/pandas
 
 What is it
 ==========
