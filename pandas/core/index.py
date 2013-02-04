@@ -1898,6 +1898,11 @@ class MultiIndex(Index):
         """
         Swap level i with level j. Do not change the ordering of anything
 
+        Parameters
+        ----------
+        i, j : int, string (can be mixed)
+            Level of index to be swapped. Can pass level name as string.
+
         Returns
         -------
         swapped : MultiIndex

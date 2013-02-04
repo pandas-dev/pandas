@@ -2138,6 +2138,11 @@ copy : boolean, default False
         """
         Swap levels i and j in a MultiIndex
 
+        Parameters
+        ----------
+        i, j : int, string (can be mixed)
+            Level of index to be swapped. Can pass level name as string.
+
         Returns
         -------
         swapped : Series
