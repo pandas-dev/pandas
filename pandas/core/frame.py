@@ -3243,6 +3243,11 @@ class DataFrame(NDFrame):
     def swaplevel(self, i, j, axis=0):
         """
         Swap levels i and j in a MultiIndex on a particular axis
+        
+        Parameters
+        ----------
+        i, j : int, string (can be mixed)
+            Level of index to be swapped. Can pass level name as string.
 
         Parameters
         ----------
