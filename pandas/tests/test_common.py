@@ -106,6 +106,10 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+def test_datetimeindex_from_empty_datetime64_array():
+    for unit in [ 'ms', 'us', 'ns' ]:
+        idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
+        assert(len(idx) == 0)
 
 def test_any_none():
     assert(com._any_none(1, 2, 3, None))
