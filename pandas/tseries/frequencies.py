@@ -22,6 +22,7 @@ class FreqGroup(object):
     FR_HR = 7000
     FR_MIN = 8000
     FR_SEC = 9000
+    FR_USEC = 10000
 
 
 class Resolution(object):
@@ -34,11 +35,11 @@ class Resolution(object):
 
     @classmethod
     def get_str(cls, reso):
-        return {RESO_US: 'microsecond',
-                RESO_SEC: 'second',
-                RESO_MIN: 'minute',
-                RESO_HR: 'hour',
-                RESO_DAY: 'day'}.get(reso, 'day')
+        return {cls.RESO_US: 'microsecond',
+                cls.RESO_SEC: 'second',
+                cls.RESO_MIN: 'minute',
+                cls.RESO_HR: 'hour',
+                cls.RESO_DAY: 'day'}.get(reso, 'day')
 
 
 def get_reso_string(reso):
@@ -48,8 +49,10 @@ def get_reso_string(reso):
 def get_to_timestamp_base(base):
     if base <= FreqGroup.FR_WK:
         return FreqGroup.FR_DAY
+
     if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
+
     return base
 
 
@@ -57,6 +60,7 @@ def get_freq_group(freq):
     if isinstance(freq, basestring):
         base, mult = get_freq_code(freq)
         freq = base
+
     return (freq // 1000) * 1000
 
 
@@ -64,28 +68,29 @@ def get_freq(freq):
     if isinstance(freq, basestring):
         base, mult = get_freq_code(freq)
         freq = base
+
     return freq
 
 
 def get_freq_code(freqstr):
     """
-
     Parameters
     ----------
+    freqstr : str
 
     Returns
     -------
+    code, stride
     """
     if isinstance(freqstr, DateOffset):
         freqstr = (get_offset_name(freqstr), freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (com.is_integer(freqstr[0]) and
-                com.is_integer(freqstr[1])):
-            # e.g., freqstr = (2000, 1)
+        if (com.is_integer(freqstr[0]) and com.is_integer(freqstr[1])):
+            #e.g., freqstr = (2000, 1)
             return freqstr
         else:
-            # e.g., freqstr = ('T', 5)
+            #e.g., freqstr = ('T', 5)
             try:
                 code = _period_str_to_code(freqstr[0])
                 stride = freqstr[1]
@@ -285,7 +290,8 @@ _offset_to_period_map = {
     'Q': 'Q',
     'A': 'A',
     'W': 'W',
-    'M': 'M'
+    'M': 'M',
+    'U': 'U',
 }
 
 need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
@@ -598,6 +604,7 @@ _period_code_map = {
     "H": 7000,        # Hourly
     "T": 8000,        # Minutely
     "S": 9000,        # Secondly
+    "U": 10000,       # Microsecondly
 }
 
 _reverse_period_code_map = {}
@@ -625,6 +632,7 @@ def _period_alias_dictionary():
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
     S_aliases = ["S", "SEC", "SECOND", "SECONDLY"]
+    U_aliases = ["U", "USEC", "MICROSECOND", "MICROSECONDLY"]
 
     for k in M_aliases:
         alias_dict[k] = 'M'
@@ -643,6 +651,9 @@ def _period_alias_dictionary():
 
     for k in S_aliases:
         alias_dict[k] = 'S'
+
+    for k in U_aliases:
+        alias_dict[k] = 'U'
 
     A_prefixes = ["A", "Y", "ANN", "ANNUAL", "ANNUALLY", "YR", "YEAR",
                   "YEARLY"]
@@ -711,6 +722,7 @@ _reso_period_map = {
     "hour": "H",
     "minute": "T",
     "second": "S",
+    "microsecond": "U",
 }
 
 
@@ -1002,23 +1014,25 @@ def is_subperiod(source, target):
         if _is_quarterly(source):
             return _quarter_months_conform(_get_rule_month(source),
                                            _get_rule_month(target))
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif _is_quarterly(target):
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif target == 'M':
-        return source in ['D', 'B', 'H', 'T', 'S']
+        return source in ['D', 'B', 'H', 'T', 'S', 'U']
     elif _is_weekly(target):
-        return source in [target, 'D', 'B', 'H', 'T', 'S']
+        return source in [target, 'D', 'B', 'H', 'T', 'S', 'U']
     elif target == 'B':
-        return source in ['B', 'H', 'T', 'S']
+        return source in ['B', 'H', 'T', 'S', 'U']
     elif target == 'D':
-        return source in ['D', 'H', 'T', 'S']
+        return source in ['D', 'H', 'T', 'S', 'U']
     elif target == 'H':
-        return source in ['H', 'T', 'S']
+        return source in ['H', 'T', 'S', 'U']
     elif target == 'T':
-        return source in ['T', 'S']
+        return source in ['T', 'S', 'U']
     elif target == 'S':
-        return source in ['S']
+        return source in ['S', 'U']
+    elif target == 'U':
+        return source == target
 
 
 def is_superperiod(source, target):
@@ -1053,23 +1067,25 @@ def is_superperiod(source, target):
             smonth = _get_rule_month(source)
             tmonth = _get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif _is_quarterly(source):
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'B', 'M', 'H', 'T', 'S', 'U']
     elif source == 'M':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S', 'U']
     elif _is_weekly(source):
-        return target in [source, 'D', 'B', 'H', 'T', 'S']
+        return target in [source, 'D', 'B', 'H', 'T', 'S', 'U']
     elif source == 'B':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S', 'U']
     elif source == 'D':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S', 'U']
     elif source == 'H':
-        return target in ['H', 'T', 'S']
+        return target in ['H', 'T', 'S', 'U']
     elif source == 'T':
-        return target in ['T', 'S']
+        return target in ['T', 'S', 'U']
     elif source == 'S':
-        return target in ['S']
+        return target in ['S', 'U']
+    elif source == 'U':
+        return target == source
 
 
 def _get_rule_month(source, default='DEC'):
