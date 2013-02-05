@@ -132,7 +132,7 @@ def get_quote_yahoo(symbols):
     return DataFrame(data, index=idx)
 
 
-def _get_hist_yahoo(name=None, start=None, end=None, retry_count=3,
+def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
                     pause=0):
     """
     Get historical data for the given name from yahoo.
@@ -140,7 +140,7 @@ def _get_hist_yahoo(name=None, start=None, end=None, retry_count=3,
 
     Returns a DataFrame.
     """
-    if(name is None):
+    if(sym is None):
         warnings.warn("Need to provide a name.")
         return None
 
@@ -148,7 +148,7 @@ def _get_hist_yahoo(name=None, start=None, end=None, retry_count=3,
 
     yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
 
-    url = yahoo_URL + 's=%s' % name + \
+    url = yahoo_URL + 's=%s' % sym + \
         '&a=%s' % (start.month - 1) + \
         '&b=%s' % start.day + \
         '&c=%s' % start.year + \
@@ -203,17 +203,18 @@ def _calc_return_index(price_df):
     return ret_index
 
 
-def get_components_yahoo(idx_sym='^DJI'):
+def get_components_yahoo(idx_sym):
     """
-    Returns DataFrame containing list of component information for index
-    represented in idx_sym from yahoo. Includes component symbol
+    Returns DataFrame containing list of component information for
+    index represented in idx_sym from yahoo. Includes component symbol
     (ticker), exchange, and name.
 
     Parameters
     ----------
     idx_sym : str
-        Index symbol, default '^DJI' (Dow Jones Industrial Average)
+        Stock index symbol
         Examples:
+        '^DJI' (Dow Jones Industrial Average)
         '^NYA' (NYSE Composite)
         '^IXIC' (NASDAQ Composite)
 
@@ -256,8 +257,8 @@ def get_components_yahoo(idx_sym='^DJI'):
     return idx_df
 
 
-def get_data_yahoo(symbols=None, start=None, end=None, adjust_price=False,
-                   ret_index=False, chunk=25, pause=0, **kwargs):
+def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
+                   adjust_price=False, ret_index=False, chunksize=25, **kwargs):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
     range, start to end. To avoid being penalized by Yahoo! Finance servers,
@@ -265,35 +266,39 @@ def get_data_yahoo(symbols=None, start=None, end=None, adjust_price=False,
 
     Parameters
     ----------
-    symbols : string, list-like object (list, tupel, Series), DataFrame
+    symbols : string, list-like object (list, tupel, Series), or DataFrame
         Single stock symbol (ticker), list-like object of symbols or
-        DataFrame with index containing of stock symbols
+        DataFrame with index containing stock symbols.
     start : string, (defaults to '1/1/2010')
         Starting date, timestamp. Parses many different kind of date
         representations (e.g., 'JAN-01-2010', '1/1/10', 'Jan, 1, 1980')
-    end :  string, (defaults to today)
+    end : string, (defaults to today)
         Ending date, timestamp. Same format as starting date.
-    adjust_price : bool, default False
-        Adjust all prices in hist_data ('Open', 'High', 'Low', 'Close') via
-        'Adj Close' price. Adds 'Adj_Ratio' column and drops 'Adj Close'.
-    ret_index: bool, default False
-        Include a simple return index 'Ret_Index' in hist_data.
-    chunk : int, default 25
-        Number of symbols to download consecutively before intiating pause.
+    retry_count : int, default 3
+        Number of times to retry query request.
     pause : int, default 0
-        Time, in seconds, to pause between consecutive chunks.
-    **kwargs: additional arguments to pass to _get_hist_yahoo
+        Time, in seconds, to pause between consecutive queries of chunks. If
+        single value given for symbol, represents the pause between retries.
+    adjust_price : bool, default False
+        If True, adjusts all prices in hist_data ('Open', 'High', 'Low', 'Close')
+        based on 'Adj Close' price. Adds 'Adj_Ratio' column and drops
+        'Adj Close'.
+    ret_index : bool, default False
+        If True, includes a simple return index 'Ret_Index' in hist_data.
+    chunksize : int, default 25
+        Number of symbols to download consecutively before intiating pause.
 
     Returns
     -------
     hist_data : DataFrame (str) or Panel (list-like object, DataFrame)
     """
+
     def dl_mult_symbols(symbols):
         stocks = {}
-        for sym_group in _in_chunks(symbols, chunk):
+        for sym_group in _in_chunks(symbols, chunksize):
             for sym in sym_group:
                 try:
-                    stocks[sym] = _get_hist_yahoo(name=sym, start=start,
+                    stocks[sym] = _get_hist_yahoo(sym, start=start,
                                                   end=end, **kwargs)
                 except:
                     warnings.warn('Error with sym: ' + sym + '... skipping.')
@@ -302,11 +307,16 @@ def get_data_yahoo(symbols=None, start=None, end=None, adjust_price=False,
 
         return Panel(stocks).swapaxes('items', 'minor')
 
-    #If a scalar (single symbol, e.g. 'GOOG')
+    if 'name' in kwargs:
+        warnings.warn("Arg 'name' is deprecated, please use 'symbols' instead.",
+                      FutureWarning)
+        symbols = kwargs['name']
+
+    #If a single symbol, (e.g., 'GOOG')
     if isinstance(symbols, (str, int)):
         sym = symbols
-        hist_data = _get_hist_yahoo(sym, start=start, end=end, **kwargs)
-    #Multiple symbols
+        hist_data = _get_hist_yahoo(sym, start=start, end=end)
+    #Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
         try:
             hist_data = dl_mult_symbols(Series(symbols.index))
