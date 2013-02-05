@@ -228,7 +228,7 @@ class DatetimeIndex(Int64Index):
                     offset = data.offset
                     verify_integrity = False
             else:
-                if data.dtype != _NS_DTYPE:
+                if data.dtype != _NS_DTYPE and data.size:
                     subarr = tslib.cast_to_nanoseconds(data)
                 else:
                     subarr = data
