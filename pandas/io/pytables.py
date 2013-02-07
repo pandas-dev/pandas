@@ -197,19 +197,19 @@ class HDFStore(object):
         except ImportError:  # pragma: no cover
             raise Exception('HDFStore requires PyTables')
 
-        self.path = path
-        self.mode = mode
-        self.handle = None
-        self.complevel = complevel
-        self.complib = complib
-        self.fletcher32 = fletcher32
-        self.filters = None
+        self._path = path
+        self._mode = mode
+        self._handle = None
+        self._complevel = complevel
+        self._complib = complib
+        self._fletcher32 = fletcher32
+        self._filters = None
         self.open(mode=mode, warn=False)
 
     @property
     def root(self):
         """ return the root node """
-        return self.handle.root
+        return self._handle.root
 
     def __getitem__(self, key):
         return self.get(key)
@@ -220,10 +220,19 @@ class HDFStore(object):
     def __delitem__(self, key):
         return self.remove(key)
 
+    def __getattr__(self, name):
+        """ allow attribute access to get stores """
+        try:
+            return self.get(name)
+        except:
+            pass
+        raise AttributeError("'%s' object has no attribute '%s'" %
+                             (type(self).__name__, name))
+
     def __contains__(self, key):
         """ check for existance of this key
               can match the exact pathname or the pathnm w/o the leading '/'
-        """
+              """
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
@@ -234,7 +243,7 @@ class HDFStore(object):
         return len(self.groups())
 
     def __repr__(self):
-        output = '%s\nFile path: %s\n' % (type(self), self.path)
+        output = '%s\nFile path: %s\n' % (type(self), self._path)
 
         if len(self.keys()):
             keys   = []
@@ -277,7 +286,7 @@ class HDFStore(object):
         mode : {'a', 'w', 'r', 'r+'}, default 'a'
             See HDFStore docstring or tables.openFile for info about modes
         """
-        self.mode = mode
+        self._mode = mode
         if warn and mode == 'w':  # pragma: no cover
             while True:
                 response = raw_input("Re-opening as mode='w' will delete the "
@@ -286,22 +295,22 @@ class HDFStore(object):
                     break
                 elif response == 'n':
                     return
-        if self.handle is not None and self.handle.isopen:
-            self.handle.close()
+        if self._handle is not None and self._handle.isopen:
+            self._handle.close()
 
-        if self.complib is not None:
-            if self.complevel is None:
-                self.complevel = 9
-            self.filters = _tables().Filters(self.complevel,
-                                             self.complib,
-                                             fletcher32=self.fletcher32)
+        if self._complib is not None:
+            if self._complevel is None:
+                self._complevel = 9
+            self._filters = _tables().Filters(self._complevel,
+                                              self._complib,
+                                              fletcher32=self._fletcher32)
 
         try:
-            self.handle = h5_open(self.path, self.mode)
+            self._handle = h5_open(self._path, self._mode)
         except IOError, e:  # pragma: no cover
             if 'can not be written' in str(e):
-                print 'Opening %s in read-only mode' % self.path
-                self.handle = h5_open(self.path, 'r')
+                print 'Opening %s in read-only mode' % self._path
+                self._handle = h5_open(self._path, 'r')
             else:
                 raise
 
@@ -309,13 +318,13 @@ class HDFStore(object):
         """
         Close the PyTables file handle
         """
-        self.handle.close()
+        self._handle.close()
 
     def flush(self):
         """
         Force all buffered modifications to be written to disk
         """
-        self.handle.flush()
+        self._handle.flush()
 
     def get(self, key):
         """
@@ -617,14 +626,14 @@ class HDFStore(object):
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
         _tables()
-        return [ g for g in self.handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != 'table') ]
+        return [ g for g in self._handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != 'table') ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
         try:
             if not key.startswith('/'):
                 key = '/' + key
-            return self.handle.getNode(self.root, key)
+            return self._handle.getNode(self.root, key)
         except:
             return None
 
@@ -751,7 +760,7 @@ class HDFStore(object):
 
         # remove the node if we are not appending
         if group is not None and not append:
-            self.handle.removeNode(group, recursive=True)
+            self._handle.removeNode(group, recursive=True)
             group = None
 
         if group is None:
@@ -768,7 +777,7 @@ class HDFStore(object):
                 new_path += p
                 group = self.get_node(new_path)
                 if group is None:
-                    group = self.handle.createGroup(path, p)
+                    group = self._handle.createGroup(path, p)
                 path = new_path
 
         s = self._create_storer(group, value, table=table, append=append, **kwargs)
@@ -1304,28 +1313,28 @@ class Storer(object):
         return self.group._v_pathname
 
     @property
-    def handle(self):
-        return self.parent.handle
+    def _handle(self):
+        return self.parent._handle
 
     @property
     def _quiet(self):
         return self.parent._quiet
 
     @property
-    def filters(self):
-        return self.parent.filters
+    def _filters(self):
+        return self.parent._filters
 
     @property
-    def complevel(self):
-        return self.parent.complevel
+    def _complevel(self):
+        return self.parent._complevel
 
     @property
-    def fletcher32(self):
-        return self.parent.fletcher32
+    def _fletcher32(self):
+        return self.parent._fletcher32
 
     @property
-    def complib(self):
-        return self.parent.complib
+    def _complib(self):
+        return self.parent._complib
 
     @property
     def attrs(self):
@@ -1380,7 +1389,7 @@ class Storer(object):
     def delete(self, where = None, **kwargs):
         """ support fully deleting the node in its entirety (only) - where specification must be None """
         if where is None:
-            self.handle.removeNode(self.group, recursive=True)
+            self._handle.removeNode(self.group, recursive=True)
             return None
 
         raise NotImplementedError("cannot delete on an abstract storer")
@@ -1583,7 +1592,7 @@ class GenericStorer(Storer):
 
     def write_array(self, key, value):
         if key in self.group:
-            self.handle.removeNode(self.group, key)
+            self._handle.removeNode(self.group, key)
 
         # Transform needed to interface with pytables row/col notation
         empty_array = any(x == 0 for x in value.shape)
@@ -1593,7 +1602,7 @@ class GenericStorer(Storer):
             value = value.T
             transposed = True
 
-        if self.filters is not None:
+        if self._filters is not None:
             atom = None
             try:
                 # get the atom for this datatype
@@ -1603,9 +1612,9 @@ class GenericStorer(Storer):
 
             if atom is not None:
                 # create an empty chunked array and fill it from value
-                ca = self.handle.createCArray(self.group, key, atom,
+                ca = self._handle.createCArray(self.group, key, atom,
                                               value.shape,
-                                              filters=self.filters)
+                                              filters=self._filters)
                 ca[:] = value
                 getattr(self.group, key)._v_attrs.transposed = transposed
                 return
@@ -1622,21 +1631,21 @@ class GenericStorer(Storer):
                 ws = performance_doc % (inferred_type,key)
                 warnings.warn(ws, PerformanceWarning)
 
-            vlarr = self.handle.createVLArray(self.group, key,
+            vlarr = self._handle.createVLArray(self.group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
         elif value.dtype.type == np.datetime64:
-            self.handle.createArray(self.group, key, value.view('i8'))
+            self._handle.createArray(self.group, key, value.view('i8'))
             getattr(self.group, key)._v_attrs.value_type = 'datetime64'
         else:
             if empty_array:
                 # ugly hack for length 0 axes
                 arr = np.empty((1,) * value.ndim)
-                self.handle.createArray(self.group, key, arr)
+                self._handle.createArray(self.group, key, arr)
                 getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
                 getattr(self.group, key)._v_attrs.shape = value.shape
             else:
-                self.handle.createArray(self.group, key, value)
+                self._handle.createArray(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
 
@@ -1729,7 +1738,7 @@ class SparseFrameStorer(GenericStorer):
         for name, ss in obj.iteritems():
             key = 'sparse_series_%s' % name
             if key not in self.group._v_children:
-                node = self.handle.createGroup(self.group, key)
+                node = self._handle.createGroup(self.group, key)
             else:
                 node = getattr(self.group, key)
             s = SparseSeriesStorer(self.parent, node)
@@ -1763,7 +1772,7 @@ class SparsePanelStorer(GenericStorer):
         for name, sdf in obj.iteritems():
             key = 'sparse_frame_%s' % name
             if key not in self.group._v_children:
-                node = self.handle.createGroup(self.group, key)
+                node = self._handle.createGroup(self.group, key)
             else:
                 node = getattr(self.group, key)
             s = SparseFrameStorer(self.parent, node)
@@ -2293,13 +2302,13 @@ class Table(Storer):
 
         if complib:
             if complevel is None:
-                complevel = self.complevel or 9
+                complevel = self._complevel or 9
             filters = _tables().Filters(complevel=complevel,
                                         complib=complib,
-                                        fletcher32=fletcher32 or self.fletcher32)
+                                        fletcher32=fletcher32 or self._fletcher32)
             d['filters'] = filters
-        elif self.filters is not None:
-            d['filters'] = self.filters
+        elif self._filters is not None:
+            d['filters'] = self._filters
 
         return d
 
@@ -2484,7 +2493,7 @@ class AppendableTable(LegacyTable):
               expectedrows=None, **kwargs):
 
         if not append and self.is_exists:
-            self.handle.removeNode(self.group, 'table')
+            self._handle.removeNode(self.group, 'table')
 
         # create the axes
         self.create_axes(axes=axes, obj=obj, validate=append,
@@ -2502,7 +2511,7 @@ class AppendableTable(LegacyTable):
             self.set_attrs()
 
             # create the table
-            table = self.handle.createTable(self.group, **options)
+            table = self._handle.createTable(self.group, **options)
 
         else:
             table = self.table
@@ -2552,6 +2561,11 @@ class AppendableTable(LegacyTable):
 
     def write_data_chunk(self, indexes, mask, search, values):
 
+        # 0 len
+        for v in values:
+            if not np.prod(v.shape):
+                return
+
         # get our function
         try:
             func = getattr(lib, "create_hdf_rows_%sd" % self.ndim)
@@ -2574,7 +2588,7 @@ class AppendableTable(LegacyTable):
         # delete all rows (and return the nrows)
         if where is None or not len(where):
             nrows = self.nrows
-            self.handle.removeNode(self.group, recursive=True)
+            self._handle.removeNode(self.group, recursive=True)
             return nrows
 
         # infer the data kind
@@ -2894,6 +2908,7 @@ class Term(object):
 
     _ops = ['<=', '<', '>=', '>', '!=', '==', '=']
     _search = re.compile("^\s*(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)\s*$" % '|'.join(_ops))
+    _max_selectors = 31
 
     def __init__(self, field, op=None, value=None, queryables=None):
         self.field = None
@@ -3006,7 +3021,7 @@ class Term(object):
             if self.is_in_table:
 
                 # too many values to create the expression?
-                if len(values) <= 61:
+                if len(values) <= self._max_selectors:
                     self.condition = "(%s)" % ' | '.join(
                         ["(%s == %s)" % (self.field, v[0]) for v in values])
 
@@ -3138,3 +3153,15 @@ class Selection(object):
         return self.table.table.getWhereList(self.condition, start=self.start, stop=self.stop, sort=True)
 
 
+### utilities ###
+
+def timeit(key,df,fn=None,remove=True,**kwargs):
+    if fn is None:
+        fn = 'timeit.h5'
+    store = HDFStore(fn,mode='w')
+    store.append(key,df,**kwargs)
+    store.close()
+
+    if remove:
+        import os
+        os.remove(fn)

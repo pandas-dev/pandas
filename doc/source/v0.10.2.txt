@@ -1,0 +1,18 @@
+.. _whatsnew_0102:
+
+v0.10.2 (February ??, 2013)
+---------------------------
+
+This is a minor release from 0.10.1 and includes many new features and
+enhancements along with a large number of bug fixes. There are also a number of
+important API changes that long-time pandas users should pay close attention
+to.
+
+**Enhancements**
+
+  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores (e.g. store.df == store['df'])
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+
