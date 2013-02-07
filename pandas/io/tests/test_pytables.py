@@ -132,7 +132,7 @@ class TestHDFStore(unittest.TestCase):
             store['df'] = df
 
             # make a random group in hdf space
-            store.handle.createGroup(store.handle.root,'bah')
+            store._handle.createGroup(store._handle.root,'bah')
 
             repr(store)
             str(store)
@@ -184,7 +184,7 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
             store['a'] = tm.makeTimeSeries()
             store.open('w', warn=False)
-            self.assert_(store.handle.isopen)
+            self.assert_(store._handle.isopen)
             self.assertEquals(len(store), 0)
             
     def test_flush(self):
@@ -206,6 +206,34 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_series_equal(left, right)
             
             self.assertRaises(KeyError, store.get, 'b')
+
+    def test_getattr(self):
+
+        with ensure_clean(self.path) as store:
+
+            s = tm.makeTimeSeries()
+            store['a'] = s
+
+            # test attribute access
+            result = store.a
+            tm.assert_series_equal(result, s)
+            result = getattr(store,'a')
+            tm.assert_series_equal(result, s)
+
+            df = tm.makeTimeDataFrame()
+            store['df'] = df
+            result = store.df
+            tm.assert_frame_equal(result, df)
+
+            # errors
+            self.assertRaises(AttributeError, getattr, store, 'd')
+
+            for x in ['mode','path','handle','complib']:
+                self.assertRaises(AttributeError, getattr, store, x)
+
+            # not stores
+            for x in ['mode','path','handle','complib']:
+                getattr(store,"_%s" % x)
 
     def test_put(self):
 
@@ -562,8 +590,8 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_frame_equal(store['df'], df)
 
             # check that we have indicies created
-            assert(store.handle.root.df.table.cols.index.is_indexed is True)
-            assert(store.handle.root.df.table.cols.B.is_indexed is True)
+            assert(store._handle.root.df.table.cols.index.is_indexed is True)
+            assert(store._handle.root.df.table.cols.B.is_indexed is True)
             
             # data column searching
             result = store.select('df', [Term('B>0')])

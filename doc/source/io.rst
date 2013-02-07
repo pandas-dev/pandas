@@ -1021,6 +1021,9 @@ In a current or later Python session, you can retrieve stored objects:
    # store.get('df') is an equivalent method
    store['df']
 
+   # dotted (attribute) access provides get as well
+   store.df
+
 Deletion of the object specified by the key
 
 .. ipython:: python
