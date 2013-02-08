@@ -1677,7 +1677,7 @@ copy : boolean, default False
     def corr(self, other, method='pearson',
              min_periods=None):
         """
-        Compute correlation two Series, excluding missing values
+        Compute correlation with `other` Series, excluding missing values
 
         Parameters
         ----------
