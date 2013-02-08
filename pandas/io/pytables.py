@@ -44,7 +44,7 @@ read the file in and write it out to a new file to upgrade (with the copy_to met
 """
 class PerformanceWarning(Warning): pass
 performance_doc = """
-your performance may suffer as PyTables swill pickle object types that it cannot map
+your performance may suffer as PyTables will pickle object types that it cannot map
 directly to c-types [inferred_type->%s,key->%s]
 """
 
