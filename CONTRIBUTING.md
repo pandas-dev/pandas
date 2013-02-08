@@ -12,7 +12,7 @@ address the issue you're having.
   - Explain what the expected behavior was, and what you saw instead.
 - When submitting a Pull Request
   - **Make sure the test suite passes**., and that means on python3 as well.
-    You can use "test_fast.sh", or tox locally and/or enable Travis-CI on you're fork.
+    You can use "test_fast.sh", or tox locally and/or enable Travis-CI on your fork.
   - We suggest you enable Travis-CI on your fork, to make it easier for the team
      to see that the PR does indeed pass all the tests.
   - Back-compatiblitiy **really** matters. Pandas already has a large user-base and
