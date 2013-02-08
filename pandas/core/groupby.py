@@ -25,7 +25,7 @@ Parameters
 arg : function or dict
     Function to use for aggregating groups. If a function, must either
     work when passed a DataFrame or when passed to DataFrame.apply. If
-    pass a dict, the keys must be DataFrame column names
+    passed a dict, the keys must be DataFrame column names.
 
 Notes
 -----
