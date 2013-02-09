@@ -265,6 +265,17 @@ def is_datetime64_array(ndarray values):
             return False
     return True
 
+def is_timedelta_array(ndarray values):
+    import datetime
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not isinstance(values[i],datetime.timedelta):
+            return False
+    return True
+
+
 def is_date_array(ndarray[object] values):
     cdef int i, n = len(values)
     if n == 0:

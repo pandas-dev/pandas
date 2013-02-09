@@ -1254,9 +1254,6 @@ class TestTimeSeries(unittest.TestCase):
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
-        # self.assert_(x[0].dtype == object)
-
-        # x[0] = to_datetime(x[0])
         self.assert_(x[0].dtype == np.dtype('M8[ns]'))
 
     def test_groupby_count_dateparseerror(self):
@@ -2391,7 +2388,7 @@ class TestSeriesDatetime64(unittest.TestCase):
 
     def test_auto_conversion(self):
         series = Series(list(date_range('1/1/2000', periods=10)))
-        self.assert_(series.dtype == object)
+        self.assert_(series.dtype == 'M8[ns]')
 
     def test_constructor_cant_cast_datetime64(self):
         self.assertRaises(TypeError, Series,
@@ -2441,13 +2438,17 @@ class TestSeriesDatetime64(unittest.TestCase):
         self.assert_(self.series[6] is NaT)
 
     def test_intercept_astype_object(self):
-        # Work around NumPy 1.6 bugs
-        result = self.series.astype(object)
-        result2 = self.series.astype('O')
-        expected = Series([x for x in self.series], dtype=object)
 
-        assert_series_equal(result, expected)
-        assert_series_equal(result2, expected)
+        # this test no longer makes sense as series is by default already M8[ns]
+
+        # Work around NumPy 1.6 bugs
+        #result = self.series.astype(object)
+        #result2 = self.series.astype('O')
+ 
+        expected = Series(self.series, dtype=object)
+
+        #assert_series_equal(result, expected)
+        #assert_series_equal(result2, expected)
 
         df = DataFrame({'a': self.series,
                         'b': np.random.randn(len(self.series))})

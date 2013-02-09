@@ -80,6 +80,23 @@ pandas provides the :func:`~pandas.core.common.isnull` and
 missing by the ``isnull`` and ``notnull`` functions. ``inf`` and
 ``-inf`` are no longer considered missing by default.
 
+Datetimes
+---------
+
+For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
+sentinal value that can be represented by numpy in a singular dtype (datetime64[ns]).
+Pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
+
+.. ipython:: python
+
+   df2 = df.copy()
+   df2['timestamp'] = Timestamp('20120101')
+   df2
+   df2.ix[['a','c','h'],['one','timestamp']] = np.nan
+   df2
+   df2.get_dtype_counts()
+
+
 Calculations with missing data
 ------------------------------
 

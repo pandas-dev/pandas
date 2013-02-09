@@ -47,7 +47,6 @@ def _skip_if_no_scipy():
 
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
-
 class CheckIndexing(object):
 
     _multiprocess_can_split_ = True
@@ -6484,14 +6483,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                     ['a', 'e']))
 
     def test_get_numeric_data(self):
-        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo'},
+
+        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'f' : Timestamp('20010102')},
                        index=np.arange(10))
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1, 'float64' : 1, 'datetime64[ns]': 1, 'object' : 1})
+        assert_series_equal(result, expected)
 
         result = df._get_numeric_data()
         expected = df.ix[:, ['a', 'b']]
         assert_frame_equal(result, expected)
 
-        only_obj = df.ix[:, ['c']]
+        only_obj = df.ix[:, ['c','f']]
         result = only_obj._get_numeric_data()
         expected = df.ix[:, []]
         assert_frame_equal(result, expected)
@@ -7366,6 +7369,36 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         values = self.frame.as_matrix(['A', 'B', 'C', 'D'])
         self.assert_(values.dtype == np.float64)
+
+
+    def test_constructor_with_datetimes(self):
+
+        # single item
+        df = DataFrame({'A' : 1, 'B' : 'foo', 'C' : 'bar', 'D' : Timestamp("20010101"), 'E' : datetime(2001,1,2,0,0) },
+                       index=np.arange(10))
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1, 'datetime64[ns]': 2, 'object' : 2})
+        assert_series_equal(result, expected)
+
+        # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0 ndarray with a dtype specified)
+        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'float64' : np.array(1.,dtype='float64'), 
+                        'int64' : np.array(1,dtype='int64')}, index=np.arange(10))
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 2, 'float64' : 2, 'object' : 1})
+        assert_series_equal(result, expected)
+
+        # check with ndarray construction ndim>0
+        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'float64' : np.array([1.]*10,dtype='float64'), 
+                        'int64' : np.array([1]*10,dtype='int64')}, index=np.arange(10))
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 2, 'float64' : 2, 'object' : 1})
+        assert_series_equal(result, expected)
+
+        # GH #2751 (construction with no index specified)
+        df = DataFrame({'a':[1,2,4,7], 'b':[1.2, 2.3, 5.1, 6.3], 'c':list('abcd'), 'd':[datetime(2000,1,1) for i in range(4)] })
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1, 'float64' : 1, 'datetime64[ns]': 1, 'object' : 1})
+        assert_series_equal(result, expected)
 
     def test_constructor_frame_copy(self):
         cop = DataFrame(self.frame, copy=True)

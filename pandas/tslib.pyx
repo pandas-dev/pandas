@@ -54,33 +54,47 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
     if tz is not None:
         if _is_utc(tz):
             for i in range(n):
-                pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
-                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
-                                     dts.min, dts.sec, dts.us, tz)
+                if arr[i] == iNaT:
+                    result[i] = np.nan
+                else:
+                    pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+                    result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                         dts.min, dts.sec, dts.us, tz)
         elif _is_tzlocal(tz) or _is_fixed_offset(tz):
             for i in range(n):
-                pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
-                dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                              dts.min, dts.sec, dts.us, tz)
-                result[i] = dt + tz.utcoffset(dt)
+                if arr[i] == iNaT:
+                    result[i] = np.nan
+                else:
+                    pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+                    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                  dts.min, dts.sec, dts.us, tz)
+                    result[i] = dt + tz.utcoffset(dt)
         else:
             trans = _get_transitions(tz)
             deltas = _get_deltas(tz)
             for i in range(n):
-                # Adjust datetime64 timestamp, recompute datetimestruct
-                pos = trans.searchsorted(arr[i]) - 1
-                inf = tz._transition_info[pos]
 
-                pandas_datetime_to_datetimestruct(arr[i] + deltas[pos],
-                                                  PANDAS_FR_ns, &dts)
-                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
-                                     dts.min, dts.sec, dts.us,
-                                     tz._tzinfos[inf])
+                if arr[i] == iNaT:
+                    result[i] = np.nan
+                else:
+
+                    # Adjust datetime64 timestamp, recompute datetimestruct
+                    pos = trans.searchsorted(arr[i]) - 1
+                    inf = tz._transition_info[pos]
+                    
+                    pandas_datetime_to_datetimestruct(arr[i] + deltas[pos],
+                                                      PANDAS_FR_ns, &dts)
+                    result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                         dts.min, dts.sec, dts.us,
+                                         tz._tzinfos[inf])
     else:
         for i in range(n):
-            pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
-            result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
-                                 dts.min, dts.sec, dts.us)
+            if arr[i] == iNaT:
+                result[i] = np.nan
+            else:
+                pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                     dts.min, dts.sec, dts.us)
 
     return result
 

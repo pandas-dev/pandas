@@ -520,6 +520,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         pass
 
     def test_fromValue(self):
+
         nans = Series(np.NaN, index=self.ts.index)
         self.assert_(nans.dtype == np.float_)
         self.assertEqual(len(nans), len(self.ts))
@@ -530,7 +531,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         d = datetime.now()
         dates = Series(d, index=self.ts.index)
-        self.assert_(dates.dtype == np.object_)
+        self.assert_(dates.dtype == 'M8[ns]')
         self.assertEqual(len(dates), len(self.ts))
 
     def test_contains(self):
@@ -2295,8 +2296,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # datetime64
         s = Series(self.ts.index)
         rs = s.tolist()
-        xp = s.astype(object).values.tolist()
-        assert_almost_equal(rs, xp)
         self.assertEqual(self.ts.index[0], rs[0])
 
     def test_to_dict(self):
@@ -2619,6 +2618,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         arr = Series(['1', '2', '3', '4'], dtype=object)
         result = arr.astype(int)
         self.assert_(np.array_equal(result, np.arange(1, 5)))
+
+    def test_astype_datetimes(self):
+        import pandas.tslib as tslib
+
+        s = Series(tslib.iNaT, dtype='M8[ns]', index=range(5))
+        s = s.astype('O')
+        self.assert_(s.dtype == np.object_)
+
+        s = Series([datetime(2001, 1, 2, 0, 0)])
+        s = s.astype('O')
+        self.assert_(s.dtype == np.object_)
+
+        s = Series([datetime(2001, 1, 2, 0, 0) for i in range(3)])
+        s[1] = np.nan
+        self.assert_(s.dtype == 'M8[ns]')
+        s = s.astype('O')
+        self.assert_(s.dtype == np.object_)
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()
