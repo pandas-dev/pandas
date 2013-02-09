@@ -34,6 +34,11 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest
 
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
 
 #-------------------------------------------------------------------------------
 # Series test cases
@@ -2545,7 +2550,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.isnan(self.ts.asof(d)))
 
     def test_getitem_setitem_datetimeindex(self):
-        from pytz import timezone as tz
         from pandas import date_range
         N = 50
         # testing with timezone, GH #2785
@@ -2623,6 +2627,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result["1990-01-02"] = 0
         result["1990-01-02"] = ts[24:48]
         assert_series_equal(result, ts)
+
+    def test_getitem_setitem_datetime_tz(self):
+        _skip_if_no_pytz();
+        from pytz import timezone as tz
+
+        from pandas import date_range
+        N = 50
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(N), index=rng)
 
         # also test Timestamp tz handling, GH #2789
         result = ts.copy()

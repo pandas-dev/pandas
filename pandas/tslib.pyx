@@ -617,7 +617,7 @@ cdef convert_to_tsobject(object ts, object tz):
             # sort of a temporary hack
             if ts.tzinfo is not None:
                 if (hasattr(tz, 'normalize') and
-                        hasattr(ts.tzinfo, '_utcoffset')):
+                    hasattr(ts.tzinfo, '_utcoffset')):
                     ts = tz.normalize(ts)
                     obj.value = _pydatetime_to_dts(ts, &obj.dts)
                     obj.tzinfo = ts.tzinfo
@@ -631,9 +631,9 @@ cdef convert_to_tsobject(object ts, object tz):
                                                       PANDAS_FR_ns, &obj.dts)
                     obj.tzinfo = tz
             elif not _is_utc(tz):
-                if (hasattr(tz, 'localize')):
+                try:
                     ts = tz.localize(ts)
-                else:
+                except AttributeError:
                     ts = ts.replace(tzinfo=tz)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo
