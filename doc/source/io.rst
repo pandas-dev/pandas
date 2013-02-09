@@ -975,8 +975,8 @@ one can use the ExcelWriter class, as in the following example:
 HDF5 (PyTables)
 ---------------
 
-``HDFStore`` is a dict-like object which reads and writes pandas to the high
-performance HDF5 format using the excellent `PyTables
+``HDFStore`` is a dict-like object which reads and writes pandas to the
+high performance HDF5 format using the excellent `PyTables
 <http://www.pytables.org/>`__ library.
 
 .. ipython:: python
@@ -990,7 +990,8 @@ performance HDF5 format using the excellent `PyTables
    store = HDFStore('store.h5')
    print store
 
-Objects can be written to the file just like adding key-value pairs to a dict:
+Objects can be written to the file just like adding key-value pairs to a
+dict:
 
 .. ipython:: python
 
@@ -1040,7 +1041,7 @@ Closing a Store
    # closing a store
    store.close()
 
-   # Working with, and automatically closing the store with the context manager.
+   # Working with, and automatically closing the store with the context manager
    with get_store('store.h5') as store:
         store.keys()
 
@@ -1052,15 +1053,19 @@ Closing a Store
    os.remove('store.h5')
 
 
-These stores are **not** appendable once written (though you can simply remove them and rewrite). Nor are they **queryable**; they must be retrieved in their entirety.
+These stores are **not** appendable once written (though you can simply
+remove them and rewrite). Nor are they **queryable**; they must be
+retrieved in their entirety.
 
 
 Storing in Table format
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-``HDFStore`` supports another ``PyTables`` format on disk, the ``table`` format. Conceptually a ``table`` is shaped
-very much like a DataFrame, with rows and columns. A ``table`` may be appended to in the same or other sessions.
-In addition, delete & query type operations are supported.
+``HDFStore`` supports another ``PyTables`` format on disk, the ``table``
+format. Conceptually a ``table`` is shaped very much like a DataFrame,
+with rows and columns. A ``table`` may be appended to in the same or
+other sessions.  In addition, delete & query type operations are
+supported.
 
 .. ipython:: python
    :suppress:
@@ -1088,7 +1093,12 @@ In addition, delete & query type operations are supported.
 Hierarchical Keys
 ~~~~~~~~~~~~~~~~~
 
-Keys to a store can be specified as a string. These can be in a hierarchical path-name like format (e.g. ``foo/bar/bah``), which will generate a hierarchy of sub-stores (or ``Groups`` in PyTables parlance). Keys can be specified with out the leading '/' and are ALWAYS absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove everying in the sub-store and BELOW, so be *careful*.
+Keys to a store can be specified as a string. These can be in a
+hierarchical path-name like format (e.g. ``foo/bar/bah``), which will
+generate a hierarchy of sub-stores (or ``Groups`` in PyTables
+parlance). Keys can be specified with out the leading '/' and are ALWAYS
+absolute (e.g. 'foo' refers to '/foo'). Removal operations can remove
+everying in the sub-store and BELOW, so be *careful*.
 
 .. ipython:: python
 
@@ -1107,8 +1117,16 @@ Keys to a store can be specified as a string. These can be in a hierarchical pat
 Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Storing mixed-dtype data is supported. Strings are store as a fixed-width using the maximum size of the appended column. Subsequent appends will truncate strings at this length.
-Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set a larger minimum for the string columns. Storing ``floats, strings, ints, bools, datetime64`` are currently supported. For string columns, passing ``nan_rep = 'nan'`` to append will change the default nan representation on disk (which converts to/from `np.nan`), this defaults to `nan`.
+Storing mixed-dtype data is supported. Strings are store as a
+fixed-width using the maximum size of the appended column. Subsequent
+appends will truncate strings at this length.
+
+Passing ``min_itemsize = { `values` : size }`` as a parameter to append
+will set a larger minimum for the string columns. Storing ``floats,
+strings, ints, bools, datetime64`` are currently supported. For string
+columns, passing ``nan_rep = 'nan'`` to append will change the default
+nan representation on disk (which converts to/from `np.nan`), this
+defaults to `nan`.
 
 .. ipython:: python
 
@@ -1130,7 +1148,8 @@ Passing ``min_itemsize = { `values` : size }`` as a parameter to append will set
 Storing Multi-Index DataFrames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Storing multi-index dataframes as tables is very similar to storing/selecting from homogenous index DataFrames.
+Storing multi-index dataframes as tables is very similar to
+storing/selecting from homogenous index DataFrames.
 
 .. ipython:: python
 
@@ -1146,21 +1165,29 @@ Storing multi-index dataframes as tables is very similar to storing/selecting fr
         store.append('df_mi',df_mi)
         store.select('df_mi')
 
-	# the levels are automatically included as data columns
+	    # the levels are automatically included as data columns
         store.select('df_mi', Term('foo=bar'))
 
 
 Querying a Table
 ~~~~~~~~~~~~~~~~
-``select`` and ``delete`` operations have an optional criteria that can be specified to select/delete only
-a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
+
+``select`` and ``delete`` operations have an optional criteria that can
+be specified to select/delete only a subset of the data. This allows one
+to have a very large on-disk table and retrieve only a portion of the
+data.
 
 A query is specified using the ``Term`` class under the hood.
 
    - 'index' and 'columns' are supported indexers of a DataFrame
-   - 'major_axis', 'minor_axis', and 'items' are supported indexers of the Panel
+   - 'major_axis', 'minor_axis', and 'items' are supported indexers of
+     the Panel
 
-Valid terms can be created from ``dict, list, tuple, or string``. Objects can be embeded as values. Allowed operations are: ``<, <=, >, >=, =``. ``=`` will be inferred as an implicit set operation (e.g. if 2 or more values are provided). The following are all valid terms.
+Valid terms can be created from ``dict, list, tuple, or
+string``. Objects can be embeded as values. Allowed operations are: ``<,
+<=, >, >=, =``. ``=`` will be inferred as an implicit set operation
+(e.g. if 2 or more values are provided). The following are all valid
+terms.
 
        - ``dict(field = 'index', op = '>', value = '20121114')``
        - ``('index', '>', '20121114')``
@@ -1170,8 +1197,11 @@ Valid terms can be created from ``dict, list, tuple, or string``. Objects can be
        - ``('major_axis', '=', Timestamp('2012/11/14'))``
        - ``('minor_axis', ['A','B'])``
 
-Queries are built up using a list of ``Terms`` (currently only **anding** of terms is supported). An example query for a panel might be specified as follows.
-``['major_axis>20000102', ('minor_axis', '=', ['A','B']) ]``. This is roughly translated to: `major_axis must be greater than the date 20000102 and the minor_axis must be A or B`
+Queries are built up using a list of ``Terms`` (currently only
+**anding** of terms is supported). An example query for a panel might be
+specified as follows.  ``['major_axis>20000102', ('minor_axis', '=',
+['A','B']) ]``. This is roughly translated to: `major_axis must be
+greater than the date 20000102 and the minor_axis must be A or B`
 
 .. ipython:: python
 
@@ -1179,13 +1209,16 @@ Queries are built up using a list of ``Terms`` (currently only **anding** of ter
    store
    store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
 
-The ``columns`` keyword can be supplied to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``
+The ``columns`` keyword can be supplied to select to filter a list of
+the return columns, this is equivalent to passing a
+``Term('columns',list_of_columns_to_filter)``
 
 .. ipython:: python
 
    store.select('df', columns = ['A','B'])
 
-Start and Stop parameters can be specified to limit the total search space. These are in terms of the total number of rows in a table.
+Start and Stop parameters can be specified to limit the total search
+space. These are in terms of the total number of rows in a table.
 
 .. ipython:: python
 
@@ -1198,7 +1231,15 @@ Start and Stop parameters can be specified to limit the total search space. Thes
 
 Indexing
 ~~~~~~~~
-You can create/modify an index for a table with ``create_table_index`` after data is already in the table (after and ``append/put`` operation). Creating a table index is **highly** encouraged. This will speed your queries a great deal when you use a ``select`` with the indexed dimension as the ``where``. **Indexes are automagically created (starting 0.10.1)** on the indexables and any data columns you specify. This behavior can be turned off by passing ``index=False`` to ``append``.
+
+You can create/modify an index for a table with ``create_table_index``
+after data is already in the table (after and ``append/put``
+operation). Creating a table index is **highly** encouraged. This will
+speed your queries a great deal when you use a ``select`` with the
+indexed dimension as the ``where``. **Indexes are automagically created
+(starting 0.10.1)** on the indexables and any data columns you
+specify. This behavior can be turned off by passing ``index=False`` to
+``append``.
 
 .. ipython:: python
 
@@ -1214,7 +1255,13 @@ You can create/modify an index for a table with ``create_table_index`` after dat
 
 Query via Data Columns
 ~~~~~~~~~~~~~~~~~~~~~~
-You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query. You can specify ``data_columns = True`` to force all columns to be data_columns
+
+You can designate (and index) certain columns that you want to be able
+to perform queries (other than the `indexable` columns, which you can
+always query). For instance say you want to perform this common
+operation, on-disk, and return just the frame that matches this
+query. You can specify ``data_columns = True`` to force all columns to
+be data_columns
 
 .. ipython:: python
 
@@ -1235,17 +1282,24 @@ You can designate (and index) certain columns that you want to be able to perfor
    # this is in-memory version of this type of selection
    df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
 
-   # we have automagically created this index and that the B/C/string/string2 columns are stored separately as ``PyTables`` columns
+   # we have automagically created this index and that the B/C/string/string2
+   # columns are stored separately as ``PyTables`` columns
    store.root.df_dc.table
 
-There is some performance degredation by making lots of columns into `data columns`, so it is up to the user to designate these. In addition, you cannot change data columns (nor indexables) after the first append/put operation (Of course you can simply read in the data and create a new table!)
+There is some performance degredation by making lots of columns into
+`data columns`, so it is up to the user to designate these. In addition,
+you cannot change data columns (nor indexables) after the first
+append/put operation (Of course you can simply read in the data and
+create a new table!)
 
 Advanced Queries
 ~~~~~~~~~~~~~~~~
 
 **Unique**
 
-To retrieve the *unique* values of an indexable or data column, use the method ``unique``. This will, for example, enable you to get the index very quickly. Note ``nan`` are excluded from the result set.
+To retrieve the *unique* values of an indexable or data column, use the
+method ``unique``. This will, for example, enable you to get the index
+very quickly. Note ``nan`` are excluded from the result set.
 
 .. ipython:: python
 
@@ -1254,7 +1308,9 @@ To retrieve the *unique* values of an indexable or data column, use the method `
 
 **Replicating or**
 
-``not`` and ``or`` conditions are unsupported at this time; however, ``or`` operations are easy to replicate, by repeately applying the criteria to the table, and then ``concat`` the results.
+``not`` and ``or`` conditions are unsupported at this time; however,
+``or`` operations are easy to replicate, by repeately applying the
+criteria to the table, and then ``concat`` the results.
 
 .. ipython:: python
 
@@ -1265,42 +1321,70 @@ To retrieve the *unique* values of an indexable or data column, use the method `
 
 **Storer Object**
 
-If you want to inspect the stored object, retrieve via ``get_storer``. You could use this progamatically to say get the number of rows in an object.
+If you want to inspect the stored object, retrieve via
+``get_storer``. You could use this progamatically to say get the number
+of rows in an object.
 
 .. ipython:: python
 
    store.get_storer('df_dc').nrows
 
+
 Multiple Table Queries
 ~~~~~~~~~~~~~~~~~~~~~~
 
-New in 0.10.1 are the methods ``append_to_multple`` and ``select_as_multiple``, that can perform appending/selecting from multiple tables at once. The idea is to have one table (call it the selector table) that you index most/all of the columns, and perform your queries. The other table(s) are data tables that are indexed the same the selector table. You can then perform a very fast query on the selector table, yet get lots of data back. This method works similar to having a very wide-table, but is more efficient in terms of queries.
+New in 0.10.1 are the methods ``append_to_multple`` and
+``select_as_multiple``, that can perform appending/selecting from
+multiple tables at once. The idea is to have one table (call it the
+selector table) that you index most/all of the columns, and perform your
+queries. The other table(s) are data tables that are indexed the same
+the selector table. You can then perform a very fast query on the
+selector table, yet get lots of data back. This method works similar to
+having a very wide-table, but is more efficient in terms of queries.
 
-Note, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This means, append to the tables in the same order; ``append_to_multiple`` splits a single object to multiple tables, given a specification (as a dictionary). This dictionary is a mapping of the table names to the 'columns' you want included in that table. Pass a `None` for a single table (optional) to let it have the remaining columns. The argument ``selector`` defines which table is the selector table.
+Note, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This
+means, append to the tables in the same order; ``append_to_multiple``
+splits a single object to multiple tables, given a specification (as a
+dictionary). This dictionary is a mapping of the table names to the
+'columns' you want included in that table. Pass a `None` for a single
+table (optional) to let it have the remaining columns. The argument
+``selector`` defines which table is the selector table.
 
 .. ipython:: python
 
-   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8), 
+   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8),
                                   columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
 
    # you can also create the tables individually
-   store.append_to_multiple({ 'df1_mt' : ['A','B'], 'df2_mt' : None }, df_mt, selector = 'df1_mt')
+   store.append_to_multiple({ 'df1_mt' : ['A','B'], 'df2_mt' : None },
+                              df_mt, selector = 'df1_mt')
    store
 
    # indiviual tables were created
    store.select('df1_mt')
    store.select('df2_mt')
-   
+
    # as a multiple
    store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], selector = 'df1_mt')
-  
+
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~
-You can delete from a table selectively by specifying a ``where``. In deleting rows, it is important to understand the ``PyTables`` deletes rows by erasing the rows, then **moving** the following data. Thus deleting can potentially be a very expensive operation depending on the orientation of your data. This is especially true in higher dimensional objects (``Panel`` and ``Panel4D``). To get optimal deletion speed, it pays to have the dimension you are deleting be the first of the ``indexables``.
 
-Data is ordered (on the disk) in terms of the ``indexables``. Here's a simple use case. You store panel type data, with dates in the ``major_axis`` and ids in the ``minor_axis``. The data is then interleaved like this:
+You can delete from a table selectively by specifying a ``where``. In
+deleting rows, it is important to understand the ``PyTables`` deletes
+rows by erasing the rows, then **moving** the following data. Thus
+deleting can potentially be a very expensive operation depending on the
+orientation of your data. This is especially true in higher dimensional
+objects (``Panel`` and ``Panel4D``). To get optimal deletion speed, it
+pays to have the dimension you are deleting be the first of the
+``indexables``.
+
+Data is ordered (on the disk) in terms of the ``indexables``. Here's a
+simple use case. You store panel type data, with dates in the
+``major_axis`` and ids in the ``minor_axis``. The data is then
+interleaved like this:
 
    - date_1
         - id_1
@@ -1312,7 +1396,11 @@ Data is ordered (on the disk) in terms of the ``indexables``. Here's a simple us
         -  .
         - id_n
 
-It should be clear that a delete operation on the ``major_axis`` will be fairly quick, as one chunk is removed, then the following data moved. On the other hand a delete operation on the ``minor_axis`` will be very expensive. In this case it would almost certainly be faster to rewrite the table using a ``where`` that selects all but the missing data.
+It should be clear that a delete operation on the ``major_axis`` will be
+fairly quick, as one chunk is removed, then the following data moved. On
+the other hand a delete operation on the ``minor_axis`` will be very
+expensive. In this case it would almost certainly be faster to rewrite
+the table using a ``where`` that selects all but the missing data.
 
 .. ipython:: python
 
@@ -1320,73 +1408,117 @@ It should be clear that a delete operation on the ``major_axis`` will be fairly 
    store.remove('wp', 'major_axis>20000102' )
    store.select('wp')
 
-Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files automatically. Thus, repeatedly deleting (or removing nodes) and adding again **WILL TEND TO INCREASE THE FILE SIZE**. To *clean* the file, use ``ptrepack`` (see below).
+Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files
+automatically. Thus, repeatedly deleting (or removing nodes) and adding
+again **WILL TEND TO INCREASE THE FILE SIZE**. To *clean* the file, use
+``ptrepack`` (see below).
 
 Compression
 ~~~~~~~~~~~
-``PyTables`` allows the stored data to be compressed. Tthis applies to all kinds of stores, not just tables.
 
-   - Pass ``complevel=int`` for a compression level (1-9, with 0 being no compression, and the default)
-   - Pass ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for whichever compression library you prefer.
+``PyTables`` allows the stored data to be compressed. Tthis applies to
+all kinds of stores, not just tables.
 
-``HDFStore`` will use the file based compression scheme if no overriding ``complib`` or ``complevel`` options are provided. ``blosc`` offers very fast compression, and is my most used. Note that ``lzo`` and ``bzip2`` may not be installed (by Python) by default.
+   - Pass ``complevel=int`` for a compression level (1-9, with 0 being no
+     compression, and the default)
+   - Pass ``complib=lib`` where lib is any of ``zlib, bzip2, lzo, blosc`` for
+     whichever compression library you prefer.
+
+``HDFStore`` will use the file based compression scheme if no overriding
+``complib`` or ``complevel`` options are provided. ``blosc`` offers very
+fast compression, and is my most used. Note that ``lzo`` and ``bzip2``
+may not be installed (by Python) by default.
 
 Compression for all objects within the file
 
    - ``store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')``
 
-Or on-the-fly compression (this only applies to tables). You can turn off file compression for a specific table by passing ``complevel=0``
+Or on-the-fly compression (this only applies to tables). You can turn
+off file compression for a specific table by passing ``complevel=0``
 
    - ``store.append('df', df, complib='zlib', complevel=5)``
 
 **ptrepack**
 
-``PyTables`` offer better write performance when compressed after writing them, as opposed to turning on compression at the very beginning. You can use the supplied ``PyTables`` utility ``ptrepack``. In addition, ``ptrepack`` can change compression levels after the fact.
+``PyTables`` offer better write performance when compressed after
+writing them, as opposed to turning on compression at the very
+beginning. You can use the supplied ``PyTables`` utility
+``ptrepack``. In addition, ``ptrepack`` can change compression levels
+after the fact.
 
    - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
 
-Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow you to reuse previously deleted space. Aalternatively, one can simply remove the file and write again, or use the ``copy`` method.
+Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow
+you to reuse previously deleted space. Aalternatively, one can simply
+remove the file and write again, or use the ``copy`` method.
 
 Notes & Caveats
 ~~~~~~~~~~~~~~~
 
-   - Once a ``table`` is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
-   - You can not append/select/delete to a non-table (table creation is determined on the first append, or by passing ``table=True`` in a put operation)
-   - ``HDFStore`` is **not-threadsafe for writing**. The underlying ``PyTables`` only supports concurrent reads (via threading or processes). If you need reading and writing *at the same time*, you need to serialize these operations in a single thread in a single process. You will corrupt your data otherwise. See the issue <https://github.com/pydata/pandas/issues/2397> for more information.
-
-   - ``PyTables`` only supports fixed-width string columns in ``tables``. The sizes of a string based indexing column (e.g. *columns* or *minor_axis*) are determined as the maximum size of the elements in that axis or by passing the parameter ``min_itemsize`` on the first table creation (``min_itemsize`` can be an integer or a dict of column name to an integer). If subsequent appends introduce elements in the indexing axis that are larger than the supported indexer, an Exception will be raised (otherwise you could have a silent truncation of these indexers, leading to loss of information). Just to be clear, this fixed-width restriction applies to **indexables** (the indexing columns) and **string values** in a mixed_type table.
+   - Once a ``table`` is created its items (Panel) / columns (DataFrame)
+     are fixed; only exactly the same columns can be appended
+   - You can not append/select/delete to a non-table (table creation is
+     determined on the first append, or by passing ``table=True`` in a
+     put operation)
+   - ``HDFStore`` is **not-threadsafe for writing**. The underlying
+     ``PyTables`` only supports concurrent reads (via threading or
+     processes). If you need reading and writing *at the same time*, you
+     need to serialize these operations in a single thread in a single
+     process. You will corrupt your data otherwise. See the issue
+     <https://github.com/pydata/pandas/issues/2397> for more
+     information.
+   - ``PyTables`` only supports fixed-width string columns in
+     ``tables``. The sizes of a string based indexing column
+     (e.g. *columns* or *minor_axis*) are determined as the maximum size
+     of the elements in that axis or by passing the parameter
+     ``min_itemsize`` on the first table creation (``min_itemsize`` can
+     be an integer or a dict of column name to an integer). If
+     subsequent appends introduce elements in the indexing axis that are
+     larger than the supported indexer, an Exception will be raised
+     (otherwise you could have a silent truncation of these indexers,
+     leading to loss of information). Just to be clear, this fixed-width
+     restriction applies to **indexables** (the indexing columns) and
+     **string values** in a mixed_type table.
 
      .. ipython:: python
 
-        store.append('wp_big_strings', wp, min_itemsize = { 'minor_axis' : 30 })
-	wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
-        store.append('wp_big_strings', wp)
-        store.select('wp_big_strings')
+     store.append('wp_big_strings', wp, min_itemsize = { 'minor_axis' : 30 })
+     wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
+     store.append('wp_big_strings', wp)
+     store.select('wp_big_strings')
 
-	# we have provided a minimum minor_axis indexable size
-	store.root.wp_big_strings.table
+     # we have provided a minimum minor_axis indexable size
+     store.root.wp_big_strings.table
 
 DataTypes
 ~~~~~~~~~
 
-``HDFStore`` will map an object dtype to the ``PyTables`` underlying dtype. This means the following types are known to work:
+``HDFStore`` will map an object dtype to the ``PyTables`` underlying
+dtype. This means the following types are known to work:
 
-    - floating : ``float64, float32, float16`` *(using* ``np.nan`` *to represent invalid values)*
+    - floating : ``float64, float32, float16`` *(using* ``np.nan`` *to
+      represent invalid values)*
     - integer : ``int64, int32, int8, uint64, uint32, uint8``
     - bool
     - datetime64[ns] *(using* ``NaT`` *to represent invalid values)*
-    - object : ``strings`` *(using*  ``np.nan`` *to represent invalid values)*
+    - object : ``strings`` *(using* ``np.nan`` *to represent invalid
+      values)*
 
-Currently, ``unicode`` and ``datetime`` columns (represented with a dtype of ``object``), **WILL FAIL**. In addition, even though a column may look like a ``datetime64[ns]``,
-if it contains ``np.nan``, this **WILL FAIL**. You can try to convert datetimelike columns to proper ``datetime64[ns]`` columns, that possibily contain ``NaT`` to represent invalid values. (Some of these issues have been addressed and these conversion may not be necessary in future versions of pandas)
+Currently, ``unicode`` and ``datetime`` columns (represented with a
+dtype of ``object``), **WILL FAIL**. In addition, even though a column
+may look like a ``datetime64[ns]``, if it contains ``np.nan``, this
+**WILL FAIL**. You can try to convert datetimelike columns to proper
+``datetime64[ns]`` columns, that possibily contain ``NaT`` to represent
+invalid values. (Some of these issues have been addressed and these
+conversion may not be necessary in future versions of pandas)
 
     .. ipython:: python
- 
+
        import datetime
        df = DataFrame(dict(datelike = Series([datetime.datetime(2001,1,1),datetime.datetime(2001,1,2),np.nan])))
        df
        df.dtypes
-       
+
        # to convert
        df['datelike'] = Series(df['datelike'].values,dtype='M8[ns]')
        df
@@ -1395,17 +1527,22 @@ if it contains ``np.nan``, this **WILL FAIL**. You can try to convert datetimeli
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~
 
-``HDFStore`` write storer objects in specific formats suitable for producing loss-less roundtrips to pandas objects. For external compatibility, ``HDFStore`` can read native ``PyTables`` format tables. It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the ``rhdf5`` library. Create a table format store like this:
+``HDFStore`` write storer objects in specific formats suitable for
+producing loss-less roundtrips to pandas objects. For external
+compatibility, ``HDFStore`` can read native ``PyTables`` format
+tables. It is possible to write an ``HDFStore`` object that can easily
+be imported into ``R`` using the ``rhdf5`` library. Create a table
+format store like this:
 
      .. ipython:: python
 
         store_export = HDFStore('export.h5')
-	store_export.append('df_dc',df_dc,data_columns=df_dc.columns)
-	store_export
+	    store_export.append('df_dc',df_dc,data_columns=df_dc.columns)
+	    store_export
 
      .. ipython:: python
         :suppress:
- 
+
         store_export.close()
         import os
         os.remove('export.h5')
@@ -1413,12 +1550,19 @@ External Compatibility
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-0.10.1 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire file and write it out using the new format, using the method ``copy`` to take advantage of the updates. The group attribute ``pandas_version`` contains the version information. ``copy`` takes a number of options, please see the docstring.
+0.10.1 of ``HDFStore`` is backwards compatible for reading tables
+created in a prior version of pandas however, query terms using the
+prior (undocumented) methodology are unsupported. ``HDFStore`` will
+issue a warning if you try to use a prior-version format file. You must
+read in the entire file and write it out using the new format, using the
+method ``copy`` to take advantage of the updates. The group attribute
+``pandas_version`` contains the version information. ``copy`` takes a
+number of options, please see the docstring.
 
 
      .. ipython:: python
         :suppress:
- 
+
         import os
         legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
 
@@ -1429,27 +1573,40 @@ Backwards Compatibility
         legacy_store
 
         # copy (and return the new handle)
-	new_store = legacy_store.copy('store_new.h5')
-	new_store
+	    new_store = legacy_store.copy('store_new.h5')
+	    new_store
         new_store.close()
 
      .. ipython:: python
         :suppress:
- 
+
         legacy_store.close()
         import os
         os.remove('store_new.h5')
-     
+
 
 Performance
 ~~~~~~~~~~~
 
-   - ``Tables`` come with a writing performance penalty as compared to regular stores. The benefit is the ability to append/delete and query (potentially very large amounts of data).
-     Write times are generally longer as compared with regular stores. Query times can be quite fast, especially on an indexed axis.
-   - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
-   - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
-   - Duplicate rows can be written to tables, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
-   - A ``PerformanceWarning`` will be raised if you are attempting to store types that will be pickled by PyTables (rather than stored as endemic types). See <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190> for more information and some solutions.
+   - ``Tables`` come with a writing performance penalty as compared to
+     regular stores. The benefit is the ability to append/delete and
+     query (potentially very large amounts of data).  Write times are
+     generally longer as compared with regular stores. Query times can
+     be quite fast, especially on an indexed axis.
+   - You can pass ``chunksize=an integer`` to ``append``, to change the
+     writing chunksize (default is 50000). This will signficantly lower
+     your memory usage on writing.
+   - You can pass ``expectedrows=an integer`` to the first ``append``,
+     to set the TOTAL number of expectedrows that ``PyTables`` will
+     expected. This will optimize read/write performance.
+   - Duplicate rows can be written to tables, but are filtered out in
+     selection (with the last items being selected; thus a table is
+     unique on major, minor pairs)
+   - A ``PerformanceWarning`` will be raised if you are attempting to
+     store types that will be pickled by PyTables (rather than stored as
+     endemic types). See
+     <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>
+     for more information and some solutions.
 
 Experimental
 ~~~~~~~~~~~~
@@ -1463,7 +1620,12 @@ HDFStore supports ``Panel4D`` storage.
    store.append('p4d', p4d)
    store
 
-These, by default, index the three axes ``items, major_axis, minor_axis``. On an ``AppendableTable`` it is possible to setup with the first append a different indexing scheme, depending on how you want to store your data. Pass the ``axes`` keyword with a list of dimension (currently must by exactly 1 less than the total dimensions of the object). This cannot be changed after table creation.
+These, by default, index the three axes ``items, major_axis,
+minor_axis``. On an ``AppendableTable`` it is possible to setup with the
+first append a different indexing scheme, depending on how you want to
+store your data. Pass the ``axes`` keyword with a list of dimension
+(currently must by exactly 1 less than the total dimensions of the
+object). This cannot be changed after table creation.
 
 .. ipython:: python
 

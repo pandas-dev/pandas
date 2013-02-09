@@ -19,6 +19,8 @@ import os
 # sys.path.append(os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../sphinxext'))
 
+sys.path.insert(0, '/home/e0/repos/jrb_pytb7')
+
 sys.path.extend([
 
     # numpy standard doc extensions
