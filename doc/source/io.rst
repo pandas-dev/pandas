@@ -1118,11 +1118,11 @@ everying in the sub-store and BELOW, so be *careful*.
 Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Storing mixed-dtype data is supported. Strings are store as a
+Storing mixed-dtype data is supported. Strings are stored as a
 fixed-width using the maximum size of the appended column. Subsequent
 appends will truncate strings at this length.
 
-Passing ``min_itemsize = { `values` : size }`` as a parameter to append
+Passing ``min_itemsize={`values`: size}`` as a parameter to append
 will set a larger minimum for the string columns. Storing ``floats,
 strings, ints, bools, datetime64`` are currently supported. For string
 columns, passing ``nan_rep = 'nan'`` to append will change the default
@@ -1136,7 +1136,7 @@ defaults to `nan`.
     df_mixed['int']      = 1
     df_mixed['bool']     = True
     df_mixed['datetime64'] = Timestamp('20010102')
-    df_mixed.ix[3:5,['A','B','string','datetime64']] = np.nan
+    df_mixed.ix[3:5,['A', 'B', 'string', 'datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
     df_mixed1 = store.select('df_mixed')
@@ -1150,7 +1150,7 @@ Storing Multi-Index DataFrames
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Storing multi-index dataframes as tables is very similar to
-storing/selecting from homogenous index DataFrames.
+storing/selecting from homogeneous index DataFrames.
 
 .. ipython:: python
 
@@ -1173,7 +1173,7 @@ storing/selecting from homogenous index DataFrames.
 Querying a Table
 ~~~~~~~~~~~~~~~~
 
-``select`` and ``delete`` operations have an optional criteria that can
+``select`` and ``delete`` operations have an optional criterion that can
 be specified to select/delete only a subset of the data. This allows one
 to have a very large on-disk table and retrieve only a portion of the
 data.
@@ -1201,7 +1201,7 @@ terms.
 Queries are built up using a list of ``Terms`` (currently only
 **anding** of terms is supported). An example query for a panel might be
 specified as follows.  ``['major_axis>20000102', ('minor_axis', '=',
-['A','B']) ]``. This is roughly translated to: `major_axis must be
+['A', 'B']) ]``. This is roughly translated to: `major_axis must be
 greater than the date 20000102 and the minor_axis must be A or B`
 
 .. ipython:: python
@@ -1212,13 +1212,13 @@ greater than the date 20000102 and the minor_axis must be A or B`
 
 The ``columns`` keyword can be supplied to select to filter a list of
 the return columns, this is equivalent to passing a
-``Term('columns',list_of_columns_to_filter)``
+``Term('columns', list_of_columns_to_filter)``
 
 .. ipython:: python
 
    store.select('df', columns=['A', 'B'])
 
-Start and Stop parameters can be specified to limit the total search
+``start`` and ``stop`` parameters can be specified to limit the total search
 space. These are in terms of the total number of rows in a table.
 
 .. ipython:: python
@@ -1251,7 +1251,7 @@ specify. This behavior can be turned off by passing ``index=False`` to
    i.optlevel, i.kind
 
    # change an index by passing new parameters
-   store.create_table_index('df', optlevel = 9, kind = 'full')
+   store.create_table_index('df', optlevel=9, kind='full')
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
@@ -1312,7 +1312,7 @@ very quickly. Note ``nan`` are excluded from the result set.
 **Replicating or**
 
 ``not`` and ``or`` conditions are unsupported at this time; however,
-``or`` operations are easy to replicate, by repeately applying the
+``or`` operations are easy to replicate, by repeatedly applying the
 criteria to the table, and then ``concat`` the results.
 
 .. ipython:: python
@@ -1325,7 +1325,7 @@ criteria to the table, and then ``concat`` the results.
 **Storer Object**
 
 If you want to inspect the stored object, retrieve via
-``get_storer``. You could use this progamatically to say get the number
+``get_storer``. You could use this programmatically to say get the number
 of rows in an object.
 
 .. ipython:: python
@@ -1340,10 +1340,10 @@ New in 0.10.1 are the methods ``append_to_multple`` and
 ``select_as_multiple``, that can perform appending/selecting from
 multiple tables at once. The idea is to have one table (call it the
 selector table) that you index most/all of the columns, and perform your
-queries. The other table(s) are data tables that are indexed the same
+queries. The other table(s) are data tables that are indexed the same as
 the selector table. You can then perform a very fast query on the
 selector table, yet get lots of data back. This method works similar to
-having a very wide-table, but is more efficient in terms of queries.
+having a very wide table, but is more efficient in terms of queries.
 
 Note, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This
 means, append to the tables in the same order; ``append_to_multiple``
@@ -1369,7 +1369,7 @@ table (optional) to let it have the remaining columns. The argument
    store.select('df2_mt')
 
    # as a multiple
-   store.select_as_multiple(['df1_mt','df2_mt'], where=['A>0', 'B>0'],
+   store.select_as_multiple(['df1_mt', 'df2_mt'], where=['A>0', 'B>0'],
                              selector = 'df1_mt')
 
 
@@ -1386,7 +1386,7 @@ pays to have the dimension you are deleting be the first of the
 ``indexables``.
 
 Data is ordered (on the disk) in terms of the ``indexables``. Here's a
-simple use case. You store panel type data, with dates in the
+simple use case. You store panel-type data, with dates in the
 ``major_axis`` and ids in the ``minor_axis``. The data is then
 interleaved like this:
 
