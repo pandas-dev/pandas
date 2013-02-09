@@ -1579,7 +1579,7 @@ class NDFrameGroupBy(GroupBy):
             if self.axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
 
-            obj = self._obj_with_exclusions
+            obj = self.obj
 
             if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
                 new_arg = OrderedDict()
