@@ -2286,6 +2286,9 @@ copy : boolean, default False
         -------
         y : Series or DataFrame if func returns a Series
         """
+        if len(self) == 0:
+            return Series()
+
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
         else:

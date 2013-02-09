@@ -2685,6 +2685,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = DataFrame({'x': self.ts, 'x^2': self.ts ** 2})
         tm.assert_frame_equal(result, expected)
 
+        # empty series
+        s = Series()
+        rs = s.apply(lambda x: x)
+        tm.assert_series_equal(s, rs)
+
+        # index but no data
+        s = Series(index=[1,2,3])
+        rs = s.apply(lambda x: x)
+        tm.assert_series_equal(s, rs)
+
     def test_apply_same_length_inference_bug(self):
         s = Series([1, 2])
         f = lambda x: (x, x + 1)
