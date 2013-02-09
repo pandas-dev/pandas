@@ -55,6 +55,19 @@ frame_reindex_both_axes_ix = Benchmark('df.ix[idx, idx]', setup,
                                        start_date=datetime(2011, 1, 1))
 
 #----------------------------------------------------------------------
+# reindex with upcasts
+setup = common_setup + """
+df=DataFrame(dict([(c, {
+        0: randint(0, 2, 1000).astype(np.bool_),
+        1: randint(0, 1000, 1000).astype(np.int16),
+        2: randint(0, 1000, 1000).astype(np.int32),
+        3: randint(0, 1000, 1000).astype(np.int64)
+    }[randint(0, 4)]) for c in range(1000)]))
+"""
+
+frame_reindex_upcast = Benchmark('df.reindex(permutation(range(1200)))', setup)
+
+#----------------------------------------------------------------------
 # boolean indexing
 
 setup = common_setup + """
@@ -71,6 +84,7 @@ frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
 
 setup = common_setup + """
 df = DataFrame(randn(10000, 100))
+
 def f():
     if hasattr(df, '_item_cache'):
         df._item_cache.clear()
