@@ -975,8 +975,8 @@ one can use the ExcelWriter class, as in the following example:
 HDF5 (PyTables)
 ---------------
 
-``HDFStore`` is a dict-like object which reads and writes pandas to the
-high performance HDF5 format using the excellent `PyTables
+``HDFStore`` is a dict-like object which reads and writes pandas using
+the high performance HDF5 format using the excellent `PyTables
 <http://www.pytables.org/>`__ library.
 
 .. ipython:: python
@@ -1041,7 +1041,8 @@ Closing a Store
    # closing a store
    store.close()
 
-   # Working with, and automatically closing the store with the context manager
+   # Working with, and automatically closing the store with the context
+   # manager
    with get_store('store.h5') as store:
         store.keys()
 
@@ -1137,7 +1138,7 @@ defaults to `nan`.
     df_mixed['datetime64'] = Timestamp('20010102')
     df_mixed.ix[3:5,['A','B','string','datetime64']] = np.nan
 
-    store.append('df_mixed', df_mixed, min_itemsize = { 'values' : 50 })
+    store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
     df_mixed1 = store.select('df_mixed')
     df_mixed1
     df_mixed1.get_dtype_counts()
@@ -1159,7 +1160,7 @@ storing/selecting from homogenous index DataFrames.
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
         df_mi = DataFrame(np.random.randn(10, 3), index=index,
-                       columns=['A', 'B', 'C'])
+                          columns=['A', 'B', 'C'])
         df_mi
 
         store.append('df_mi',df_mi)
@@ -1192,10 +1193,10 @@ terms.
        - ``dict(field = 'index', op = '>', value = '20121114')``
        - ``('index', '>', '20121114')``
        - ``'index > 20121114'``
-       - ``('index', '>', datetime(2012,11,14))``
-       - ``('index', ['20121114','20121115'])``
+       - ``('index', '>', datetime(2012, 11, 14))``
+       - ``('index', ['20121114', '20121115'])``
        - ``('major_axis', '=', Timestamp('2012/11/14'))``
-       - ``('minor_axis', ['A','B'])``
+       - ``('minor_axis', ['A', 'B'])``
 
 Queries are built up using a list of ``Terms`` (currently only
 **anding** of terms is supported). An example query for a panel might be
@@ -1207,7 +1208,7 @@ greater than the date 20000102 and the minor_axis must be A or B`
 
    store.append('wp',wp)
    store
-   store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
+   store.select('wp', [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A', 'B']) ])
 
 The ``columns`` keyword can be supplied to select to filter a list of
 the return columns, this is equivalent to passing a
@@ -1215,7 +1216,7 @@ the return columns, this is equivalent to passing a
 
 .. ipython:: python
 
-   store.select('df', columns = ['A','B'])
+   store.select('df', columns=['A', 'B'])
 
 Start and Stop parameters can be specified to limit the total search
 space. These are in terms of the total number of rows in a table.
@@ -1226,7 +1227,9 @@ space. These are in terms of the total number of rows in a table.
    wp.to_frame()
 
    # limiting the search
-   store.select('wp',[ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ], start=0, stop=10)
+   store.select('wp',[ Term('major_axis>20000102'),
+                       Term('minor_axis', '=', ['A','B']) ],
+                start=0, stop=10)
 
 
 Indexing
@@ -1273,11 +1276,11 @@ be data_columns
    df_dc
 
    # on-disk operations
-   store.append('df_dc', df_dc, data_columns = ['B','C','string','string2'])
-   store.select('df_dc',[ Term('B>0') ])
+   store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
+   store.select('df_dc', [ Term('B>0') ])
 
    # getting creative
-   store.select('df_dc',[ 'B > 0', 'C > 0', 'string == foo' ])
+   store.select('df_dc', ['B > 0', 'C > 0', 'string == foo'])
 
    # this is in-memory version of this type of selection
    df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
@@ -1303,8 +1306,8 @@ very quickly. Note ``nan`` are excluded from the result set.
 
 .. ipython:: python
 
-   store.unique('df_dc','index')
-   store.unique('df_dc','string')
+   store.unique('df_dc', 'index')
+   store.unique('df_dc', 'string')
 
 **Replicating or**
 
@@ -1317,7 +1320,7 @@ criteria to the table, and then ``concat`` the results.
    crit1 = [ Term('B>0'), Term('C>0'), Term('string=foo') ]
    crit2 = [ Term('B<0'), Term('C>0'), Term('string=foo') ]
 
-   concat([ store.select('df_dc',c) for c in [ crit1, crit2 ] ])
+   concat([store.select('df_dc',c) for c in [crit1, crit2]])
 
 **Storer Object**
 
@@ -1357,8 +1360,8 @@ table (optional) to let it have the remaining columns. The argument
    df_mt['foo'] = 'bar'
 
    # you can also create the tables individually
-   store.append_to_multiple({ 'df1_mt' : ['A','B'], 'df2_mt' : None },
-                              df_mt, selector = 'df1_mt')
+   store.append_to_multiple({'df1_mt': ['A', 'B'], 'df2_mt': None },
+                             df_mt, selector='df1_mt')
    store
 
    # indiviual tables were created
@@ -1366,7 +1369,8 @@ table (optional) to let it have the remaining columns. The argument
    store.select('df2_mt')
 
    # as a multiple
-   store.select_as_multiple(['df1_mt','df2_mt'], where = [ 'A>0','B>0' ], selector = 'df1_mt')
+   store.select_as_multiple(['df1_mt','df2_mt'], where=['A>0', 'B>0'],
+                             selector = 'df1_mt')
 
 
 Delete from a Table
@@ -1431,7 +1435,8 @@ may not be installed (by Python) by default.
 
 Compression for all objects within the file
 
-   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')``
+   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9,
+                                    complib='blosc')``
 
 Or on-the-fly compression (this only applies to tables). You can turn
 off file compression for a specific table by passing ``complevel=0``
@@ -1446,7 +1451,8 @@ beginning. You can use the supplied ``PyTables`` utility
 ``ptrepack``. In addition, ``ptrepack`` can change compression levels
 after the fact.
 
-   - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
+   - ``ptrepack --chunkshape=auto --propindexes --complevel=9
+       --complib=blosc in.h5 out.h5``
 
 Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow
 you to reuse previously deleted space. Aalternatively, one can simply
@@ -1515,12 +1521,13 @@ conversion may not be necessary in future versions of pandas)
     .. ipython:: python
 
        import datetime
-       df = DataFrame(dict(datelike = Series([datetime.datetime(2001,1,1),datetime.datetime(2001,1,2),np.nan])))
+       df = DataFrame(dict(datelike=Series([datetime.datetime(2001, 1, 1),
+                                            datetime.datetime(2001, 1, 2), np.nan])))
        df
        df.dtypes
 
        # to convert
-       df['datelike'] = Series(df['datelike'].values,dtype='M8[ns]')
+       df['datelike'] = Series(df['datelike'].values, dtype='M8[ns]')
        df
        df.dtypes
 
@@ -1537,7 +1544,7 @@ format store like this:
      .. ipython:: python
 
         store_export = HDFStore('export.h5')
-	    store_export.append('df_dc',df_dc,data_columns=df_dc.columns)
+	    store_export.append('df_dc', df_dc, data_columns=df_dc.columns)
 	    store_export
 
      .. ipython:: python
@@ -1629,7 +1636,7 @@ object). This cannot be changed after table creation.
 
 .. ipython:: python
 
-   store.append('p4d2', p4d, axes = ['labels','major_axis','minor_axis'])
+   store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
    store
    store.select('p4d2', [ Term('labels=l1'), Term('items=Item1'), Term('minor_axis=A_big_strings') ])
 
