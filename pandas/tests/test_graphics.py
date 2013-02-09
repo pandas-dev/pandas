@@ -300,6 +300,16 @@ class TestDataFramePlots(unittest.TestCase):
         lines = ax.get_lines()
         self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
 
+    @slow
+    def test_unsorted_index(self):
+        df = DataFrame({'y': range(100)},
+                       index=range(99, -1, -1))
+        ax = df.plot()
+        l = ax.get_lines()[0]
+        rs = l.get_xydata()
+        rs = Series(rs[:, 1], rs[:, 0], dtype=int)
+        tm.assert_series_equal(rs, df.y)
+
     def _check_data(self, xp, rs):
         xp_lines = xp.get_lines()
         rs_lines = rs.get_lines()
