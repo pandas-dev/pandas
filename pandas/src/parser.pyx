@@ -172,8 +172,8 @@ cdef extern from "parser/tokenizer.h":
 
     void debug_print_parser(parser_t *self)
 
-    int tokenize_all_rows(parser_t *self) nogil
-    int tokenize_nrows(parser_t *self, size_t nrows) nogil
+    int tokenize_all_rows(parser_t *self)
+    int tokenize_nrows(parser_t *self, size_t nrows)
 
     int64_t str_to_int64(char *p_item, int64_t int_min,
                          int64_t int_max, int *error, char tsep)
@@ -604,7 +604,7 @@ cdef class TextReader:
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
             field_count = len(header)
-        elif not self.has_usecols:
+        else: # not self.has_usecols:
             field_count = self.parser.line_fields[data_line]
 
             passed_count = len(header)
@@ -614,15 +614,18 @@ cdef class TextReader:
                                    'data has %d fields'
                                    % (passed_count, field_count))
 
+            if self.has_usecols:
+                nuse = len(self.usecols)
+                if nuse == passed_count:
+                    self.leading_cols = 0
+                elif self.names is None and nuse < passed_count:
+                    self.leading_cols = field_count - passed_count
+                elif passed_count != field_count:
+                    raise ValueError('Passed header names '
+                                     'mismatches usecols')
             # oh boy, #2442
-            if self.allow_leading_cols:
+            elif self.allow_leading_cols:
                 self.leading_cols = field_count - passed_count
-        else:
-            # TODO: some better check here
-            # field_count = len(header)
-            n = len(header)
-            if n != field_count and n != len(self.usecols):
-                raise ValueError('Passed header names mismatches usecols')
 
         return header, field_count
 
@@ -692,8 +695,7 @@ cdef class TextReader:
 
     cdef _tokenize_rows(self, size_t nrows):
         cdef int status
-        with nogil:
-            status = tokenize_nrows(self.parser, nrows)
+        status = tokenize_nrows(self.parser, nrows)
 
         if self.parser.warn_msg != NULL:
             print >> sys.stderr, self.parser.warn_msg
@@ -720,8 +722,7 @@ cdef class TextReader:
                 raise ValueError('skip_footer can only be used to read '
                                  'the whole file')
         else:
-            with nogil:
-                status = tokenize_all_rows(self.parser)
+            status = tokenize_all_rows(self.parser)
 
             if self.parser.warn_msg != NULL:
                 print >> sys.stderr, self.parser.warn_msg
@@ -795,11 +796,14 @@ cdef class TextReader:
         results = {}
         nused = 0
         for i in range(self.table_width):
-            name = self._get_column_name(i, nused)
-
-            if self.has_usecols and not (i in self.usecols or
-                                         name in self.usecols):
-                continue
+            if i < self.leading_cols:
+                # Pass through leading columns always
+                name = i
+            else:
+                name = self._get_column_name(i, nused)
+                if self.has_usecols and not (i in self.usecols or
+                                             name in self.usecols):
+                    continue
 
             conv = self._get_converter(i, name)
 
@@ -837,8 +841,9 @@ cdef class TextReader:
 
             results[i] = col_res
 
-            # number of used columns
-            nused += 1
+            # number of used column names
+            if i > self.leading_cols:
+                nused += 1
 
         self.parser_start += end - start
 
@@ -870,7 +875,7 @@ cdef class TextReader:
                         col_dtype = np.dtype(col_dtype).str
 
                 return self._convert_with_dtype(col_dtype, i, start, end,
-                                                na_filter, na_hashset)
+                                                na_filter, 1, na_hashset)
 
         if i in self.noconvert:
             return self._string_convert(i, start, end, na_filter, na_hashset)
@@ -879,10 +884,10 @@ cdef class TextReader:
             for dt in dtype_cast_order:
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, na_hashset)
+                        dt, i, start, end, na_filter, 0, na_hashset)
                 except OverflowError:
                     col_res, na_count = self._convert_with_dtype(
-                        '|O8', i, start, end, na_filter, na_hashset)
+                        '|O8', i, start, end, na_filter, 0, na_hashset)
 
                 if col_res is not None:
                     break
@@ -891,14 +896,16 @@ cdef class TextReader:
 
     cdef _convert_with_dtype(self, object dtype, Py_ssize_t i,
                              int start, int end,
-                             bint na_filter, kh_str_t *na_hashset):
+                             bint na_filter,
+                             bint user_dtype,
+                             kh_str_t *na_hashset):
         cdef kh_str_t *true_set, *false_set
 
         if dtype[1] == 'i' or dtype[1] == 'u':
             result, na_count = _try_int64(self.parser, i, start, end,
                                           na_filter, na_hashset)
-            # if na_count > 0:
-            #     raise Exception('Integer column has NA values')
+            if user_dtype and na_count > 0:
+                raise Exception('Integer column has NA values')
 
             if dtype[1:] != 'i8':
                 result = result.astype(dtype)
@@ -1011,7 +1018,7 @@ cdef class TextReader:
             if len(self.names) == len(self.usecols):
                 return self.names[nused]
             else:
-                return self.names[i]
+                return self.names[i - self.leading_cols]
         else:
             if self.header is not None:
                 j = i - self.leading_cols

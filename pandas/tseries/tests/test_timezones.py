@@ -441,6 +441,15 @@ class TestTimeZoneSupport(unittest.TestCase):
         result = to_datetime(dates)
         self.assert_(result.tz == fixed_off)
 
+    def test_fixedtz_topydatetime(self):
+        dates = np.array([datetime(2000, 1, 1, tzinfo=fixed_off),
+                          datetime(2000, 1, 2, tzinfo=fixed_off),
+                          datetime(2000, 1, 3, tzinfo=fixed_off)])
+        result = to_datetime(dates).to_pydatetime()
+        self.assert_(np.array_equal(dates, result))
+        result = to_datetime(dates)._mpl_repr()
+        self.assert_(np.array_equal(dates, result))
+
     def test_convert_tz_aware_datetime_datetime(self):
         # #1581
 
@@ -485,7 +494,7 @@ class TestTimeZoneSupport(unittest.TestCase):
         dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
         dr_tz = dr.tz_localize('US/Eastern')
         e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
-        self.assert_(e['B'].dtype == object)
+        self.assert_(e['B'].dtype == 'M8[ns]')
 
     def test_hongkong_tz_convert(self):
         # #1673
@@ -589,6 +598,12 @@ class TestTimeZoneSupport(unittest.TestCase):
                                  tzinfo=pytz.timezone('Europe/Berlin'))
         self.assertEqual(ts[time_pandas], ts[time_datetime])
 
+    def test_index_drop_dont_lose_tz(self):
+        # #2621
+        ind = date_range("2012-12-01", periods=10, tz="utc")
+        ind = ind.drop(ind[-1])
+
+        self.assertTrue(ind.tz is not None)
 
 class TestTimeZones(unittest.TestCase):
     _multiprocess_can_split_ = True

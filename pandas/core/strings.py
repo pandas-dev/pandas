@@ -111,6 +111,16 @@ def _map(f, arr, na_mask=False, na_value=np.nan):
     else:
         return lib.map_infer(arr, f)
 
+def str_title(arr):
+    """
+    Convert strings to titlecased version
+
+    Returns
+    -------
+    titled : array
+    """
+    return _na_map(lambda x: x.title(), arr)
+
 
 def str_count(arr, pat, flags=0):
     """
@@ -744,3 +754,4 @@ class StringMethods(object):
     len = _noarg_wrapper(str_len)
     lower = _noarg_wrapper(str_lower)
     upper = _noarg_wrapper(str_upper)
+    title = _noarg_wrapper(str_title)

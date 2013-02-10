@@ -171,7 +171,7 @@ period_setitem = \
               start_date=datetime(2012, 8, 1))
 
 setup = common_setup + """
-rng = date_range('1/1/2000 9:30', periods=100000, freq='S', tz='US/Eastern')
+rng = date_range('1/1/2000 9:30', periods=10000, freq='S', tz='US/Eastern')
 """
 
 datetimeindex_normalize = \
@@ -184,15 +184,16 @@ s1 = date_range('1/1/2000', periods=100, freq='S')
 curr = s1[-1]
 slst = []
 for i in range(100):
-    slst.append(curr + Second(), periods=100, freq='S')
+    slst.append(curr + Second()), periods=100, freq='S')
     curr = slst[-1][-1]
 """
 
-dti_append_tz = \
-    Benchmark('s1.append(slst)', setup, start_date=datetime(2012, 9, 1))
+# dti_append_tz = \
+#     Benchmark('s1.append(slst)', setup, start_date=datetime(2012, 9, 1))
+
 
 setup = common_setup + """
-rng = date_range('1/1/2000', periods=100000, freq='H')
+rng = date_range('1/1/2000', periods=1000, freq='H')
 df = DataFrame(np.random.randn(len(rng), 2), rng)
 """
 
@@ -200,15 +201,16 @@ dti_reset_index = \
     Benchmark('df.reset_index()', setup, start_date=datetime(2012, 9, 1))
 
 setup = common_setup + """
-rng = date_range('1/1/2000', periods=100000, freq='H')
-df = DataFrame(np.random.randn(len(rng), 2), rng, tz='US/Eastern')
+rng = date_range('1/1/2000', periods=1000, freq='H',
+                 tz='US/Eastern')
+df = DataFrame(np.random.randn(len(rng), 2), index=rng)
 """
 
 dti_reset_index_tz = \
     Benchmark('df.reset_index()', setup, start_date=datetime(2012, 9, 1))
 
 setup = common_setup + """
-rng = date_range('1/1/2000', periods=10000, freq='T')
+rng = date_range('1/1/2000', periods=1000, freq='T')
 index = rng.repeat(10)
 """
 

@@ -184,6 +184,28 @@ class TestStringMethods(unittest.TestCase):
         result = values.str.endswith('foo', na=False)
         tm.assert_series_equal(result, exp.fillna(False).astype(bool))
 
+    def test_title(self):
+        values = Series(["FOO", "BAR", NA, "Blah", "blurg"])
+
+        result = values.str.title()
+        exp = Series(["Foo", "Bar", NA, "Blah", "Blurg"])
+        tm.assert_series_equal(result, exp)
+
+        # mixed
+        mixed = Series(["FOO", NA, "bar", True, datetime.today(),
+                        "blah", None, 1, 2.])
+        mixed = mixed.str.title()
+        exp = Series(["Foo", NA, "Bar", NA, NA, "Blah", NA, NA, NA])
+        tm.assert_almost_equal(mixed, exp)
+
+        # unicode
+        values = Series([u"FOO", NA, u"bar", u"Blurg"])
+
+        results = values.str.title()
+        exp = Series([u"Foo", NA, u"Bar", u"Blurg"])
+
+        tm.assert_series_equal(results, exp)
+
     def test_lower_upper(self):
         values = Series(['om', NA, 'nom', 'nom'])
 

@@ -16,7 +16,7 @@ compiler (MinGW or Visual Studio) installed. `How-to install MinGW on Windows
 Python version support
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Officially Python 2.5 to 2.7 and Python 3.1+, although Python 3 support is less
+Officially Python 2.6 to 2.7 and Python 3.1+, although Python 3 support is less
 well tested. Python 2.4 support is being phased out since the userbase has
 shrunk significantly. Continuing Python 2.4 support will require either monetary
 development support or someone contributing to the project to maintain

@@ -265,6 +265,17 @@ def is_datetime64_array(ndarray values):
             return False
     return True
 
+def is_timedelta_array(ndarray values):
+    import datetime
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not isinstance(values[i],datetime.timedelta):
+            return False
+    return True
+
+
 def is_date_array(ndarray[object] values):
     cdef int i, n = len(values)
     if n == 0:
@@ -302,7 +313,7 @@ cdef double fINT64_MAX = <double> INT64_MAX
 cdef double fINT64_MIN = <double> INT64_MIN
 
 def maybe_convert_numeric(ndarray[object] values, set na_values,
-                          convert_empty=True):
+                          convert_empty=True, coerce_numeric=False):
     '''
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
@@ -346,17 +357,25 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             complexes[i] = val
             seen_complex = 1
         else:
-            status = floatify(val, &fval)
-            floats[i] = fval
-            if not seen_float:
-                if '.' in val or fval == INF or fval == NEGINF:
-                    seen_float = 1
-                elif 'inf' in val:  # special case to handle +/-inf
-                    seen_float = 1
-                elif fval < fINT64_MAX and fval > fINT64_MIN:
-                    ints[i] = <int64_t> fval
-                else:
-                    seen_float = 1
+            try:
+                status = floatify(val, &fval)
+                floats[i] = fval
+                if not seen_float:
+                    if '.' in val or fval == INF or fval == NEGINF:
+                        seen_float = 1
+                    elif 'inf' in val:  # special case to handle +/-inf
+                        seen_float = 1
+                    elif fval < fINT64_MAX and fval > fINT64_MIN:
+                        ints[i] = <int64_t> fval
+                    else:
+                        seen_float = 1
+            except:
+                if not coerce_numeric:
+                    raise
+
+                floats[i] = nan
+                seen_float = 1
+               
 
     if seen_complex:
         return complexes
@@ -513,20 +532,24 @@ def convert_sql_column(x):
     return maybe_convert_objects(x, try_float=1)
 
 def try_parse_dates(ndarray[object] values, parser=None,
-                    dayfirst=False):
+                    dayfirst=False,default=None):
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
 
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
     n = len(values)
     result = np.empty(n, dtype='O')
 
     if parser is None:
+        if default is None: # GH2618
+           date=datetime.now()
+           default=datetime(date.year,date.month,1)
+
         try:
             from dateutil.parser import parse
-            parse_date = lambda x: parse(x, dayfirst=dayfirst)
+            parse_date = lambda x: parse(x, dayfirst=dayfirst,default=default)
         except ImportError: # pragma: no cover
             def parse_date(s):
                 try:
@@ -560,12 +583,12 @@ def try_parse_dates(ndarray[object] values, parser=None,
 
 def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
                             date_parser=None, time_parser=None,
-                            dayfirst=False):
+                            dayfirst=False,default=None):
     cdef:
         Py_ssize_t i, n
         ndarray[object] result
 
-    from datetime import date, time, datetime
+    from datetime import date, time, datetime, timedelta
 
     n = len(dates)
     if len(times) != n:
@@ -573,9 +596,13 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
     result = np.empty(n, dtype='O')
 
     if date_parser is None:
+        if default is None: # GH2618
+           date=datetime.now()
+           default=datetime(date.year,date.month,1)
+
         try:
             from dateutil.parser import parse
-            parse_date = lambda x: parse(x, dayfirst=dayfirst)
+            parse_date = lambda x: parse(x, dayfirst=dayfirst, default=default)
         except ImportError: # pragma: no cover
             def parse_date(s):
                 try:

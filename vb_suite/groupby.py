@@ -177,14 +177,23 @@ labels = np.arange(10000).repeat(10)
 data = Series(randn(len(labels)))
 data[::3] = np.nan
 data[1::3] = np.nan
+data2 = Series(randn(len(labels)),dtype='float32')
+data2[::3] = np.nan
+data2[1::3] = np.nan
 labels = labels.take(np.random.permutation(len(labels)))
 """
 
 groupby_first = Benchmark('data.groupby(labels).first()', setup,
                           start_date=datetime(2012, 5, 1))
 
+groupby_first_float32 = Benchmark('data2.groupby(labels).first()', setup,
+                          start_date=datetime(2013, 1, 1))
+
 groupby_last = Benchmark('data.groupby(labels).last()', setup,
                          start_date=datetime(2012, 5, 1))
+
+groupby_last_float32 = Benchmark('data2.groupby(labels).last()', setup,
+                         start_date=datetime(2013, 1, 1))
 
 
 #----------------------------------------------------------------------
@@ -254,3 +263,13 @@ groupby_frame_apply_overhead = Benchmark("df.groupby('key').apply(f)", setup,
 
 groupbym_frame_apply = Benchmark("df.groupby(['key', 'key2']).apply(f)", setup,
                                  start_date=datetime(2011, 10, 1))
+
+#----------------------------------------------------------------------
+# Sum booleans #2692
+
+setup = common_setup + """
+N = 500
+df = DataFrame({'ii':range(N),'bb':[True for x in range(N)]})
+"""
+
+groupby_sum_booleans = Benchmark("df.groupby('ii').sum()", setup)

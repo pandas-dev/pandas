@@ -358,7 +358,7 @@ class CheckIndexing(object):
         # scalar
         self.panel4d['lG'] = 1
         self.panel4d['lE'] = True
-        self.assert_(self.panel4d['lG'].values.dtype == np.int64)
+        self.assert_(self.panel4d['lG'].values.dtype == np.int_)
         self.assert_(self.panel4d['lE'].values.dtype == np.bool_)
 
         # object dtype
@@ -589,6 +589,13 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         casted2 = Panel4D(zero_filled.values, dtype=int)
 
         exp_values = zero_filled.values.astype(int)
+        assert_almost_equal(casted.values, exp_values)
+        assert_almost_equal(casted2.values, exp_values)
+
+        casted = Panel4D(zero_filled._data, dtype=np.int32)
+        casted2 = Panel4D(zero_filled.values, dtype=np.int32)
+
+        exp_values = zero_filled.values.astype(np.int32)
         assert_almost_equal(casted.values, exp_values)
         assert_almost_equal(casted2.values, exp_values)
 

@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from datetime import datetime
+from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
@@ -299,6 +299,16 @@ class TestDataFramePlots(unittest.TestCase):
         ax = df.plot()
         lines = ax.get_lines()
         self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+
+    @slow
+    def test_unsorted_index(self):
+        df = DataFrame({'y': range(100)},
+                       index=range(99, -1, -1))
+        ax = df.plot()
+        l = ax.get_lines()[0]
+        rs = l.get_xydata()
+        rs = Series(rs[:, 1], rs[:, 0], dtype=int)
+        tm.assert_series_equal(rs, df.y)
 
     def _check_data(self, xp, rs):
         xp_lines = xp.get_lines()
@@ -601,6 +611,16 @@ class TestDataFramePlots(unittest.TestCase):
             rs = l.get_color()
             self.assert_(xp == rs)
 
+    @slow
+    def test_unordered_ts(self):
+        df = DataFrame(np.random.randn(3, 1),
+                       index=[date(2012, 10, 1),
+                              date(2012, 9, 1),
+                              date(2012, 8, 1)],
+                       columns=['test'])
+        ax = df.plot()
+        xticks = ax.lines[0].get_xdata()
+        self.assert_(xticks[0] < xticks[1])
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 

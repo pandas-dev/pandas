@@ -94,6 +94,8 @@ class TimeGrouper(CustomGrouper):
             else:
                 obj = obj.to_timestamp(how=self.convention)
                 rs = self._resample_timestamps(obj)
+        elif len(axis) == 0:
+            return obj
         else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
 
@@ -247,7 +249,7 @@ class TimeGrouper(CustomGrouper):
 
         if is_subperiod(axlabels.freq, self.freq) or self.how is not None:
             # Downsampling
-            rng = np.arange(memb.values[0], memb.values[-1])
+            rng = np.arange(memb.values[0], memb.values[-1] + 1)
             bins = memb.searchsorted(rng, side='right')
             grouper = BinGrouper(bins, new_index)
 

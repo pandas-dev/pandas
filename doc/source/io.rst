@@ -827,7 +827,7 @@ allows storing the contents of the object as a comma-separated-values file. The
 function takes a number of arguments. Only the first is required.
 
   - ``path``: A string path to the file to write
-    ``nanRep``: A string representation of a missing value (default '')
+  - ``nanRep``: A string representation of a missing value (default '')
   - ``cols``: Columns to write (default None)
   - ``header``: Whether to write out the column names (default True)
   - ``index``: whether to write row (index) names (default True)
@@ -1211,7 +1211,7 @@ You can create/modify an index for a table with ``create_table_index`` after dat
 
 Query via Data Columns
 ~~~~~~~~~~~~~~~~~~~~~~
-You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query.
+You can designate (and index) certain columns that you want to be able to perform queries (other than the `indexable` columns, which you can always query). For instance say you want to perform this common operation, on-disk, and return just the frame that matches this query. You can specify ``data_columns = True`` to force all columns to be data_columns
 
 .. ipython:: python
 
@@ -1260,7 +1260,7 @@ To retrieve the *unique* values of an indexable or data column, use the method `
 
    concat([ store.select('df_dc',c) for c in [ crit1, crit2 ] ])
 
-**Table Object**
+**Storer Object**
 
 If you want to inspect the stored object, retrieve via ``get_storer``. You could use this progamatically to say get the number of rows in an object.
 
@@ -1363,17 +1363,40 @@ Notes & Caveats
 	# we have provided a minimum minor_axis indexable size
 	store.root.wp_big_strings.table
 
-Compatibility
-~~~~~~~~~~~~~
+External Compatibility
+~~~~~~~~~~~~~~~~~~~~~~
+
+``HDFStore`` write storer objects in specific formats suitable for producing loss-less roundtrips to pandas objects. For external compatibility, ``HDFStore`` can read native ``PyTables`` format tables. It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the ``rhdf5`` library. Create a table format store like this:
+
+     .. ipython:: python
+
+        store_export = HDFStore('export.h5')
+	store_export.append('df_dc',df_dc,data_columns=df_dc.columns)
+	store_export
+
+     .. ipython:: python
+        :suppress:
+ 
+        store_export.close()
+        import os
+        os.remove('export.h5')
+
+Backwards Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~
 
 0.10.1 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas however, query terms using the prior (undocumented) methodology are unsupported. ``HDFStore`` will issue a warning if you try to use a prior-version format file. You must read in the entire file and write it out using the new format, using the method ``copy`` to take advantage of the updates. The group attribute ``pandas_version`` contains the version information. ``copy`` takes a number of options, please see the docstring.
 
 
      .. ipython:: python
+        :suppress:
+ 
+        import os
+        legacy_file_path = os.path.abspath('source/_static/legacy_0.10.h5')
+
+     .. ipython:: python
 
         # a legacy store
-	import os
-        legacy_store = HDFStore('legacy_0.10.h5', 'r')
+        legacy_store = HDFStore(legacy_file_path,'r')
         legacy_store
 
         # copy (and return the new handle)
@@ -1397,6 +1420,7 @@ Performance
    - You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will signficantly lower your memory usage on writing.
    - You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expectedrows that ``PyTables`` will expected. This will optimize read/write performance.
    - Duplicate rows can be written to tables, but are filtered out in selection (with the last items being selected; thus a table is unique on major, minor pairs)
+   - A ``PerformanceWarning`` will be raised if you are attempting to store types that will be pickled by PyTables (rather than stored as endemic types). See <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190> for more information and some solutions.
 
 Experimental
 ~~~~~~~~~~~~
@@ -1424,3 +1448,102 @@ These, by default, index the three axes ``items, major_axis, minor_axis``. On an
    store.close()
    import os
    os.remove('store.h5')
+
+
+.. _io.sql:
+
+SQL Queries
+-----------
+
+The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
+facilitate data retrieval and to reduce dependency on DB-specific API. There
+wrappers only support the Python database adapters which respect the `Python
+DB-API <http://www.python.org/dev/peps/pep-0249/>`_.
+
+Suppose you want to query some data with different types from a table such as:
+
++-----+------------+-------+-------+-------+
+| id  |    Date    | Col_1 | Col_2 | Col_3 |
++=====+============+=======+=======+=======+
+| 26  | 2012-10-18 |   X   |  25.7 | True  |
++-----+------------+-------+-------+-------+
+| 42  | 2012-10-19 |   Y   | -12.4 | False |
++-----+------------+-------+-------+-------+
+| 63  | 2012-10-20 |   Z   |  5.73 | True  |
++-----+------------+-------+-------+-------+
+
+Functions from :mod:`pandas.io.sql` can extract some data into a DataFrame. In
+the following example, we use `SQlite <http://www.sqlite.org/>`_ SQL database
+engine. You can use a temporary SQLite database where data are stored in
+"memory". Just do:
+
+.. code-block:: python
+
+   import sqlite3
+   from pandas.io import sql
+   # Create your connection.
+   cnx = sqlite3.connect(':memory:')
+
+.. ipython:: python
+   :suppress:
+
+   import sqlite3
+   from pandas.io import sql
+   cnx = sqlite3.connect(':memory:')
+
+.. ipython:: python
+   :suppress:
+
+   cu = cnx.cursor()
+   # Create a table named 'data'.
+   cu.execute("""CREATE TABLE data(id integer,
+                                   date date,
+                                   Col_1 string,
+                                   Col_2 float,
+                                   Col_3 bool);""")
+   cu.executemany('INSERT INTO data VALUES (?,?,?,?,?)',
+                  [(26, datetime(2010,10,18), 'X', 27.5, True),
+                   (42, datetime(2010,10,19), 'Y', -12.5, False),
+                   (63, datetime(2010,10,20), 'Z', 5.73, True)])
+
+
+Let ``data`` be the name of your SQL table. With a query and your database
+connection, just use the :func:`~pandas.io.sql.read_frame` function to get the
+query results into a DataFrame:
+
+.. ipython:: python
+
+   sql.read_frame("SELECT * FROM data;", cnx)
+
+You can also specify the name of the column as the DataFrame index:
+
+.. ipython:: python
+
+   sql.read_frame("SELECT * FROM data;", cnx, index_col='id')
+   sql.read_frame("SELECT * FROM data;", cnx, index_col='date')
+
+Of course, you can specify more "complex" query.
+
+.. ipython:: python
+
+   sql.read_frame("SELECT id, Col_1, Col_2 FROM data WHERE id = 42;", cnx)
+
+.. ipython:: python
+   :suppress:
+
+   cu.close()
+   cnx.close()
+
+
+There are a few other available functions:
+
+  - ``tquery`` returns list of tuples corresponding to each row.
+  - ``uquery`` does the same thing as tquery, but instead of returning results,
+    it returns the number of related rows.
+  - ``write_frame`` writes records stored in a DataFrame into the SQL table.
+  - ``has_table`` checks if a given SQLite table exists.
+
+.. note::
+
+   For now, writing your DataFrame into a database works only with
+   **SQLite**. Moreover, the **index** will currently be **dropped**.

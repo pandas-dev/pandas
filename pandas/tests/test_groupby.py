@@ -62,6 +62,13 @@ class TestGroupBy(unittest.TestCase):
                              'C': np.random.randn(8),
                              'D': np.random.randn(8)})
 
+        self.df_mixed_floats = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                                                'foo', 'bar', 'foo', 'foo'],
+                                          'B': ['one', 'one', 'two', 'three',
+                                                'two', 'two', 'one', 'three'],
+                                          'C': np.random.randn(8),
+                                          'D': np.array(np.random.randn(8),dtype='float32')})
+
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
@@ -154,6 +161,25 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(com.isnull(grouped['B'].first()['foo']))
         self.assert_(com.isnull(grouped['B'].last()['foo']))
         self.assert_(com.isnull(grouped['B'].nth(0)['foo']))
+
+    def test_first_last_nth_dtypes(self):
+        # tests for first / last / nth
+
+        grouped = self.df_mixed_floats.groupby('A')
+        first = grouped.first()
+        expected = self.df_mixed_floats.ix[[1, 0], ['B', 'C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(first, expected)
+
+        last = grouped.last()
+        expected = self.df_mixed_floats.ix[[5, 7], ['B', 'C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(last, expected)
+
+        nth = grouped.nth(1)
+        expected = self.df_mixed_floats.ix[[3, 2], ['B', 'C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(nth, expected)
 
     def test_grouper_iter(self):
         self.assertEqual(sorted(self.df.groupby('A').grouper), ['bar', 'foo'])
@@ -478,16 +504,30 @@ class TestGroupBy(unittest.TestCase):
 
     def test_with_na(self):
         index = Index(np.arange(10))
-        values = Series(np.ones(10), index)
-        labels = Series([nan, 'foo', 'bar', 'bar', nan, nan, 'bar',
-                         'bar', nan, 'foo'], index=index)
 
-        grouped = values.groupby(labels)
-        agged = grouped.agg(len)
-        expected = Series([4, 2], index=['bar', 'foo'])
+        for dtype in ['float64','float32','int64','int32','int16','int8']:
+            values = Series(np.ones(10), index, dtype=dtype)
+            labels = Series([nan, 'foo', 'bar', 'bar', nan, nan, 'bar',
+                             'bar', nan, 'foo'], index=index)
 
-        assert_series_equal(agged, expected, check_dtype=False)
-        self.assert_(issubclass(agged.dtype.type, np.integer))
+
+            # this SHOULD be an int
+            grouped = values.groupby(labels)
+            agged = grouped.agg(len)
+            expected = Series([4, 2], index=['bar', 'foo'])
+            
+            assert_series_equal(agged, expected, check_dtype=False)
+            #self.assert_(issubclass(agged.dtype.type, np.integer))
+
+            # explicity return a float from my function
+            def f(x):
+                return float(len(x))
+
+            agged = grouped.agg(f)
+            expected = Series([4, 2], index=['bar', 'foo'])
+            
+            assert_series_equal(agged, expected, check_dtype=False)
+            self.assert_(issubclass(agged.dtype.type, np.dtype(dtype).type))
 
     def test_attr_wrapper(self):
         grouped = self.ts.groupby(lambda x: x.weekday())
@@ -1083,6 +1123,16 @@ class TestGroupBy(unittest.TestCase):
         _testit(lambda x: x.min())
         _testit(lambda x: x.max())
 
+    def test_max_min_non_numeric(self):
+        # #2700
+        aa = DataFrame({'nn':[11,11,22,22],'ii':[1,2,3,4],'ss':4*['mama']})
+
+        result = aa.groupby('nn').max()
+        self.assertTrue('ss' in result)
+
+        result = aa.groupby('nn').min()
+        self.assertTrue('ss' in result)
+
     def test_cython_agg_boolean(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': np.random.randint(0, 2, 50).astype('bool')})
@@ -1586,6 +1636,7 @@ class TestGroupBy(unittest.TestCase):
         grouped.agg(f)
 
     def test_convert_objects_leave_decimal_alone(self):
+
         from decimal import Decimal
 
         s = Series(range(5))
@@ -2175,7 +2226,6 @@ class TestGroupBy(unittest.TestCase):
         result = df[1].groupby(level=0).first()
         got_dt = result.dtype
         self.assert_(issubclass(got_dt.type, np.datetime64))
-
 
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())

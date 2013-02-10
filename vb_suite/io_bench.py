@@ -44,3 +44,16 @@ df = DataFrame(np.random.randn(3000, 30))
 """
 frame_to_csv = Benchmark("df.to_csv('__test__.csv')", setup,
                          start_date=datetime(2011, 1, 1))
+
+#----------------------------------------------------------------------
+# parse dates, ISO8601 format
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=1000)
+data = '\\n'.join(rng.map(lambda x: x.strftime("%Y-%m-%d %H:%M:%S")))
+"""
+
+stmt = ("read_csv(StringIO(data), header=None, names=['foo'], "
+        "         parse_dates=['foo'])")
+read_parse_dates_iso8601 = Benchmark(stmt, setup,
+                                     start_date=datetime(2012, 3, 1))

@@ -13,7 +13,7 @@ import pandas.core.common as com
 from pandas.core.index import MultiIndex
 from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.period import PeriodIndex
+from pandas.tseries.period import PeriodIndex, Period
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 
@@ -870,9 +870,9 @@ class MPLPlot(object):
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
-                index = index.to_timestamp()
+                index = index.to_timestamp().order()
                 x = index._mpl_repr()
-            elif index.is_numeric() or is_datetype:
+            elif index.is_numeric():
                 """
                 Matplotlib supports numeric values or datetime objects as
                 xaxis values. Taking LBYL approach here, by the time
@@ -880,6 +880,8 @@ class MPLPlot(object):
                 values for xaxis, several actions are already taken by plt.
                 """
                 x = index._mpl_repr()
+            elif is_datetype:
+                x = index.order()._mpl_repr()
             else:
                 self._need_to_set_index = True
                 x = range(len(index))
@@ -1027,7 +1029,21 @@ class LinePlot(MPLPlot):
         else:
             freq = get_base_alias(freq)
         freq = get_period_alias(freq)
-        return freq is not None
+        return freq is not None and self._no_base(freq)
+
+    def _no_base(self, freq):
+        # hack this for 0.10.1, creating more technical debt...sigh
+        from pandas.core.frame import DataFrame
+        if (isinstance(self.data, (Series, DataFrame))
+            and isinstance(self.data.index, DatetimeIndex)):
+            import pandas.tseries.frequencies as freqmod
+            base = freqmod.get_freq(freq)
+            x = self.data.index
+            if (base <= freqmod.FreqGroup.FR_DAY):
+                return x[:1].is_normalized
+
+            return Period(x[0], freq).to_timestamp() == x[0]
+        return True
 
     def _use_dynamic_x(self):
         freq = self._index_freq()

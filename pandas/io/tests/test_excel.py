@@ -234,6 +234,30 @@ class ExcelTests(unittest.TestCase):
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
 
+    def test_specify_kind_xls(self):
+        _skip_if_no_xlrd()
+        xlsx_file = os.path.join(self.dirpath, 'test.xlsx')
+        xls_file = os.path.join(self.dirpath, 'test.xls')
+
+        # succeeds with xlrd 0.8.0, weird
+        # self.assertRaises(Exception, ExcelFile, xlsx_file, kind='xls')
+
+        # ExcelFile(open(xls_file, 'rb'), kind='xls')
+        # self.assertRaises(Exception, ExcelFile, open(xlsx_file, 'rb'),
+        #                   kind='xls')
+
+    def test_specify_kind_xlsx(self):
+        _skip_if_no_openpyxl()
+        xlsx_file = os.path.join(self.dirpath, 'test.xlsx')
+        xls_file = os.path.join(self.dirpath, 'test.xls')
+
+        self.assertRaises(Exception, ExcelFile, xls_file, kind='xlsx')
+
+        ExcelFile(open(xlsx_file, 'rb'), kind='xlsx')
+
+        self.assertRaises(Exception, ExcelFile, open(xls_file, 'rb'),
+                          kind='xlsx')
+
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = 'python'
@@ -338,11 +362,11 @@ class ExcelTests(unittest.TestCase):
         self.frame.to_excel(path, 'test1', index=False)
 
         # Test np.int64, values read come back as float
-        frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)))
+        frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)), dtype=np.int64)
         frame.to_excel(path, 'test1')
         reader = ExcelFile(path)
         recons = reader.parse('test1').astype(np.int64)
-        tm.assert_frame_equal(frame, recons)
+        tm.assert_frame_equal(frame, recons, check_dtype=False)
 
         os.remove(path)
 

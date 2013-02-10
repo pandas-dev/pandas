@@ -326,6 +326,7 @@ cdef extern from "numpy/arrayobject.h":
     ctypedef unsigned long long npy_uint96
     ctypedef unsigned long long npy_uint128
 
+    ctypedef float        npy_float16
     ctypedef float        npy_float32
     ctypedef double       npy_float64
     ctypedef long double  npy_float80
@@ -735,6 +736,7 @@ ctypedef npy_uint64     uint64_t
 #ctypedef npy_uint96     uint96_t
 #ctypedef npy_uint128    uint128_t
 
+ctypedef npy_float16    float16_t
 ctypedef npy_float32    float32_t
 ctypedef npy_float64    float64_t
 #ctypedef npy_float80    float80_t

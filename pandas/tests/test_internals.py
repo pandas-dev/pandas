@@ -20,20 +20,20 @@ def assert_block_equal(left, right):
     assert(left.ref_items.equals(right.ref_items))
 
 
-def get_float_mat(n, k):
-    return np.repeat(np.atleast_2d(np.arange(k, dtype=float)), n, axis=0)
+def get_float_mat(n, k, dtype):
+    return np.repeat(np.atleast_2d(np.arange(k, dtype=dtype)), n, axis=0)
 
 TEST_COLS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 N = 10
 
 
-def get_float_ex(cols=['a', 'c', 'e']):
-    floats = get_float_mat(N, len(cols)).T
+def get_float_ex(cols=['a', 'c', 'e'], dtype = np.float_):
+    floats = get_float_mat(N, len(cols), dtype = dtype).T
     return make_block(floats, cols, TEST_COLS)
 
 
 def get_complex_ex(cols=['h']):
-    complexes = (get_float_mat(N, 1).T * 1j).astype(np.complex128)
+    complexes = (get_float_mat(N, 1, dtype = np.float_).T * 1j).astype(np.complex128)
     return make_block(complexes, cols, TEST_COLS)
 
 
@@ -49,13 +49,8 @@ def get_bool_ex(cols=['f']):
     return make_block(mat.T, cols, TEST_COLS)
 
 
-def get_int_ex(cols=['g']):
-    mat = randn(N, 1).astype(int)
-    return make_block(mat.T, cols, TEST_COLS)
-
-
-def get_int32_ex(cols):
-    mat = randn(N, 1).astype(np.int32)
+def get_int_ex(cols=['g'], dtype = np.int_):
+    mat = randn(N, 1).astype(dtype)
     return make_block(mat.T, cols, TEST_COLS)
 
 
@@ -63,6 +58,16 @@ def get_dt_ex(cols=['h']):
     mat = randn(N, 1).astype(int).astype('M8[ns]')
     return make_block(mat.T, cols, TEST_COLS)
 
+def create_blockmanager(blocks):
+    l = []
+    for b in blocks:
+        l.extend(b.items)
+    items = Index(l)
+    for b in blocks:
+        b.ref_items = items
+
+    index_sz = blocks[0].values.shape[1]
+    return BlockManager(blocks, [items, np.arange(index_sz)])
 
 class TestBlock(unittest.TestCase):
 
@@ -76,8 +81,8 @@ class TestBlock(unittest.TestCase):
         self.int_block = get_int_ex()
 
     def test_constructor(self):
-        int32block = get_int32_ex(['a'])
-        self.assert_(int32block.dtype == np.int64)
+        int32block = get_int_ex(['a'],dtype = np.int32)
+        self.assert_(int32block.dtype == np.int32)
 
     def test_pickle(self):
         import pickle
@@ -235,12 +240,7 @@ class TestBlockManager(unittest.TestCase):
     def test_is_mixed_dtype(self):
         self.assert_(self.mgr.is_mixed_dtype())
 
-        items = Index(['a', 'b'])
-        blocks = [get_bool_ex(['a']), get_bool_ex(['b'])]
-        for b in blocks:
-            b.ref_items = items
-
-        mgr = BlockManager(blocks, [items, np.arange(N)])
+        mgr = create_blockmanager([get_bool_ex(['a']), get_bool_ex(['b'])])
         self.assert_(not mgr.is_mixed_dtype())
 
     def test_is_indexed_like(self):
@@ -254,9 +254,12 @@ class TestBlockManager(unittest.TestCase):
         assert_almost_equal(expected, result)
 
         result = self.mgr.item_dtypes
+
+        # as the platform may not exactly match this, pseudo match
         expected = ['float64', 'object', 'float64', 'object', 'float64',
                     'bool', 'int64', 'complex128']
-        self.assert_(np.array_equal(result, expected))
+        for e, r in zip(expected, result):
+            np.dtype(e).kind == np.dtype(r).kind
 
     def test_duplicate_item_failure(self):
         items = Index(['a', 'a'])
@@ -315,7 +318,7 @@ class TestBlockManager(unittest.TestCase):
         self.assert_(mgr2.get('baz').dtype == np.object_)
 
         mgr2.set('quux', randn(N).astype(int))
-        self.assert_(mgr2.get('quux').dtype == np.int64)
+        self.assert_(mgr2.get('quux').dtype == np.int_)
 
         mgr2.set('quux', randn(N))
         self.assert_(mgr2.get('quux').dtype == np.float_)
@@ -326,35 +329,109 @@ class TestBlockManager(unittest.TestCase):
         for cp_blk, blk in zip(shallow.blocks, self.mgr.blocks):
             self.assert_(cp_blk.values is blk.values)
 
-    def test_as_matrix(self):
-        pass
+    def test_as_matrix_float(self):
+
+        mgr = create_blockmanager([get_float_ex(['c'],np.float32), get_float_ex(['d'],np.float16), get_float_ex(['e'],np.float64)])
+        self.assert_(mgr.as_matrix().dtype == np.float64)
+
+        mgr = create_blockmanager([get_float_ex(['c'],np.float32), get_float_ex(['d'],np.float16)])
+        self.assert_(mgr.as_matrix().dtype == np.float32)
 
     def test_as_matrix_int_bool(self):
-        items = Index(['a', 'b'])
 
-        blocks = [get_bool_ex(['a']), get_bool_ex(['b'])]
-        for b in blocks:
-            b.ref_items = items
-        index_sz = blocks[0].values.shape[1]
-        mgr = BlockManager(blocks, [items, np.arange(index_sz)])
+        mgr = create_blockmanager([get_bool_ex(['a']), get_bool_ex(['b'])])
         self.assert_(mgr.as_matrix().dtype == np.bool_)
 
-        blocks = [get_int_ex(['a']), get_int_ex(['b'])]
-        for b in blocks:
-            b.ref_items = items
-
-        mgr = BlockManager(blocks, [items, np.arange(index_sz)])
+        mgr = create_blockmanager([get_int_ex(['a'],np.int64), get_int_ex(['b'],np.int64), get_int_ex(['c'],np.int32), get_int_ex(['d'],np.int16), get_int_ex(['e'],np.uint8) ])
         self.assert_(mgr.as_matrix().dtype == np.int64)
 
-    def test_as_matrix_datetime(self):
-        items = Index(['h', 'g'])
-        blocks = [get_dt_ex(['h']), get_dt_ex(['g'])]
-        for b in blocks:
-            b.ref_items = items
+        mgr = create_blockmanager([get_int_ex(['c'],np.int32), get_int_ex(['d'],np.int16), get_int_ex(['e'],np.uint8) ])
+        self.assert_(mgr.as_matrix().dtype == np.int32)
 
-        index_sz = blocks[0].values.shape[1]
-        mgr = BlockManager(blocks, [items, np.arange(index_sz)])
+    def test_as_matrix_datetime(self):
+        mgr = create_blockmanager([get_dt_ex(['h']), get_dt_ex(['g'])])
         self.assert_(mgr.as_matrix().dtype == 'M8[ns]')
+
+    def test_astype(self):
+
+        # coerce all
+        mgr = create_blockmanager([get_float_ex(['c'],np.float32), get_float_ex(['d'],np.float16), get_float_ex(['e'],np.float64)])
+
+        for t in ['float16','float32','float64','int32','int64']:
+            tmgr = mgr.astype(t)
+            self.assert_(tmgr.as_matrix().dtype == np.dtype(t))
+
+        # mixed
+        mgr = create_blockmanager([get_obj_ex(['a','b']),get_bool_ex(['c']),get_dt_ex(['d']),get_float_ex(['e'],np.float32), get_float_ex(['f'],np.float16), get_float_ex(['g'],np.float64)])
+        for t in ['float16','float32','float64','int32','int64']:
+            tmgr = mgr.astype(t, raise_on_error = False).get_numeric_data()
+            self.assert_(tmgr.as_matrix().dtype == np.dtype(t))
+
+    def test_convert(self):
+        
+        def _compare(old_mgr, new_mgr):
+            """ compare the blocks, numeric compare ==, object don't """
+            old_blocks = set(old_mgr.blocks)
+            new_blocks = set(new_mgr.blocks)
+            self.assert_(len(old_blocks) == len(new_blocks))
+
+            # compare non-numeric
+            for b in old_blocks:
+                found = False
+                for nb in new_blocks:
+                    if (b.values == nb.values).all():
+                        found = True
+                        break
+                self.assert_(found == True)
+
+            for b in new_blocks:
+                found = False
+                for ob in old_blocks:
+                    if (b.values == ob.values).all():
+                        found = True
+                        break
+                self.assert_(found == True)
+
+        # noops
+        mgr = create_blockmanager([get_int_ex(['f']), get_float_ex(['g'])])
+        new_mgr = mgr.convert()
+        _compare(mgr,new_mgr)
+
+        mgr = create_blockmanager([get_obj_ex(['a','b']), get_int_ex(['f']), get_float_ex(['g'])])
+        new_mgr = mgr.convert()
+        _compare(mgr,new_mgr)
+
+        # there could atcually be multiple dtypes resulting
+        def _check(new_mgr,block_type, citems):
+            items = set()
+            for b in new_mgr.blocks:
+                if isinstance(b,block_type):
+                    for i in list(b.items):
+                        items.add(i)
+            self.assert_(items == set(citems))
+
+        # convert
+        mat = np.empty((N, 3), dtype=object)
+        mat[:, 0] = '1'
+        mat[:, 1] = '2.'
+        mat[:, 2] = 'foo'
+        b = make_block(mat.T, ['a','b','foo'], TEST_COLS)
+
+        mgr = create_blockmanager([b, get_int_ex(['f']), get_float_ex(['g'])])
+        new_mgr = mgr.convert(convert_numeric = True)
+
+        _check(new_mgr,FloatBlock,['b','g'])
+        _check(new_mgr,IntBlock,['a','f'])
+
+        mgr = create_blockmanager([b, get_int_ex(['f'],np.int32), get_bool_ex(['bool']), get_dt_ex(['dt']), 
+                                   get_int_ex(['i'],np.int64), get_float_ex(['g'],np.float64), get_float_ex(['h'],np.float16)])
+        new_mgr = mgr.convert(convert_numeric = True)
+
+        _check(new_mgr,FloatBlock,['b','g','h'])
+        _check(new_mgr,IntBlock,['a','f','i'])
+        _check(new_mgr,ObjectBlock,['foo'])
+        _check(new_mgr,BoolBlock,['bool'])
+        _check(new_mgr,DatetimeBlock,['dt'])
 
     def test_xs(self):
         pass

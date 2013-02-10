@@ -199,8 +199,8 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 10
-MICRO = 1
+MINOR = 11
+MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
@@ -266,6 +266,7 @@ class CleanCommand(Command):
                 if f in self._clean_exclude:
                     continue
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
+                                               '.pyo',
                                                '.pyd', '.c', '.orig'):
                     self._clean_me.append(pjoin(root, f))
             for d in dirs:

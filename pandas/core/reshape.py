@@ -93,7 +93,7 @@ class _Unstacker(object):
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
         indexer = _ensure_platform_int(indexer)
 
-        self.sorted_values = com.take_2d(self.values, indexer, axis=0)
+        self.sorted_values = com.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
 
     def _make_selectors(self):
@@ -136,7 +136,7 @@ class _Unstacker(object):
             # rare case, level values not observed
             if len(obs_ids) < self.full_shape[1]:
                 inds = (value_mask.sum(0) > 0).nonzero()[0]
-                values = com.take_2d(values, inds, axis=1)
+                values = com.take_nd(values, inds, axis=1)
                 columns = columns[inds]
 
         return DataFrame(values, index=index, columns=columns)
@@ -402,7 +402,7 @@ def _unstack_frame(obj, level):
 
 def get_compressed_ids(labels, sizes):
     # no overflow
-    if _long_prod(sizes) < 2 ** 63:
+    if com._long_prod(sizes) < 2 ** 63:
         group_index = get_group_index(labels, sizes)
         comp_index, obs_ids = _compress_group_index(group_index)
     else:
@@ -411,9 +411,9 @@ def get_compressed_ids(labels, sizes):
         for v in labels:
             mask |= v < 0
 
-        while _long_prod(sizes) >= 2 ** 63:
+        while com._long_prod(sizes) >= 2 ** 63:
             i = len(sizes)
-            while _long_prod(sizes[:i]) >= 2 ** 63:
+            while com._long_prod(sizes[:i]) >= 2 ** 63:
                 i -= 1
 
             rem_index, rem_ids = get_compressed_ids(labels[:i],
@@ -424,13 +424,6 @@ def get_compressed_ids(labels, sizes):
         return get_compressed_ids(labels, sizes)
 
     return comp_index, obs_ids
-
-
-def _long_prod(vals):
-    result = 1L
-    for x in vals:
-        result *= x
-    return result
 
 
 def stack(frame, level=-1, dropna=True):
@@ -835,4 +828,4 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 def factor_indexer(shape, labels):
     """ given a tuple of shape and a list of Factor lables, return the expanded label indexer """
     mult = np.array(shape)[::-1].cumprod()[::-1]
-    return np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T
+    return com._ensure_platform_int(np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)

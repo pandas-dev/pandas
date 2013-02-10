@@ -140,7 +140,8 @@ class TestDataFrameFormatting(unittest.TestCase):
                 line = line.decode(get_option("display.encoding"))
             except:
                 pass
-            self.assert_(len(line) == line_len)
+            if not line.startswith('Dtype:'):
+                self.assert_(len(line) == line_len)
 
         # it works even if sys.stdin in None
         _stdin= sys.stdin
@@ -249,6 +250,38 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'A': [u'\u03c3']})
         df.to_html()
 
+    def test_to_html_escaped(self):
+        a = 'str<ing1'
+        b = 'stri>ng2'
+
+        test_dict = {'co<l1': {a: "<type 'str'>",
+                               b: "<type 'str'>"},
+                     'co>l2':{a: "<type 'str'>",
+                              b: "<type 'str'>"}}
+        rs = pd.DataFrame(test_dict).to_html()
+        xp = """<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>co&lt;l1</th>
+      <th>co&gt;l2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>str&lt;ing1</th>
+      <td> &lt;type 'str'&gt;</td>
+      <td> &lt;type 'str'&gt;</td>
+    </tr>
+    <tr>
+      <th>stri&gt;ng2</th>
+      <td> &lt;type 'str'&gt;</td>
+      <td> &lt;type 'str'&gt;</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(xp, rs)
+
     def test_to_html_multiindex_sparsify(self):
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
                                           names=['foo', None])
@@ -273,24 +306,24 @@ class TestDataFrameFormatting(unittest.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td rowspan="2" valign="top"><strong>0</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">0</th>
+      <th>0</th>
       <td> 0</td>
       <td> 1</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 2</td>
       <td> 3</td>
     </tr>
     <tr>
-      <td rowspan="2" valign="top"><strong>1</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">1</th>
+      <th>0</th>
       <td> 4</td>
       <td> 5</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 6</td>
       <td> 7</td>
     </tr>
@@ -326,24 +359,24 @@ class TestDataFrameFormatting(unittest.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td rowspan="2" valign="top"><strong>0</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">0</th>
+      <th>0</th>
       <td> 0</td>
       <td> 1</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 2</td>
       <td> 3</td>
     </tr>
     <tr>
-      <td rowspan="2" valign="top"><strong>1</strong></td>
-      <td><strong>0</strong></td>
+      <th rowspan="2" valign="top">1</th>
+      <th>0</th>
       <td> 4</td>
       <td> 5</td>
     </tr>
     <tr>
-      <td><strong>1</strong></td>
+      <th>1</th>
       <td> 6</td>
       <td> 7</td>
     </tr>
@@ -368,22 +401,22 @@ class TestDataFrameFormatting(unittest.TestCase):
   </thead>
   <tbody>
     <tr>
-      <td><strong>a</strong></td>
+      <th>a</th>
       <td> 0</td>
       <td> 1</td>
     </tr>
     <tr>
-      <td><strong>b</strong></td>
+      <th>b</th>
       <td> 2</td>
       <td> 3</td>
     </tr>
     <tr>
-      <td><strong>c</strong></td>
+      <th>c</th>
       <td> 4</td>
       <td> 5</td>
     </tr>
     <tr>
-      <td><strong>d</strong></td>
+      <th>d</th>
       <td> 6</td>
       <td> 7</td>
     </tr>
@@ -795,7 +828,7 @@ c  10  11  12  13  14\
     def test_to_html_with_no_bold(self):
         x = DataFrame({'x': randn(5)})
         ashtml = x.to_html(bold_rows=False)
-        assert('<strong>' not in ashtml)
+        assert('<strong>' not in ashtml[ashtml.find('</thead>')])
 
     def test_to_html_columns_arg(self):
         result = self.frame.to_html(columns=['A'])
@@ -824,14 +857,14 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td> a</td>\n'
                     '      <td> b</td>\n'
                     '      <td> c</td>\n'
                     '      <td> d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> e</td>\n'
                     '      <td> f</td>\n'
                     '      <td> g</td>\n'
@@ -866,14 +899,14 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td> a</td>\n'
                     '      <td> b</td>\n'
                     '      <td> c</td>\n'
                     '      <td> d</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> e</td>\n'
                     '      <td> f</td>\n'
                     '      <td> g</td>\n'
@@ -901,19 +934,19 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td>     6</td>\n'
                     '      <td>     1</td>\n'
                     '      <td> 223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> 30000</td>\n'
                     '      <td>     2</td>\n'
                     '      <td>      0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>2</strong></td>\n'
+                    '      <th>2</th>\n'
                     '      <td>     2</td>\n'
                     '      <td> 70000</td>\n'
                     '      <td>      1</td>\n'
@@ -935,19 +968,19 @@ c  10  11  12  13  14\
                     '  </thead>\n'
                     '  <tbody>\n'
                     '    <tr>\n'
-                    '      <td><strong>0</strong></td>\n'
+                    '      <th>0</th>\n'
                     '      <td>     6</td>\n'
                     '      <td>     1</td>\n'
                     '      <td> 223442</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>1</strong></td>\n'
+                    '      <th>1</th>\n'
                     '      <td> 30000</td>\n'
                     '      <td>     2</td>\n'
                     '      <td>      0</td>\n'
                     '    </tr>\n'
                     '    <tr>\n'
-                    '      <td><strong>2</strong></td>\n'
+                    '      <th>2</th>\n'
                     '      <td>     2</td>\n'
                     '      <td> 70000</td>\n'
                     '      <td>      1</td>\n'
@@ -1024,6 +1057,8 @@ c  10  11  12  13  14\
                 2.03954217305e+10, 5.59897817305e+10]
         skip = True
         for line in repr(DataFrame({'A': vals})).split('\n'):
+            if line.startswith('Dtype:'):
+                continue
             if _three_digit_exp():
                 self.assert_(('+010' in line) or skip)
             else:
@@ -1069,7 +1104,7 @@ class TestSeriesFormatting(unittest.TestCase):
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
         result = [x.split()[1] for x in result.split('\n')]
-        expected = [format(x) for x in self.ts]
+        expected = [format(x) for x in self.ts] + [u'float64']
         self.assertEqual(result, expected)
 
         # empty string
@@ -1084,7 +1119,7 @@ class TestSeriesFormatting(unittest.TestCase):
         cp.name = 'foo'
         result = cp.to_string(length=True, name=True)
         last_line = result.split('\n')[-1].strip()
-        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d" % len(cp))
+        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d, Dtype: float64" % len(cp))
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
@@ -1099,7 +1134,8 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0     foo\n'
                     u'1     NaN\n'
                     u'2   -1.23\n'
-                    u'3    4.56')
+                    u'3    4.56\n'
+                    u'Dtype: object')
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
@@ -1108,7 +1144,8 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0    foo\n'
                     '1    NaN\n'
                     '2    bar\n'
-                    '3    baz')
+                    '3    baz\n'
+                    u'Dtype: object')
         self.assertEqual(result, expected)
 
         s = Series(['foo', 5, 'bar', 'baz'])
@@ -1116,7 +1153,8 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0    foo\n'
                     '1      5\n'
                     '2    bar\n'
-                    '3    baz')
+                    '3    baz\n'
+                    u'Dtype: object')
         self.assertEqual(result, expected)
 
     def test_to_string_float_na_spacing(self):
@@ -1128,7 +1166,8 @@ class TestSeriesFormatting(unittest.TestCase):
                     '1    1.5678\n'
                     '2       NaN\n'
                     '3   -3.0000\n'
-                    '4       NaN')
+                    '4       NaN\n'
+                    u'Dtype: float64')
         self.assertEqual(result, expected)
 
     def test_unicode_name_in_footer(self):
@@ -1140,6 +1179,8 @@ class TestSeriesFormatting(unittest.TestCase):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
                 2.03954217305e+10, 5.59897817305e+10]
         for line in repr(Series(vals)).split('\n'):
+            if line.startswith('Dtype:'):
+                continue
             if _three_digit_exp():
                 self.assert_('+010' in line)
             else:

@@ -442,6 +442,10 @@ class TestResample(unittest.TestCase):
         self.assert_(len(result) == 0)
         self.assert_(result.index.freqstr == 'A-DEC')
 
+        xp = DataFrame()
+        rs = xp.resample('A')
+        assert_frame_equal(xp, rs)
+
     def test_weekly_resample_buglet(self):
         # #1327
         rng = date_range('1/1/2000', freq='B', periods=20)
@@ -546,17 +550,20 @@ class TestResample(unittest.TestCase):
         assert_series_equal(result, exp)
 
     def test_resample_median_bug_1688(self):
-        df = DataFrame([1, 2], index=[datetime(2012, 1, 1, 0, 0, 0),
-                                      datetime(2012, 1, 1, 0, 5, 0)])
 
-        result = df.resample("T", how=lambda x: x.mean())
-        exp = df.asfreq('T')
-        tm.assert_frame_equal(result, exp)
+        for dtype in ['int64','int32','float64','float32']:
+            df = DataFrame([1, 2], index=[datetime(2012, 1, 1, 0, 0, 0),
+                                          datetime(2012, 1, 1, 0, 5, 0)],
+                           dtype = dtype)
 
-        result = df.resample("T", how="median")
-        exp = df.asfreq('T')
-        tm.assert_frame_equal(result, exp)
-
+            result = df.resample("T", how=lambda x: x.mean())
+            exp = df.asfreq('T')
+            tm.assert_frame_equal(result, exp)
+            
+            result = df.resample("T", how="median")
+            exp = df.asfreq('T')
+            tm.assert_frame_equal(result, exp)
+            
     def test_how_lambda_functions(self):
         ts = _simple_ts('1/1/2000', '4/1/2000')
 
@@ -967,6 +974,14 @@ class TestResamplePeriodIndex(unittest.TestCase):
             resampled = df.resample(to_freq)
             assert_frame_equal(resampled, df.resample(to_freq, closed='left',
                                                       label='left'))
+
+    def test_all_values_single_bin(self):
+        # 2070
+        index = period_range(start="2012-01-01", end="2012-12-31", freq="M")
+        s = Series(np.random.randn(len(index)), index=index)
+
+        result = s.resample("A", how='mean')
+        tm.assert_almost_equal(result[0], s.mean())
 
 
 class TestTimeGrouper(unittest.TestCase):
