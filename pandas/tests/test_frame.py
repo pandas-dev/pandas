@@ -244,8 +244,6 @@ class CheckIndexing(object):
 
     def test_getitem_boolean_casting(self):
 
-        #### this currently disabled ###
-
         # don't upcast if we don't need to
         df = self.tsframe.copy()
         df['E'] = 1
@@ -254,8 +252,10 @@ class CheckIndexing(object):
         df['F'] = df['F'].astype('int64')
         casted = df[df>0]
         result = casted.get_dtype_counts()
-        #expected = Series({'float64': 4, 'int32' : 1, 'int64' : 1})
-        expected = Series({'float64': 6 })
+        expected = Series({'float64': 4, 'int32' : 1, 'int64' : 1})
+
+        ### when we always cast here's the result ###
+        #expected = Series({'float64': 6 })
         assert_series_equal(result, expected)
 
 
@@ -5997,6 +5997,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             cond = df > 0
             _check_get(df, cond)
 
+        
+        # upcasting case (GH # 2794)
+        df = DataFrame(dict([ (c,Series([1]*3,dtype=c)) for c in ['int64','int32','float32','float64'] ]))
+        df.ix[1,:] = 0
+
+        result = df.where(df>=0).get_dtype_counts()
+
+        #### when we don't preserver boolean casts ####
+        #expected = Series({ 'float32' : 1, 'float64' : 3 })
+
+        expected = Series({ 'float32' : 1, 'float64' : 1, 'int32' : 1, 'int64' : 1 })
+        assert_series_equal(result, expected)
+
         # aligning
         def _check_align(df, cond, other, check_dtypes = True):
             rs = df.where(cond, other)
@@ -6013,8 +6026,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     else:
                         o = other[k].values
 
-                assert_series_equal(v, Series(np.where(c, d, o),index=v.index))
-
+                new_values = d if c.all() else np.where(c, d, o)
+                assert_series_equal(v, Series(new_values,index=v.index))
+            
             # dtypes
             # can't check dtype when other is an ndarray
             if check_dtypes and not isinstance(other,np.ndarray):

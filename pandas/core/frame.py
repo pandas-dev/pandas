@@ -3714,14 +3714,14 @@ class DataFrame(NDFrame):
         if fill_value is not None:
             raise NotImplementedError
 
-        new_data = left._data.where(func, right, axes = [left.columns, self.index])
+        new_data = left._data.eval(func, right, axes = [left.columns, self.index])
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, raise_on_error = True):
         if self.empty:
             return self
 
-        new_data = self._data.where(func, other, raise_on_error=raise_on_error)
+        new_data = self._data.eval(func, other, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def _compare_frame(self, other, func):
@@ -5293,8 +5293,7 @@ class DataFrame(NDFrame):
             self._data = self._data.putmask(cond,other,inplace=True)
 
         else:
-            func = lambda values, others, conds: np.where(conds, values, others)
-            new_data = self._data.where(func, other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+            new_data = self._data.where(other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
 
             return self._constructor(new_data)
 
