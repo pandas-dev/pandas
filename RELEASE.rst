@@ -71,11 +71,14 @@ pandas 0.11.0
 
 **Bug Fixes**
 
-  - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill`` (GH2778_)
+  - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill``
+    (GH2778_)
   - Single element ndarrays of datetimelike objects are handled
     (e.g. np.array(datetime(2001,1,1,0,0))), w/o dtype being passed
   - 0-dim ndarrays with a passed dtype are handled correctly
     (e.g. np.array(0.,dtype='float32'))
+  - Fix some boolean indexing inconsistencies in Series __getitem__/__setitem__
+    (GH2776_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -83,6 +86,7 @@ pandas 0.11.0
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
+.. _GH2776: https://github.com/pydata/pandas/issues/2776
 
 pandas 0.10.1
 =============
