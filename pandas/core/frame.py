@@ -2107,10 +2107,6 @@ class DataFrame(NDFrame):
     def _boolean_set(self, key, value):
         if key.values.dtype != np.bool_:
             raise ValueError('Must pass DataFrame with boolean values only')
-
-        if self._is_mixed_type:
-            raise ValueError('Cannot do boolean setting on mixed-type frame')
-
         self.where(-key, value, inplace=True)
 
     def _set_item_multiple(self, keys, value):
@@ -2928,7 +2924,7 @@ class DataFrame(NDFrame):
                 new_columns = self.columns.take(indices)
                 return self.reindex(columns=new_columns)
         else:
-            new_values = com.take_2d(self.values,
+            new_values = com.take_nd(self.values,
                                      com._ensure_int64(indices),
                                      axis=axis)
             if axis == 0:
@@ -5229,16 +5225,19 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        cond: boolean DataFrame or array
-        other: scalar or DataFrame
-        inplace: perform the operation in place on the data
-        try_cast: try to cast the result back to the input type (if possible), defaults to False
-        raise_on_error: should I raise on invalid data types (e.g. trying to where on strings),
-          defaults to True
+        cond : boolean DataFrame or array
+        other : scalar or DataFrame
+        inplace : boolean, default False
+            Whether to perform the operation in place on the data
+        try_cast : boolean, default False
+            try to cast the result back to the input type (if possible),
+        raise_on_error : boolean, default True
+            Whether to raise on invalid data types (e.g. trying to where on
+            strings)
 
         Returns
         -------
-        wh: DataFrame
+        wh : DataFrame
         """
         if not hasattr(cond, 'shape'):
             raise ValueError('where requires an ndarray like object for its '
@@ -5263,18 +5262,16 @@ class DataFrame(NDFrame):
         if isinstance(other, DataFrame):
             _, other = self.align(other, join='left', fill_value=NA)
         elif isinstance(other,np.ndarray):
-
-            if other.shape[0] != len(self.index) or other.shape[1] != len(self.columns):
-                raise ValueError('other must be the same shape as self when an ndarray')
-            other = DataFrame(other,self.index,self.columns)
+            if other.shape != self.shape:
+                raise ValueError('other must be the same shape as self '
+                                 'when an ndarray')
+            other = DataFrame(other, self.index, self.columns)
 
         if inplace:
-
             # we may have different type blocks come out of putmask, so reconstruct the block manager
             self._data = self._data.putmask(cond,other,inplace=True)
 
         else:
-
             func = lambda values, others, conds: np.where(conds, values, others)
             new_data = self._data.where(func, other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
 

@@ -125,15 +125,9 @@ class Block(object):
         """
         Reindex using pre-computed indexer information
         """
-        if self.values.size > 0:
-            new_values = com.take_fast(self.values, indexer, mask,
-                                       needs_masking, axis=axis,
-                                       fill_value=fill_value)
-        else:
-            shape = list(self.shape)
-            shape[axis] = len(indexer)
-            new_values = np.empty(shape)
-            new_values.fill(fill_value)
+        new_values = com.take_fast(self.values, indexer,
+                                   mask, needs_masking, axis=axis,
+                                   fill_value=fill_value)
         return make_block(new_values, self.items, self.ref_items)
 
     def reindex_items_from(self, new_ref_items, copy=True):
@@ -155,12 +149,9 @@ class Block(object):
             mask = indexer != -1
             masked_idx = indexer[mask]
 
-            if self.values.ndim == 2:
-                new_values = com.take_2d(self.values, masked_idx, axis=0,
-                                         needs_masking=False)
-            else:
-                new_values = self.values.take(masked_idx, axis=0)
-
+            new_values = com.take_fast(self.values, masked_idx,
+                                       mask=None, needs_masking=False,
+                                       axis=0)
             new_items = self.items.take(masked_idx)
         return make_block(new_values, new_items, new_ref_items)
 
@@ -301,24 +292,23 @@ class Block(object):
         new_values = self.values if inplace else self.values.copy()
 
         # may need to align the new
-        if hasattr(new,'reindex_axis'):
-            axis = getattr(new,'_het_axis',0)
+        if hasattr(new, 'reindex_axis'):
+            axis = getattr(new, '_het_axis', 0)
             new = new.reindex_axis(self.items, axis=axis, copy=False).values.T
 
         # may need to align the mask
-        if hasattr(mask,'reindex_axis'):
-            axis = getattr(mask,'_het_axis',0)
+        if hasattr(mask, 'reindex_axis'):
+            axis = getattr(mask, '_het_axis', 0)
             mask = mask.reindex_axis(self.items, axis=axis, copy=False).values.T
 
         if self._can_hold_element(new):
             new = self._try_cast(new)
             np.putmask(new_values, mask, new)
-
         # upcast me
         else:
-            
             # type of the new block
-            if isinstance(new,np.ndarray) and issubclass(new.dtype,np.number) or issubclass(type(new),float):
+            if ((isinstance(new, np.ndarray) and issubclass(new.dtype, np.number)) or
+                    isinstance(new, float)):
                 typ = float
             else:
                 typ = object
@@ -369,9 +359,8 @@ class Block(object):
     def take(self, indexer, axis=1, fill_value=np.nan):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
-        new_values = com.take_fast(self.values, indexer, None,
-                                   None, axis=axis,
-                                   fill_value=fill_value)
+        new_values = com.take_fast(self.values, indexer, None, False,
+                                   axis=axis, fill_value=fill_value)
         return make_block(new_values, self.items, self.ref_items)
 
     def get_values(self, dtype):
@@ -401,22 +390,21 @@ class Block(object):
 
         Parameters
         ----------
-        func  : how to combine self,other
+        func  : how to combine self, other
         other : a ndarray/object
         cond  : the condition to respect, optional
-        raise_on_error : if True, raise when I can't perform the function, False by default (and just return
-             the data that we had coming in)
+        raise_on_error : if True, raise when I can't perform the function,
+            False by default (and just return the data that we had coming in)
 
         Returns
         -------
         a new block, the result of the func
         """
-
         values = self.values
 
         # see if we can align other
-        if hasattr(other,'reindex_axis'):
-            axis = getattr(other,'_het_axis',0)
+        if hasattr(other, 'reindex_axis'):
+            axis = getattr(other, '_het_axis', 0)
             other = other.reindex_axis(self.items, axis=axis, copy=True).values
 
         # make sure that we can broadcast
@@ -428,17 +416,20 @@ class Block(object):
 
         # see if we can align cond
         if cond is not None:
-            if not hasattr(cond,'shape'):
-                raise ValueError("where must have a condition that is ndarray like")
-            if hasattr(cond,'reindex_axis'):
-                axis = getattr(cond,'_het_axis',0)
-                cond = cond.reindex_axis(self.items, axis=axis, copy=True).values
+            if not hasattr(cond, 'shape'):
+                raise ValueError('where must have a condition that is ndarray'
+                                 ' like')
+            if hasattr(cond, 'reindex_axis'):
+                axis = getattr(cond, '_het_axis', 0)
+                cond = cond.reindex_axis(self.items, axis=axis,
+                                         copy=True).values
             else:
                 cond = cond.values
 
             # may need to undo transpose of values
             if hasattr(values, 'ndim'):
-                if values.ndim != cond.ndim or values.shape == cond.shape[::-1]:
+                if (values.ndim != cond.ndim or
+                        values.shape == cond.shape[::-1]):
                     values = values.T
                     is_transposed =  not is_transposed
 
@@ -494,7 +485,7 @@ class FloatBlock(NumericBlock):
 
     def _can_hold_element(self, element):
         if isinstance(element, np.ndarray):
-            return issubclass(element.dtype.type, (np.floating,np.integer))
+            return issubclass(element.dtype.type, (np.floating, np.integer))
         return isinstance(element, (float, int))
 
     def _try_cast(self, element):
@@ -541,7 +532,8 @@ class IntBlock(NumericBlock):
     def _try_cast_result(self, result):
         # this is quite restrictive to convert
         try:
-            if isinstance(result, np.ndarray) and issubclass(result.dtype.type, np.floating):
+            if (isinstance(result, np.ndarray) and
+                    issubclass(result.dtype.type, np.floating)):
                 if com.notnull(result).all():
                     new_result = result.astype(self.dtype)
                     if (new_result == result).all():
@@ -958,7 +950,8 @@ class BlockManager(object):
         return type_list
 
     def get_bool_data(self, copy=False, as_blocks=False):
-        return self.get_numeric_data(copy=copy, type_list=(BoolBlock,), as_blocks=as_blocks)
+        return self.get_numeric_data(copy=copy, type_list=(BoolBlock,),
+                                     as_blocks=as_blocks)
 
     def get_slice(self, slobj, axis=0):
         new_axes = list(self.axes)
@@ -1429,7 +1422,7 @@ class BlockManager(object):
         if axis == 0:
             raise NotImplementedError
 
-        indexer = np.asarray(indexer, dtype='i4')
+        indexer = com._ensure_platform_int(indexer)
 
         n = len(self.axes[axis])
         if ((indexer == -1) | (indexer >= n)).any():
@@ -1440,8 +1433,8 @@ class BlockManager(object):
         new_axes[axis] = self.axes[axis].take(indexer)
         new_blocks = []
         for blk in self.blocks:
-            new_values = com.take_fast(blk.values, indexer,
-                                       None, False, axis=axis)
+            new_values = com.take_fast(blk.values, indexer, None, False,
+                                       axis=axis)
             newb = make_block(new_values, blk.items, self.items)
             new_blocks.append(newb)
 
@@ -1764,8 +1757,6 @@ def _consolidate(blocks, items):
 
     return new_blocks
 
-
-# TODO: this could be much optimized
 
 def _merge_blocks(blocks, items):
     if len(blocks) == 1:

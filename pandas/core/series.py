@@ -805,7 +805,9 @@ copy : boolean, default False
         converted : Series
         """
         if self.dtype == np.object_:
-            return Series(com._possibly_convert_objects(self.values,convert_dates=convert_dates,convert_numeric=convert_numeric), index=self.index, name=self.name)
+            return Series(com._possibly_convert_objects(self.values,
+                convert_dates=convert_dates, convert_numeric=convert_numeric),
+                index=self.index, name=self.name)
         return self.copy()
 
     def repeat(self, reps):
