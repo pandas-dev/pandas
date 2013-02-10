@@ -491,10 +491,19 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assert_(result.tz is pytz.utc)
 
     def test_frame_no_datetime64_dtype(self):
+
         dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
         dr_tz = dr.tz_localize('US/Eastern')
         e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
         self.assert_(e['B'].dtype == 'M8[ns]')
+
+        # GH 2810 (with timezones)
+        datetimes_naive   = [ ts.to_pydatetime() for ts in dr ]
+        datetimes_with_tz = [ ts.to_pydatetime() for ts in dr_tz ]
+        df = DataFrame({'dr' : dr, 'dr_tz' : dr_tz, 'datetimes_naive': datetimes_naive, 'datetimes_with_tz' : datetimes_with_tz })
+        result = df.get_dtype_counts()
+        expected = Series({ 'datetime64[ns]' : 3, 'object' : 1 })
+        assert_series_equal(result, expected)
 
     def test_hongkong_tz_convert(self):
         # #1673
