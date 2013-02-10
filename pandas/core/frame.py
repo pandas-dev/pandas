@@ -1539,6 +1539,8 @@ class DataFrame(NDFrame):
         to_html-specific options
         bold_rows : boolean, default True
             Make the row labels bold in the output
+        classes : str or list or tuple, default None
+            CSS class(es) to apply to the resulting html table
 
         Render a DataFrame to an html table.
         """
