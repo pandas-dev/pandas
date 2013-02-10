@@ -245,6 +245,8 @@ _parser_defaults = {
     'dayfirst': False,
     'date_parser': None,
 
+    'usecols': None,
+
     # 'nrows': None,
     # 'iterator': False,
     'chunksize': None,
@@ -268,7 +270,6 @@ _c_parser_defaults = {
     'warn_bad_lines': True,
     'factorize': True,
     'dtype': None,
-    'usecols': None,
     'decimal': b'.'
 }
 
@@ -1119,6 +1120,10 @@ class PythonParser(ParserBase):
         self.data = None
         self.buf = []
         self.pos = 0
+
+        if kwds['usecols'] is not None:
+            raise Exception("usecols not supported with engine='python'"
+                            " or multicharacter separators (yet).")
 
         self.header = kwds['header']
         self.encoding = kwds['encoding']
