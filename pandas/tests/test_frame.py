@@ -8069,10 +8069,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame[self.frame > 1] = 2
         assert_almost_equal(expected, self.frame.values)
 
-    def test_boolean_set_mixed_type(self):
-        bools = self.mixed_frame.applymap(lambda x: x != 2).astype(bool)
-        self.assertRaises(Exception, self.mixed_frame.__setitem__, bools, 2)
-
     def test_xs_view(self):
         dm = DataFrame(np.arange(20.).reshape(4, 5),
                        index=range(4), columns=range(5))

@@ -2018,7 +2018,7 @@ def group_median(ndarray[float64_t, ndim=2] out,
     data = np.empty((K, N), dtype=np.float64)
     ptr = <float64_t*> data.data
 
-    take_2d_axis1_float64(values.T, indexer, out=data)
+    take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
     for i in range(K):
         # exclude NA group

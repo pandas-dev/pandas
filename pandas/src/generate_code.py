@@ -52,177 +52,148 @@ cpdef ensure_platform_int(object arr):
 
 
 take_1d_template = """@cython.wraparound(False)
-def take_1d_%(name)s(ndarray[%(c_type)s] values,
-                     ndarray[int64_t] indexer,
-                     out=None, fill_value=np.nan):
+def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
+                              ndarray[int64_t] indexer,
+                              out, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
-        ndarray[%(c_type)s] outbuf
-        %(c_type)s fv
+        ndarray[%(c_type_out)s] outbuf = out
+        %(c_type_out)s fv
 
     n = len(indexer)
 
-    if out is None:
-        outbuf = np.empty(n, dtype=values.dtype)
-    else:
-        outbuf = out
-
     if %(raise_on_na)s and _checknan(fill_value):
-        for i in range(n):
+        for i from 0 <= i < n:
             idx = indexer[i]
             if idx == -1:
                 raise ValueError('No NA values allowed')
             else:
-                outbuf[i] = values[idx]
+                outbuf[i] = %(preval)svalues[idx]%(postval)s
     else:
         fv = fill_value
-        for i in range(n):
+        for i from 0 <= i < n:
             idx = indexer[i]
             if idx == -1:
                 outbuf[i] = fv
             else:
-                outbuf[i] = values[idx]
+                outbuf[i] = %(preval)svalues[idx]%(postval)s
 
 """
 
 take_2d_axis0_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
-def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int64_t] indexer,
-                           out=None, fill_value=np.nan):
+def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
+                                    ndarray[int64_t] indexer,
+                                    out, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
-        ndarray[%(c_type)s, ndim=2] outbuf
-        %(c_type)s fv
+        ndarray[%(c_type_out)s, ndim=2] outbuf = out
+        %(c_type_out)s fv
 
     n = len(indexer)
     k = values.shape[1]
 
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
     if %(raise_on_na)s and _checknan(fill_value):
-        for i in range(n):
+        for i from 0 <= i < n:
             idx = indexer[i]
             if idx == -1:
                 for j from 0 <= j < k:
                     raise ValueError('No NA values allowed')
             else:
                 for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+                    outbuf[i, j] = %(preval)svalues[idx, j]%(postval)s
     else:
         fv = fill_value
-        for i in range(n):
+        for i from 0 <= i < n:
             idx = indexer[i]
             if idx == -1:
-                for j in range(k):
+                for j from 0 <= j < k:
                     outbuf[i, j] = fv
             else:
-                for j in range(k):
-                    outbuf[i, j] = values[idx, j]
+                for j from 0 <= j < k:
+                    outbuf[i, j] = %(preval)svalues[idx, j]%(postval)s
 
 """
 
 take_2d_axis1_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
-def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int64_t] indexer,
-                           out=None, fill_value=np.nan):
+def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
+                                    ndarray[int64_t] indexer,
+                                    out, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
-        ndarray[%(c_type)s, ndim=2] outbuf
-        %(c_type)s fv
+        ndarray[%(c_type_out)s, ndim=2] outbuf = out
+        %(c_type_out)s fv
 
     n = len(values)
     k = len(indexer)
 
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
     if %(raise_on_na)s and _checknan(fill_value):
-        for j in range(k):
+        for j from 0 <= j < k:
             idx = indexer[j]
-
             if idx == -1:
-                for i in range(n):
+                for i from 0 <= i < n:
                     raise ValueError('No NA values allowed')
             else:
-                for i in range(n):
-                    outbuf[i, j] = values[i, idx]
+                for i from 0 <= i < n:
+                    outbuf[i, j] = %(preval)svalues[i, idx]%(postval)s
     else:
         fv = fill_value
-        for j in range(k):
+        for j from 0 <= j < k:
             idx = indexer[j]
-
             if idx == -1:
-                for i in range(n):
+                for i from 0 <= i < n:
                     outbuf[i, j] = fv
             else:
-                for i in range(n):
-                    outbuf[i, j] = values[i, idx]
+                for i from 0 <= i < n:
+                    outbuf[i, j] = %(preval)svalues[i, idx]%(postval)s
 
 """
 
 take_2d_multi_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
-def take_2d_multi_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int64_t] idx0,
-                           ndarray[int64_t] idx1,
-                           out=None, fill_value=np.nan):
+def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
+                                    indexer,
+                                    out, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
-        ndarray[%(c_type)s, ndim=2] outbuf
-        %(c_type)s fv
+        ndarray[int64_t] idx0 = indexer[0]
+        ndarray[int64_t] idx1 = indexer[1]
+        ndarray[%(c_type_out)s, ndim=2] outbuf = out
+        %(c_type_out)s fv
 
     n = len(idx0)
     k = len(idx1)
 
-    if out is None:
-        outbuf = np.empty((n, k), dtype=values.dtype)
-    else:
-        outbuf = out
-
-
     if %(raise_on_na)s and _checknan(fill_value):
-        for i in range(n):
+        for i from 0 <= i < n:
             idx = idx0[i]
             if idx == -1:
-                for j in range(k):
+                for j from 0 <= j < k:
                     raise ValueError('No NA values allowed')
             else:
-                for j in range(k):
+                for j from 0 <= j < k:
                     if idx1[j] == -1:
                         raise ValueError('No NA values allowed')
                     else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                        outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
     else:
         fv = fill_value
-        for i in range(n):
+        for i from 0 <= i < n:
             idx = idx0[i]
             if idx == -1:
-                for j in range(k):
+                for j from 0 <= j < k:
                     outbuf[i, j] = fv
             else:
-                for j in range(k):
+                for j from 0 <= j < k:
                     if idx1[j] == -1:
                         outbuf[i, j] = fv
                     else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                        outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
 
 """
 
 
-def set_na(na ="NaN"):
-    return "outbuf[i] = %s" % na
-
-def set_na_2d(na = "NaN"):
-    return "outbuf[i, j] = %s" % na
-
-raise_on_na = "raise ValueError('No NA values allowed')"
 
 '''
 Backfilling logic for generating fill vector
@@ -2184,20 +2155,55 @@ def generate_put_template(template, use_ints = True, use_floats = True):
         output.write(func)
     return output.getvalue()
 
+def generate_take_template(template, exclude=None):
+    # name, dest, ctypein, ctypeout, preval, postval, capable of holding NA
+    function_list = [
+        ('bool', 'bool', 'uint8_t', 'uint8_t', '', '', False),
+        ('bool', 'object', 'uint8_t', 'object',
+         'True if ', ' > 0 else False', True),
+        ('int8', 'int8', 'int8_t', 'int8_t', '', '', False),
+        ('int8', 'int32', 'int8_t', 'int32_t', '', '', False),
+        ('int8', 'int64', 'int8_t', 'int64_t', '', '', False),
+        ('int8', 'float64', 'int8_t', 'float64_t', '', '', True),
+        ('int16', 'int16', 'int16_t', 'int16_t', '', '', False),
+        ('int16', 'int32', 'int16_t', 'int32_t', '', '', False),
+        ('int16', 'int64', 'int16_t', 'int64_t', '', '', False),
+        ('int16', 'float64', 'int16_t', 'float64_t', '', '', True),
+        ('int32', 'int32', 'int32_t', 'int32_t', '', '', False),
+        ('int32', 'int64', 'int32_t', 'int64_t', '', '', False),
+        ('int32', 'float64', 'int32_t', 'float64_t', '', '', True),
+        ('int64', 'int64', 'int64_t', 'int64_t', '', '', False),
+        ('int64', 'float64', 'int64_t', 'float64_t', '', '', True),
+        ('float32', 'float32', 'float32_t', 'float32_t', '', '', True),
+        ('float32', 'float64', 'float32_t', 'float64_t', '', '', True),
+        ('float64', 'float64', 'float64_t', 'float64_t', '', '', True),
+        ('object', 'object', 'object', 'object', '', '', True)
+    ]
 
-# name, ctype, capable of holding NA
-function_list = [
-    ('float64', 'float64_t', 'np.float64', True),
-    ('float32', 'float32_t', 'np.float32', True),
-    ('object','object',  'object',   True),
-    ('int8',  'int8_t',  'np.int8',  False),
-    ('int16', 'int16_t', 'np.int16', False),
-    ('int32', 'int32_t', 'np.int32', False),
-    ('int64', 'int64_t', 'np.int64', False),
-    ('bool',  'uint8_t', 'np.bool',  False)
-]
+    output = StringIO()
+    for (name, dest, c_type_in, c_type_out, 
+            preval, postval, can_hold_na) in function_list:
+        if exclude is not None and name in exclude:
+            continue
 
-def generate_from_template(template, ndim=1, exclude=None):
+        func = template % {'name': name, 'dest': dest,
+                           'c_type_in': c_type_in, 'c_type_out': c_type_out,
+                           'preval': preval, 'postval': postval,
+                           'raise_on_na': 'False' if can_hold_na else 'True'}
+        output.write(func)
+    return output.getvalue()
+
+def generate_from_template(template, exclude=None):
+    # name, ctype, capable of holding NA
+    function_list = [
+        ('float64', 'float64_t', 'np.float64', True),
+        ('float32', 'float32_t', 'np.float32', True),
+        ('object', 'object', 'object', True),
+        ('int32', 'int32_t', 'np.int32', False),
+        ('int64', 'int64_t', 'np.int64', False),
+        ('bool', 'uint8_t', 'np.bool', False)
+    ]
+
     output = StringIO()
     for name, c_type, dtype, can_hold_na in function_list:
         if exclude is not None and name in exclude:
@@ -2235,7 +2241,6 @@ templates_1d = [map_indices_template,
                 backfill_1d_template,
                 pad_2d_template,
                 backfill_2d_template,
-                take_1d_template,
                 is_monotonic_template,
                 groupby_template,
                 arrmap_template]
@@ -2245,9 +2250,10 @@ nobool_1d_templates = [left_join_unique_template,
                        outer_join_template2,
                        inner_join_template]
 
-templates_2d = [take_2d_axis0_template,
-                take_2d_axis1_template,
-                take_2d_multi_template]
+take_templates = [take_1d_template,
+                  take_2d_axis0_template,
+                  take_2d_axis1_template,
+                  take_2d_multi_template]
 
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
@@ -2258,8 +2264,8 @@ def generate_take_cython_file(path='generated.pyx'):
         for template in templates_1d:
             print >> f, generate_from_template(template)
 
-        for template in templates_2d:
-            print >> f, generate_from_template(template, ndim=2)
+        for template in take_templates:
+            print >> f, generate_take_template(template)
 
         for template in put_2d:
             print >> f, generate_put_template(template)
