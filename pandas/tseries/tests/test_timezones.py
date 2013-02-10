@@ -494,7 +494,7 @@ class TestTimeZoneSupport(unittest.TestCase):
         dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
         dr_tz = dr.tz_localize('US/Eastern')
         e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
-        self.assert_(e['B'].dtype == object)
+        self.assert_(e['B'].dtype == 'M8[ns]')
 
     def test_hongkong_tz_convert(self):
         # #1673

@@ -50,7 +50,7 @@ Numeric dtypes will propgate and can coexist in DataFrames. If a dtype is passed
    df3.dtypes
 
    # forcing date coercion
-   s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1, 
+   s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1,
                Timestamp('20010104'), '20010105'],dtype='O')
    s.convert_objects(convert_dates='coerce')
 
@@ -93,3 +93,33 @@ See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
+
+Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way. Furthermore datetime64 columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
+
+.. ipython:: python
+
+   df = DataFrame(randn(6,2),date_range('20010102',periods=6),columns=['A','B'])
+   df['timestamp'] = Timestamp('20010103')
+   df
+
+   # datetime64[ns] out of the box
+   df.get_dtype_counts()
+
+   # use the traditional nan, which is mapped to NaT internally
+   df.ix[2:4,['A','timestamp']] = np.nan
+   df
+
+Astype conversion on datetime64[ns] to object, implicity converts ``NaT`` to ``np.nan``
+
+
+.. ipython:: python
+
+   import datetime
+   s = Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
+   s.dtype
+   s[1] = np.nan
+   s
+   s.dtype
+   s = s.astype('O')
+   s
+   s.dtype

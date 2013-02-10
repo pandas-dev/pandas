@@ -44,7 +44,7 @@ pandas 0.10.2
   - Do not automatically upcast numeric specified dtypes to ``int64`` or ``float64`` (GH622_ and GH797_)
   - Guarantee that ``convert_objects()`` for Series/DataFrame always returns a copy
   - groupby operations will respect dtypes for numeric float operations (float32/float64); other types will be operated on,
-    and will try to cast back to the input dtype (e.g. if an int is passed, as long as the output doesn't have nans, 
+    and will try to cast back to the input dtype (e.g. if an int is passed, as long as the output doesn't have nans,
     then an int will be returned)
   - backfill/pad/take/diff/ohlc will now support ``float32/int16/int8`` operations
   - Integer block types will upcast as needed in where operations (GH2793_)
@@ -53,10 +53,23 @@ pandas 0.10.2
 
   - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill`` (GH2778_)
 
+**API Changes**
+
+  - Series now automatically will try to set the correct dtype based on passed datetimelike objects (datetime/Timestamp)
+     - timedelta64 are returned in appropriate cases (e.g. Series - Series, when both are datetime64)
+     - mixed datetimes and objects (GH2751_) in a constructor witll be casted correctly
+     - astype on datetimes to object are now handled (as well as NaT conversions to np.nan)
+
+**Bug fixes**
+
+  - Single element ndarrays of datetimelike objects are handled (e.g. np.array(datetime(2001,1,1,0,0))), w/o dtype being passed
+  - 0-dim ndarrays with a passed dtype are handled correctly (e.g. np.array(0.,dtype='float32'))
+
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
+.. _GH2751: https://github.com/pydata/pandas/issues/2751
 
 pandas 0.10.1
 =============

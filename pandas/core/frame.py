@@ -4300,7 +4300,7 @@ class DataFrame(NDFrame):
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
-            if x.dtype == 'M8[ns]':
+            if com.is_datetime64_dtype(x):
                 x = lib.map_infer(x, lib.Timestamp)
             return lib.map_infer(x, func)
         return self.apply(infer)
@@ -4991,7 +4991,7 @@ class DataFrame(NDFrame):
     def _get_numeric_data(self):
         if self._is_mixed_type:
             num_data = self._data.get_numeric_data()
-            return DataFrame(num_data, copy=False)
+            return DataFrame(num_data, index=self.index, copy=False)
         else:
             if (self.values.dtype != np.object_ and
                     not issubclass(self.values.dtype.type, np.datetime64)):
@@ -5002,7 +5002,7 @@ class DataFrame(NDFrame):
     def _get_bool_data(self):
         if self._is_mixed_type:
             bool_data = self._data.get_bool_data()
-            return DataFrame(bool_data, copy=False)
+            return DataFrame(bool_data, index=self.index, copy=False)
         else:  # pragma: no cover
             if self.values.dtype == np.bool_:
                 return self

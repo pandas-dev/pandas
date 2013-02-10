@@ -720,6 +720,20 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                 except:
                     pass
 
+    elif dtype is None:
+        # we might have a array (or single object) that is datetime like, and no dtype is passed
+        # don't change the value unless we find a datetime set
+        v = value
+        if not (is_list_like(v) or hasattr(v,'len')):
+            v = [ v ]
+        if len(v):
+            inferred_type = lib.infer_dtype(v)
+            if inferred_type == 'datetime':
+                try:
+                    value = tslib.array_to_datetime(np.array(v))
+                except:
+                    pass
+
     return value
 
 
