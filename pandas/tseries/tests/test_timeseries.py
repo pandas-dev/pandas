@@ -567,7 +567,8 @@ class TestTimeSeries(unittest.TestCase):
         expected = ('0          1970-01-01 00:00:00\n'
                     '1   1970-01-01 00:00:00.000001\n'
                     '2   1970-01-01 00:00:00.000002\n'
-                    '3                          NaT')
+                    '3                          NaT\n'
+                    'Dtype: datetime64[ns]')
         self.assertEquals(result, expected)
 
     def test_fillna_nat(self):

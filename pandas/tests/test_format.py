@@ -140,7 +140,8 @@ class TestDataFrameFormatting(unittest.TestCase):
                 line = line.decode(get_option("display.encoding"))
             except:
                 pass
-            self.assert_(len(line) == line_len)
+            if not line.startswith('Dtype:'):
+                self.assert_(len(line) == line_len)
 
         # it works even if sys.stdin in None
         _stdin= sys.stdin
@@ -1056,6 +1057,8 @@ c  10  11  12  13  14\
                 2.03954217305e+10, 5.59897817305e+10]
         skip = True
         for line in repr(DataFrame({'A': vals})).split('\n'):
+            if line.startswith('Dtype:'):
+                continue
             if _three_digit_exp():
                 self.assert_(('+010' in line) or skip)
             else:
@@ -1101,7 +1104,7 @@ class TestSeriesFormatting(unittest.TestCase):
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
         result = [x.split()[1] for x in result.split('\n')]
-        expected = [format(x) for x in self.ts]
+        expected = [format(x) for x in self.ts] + [u'float64']
         self.assertEqual(result, expected)
 
         # empty string
@@ -1116,7 +1119,7 @@ class TestSeriesFormatting(unittest.TestCase):
         cp.name = 'foo'
         result = cp.to_string(length=True, name=True)
         last_line = result.split('\n')[-1].strip()
-        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d" % len(cp))
+        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d, Dtype: float64" % len(cp))
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
@@ -1131,7 +1134,8 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0     foo\n'
                     u'1     NaN\n'
                     u'2   -1.23\n'
-                    u'3    4.56')
+                    u'3    4.56\n'
+                    u'Dtype: object')
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
@@ -1140,7 +1144,8 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0    foo\n'
                     '1    NaN\n'
                     '2    bar\n'
-                    '3    baz')
+                    '3    baz\n'
+                    u'Dtype: object')
         self.assertEqual(result, expected)
 
         s = Series(['foo', 5, 'bar', 'baz'])
@@ -1148,7 +1153,8 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0    foo\n'
                     '1      5\n'
                     '2    bar\n'
-                    '3    baz')
+                    '3    baz\n'
+                    u'Dtype: object')
         self.assertEqual(result, expected)
 
     def test_to_string_float_na_spacing(self):
@@ -1160,7 +1166,8 @@ class TestSeriesFormatting(unittest.TestCase):
                     '1    1.5678\n'
                     '2       NaN\n'
                     '3   -3.0000\n'
-                    '4       NaN')
+                    '4       NaN\n'
+                    u'Dtype: float64')
         self.assertEqual(result, expected)
 
     def test_unicode_name_in_footer(self):
@@ -1172,6 +1179,8 @@ class TestSeriesFormatting(unittest.TestCase):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
                 2.03954217305e+10, 5.59897817305e+10]
         for line in repr(Series(vals)).split('\n'):
+            if line.startswith('Dtype:'):
+                continue
             if _three_digit_exp():
                 self.assert_('+010' in line)
             else:

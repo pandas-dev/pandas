@@ -2,6 +2,7 @@
 SQL-style merge routines
 """
 
+import itertools
 import numpy as np
 
 from pandas.core.categorical import Factor
@@ -658,7 +659,7 @@ class _BlockJoinOperation(object):
             join_blocks = unit.get_upcasted_blocks()
             type_map = {}
             for blk in join_blocks:
-                type_map.setdefault(type(blk), []).append(blk)
+                type_map.setdefault(blk.dtype, []).append(blk)
             blockmaps.append((unit, type_map))
 
         return blockmaps
@@ -985,7 +986,8 @@ class _Concatenator(object):
         blockmaps = []
         for data in reindexed_data:
             data = data.consolidate()
-            type_map = dict((type(blk), blk) for blk in data.blocks)
+
+            type_map = dict((blk.dtype, blk) for blk in data.blocks)
             blockmaps.append(type_map)
         return blockmaps, reindexed_data
 

@@ -312,7 +312,10 @@ def _comp_method(func, name):
         elif isinstance(other, Series):
             return self._combine_series_infer(other, func)
         else:
-            return self._combine_const(other, func)
+
+            # straight boolean comparisions we want to allow all columns 
+            # (regardless of dtype to pass thru)
+            return self._combine_const(other, func, raise_on_error = False).fillna(True).astype(bool)
 
     f.__name__ = name
 
@@ -327,6 +330,7 @@ class DataFrame(NDFrame):
     _auto_consolidate = True
     _verbose_info = True
     _het_axis = 1
+    _info_axis = 'columns'
     _col_klass = Series
 
     _AXIS_NUMBERS = {
@@ -1004,6 +1008,12 @@ class DataFrame(NDFrame):
                         arr_columns.append(k)
                         arrays.append(v)
 
+                # reorder according to the columns
+                if len(columns) and len(arr_columns):
+                    indexer     = _ensure_index(arr_columns).get_indexer(columns)
+                    arr_columns = _ensure_index([ arr_columns[i] for i in indexer ])
+                    arrays      = [ arrays[i] for i in indexer ]
+
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = _to_arrays(data, columns)
             if columns is not None:
@@ -1649,38 +1659,25 @@ class DataFrame(NDFrame):
     def dtypes(self):
         return self.apply(lambda x: x.dtype)
 
-    def convert_objects(self, convert_dates=True):
+    def convert_objects(self, convert_dates=True, convert_numeric=True):
         """
         Attempt to infer better dtype for object columns
+        Always returns a copy (even if no object columns)
+
+        Parameters
+        ----------
+        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
+        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
 
         Returns
         -------
         converted : DataFrame
         """
-        new_data = {}
-        convert_f = lambda x: lib.maybe_convert_objects(
-            x, convert_datetime=convert_dates)
-
-        # TODO: could be more efficient taking advantage of the block
-        for col, s in self.iteritems():
-            if s.dtype == np.object_:
-                new_data[col] = convert_f(s)
-            else:
-                new_data[col] = s
-
-        return DataFrame(new_data, index=self.index, columns=self.columns)
+        return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
 
     def get_dtype_counts(self):
-        counts = {}
-        for i in range(len(self.columns)):
-            series = self.icol(i)
-            # endianness can cause dtypes to look different
-            dtype_str = str(series.dtype)
-            if dtype_str in counts:
-                counts[dtype_str] += 1
-            else:
-                counts[dtype_str] = 1
-        return Series(counts)
+        """ return the counts of dtypes in this frame """
+        return Series(dict([ (dtype, len(df.columns)) for dtype, df in self.blocks.iteritems() ]))
 
     #----------------------------------------------------------------------
     # properties for index and columns
@@ -1693,6 +1690,14 @@ class DataFrame(NDFrame):
         Convert the frame to its Numpy-array matrix representation. Columns
         are presented in sorted order unless a specific list of columns is
         provided.
+
+        NOTE: the dtype will be a lower-common-denominator dtype (implicit upcasting)
+              that is to say if the dtypes (even of numeric types) are mixed, the one that accomodates all will be chosen
+              use this with care if you are not dealing with the blocks
+
+              e.g. if the dtypes are float16,float32         -> float32
+                                     float16,float32,float64 -> float64
+                                     int32,uint8             -> int32
 
         Parameters
         ----------
@@ -1709,6 +1714,33 @@ class DataFrame(NDFrame):
         return self._data.as_matrix(columns).T
 
     values = property(fget=as_matrix)
+
+    def as_blocks(self, columns=None):
+        """
+        Convert the frame to a dict of dtype -> DataFrames that each has a homogeneous dtype.
+        are presented in sorted order unless a specific list of columns is
+        provided.
+
+        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in as_matrix)
+
+        Parameters
+        ----------
+        columns : array-like
+            Specific column order
+
+        Returns
+        -------
+        values : a list of DataFrames
+        """
+        self._consolidate_inplace()
+
+        bd = dict()
+        for b in self._data.blocks:
+            b = b.reindex_items_from(columns or b.items)
+            bd[str(b.dtype)] = DataFrame(BlockManager([ b ], [ b.items, self.index ]))
+        return bd
+
+    blocks = property(fget=as_blocks)
 
     def transpose(self):
         """
@@ -1963,7 +1995,7 @@ class DataFrame(NDFrame):
             return self._getitem_multilevel(key)
         elif isinstance(key, DataFrame):
             if key.values.dtype == bool:
-                return self.where(key)
+                return self.where(key, try_cast = False)
             else:
                 raise ValueError('Cannot index using non-boolean DataFrame')
         else:
@@ -3334,17 +3366,12 @@ class DataFrame(NDFrame):
                     raise NotImplementedError()
                 return self.T.fillna(method=method, limit=limit).T
 
-            new_blocks = []
             method = com._clean_fill_method(method)
-            for block in self._data.blocks:
-                if block._can_hold_na:
-                    newb = block.interpolate(method, axis=axis,
-                                             limit=limit, inplace=inplace)
-                else:
-                    newb = block if inplace else block.copy()
-                new_blocks.append(newb)
-
-            new_data = BlockManager(new_blocks, self._data.axes)
+            new_data = self._data.interpolate(method  = method,
+                                              axis    = axis,
+                                              limit   = limit,
+                                              inplace = inplace,
+                                              coerce  = True)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
@@ -3447,8 +3474,8 @@ class DataFrame(NDFrame):
                                          'in length. Expecting %d got %d ' %
                                          (len(to_replace), len(value)))
 
-                    new_data = self._data if inplace else self.copy()._data
-                    new_data._replace_list(to_replace, value)
+                    new_data = self._data.replace_list(to_replace, value, 
+                                                       inplace=inplace)
 
                 else:  # [NA, ''] -> 0
                     new_data = self._data.replace(to_replace, value,
@@ -3493,13 +3520,13 @@ class DataFrame(NDFrame):
             return rs if not inplace else None
 
         else:
-            new_blocks = []
-            for block in self._data.blocks:
-                newb = block.interpolate(method, axis=axis,
-                                         limit=limit, inplace=inplace,
-                                         missing=to_replace)
-                new_blocks.append(newb)
-            new_data = BlockManager(new_blocks, self._data.axes)
+
+            new_data = self._data.interpolate(method  = method,
+                                              axis    = axis,
+                                              limit   = limit,
+                                              inplace = inplace,
+                                              missing = to_replace,
+                                              coerce  = False)
 
             if inplace:
                 self._data = new_data
@@ -3672,22 +3699,15 @@ class DataFrame(NDFrame):
         if fill_value is not None:
             raise NotImplementedError
 
-        return self._constructor(func(left.values, right.values),
-                                 index=self.index,
-                                 columns=left.columns, copy=False)
+        new_data = left._data.where(func, right, axes = [left.columns, self.index])
+        return self._constructor(new_data)
 
-    def _combine_const(self, other, func):
+    def _combine_const(self, other, func, raise_on_error = True):
         if self.empty:
             return self
 
-        result_values = func(self.values, other)
-
-        if not isinstance(result_values, np.ndarray):
-            raise TypeError('Could not compare %s with DataFrame values'
-                            % repr(other))
-
-        return self._constructor(result_values, index=self.index,
-                                 columns=self.columns, copy=False)
+        new_data = self._data.where(func, other, raise_on_error=raise_on_error)
+        return self._constructor(new_data)
 
     def _compare_frame(self, other, func):
         if not self._indexed_same(other):
@@ -4016,8 +4036,7 @@ class DataFrame(NDFrame):
         -------
         diffed : DataFrame
         """
-        new_blocks = [b.diff(periods) for b in self._data.blocks]
-        new_data = BlockManager(new_blocks, [self.columns, self.index])
+        new_data = self._data.diff(periods)
         return self._constructor(new_data)
 
     def shift(self, periods=1, freq=None, **kwds):
@@ -4051,21 +4070,9 @@ class DataFrame(NDFrame):
         if isinstance(offset, basestring):
             offset = datetools.to_offset(offset)
 
-        def _shift_block(blk, indexer):
-            new_values = blk.values.take(indexer, axis=1)
-            # convert integer to float if necessary. need to do a lot more than
-            # that, handle boolean etc also
-            new_values = com._maybe_upcast(new_values)
-            if periods > 0:
-                new_values[:, :periods] = NA
-            else:
-                new_values[:, periods:] = NA
-            return make_block(new_values, blk.items, blk.ref_items)
-
         if offset is None:
             indexer = com._shift_indexer(len(self), periods)
-            new_blocks = [_shift_block(b, indexer) for b in self._data.blocks]
-            new_data = BlockManager(new_blocks, [self.columns, self.index])
+            new_data = self._data.shift(indexer, periods)
         elif isinstance(self.index, PeriodIndex):
             orig_offset = datetools.to_offset(self.index.freq)
             if offset == orig_offset:
@@ -5215,7 +5222,7 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
-    def where(self, cond, other=NA, inplace=False):
+    def where(self, cond, other=NA, inplace=False, try_cast=False, raise_on_error=True):
         """
         Return a DataFrame with the same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from other.
@@ -5224,6 +5231,10 @@ class DataFrame(NDFrame):
         ----------
         cond: boolean DataFrame or array
         other: scalar or DataFrame
+        inplace: perform the operation in place on the data
+        try_cast: try to cast the result back to the input type (if possible), defaults to False
+        raise_on_error: should I raise on invalid data types (e.g. trying to where on strings),
+          defaults to True
 
         Returns
         -------
@@ -5235,7 +5246,7 @@ class DataFrame(NDFrame):
 
         if isinstance(cond, np.ndarray):
             if cond.shape != self.shape:
-                raise ValueError('Array onditional must be same shape as self')
+                raise ValueError('Array conditional must be same shape as self')
             cond = self._constructor(cond, index=self.index,
                                      columns=self.columns)
 
@@ -5251,12 +5262,23 @@ class DataFrame(NDFrame):
 
         if isinstance(other, DataFrame):
             _, other = self.align(other, join='left', fill_value=NA)
+        elif isinstance(other,np.ndarray):
+
+            if other.shape[0] != len(self.index) or other.shape[1] != len(self.columns):
+                raise ValueError('other must be the same shape as self when an ndarray')
+            other = DataFrame(other,self.index,self.columns)
 
         if inplace:
-            np.putmask(self.values, cond, other)
+
+            # we may have different type blocks come out of putmask, so reconstruct the block manager
+            self._data = self._data.putmask(cond,other,inplace=True)
+
         else:
-            rs = np.where(cond, self, other)
-            return self._constructor(rs, self.index, self.columns)
+
+            func = lambda values, others, conds: np.where(conds, values, others)
+            new_data = self._data.where(func, other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+
+            return self._constructor(new_data)
 
     def mask(self, cond):
         """
@@ -5612,7 +5634,6 @@ def _homogenize(data, index, dtype=None):
         homogenized.append(v)
 
     return homogenized
-
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
