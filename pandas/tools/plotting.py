@@ -1122,13 +1122,12 @@ class LinePlot(MPLPlot):
         cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
         if isinstance(cycle, basestring):
             cycle = list(cycle)
-        has_colors = 'color' in self.kwds
         colors = self.kwds.get('color', cycle)
         return colors
 
     def _maybe_add_color(self, colors, kwds, style, i):
-        kwds.pop('color', None)
-        if style is None or re.match('[a-z]+', style) is None:
+        has_color = 'color' in kwds
+        if has_color and (style is None or re.match('[a-z]+', style) is None):
             kwds['color'] = colors[i % len(colors)]
 
     def _make_plot(self):
