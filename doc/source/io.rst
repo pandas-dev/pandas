@@ -1021,6 +1021,9 @@ In a current or later Python session, you can retrieve stored objects:
    # store.get('df') is an equivalent method
    store['df']
 
+   # dotted (attribute) access provides get as well
+   store.df
+
 Deletion of the object specified by the key
 
 .. ipython:: python
@@ -1362,6 +1365,32 @@ Notes & Caveats
 
 	# we have provided a minimum minor_axis indexable size
 	store.root.wp_big_strings.table
+
+DataTypes
+~~~~~~~~~
+
+``HDFStore`` will map an object dtype to the ``PyTables`` underlying dtype. This means the following types are known to work:
+
+    - floating : ``float64, float32, float16`` *(using* ``np.nan`` *to represent invalid values)*
+    - integer : ``int64, int32, int8, uint64, uint32, uint8``
+    - bool
+    - datetime64[ns] *(using* ``NaT`` *to represent invalid values)*
+    - object : ``strings`` *(using*  ``np.nan`` *to represent invalid values)*
+
+Currently, ``unicode`` and ``datetime`` columns (represented with a dtype of ``object``), **WILL FAIL**. In addition, even though a column may look like a ``datetime64[ns]``,
+if it contains ``np.nan``, this **WILL FAIL**. You can try to convert datetimelike columns to proper ``datetime64[ns]`` columns, that possibily contain ``NaT`` to represent invalid values. (Some of these issues have been addressed and these conversion may not be necessary in future versions of pandas)
+
+    .. ipython:: python
+ 
+       import datetime
+       df = DataFrame(dict(datelike = Series([datetime.datetime(2001,1,1),datetime.datetime(2001,1,2),np.nan])))
+       df
+       df.dtypes
+       
+       # to convert
+       df['datelike'] = Series(df['datelike'].values,dtype='M8[ns]')
+       df
+       df.dtypes
 
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~

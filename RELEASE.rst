@@ -81,6 +81,12 @@ pandas 0.11.0
   - Fix some boolean indexing inconsistencies in Series __getitem__/__setitem__
     (GH2776_)
 
+  ``HDFStore``
+
+    - Fix weird PyTables error when using too many selectors in a where
+    - Provide dotted attribute access to ``get`` from stores (e.g. store.df == store['df'])
+    - Internally, change all variables to be private-like (now have leading underscore)
+
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
