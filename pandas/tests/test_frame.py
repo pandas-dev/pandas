@@ -8039,6 +8039,26 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series({'int64': 1, 'float64' : 1, 'datetime64[ns]': 1, 'object' : 1})
         assert_series_equal(result, expected)
 
+        # GH 2809
+        from pandas import date_range
+        ind = date_range(start="2000-01-01", freq="D", periods=10)
+        datetimes = [ts.to_pydatetime() for ts in ind]
+        datetime_s = Series(datetimes)
+        self.assert_(datetime_s.dtype == 'M8[ns]')
+        df = DataFrame({'datetime_s':datetime_s})
+        result = df.get_dtype_counts()
+        expected = Series({ 'datetime64[ns]' : 1 })
+        assert_series_equal(result, expected)
+
+        # GH 2810
+        ind = date_range(start="2000-01-01", freq="D", periods=10)
+        datetimes = [ts.to_pydatetime() for ts in ind]
+        dates = [ts.date() for ts in ind]
+        df = DataFrame({'datetimes': datetimes, 'dates':dates})
+        result = df.get_dtype_counts()
+        expected = Series({ 'datetime64[ns]' : 1, 'object' : 1 })
+        assert_series_equal(result, expected)
+
     def test_constructor_frame_copy(self):
         cop = DataFrame(self.frame, copy=True)
         cop['A'] = 5
