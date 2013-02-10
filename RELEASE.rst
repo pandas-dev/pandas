@@ -22,48 +22,56 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.10.2
+pandas 0.11.0
 =============
 
 **Release date:** 2013-??-??
 
 **New features**
 
-  - Allow mixed dtypes (e.g ``float32/float64/int32/int16/int8``) to coexist in DataFrames and propogate in operations
+  - Allow mixed dtypes (e.g ``float32/float64/int32/int16/int8``) to coexist in
+    DataFrames and propogate in operations
 
 **Improvements to existing features**
 
-  - added ``blocks`` attribute to DataFrames, to return a dict of dtypes to homogeneously dtyped DataFrames
-  - added keyword ``convert_numeric`` to ``convert_objects()`` to try to convert object dtypes to numeric types
-  - ``convert_dates`` in ``convert_objects`` can now be ``coerce`` which will return a datetime64[ns] dtype
-    with non-convertibles set as ``NaT``; will preserve an all-nan object (e.g. strings)
+  - added ``blocks`` attribute to DataFrames, to return a dict of dtypes to
+    homogeneously dtyped DataFrames
+  - added keyword ``convert_numeric`` to ``convert_objects()`` to try to
+    convert object dtypes to numeric types
+  - ``convert_dates`` in ``convert_objects`` can now be ``coerce`` which will
+    return a datetime64[ns] dtype with non-convertibles set as ``NaT``; will
+    preserve an all-nan object (e.g. strings)
   - Series print output now includes the dtype by default
+  - Optimize internal reindexing routines for upcasting cases (#2819)
 
 **API Changes**
 
-  - Do not automatically upcast numeric specified dtypes to ``int64`` or ``float64`` (GH622_ and GH797_)
-  - Guarantee that ``convert_objects()`` for Series/DataFrame always returns a copy
-  - groupby operations will respect dtypes for numeric float operations (float32/float64); other types will be operated on,
-    and will try to cast back to the input dtype (e.g. if an int is passed, as long as the output doesn't have nans,
-    then an int will be returned)
+  - Do not automatically upcast numeric specified dtypes to ``int64`` or
+    ``float64`` (GH622_ and GH797_)
+  - Guarantee that ``convert_objects()`` for Series/DataFrame always returns a
+    copy
+  - groupby operations will respect dtypes for numeric float operations
+    (float32/float64); other types will be operated on, and will try to cast
+    back to the input dtype (e.g. if an int is passed, as long as the output
+    doesn't have nans, then an int will be returned)
   - backfill/pad/take/diff/ohlc will now support ``float32/int16/int8`` operations
   - Integer block types will upcast as needed in where operations (GH2793_)
+  - Series now automatically will try to set the correct dtype based on passed
+    datetimelike objects (datetime/Timestamp)
+     - timedelta64 are returned in appropriate cases (e.g. Series - Series,
+       when both are datetime64)
+     - mixed datetimes and objects (GH2751_) in a constructor witll be casted
+       correctly
+     - astype on datetimes to object are now handled (as well as NaT
+       conversions to np.nan)
 
 **Bug Fixes**
 
   - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill`` (GH2778_)
-
-**API Changes**
-
-  - Series now automatically will try to set the correct dtype based on passed datetimelike objects (datetime/Timestamp)
-     - timedelta64 are returned in appropriate cases (e.g. Series - Series, when both are datetime64)
-     - mixed datetimes and objects (GH2751_) in a constructor witll be casted correctly
-     - astype on datetimes to object are now handled (as well as NaT conversions to np.nan)
-
-**Bug fixes**
-
-  - Single element ndarrays of datetimelike objects are handled (e.g. np.array(datetime(2001,1,1,0,0))), w/o dtype being passed
-  - 0-dim ndarrays with a passed dtype are handled correctly (e.g. np.array(0.,dtype='float32'))
+  - Single element ndarrays of datetimelike objects are handled
+    (e.g. np.array(datetime(2001,1,1,0,0))), w/o dtype being passed
+  - 0-dim ndarrays with a passed dtype are handled correctly
+    (e.g. np.array(0.,dtype='float32'))
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797

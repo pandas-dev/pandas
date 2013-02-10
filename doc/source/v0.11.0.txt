@@ -1,7 +1,7 @@
-.. _whatsnew_0102:
+.. _whatsnew_0110:
 
-v0.10.2 (February ??, 2013)
----------------------------
+v0.11.0 (March ??, 2013)
+------------------------
 
 This is a minor release from 0.10.1 and includes many new features and
 enhancements along with a large number of bug fixes. There are also a number of
