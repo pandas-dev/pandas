@@ -7148,11 +7148,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                     ['a', 'e']))
 
     def test_get_numeric_data(self):
+        intname = np.dtype(np.int_).name
+        floatname = np.dtype(np.float_).name
+        datetime64name = np.dtype('M8[ns]').name
+        objectname = np.dtype(np.object_).name
 
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'f' : Timestamp('20010102')},
                        index=np.arange(10))
         result = df.get_dtype_counts()
-        expected = Series({'int64': 1, 'float64' : 1, 'datetime64[ns]': 1, 'object' : 1})
+        expected = Series({intname: 1, floatname : 1, datetime64name: 1, objectname : 1})
+        result.sort()
+        expected.sort()
         assert_series_equal(result, expected)
 
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo',
@@ -8095,32 +8101,46 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
 
     def test_constructor_with_datetimes(self):
+        intname = np.dtype(np.int_).name
+        floatname = np.dtype(np.float_).name
+        datetime64name = np.dtype('M8[ns]').name
+        objectname = np.dtype(np.object_).name
 
         # single item
         df = DataFrame({'A' : 1, 'B' : 'foo', 'C' : 'bar', 'D' : Timestamp("20010101"), 'E' : datetime(2001,1,2,0,0) },
                        index=np.arange(10))
         result = df.get_dtype_counts()
-        expected = Series({'int64': 1, 'datetime64[ns]': 2, 'object' : 2})
+        expected = Series({intname: 1, datetime64name: 2, objectname : 2})
+        result.sort()
+        expected.sort()
         assert_series_equal(result, expected)
 
         # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0 ndarray with a dtype specified)
-        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'float64' : np.array(1.,dtype='float64'),
-                        'int64' : np.array(1,dtype='int64')}, index=np.arange(10))
+        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', floatname : np.array(1.,dtype=floatname),
+                        intname : np.array(1,dtype=intname)}, index=np.arange(10))
         result = df.get_dtype_counts()
-        expected = Series({'int64': 2, 'float64' : 2, 'object' : 1})
+        expected = Series({intname: 2, floatname : 2, objectname : 1})
+        result.sort()
+        expected.sort()
         assert_series_equal(result, expected)
 
         # check with ndarray construction ndim>0
-        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'float64' : np.array([1.]*10,dtype='float64'),
-                        'int64' : np.array([1]*10,dtype='int64')}, index=np.arange(10))
+        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', floatname : np.array([1.]*10,dtype=floatname),
+                        intname : np.array([1]*10,dtype=intname)}, index=np.arange(10))
         result = df.get_dtype_counts()
-        expected = Series({'int64': 2, 'float64' : 2, 'object' : 1})
+        expected = Series({intname: 2, floatname : 2, objectname : 1})
+        result.sort()
+        expected.sort()
         assert_series_equal(result, expected)
 
         # GH #2751 (construction with no index specified)
         df = DataFrame({'a':[1,2,4,7], 'b':[1.2, 2.3, 5.1, 6.3], 'c':list('abcd'), 'd':[datetime(2000,1,1) for i in range(4)] })
         result = df.get_dtype_counts()
-        expected = Series({'int64': 1, 'float64' : 1, 'datetime64[ns]': 1, 'object' : 1})
+        # TODO: fix this on 32-bit (or decide it's ok behavior?)
+        # expected = Series({intname: 1, floatname : 1, datetime64name: 1, objectname : 1})
+        expected = Series({'int64': 1, floatname : 1, datetime64name: 1, objectname : 1})
+        result.sort()
+        expected.sort()
         assert_series_equal(result, expected)
 
         # GH 2809
@@ -8131,7 +8151,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(datetime_s.dtype == 'M8[ns]')
         df = DataFrame({'datetime_s':datetime_s})
         result = df.get_dtype_counts()
-        expected = Series({ 'datetime64[ns]' : 1 })
+        expected = Series({ datetime64name : 1 })
+        result.sort()
+        expected.sort()
         assert_series_equal(result, expected)
 
         # GH 2810
@@ -8140,7 +8162,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         dates = [ts.date() for ts in ind]
         df = DataFrame({'datetimes': datetimes, 'dates':dates})
         result = df.get_dtype_counts()
-        expected = Series({ 'datetime64[ns]' : 1, 'object' : 1 })
+        expected = Series({ datetime64name : 1, objectname : 1 })
+        result.sort()
+        expected.sort()
         assert_series_equal(result, expected)
 
     def test_constructor_frame_copy(self):
