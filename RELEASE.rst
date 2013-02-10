@@ -34,6 +34,7 @@ pandas 0.11.0
   - Add function to pandas.io.data for retrieving stock index components from
     Yahoo! finance (#2795)
   - Add ``squeeze`` function to reduce dimensionality of 1-len objects
+  - Support slicing with time objects (#2681)
 
 **Improvements to existing features**
 

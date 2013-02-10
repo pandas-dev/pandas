@@ -990,7 +990,7 @@ copy : boolean, default False
                                     length=len(self) > 50,
                                     name=True)
         else:
-            result = com.pprint_thing(self)
+            result = u'Series([], dtype=%s)' % self.dtype
 
         assert type(result) == unicode
         return result
@@ -1022,7 +1022,7 @@ copy : boolean, default False
     def _repr_footer(self):
         namestr = u"Name: %s, " % com.pprint_thing(
             self.name) if self.name is not None else ""
-        return u'%sLength: %d, Dtype: %s' % (namestr, len(self), 
+        return u'%sLength: %d, Dtype: %s' % (namestr, len(self),
                                              com.pprint_thing(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
@@ -3132,7 +3132,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 dtype = np.object_
 
             if dtype is None:
-                
+
                 # a 1-element ndarray
                 if isinstance(value, np.ndarray):
                     dtype = value.dtype
