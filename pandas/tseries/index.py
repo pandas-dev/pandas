@@ -228,7 +228,7 @@ class DatetimeIndex(Int64Index):
                     offset = data.offset
                     verify_integrity = False
             else:
-                if data.dtype != _NS_DTYPE and data.size:
+                if data.dtype != _NS_DTYPE:
                     subarr = tslib.cast_to_nanoseconds(data)
                 else:
                     subarr = data
@@ -1138,7 +1138,7 @@ class DatetimeIndex(Int64Index):
 
             if isinstance(key, time):
                 return self.indexer_at_time(key)
-            
+
             try:
                 stamp = Timestamp(key, tz=self.tz)
                 return self._engine.get_loc(stamp)

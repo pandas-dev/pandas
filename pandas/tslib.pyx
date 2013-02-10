@@ -81,7 +81,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     pos = trans.searchsorted(arr[i]) - 1
                     inf = tz._transition_info[pos]
-                    
+
                     pandas_datetime_to_datetimestruct(arr[i] + deltas[pos],
                                                       PANDAS_FR_ns, &dts)
                     result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
@@ -913,6 +913,9 @@ def cast_to_nanoseconds(ndarray arr):
 
     result = np.empty(shape, dtype='M8[ns]')
     iresult = result.ravel().view(np.int64)
+
+    if len(iresult) == 0:
+        return result
 
     unit = get_datetime64_unit(arr.flat[0])
     if unit == 3:
