@@ -20,6 +20,10 @@ class Block(object):
     Index-ignorant; let the container take care of that
     """
     __slots__ = ['items', 'ref_items', '_ref_locs', 'values', 'ndim']
+    is_numeric = False
+    is_bool = False
+    is_object = False
+    _can_hold_na = False
 
     def __init__(self, values, items, ref_items, ndim=2):
         if issubclass(values.dtype.type, basestring):
@@ -92,6 +96,10 @@ class Block(object):
     @property
     def shape(self):
         return self.values.shape
+
+    @property
+    def itemsize(self):
+        return self.values.itemsize
 
     @property
     def dtype(self):
@@ -206,8 +214,13 @@ class Block(object):
                              self.ref_items)
 
     def fillna(self, value, inplace=False):
-        new_values = self.values if inplace else self.values.copy()
+        if not self._can_hold_na:
+            if inplace:
+                return self
+            else:
+                return self.copy()
 
+        new_values = self.values if inplace else self.values.copy()
         mask = com.isnull(new_values)
         np.putmask(new_values, mask, value)
 
@@ -216,11 +229,42 @@ class Block(object):
         else:
             return make_block(new_values, self.items, self.ref_items)
 
+    def astype(self, dtype, copy = True, raise_on_error = True):
+        """ coerce to the new type (if copy=True, return a new copy) raise on an except if raise == True """
+        try:
+            newb = make_block(com._astype_nansafe(self.values, dtype, copy = copy),
+                              self.items, self.ref_items)
+        except:
+            if raise_on_error is True:
+                raise
+            newb = self.copy() if copy else self
+
+        if newb.is_numeric and self.is_numeric:
+            if newb.shape != self.shape or (not copy and newb.itemsize < self.itemsize):
+                raise TypeError("cannot set astype for copy = [%s] for dtype (%s [%s]) with smaller itemsize that current (%s [%s])" % (copy,
+                                                                                                                                        self.dtype.name,
+                                                                                                                                        self.itemsize,
+                                                                                                                                        newb.dtype.name,
+                                                                                                                                        newb.itemsize))
+        return newb
+
+    def convert(self, copy = True, **kwargs):
+        """ attempt to coerce any object types to better types
+            return a copy of the block (if copy = True)
+            by definition we are not an ObjectBlock here!  """
+
+        return self.copy() if copy else self
+
     def _can_hold_element(self, value):
         raise NotImplementedError()
 
     def _try_cast(self, value):
         raise NotImplementedError()
+
+    def _try_cast_result(self, result):
+        """ try to cast the result to our original type,
+        we may have roundtripped thru object in the mean-time """
+        return result
 
     def replace(self, to_replace, value, inplace=False):
         new_values = self.values if inplace else self.values.copy()
@@ -251,17 +295,58 @@ class Block(object):
             return make_block(new_values, self.items, self.ref_items)
 
     def putmask(self, mask, new, inplace=False):
+        """ putmask the data to the block; it is possible that we may create a new dtype of block
+            return the resulting block(s) """
+
         new_values = self.values if inplace else self.values.copy()
+
+        # may need to align the new
+        if hasattr(new,'reindex_axis'):
+            axis = getattr(new,'_het_axis',0)
+            new = new.reindex_axis(self.items, axis=axis, copy=False).values.T
+
+        # may need to align the mask
+        if hasattr(mask,'reindex_axis'):
+            axis = getattr(mask,'_het_axis',0)
+            mask = mask.reindex_axis(self.items, axis=axis, copy=False).values.T
+
         if self._can_hold_element(new):
             new = self._try_cast(new)
             np.putmask(new_values, mask, new)
-        if inplace:
-            return self
+
+        # upcast me
         else:
-            return make_block(new_values, self.items, self.ref_items)
+            
+            # type of the new block
+            if isinstance(new,np.ndarray) and issubclass(new.dtype,np.number) or issubclass(type(new),float):
+                typ = float
+            else:
+                typ = object
+
+            # we need to exiplicty astype here to make a copy
+            new_values = new_values.astype(typ)
+
+            # we create a new block type
+            np.putmask(new_values, mask, new)
+            return [ make_block(new_values, self.items, self.ref_items) ]
+
+        if inplace:
+            return [ self ]
+
+        return [ make_block(new_values, self.items, self.ref_items) ]
 
     def interpolate(self, method='pad', axis=0, inplace=False,
-                    limit=None, missing=None):
+                    limit=None, missing=None, coerce=False):
+
+        # if we are coercing, then don't force the conversion 
+        # if the block can't hold the type
+        if coerce:
+            if not self._can_hold_na:
+                if inplace:
+                    return self
+                else:
+                    return self.copy()
+        
         values = self.values if inplace else self.values.copy()
 
         if values.ndim != 2:
@@ -293,9 +378,96 @@ class Block(object):
         return self.values
 
     def diff(self, n):
+        """ return block for the diff of the values """
         new_values = com.diff(self.values, n, axis=1)
         return make_block(new_values, self.items, self.ref_items)
 
+    def shift(self, indexer, periods):
+        """ shift the block by periods, possibly upcast """
+
+        new_values = self.values.take(indexer, axis=1)
+        # convert integer to float if necessary. need to do a lot more than
+        # that, handle boolean etc also
+        new_values = com._maybe_upcast(new_values)
+        if periods > 0:
+            new_values[:, :periods] = np.nan
+        else:
+            new_values[:, periods:] = np.nan
+        return make_block(new_values, self.items, self.ref_items)
+
+    def where(self, func, other, cond = None, raise_on_error = True, try_cast = False):
+        """ 
+        evaluate the block; return result block(s) from the result 
+
+        Parameters
+        ----------
+        func  : how to combine self,other
+        other : a ndarray/object
+        cond  : the condition to respect, optional
+        raise_on_error : if True, raise when I can't perform the function, False by default (and just return
+             the data that we had coming in)
+
+        Returns
+        -------
+        a new block, the result of the func
+        """
+
+        values = self.values
+
+        # see if we can align other
+        if hasattr(other,'reindex_axis'):
+            axis = getattr(other,'_het_axis',0)
+            other = other.reindex_axis(self.items, axis=axis, copy=True).values
+
+        # make sure that we can broadcast
+        is_transposed = False
+        if hasattr(other, 'ndim') and hasattr(values, 'ndim'):
+            if values.ndim != other.ndim or values.shape == other.shape[::-1]:
+                values = values.T
+                is_transposed = True
+
+        # see if we can align cond
+        if cond is not None:
+            if not hasattr(cond,'shape'):
+                raise ValueError("where must have a condition that is ndarray like")
+            if hasattr(cond,'reindex_axis'):
+                axis = getattr(cond,'_het_axis',0)
+                cond = cond.reindex_axis(self.items, axis=axis, copy=True).values
+            else:
+                cond = cond.values
+
+            # may need to undo transpose of values
+            if hasattr(values, 'ndim'):
+                if values.ndim != cond.ndim or values.shape == cond.shape[::-1]:
+                    values = values.T
+                    is_transposed =  not is_transposed
+
+        args = [ values, other ]
+        if cond is not None:
+            args.append(cond)
+        try:
+            result = func(*args)
+        except:
+            if raise_on_error:
+                raise TypeError('Coulnd not operate %s with block values'
+                                % repr(other))
+            else:
+                # return the values
+                result = np.empty(values.shape,dtype='O')
+                result.fill(np.nan)
+
+        if not isinstance(result, np.ndarray):
+            raise TypeError('Could not compare %s with block values'
+                            % repr(other))
+
+        if is_transposed:
+            result = result.T
+
+        # try to cast if requested
+        if try_cast:
+            result = self._try_cast_result(result)
+
+        return [ make_block(result, self.items, self.ref_items) ]
 
 def _mask_missing(array, missing_values):
     if not isinstance(missing_values, (list, np.ndarray)):
@@ -314,11 +486,15 @@ def _mask_missing(array, missing_values):
             mask |= array == missing_values
     return mask
 
-
-class FloatBlock(Block):
+class NumericBlock(Block):
+    is_numeric = True
     _can_hold_na = True
 
+class FloatBlock(NumericBlock):
+
     def _can_hold_element(self, element):
+        if isinstance(element, np.ndarray):
+            return issubclass(element.dtype.type, (np.floating,np.integer))
         return isinstance(element, (float, int))
 
     def _try_cast(self, element):
@@ -330,11 +506,10 @@ class FloatBlock(Block):
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
         # unnecessarily
-        return issubclass(value.dtype.type, np.floating)
+        return issubclass(value.dtype.type, np.floating) and value.dtype == self.dtype
 
 
-class ComplexBlock(Block):
-    _can_hold_na = True
+class ComplexBlock(NumericBlock):
 
     def _can_hold_element(self, element):
         return isinstance(element, complex)
@@ -349,10 +524,12 @@ class ComplexBlock(Block):
         return issubclass(value.dtype.type, np.complexfloating)
 
 
-class IntBlock(Block):
+class IntBlock(NumericBlock):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
+        if isinstance(element, np.ndarray):
+            return issubclass(element.dtype.type, np.integer)
         return com.is_integer(element)
 
     def _try_cast(self, element):
@@ -361,11 +538,25 @@ class IntBlock(Block):
         except:  # pragma: no cover
             return element
 
+    def _try_cast_result(self, result):
+        # this is quite restrictive to convert
+        try:
+            if isinstance(result, np.ndarray) and issubclass(result.dtype.type, np.floating):
+                if com.notnull(result).all():
+                    new_result = result.astype(self.dtype)
+                    if (new_result == result).all():
+                        return new_result
+        except:
+            pass
+
+        return result
+
     def should_store(self, value):
-        return com.is_integer_dtype(value)
+        return com.is_integer_dtype(value) and value.dtype == self.dtype
 
 
 class BoolBlock(Block):
+    is_bool = True
     _can_hold_na = False
 
     def _can_hold_element(self, element):
@@ -382,7 +573,34 @@ class BoolBlock(Block):
 
 
 class ObjectBlock(Block):
+    is_object = True
     _can_hold_na = True
+
+    @property
+    def is_bool(self):
+        """ we can be a bool if we have only bool values but are of type object """
+        return lib.is_bool_array(self.values.flatten())
+
+    def convert(self, convert_dates = True, convert_numeric = True, copy = True):
+        """ attempt to coerce any object types to better types
+            return a copy of the block (if copy = True)
+            by definition we ARE an ObjectBlock!!!!!
+
+            can return multiple blocks!
+            """
+
+        # attempt to create new type blocks
+        blocks = []
+        for i, c in enumerate(self.items):
+            values = self.get(c)
+
+            values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
+            values = values.reshape(((1,) + values.shape))
+            items = self.items.take([i])
+            newb = make_block(values, items, self.ref_items)
+            blocks.append(newb)
+
+        return blocks
 
     def _can_hold_element(self, element):
         return True
@@ -457,8 +675,6 @@ def make_block(values, items, ref_items):
     elif issubclass(vtype, np.datetime64):
         klass = DatetimeBlock
     elif issubclass(vtype, np.integer):
-        if vtype != np.int64:
-            values = values.astype('i8')
         klass = IntBlock
     elif dtype == np.bool_:
         klass = BoolBlock
@@ -611,15 +827,70 @@ class BlockManager(object):
             raise AssertionError('Number of manager items must equal union of '
                                  'block items')
 
-    def astype(self, dtype):
-        new_blocks = []
-        for block in self.blocks:
-            newb = make_block(com._astype_nansafe(block.values, dtype),
-                              block.items, block.ref_items)
-            new_blocks.append(newb)
+    def apply(self, f, *args, **kwargs):
+        """ iterate over the blocks, collect and create a new block manager """
+        axes = kwargs.pop('axes',None)
+        result_blocks = []
+        for blk in self.blocks:
+            if callable(f):
+                applied = f(blk, *args, **kwargs)
+            else:
+                applied = getattr(blk,f)(*args, **kwargs)
 
-        new_mgr = BlockManager(new_blocks, self.axes)
-        return new_mgr.consolidate()
+            if isinstance(applied,list):
+                result_blocks.extend(applied)
+            else:
+                result_blocks.append(applied)
+        bm = self.__class__(result_blocks, axes or self.axes)
+        bm._consolidate_inplace()
+        return bm
+
+    def where(self, *args, **kwargs):
+        return self.apply('where', *args, **kwargs)
+
+    def putmask(self, *args, **kwargs):
+        return self.apply('putmask', *args, **kwargs)
+
+    def diff(self, *args, **kwargs):
+        return self.apply('diff', *args, **kwargs)
+
+    def interpolate(self, *args, **kwargs):
+        return self.apply('interpolate', *args, **kwargs)
+
+    def shift(self, *args, **kwargs):
+        return self.apply('shift', *args, **kwargs)
+
+    def fillna(self, *args, **kwargs):
+        return self.apply('fillna', *args, **kwargs)
+
+    def astype(self, *args, **kwargs):
+        return self.apply('astype', *args, **kwargs)
+
+    def convert(self, *args, **kwargs):
+        return self.apply('convert', *args, **kwargs)
+
+    def replace(self, *args, **kwargs):
+        return self.apply('replace', *args, **kwargs)
+
+    def replace_list(self, src_lst, dest_lst, inplace=False):
+        """ do a list replace """
+        if not inplace:
+            self = self.copy()
+
+        sset = set(src_lst)
+        if any([k in sset for k in dest_lst]):
+            masks = {}
+            for s in src_lst:
+                masks[s] = [b.values == s for b in self.blocks]
+
+            for s, d in zip(src_lst, dest_lst):
+                [b.putmask(masks[s][i], d, inplace=True) for i, b in
+                 enumerate(self.blocks)]
+        else:
+            for s, d in zip(src_lst, dest_lst):
+                self.replace(s, d, inplace=True)
+
+        return self
 
     def is_consolidated(self):
         """
@@ -634,7 +905,7 @@ class BlockManager(object):
         self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
 
-    def get_numeric_data(self, copy=False, type_list=None):
+    def get_numeric_data(self, copy=False, type_list=None, as_blocks = False):
         """
         Parameters
         ----------
@@ -644,15 +915,15 @@ class BlockManager(object):
             Numeric types by default (Float/Complex/Int but not Datetime)
         """
         if type_list is None:
-            def filter_blocks(block):
-                return (isinstance(block, (IntBlock, FloatBlock, ComplexBlock))
-                        and not isinstance(block, DatetimeBlock))
+            filter_blocks = lambda block: block.is_numeric
         else:
             type_list = self._get_clean_block_types(type_list)
             filter_blocks = lambda block: isinstance(block, type_list)
 
         maybe_copy = lambda b: b.copy() if copy else b
         num_blocks = [maybe_copy(b) for b in self.blocks if filter_blocks(b)]
+        if as_blocks:
+            return num_blocks
 
         if len(num_blocks) == 0:
             return BlockManager.make_empty()
@@ -686,8 +957,8 @@ class BlockManager(object):
         type_list = tuple([type_map.get(t, t) for t in type_list])
         return type_list
 
-    def get_bool_data(self, copy=False):
-        return self.get_numeric_data(copy=copy, type_list=(BoolBlock,))
+    def get_bool_data(self, copy=False, as_blocks=False):
+        return self.get_numeric_data(copy=copy, type_list=(BoolBlock,), as_blocks=as_blocks)
 
     def get_slice(self, slobj, axis=0):
         new_axes = list(self.axes)
@@ -1255,37 +1526,6 @@ class BlockManager(object):
         f = ('%s' + ('%s' % suffix)).__mod__
         return self.rename_items(f)
 
-    def fillna(self, value, inplace=False):
-        new_blocks = [b.fillna(value, inplace=inplace)
-                      if b._can_hold_na else b
-                      for b in self.blocks]
-        if inplace:
-            return self
-        return BlockManager(new_blocks, self.axes)
-
-    def replace(self, to_replace, value, inplace=False):
-        new_blocks = [b.replace(to_replace, value, inplace=inplace)
-                      for b in self.blocks]
-        if inplace:
-            return self
-        return BlockManager(new_blocks, self.axes)
-
-    def _replace_list(self, src_lst, dest_lst):
-        sset = set(src_lst)
-        if any([k in sset for k in dest_lst]):
-            masks = {}
-            for s in src_lst:
-                masks[s] = [b.values == s for b in self.blocks]
-
-            for s, d in zip(src_lst, dest_lst):
-                [b.putmask(masks[s][i], d, inplace=True) for i, b in
-                 enumerate(self.blocks)]
-        else:
-            for s, d in zip(src_lst, dest_lst):
-                self.replace(s, d, inplace=True)
-
-        return self
-
     @property
     def block_id_vector(self):
         # TODO
@@ -1359,28 +1599,28 @@ def form_blocks(arrays, names, axes):
 
     blocks = []
     if len(float_items):
-        float_block = _simple_blockify(float_items, items, np.float64)
-        blocks.append(float_block)
+        float_blocks = _multi_blockify(float_items, items)
+        blocks.extend(float_blocks)
 
     if len(complex_items):
-        complex_block = _simple_blockify(complex_items, items, np.complex128)
-        blocks.append(complex_block)
+        complex_blocks = _simple_blockify(complex_items, items, np.complex128)
+        blocks.extend(complex_blocks)
 
     if len(int_items):
-        int_block = _simple_blockify(int_items, items, np.int64)
-        blocks.append(int_block)
+        int_blocks = _multi_blockify(int_items, items)
+        blocks.extend(int_blocks)
 
     if len(datetime_items):
-        datetime_block = _simple_blockify(datetime_items, items, _NS_DTYPE)
-        blocks.append(datetime_block)
+        datetime_blocks = _simple_blockify(datetime_items, items, _NS_DTYPE)
+        blocks.extend(datetime_blocks)
 
     if len(bool_items):
-        bool_block = _simple_blockify(bool_items, items, np.bool_)
-        blocks.append(bool_block)
+        bool_blocks = _simple_blockify(bool_items, items, np.bool_)
+        blocks.extend(bool_blocks)
 
     if len(object_items) > 0:
-        object_block = _simple_blockify(object_items, items, np.object_)
-        blocks.append(object_block)
+        object_blocks = _simple_blockify(object_items, items, np.object_)
+        blocks.extend(object_blocks)
 
     if len(extra_items):
         shape = (len(extra_items),) + tuple(len(x) for x in axes[1:])
@@ -1398,13 +1638,30 @@ def form_blocks(arrays, names, axes):
 
 
 def _simple_blockify(tuples, ref_items, dtype):
+    """ return a single array of a block that has a single dtype; if dtype is not None, coerce to this dtype """
     block_items, values = _stack_arrays(tuples, ref_items, dtype)
+
     # CHECK DTYPE?
-    if values.dtype != dtype:  # pragma: no cover
+    if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
-    return make_block(values, block_items, ref_items)
+    return [ make_block(values, block_items, ref_items) ]
 
+
+def _multi_blockify(tuples, ref_items, dtype = None):
+    """ return an array of blocks that potentially have different dtypes """
+
+    # group by dtype
+    grouper = itertools.groupby(tuples, lambda x: x[1].dtype)
+
+    new_blocks = []
+    for dtype, tup_block in grouper:
+
+        block_items, values = _stack_arrays(list(tup_block), ref_items, dtype)
+        block = make_block(values, block_items, ref_items)
+        new_blocks.append(block)
+
+    return new_blocks
 
 def _stack_arrays(tuples, ref_items, dtype):
     from pandas.core.series import Series
@@ -1451,17 +1708,27 @@ def _blocks_to_series_dict(blocks, index=None):
 
 
 def _interleaved_dtype(blocks):
-    from collections import defaultdict
-    counts = defaultdict(lambda: 0)
-    for x in blocks:
-        counts[type(x)] += 1
+    if not len(blocks): return None
 
-    have_int = counts[IntBlock] > 0
-    have_bool = counts[BoolBlock] > 0
-    have_object = counts[ObjectBlock] > 0
-    have_float = counts[FloatBlock] > 0
-    have_complex = counts[ComplexBlock] > 0
-    have_dt64 = counts[DatetimeBlock] > 0
+    from collections import defaultdict
+    counts = defaultdict(lambda: [])
+    for x in blocks:
+        counts[type(x)].append(x)
+
+    def _lcd_dtype(l):
+        """ find the lowest dtype that can accomodate the given types """
+        m = l[0].dtype
+        for x in l[1:]:
+            if x.dtype.itemsize > m.itemsize:
+                m = x.dtype
+        return m
+
+    have_int = len(counts[IntBlock]) > 0
+    have_bool = len(counts[BoolBlock]) > 0
+    have_object = len(counts[ObjectBlock]) > 0
+    have_float = len(counts[FloatBlock]) > 0
+    have_complex = len(counts[ComplexBlock]) > 0
+    have_dt64 = len(counts[DatetimeBlock]) > 0
     have_numeric = have_float or have_complex or have_int
 
     if (have_object or
@@ -1471,13 +1738,13 @@ def _interleaved_dtype(blocks):
     elif have_bool:
         return np.dtype(bool)
     elif have_int and not have_float and not have_complex:
-        return np.dtype('i8')
+        return _lcd_dtype(counts[IntBlock])
     elif have_dt64 and not have_float and not have_complex:
         return np.dtype('M8[ns]')
     elif have_complex:
         return np.dtype('c16')
     else:
-        return np.dtype('f8')
+        return _lcd_dtype(counts[FloatBlock])
 
 
 def _consolidate(blocks, items):

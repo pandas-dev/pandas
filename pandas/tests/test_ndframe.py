@@ -24,7 +24,10 @@ class TestNDFrame(unittest.TestCase):
 
     def test_astype(self):
         casted = self.ndf.astype(int)
-        self.assert_(casted.values.dtype == np.int64)
+        self.assert_(casted.values.dtype == np.int_)
+
+        casted = self.ndf.astype(np.int32)
+        self.assert_(casted.values.dtype == np.int32)
 
 if __name__ == '__main__':
     import nose

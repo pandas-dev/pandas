@@ -458,7 +458,9 @@ class TestBinGroupers(unittest.TestCase):
                           values, [-3, -1], 'right')
 
     def test_group_bin_functions(self):
-        funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']
+
+        dtypes = ['float32','float64']
+        funcs  = ['add', 'mean', 'prod', 'min', 'max', 'var']
 
         np_funcs = {
             'add': np.sum,
@@ -470,71 +472,82 @@ class TestBinGroupers(unittest.TestCase):
         }
 
         for fname in funcs:
-            args = [getattr(algos, 'group_%s' % fname),
-                    getattr(algos, 'group_%s_bin' % fname),
-                    np_funcs[fname]]
-            self._check_versions(*args)
+            for d in dtypes:
+                check_less_precise = False
+                if d == 'float32':
+                    check_less_precise = True
+                args = [getattr(algos, 'group_%s_%s' % (fname,d)),
+                        getattr(algos, 'group_%s_bin_%s' % (fname,d)),
+                        np_funcs[fname],
+                        d,
+                        check_less_precise]
+                self._check_versions(*args)
 
-    def _check_versions(self, irr_func, bin_func, np_func):
-        obj = self.obj
+    def _check_versions(self, irr_func, bin_func, np_func, dtype, check_less_precise):
+        obj = self.obj.astype(dtype)
 
         cts = np.zeros(3, dtype=np.int64)
-        exp = np.zeros((3, 1), np.float64)
+        exp = np.zeros((3, 1), dtype)
         irr_func(exp, cts, obj, self.labels)
 
         # bin-based version
         bins = np.array([3, 6], dtype=np.int64)
-        out = np.zeros((3, 1), np.float64)
+        out = np.zeros((3, 1), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
 
-        assert_almost_equal(out, exp)
+        assert_almost_equal(out, exp, check_less_precise=check_less_precise)
 
         bins = np.array([3, 9, 10], dtype=np.int64)
-        out = np.zeros((3, 1), np.float64)
+        out = np.zeros((3, 1), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
                         np_func(obj[9:])],
-                       dtype=np.float64)
-        assert_almost_equal(out.squeeze(), exp)
+                       dtype=dtype)
+        assert_almost_equal(out.squeeze(), exp, check_less_precise=check_less_precise)
 
         # duplicate bins
         bins = np.array([3, 6, 10, 10], dtype=np.int64)
-        out = np.zeros((4, 1), np.float64)
+        out = np.zeros((4, 1), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
                         np_func(obj[6:10]), np.nan],
-                       dtype=np.float64)
-        assert_almost_equal(out.squeeze(), exp)
+                       dtype=dtype)
+        assert_almost_equal(out.squeeze(), exp, check_less_precise=check_less_precise)
 
 
 def test_group_ohlc():
-    obj = np.random.randn(20)
 
-    bins = np.array([6, 12], dtype=np.int64)
-    out = np.zeros((3, 4), np.float64)
-    counts = np.zeros(len(out), dtype=np.int64)
+    def _check(dtype):
+        obj = np.array(np.random.randn(20),dtype=dtype)
 
-    algos.group_ohlc(out, counts, obj[:, None], bins)
+        bins = np.array([6, 12], dtype=np.int64)
+        out = np.zeros((3, 4), dtype)
+        counts = np.zeros(len(out), dtype=np.int64)
+        
+        func = getattr(algos,'group_ohlc_%s' % dtype)
+        func(out, counts, obj[:, None], bins)
 
-    def _ohlc(group):
-        if isnull(group).all():
-            return np.repeat(nan, 4)
-        return [group[0], group.max(), group.min(), group[-1]]
+        def _ohlc(group):
+            if isnull(group).all():
+                return np.repeat(nan, 4)
+            return [group[0], group.max(), group.min(), group[-1]]
 
-    expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
-                         _ohlc(obj[12:])])
+        expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
+                             _ohlc(obj[12:])])
 
-    assert_almost_equal(out, expected)
-    assert_almost_equal(counts, [6, 6, 8])
+        assert_almost_equal(out, expected)
+        assert_almost_equal(counts, [6, 6, 8])
 
-    obj[:6] = nan
-    algos.group_ohlc(out, counts, obj[:, None], bins)
-    expected[0] = nan
-    assert_almost_equal(out, expected)
+        obj[:6] = nan
+        func(out, counts, obj[:, None], bins)
+        expected[0] = nan
+        assert_almost_equal(out, expected)
 
+    _check('float32')
+    _check('float64')
 
 def test_try_parse_dates():
     from dateutil.parser import parse

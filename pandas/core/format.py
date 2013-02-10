@@ -66,10 +66,11 @@ docstring_to_string = """
 class SeriesFormatter(object):
 
     def __init__(self, series, buf=None, header=True, length=True,
-                 na_rep='NaN', name=False, float_format=None):
+                 na_rep='NaN', name=False, float_format=None, dtype=True):
         self.series = series
         self.buf = buf if buf is not None else StringIO(u"")
         self.name = name
+        self.dtype = dtype
         self.na_rep = na_rep
         self.length = length
         self.header = header
@@ -97,6 +98,12 @@ class SeriesFormatter(object):
             if footer:
                 footer += ', '
             footer += 'Length: %d' % len(self.series)
+
+        if self.dtype:
+            if getattr(self.series.dtype,'name',None):
+                if footer:
+                    footer += ', '
+                footer += 'Dtype: %s' % com.pprint_thing(self.series.dtype.name)
 
         return unicode(footer)
 

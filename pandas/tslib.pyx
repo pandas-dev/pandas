@@ -774,7 +774,7 @@ def datetime_to_datetime64(ndarray[object] values):
 
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
-                      format=None, utc=None):
+                      format=None, utc=None, coerce=False):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
@@ -813,14 +813,16 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                 _check_dts_bounds(iresult[i], &dts)
             elif util.is_datetime64_object(val):
                 iresult[i] = _get_datetime64_nanos(val)
-            elif util.is_integer_object(val):
+
+            # if we are coercing, dont' allow integers
+            elif util.is_integer_object(val) and not coerce:
                 iresult[i] = val
             else:
-                if len(val) == 0:
-                    iresult[i] = iNaT
-                    continue
-
                 try:
+                    if len(val) == 0:
+                       iresult[i] = iNaT
+                       continue
+
                     _string_to_dts(val, &dts)
                     iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns,
                                                                    &dts)
@@ -829,10 +831,19 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     try:
                         result[i] = parse(val, dayfirst=dayfirst)
                     except Exception:
+                        if coerce:
+                           iresult[i] = iNaT
+                           continue
                         raise TypeError
                     pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
                                                       &dts)
                     _check_dts_bounds(iresult[i], &dts)
+                except:
+                    if coerce:
+                        iresult[i] = iNaT
+                        continue
+                    raise
+
         return result
     except TypeError:
         oresult = np.empty(n, dtype=object)
