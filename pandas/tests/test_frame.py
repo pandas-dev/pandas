@@ -6993,6 +6993,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         double = self.frame.clip(upper=median, lower=median)
         self.assert_(not (double.values != median).any())
 
+    def test_dataframe_clip(self):
+
+        # GH #2747
+        df = DataFrame(np.random.randn(1000,2))
+
+        for lb, ub in [(-1,1),(1,-1)]:
+            clipped_df = df.clip(lb, ub)
+
+            lb, ub = min(lb,ub), max(ub,lb)
+            lb_mask = df.values <= lb
+            ub_mask = df.values >= ub
+            mask = ~lb_mask & ~ub_mask
+            self.assert_((clipped_df.values[lb_mask] == lb).all() == True)
+            self.assert_((clipped_df.values[ub_mask] == ub).all() == True)
+            self.assert_((clipped_df.values[mask] == df.values[mask]).all() == True)
+        
     def test_get_X_columns(self):
         # numeric and object columns
 

@@ -66,6 +66,8 @@ pandas 0.11.0
        correctly
      - astype on datetimes to object are now handled (as well as NaT
        conversions to np.nan)
+  - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
+    (GH2747_)
 
 **Bug Fixes**
 
@@ -80,6 +82,7 @@ pandas 0.11.0
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
+.. _GH2747: https://github.com/pydata/pandas/issues/2747
 
 pandas 0.10.1
 =============

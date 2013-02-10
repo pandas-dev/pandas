@@ -5038,7 +5038,7 @@ class DataFrame(NDFrame):
         data = self._get_numeric_data() if numeric_only else self
         return data.apply(f, axis=axis)
 
-    def clip(self, upper=None, lower=None):
+    def clip(self, lower=None, upper=None):
         """
         Trim values at input threshold(s)
 
@@ -5051,6 +5051,11 @@ class DataFrame(NDFrame):
         -------
         clipped : DataFrame
         """
+
+        # GH 2747 (arguments were reversed)
+        if lower is not None and upper is not None:
+            lower, upper = min(lower,upper), max(lower,upper)
+            
         return self.apply(lambda x: x.clip(lower=lower, upper=upper))
 
     def clip_upper(self, threshold):
