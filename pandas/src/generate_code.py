@@ -388,6 +388,10 @@ def pad_inplace_%(name)s(ndarray[%(c_type)s] values,
 
     N = len(values)
 
+    # GH 2778
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -418,6 +422,10 @@ def pad_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
+
+    # GH 2778
+    if N == 0:
+        return
 
     if limit is None:
         lim = N
@@ -451,6 +459,10 @@ def backfill_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 
     K, N = (<object> values).shape
 
+    # GH 2778
+    if N == 0:
+        return
+
     if limit is None:
         lim = N
     else:
@@ -482,6 +494,10 @@ def backfill_inplace_%(name)s(ndarray[%(c_type)s] values,
     cdef int lim, fill_count = 0
 
     N = len(values)
+
+    # GH 2778
+    if N == 0:
+        return
 
     if limit is None:
         lim = N

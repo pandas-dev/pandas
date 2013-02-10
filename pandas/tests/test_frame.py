@@ -4670,6 +4670,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, self.tsframe.fillna)
         self.assertRaises(ValueError, self.tsframe.fillna, 5, method='ffill')
 
+        # empty frame (GH #2778)
+        df = DataFrame(columns=['x'])
+        for m in ['pad','backfill']:
+            df.x.fillna(method=m,inplace=1)
+            df.x.fillna(method=m)
+
     def test_ffill(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
