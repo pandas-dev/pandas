@@ -403,6 +403,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         bint seen_bool = 0
         bint seen_object = 0
         bint seen_null = 0
+        bint seen_numeric = 0
         object val, onan
         float64_t fval, fnan
 
@@ -437,12 +438,17 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 seen_object = 1
                 # objects[i] = val.astype('O')
+                break
         elif util.is_integer_object(val):
             seen_int = 1
             floats[i] = <float64_t> val
             complexes[i] = <double complex> val
             if not seen_null:
-                ints[i] = val
+                try:
+                    ints[i] = val
+                except OverflowError:
+                    seen_object = 1
+                    break
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
@@ -452,6 +458,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 idatetimes[i] = convert_to_tsobject(val, None).value
             else:
                 seen_object = 1
+                break
         elif try_float and not util.is_string_object(val):
             # this will convert Decimal objects
             try:
@@ -460,72 +467,63 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 seen_float = 1
             except Exception:
                 seen_object = 1
+                break
         else:
             seen_object = 1
+            break
 
-    if not safe:
-        if seen_null:
-            if (seen_float or seen_int) and not seen_object:
+    seen_numeric = seen_complex or seen_float or seen_int
+
+    if not seen_object:
+
+        if not safe:
+            if seen_null:
                 if seen_complex:
                     return complexes
-                else:
+                elif seen_float or seen_int:
                     return floats
             else:
-                return objects
-        else:
-            if seen_object:
-                return objects
-            elif not seen_bool:
-                if seen_datetime:
-                    if seen_complex or seen_float or seen_int:
-                        return objects
+                if not seen_bool:
+                    if seen_datetime:
+                        if not seen_numeric:
+                            return datetimes
                     else:
-                        return datetimes
-                else:
-                    if seen_complex:
-                        return complexes
-                    elif seen_float:
-                        return floats
-                    elif seen_int:
-                        return ints
-            else:
-                if not seen_float and not seen_int:
+                        if seen_complex:
+                            return complexes
+                        elif seen_float:
+                            return floats
+                        elif seen_int:
+                            return ints
+                elif not seen_datetime and not seen_numeric:
                     return bools.view(np.bool_)
 
-            return objects
-    else:
-        # don't cast int to float, etc.
-        if seen_null:
-            if (seen_float or seen_int) and not seen_object:
+        else:
+            # don't cast int to float, etc.
+            if seen_null:
                 if seen_complex:
-                    return complexes
-                else:
-                    return floats
-            else:
-                return objects
-        else:
-            if seen_object:
-                return objects
-            elif not seen_bool:
-                if seen_datetime:
-                    if seen_complex or seen_float or seen_int:
-                        return objects
-                    else:
-                        return datetimes
-                else:
-                    if seen_int and seen_float:
-                        return objects
-                    elif seen_complex:
+                    if not seen_int:
                         return complexes
-                    elif seen_float:
+                elif seen_float:
+                    if not seen_int:
                         return floats
-                    elif seen_int:
-                        return ints
             else:
-                if not seen_float and not seen_int:
+                if not seen_bool:
+                    if seen_datetime:
+                        if not seen_numeric:
+                            return datetimes
+                    else:
+                        if seen_complex:
+                            if not seen_int:
+                                return complexes
+                        elif seen_float:
+                            if not seen_int:
+                                return floats
+                        elif seen_int:
+                            return ints
+                elif not seen_datetime and not seen_numeric:
                     return bools.view(np.bool_)
 
-            return objects
+    return objects
 
 
 def convert_sql_column(x):
