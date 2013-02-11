@@ -1166,7 +1166,7 @@ storing/selecting from homogeneous index DataFrames.
         store.append('df_mi',df_mi)
         store.select('df_mi')
 
-	    # the levels are automatically included as data columns
+        # the levels are automatically included as data columns
         store.select('df_mi', Term('foo=bar'))
 
 
