@@ -478,10 +478,11 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
         if not safe:
             if seen_null:
-                if seen_complex:
-                    return complexes
-                elif seen_float or seen_int:
-                    return floats
+                if not seen_bool and not seen_datetime:
+                    if seen_complex:
+                        return complexes
+                    elif seen_float or seen_int:
+                        return floats
             else:
                 if not seen_bool:
                     if seen_datetime:
@@ -500,12 +501,13 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         else:
             # don't cast int to float, etc.
             if seen_null:
-                if seen_complex:
-                    if not seen_int:
-                        return complexes
-                elif seen_float:
-                    if not seen_int:
-                        return floats
+                if not seen_bool and not seen_datetime:
+                    if seen_complex:
+                        if not seen_int:
+                            return complexes
+                    elif seen_float:
+                        if not seen_int:
+                            return floats
             else:
                 if not seen_bool:
                     if seen_datetime:
