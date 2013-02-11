@@ -209,23 +209,35 @@ class MetaDataFrame(object):
         
     @property	  	
     def ix(self, *args, **kwargs):      	
-        ''' This just presents user with _NDFrameIndexer, so any calls go directly to it.'''
+        ''' Pandas Indexing.  Note, this has been modified to ensure that series returns (eg ix[3])
+        still maintain attributes.  To remove this behavior, replace the following:
+        
+        self._ix = _MetaIndexer(self, _NDFrameIndexer(self) ) --> self._ix=_NDFrameIndexer(self)
+        
+        The above works because slicing preserved attributes because the _NDFrameIndexer is a python object 
+        subclass.'''
         if self._ix is None:
             self._ix = _MetaIndexer(self, _NDFrameIndexer(self) )
         return self._ix        
     
 class _MetaIndexer(object):
-    ''' This class exists to intercept returns from .ix and assign attributes properly.  The ix property actually just
-    relays everything to _NDFrameIndexer, so this is the best way I can think of to implement the return of __getitem__.
-    I had a more simple solution before (namely to just pass self to _NDFrameIndexer and this worked for slicing unless
-    the slice was to return a single object.  EG ix[0], which then returned a series with loss of custom attributes.'''
+    ''' Intercepts the slicing of ix so Series returns can be handled properly.  In addition,
+        it makes sure that the new index is assigned properly.'''
     def __init__(self, metadf, indexer):
         self.indexer=indexer #_NDFrameIndexer
         self.metadf=metadf #MetaDataFrame
     
     def __getitem__(self, key):
-        out=self.indexer.__getitem__(key)       
-        return self.metadf._transfer(out)
+        out=self.indexer.__getitem__(key)
+
+        ### Series returns transformed to MetaDataFrame
+        if isinstance(out, Series):
+            df=DataFrame(out)
+            return self.metadf._transfer(out)
+
+        ### Make sure the new object's index property is syched to its ._df index.
+        else:
+            return out
     
     
 
@@ -259,7 +271,7 @@ if __name__ == '__main__':
     ### Add some new attributes
     meta_df.a=50
     meta_df.b='Pamela'
-    print 'See the original MetaDataFrame\n'
+    print 'See the original metadataframe\n'
     print meta_df
     print '\nI can operate on it (+ - / *) and call dataframe methods like rank()'
     
@@ -272,7 +284,7 @@ if __name__ == '__main__':
     print new
 
     ### Verify attribute persistence
-    print '\nAttributes a = %s and b = %s will persist when new MetaDataFrames are returned.'%(new.a, new.b)
+    print '\nAttributes a = %s and b = %s will persist when new metadataframes are returned.'%(new.a, new.b)
 
     ### Demonstrate subclassing by invoking SubFoo class
     print '\nI can subclass a dataframe an overwrite its __repr__() or more carefully __bytes__()/__unicode__() method(s)\n'
