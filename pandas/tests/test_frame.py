@@ -8133,12 +8133,43 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected.sort()
         assert_series_equal(result, expected)
 
-        # GH #2751 (construction with no index specified)
-        df = DataFrame({'a':[1,2,4,7], 'b':[1.2, 2.3, 5.1, 6.3], 'c':list('abcd'), 'd':[datetime(2000,1,1) for i in range(4)] })
+    def test_constructor_for_list_with_dtypes(self):
+        intname = np.dtype(np.int_).name
+        floatname = np.dtype(np.float_).name
+        datetime64name = np.dtype('M8[ns]').name
+        objectname = np.dtype(np.object_).name
+
+        # test list of lists/ndarrays
+        df = DataFrame([np.arange(5) for x in range(5)])
         result = df.get_dtype_counts()
-        # TODO: fix this on 32-bit (or decide it's ok behavior?)
-        # expected = Series({intname: 1, floatname : 1, datetime64name: 1, objectname : 1})
-        expected = Series({'int64': 1, floatname : 1, datetime64name: 1, objectname : 1})
+        expected = Series({'int64' : 5})
+
+        df = DataFrame([np.array(np.arange(5),dtype='int32') for x in range(5)])
+        result = df.get_dtype_counts()
+        expected = Series({'int32' : 5})
+
+        # overflow issue? (we always expecte int64 upcasting here)
+        df = DataFrame({'a' : [2**31,2**31+1]})
+        result = df.get_dtype_counts()
+        expected = Series({'int64' : 1 })
+        assert_series_equal(result, expected)
+
+        # GH #2751 (construction with no index specified), make sure we cast to platform values
+        df = DataFrame([1, 2])
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1 })
+        assert_series_equal(result, expected)
+
+        df = DataFrame({'a' : [1, 2]})
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1 })
+        assert_series_equal(result, expected)
+
+        df = DataFrame({'a':[1,2,4,7], 'b':[1.2, 2.3, 5.1, 6.3], 
+                        'c':list('abcd'), 'd':[datetime(2000,1,1) for i in range(4)],
+                        'e' : [1.,2,4.,7]})
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1, 'float64' : 2, datetime64name: 1, objectname : 1})
         result.sort()
         expected.sort()
         assert_series_equal(result, expected)

@@ -5460,11 +5460,21 @@ def _prep_ndarray(values, copy=True):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
 
-        arr = np.asarray(values)
-        # NumPy strings are a pain, convert to object
-        if issubclass(arr.dtype.type, basestring):
-            arr = np.array(values, dtype=object, copy=True)
-        values = arr
+        def convert(v):
+            return com._possibly_convert_objects(v,
+                                                 convert_dates=False,
+                                                 convert_numeric=False,
+                                                 convert_platform=True)
+
+
+        # we could have a 1-dim or 2-dim list here
+        # this is equiv of np.asarray, but does object conversion
+        # and platform dtype preservation
+        if com.is_list_like(values[0]) or hasattr(values[0],'len'):
+            values = np.array([ convert(v) for v in values])
+        else:
+            values = convert(values)
+
     else:
         # drop subclass info, do not copy data
         values = np.asarray(values)

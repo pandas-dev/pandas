@@ -805,10 +805,11 @@ def _consensus_name_attr(objs):
 # Lots of little utilities
 
 
-def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
+def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True, convert_platform=False):
     """ if we have an object dtype, try to coerce dates and/or numers """
 
-    if values.dtype == np.object_ and convert_dates:
+    # convert dates
+    if convert_dates and getattr(values,'dtype',None) == np.object_:
 
         # we take an aggressive stance and convert to datetime64[ns]
         if convert_dates == 'coerce':
@@ -821,7 +822,8 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
         else:
             values = lib.maybe_convert_objects(values, convert_datetime=convert_dates)
 
-    if values.dtype == np.object_ and convert_numeric:
+    # convert to numeric
+    if convert_numeric and getattr(values,'dtype',None) == np.object_:
         try:
             new_values = lib.maybe_convert_numeric(values,set(),coerce_numeric=True)
             
@@ -831,6 +833,14 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
 
         except:
             pass
+
+    # platform conversion
+    #   allow ndarray or list here
+    if convert_platform:
+        if isinstance(values, (list,tuple)):
+            values = lib.list_to_object_array(values)
+        if values.dtype == np.object_:
+            values = lib.maybe_convert_objects(values)
 
     return values
 

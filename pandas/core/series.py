@@ -3111,11 +3111,15 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     raise
                 subarr = pa.array(data, dtype=object, copy=copy)
                 subarr = lib.maybe_convert_objects(subarr)
-                subarr = com._possibly_cast_to_datetime(subarr, dtype)
+            
         else:
-            subarr = lib.list_to_object_array(data)
-            subarr = lib.maybe_convert_objects(subarr)
-            subarr = com._possibly_cast_to_datetime(subarr, dtype)
+            subarr = com._possibly_convert_objects(data,
+                                                   convert_dates=False,
+                                                   convert_numeric=False,
+                                                   convert_platform=True)
+
+        subarr = com._possibly_cast_to_datetime(subarr, dtype)
+
     else:
         subarr = _try_cast(data)
 
