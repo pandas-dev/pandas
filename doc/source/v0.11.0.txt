@@ -87,6 +87,8 @@ New features
 
 **Enhancements**
 
+  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores (e.g. store.df == store['df'])
+
 **Bug Fixes**
 
 See the `full release notes
