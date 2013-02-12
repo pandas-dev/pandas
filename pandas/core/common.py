@@ -247,7 +247,7 @@ def _unpickle_array(bytes):
     return arr
 
 
-def _view_wrapper(f, arr_dtype, out_dtype, fill_wrap=None):
+def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         if arr_dtype is not None:
             arr = arr.view(arr_dtype)
@@ -259,17 +259,6 @@ def _view_wrapper(f, arr_dtype, out_dtype, fill_wrap=None):
     return wrapper
 
 
-def _datetime64_fill_wrap(fill_value):
-    if isnull(fill_value):
-        return tslib.iNaT
-    try:
-        return lib.Timestamp(fill_value).value
-    except:
-        # the proper thing to do here would probably be to upcast to object
-        # (but numpy 1.6.1 doesn't do this properly)
-        return tslib.iNaT
-
-
 def _convert_wrapper(f, conv_dtype):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         arr = arr.astype(conv_dtype)
@@ -277,18 +266,21 @@ def _convert_wrapper(f, conv_dtype):
     return wrapper
 
 
-def _take_2d_multi_generic(arr, indexer, out, fill_value=np.nan):
-    # this is not ideal, performance-wise, but it's better than
-    #   raising an exception
-    if arr.shape[0] == 0 or arr.shape[1] == 0:
-        return
+def _take_2d_multi_generic(arr, indexer, out, fill_value, mask_info):
+    # this is not ideal, performance-wise, but it's better than raising
+    # an exception (best to optimize in Cython to avoid getting here)
     row_idx, col_idx = indexer
-    row_mask = row_idx == -1
-    col_mask = col_idx == -1
+    if mask_info is not None:
+        (row_mask, col_mask), (row_needs, col_needs) = mask_info
+    else:
+        row_mask = row_idx == -1
+        col_mask = col_idx == -1
+        row_needs = row_mask.any()
+        col_needs = col_mask.any()
     if fill_value is not None:
-        if row_mask.any():
+        if row_needs:
             out[row_mask, :] = fill_value
-        if col_mask.any():
+        if col_needs:
             out[:, col_mask] = fill_value
     for i in range(len(row_idx)):
         u = row_idx[i]
@@ -297,14 +289,16 @@ def _take_2d_multi_generic(arr, indexer, out, fill_value=np.nan):
             out[i, j] = arr[u, v]
 
 
-def _take_nd_generic(arr, indexer, out, axis=0, fill_value=np.nan):
-    if arr.shape[axis] == 0:
-        return
-    mask = indexer == -1
-    needs_masking = mask.any()
+def _take_nd_generic(arr, indexer, out, axis, fill_value, mask_info):
+    if mask_info is not None:
+        mask, needs_masking = mask_info
+    else:
+        mask = indexer == -1
+        needs_masking = mask.any()
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
-    ndtake(arr, indexer, axis=axis, out=out)
+    if arr.shape[axis] > 0:
+        arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -334,8 +328,7 @@ _take_1d_dict = {
     ('bool', 'object'):
         _view_wrapper(algos.take_1d_bool_object, np.uint8, None),
     ('datetime64[ns]','datetime64[ns]'):
-        _view_wrapper(algos.take_1d_int64_int64, np.int64, np.int64,
-                      fill_wrap=_datetime64_fill_wrap)
+        _view_wrapper(algos.take_1d_int64_int64, np.int64, np.int64, np.int64)
 }
 
 
@@ -363,7 +356,7 @@ _take_2d_axis0_dict = {
         _view_wrapper(algos.take_2d_axis0_bool_object, np.uint8, None),
     ('datetime64[ns]','datetime64[ns]'):
         _view_wrapper(algos.take_2d_axis0_int64_int64, np.int64, np.int64,
-                      fill_wrap=_datetime64_fill_wrap)
+                      fill_wrap=np.int64)
 }
 
 
@@ -391,7 +384,7 @@ _take_2d_axis1_dict = {
         _view_wrapper(algos.take_2d_axis1_bool_object, np.uint8, None),
     ('datetime64[ns]','datetime64[ns]'):
         _view_wrapper(algos.take_2d_axis1_int64_int64, np.int64, np.int64,
-                      fill_wrap=_datetime64_fill_wrap)
+                      fill_wrap=np.int64)
 }
 
 
@@ -419,159 +412,187 @@ _take_2d_multi_dict = {
         _view_wrapper(algos.take_2d_multi_bool_object, np.uint8, None),
     ('datetime64[ns]','datetime64[ns]'):
         _view_wrapper(algos.take_2d_multi_int64_int64, np.int64, np.int64,
-                      fill_wrap=_datetime64_fill_wrap)
+                      fill_wrap=np.int64)
 }
 
 
-def _get_take_1d_function(dtype, out_dtype):
-    try:
-        return _take_1d_dict[dtype.name, out_dtype.name]
-    except KeyError:
-        pass
-
-    if dtype != out_dtype: 
-        try:
-            func = _take_1d_dict[out_dtype.name, out_dtype.name]
-            return _convert_wrapper(func, out_dtype)
-        except KeyError:
-            pass
-
-    def wrapper(arr, indexer, out, fill_value=np.nan):
-        return _take_nd_generic(arr, indexer, out, axis=0,
-                                fill_value=fill_value)
-    return wrapper
-
-
-def _get_take_2d_function(dtype, out_dtype, axis=0):
-    try:
-        if axis == 0:
-            return _take_2d_axis0_dict[dtype.name, out_dtype.name]
-        elif axis == 1:
-            return _take_2d_axis1_dict[dtype.name, out_dtype.name]
-        elif axis == 'multi':
-            return _take_2d_multi_dict[dtype.name, out_dtype.name]
-        else:  # pragma: no cover
-            raise ValueError('bad axis: %s' % axis)
-    except KeyError:
-        pass
-
-    if dtype != out_dtype: 
-        try:
+def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
+    if ndim <= 2:
+        tup = (arr_dtype.name, out_dtype.name)
+        if ndim == 1:
+            func = _take_1d_dict.get(tup, None)
+        elif ndim == 2:
             if axis == 0:
-                func = _take_2d_axis0_dict[out_dtype.name, out_dtype.name]
-            elif axis == 1:
-                func = _take_2d_axis1_dict[out_dtype.name, out_dtype.name]
+                func = _take_2d_axis0_dict.get(tup, None)
             else:
-                func = _take_2d_multi_dict[out_dtype.name, out_dtype.name]
-            return _convert_wrapper(func, out_dtype)
-        except KeyError:
-            pass
+                func = _take_2d_axis1_dict.get(tup, None)
+        if func is not None:
+            return func
 
-    if axis == 'multi':
-        return _take_2d_multi_generic
-
-    def wrapper(arr, indexer, out, fill_value=np.nan):
-        return _take_nd_generic(arr, indexer, out, axis=axis,
-                                fill_value=fill_value)
-    return wrapper
-
-
-def _get_take_nd_function(ndim, dtype, out_dtype, axis=0):
-    if ndim == 2:
-        return _get_take_2d_function(dtype, out_dtype, axis=axis)
-    elif ndim == 1:
-        if axis != 0:
-            raise ValueError('axis must be 0 for one dimensional array')
-        return _get_take_1d_function(dtype, out_dtype)
-    elif ndim <= 0:
-        raise ValueError('ndim must be >= 1')
-
-    def wrapper(arr, indexer, out, fill_value=np.nan):
-        return _take_nd_generic(arr, indexer, out, axis=axis,
-                                fill_value=fill_value)
-    if (dtype.name, out_dtype.name) == ('datetime64[ns]','datetime64[ns]'):
-        wrapper = _view_wrapper(wrapper, np.int64, np.int64,
-                                fill_wrap=_datetime64_fill_wrap)
-    return wrapper
+        tup = (out_dtype.name, out_dtype.name)
+        if ndim == 1:
+            func = _take_1d_dict.get(tup, None)
+        elif ndim == 2:
+            if axis == 0:
+                func = _take_2d_axis0_dict.get(tup, None)
+            else:
+                func = _take_2d_axis1_dict.get(tup, None)
+        if func is not None:
+            func = _convert_wrapper(func, out_dtype)
+            return func
+    
+    def func(arr, indexer, out, fill_value=np.nan):
+        _take_nd_generic(arr, indexer, out, axis=axis,
+                         fill_value=fill_value, mask_info=mask_info)
+    return func
 
 
-def take_1d(arr, indexer, out=None, fill_value=np.nan):
+def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
+            mask_info=None, allow_fill=True):
     """
     Specialized Cython take which sets NaN values in one pass
+
+    Parameters
+    ----------
+    arr : ndarray
+        Input array
+    indexer : ndarray
+        1-D array of indices to take, subarrays corresponding to -1 value
+        indicies are filed with fill_value
+    axis : int, default 0
+        Axis to take from
+    out : ndarray or None, default None
+        Optional output array, must be appropriate type to hold input and
+        fill_value together, if indexer has any -1 value entries; call
+        common._maybe_promote to determine this type for any fill_value
+    fill_value : any, default np.nan
+        Fill value to replace -1 values with
+    mask_info : tuple of (ndarray, boolean)
+        If provided, value should correspond to:
+            (indexer != -1, (indexer != -1).any())
+        If not provided, it will be computed internally if necessary
+    allow_fill : boolean, default True
+        If False, indexer is assumed to contain no -1 values so no filling
+        will be done.  This short-circuits computation of a mask.  Result is
+        undefined if allow_fill == False and -1 is present in indexer.
     """
     if indexer is None:
-        indexer = np.arange(len(arr), dtype=np.int64)
+        indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
         indexer = _ensure_int64(indexer)
-        dtype = _maybe_promote(arr.dtype, fill_value)[0]
-        if dtype != arr.dtype:
-            mask = indexer == -1
-            needs_masking = mask.any()
-            if needs_masking:
-                if out is not None and out.dtype != dtype:
-                    raise Exception('Incompatible type for fill_value')
-            else:
-                dtype, fill_value = arr.dtype, arr.dtype.type()
+        if not allow_fill:
+            dtype, fill_value = arr.dtype, arr.dtype.type()
+            mask_info = None, False
+        else:
+            # check for promotion based on types only (do this first because
+            # it's faster than computing a mask)
+            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
+            if dtype != arr.dtype and (out is None or out.dtype != dtype):
+                # check if promotion is actually required based on indexer
+                if mask_info is not None:
+                    mask, needs_masking = mask_info
+                else:
+                    mask = indexer == -1
+                    needs_masking = mask.any()
+                    mask_info = mask, needs_masking
+                if needs_masking:
+                    if out is not None and out.dtype != dtype:
+                        raise Exception('Incompatible type for fill_value')
+                else:
+                    # if not, then depromote, set fill_value to dummy
+                    # (it won't be used but we don't want the cython code
+                    # to crash when trying to cast it to dtype)
+                    dtype, fill_value = arr.dtype, arr.dtype.type()
 
+    # at this point, it's guaranteed that dtype can hold both the arr values
+    # and the fill_value
     if out is None:
-        out = np.empty(len(indexer), dtype=dtype)
-    take_f = _get_take_1d_function(arr.dtype, out.dtype)
-    take_f(arr, indexer, out=out, fill_value=fill_value)
+        out_shape = list(arr.shape)
+        out_shape[axis] = len(indexer)
+        out_shape = tuple(out_shape)
+        if arr.flags.f_contiguous and axis == arr.ndim - 1:
+            # minor tweak that can make an order-of-magnitude difference
+            # for dataframes initialized directly from 2-d ndarrays
+            # (s.t. df.values is c-contiguous and df._data.blocks[0] is its
+            # f-contiguous transpose)
+            out = np.empty(out_shape, dtype=dtype, order='F')
+        else:
+            out = np.empty(out_shape, dtype=dtype)
+
+    func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype,
+                                 axis=axis, mask_info=mask_info)
+    func(arr, indexer, out, fill_value)
     return out
 
 
-def take_nd(arr, indexer, out=None, axis=0, fill_value=np.nan):
+take_1d = take_nd
+
+
+def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
+                  mask_info=None, allow_fill=True):
     """
     Specialized Cython take which sets NaN values in one pass
     """
-    if indexer is None:
-        mask = None
-        needs_masking = False
-        fill_value = arr.dtype.type()
-    else:
-        indexer = _ensure_int64(indexer)
-        mask = indexer == -1
-        needs_masking = mask.any()
-        if not needs_masking:
-            fill_value = arr.dtype.type()
-    return take_fast(arr, indexer, mask, needs_masking, axis, out, fill_value)
-
-
-def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan, out=None):
-    """
-    Specialized Cython take which sets NaN values in one pass
-    """
-    if row_idx is None:
+    if indexer is None or (indexer[0] is None and indexer[1] is None):
         row_idx = np.arange(arr.shape[0], dtype=np.int64)
-    else:
-        row_idx = _ensure_int64(row_idx)
-
-    if col_idx is None:
         col_idx = np.arange(arr.shape[1], dtype=np.int64)
+        indexer = row_idx, col_idx
+        dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        col_idx = _ensure_int64(col_idx)
-
-    dtype = _maybe_promote(arr.dtype, fill_value)[0]
-    if dtype != arr.dtype:
-        row_mask = row_idx == -1
-        col_mask = col_idx == -1
-        needs_masking = row_mask.any() or col_mask.any()
-        if needs_masking:
-            if out is not None and out.dtype != dtype:
-                raise Exception('Incompatible type for fill_value')
+        row_idx, col_idx = indexer
+        if row_idx is None:
+            row_idx = np.arange(arr.shape[0], dtype=np.int64)
         else:
+            row_idx = _ensure_int64(row_idx)
+        if col_idx is None:
+            col_idx = np.arange(arr.shape[1], dtype=np.int64)
+        else:
+            col_idx = _ensure_int64(col_idx)
+        indexer = row_idx, col_idx
+        if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
+            mask_info = None, False
+        else:
+            # check for promotion based on types only (do this first because
+            # it's faster than computing a mask)
+            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
+            if dtype != arr.dtype and (out is None or out.dtype != dtype):
+                # check if promotion is actually required based on indexer
+                if mask_info is not None:
+                    (row_mask, col_mask), (row_needs, col_needs) = mask_info
+                else:
+                    row_mask = row_idx == -1
+                    col_mask = col_idx == -1
+                    row_needs = row_mask.any()
+                    col_needs = col_mask.any()
+                    mask_info = (row_mask, col_mask), (row_needs, col_needs)
+                if row_needs or col_needs:
+                    if out is not None and out.dtype != dtype:
+                        raise Exception('Incompatible type for fill_value')
+                else:
+                    # if not, then depromote, set fill_value to dummy
+                    # (it won't be used but we don't want the cython code
+                    # to crash when trying to cast it to dtype)
+                    dtype, fill_value = arr.dtype, arr.dtype.type()
+
+    # at this point, it's guaranteed that dtype can hold both the arr values
+    # and the fill_value
     if out is None:
         out_shape = len(row_idx), len(col_idx)
         out = np.empty(out_shape, dtype=dtype)
-    take_f = _get_take_2d_function(arr.dtype, out.dtype, axis='multi')
-    take_f(arr, (row_idx, col_idx), out=out, fill_value=fill_value)
+
+    func = _take_2d_multi_dict.get((arr.dtype.name, out.dtype.name), None)
+    if func is None and arr.dtype != out.dtype:
+        func = _take_2d_multi_dict.get((out.dtype.name, out.dtype.name), None)
+        if func is not None:
+            func = _convert_wrapper(func, out.dtype)
+    if func is None:
+        def func(arr, indexer, out, fill_value=np.nan):
+            _take_2d_multi_generic(arr, indexer, out,
+                                   fill_value=fill_value, mask_info=mask_info)
+    func(arr, indexer, out=out, fill_value=fill_value)
     return out
-
-
-def ndtake(arr, indexer, axis=0, out=None):
-    return arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
 
 
 _diff_special = {
@@ -613,36 +634,6 @@ def diff(arr, n, axis=0):
         out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     return out_arr
-
-
-def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
-              fill_value=np.nan):
-    """
-    Specialized Cython take which sets NaN values in one pass
-
-    (equivalent to take_nd but requires mask and needs_masking
-     to be set appropriately already; slightly more efficient)
-    """
-    if indexer is None:
-        indexer = np.arange(arr.shape[axis], dtype=np.int64)
-        dtype = arr.dtype
-    else:
-        indexer = _ensure_int64(indexer)
-        if needs_masking:
-            dtype = _maybe_promote(arr.dtype, fill_value)[0]
-            if dtype != arr.dtype and out is not None and out.dtype != dtype:
-                raise Exception('Incompatible type for fill_value')
-        else:
-            dtype = arr.dtype
-
-    if out is None:
-        out_shape = list(arr.shape)
-        out_shape[axis] = len(indexer)
-        out_shape = tuple(out_shape)
-        out = np.empty(out_shape, dtype=dtype)
-    take_f = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype, axis=axis)
-    take_f(arr, indexer, out=out, fill_value=fill_value)
-    return out
 
 
 def _infer_dtype_from_scalar(val):
@@ -688,6 +679,7 @@ def _infer_dtype_from_scalar(val):
         dtype = np.complex_
 
     return dtype, val
+
 
 def _maybe_promote(dtype, fill_value=np.nan):
     # returns tuple of (dtype, fill_value)
@@ -953,22 +945,6 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
     return value
 
 
-<<<<<<< HEAD
-=======
-def _infer_dtype(value):
-    if isinstance(value, (float, np.floating)):
-        return np.float64
-    elif isinstance(value, (bool, np.bool_)):
-        return np.bool_
-    elif isinstance(value, (int, long, np.integer)):
-        return np.int64
-    elif isinstance(value, (complex, np.complexfloating)):
-        return np.complex128
-    else:
-        return np.object_
-
-
->>>>>>> e2b4ccd... CLN: add fill_value return value to common._maybe_promote
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
         key = np.asarray(key)

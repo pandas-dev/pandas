@@ -838,7 +838,7 @@ class Panel(NDFrame):
             indexer2 = range(len(new_minor))
 
         for i, ind in enumerate(indexer0):
-            com.take_2d_multi(values[ind], indexer1, indexer2,
+            com.take_2d_multi(values[ind], (indexer1, indexer2),
                               out=new_values[i])
 
         return Panel(new_values, items=new_items, major_axis=new_major,

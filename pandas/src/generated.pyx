@@ -2208,21 +2208,13 @@ def take_1d_bool_bool(ndarray[uint8_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_bool_object(ndarray[uint8_t] values,
@@ -2235,21 +2227,13 @@ def take_1d_bool_object(ndarray[uint8_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = True if values[idx] > 0 else False
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = True if values[idx] > 0 else False
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = True if values[idx] > 0 else False
 
 @cython.wraparound(False)
 def take_1d_int8_int8(ndarray[int8_t] values,
@@ -2262,21 +2246,13 @@ def take_1d_int8_int8(ndarray[int8_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int8_int32(ndarray[int8_t] values,
@@ -2289,21 +2265,13 @@ def take_1d_int8_int32(ndarray[int8_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int8_int64(ndarray[int8_t] values,
@@ -2316,21 +2284,13 @@ def take_1d_int8_int64(ndarray[int8_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int8_float64(ndarray[int8_t] values,
@@ -2343,21 +2303,13 @@ def take_1d_int8_float64(ndarray[int8_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int16_int16(ndarray[int16_t] values,
@@ -2370,21 +2322,13 @@ def take_1d_int16_int16(ndarray[int16_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int16_int32(ndarray[int16_t] values,
@@ -2397,21 +2341,13 @@ def take_1d_int16_int32(ndarray[int16_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int16_int64(ndarray[int16_t] values,
@@ -2424,21 +2360,13 @@ def take_1d_int16_int64(ndarray[int16_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int16_float64(ndarray[int16_t] values,
@@ -2451,21 +2379,13 @@ def take_1d_int16_float64(ndarray[int16_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int32_int32(ndarray[int32_t] values,
@@ -2478,21 +2398,13 @@ def take_1d_int32_int32(ndarray[int32_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int32_int64(ndarray[int32_t] values,
@@ -2505,21 +2417,13 @@ def take_1d_int32_int64(ndarray[int32_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int32_float64(ndarray[int32_t] values,
@@ -2532,21 +2436,13 @@ def take_1d_int32_float64(ndarray[int32_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int64_int64(ndarray[int64_t] values,
@@ -2559,21 +2455,13 @@ def take_1d_int64_int64(ndarray[int64_t] values,
 
     n = len(indexer)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_int64_float64(ndarray[int64_t] values,
@@ -2586,21 +2474,13 @@ def take_1d_int64_float64(ndarray[int64_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_float32_float32(ndarray[float32_t] values,
@@ -2613,21 +2493,13 @@ def take_1d_float32_float32(ndarray[float32_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_float32_float64(ndarray[float32_t] values,
@@ -2640,21 +2512,13 @@ def take_1d_float32_float64(ndarray[float32_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_float64_float64(ndarray[float64_t] values,
@@ -2667,21 +2531,13 @@ def take_1d_float64_float64(ndarray[float64_t] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 @cython.wraparound(False)
 def take_1d_object_object(ndarray[object] values,
@@ -2694,21 +2550,13 @@ def take_1d_object_object(ndarray[object] values,
 
     n = len(indexer)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = values[idx]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = values[idx]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = values[idx]
 
 
 @cython.wraparound(False)
@@ -2724,25 +2572,15 @@ def take_2d_axis0_bool_bool(ndarray[uint8_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2757,25 +2595,15 @@ def take_2d_axis0_bool_object(ndarray[uint8_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = True if values[idx, j] > 0 else False
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = True if values[idx, j] > 0 else False
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = True if values[idx, j] > 0 else False
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2790,25 +2618,15 @@ def take_2d_axis0_int8_int8(ndarray[int8_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2823,25 +2641,15 @@ def take_2d_axis0_int8_int32(ndarray[int8_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2856,25 +2664,15 @@ def take_2d_axis0_int8_int64(ndarray[int8_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2889,25 +2687,15 @@ def take_2d_axis0_int8_float64(ndarray[int8_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2922,25 +2710,15 @@ def take_2d_axis0_int16_int16(ndarray[int16_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2955,25 +2733,15 @@ def take_2d_axis0_int16_int32(ndarray[int16_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2988,25 +2756,15 @@ def take_2d_axis0_int16_int64(ndarray[int16_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3021,25 +2779,15 @@ def take_2d_axis0_int16_float64(ndarray[int16_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3054,25 +2802,15 @@ def take_2d_axis0_int32_int32(ndarray[int32_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3087,25 +2825,15 @@ def take_2d_axis0_int32_int64(ndarray[int32_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3120,25 +2848,15 @@ def take_2d_axis0_int32_float64(ndarray[int32_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3153,25 +2871,15 @@ def take_2d_axis0_int64_int64(ndarray[int64_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3186,25 +2894,15 @@ def take_2d_axis0_int64_float64(ndarray[int64_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3219,25 +2917,15 @@ def take_2d_axis0_float32_float32(ndarray[float32_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3252,25 +2940,15 @@ def take_2d_axis0_float32_float64(ndarray[float32_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3285,25 +2963,15 @@ def take_2d_axis0_float64_float64(ndarray[float64_t, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3318,25 +2986,15 @@ def take_2d_axis0_object_object(ndarray[object, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = values[idx, j]
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = values[idx, j]
 
 
 @cython.wraparound(False)
@@ -3352,25 +3010,15 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3385,25 +3033,15 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = True if values[i, idx] > 0 else False
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = True if values[i, idx] > 0 else False
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = True if values[i, idx] > 0 else False
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3418,25 +3056,15 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3451,25 +3079,15 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3484,25 +3102,15 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3517,25 +3125,15 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3550,25 +3148,15 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3583,25 +3171,15 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3616,25 +3194,15 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3649,25 +3217,15 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3682,25 +3240,15 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3715,25 +3263,15 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3748,25 +3286,15 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3781,25 +3309,15 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if True and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3814,25 +3332,15 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3847,25 +3355,15 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3880,25 +3378,15 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3913,25 +3401,15 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3946,25 +3424,15 @@ def take_2d_axis1_object_object(ndarray[object, ndim=2] values,
     n = len(values)
     k = len(indexer)
 
-    if False and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = values[i, idx]
+    fv = fill_value
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = values[i, idx]
 
 
 @cython.wraparound(False)
@@ -3982,31 +3450,18 @@ def take_2d_multi_bool_bool(ndarray[uint8_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4023,31 +3478,18 @@ def take_2d_multi_bool_object(ndarray[uint8_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = True if values[idx, idx1[j]] > 0 else False
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = True if values[idx, idx1[j]] > 0 else False
+                else:
+                    outbuf[i, j] = True if values[idx, idx1[j]] > 0 else False
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4064,31 +3506,18 @@ def take_2d_multi_int8_int8(ndarray[int8_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4105,31 +3534,18 @@ def take_2d_multi_int8_int32(ndarray[int8_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4146,31 +3562,18 @@ def take_2d_multi_int8_int64(ndarray[int8_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4187,31 +3590,18 @@ def take_2d_multi_int8_float64(ndarray[int8_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4228,31 +3618,18 @@ def take_2d_multi_int16_int16(ndarray[int16_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4269,31 +3646,18 @@ def take_2d_multi_int16_int32(ndarray[int16_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4310,31 +3674,18 @@ def take_2d_multi_int16_int64(ndarray[int16_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4351,31 +3702,18 @@ def take_2d_multi_int16_float64(ndarray[int16_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4392,31 +3730,18 @@ def take_2d_multi_int32_int32(ndarray[int32_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4433,31 +3758,18 @@ def take_2d_multi_int32_int64(ndarray[int32_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4474,31 +3786,18 @@ def take_2d_multi_int32_float64(ndarray[int32_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4515,31 +3814,18 @@ def take_2d_multi_int64_int64(ndarray[int64_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if True and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4556,31 +3842,18 @@ def take_2d_multi_int64_float64(ndarray[int64_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4597,31 +3870,18 @@ def take_2d_multi_float32_float32(ndarray[float32_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4638,31 +3898,18 @@ def take_2d_multi_float32_float64(ndarray[float32_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4679,31 +3926,18 @@ def take_2d_multi_float64_float64(ndarray[float64_t, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4720,31 +3954,18 @@ def take_2d_multi_object_object(ndarray[object, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if False and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = values[idx, idx1[j]]
+                else:
+                    outbuf[i, j] = values[idx, idx1[j]]
 
 
 @cython.boundscheck(False)
