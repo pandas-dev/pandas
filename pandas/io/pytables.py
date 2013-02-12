@@ -250,10 +250,14 @@ class HDFStore(object):
             values = []
 
             for k in self.keys():
-                s = self.get_storer(k)
-                if s is not None:
-                    keys.append(str(s.pathname or k))
-                    values.append(str(s or 'invalid_HDFStore node'))
+                try:
+                    s = self.get_storer(k)
+                    if s is not None:
+                        keys.append(str(s.pathname or k))
+                        values.append(str(s or 'invalid_HDFStore node'))
+                except (Exception), detail:
+                    keys.append(k)
+                    values.append("[invalid_HDFStore node: %s]" % str(detail))
 
             output += adjoin(12, keys, values)
         else:
@@ -3060,7 +3064,10 @@ class Term(object):
             v = float(v)
             return [v, v]
         elif self.kind == 'bool':
-            v = bool(v)
+            if isinstance(v, basestring):
+                v = not str(v).strip().lower() in ["false", "f", "no", "n", "none", "0", "[]", "{}", ""]
+            else:
+                v = bool(v)
             return [v, v]
         elif not isinstance(v, basestring):
             return [str(v), None]

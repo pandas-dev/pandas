@@ -1649,15 +1649,20 @@ class TestHDFStore(unittest.TestCase):
             df['bool'] = df['A'] > 0
             store.remove('df')
             store.append('df', df, data_columns = True)
-            result = store.select('df', Term('bool == True'), columns = ['A','bool'])
-            expected = df[df.bool == True].reindex(columns=['A','bool'])
-            tm.assert_frame_equal(expected, result)
 
-            result = store.select('df', Term('bool == 1'), columns = ['A','bool'])
-            tm.assert_frame_equal(expected, result)
+            expected = df[df.bool == True].reindex(columns=['A','bool'])
+            for v in [True,'true',1]:
+                result = store.select('df', Term('bool == %s' % str(v)), columns = ['A','bool'])
+                tm.assert_frame_equal(expected, result)
+
+            expected = df[df.bool == False ].reindex(columns=['A','bool'])
+            for v in [False,'false',0]:
+                result = store.select('df', Term('bool == %s' % str(v)), columns = ['A','bool'])
+                tm.assert_frame_equal(expected, result)
 
             # integer index
             df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
+            store.remove('df_int')
             store.append('df_int', df)
             result = store.select(
                 'df_int', [Term("index<10"), Term("columns", "=", ["A"])])
@@ -1667,6 +1672,7 @@ class TestHDFStore(unittest.TestCase):
             # float index
             df = DataFrame(dict(A=np.random.rand(
                         20), B=np.random.rand(20), index=np.arange(20, dtype='f8')))
+            store.remove('df_float')
             store.append('df_float', df)
             result = store.select(
                 'df_float', [Term("index<10.0"), Term("columns", "=", ["A"])])
