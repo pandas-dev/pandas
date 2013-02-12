@@ -953,19 +953,21 @@ class TestHDFStore(unittest.TestCase):
             assert df1.dtypes == store['df_f4'].dtypes
             assert df1.dtypes[0] == 'float32'
             
-            # check with mixed dtypes (but not multi float types)
-            df1 = DataFrame(np.array([[1],[2],[3]],dtype='f4'),columns = ['float32'])
+            # check with mixed dtypes
+            df1 = DataFrame(dict([ (c,Series(np.random.randn(5),dtype=c)) for c in 
+                                   ['float32','float64','int32','int64','int16','int8'] ]))
             df1['string'] = 'foo'
-            store.append('df_mixed_dtypes1', df1)
-            assert (df1.dtypes == store['df_mixed_dtypes1'].dtypes).all() == True
-            assert df1.dtypes[0] == 'float32'
-            assert df1.dtypes[1] == 'object'
+            df1['float322'] = 1.
+            df1['float322'] = df1['float322'].astype('float32')
+            df1['bool']     = df1['float32'] > 0
 
-            ### this is not supported, e.g. mixed float32/float64 blocks ###
-            #df1 = DataFrame(np.array([[1],[2],[3]],dtype='f4'),columns = ['float32'])
-            #df1['float64'] = 1.0
-            #store.append('df_mixed_dtypes2', df1)
-            #assert df1.dtypes == store['df_mixed_dtypes2'].dtypes).all() == True
+            store.append('df_mixed_dtypes1', df1)
+            result = store.select('df_mixed_dtypes1').get_dtype_counts()
+            expected = Series({ 'float32' : 2, 'float64' : 1,'int32' : 1, 'bool' : 1,
+                                'int16' : 1, 'int8' : 1, 'int64' : 1, 'object' : 1 })
+            result.sort()
+            expected.sort()
+            tm.assert_series_equal(result,expected)
 
     def test_table_mixed_dtypes(self):
 
@@ -1628,12 +1630,47 @@ class TestHDFStore(unittest.TestCase):
             expected = df[df.A > 0].reindex(columns=['C', 'D'])
             tm.assert_frame_equal(expected, result)
             
+    def test_select_dtypes(self):
+
+        with ensure_clean(self.path) as store:
+
             # with a Timestamp data column (GH #2637)
             df = DataFrame(dict(ts=bdate_range('2012-01-01', periods=300), A=np.random.randn(300)))
             store.remove('df')
             store.append('df', df, data_columns=['ts', 'A'])
             result = store.select('df', [Term('ts', '>=', Timestamp('2012-02-01'))])
             expected = df[df.ts >= Timestamp('2012-02-01')]
+            tm.assert_frame_equal(expected, result)
+
+            # bool columns
+            df = DataFrame(np.random.randn(5,2), columns =['A','B'])
+            df['object'] = 'foo'
+            df.ix[4:5,'object'] = 'bar'
+            df['bool'] = df['A'] > 0
+            store.remove('df')
+            store.append('df', df, data_columns = True)
+            result = store.select('df', Term('bool == True'), columns = ['A','bool'])
+            expected = df[df.bool == True].reindex(columns=['A','bool'])
+            tm.assert_frame_equal(expected, result)
+
+            result = store.select('df', Term('bool == 1'), columns = ['A','bool'])
+            tm.assert_frame_equal(expected, result)
+
+            # integer index
+            df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
+            store.append('df_int', df)
+            result = store.select(
+                'df_int', [Term("index<10"), Term("columns", "=", ["A"])])
+            expected = df.reindex(index=list(df.index)[0:10],columns=['A'])
+            tm.assert_frame_equal(expected, result)
+
+            # float index
+            df = DataFrame(dict(A=np.random.rand(
+                        20), B=np.random.rand(20), index=np.arange(20, dtype='f8')))
+            store.append('df_float', df)
+            result = store.select(
+                'df_float', [Term("index<10.0"), Term("columns", "=", ["A"])])
+            expected = df.reindex(index=list(df.index)[0:10],columns=['A'])
             tm.assert_frame_equal(expected, result)
 
     def test_panel_select(self):
@@ -1676,20 +1713,6 @@ class TestHDFStore(unittest.TestCase):
             expected = df.ix[:, ['A']]
             tm.assert_frame_equal(result, expected)
             
-            # other indicies for a frame
-
-            # integer
-            df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
-            store.append('df_int', df)
-            store.select(
-                'df_int', [Term("index<10"), Term("columns", "=", ["A"])])
-            
-            df = DataFrame(dict(A=np.random.rand(
-                        20), B=np.random.rand(20), index=np.arange(20, dtype='f8')))
-            store.append('df_float', df)
-            store.select(
-                'df_float', [Term("index<10.0"), Term("columns", "=", ["A"])])
-
             # invalid terms
             df = tm.makeTimeDataFrame()
             store.append('df_time', df)
