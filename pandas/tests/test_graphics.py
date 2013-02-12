@@ -308,7 +308,7 @@ class TestDataFramePlots(unittest.TestCase):
         ax = df.plot()
         l = ax.get_lines()[0]
         rs = l.get_xydata()
-        rs = Series(rs[:, 1], rs[:, 0], dtype=int)
+        rs = Series(rs[:, 1], rs[:, 0], dtype=np.int64)
         tm.assert_series_equal(rs, df.y)
 
     def _check_data(self, xp, rs):
