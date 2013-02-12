@@ -1076,6 +1076,8 @@ class DataCol(IndexCol):
                 self.kind = 'integer'
             elif self.dtype.startswith('date'):
                 self.kind = 'datetime'
+            elif self.dtype.startswith('bool'):
+                self.kind = 'bool'
 
     def set_atom(self, block, existing_col, min_itemsize, nan_rep, **kwargs):
         """ create and setup my atom from the block b """
@@ -3056,6 +3058,9 @@ class Term(object):
             return [v, v]
         elif self.kind == 'float':
             v = float(v)
+            return [v, v]
+        elif self.kind == 'bool':
+            v = bool(v)
             return [v, v]
         elif not isinstance(v, basestring):
             return [str(v), None]
