@@ -554,7 +554,11 @@ def _build_option_description(k):
 
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
+
     s = u'%s: ' % k
+    if o:
+        s += u'[default: %s] [currently: %s]' % (o.defval, _get_option(k, True))
+
     if o.doc:
         s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
     else:

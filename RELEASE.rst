@@ -47,6 +47,7 @@ pandas 0.11.0
     preserve an all-nan object (e.g. strings)
   - Series print output now includes the dtype by default
   - Optimize internal reindexing routines for upcasting cases (#2819)
+  - ``describe_option()`` now reports the default and current value of options.
 
 **API Changes**
 

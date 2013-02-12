@@ -26,7 +26,7 @@ pc_precision_doc = """
 
 pc_colspace_doc = """
 : int
-    Default space for DataFrame columns, defaults to 12
+    Default space for DataFrame columns.
 """
 
 pc_max_rows_doc = """
@@ -53,7 +53,7 @@ pc_max_info_cols_doc = """
 
 pc_nb_repr_h_doc = """
 : boolean
-    When True (default), IPython notebook will use html representation for
+    When True, IPython notebook will use html representation for
     pandas objects (if it is available).
 """
 
@@ -69,13 +69,12 @@ pc_date_yearfirst_doc = """
 
 pc_pprint_nest_depth = """
 : int
-    Defaults to 3.
     Controls the number of nested levels to process when pretty-printing
 """
 
 pc_multi_sparse_doc = """
 : boolean
-    Default True, "sparsify" MultiIndex display (don't display repeated
+    "sparsify" MultiIndex display (don't display repeated
     elements in outer levels within groups)
 """
 
@@ -109,7 +108,6 @@ colheader_justify_doc = """
 
 pc_expand_repr_doc = """
 : boolean
-    Default False
     Whether to print out the full DataFrame repr for wide DataFrames
     across multiple lines.
     If False, the summary representation is shown.
@@ -117,12 +115,10 @@ pc_expand_repr_doc = """
 
 pc_line_width_doc = """
 : int
-    Default 80
     When printing wide DataFrames, this is the width of each line.
 """
 pc_chop_threshold_doc = """
 : float or None
-    Default None
     if set to a float value, all float values smaller then the given threshold
     will be displayed as exactly 0 by repr and friends.
 """
@@ -156,7 +152,6 @@ with cf.config_prefix('display'):
 
 tc_sim_interactive_doc = """
 : boolean
-    Default False
     Whether to simulate interactive mode for purposes of testing
 """
 with cf.config_prefix('mode'):

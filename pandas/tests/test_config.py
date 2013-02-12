@@ -73,7 +73,8 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('c.d.e2', 1, 'doc4')
         self.cf.register_option('f', 1)
         self.cf.register_option('g.h', 1)
-        self.cf.deprecate_option('g.h', rkey="blah")
+        self.cf.register_option('k', 2)
+        self.cf.deprecate_option('g.h', rkey="k")
 
         # non-existent keys raise KeyError
         self.assertRaises(KeyError, self.cf.describe_option, 'no.such.key')
@@ -100,7 +101,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(
             'precated' in self.cf.describe_option('g.h', _print_desc=False))
         self.assertTrue(
-            'blah' in self.cf.describe_option('g.h', _print_desc=False))
+            'k' in self.cf.describe_option('g.h', _print_desc=False))
 
     def test_case_insensitive(self):
         self.cf.register_option('KanBAN', 1, 'doc')
