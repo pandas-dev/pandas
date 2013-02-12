@@ -483,7 +483,7 @@ each type:
 
    df.get_dtype_counts()
 
-Numeric dtypes will propgate and can coexist in DataFrames (starting in v0.10.2). 
+Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.10.2). 
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, 
 or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
