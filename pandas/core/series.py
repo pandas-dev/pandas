@@ -3127,29 +3127,16 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         elif index is not None:
             value = data
 
-            # If we create an empty array using a string to infer
-            # the dtype, NumPy will only allocate one character per entry
-            # so this is kind of bad. Alternately we could use np.repeat
-            # instead of np.empty (but then you still don't want things
-            # coming out as np.str_!
-            if isinstance(value, basestring) and dtype is None:
-                dtype = np.object_
-
+            # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-
-                # a 1-element ndarray
-                if isinstance(value, pa.Array):
-                    dtype = value.dtype
-                    value = value.item()
-                else:
-                    value, dtype = com._dtype_from_scalar(value)
-
-                subarr = pa.empty(len(index), dtype=dtype)
+                value, dtype = com._dtype_from_scalar(value)
             else:
                 # need to possibly convert the value here
                 value = com._possibly_cast_to_datetime(value, dtype)
-                subarr = pa.empty(len(index), dtype=dtype)
+
+            subarr = pa.empty(len(index), dtype=dtype)
             subarr.fill(value)
+
         else:
             return subarr.item()
 

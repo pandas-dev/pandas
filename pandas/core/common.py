@@ -24,6 +24,7 @@ import csv
 from pandas.util.py3compat import StringIO, BytesIO
 
 from pandas.core.config import get_option
+from pandas.core import array as pa
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
@@ -645,7 +646,21 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
 
 def _dtype_from_scalar(val):
     """ interpret the dtype from a scalar, upcast floats and ints """
-    if isinstance(val, np.datetime64):
+
+    # a 1-element ndarray
+    if isinstance(val, pa.Array):
+        return val.item(), val.dtype
+
+    elif isinstance(val, basestring):
+
+        # If we create an empty array using a string to infer
+        # the dtype, NumPy will only allocate one character per entry
+        # so this is kind of bad. Alternately we could use np.repeat
+        # instead of np.empty (but then you still don't want things
+        # coming out as np.str_!
+        return val, np.object_
+
+    elif isinstance(val, np.datetime64):
         # ugly hacklet
         val = lib.Timestamp(val).value
         return val, np.dtype('M8[ns]')
