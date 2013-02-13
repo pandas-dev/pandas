@@ -2903,12 +2903,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         casted = mn.astype('float32')
         _check_cast(casted, 'float32')
 
-        # this is platform dependent overflow
-        if np.int_ == np.int32:
-            self.assertRaises(OverflowError, mn.astype, 'int32')
-        else:
-            casted = mn.astype('int32')
-            _check_cast(casted, 'int32')
+        casted = mn.astype('int32')
+        _check_cast(casted, 'int32')
 
         # to object
         casted = mn.astype('O')
