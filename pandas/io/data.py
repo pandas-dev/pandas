@@ -404,7 +404,6 @@ def _parse_options_data(table):
     rows = table.findall('.//tr')
     header = _unpack(rows[0], kind='th')
     data = [_unpack(r) for r in rows[1:]]
-    # Use ',' as a thousands separator as we're pulling from the US site.
     return TextParser(data, names=header, na_values=['N/A'],
                       thousands=',').get_chunk()
 
@@ -857,11 +856,11 @@ class Options(object):
         if put:
             all_puts = DataFrame()
             for mon in range(months):
+                m2 = in_months[mon]
+                y2 = in_years[mon]
                 try:  # This catches cases when there isn't data for a month
                     if not near:
                         try:  # Try to access the ivar if already instantiated
-                            m2 = in_months[mon]
-                            y2 = in_years[mon]
 
                             m1 = m2 if len(str(m2)) == 2 else '0' + str(m2)
                             name = 'puts' + str(m1) + str(y2)[2:]
@@ -873,7 +872,8 @@ class Options(object):
                     else:
                         put_frame = self.get_near_stock_price(call=False,
                                                               put=True,
-                                                    above_below=above_below)
+                                                    above_below=above_below,
+                                                    month=m2, year=y2)
 
                     # Add column with expiry data to this frame.
                     tick = str(put_frame.Symbol[0])
