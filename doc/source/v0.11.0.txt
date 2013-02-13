@@ -88,6 +88,12 @@ New features
 **Enhancements**
 
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores (e.g. store.df == store['df'])
+  - In ``pd.io.data.Options``,
+      + Fix bug when trying to fetch data for the current month when already past expiry.
+      + Now using lxml to scrape html instead of BeautifulSoup (lxml was faster).
+      + New instance variables for calls and puts are automatically created when a method that creates them is called. This works for current month where the instance variables are simply ``calls`` and ``puts``. Also works for future expiry months and save the instance variable as ``callsMMYY`` or ``putsMMYY``, where ``MMYY`` are, respectively, the month and year of the option's expiry.
+      + ``Options.get_near_stock_price`` now allows the user to specify the month for which to get relevant options data.
+      + ``Options.get_forward_data`` now has optional kwargs ``near`` and ``above_below``. This allows the user to specify if they would like to only return forward looking data for options near the current stock price. This just obtains the data from Options.get_near_stock_price instead of Options.get_xxx_data().
 
 **Bug Fixes**
 
