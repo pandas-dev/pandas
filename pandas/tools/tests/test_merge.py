@@ -287,7 +287,7 @@ class TestMerge(unittest.TestCase):
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
-        self.assert_(df1['B'].dtype == np.int64)
+        self.assert_(df1['B'].dtype == np.int)
         self.assert_(df1['D'].dtype == np.bool_)
 
         df2 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
@@ -422,23 +422,27 @@ class TestMerge(unittest.TestCase):
         self.assertTrue('b' in result)
 
     def test_join_float64_float32(self):
-        a = DataFrame(randn(10, 2), columns=['a', 'b'])
-        b = DataFrame(randn(10, 1), columns=['c']).astype(np.float32)
+
+        a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype = np.float64)
+        b = DataFrame(randn(10, 1), columns=['c'], dtype = np.float32)
         joined = a.join(b)
-        expected = a.join(b.astype('f8'))
-        assert_frame_equal(joined, expected)
+        self.assert_(joined.dtypes['a'] == 'float64')
+        self.assert_(joined.dtypes['b'] == 'float64')
+        self.assert_(joined.dtypes['c'] == 'float32')
 
-        joined = b.join(a)
-        assert_frame_equal(expected, joined.reindex(columns=['a', 'b', 'c']))
-
-        a = np.random.randint(0, 5, 100)
-        b = np.random.random(100).astype('Float64')
-        c = np.random.random(100).astype('Float32')
+        a = np.random.randint(0, 5, 100).astype('int64')
+        b = np.random.random(100).astype('float64')
+        c = np.random.random(100).astype('float32')
         df = DataFrame({'a': a, 'b': b, 'c': c})
-        xpdf = DataFrame({'a': a, 'b': b, 'c': c.astype('Float64')})
-        s = DataFrame(np.random.random(5).astype('f'), columns=['md'])
+        xpdf = DataFrame({'a': a, 'b': b, 'c': c })
+        s = DataFrame(np.random.random(5).astype('float32'), columns=['md'])
         rs = df.merge(s, left_on='a', right_index=True)
-        xp = xpdf.merge(s.astype('f8'), left_on='a', right_index=True)
+        self.assert_(rs.dtypes['a'] == 'int64')
+        self.assert_(rs.dtypes['b'] == 'float64')
+        self.assert_(rs.dtypes['c'] == 'float32')
+        self.assert_(rs.dtypes['md'] == 'float32')
+
+        xp = xpdf.merge(s, left_on='a', right_index=True)
         assert_frame_equal(rs, xp)
 
     def test_join_many_non_unique_index(self):
@@ -591,7 +595,7 @@ class TestMerge(unittest.TestCase):
                                                  np.nan, np.nan]),
                               'rvalue': np.array([0, 1, 0, 1, 2, 2, 3, 4, 5])},
                              columns=['value', 'key', 'rvalue'])
-        assert_frame_equal(joined, expected)
+        assert_frame_equal(joined, expected, check_dtype=False)
 
         self.assert_(joined._data.is_consolidated())
 
@@ -801,7 +805,25 @@ class TestMergeMulti(unittest.TestCase):
 
         left = DataFrame({'k1': [0, 1, 2] * 8,
                           'k2': ['foo', 'bar'] * 12,
-                          'v': np.arange(24)})
+                          'v': np.array(np.arange(24),dtype=np.int64) })
+
+        index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
+        right = DataFrame({'v2': [5, 7]}, index=index)
+
+        result = left.join(right, on=['k1', 'k2'])
+
+        expected = left.copy()
+        expected['v2'] = np.nan
+        expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
+        expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
+
+        tm.assert_frame_equal(result, expected)
+
+        # test join with multi dtypes blocks
+        left = DataFrame({'k1': [0, 1, 2] * 8,
+                          'k2': ['foo', 'bar'] * 12,
+                          'k3' : np.array([0, 1, 2]*8, dtype=np.float32),
+                          'v': np.array(np.arange(24),dtype=np.int32) })
 
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
@@ -819,6 +841,33 @@ class TestMergeMulti(unittest.TestCase):
         joined = merge(right, left, left_index=True,
                        right_on=['k1', 'k2'], how='right')
         tm.assert_frame_equal(joined.ix[:, expected.columns], expected)
+
+    def test_join_multi_dtypes(self):
+
+        # test with multi dtypes in the join index
+        def _test(dtype1,dtype2):
+            left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
+                              'k2': ['foo', 'bar'] * 12,
+                              'v': np.array(np.arange(24),dtype=np.int64) })
+            
+            index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
+            right = DataFrame({'v2': np.array([5, 7], dtype=dtype2)}, index=index)
+            
+            result = left.join(right, on=['k1', 'k2'])
+            
+            expected = left.copy()
+
+            if dtype2.kind == 'i':
+                dtype2 = np.dtype('float64')
+            expected['v2'] = np.array(np.nan,dtype=dtype2)
+            expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
+            expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
+            
+            tm.assert_frame_equal(result, expected)
+
+        for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
+            for d2 in [np.int64,np.float64,np.float32,np.float16]:
+                _test(np.dtype(d1),np.dtype(d2))
 
     def test_left_merge_na_buglet(self):
         left = DataFrame({'id': list('abcde'), 'v1': randn(5),

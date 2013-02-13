@@ -54,33 +54,47 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
     if tz is not None:
         if _is_utc(tz):
             for i in range(n):
-                pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
-                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
-                                     dts.min, dts.sec, dts.us, tz)
+                if arr[i] == iNaT:
+                    result[i] = np.nan
+                else:
+                    pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+                    result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                         dts.min, dts.sec, dts.us, tz)
         elif _is_tzlocal(tz) or _is_fixed_offset(tz):
             for i in range(n):
-                pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
-                dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                              dts.min, dts.sec, dts.us, tz)
-                result[i] = dt + tz.utcoffset(dt)
+                if arr[i] == iNaT:
+                    result[i] = np.nan
+                else:
+                    pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+                    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                  dts.min, dts.sec, dts.us, tz)
+                    result[i] = dt + tz.utcoffset(dt)
         else:
             trans = _get_transitions(tz)
             deltas = _get_deltas(tz)
             for i in range(n):
-                # Adjust datetime64 timestamp, recompute datetimestruct
-                pos = trans.searchsorted(arr[i]) - 1
-                inf = tz._transition_info[pos]
 
-                pandas_datetime_to_datetimestruct(arr[i] + deltas[pos],
-                                                  PANDAS_FR_ns, &dts)
-                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
-                                     dts.min, dts.sec, dts.us,
-                                     tz._tzinfos[inf])
+                if arr[i] == iNaT:
+                    result[i] = np.nan
+                else:
+
+                    # Adjust datetime64 timestamp, recompute datetimestruct
+                    pos = trans.searchsorted(arr[i]) - 1
+                    inf = tz._transition_info[pos]
+
+                    pandas_datetime_to_datetimestruct(arr[i] + deltas[pos],
+                                                      PANDAS_FR_ns, &dts)
+                    result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                         dts.min, dts.sec, dts.us,
+                                         tz._tzinfos[inf])
     else:
         for i in range(n):
-            pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
-            result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
-                                 dts.min, dts.sec, dts.us)
+            if arr[i] == iNaT:
+                result[i] = np.nan
+            else:
+                pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                     dts.min, dts.sec, dts.us)
 
     return result
 
@@ -616,27 +630,26 @@ cdef convert_to_tsobject(object ts, object tz):
         if tz is not None:
             # sort of a temporary hack
             if ts.tzinfo is not None:
-                if hasattr(tz, 'normalize'):
+                if (hasattr(tz, 'normalize') and
+                    hasattr(ts.tzinfo, '_utcoffset')):
                     ts = tz.normalize(ts)
                     obj.value = _pydatetime_to_dts(ts, &obj.dts)
                     obj.tzinfo = ts.tzinfo
                 else: #tzoffset
-                    ts_offset = _get_utcoffset(ts.tzinfo, ts)
                     obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                    ts_offset = _get_utcoffset(ts.tzinfo, ts)
                     obj.value -= _delta_to_nanoseconds(ts_offset)
                     tz_offset = _get_utcoffset(tz, ts)
                     obj.value += _delta_to_nanoseconds(tz_offset)
-
+                    pandas_datetime_to_datetimestruct(obj.value,
+                                                      PANDAS_FR_ns, &obj.dts)
                     obj.tzinfo = tz
             elif not _is_utc(tz):
                 try:
                     ts = tz.localize(ts)
                 except AttributeError:
                     ts = ts.replace(tzinfo=tz)
-
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                offset = _get_utcoffset(ts.tzinfo, ts)
-                obj.value -= _delta_to_nanoseconds(offset)
                 obj.tzinfo = ts.tzinfo
             else:
                 # UTC
@@ -645,9 +658,10 @@ cdef convert_to_tsobject(object ts, object tz):
         else:
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
-            if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
-                offset = _get_utcoffset(obj.tzinfo, ts)
-                obj.value -= _delta_to_nanoseconds(offset)
+
+        if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
+            offset = _get_utcoffset(obj.tzinfo, ts)
+            obj.value -= _delta_to_nanoseconds(offset)
 
         if is_timestamp(ts):
             obj.value += ts.nanosecond
@@ -774,7 +788,7 @@ def datetime_to_datetime64(ndarray[object] values):
 
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
-                      format=None, utc=None):
+                      format=None, utc=None, coerce=False):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
@@ -813,14 +827,16 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                 _check_dts_bounds(iresult[i], &dts)
             elif util.is_datetime64_object(val):
                 iresult[i] = _get_datetime64_nanos(val)
-            elif util.is_integer_object(val):
+
+            # if we are coercing, dont' allow integers
+            elif util.is_integer_object(val) and not coerce:
                 iresult[i] = val
             else:
-                if len(val) == 0:
-                    iresult[i] = iNaT
-                    continue
-
                 try:
+                    if len(val) == 0:
+                       iresult[i] = iNaT
+                       continue
+
                     _string_to_dts(val, &dts)
                     iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns,
                                                                    &dts)
@@ -829,10 +845,19 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     try:
                         result[i] = parse(val, dayfirst=dayfirst)
                     except Exception:
+                        if coerce:
+                           iresult[i] = iNaT
+                           continue
                         raise TypeError
                     pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
                                                       &dts)
                     _check_dts_bounds(iresult[i], &dts)
+                except:
+                    if coerce:
+                        iresult[i] = iNaT
+                        continue
+                    raise
+
         return result
     except TypeError:
         oresult = np.empty(n, dtype=object)
@@ -888,6 +913,9 @@ def cast_to_nanoseconds(ndarray arr):
 
     result = np.empty(shape, dtype='M8[ns]')
     iresult = result.ravel().view(np.int64)
+
+    if len(iresult) == 0:
+        return result
 
     unit = get_datetime64_unit(arr.flat[0])
     if unit == 3:

@@ -563,6 +563,12 @@ Filling forward / backward
 Related to ``asfreq`` and ``reindex`` is the ``fillna`` function documented in
 the :ref:`missing data section <missing_data.fillna>`.
 
+Converting to Python datetimes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``DatetimeIndex`` can be converted to an array of Python native datetime.datetime objects using the
+``to_pydatetime`` method.
+
 .. _timeseries.resampling:
 
 Up- and downsampling

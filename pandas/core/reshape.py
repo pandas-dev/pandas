@@ -93,7 +93,7 @@ class _Unstacker(object):
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
         indexer = _ensure_platform_int(indexer)
 
-        self.sorted_values = com.take_2d(self.values, indexer, axis=0)
+        self.sorted_values = com.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
 
     def _make_selectors(self):
@@ -136,7 +136,7 @@ class _Unstacker(object):
             # rare case, level values not observed
             if len(obs_ids) < self.full_shape[1]:
                 inds = (value_mask.sum(0) > 0).nonzero()[0]
-                values = com.take_2d(values, inds, axis=1)
+                values = com.take_nd(values, inds, axis=1)
                 columns = columns[inds]
 
         return DataFrame(values, index=index, columns=columns)

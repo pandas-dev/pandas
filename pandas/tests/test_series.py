@@ -34,6 +34,11 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest
 
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
 
 #-------------------------------------------------------------------------------
 # Series test cases
@@ -137,7 +142,7 @@ class CheckNameIntegration(object):
                     "qux    one       7",
                     "       two       8",
                     "       three     9",
-                    "Name: sth"]
+                    "Name: sth, Dtype: int64"]
         expected = "\n".join(expected)
         self.assertEquals(repr(s), expected)
 
@@ -520,6 +525,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         pass
 
     def test_fromValue(self):
+
         nans = Series(np.NaN, index=self.ts.index)
         self.assert_(nans.dtype == np.float_)
         self.assertEqual(len(nans), len(self.ts))
@@ -530,7 +536,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         d = datetime.now()
         dates = Series(d, index=self.ts.index)
-        self.assert_(dates.dtype == np.object_)
+        self.assert_(dates.dtype == 'M8[ns]')
         self.assertEqual(len(dates), len(self.ts))
 
     def test_contains(self):
@@ -2295,8 +2301,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # datetime64
         s = Series(self.ts.index)
         rs = s.tolist()
-        xp = s.astype(object).values.tolist()
-        assert_almost_equal(rs, xp)
         self.assertEqual(self.ts.index[0], rs[0])
 
     def test_to_dict(self):
@@ -2544,6 +2548,161 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
 
+    def test_getitem_setitem_datetimeindex(self):
+        from pandas import date_range
+        N = 50
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(N), index=rng)
+
+        result = ts["1990-01-01 04:00:00"]
+        expected = ts[4]
+        self.assert_(result == expected)
+
+        result = ts.copy()
+        result["1990-01-01 04:00:00"] = 0
+        result["1990-01-01 04:00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts["1990-01-01 04:00:00":"1990-01-01 07:00:00"]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04:00:00":"1990-01-01 07:00:00"] = 0
+        result["1990-01-01 04:00:00":"1990-01-01 07:00:00"] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = "1990-01-01 04:00:00"
+        rb = "1990-01-01 07:00:00"
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        # repeat all the above with naive datetimes
+        result = ts[datetime(1990, 1, 1, 4)]
+        expected = ts[4]
+        self.assert_(result == expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4)] = 0
+        result[datetime(1990, 1, 1, 4)] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = 0
+        result[datetime(1990, 1, 1, 4):datetime(1990, 1, 1, 7)] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = datetime(1990, 1, 1, 4)
+        rb = datetime(1990, 1, 1, 7)
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts[ts.index[4]]
+        expected = ts[4]
+        self.assert_(result == expected)
+
+        result = ts[ts.index[4:8]]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[ts.index[4:8]] = 0
+        result[4:8] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        # also test partial date slicing
+        result = ts["1990-01-02"]
+        expected = ts[24:48]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-02"] = 0
+        result["1990-01-02"] = ts[24:48]
+        assert_series_equal(result, ts)
+
+    def test_getitem_setitem_datetime_tz(self):
+        _skip_if_no_pytz();
+        from pytz import timezone as tz
+
+        from pandas import date_range
+        N = 50
+        # testing with timezone, GH #2785
+        rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(N), index=rng)
+
+        # also test Timestamp tz handling, GH #2789
+        result = ts.copy()
+        result["1990-01-01 09:00:00+00:00"] = 0
+        result["1990-01-01 09:00:00+00:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result["1990-01-01 03:00:00-06:00"] = 0
+        result["1990-01-01 03:00:00-06:00"] = ts[4]
+        assert_series_equal(result, ts)
+
+        # repeat with datetimes
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = 0
+        result[datetime(1990, 1, 1, 9, tzinfo=tz('UTC'))] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts.copy()
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = 0
+        result[datetime(1990, 1, 1, 3, tzinfo=tz('US/Central'))] = ts[4]
+        assert_series_equal(result, ts)
+
+    def test_getitem_setitem_periodindex(self):
+        from pandas import period_range, Period
+        N = 50
+        rng = period_range('1/1/1990', periods=N, freq='H')
+        ts = Series(np.random.randn(N), index=rng)
+
+        result = ts["1990-01-01 04"]
+        expected = ts[4]
+        self.assert_(result == expected)
+
+        result = ts.copy()
+        result["1990-01-01 04"] = 0
+        result["1990-01-01 04"] = ts[4]
+        assert_series_equal(result, ts)
+
+        result = ts["1990-01-01 04":"1990-01-01 07"]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result["1990-01-01 04":"1990-01-01 07"] = 0
+        result["1990-01-01 04":"1990-01-01 07"] = ts[4:8]
+        assert_series_equal(result, ts)
+
+        lb = "1990-01-01 04"
+        rb = "1990-01-01 07"
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        # GH 2782
+        result = ts[ts.index[4]]
+        expected = ts[4]
+        self.assert_(result == expected)
+
+        result = ts[ts.index[4:8]]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        result = ts.copy()
+        result[ts.index[4:8]] = 0
+        result[4:8] = ts[4:8]
+        assert_series_equal(result, ts)
+
     def test_asof_periodindex(self):
         from pandas import period_range, PeriodIndex
         # array or list or dates
@@ -2620,6 +2779,23 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = arr.astype(int)
         self.assert_(np.array_equal(result, np.arange(1, 5)))
 
+    def test_astype_datetimes(self):
+        import pandas.tslib as tslib
+
+        s = Series(tslib.iNaT, dtype='M8[ns]', index=range(5))
+        s = s.astype('O')
+        self.assert_(s.dtype == np.object_)
+
+        s = Series([datetime(2001, 1, 2, 0, 0)])
+        s = s.astype('O')
+        self.assert_(s.dtype == np.object_)
+
+        s = Series([datetime(2001, 1, 2, 0, 0) for i in range(3)])
+        s[1] = np.nan
+        self.assert_(s.dtype == 'M8[ns]')
+        s = s.astype('O')
+        self.assert_(s.dtype == np.object_)
+
     def test_map(self):
         index, data = tm.getMixedTypeDict()
 
@@ -2685,6 +2861,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = DataFrame({'x': self.ts, 'x^2': self.ts ** 2})
         tm.assert_frame_equal(result, expected)
 
+        # empty series
+        s = Series()
+        rs = s.apply(lambda x: x)
+        tm.assert_series_equal(s, rs)
+
+        # index but no data
+        s = Series(index=[1,2,3])
+        rs = s.apply(lambda x: x)
+        tm.assert_series_equal(s, rs)
+
     def test_apply_same_length_inference_bug(self):
         s = Series([1, 2])
         f = lambda x: (x, x + 1)
@@ -2704,6 +2890,64 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         f = lambda x: x if x > 0 else np.nan
         result = s.apply(f, convert_dtype=False)
         self.assert_(result.dtype == object)
+
+    def test_convert_objects(self):
+
+        s = Series([1., 2, 3],index=['a','b','c'])
+        result = s.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(s,result)
+
+        # force numeric conversion
+        r = s.copy().astype('O')
+        r['a'] = '1'
+        result = r.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(s,result)
+
+        r = s.copy().astype('O')
+        r['a'] = '1.'
+        result = r.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(s,result)
+
+        r = s.copy().astype('O')
+        r['a'] = 'garbled'
+        expected = s.copy()
+        expected['a'] = np.nan
+        result = r.convert_objects(convert_dates=False,convert_numeric=True)
+        assert_series_equal(expected,result)
+
+        # dates
+        s = Series([datetime(2001,1,1,0,0), datetime(2001,1,2,0,0), datetime(2001,1,3,0,0) ])
+        s2 = Series([datetime(2001,1,1,0,0), datetime(2001,1,2,0,0), datetime(2001,1,3,0,0), 'foo', 1.0, 1, Timestamp('20010104'), '20010105'],dtype='O')
+
+        result = s.convert_objects(convert_dates=True,convert_numeric=False)
+        expected = Series([Timestamp('20010101'),Timestamp('20010102'),Timestamp('20010103')],dtype='M8[ns]')
+        assert_series_equal(expected,result)
+        
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(expected,result)
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=True)
+        assert_series_equal(expected,result)
+
+        expected = Series([Timestamp('20010101'),Timestamp('20010102'),Timestamp('20010103'),lib.NaT,lib.NaT,lib.NaT,Timestamp('20010104'),Timestamp('20010105')],dtype='M8[ns]')
+        result = s2.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(expected,result)
+        result = s2.convert_objects(convert_dates='coerce',convert_numeric=True)
+        assert_series_equal(expected,result)
+
+        # preserver all-nans (if convert_dates='coerce')
+        s = Series(['foo','bar',1,1.0],dtype='O')
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(result,s)
+
+        # preserver if non-object
+        s = Series([1],dtype='float32')
+        result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
+        assert_series_equal(result,s)
+
+        #r = s.copy()
+        #r[0] = np.nan
+        #result = r.convert_objects(convert_dates=True,convert_numeric=False)
+        #self.assert_(result.dtype == 'M8[ns]')
 
     def test_apply_args(self):
         s = Series(['foo,bar'])

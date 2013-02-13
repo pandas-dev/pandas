@@ -550,17 +550,20 @@ class TestResample(unittest.TestCase):
         assert_series_equal(result, exp)
 
     def test_resample_median_bug_1688(self):
-        df = DataFrame([1, 2], index=[datetime(2012, 1, 1, 0, 0, 0),
-                                      datetime(2012, 1, 1, 0, 5, 0)])
 
-        result = df.resample("T", how=lambda x: x.mean())
-        exp = df.asfreq('T')
-        tm.assert_frame_equal(result, exp)
+        for dtype in ['int64','int32','float64','float32']:
+            df = DataFrame([1, 2], index=[datetime(2012, 1, 1, 0, 0, 0),
+                                          datetime(2012, 1, 1, 0, 5, 0)],
+                           dtype = dtype)
 
-        result = df.resample("T", how="median")
-        exp = df.asfreq('T')
-        tm.assert_frame_equal(result, exp)
-
+            result = df.resample("T", how=lambda x: x.mean())
+            exp = df.asfreq('T')
+            tm.assert_frame_equal(result, exp)
+            
+            result = df.resample("T", how="median")
+            exp = df.asfreq('T')
+            tm.assert_frame_equal(result, exp)
+            
     def test_how_lambda_functions(self):
         ts = _simple_ts('1/1/2000', '4/1/2000')
 

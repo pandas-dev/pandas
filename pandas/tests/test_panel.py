@@ -418,7 +418,7 @@ class CheckIndexing(object):
         # scalar
         self.panel['ItemG'] = 1
         self.panel['ItemE'] = True
-        self.assert_(self.panel['ItemG'].values.dtype == np.int64)
+        self.assert_(self.panel['ItemG'].values.dtype == np.int_)
         self.assert_(self.panel['ItemE'].values.dtype == np.bool_)
 
         # object dtype
@@ -782,6 +782,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_almost_equal(casted.values, exp_values)
         assert_almost_equal(casted2.values, exp_values)
 
+        casted = Panel(zero_filled._data, dtype=np.int32)
+        casted2 = Panel(zero_filled.values, dtype=np.int32)
+
+        exp_values = zero_filled.values.astype(np.int32)
+        assert_almost_equal(casted.values, exp_values)
+        assert_almost_equal(casted2.values, exp_values)
+
         # can't cast
         data = [[['foo', 'bar', 'baz']]]
         self.assertRaises(ValueError, Panel, data, dtype=float)
@@ -797,6 +804,30 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         panel = Panel(items=range(3), major_axis=range(3),
                       minor_axis=range(3), dtype='O')
         self.assert_(panel.values.dtype == np.object_)
+
+    def test_constructor_dtypes(self):
+        # GH #797
+
+        def _check_dtype(panel, dtype):
+            for i in panel.items:
+                self.assert_(panel[i].values.dtype.name == dtype)
+
+        # only nan holding types allowed here
+        for dtype in ['float64','float32','object']:
+            panel = Panel(items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
+
+        for dtype in ['float64','float32','int64','int32','object']:
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype=dtype),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
+
+        for dtype in ['float64','float32','int64','int32','object']:
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype='O'),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
+
+        for dtype in ['float64','float32','int64','int32','object']:
+            panel = Panel(np.random.randn(2,10,5),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
 
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
@@ -842,6 +873,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                        for k, v in d.iteritems())
         result = Panel(dcasted, dtype=int)
         expected = Panel(dict((k, v.astype(int))
+                              for k, v in dcasted.iteritems()))
+        assert_panel_equal(result, expected)
+
+        result = Panel(dcasted, dtype=np.int32)
+        expected = Panel(dict((k, v.astype(np.int32))
                               for k, v in dcasted.iteritems()))
         assert_panel_equal(result, expected)
 

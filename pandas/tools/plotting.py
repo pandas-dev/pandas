@@ -520,12 +520,13 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     return ax
 
 
-def lag_plot(series, ax=None, **kwds):
+def lag_plot(series, lag=1, ax=None, **kwds):
     """Lag plot for time series.
 
     Parameters:
     -----------
     series: Time series
+    lag: lag of the scatter plot, default 1
     ax: Matplotlib axis object, optional
     kwds: Matplotlib scatter method keyword arguments, optional
 
@@ -535,12 +536,12 @@ def lag_plot(series, ax=None, **kwds):
     """
     import matplotlib.pyplot as plt
     data = series.values
-    y1 = data[:-1]
-    y2 = data[1:]
+    y1 = data[:-lag]
+    y2 = data[lag:]
     if ax is None:
         ax = plt.gca()
     ax.set_xlabel("y(t)")
-    ax.set_ylabel("y(t + 1)")
+    ax.set_ylabel("y(t + %s)" % lag)
     ax.scatter(y1, y2, **kwds)
     return ax
 
@@ -872,13 +873,15 @@ class MPLPlot(object):
             if convert_period and isinstance(index, PeriodIndex):
                 index = index.to_timestamp().order()
                 x = index._mpl_repr()
-            elif index.is_numeric() or is_datetype:
+            elif index.is_numeric():
                 """
                 Matplotlib supports numeric values or datetime objects as
                 xaxis values. Taking LBYL approach here, by the time
                 matplotlib raises exception when using non numeric/datetime
                 values for xaxis, several actions are already taken by plt.
                 """
+                x = index._mpl_repr()
+            elif is_datetype:
                 x = index.order()._mpl_repr()
             else:
                 self._need_to_set_index = True

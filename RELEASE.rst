@@ -22,6 +22,81 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.11.0
+=============
+
+**Release date:** 2013-??-??
+
+**New features**
+
+  - Allow mixed dtypes (e.g ``float32/float64/int32/int16/int8``) to coexist in
+    DataFrames and propogate in operations
+  - Add function to pandas.io.data for retrieving stock index components from
+    Yahoo! finance (#2795)
+  - Add ``squeeze`` function to reduce dimensionality of 1-len objects
+  - Support slicing with time objects (#2681)
+
+**Improvements to existing features**
+
+  - added ``blocks`` attribute to DataFrames, to return a dict of dtypes to
+    homogeneously dtyped DataFrames
+  - added keyword ``convert_numeric`` to ``convert_objects()`` to try to
+    convert object dtypes to numeric types
+  - ``convert_dates`` in ``convert_objects`` can now be ``coerce`` which will
+    return a datetime64[ns] dtype with non-convertibles set as ``NaT``; will
+    preserve an all-nan object (e.g. strings)
+  - Series print output now includes the dtype by default
+  - Optimize internal reindexing routines for upcasting cases (#2819)
+  - ``describe_option()`` now reports the default and current value of options.
+
+**API Changes**
+
+  - Do not automatically upcast numeric specified dtypes to ``int64`` or
+    ``float64`` (GH622_ and GH797_)
+  - Guarantee that ``convert_objects()`` for Series/DataFrame always returns a
+    copy
+  - groupby operations will respect dtypes for numeric float operations
+    (float32/float64); other types will be operated on, and will try to cast
+    back to the input dtype (e.g. if an int is passed, as long as the output
+    doesn't have nans, then an int will be returned)
+  - backfill/pad/take/diff/ohlc will now support ``float32/int16/int8`` operations
+  - Integer block types will upcast as needed in where operations (GH2793_)
+  - Series now automatically will try to set the correct dtype based on passed
+    datetimelike objects (datetime/Timestamp)
+     - timedelta64 are returned in appropriate cases (e.g. Series - Series,
+       when both are datetime64)
+     - mixed datetimes and objects (GH2751_) in a constructor witll be casted
+       correctly
+     - astype on datetimes to object are now handled (as well as NaT
+       conversions to np.nan)
+  - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
+    (GH2747_)
+
+**Bug Fixes**
+
+  - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill``
+    (GH2778_)
+  - Single element ndarrays of datetimelike objects are handled
+    (e.g. np.array(datetime(2001,1,1,0,0))), w/o dtype being passed
+  - 0-dim ndarrays with a passed dtype are handled correctly
+    (e.g. np.array(0.,dtype='float32'))
+  - Fix some boolean indexing inconsistencies in Series __getitem__/__setitem__
+    (GH2776_)
+
+  ``HDFStore``
+
+    - Fix weird PyTables error when using too many selectors in a where
+    - Provide dotted attribute access to ``get`` from stores (e.g. store.df == store['df'])
+    - Internally, change all variables to be private-like (now have leading underscore)
+
+.. _GH622: https://github.com/pydata/pandas/issues/622
+.. _GH797: https://github.com/pydata/pandas/issues/797
+.. _GH2778: https://github.com/pydata/pandas/issues/2778
+.. _GH2793: https://github.com/pydata/pandas/issues/2793
+.. _GH2751: https://github.com/pydata/pandas/issues/2751
+.. _GH2747: https://github.com/pydata/pandas/issues/2747
+.. _GH2776: https://github.com/pydata/pandas/issues/2776
+
 pandas 0.10.1
 =============
 
@@ -36,6 +111,7 @@ pandas 0.10.1
   - Restored inplace=True behavior returning self (same object) with
     deprecation warning until 0.11 (GH1893_)
   - ``HDFStore``
+
     - refactored HFDStore to deal with non-table stores as objects, will allow future enhancements
     - removed keyword ``compression`` from ``put`` (replaced by keyword
       ``complib`` to be consistent across library)
@@ -49,7 +125,7 @@ pandas 0.10.1
     - support data column indexing and selection, via ``data_columns`` keyword in append
     - support write chunking to reduce memory footprint, via ``chunksize``
       keyword to append
-    - support automagic indexing via ``index`` keywork to append
+    - support automagic indexing via ``index`` keyword to append
     - support ``expectedrows`` keyword in append to inform ``PyTables`` about
       the expected tablesize
     - support ``start`` and ``stop`` keywords in select to limit the row

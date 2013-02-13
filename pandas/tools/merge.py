@@ -2,6 +2,7 @@
 SQL-style merge routines
 """
 
+import itertools
 import numpy as np
 
 from pandas.core.categorical import Factor
@@ -658,7 +659,7 @@ class _BlockJoinOperation(object):
             join_blocks = unit.get_upcasted_blocks()
             type_map = {}
             for blk in join_blocks:
-                type_map.setdefault(type(blk), []).append(blk)
+                type_map.setdefault(blk.dtype, []).append(blk)
             blockmaps.append((unit, type_map))
 
         return blockmaps
@@ -714,18 +715,9 @@ class _BlockJoinOperation(object):
         sofar = 0
         for unit, blk in merge_chunks:
             out_chunk = out[sofar: sofar + len(blk)]
-
-            if unit.indexer is None:
-            # is this really faster than assigning to arr.flat?
-                com.take_fast(blk.values, np.arange(n, dtype=np.int64),
-                              None, False,
-                              axis=self.axis, out=out_chunk)
-            else:
-                # write out the values to the result array
-                com.take_fast(blk.values, unit.indexer,
-                              None, False,
-                              axis=self.axis, out=out_chunk)
-
+            com.take_fast(blk.values, unit.indexer,
+                          None, False, axis=self.axis,
+                          out=out_chunk)
             sofar += len(blk)
 
         # does not sort
@@ -770,10 +762,7 @@ class _JoinUnit(object):
         mask, need_masking = self.mask_info
 
         if self.indexer is None:
-            if copy:
-                result = block.copy()
-            else:
-                result = block
+            result = block.copy() if copy else block
         else:
             result = block.reindex_axis(self.indexer, mask, need_masking,
                                         axis=axis)
@@ -985,7 +974,8 @@ class _Concatenator(object):
         blockmaps = []
         for data in reindexed_data:
             data = data.consolidate()
-            type_map = dict((type(blk), blk) for blk in data.blocks)
+
+            type_map = dict((blk.dtype, blk) for blk in data.blocks)
             blockmaps.append(type_map)
         return blockmaps, reindexed_data
 

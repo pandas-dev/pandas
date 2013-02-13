@@ -160,6 +160,7 @@ class TestSeriesPlots(unittest.TestCase):
     def test_lag_plot(self):
         from pandas.tools.plotting import lag_plot
         _check_plot_works(lag_plot, self.ts)
+        _check_plot_works(lag_plot, self.ts, lag=5)
 
     @slow
     def test_bootstrap_plot(self):
@@ -299,6 +300,16 @@ class TestDataFramePlots(unittest.TestCase):
         ax = df.plot()
         lines = ax.get_lines()
         self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+
+    @slow
+    def test_unsorted_index(self):
+        df = DataFrame({'y': range(100)},
+                       index=range(99, -1, -1))
+        ax = df.plot()
+        l = ax.get_lines()[0]
+        rs = l.get_xydata()
+        rs = Series(rs[:, 1], rs[:, 0], dtype=np.int64)
+        tm.assert_series_equal(rs, df.y)
 
     def _check_data(self, xp, rs):
         xp_lines = xp.get_lines()
