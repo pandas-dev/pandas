@@ -23,13 +23,13 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _is_sequence)
+                                _default_index, _is_sequence, _dtype_from_scalar)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
                                   _is_index_slice, _check_bool_indexer)
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
+from pandas.core.series import Series, _radd_compat
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
@@ -2207,6 +2207,9 @@ class DataFrame(NDFrame):
             if key in self.columns:
                 existing_piece = self[key]
 
+                # upcast the scalar
+                value, dtype = _dtype_from_scalar(value)
+
                 # transpose hack
                 if isinstance(existing_piece, DataFrame):
                     shape = (len(existing_piece.columns), len(self.index))
@@ -2214,14 +2217,19 @@ class DataFrame(NDFrame):
                 else:
                     value = np.repeat(value, len(self.index))
 
-                    # special case for now
+                    # special case for now (promotion)
                     if (com.is_float_dtype(existing_piece) and
                             com.is_integer_dtype(value)):
-                        value = value.astype(np.float64)
+                        dtype = np.float64
+                        
+                value = value.astype(dtype)
 
             else:
-                value = np.repeat(value, len(self.index))
+                # upcast the scalar
+                value, dtype = _dtype_from_scalar(value)
+                value = np.array(np.repeat(value, len(self.index)), dtype=dtype)
 
+            value = com._possibly_cast_to_datetime(value, dtype)
         return np.atleast_2d(np.asarray(value))
 
     def pop(self, item):
@@ -5461,11 +5469,7 @@ def _prep_ndarray(values, copy=True):
             return np.empty((0, 0), dtype=object)
 
         def convert(v):
-            return com._possibly_convert_objects(v,
-                                                 convert_dates=False,
-                                                 convert_numeric=False,
-                                                 convert_platform=True)
-
+            return com._possibly_convert_platform(v)
 
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion

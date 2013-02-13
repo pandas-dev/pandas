@@ -57,11 +57,17 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
 
 **Platform Gotchas**
 
-In versions prior to 0.11.0, DataFrame construction with lists was platform dependent (meaning 32-bit vs 64-bit). 
-``DataFrame([1,2],columns=['a'])`` would have a dtype of ``int32``, 
-while ``DataFrame({'a' : [1,2] })`` would be ``int64``. 
-Now construction dtype defaults will be handled in a platform independent manor, 
-resulting in defaults for integers of ``int64`` and floats of ``float64`` dtypes.
+Starting in 0.11.0, construction of DataFrame/Series will use default dtypes of ``int64`` and ``float64``,
+*regardless of platform*. This is not an apparent change from earlier versions of pandas. If you specify
+dtypes, they *WILL* be respected, however.
+
+The following will all result in ``int64`` dtypes
+
+.. ipython:: python
+
+    DataFrame([1,2],columns=['a']).dtypes
+    DataFrame({'a' : [1,2] }.dtypes
+    DataFrame({'a' : 1).dtypes
 
 Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on 32-bit platforms!
 

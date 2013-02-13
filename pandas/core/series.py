@@ -3113,10 +3113,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = lib.maybe_convert_objects(subarr)
             
         else:
-            subarr = com._possibly_convert_objects(data,
-                                                   convert_dates=False,
-                                                   convert_numeric=False,
-                                                   convert_platform=True)
+            subarr = com._possibly_convert_platform(data)
 
         subarr = com._possibly_cast_to_datetime(subarr, dtype)
 
@@ -3145,7 +3142,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     dtype = value.dtype
                     value = value.item()
                 else:
-                    value, dtype = _dtype_from_scalar(value)
+                    value, dtype = com._dtype_from_scalar(value)
 
                 subarr = pa.empty(len(index), dtype=dtype)
             else:
@@ -3178,14 +3175,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = pa.array(data, dtype=object, copy=copy)
 
     return subarr
-
-
-def _dtype_from_scalar(val):
-    if isinstance(val, np.datetime64):
-        # ugly hacklet
-        val = lib.Timestamp(val).value
-        return val, np.dtype('M8[ns]')
-    return val, type(val)
 
 
 def _get_rename_function(mapper):

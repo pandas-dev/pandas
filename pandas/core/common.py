@@ -643,6 +643,21 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
     take_f(arr, indexer, out=out, fill_value=fill_value)
     return out
 
+def _dtype_from_scalar(val):
+    """ interpret the dtype from a scalar, upcast floats and ints """
+    if isinstance(val, np.datetime64):
+        # ugly hacklet
+        val = lib.Timestamp(val).value
+        return val, np.dtype('M8[ns]')
+
+    # provide implicity upcast on scalars
+    elif is_integer(val):
+        if not is_bool(val):
+            return val, np.int64
+    elif is_float(val):
+        return val, np.float64
+
+    return val, type(val)
 
 def _maybe_promote(dtype, fill_value=np.nan):
     if issubclass(dtype.type, np.datetime64):
@@ -654,7 +669,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
         if issubclass(dtype.type, np.bool_):
             return np.object_
         elif issubclass(dtype.type, np.integer):
-            return np.float_
+            return np.float64
         return dtype
     elif is_bool(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -682,7 +697,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
 def _maybe_upcast(values):
     # TODO: convert remaining usage of _maybe_upcast to _maybe_promote
     if issubclass(values.dtype.type, np.integer):
-        values = values.astype(np.float_)
+        values = values.astype(np.float64)
     elif issubclass(values.dtype.type, np.bool_):
         values = values.astype(np.object_)
     return values
@@ -805,11 +820,11 @@ def _consensus_name_attr(objs):
 # Lots of little utilities
 
 
-def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True, convert_platform=False):
+def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     """ if we have an object dtype, try to coerce dates and/or numers """
 
     # convert dates
-    if convert_dates and getattr(values,'dtype',None) == np.object_:
+    if convert_dates and values.dtype == np.object_:
 
         # we take an aggressive stance and convert to datetime64[ns]
         if convert_dates == 'coerce':
@@ -823,7 +838,7 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True, 
             values = lib.maybe_convert_objects(values, convert_datetime=convert_dates)
 
     # convert to numeric
-    if convert_numeric and getattr(values,'dtype',None) == np.object_:
+    if convert_numeric and values.dtype == np.object_:
         try:
             new_values = lib.maybe_convert_numeric(values,set(),coerce_numeric=True)
             
@@ -834,13 +849,15 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True, 
         except:
             pass
 
-    # platform conversion
-    #   allow ndarray or list here
-    if convert_platform:
-        if isinstance(values, (list,tuple)):
-            values = lib.list_to_object_array(values)
-        if values.dtype == np.object_:
-            values = lib.maybe_convert_objects(values)
+    return values
+
+def _possibly_convert_platform(values):
+    """ try to do platform conversion, allow ndarray or list here """
+
+    if isinstance(values, (list,tuple)):
+        values = lib.list_to_object_array(values)
+    if values.dtype == np.object_:
+        values = lib.maybe_convert_objects(values)
 
     return values
 
@@ -887,12 +904,13 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
 
 
 def _infer_dtype(value):
+    # provide upcasting here for floats/ints
     if isinstance(value, (float, np.floating)):
-        return np.float_
+        return np.float64
     elif isinstance(value, (bool, np.bool_)):
         return np.bool_
     elif isinstance(value, (int, long, np.integer)):
-        return np.int_
+        return np.int64
     elif isinstance(value, (complex, np.complexfloating)):
         return np.complex_
     else:

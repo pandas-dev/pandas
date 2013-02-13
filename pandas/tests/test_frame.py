@@ -372,6 +372,11 @@ class CheckIndexing(object):
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assert_((smaller['col10'] == ['1', '2']).all())
 
+        # with a dtype
+        for dtype in ['int32','int64','float32','float64']:
+            self.frame[dtype] = np.array(arr,dtype=dtype)
+            self.assert_(self.frame[dtype].dtype.name == dtype)
+
     def test_setitem_tuple(self):
         self.frame['A', 'B'] = self.frame['A']
         assert_series_equal(self.frame['A', 'B'], self.frame['A'])
@@ -437,7 +442,7 @@ class CheckIndexing(object):
 
         # #669, should not cast?
         self.frame['B'] = 0
-        self.assert_(self.frame['B'].dtype == np.float_)
+        self.assert_(self.frame['B'].dtype == np.float64)
 
         # cast if pass array of course
         self.frame['B'] = np.arange(len(self.frame))
@@ -445,18 +450,18 @@ class CheckIndexing(object):
 
         self.frame['foo'] = 'bar'
         self.frame['foo'] = 0
-        self.assert_(self.frame['foo'].dtype == np.int_)
+        self.assert_(self.frame['foo'].dtype == np.int64)
 
         self.frame['foo'] = 'bar'
         self.frame['foo'] = 2.5
-        self.assert_(self.frame['foo'].dtype == np.float_)
+        self.assert_(self.frame['foo'].dtype == np.float64)
 
         self.frame['something'] = 0
-        self.assert_(self.frame['something'].dtype == np.int_)
+        self.assert_(self.frame['something'].dtype == np.int64)
         self.frame['something'] = 2
-        self.assert_(self.frame['something'].dtype == np.int_)
+        self.assert_(self.frame['something'].dtype == np.int64)
         self.frame['something'] = 2.5
-        self.assert_(self.frame['something'].dtype == np.float_)
+        self.assert_(self.frame['something'].dtype == np.float64)
 
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
@@ -490,8 +495,12 @@ class CheckIndexing(object):
         self.assertEqual(len(dm.columns), 2)
         self.assertEqual(dm.values.dtype, np.object_)
 
+        # upcast
         dm['C'] = 1
-        self.assertEqual(dm['C'].dtype, np.int_)
+        self.assertEqual(dm['C'].dtype, np.int64)
+
+        dm['E'] = 1.
+        self.assertEqual(dm['E'].dtype, np.float64)
 
         # set existing column
         dm['A'] = 'bar'
@@ -2369,9 +2378,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 'float': 3., 'complex': 4j, 'object': 'foo'}
         df = DataFrame(data, index=np.arange(10))
 
-        self.assert_(df['int'].dtype == np.int_)
+        self.assert_(df['int'].dtype == np.int64)
         self.assert_(df['bool'].dtype == np.bool_)
-        self.assert_(df['float'].dtype == np.float_)
+        self.assert_(df['float'].dtype == np.float64)
         self.assert_(df['complex'].dtype == np.complex128)
         self.assert_(df['object'].dtype == np.object_)
 
@@ -2689,9 +2698,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           columns=['b', 'a', 'a'])
 
     def test_constructor_single_value(self):
+
+        # expecting single value upcasting here 
         df = DataFrame(0., index=[1, 2, 3], columns=['a', 'b', 'c'])
-        assert_frame_equal(df, DataFrame(np.zeros(df.shape), df.index,
+        assert_frame_equal(df, DataFrame(np.zeros(df.shape).astype('float64'), df.index,
                                          df.columns))
+ 
+        df = DataFrame(0, index=[1, 2, 3], columns=['a', 'b', 'c'])
+        assert_frame_equal(df, DataFrame(np.zeros(df.shape).astype('int64'), df.index,
+                                         df.columns))
+ 
 
         df = DataFrame('a', index=[1, 2], columns=['a', 'c'])
         assert_frame_equal(df, DataFrame(np.array([['a', 'a'],
@@ -2704,6 +2720,136 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a', 'c'])
         self.assertRaises(
             com.PandasError, DataFrame, 'a', [1, 2], ['a', 'c'], float)
+
+
+    def test_constructor_with_datetimes(self):
+        intname = np.dtype(np.int_).name
+        floatname = np.dtype(np.float_).name
+        datetime64name = np.dtype('M8[ns]').name
+        objectname = np.dtype(np.object_).name
+
+        # single item
+        df = DataFrame({'A' : 1, 'B' : 'foo', 'C' : 'bar', 'D' : Timestamp("20010101"), 'E' : datetime(2001,1,2,0,0) },
+                       index=np.arange(10))
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1, datetime64name: 2, objectname : 2})
+        result.sort()
+        expected.sort()
+        assert_series_equal(result, expected)
+
+        # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0 ndarray with a dtype specified)
+        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', floatname : np.array(1.,dtype=floatname),
+                        intname : np.array(1,dtype=intname)}, index=np.arange(10))
+        result = df.get_dtype_counts()
+        expected = { objectname : 1 }
+        if intname == 'int64':
+            expected['int64'] = 2
+        else:
+            expected['int64'] = 1
+            expected[intname] = 1
+        if floatname == 'float64':
+            expected['float64'] = 2
+        else:
+            expected['float64'] = 1
+            expected[floatname] = 1
+
+        result.sort()
+        expected = Series(expected)
+        expected.sort()
+        assert_series_equal(result, expected)
+
+        # check with ndarray construction ndim>0
+        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', floatname : np.array([1.]*10,dtype=floatname),
+                        intname : np.array([1]*10,dtype=intname)}, index=np.arange(10))
+        result = df.get_dtype_counts()
+        result.sort()
+        assert_series_equal(result, expected)
+
+        # GH 2809
+        from pandas import date_range
+        ind = date_range(start="2000-01-01", freq="D", periods=10)
+        datetimes = [ts.to_pydatetime() for ts in ind]
+        datetime_s = Series(datetimes)
+        self.assert_(datetime_s.dtype == 'M8[ns]')
+        df = DataFrame({'datetime_s':datetime_s})
+        result = df.get_dtype_counts()
+        expected = Series({ datetime64name : 1 })
+        result.sort()
+        expected.sort()
+        assert_series_equal(result, expected)
+
+        # GH 2810
+        ind = date_range(start="2000-01-01", freq="D", periods=10)
+        datetimes = [ts.to_pydatetime() for ts in ind]
+        dates = [ts.date() for ts in ind]
+        df = DataFrame({'datetimes': datetimes, 'dates':dates})
+        result = df.get_dtype_counts()
+        expected = Series({ datetime64name : 1, objectname : 1 })
+        result.sort()
+        expected.sort()
+        assert_series_equal(result, expected)
+
+    def test_constructor_for_list_with_dtypes(self):
+        intname = np.dtype(np.int_).name
+        floatname = np.dtype(np.float_).name
+        datetime64name = np.dtype('M8[ns]').name
+        objectname = np.dtype(np.object_).name
+
+        # test list of lists/ndarrays
+        df = DataFrame([np.arange(5) for x in range(5)])
+        result = df.get_dtype_counts()
+        expected = Series({'int64' : 5})
+
+        df = DataFrame([np.array(np.arange(5),dtype='int32') for x in range(5)])
+        result = df.get_dtype_counts()
+        expected = Series({'int32' : 5})
+
+        # overflow issue? (we always expecte int64 upcasting here)
+        df = DataFrame({'a' : [2**31,2**31+1]})
+        result = df.get_dtype_counts()
+        expected = Series({'int64' : 1 })
+        assert_series_equal(result, expected)
+
+        # GH #2751 (construction with no index specified), make sure we cast to platform values
+        df = DataFrame([1, 2])
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1 })
+        assert_series_equal(result, expected)
+
+        df = DataFrame([1.,2.])
+        result = df.get_dtype_counts()
+        expected = Series({'float64' : 1 })
+        assert_series_equal(result, expected)
+
+        df = DataFrame({'a' : [1, 2]})
+        result = df.get_dtype_counts()
+        expected = Series({'int64' : 1})
+        assert_series_equal(result, expected)
+
+        df = DataFrame({'a' : [1., 2.]})
+        result = df.get_dtype_counts()
+        expected = Series({'float64' : 1})
+        assert_series_equal(result, expected)
+
+        df = DataFrame({'a' : 1 }, index=range(3))
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1})
+        assert_series_equal(result, expected)
+
+        df = DataFrame({'a' : 1. }, index=range(3))
+        result = df.get_dtype_counts()
+        expected = Series({'float64': 1 })
+        assert_series_equal(result, expected)
+
+        # with object list
+        df = DataFrame({'a':[1,2,4,7], 'b':[1.2, 2.3, 5.1, 6.3], 
+                        'c':list('abcd'), 'd':[datetime(2000,1,1) for i in range(4)],
+                        'e' : [1.,2,4.,7]})
+        result = df.get_dtype_counts()
+        expected = Series({'int64': 1, 'float64' : 2, datetime64name: 1, objectname : 1})
+        result.sort()
+        expected.sort()
+        assert_series_equal(result, expected)
 
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
@@ -2757,8 +2903,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         casted = mn.astype('float32')
         _check_cast(casted, 'float32')
 
-        casted = mn.astype('int32')
-        _check_cast(casted, 'int32')
+        # this is platform dependent overflow
+        if np.int_ == np.int32:
+            self.assertRaises(OverflowError, mn.astype, 'int32')
+        else:
+            casted = mn.astype('int32')
+            _check_cast(casted, 'int32')
 
         # to object
         casted = mn.astype('O')
@@ -7156,7 +7306,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'f' : Timestamp('20010102')},
                        index=np.arange(10))
         result = df.get_dtype_counts()
-        expected = Series({intname: 1, floatname : 1, datetime64name: 1, objectname : 1})
+        expected = Series({'int64': 1, 'float64' : 1, datetime64name: 1, objectname : 1})
         result.sort()
         expected.sort()
         assert_series_equal(result, expected)
@@ -8098,105 +8248,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         values = self.mixed_int.as_matrix(['C'])
         self.assert_(values.dtype == np.uint8)
-
-
-    def test_constructor_with_datetimes(self):
-        intname = np.dtype(np.int_).name
-        floatname = np.dtype(np.float_).name
-        datetime64name = np.dtype('M8[ns]').name
-        objectname = np.dtype(np.object_).name
-
-        # single item
-        df = DataFrame({'A' : 1, 'B' : 'foo', 'C' : 'bar', 'D' : Timestamp("20010101"), 'E' : datetime(2001,1,2,0,0) },
-                       index=np.arange(10))
-        result = df.get_dtype_counts()
-        expected = Series({intname: 1, datetime64name: 2, objectname : 2})
-        result.sort()
-        expected.sort()
-        assert_series_equal(result, expected)
-
-        # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0 ndarray with a dtype specified)
-        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', floatname : np.array(1.,dtype=floatname),
-                        intname : np.array(1,dtype=intname)}, index=np.arange(10))
-        result = df.get_dtype_counts()
-        expected = Series({intname: 2, floatname : 2, objectname : 1})
-        result.sort()
-        expected.sort()
-        assert_series_equal(result, expected)
-
-        # check with ndarray construction ndim>0
-        df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', floatname : np.array([1.]*10,dtype=floatname),
-                        intname : np.array([1]*10,dtype=intname)}, index=np.arange(10))
-        result = df.get_dtype_counts()
-        expected = Series({intname: 2, floatname : 2, objectname : 1})
-        result.sort()
-        expected.sort()
-        assert_series_equal(result, expected)
-
-    def test_constructor_for_list_with_dtypes(self):
-        intname = np.dtype(np.int_).name
-        floatname = np.dtype(np.float_).name
-        datetime64name = np.dtype('M8[ns]').name
-        objectname = np.dtype(np.object_).name
-
-        # test list of lists/ndarrays
-        df = DataFrame([np.arange(5) for x in range(5)])
-        result = df.get_dtype_counts()
-        expected = Series({'int64' : 5})
-
-        df = DataFrame([np.array(np.arange(5),dtype='int32') for x in range(5)])
-        result = df.get_dtype_counts()
-        expected = Series({'int32' : 5})
-
-        # overflow issue? (we always expecte int64 upcasting here)
-        df = DataFrame({'a' : [2**31,2**31+1]})
-        result = df.get_dtype_counts()
-        expected = Series({'int64' : 1 })
-        assert_series_equal(result, expected)
-
-        # GH #2751 (construction with no index specified), make sure we cast to platform values
-        df = DataFrame([1, 2])
-        result = df.get_dtype_counts()
-        expected = Series({'int64': 1 })
-        assert_series_equal(result, expected)
-
-        df = DataFrame({'a' : [1, 2]})
-        result = df.get_dtype_counts()
-        expected = Series({'int64': 1 })
-        assert_series_equal(result, expected)
-
-        df = DataFrame({'a':[1,2,4,7], 'b':[1.2, 2.3, 5.1, 6.3], 
-                        'c':list('abcd'), 'd':[datetime(2000,1,1) for i in range(4)],
-                        'e' : [1.,2,4.,7]})
-        result = df.get_dtype_counts()
-        expected = Series({'int64': 1, 'float64' : 2, datetime64name: 1, objectname : 1})
-        result.sort()
-        expected.sort()
-        assert_series_equal(result, expected)
-
-        # GH 2809
-        from pandas import date_range
-        ind = date_range(start="2000-01-01", freq="D", periods=10)
-        datetimes = [ts.to_pydatetime() for ts in ind]
-        datetime_s = Series(datetimes)
-        self.assert_(datetime_s.dtype == 'M8[ns]')
-        df = DataFrame({'datetime_s':datetime_s})
-        result = df.get_dtype_counts()
-        expected = Series({ datetime64name : 1 })
-        result.sort()
-        expected.sort()
-        assert_series_equal(result, expected)
-
-        # GH 2810
-        ind = date_range(start="2000-01-01", freq="D", periods=10)
-        datetimes = [ts.to_pydatetime() for ts in ind]
-        dates = [ts.date() for ts in ind]
-        df = DataFrame({'datetimes': datetimes, 'dates':dates})
-        result = df.get_dtype_counts()
-        expected = Series({ datetime64name : 1, objectname : 1 })
-        result.sort()
-        expected.sort()
-        assert_series_equal(result, expected)
 
     def test_constructor_frame_copy(self):
         cop = DataFrame(self.frame, copy=True)
