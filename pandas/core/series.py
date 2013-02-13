@@ -16,7 +16,8 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
-                                _asarray_tuplesafe, is_integer_dtype)
+                                _asarray_tuplesafe, is_integer_dtype,
+                                _infer_dtype_from_scalar)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer
@@ -3129,7 +3130,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                value, dtype = com._dtype_from_scalar(value)
+                value, dtype = _infer_dtype_from_scalar(value)
             else:
                 # need to possibly convert the value here
                 value = com._possibly_cast_to_datetime(value, dtype)

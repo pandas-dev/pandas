@@ -1412,7 +1412,7 @@ class BlockManager(object):
         block_shape = list(self.shape)
         block_shape[0] = len(items)
 
-        dtype = com._infer_dtype(fill_value)
+        fill_value, dtype = com._infer_dtype_from_scalar(fill_value)
         block_values = np.empty(block_shape, dtype=dtype)
         block_values.fill(fill_value)
         na_block = make_block(block_values, items, ref_items)

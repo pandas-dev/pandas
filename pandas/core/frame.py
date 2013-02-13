@@ -23,7 +23,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _is_sequence, _dtype_from_scalar)
+                                _default_index, _is_sequence, _infer_dtype_from_scalar)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
@@ -437,7 +437,7 @@ class DataFrame(NDFrame):
                 if isinstance(data, basestring) and dtype is None:
                     dtype = np.object_
                 if dtype is None:
-                    data, dtype = _dtype_from_scalar(data)
+                    data, dtype = _infer_dtype_from_scalar(data)
 
                 values = np.empty((len(index), len(columns)), dtype=dtype)
                 values.fill(data)
@@ -1878,7 +1878,7 @@ class DataFrame(NDFrame):
             new_index, new_columns = self._expand_axes((index, col))
             result = self.reindex(index=new_index, columns=new_columns,
                                   copy=False)
-            likely_dtype = com._infer_dtype(value)
+            value, likely_dtype = _infer_dtype_from_scalar(value)
 
             made_bigger = not np.array_equal(new_columns, self.columns)
 
@@ -2208,7 +2208,7 @@ class DataFrame(NDFrame):
                 existing_piece = self[key]
 
                 # upcast the scalar
-                value, dtype = _dtype_from_scalar(value)
+                value, dtype = _infer_dtype_from_scalar(value)
 
                 # transpose hack
                 if isinstance(existing_piece, DataFrame):
@@ -2226,7 +2226,7 @@ class DataFrame(NDFrame):
 
             else:
                 # upcast the scalar
-                value, dtype = _dtype_from_scalar(value)
+                value, dtype = _infer_dtype_from_scalar(value)
                 value = np.array(np.repeat(value, len(self.index)), dtype=dtype)
 
             value = com._possibly_cast_to_datetime(value, dtype)

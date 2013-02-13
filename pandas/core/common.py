@@ -644,11 +644,15 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
     take_f(arr, indexer, out=out, fill_value=fill_value)
     return out
 
-def _dtype_from_scalar(val):
-    """ interpret the dtype from a scalar, upcast floats and ints """
+def _infer_dtype_from_scalar(val):
+    """ interpret the dtype from a scalar, upcast floats and ints
+        return the new value and the dtype """
 
     # a 1-element ndarray
     if isinstance(val, pa.Array):
+        if val.ndim != 0:
+            raise ValueError("invalid ndarray passed to _dtype_from_scalar")
+
         return val.item(), val.dtype
 
     elif isinstance(val, basestring):
@@ -665,14 +669,19 @@ def _dtype_from_scalar(val):
         val = lib.Timestamp(val).value
         return val, np.dtype('M8[ns]')
 
+    elif is_bool(val):
+        return val, np.bool_
+
     # provide implicity upcast on scalars
     elif is_integer(val):
-        if not is_bool(val):
             return val, np.int64
     elif is_float(val):
         return val, np.float64
 
-    return val, type(val)
+    elif is_complex(val):
+        return val, np.complex_
+
+    return val, np.object_
 
 def _maybe_promote(dtype, fill_value=np.nan):
     if issubclass(dtype.type, np.datetime64):
@@ -916,20 +925,6 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                     pass
 
     return value
-
-
-def _infer_dtype(value):
-    # provide upcasting here for floats/ints
-    if isinstance(value, (float, np.floating)):
-        return np.float64
-    elif isinstance(value, (bool, np.bool_)):
-        return np.bool_
-    elif isinstance(value, (int, long, np.integer)):
-        return np.int64
-    elif isinstance(value, (complex, np.complexfloating)):
-        return np.complex_
-    else:
-        return np.object_
 
 
 def _possibly_cast_item(obj, item, dtype):
