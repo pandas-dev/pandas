@@ -697,8 +697,6 @@ def _maybe_promote(dtype, fill_value=np.nan):
                 # object (but numpy 1.6.1 doesn't do this properly)
                 fill_value = tslib.iNaT 
     elif is_float(fill_value):
-        if fill_value is None:
-            fill_value = np.nan
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
         elif issubclass(dtype.type, np.integer):

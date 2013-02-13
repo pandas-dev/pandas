@@ -2,6 +2,8 @@
 cimport numpy as np
 cimport cython
 
+from libc.string cimport memmove
+
 from numpy cimport *
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
@@ -2573,6 +2575,23 @@ def take_2d_axis0_bool_bool(ndarray[uint8_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF True:
+        cdef:
+            uint8_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(uint8_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2596,6 +2615,23 @@ def take_2d_axis0_bool_object(ndarray[uint8_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            object *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(object) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2619,6 +2655,23 @@ def take_2d_axis0_int8_int8(ndarray[int8_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF True:
+        cdef:
+            int8_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int8_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2642,6 +2695,23 @@ def take_2d_axis0_int8_int32(ndarray[int8_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            int32_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int32_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2665,6 +2735,23 @@ def take_2d_axis0_int8_int64(ndarray[int8_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2688,6 +2775,23 @@ def take_2d_axis0_int8_float64(ndarray[int8_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2711,6 +2815,23 @@ def take_2d_axis0_int16_int16(ndarray[int16_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF True:
+        cdef:
+            int16_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int16_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2734,6 +2855,23 @@ def take_2d_axis0_int16_int32(ndarray[int16_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            int32_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int32_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2757,6 +2895,23 @@ def take_2d_axis0_int16_int64(ndarray[int16_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2780,6 +2935,23 @@ def take_2d_axis0_int16_float64(ndarray[int16_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2803,6 +2975,23 @@ def take_2d_axis0_int32_int32(ndarray[int32_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF True:
+        cdef:
+            int32_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int32_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2826,6 +3015,23 @@ def take_2d_axis0_int32_int64(ndarray[int32_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2849,6 +3055,23 @@ def take_2d_axis0_int32_float64(ndarray[int32_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2872,6 +3095,23 @@ def take_2d_axis0_int64_int64(ndarray[int64_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF True:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2895,6 +3135,23 @@ def take_2d_axis0_int64_float64(ndarray[int64_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2918,6 +3175,23 @@ def take_2d_axis0_float32_float32(ndarray[float32_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF True:
+        cdef:
+            float32_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(float32_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2941,6 +3215,23 @@ def take_2d_axis0_float32_float64(ndarray[float32_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2964,6 +3255,23 @@ def take_2d_axis0_float64_float64(ndarray[float64_t, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF True:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -2987,6 +3295,23 @@ def take_2d_axis0_object_object(ndarray[object, ndim=2] values,
     k = values.shape[1]
 
     fv = fill_value
+
+    IF False:
+        cdef:
+            object *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(object) * k))
+            return
+
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
@@ -3009,8 +3334,25 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF True:
+        cdef:
+            uint8_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(uint8_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3032,8 +3374,25 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            object *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(object) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3055,8 +3414,25 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF True:
+        cdef:
+            int8_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int8_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3078,8 +3454,25 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            int32_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int32_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3101,8 +3494,25 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3124,8 +3534,25 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3147,8 +3574,25 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF True:
+        cdef:
+            int16_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int16_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3170,8 +3614,25 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            int32_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int32_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3193,8 +3654,25 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3216,8 +3694,25 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3239,8 +3734,25 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF True:
+        cdef:
+            int32_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int32_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3262,8 +3774,25 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3285,8 +3814,25 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3308,8 +3854,25 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF True:
+        cdef:
+            int64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(int64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3331,8 +3894,25 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3354,8 +3934,25 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF True:
+        cdef:
+            float32_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(float32_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3377,8 +3974,25 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3400,8 +4014,25 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF True:
+        cdef:
+            float64_t *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(float64_t) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
@@ -3423,8 +4054,25 @@ def take_2d_axis1_object_object(ndarray[object, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-
+    
     fv = fill_value
+
+    IF False:
+        cdef:
+            object *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(object) * n))
+            return
+
     for j from 0 <= j < k:
         idx = indexer[j]
         if idx == -1:
