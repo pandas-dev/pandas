@@ -217,28 +217,29 @@ class MetaDataFrame(object):
         The above works because slicing preserved attributes because the _NDFrameIndexer is a python object 
         subclass.'''
         if self._ix is None:
-            self._ix = _MetaIndexer(self, _NDFrameIndexer(self) )
+            self._ix=_MetaIndexer(self)
         return self._ix        
-    
-class _MetaIndexer(object):
+            
+class _MetaIndexer(_NDFrameIndexer):
     ''' Intercepts the slicing of ix so Series returns can be handled properly.  In addition,
-        it makes sure that the new index is assigned properly.'''
-    def __init__(self, metadf, indexer):
-        self.indexer=indexer #_NDFrameIndexer
-        self.metadf=metadf #MetaDataFrame
+        it makes sure that the new index is assigned properly.
+        
+        Notes:
+        -----
+          Under the hood pandas called upon _NDFrameIndexer methods, so this merely overwrites the
+          ___getitem__() method and leaves all the rest intact'''
     
     def __getitem__(self, key):
-        out=self.indexer.__getitem__(key)
+        out=super(_MetaIndexer, self).__getitem__(key)   
 
         ### Series returns transformed to MetaDataFrame
         if isinstance(out, Series):
             df=DataFrame(out)
-            return self.metadf._transfer(out)
+            return self.obj._transfer(out)
 
         ### Make sure the new object's index property is syched to its ._df index.
         else:
-            return out
-    
+            return out  
     
 
 
@@ -299,6 +300,7 @@ if __name__ == '__main__':
 #    df.save('outpath')
 #    f=open('outpath', 'r')
 #    df2=load(f)    
+
 
 
 
