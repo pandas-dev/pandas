@@ -12,7 +12,6 @@ import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp
 
-from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 from pandas.util import py3compat
@@ -608,7 +607,8 @@ class Index(np.ndarray):
             indexer = (indexer == -1).nonzero()[0]
 
             if len(indexer) > 0:
-                other_diff = ndtake(other.values, indexer)
+                other_diff = com.take_nd(other.values, indexer,
+                                         allow_fill=False)
                 result = com._concat_compat((self.values, other_diff))
                 try:
                     result.sort()
@@ -1037,7 +1037,8 @@ class Index(np.ndarray):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
-            new_lev_labels = ndtake(rev_indexer, left.labels[level])
+            new_lev_labels = com.take_nd(rev_indexer, left.labels[level],
+                                         allow_fill=False)
             omit_mask = new_lev_labels != -1
 
             new_labels = list(left.labels)
@@ -1057,8 +1058,9 @@ class Index(np.ndarray):
             left_indexer = None
 
         if right_lev_indexer is not None:
-            right_indexer = ndtake(right_lev_indexer,
-                                   join_index.labels[level])
+            right_indexer = com.take_nd(right_lev_indexer,
+                                        join_index.labels[level],
+                                        allow_fill=False)
         else:
             right_indexer = join_index.labels[level]
 
@@ -2369,8 +2371,10 @@ class MultiIndex(Index):
             return False
 
         for i in xrange(self.nlevels):
-            svalues = ndtake(self.levels[i].values, self.labels[i])
-            ovalues = ndtake(other.levels[i].values, other.labels[i])
+            svalues = com.take_nd(self.levels[i].values, self.labels[i],
+                                  allow_fill=False)
+            ovalues = com.take_nd(other.levels[i].values, other.labels[i],
+                                  allow_fill=False)
             if not np.array_equal(svalues, ovalues):
                 return False
 

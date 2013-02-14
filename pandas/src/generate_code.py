@@ -5,6 +5,8 @@ header = """
 cimport numpy as np
 cimport cython
 
+from libc.string cimport memmove
+
 from numpy cimport *
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
@@ -62,21 +64,13 @@ def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
 
     n = len(indexer)
 
-    if %(raise_on_na)s and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                raise ValueError('No NA values allowed')
-            else:
-                outbuf[i] = %(preval)svalues[idx]%(postval)s
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                outbuf[i] = fv
-            else:
-                outbuf[i] = %(preval)svalues[idx]%(postval)s
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            outbuf[i] = fv
+        else:
+            outbuf[i] = %(preval)svalues[idx]%(postval)s
 
 """
 
@@ -93,25 +87,32 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
     n = len(indexer)
     k = values.shape[1]
 
-    if %(raise_on_na)s and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = %(preval)svalues[idx, j]%(postval)s
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = indexer[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    outbuf[i, j] = %(preval)svalues[idx, j]%(postval)s
+    fv = fill_value
+
+    IF %(can_copy)s:
+        cdef:
+            %(c_type_out)s *v, *o
+
+        if values.flags.c_contiguous and out.flags.c_contiguous:
+            for i from 0 <= i < n:
+                idx = indexer[i]
+                if idx == -1:
+                    for j from 0 <= j < k:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &outbuf[i, 0]
+                    memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * k))
+            return
+
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                outbuf[i, j] = %(preval)svalues[idx, j]%(postval)s
 
 """
 
@@ -127,26 +128,33 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    
+    fv = fill_value
 
-    if %(raise_on_na)s and _checknan(fill_value):
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    raise ValueError('No NA values allowed')
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = %(preval)svalues[i, idx]%(postval)s
-    else:
-        fv = fill_value
-        for j from 0 <= j < k:
-            idx = indexer[j]
-            if idx == -1:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = fv
-            else:
-                for i from 0 <= i < n:
-                    outbuf[i, j] = %(preval)svalues[i, idx]%(postval)s
+    IF %(can_copy)s:
+        cdef:
+            %(c_type_out)s *v, *o
+
+        if values.flags.f_contiguous and out.flags.f_contiguous:
+            for j from 0 <= j < k:
+                idx = indexer[j]
+                if idx == -1:
+                    for i from 0 <= i < n:
+                        outbuf[i, j] = fv
+                else:
+                    v = &values[0, idx]
+                    o = &outbuf[0, j]
+                    memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * n))
+            return
+
+    for j from 0 <= j < k:
+        idx = indexer[j]
+        if idx == -1:
+            for i from 0 <= i < n:
+                outbuf[i, j] = fv
+        else:
+            for i from 0 <= i < n:
+                outbuf[i, j] = %(preval)svalues[i, idx]%(postval)s
 
 """
 
@@ -165,31 +173,18 @@ def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
     n = len(idx0)
     k = len(idx1)
 
-    if %(raise_on_na)s and _checknan(fill_value):
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
-                    raise ValueError('No NA values allowed')
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        raise ValueError('No NA values allowed')
-                    else:
-                        outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
-    else:
-        fv = fill_value
-        for i from 0 <= i < n:
-            idx = idx0[i]
-            if idx == -1:
-                for j from 0 <= j < k:
+    fv = fill_value
+    for i from 0 <= i < n:
+        idx = idx0[i]
+        if idx == -1:
+            for j from 0 <= j < k:
+                outbuf[i, j] = fv
+        else:
+            for j from 0 <= j < k:
+                if idx1[j] == -1:
                     outbuf[i, j] = fv
-            else:
-                for j from 0 <= j < k:
-                    if idx1[j] == -1:
-                        outbuf[i, j] = fv
-                    else:
-                        outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
+                else:
+                    outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
 
 """
 
@@ -2156,40 +2151,40 @@ def generate_put_template(template, use_ints = True, use_floats = True):
     return output.getvalue()
 
 def generate_take_template(template, exclude=None):
-    # name, dest, ctypein, ctypeout, preval, postval, capable of holding NA
+    # name, dest, ctypein, ctypeout, preval, postval, cancopy
     function_list = [
-        ('bool', 'bool', 'uint8_t', 'uint8_t', '', '', False),
+        ('bool', 'bool', 'uint8_t', 'uint8_t', '', '', True),
         ('bool', 'object', 'uint8_t', 'object',
-         'True if ', ' > 0 else False', True),
-        ('int8', 'int8', 'int8_t', 'int8_t', '', '', False),
+         'True if ', ' > 0 else False', False),
+        ('int8', 'int8', 'int8_t', 'int8_t', '', '', True),
         ('int8', 'int32', 'int8_t', 'int32_t', '', '', False),
         ('int8', 'int64', 'int8_t', 'int64_t', '', '', False),
-        ('int8', 'float64', 'int8_t', 'float64_t', '', '', True),
-        ('int16', 'int16', 'int16_t', 'int16_t', '', '', False),
+        ('int8', 'float64', 'int8_t', 'float64_t', '', '', False),
+        ('int16', 'int16', 'int16_t', 'int16_t', '', '', True),
         ('int16', 'int32', 'int16_t', 'int32_t', '', '', False),
         ('int16', 'int64', 'int16_t', 'int64_t', '', '', False),
-        ('int16', 'float64', 'int16_t', 'float64_t', '', '', True),
-        ('int32', 'int32', 'int32_t', 'int32_t', '', '', False),
+        ('int16', 'float64', 'int16_t', 'float64_t', '', '', False),
+        ('int32', 'int32', 'int32_t', 'int32_t', '', '', True),
         ('int32', 'int64', 'int32_t', 'int64_t', '', '', False),
-        ('int32', 'float64', 'int32_t', 'float64_t', '', '', True),
-        ('int64', 'int64', 'int64_t', 'int64_t', '', '', False),
-        ('int64', 'float64', 'int64_t', 'float64_t', '', '', True),
+        ('int32', 'float64', 'int32_t', 'float64_t', '', '', False),
+        ('int64', 'int64', 'int64_t', 'int64_t', '', '', True),
+        ('int64', 'float64', 'int64_t', 'float64_t', '', '', False),
         ('float32', 'float32', 'float32_t', 'float32_t', '', '', True),
-        ('float32', 'float64', 'float32_t', 'float64_t', '', '', True),
+        ('float32', 'float64', 'float32_t', 'float64_t', '', '', False),
         ('float64', 'float64', 'float64_t', 'float64_t', '', '', True),
-        ('object', 'object', 'object', 'object', '', '', True)
+        ('object', 'object', 'object', 'object', '', '', False)
     ]
 
     output = StringIO()
     for (name, dest, c_type_in, c_type_out, 
-            preval, postval, can_hold_na) in function_list:
+         preval, postval, can_copy) in function_list:
         if exclude is not None and name in exclude:
             continue
 
         func = template % {'name': name, 'dest': dest,
                            'c_type_in': c_type_in, 'c_type_out': c_type_out,
                            'preval': preval, 'postval': postval,
-                           'raise_on_na': 'False' if can_hold_na else 'True'}
+                           'can_copy': 'True' if can_copy else 'False'}
         output.write(func)
     return output.getvalue()
 

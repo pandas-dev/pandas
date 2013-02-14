@@ -120,14 +120,14 @@ class Block(object):
         #     union_ref = self.ref_items + other.ref_items
         return _merge_blocks([self, other], self.ref_items)
 
-    def reindex_axis(self, indexer, mask, needs_masking, axis=0,
-                     fill_value=np.nan):
+    def reindex_axis(self, indexer, axis=1, fill_value=np.nan, mask_info=None):
         """
         Reindex using pre-computed indexer information
         """
-        new_values = com.take_fast(self.values, indexer,
-                                   mask, needs_masking, axis=axis,
-                                   fill_value=fill_value)
+        if axis < 1:
+            raise AssertionError('axis must be at least 1, got %d' % axis)
+        new_values = com.take_nd(self.values, indexer, axis,
+                                 fill_value=fill_value, mask_info=mask_info)
         return make_block(new_values, self.items, self.ref_items)
 
     def reindex_items_from(self, new_ref_items, copy=True):
@@ -146,12 +146,9 @@ class Block(object):
             new_items = new_ref_items
             new_values = self.values.copy() if copy else self.values
         else:
-            mask = indexer != -1
-            masked_idx = indexer[mask]
-
-            new_values = com.take_fast(self.values, masked_idx,
-                                       mask=None, needs_masking=False,
-                                       axis=0)
+            masked_idx = indexer[indexer != -1]
+            new_values = com.take_nd(self.values, masked_idx, axis=0,
+                                     allow_fill=False)
             new_items = self.items.take(masked_idx)
         return make_block(new_values, new_items, new_ref_items)
 
@@ -221,7 +218,10 @@ class Block(object):
             return make_block(new_values, self.items, self.ref_items)
 
     def astype(self, dtype, copy = True, raise_on_error = True):
-        """ coerce to the new type (if copy=True, return a new copy) raise on an except if raise == True """
+        """
+        Coerce to the new type (if copy=True, return a new copy)
+        raise on an except if raise == True
+        """
         try:
             newb = make_block(com._astype_nansafe(self.values, dtype, copy = copy),
                               self.items, self.ref_items)
@@ -231,12 +231,12 @@ class Block(object):
             newb = self.copy() if copy else self
 
         if newb.is_numeric and self.is_numeric:
-            if newb.shape != self.shape or (not copy and newb.itemsize < self.itemsize):
-                raise TypeError("cannot set astype for copy = [%s] for dtype (%s [%s]) with smaller itemsize that current (%s [%s])" % (copy,
-                                                                                                                                        self.dtype.name,
-                                                                                                                                        self.itemsize,
-                                                                                                                                        newb.dtype.name,
-                                                                                                                                        newb.itemsize))
+            if (newb.shape != self.shape or
+                    (not copy and newb.itemsize < self.itemsize)):
+                raise TypeError("cannot set astype for copy = [%s] for dtype "
+                                "(%s [%s]) with smaller itemsize that current "
+                                "(%s [%s])" % (copy, self.dtype.name,
+                                self.itemsize, newb.dtype.name, newb.itemsize))
         return newb
 
     def convert(self, copy = True, **kwargs):
@@ -356,11 +356,11 @@ class Block(object):
 
         return make_block(values, self.items, self.ref_items)
 
-    def take(self, indexer, axis=1, fill_value=np.nan):
+    def take(self, indexer, axis=1):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
-        new_values = com.take_fast(self.values, indexer, None, False,
-                                   axis=axis, fill_value=fill_value)
+        new_values = com.take_nd(self.values, indexer, axis=axis,
+                                 allow_fill=False)
         return make_block(new_values, self.items, self.ref_items)
 
     def get_values(self, dtype):
@@ -1320,15 +1320,9 @@ class BlockManager(object):
         if axis == 0:
             return self._reindex_indexer_items(new_axis, indexer, fill_value)
 
-        mask = indexer == -1
-
-        # TODO: deal with length-0 case? or does it fall out?
-        needs_masking = len(new_axis) > 0 and mask.any()
-
         new_blocks = []
         for block in self.blocks:
-            newb = block.reindex_axis(indexer, mask, needs_masking,
-                                      axis=axis, fill_value=fill_value)
+            newb = block.reindex_axis(indexer, axis=axis, fill_value=fill_value)
             new_blocks.append(newb)
 
         new_axes = list(self.axes)
@@ -1354,8 +1348,8 @@ class BlockManager(object):
                 continue
 
             new_block_items = new_items.take(selector.nonzero()[0])
-            new_values = com.take_fast(blk.values, blk_indexer[selector],
-                                       None, False, axis=0)
+            new_values = com.take_nd(blk.values, blk_indexer[selector], axis=0,
+                                     allow_fill=False)
             new_blocks.append(make_block(new_values, new_block_items,
                                          new_items))
 
@@ -1419,8 +1413,8 @@ class BlockManager(object):
         return na_block
 
     def take(self, indexer, axis=1):
-        if axis == 0:
-            raise NotImplementedError
+        if axis < 1:
+            raise AssertionError('axis must be at least 1, got %d' % axis)
 
         indexer = com._ensure_platform_int(indexer)
 
@@ -1433,8 +1427,8 @@ class BlockManager(object):
         new_axes[axis] = self.axes[axis].take(indexer)
         new_blocks = []
         for blk in self.blocks:
-            new_values = com.take_fast(blk.values, indexer, None, False,
-                                       axis=axis)
+            new_values = com.take_nd(blk.values, indexer, axis=axis,
+                                     allow_fill=False)
             newb = make_block(new_values, blk.items, self.items)
             new_blocks.append(newb)
 

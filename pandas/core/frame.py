@@ -2644,8 +2644,9 @@ class DataFrame(NDFrame):
         new_columns, col_indexer = self.columns.reindex(new_columns)
 
         if row_indexer is not None and col_indexer is not None:
-            new_values = com.take_2d_multi(self.values, row_indexer,
-                                           col_indexer, fill_value=fill_value)
+            indexer = row_indexer, col_indexer
+            new_values = com.take_2d_multi(self.values, indexer,
+                                           fill_value=fill_value)
             return DataFrame(new_values, index=new_index, columns=new_columns)
         elif row_indexer is not None:
             return self._reindex_with_indexers(new_index, row_indexer,
