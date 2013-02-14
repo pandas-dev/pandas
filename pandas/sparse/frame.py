@@ -241,8 +241,11 @@ class SparseDataFrame(DataFrame):
         return DataFrame(data, index=self.index)
 
     def get_dtype_counts(self):
-        from collections import Counter
-        return Series(Counter([ v.dtype.name for k, v in self.iteritems() ]))
+        from collections import defaultdict
+        d = defaultdict(int)
+        for k, v in self.iteritems():
+            d[v.dtype.name] += 1
+        return Series(d)
      
     def astype(self, dtype):
         raise NotImplementedError

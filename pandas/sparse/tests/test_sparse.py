@@ -821,6 +821,23 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sdf = SparseDataFrame(columns=range(4), index=arr)
         self.assertTrue(sdf[0].index is sdf[1].index)
 
+    def test_constructor_from_series(self):
+
+        # GH 2873
+        x = Series(np.random.randn(10000), name='a')
+        x = x.to_sparse(fill_value=0)
+        self.assert_(isinstance(x,SparseSeries))
+        df = SparseDataFrame(x)
+        self.assert_(isinstance(df,SparseDataFrame))
+
+        x = Series(np.random.randn(10000), name ='a')
+        y = Series(np.random.randn(10000), name ='b')
+        x.ix[:9998] = 0
+        x = x.to_sparse(fill_value=0)
+        
+        # currently fails
+        #df1 = SparseDataFrame([x, y])
+
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
         df.ix[:9998] = np.nan
