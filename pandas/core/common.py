@@ -705,6 +705,8 @@ def _maybe_promote(dtype, fill_value=np.nan):
                 # object (but numpy 1.6.1 doesn't do this properly)
                 fill_value = tslib.iNaT 
     elif is_float(fill_value):
+        if fill_value is None:
+            fill_value = np.nan
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
         elif issubclass(dtype.type, np.integer):
@@ -729,16 +731,17 @@ def _maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
     return dtype, fill_value
 
+
 def _maybe_upcast(values, fill_value=np.nan, copy=False):
     """ provide explicty type promotion and coercion
         if copy == True, then a copy is created even if no upcast is required """
-
     new_dtype, fill_value = _maybe_promote(values.dtype, fill_value)
     if new_dtype != values.dtype:
         values = values.astype(new_dtype)
     elif copy:
         values = values.copy()
     return values, fill_value
+
 
 def _possibly_cast_item(obj, item, dtype):
     chunk = obj[item]
@@ -950,6 +953,22 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
     return value
 
 
+<<<<<<< HEAD
+=======
+def _infer_dtype(value):
+    if isinstance(value, (float, np.floating)):
+        return np.float64
+    elif isinstance(value, (bool, np.bool_)):
+        return np.bool_
+    elif isinstance(value, (int, long, np.integer)):
+        return np.int64
+    elif isinstance(value, (complex, np.complexfloating)):
+        return np.complex128
+    else:
+        return np.object_
+
+
+>>>>>>> e2b4ccd... CLN: add fill_value return value to common._maybe_promote
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
         key = np.asarray(key)
