@@ -717,7 +717,6 @@ def _maybe_promote(dtype, fill_value=np.nan):
         return dtype
     return np.object_
 
-
 def _maybe_upcast(values):
     """ provide explicty type promotion and coercion """
     new_dtype = _maybe_promote(values.dtype)
