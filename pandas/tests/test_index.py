@@ -348,6 +348,17 @@ class TestIndex(unittest.TestCase):
         expected = [str(index[0])]
         self.assertEquals(formatted, expected)
 
+        # 2845
+        index = Index([1, 2.0+3.0j, np.nan])
+        formatted = index.format()
+        expected = [str(index[0]), str(index[1]), str(index[2])]
+        self.assertEquals(formatted, expected)
+
+        index = Index([1, 2.0+3.0j, None])
+        formatted = index.format()
+        expected = [str(index[0]), str(index[1]), '']
+        self.assertEquals(formatted, expected)
+
         self.strIndex[:0].format()
 
     def test_format_with_name_time_info(self):
