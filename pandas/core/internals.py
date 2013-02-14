@@ -496,7 +496,7 @@ class Block(object):
                                     % repr(o))
                 else:
                     # return the values
-                    result = np.empty(v.shape,dtype='O')
+                    result = np.empty(v.shape,dtype='float64')
                     result.fill(np.nan)
                     return result
 
