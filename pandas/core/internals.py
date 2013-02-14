@@ -377,11 +377,11 @@ class Block(object):
         new_values = self.values.take(indexer, axis=1)
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values = com._maybe_upcast(new_values)
+        new_values, fill_value = com._maybe_upcast(new_values)
         if periods > 0:
-            new_values[:, :periods] = np.nan
+            new_values[:, :periods] = fill_value
         else:
-            new_values[:, periods:] = np.nan
+            new_values[:, periods:] = fill_value
         return make_block(new_values, self.items, self.ref_items)
 
     def where(self, func, other, cond = None, raise_on_error = True, try_cast = False):
@@ -1412,7 +1412,7 @@ class BlockManager(object):
         block_shape = list(self.shape)
         block_shape[0] = len(items)
 
-        fill_value, dtype = com._infer_dtype_from_scalar(fill_value)
+        dtype, fill_value = com._infer_dtype_from_scalar(fill_value)
         block_values = np.empty(block_shape, dtype=dtype)
         block_values.fill(fill_value)
         na_block = make_block(block_values, items, ref_items)

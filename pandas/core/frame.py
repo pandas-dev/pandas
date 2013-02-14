@@ -390,12 +390,8 @@ class DataFrame(NDFrame):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
             mask = ma.getmaskarray(data)
-            datacopy = ma.copy(data)
-            if issubclass(data.dtype.type, np.datetime64):
-                datacopy[mask] = tslib.iNaT
-            else:
-                datacopy = com._maybe_upcast(datacopy)
-                datacopy[mask] = NA
+            datacopy, fill_value = com._maybe_upcast(data, copy=True)
+            datacopy[mask] = fill_value
             mgr = self._init_ndarray(datacopy, index, columns, dtype=dtype,
                                      copy=copy)
         elif isinstance(data, np.ndarray):
@@ -437,7 +433,7 @@ class DataFrame(NDFrame):
                 if isinstance(data, basestring) and dtype is None:
                     dtype = np.object_
                 if dtype is None:
-                    data, dtype = _infer_dtype_from_scalar(data)
+                    dtype, data = _infer_dtype_from_scalar(data)
 
                 values = np.empty((len(index), len(columns)), dtype=dtype)
                 values.fill(data)
@@ -1878,7 +1874,7 @@ class DataFrame(NDFrame):
             new_index, new_columns = self._expand_axes((index, col))
             result = self.reindex(index=new_index, columns=new_columns,
                                   copy=False)
-            value, likely_dtype = _infer_dtype_from_scalar(value)
+            likely_dtype, value = _infer_dtype_from_scalar(value)
 
             made_bigger = not np.array_equal(new_columns, self.columns)
 
@@ -2208,7 +2204,7 @@ class DataFrame(NDFrame):
                 existing_piece = self[key]
 
                 # upcast the scalar
-                value, dtype = _infer_dtype_from_scalar(value)
+                dtype, value = _infer_dtype_from_scalar(value)
 
                 # transpose hack
                 if isinstance(existing_piece, DataFrame):
@@ -2217,16 +2213,11 @@ class DataFrame(NDFrame):
                 else:
                     value = np.repeat(value, len(self.index))
 
-                    # special case for now (promotion)
-                    if (com.is_float_dtype(existing_piece) and
-                            com.is_integer_dtype(value)):
-                        dtype = np.float64
-                        
                 value = value.astype(dtype)
 
             else:
                 # upcast the scalar
-                value, dtype = _infer_dtype_from_scalar(value)
+                dtype, value = _infer_dtype_from_scalar(value)
                 value = np.array(np.repeat(value, len(self.index)), dtype=dtype)
 
             value = com._possibly_cast_to_datetime(value, dtype)

@@ -658,7 +658,7 @@ class Panel(NDFrame):
             d = self._construct_axes_dict_from(self, axes, copy=False)
             result = self.reindex(**d)
             args  = list(args)
-            args[-1], likely_dtype = _infer_dtype_from_scalar(args[-1])
+            likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
             made_bigger = not np.array_equal(
                 axes[0], getattr(self, self._info_axis))
             # how to make this logic simpler?
@@ -693,7 +693,7 @@ class Panel(NDFrame):
             assert(value.shape == shape[1:])
             mat = np.asarray(value)
         elif np.isscalar(value):
-            value, dtype = _infer_dtype_from_scalar(value)
+            dtype, value = _infer_dtype_from_scalar(value)
             mat = np.empty(shape[1:], dtype=dtype)
             mat.fill(value)
         else:

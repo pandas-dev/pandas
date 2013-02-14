@@ -504,7 +504,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
         indexer = _ensure_int64(indexer)
-        dtype = _maybe_promote(arr.dtype, fill_value)
+        dtype = _maybe_promote(arr.dtype, fill_value)[0]
         if dtype != arr.dtype:
             mask = indexer == -1
             needs_masking = mask.any()
@@ -552,7 +552,7 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan, out=None):
     else:
         col_idx = _ensure_int64(col_idx)
 
-    dtype = _maybe_promote(arr.dtype, fill_value)
+    dtype = _maybe_promote(arr.dtype, fill_value)[0]
     if dtype != arr.dtype:
         row_mask = row_idx == -1
         col_mask = col_idx == -1
@@ -588,7 +588,7 @@ def diff(arr, n, axis=0):
     n = int(n)
     dtype = arr.dtype
     if issubclass(dtype.type, np.integer):
-        dtype = np.float_
+        dtype = np.float64
     elif issubclass(dtype.type, np.bool_):
         dtype = np.object_
 
@@ -629,7 +629,7 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
     else:
         indexer = _ensure_int64(indexer)
         if needs_masking:
-            dtype = _maybe_promote(arr.dtype, fill_value)
+            dtype = _maybe_promote(arr.dtype, fill_value)[0]
             if dtype != arr.dtype and out is not None and out.dtype != dtype:
                 raise Exception('Incompatible type for fill_value')
         else:
@@ -644,16 +644,20 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
     take_f(arr, indexer, out=out, fill_value=fill_value)
     return out
 
+
 def _infer_dtype_from_scalar(val):
     """ interpret the dtype from a scalar, upcast floats and ints
         return the new value and the dtype """
+
+    dtype = np.object_
 
     # a 1-element ndarray
     if isinstance(val, pa.Array):
         if val.ndim != 0:
             raise ValueError("invalid ndarray passed to _infer_dtype_from_scalar")
 
-        return val.item(), val.dtype
+        dtype = val.dtype
+        val   = val.item()
 
     elif isinstance(val, basestring):
 
@@ -662,67 +666,79 @@ def _infer_dtype_from_scalar(val):
         # so this is kind of bad. Alternately we could use np.repeat
         # instead of np.empty (but then you still don't want things
         # coming out as np.str_!
-        return val, np.object_
+
+        dtype = np.object_
 
     elif isinstance(val, np.datetime64):
         # ugly hacklet
-        val = lib.Timestamp(val).value
-        return val, np.dtype('M8[ns]')
+        val   = lib.Timestamp(val).value
+        dtype = np.dtype('M8[ns]')
 
     elif is_bool(val):
-        return val, np.bool_
+        dtype = np.bool_
 
     # provide implicity upcast on scalars
     elif is_integer(val):
-            return val, np.int64
+        dtype = np.int64
+
     elif is_float(val):
-        return val, np.float64
+        dtype = np.float64
 
     elif is_complex(val):
-        return val, np.complex_
+        dtype = np.complex_
 
-    return val, np.object_
+    return dtype, val
 
 def _maybe_promote(dtype, fill_value=np.nan):
+    # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
-        # for now: refuse to upcast
+        # for now: refuse to upcast datetime64
         # (this is because datetime64 will not implicitly upconvert
         #  to object correctly as of numpy 1.6.1)
-        return dtype
+        if isnull(fill_value):
+            fill_value = tslib.iNaT
+        else:
+            try:
+                fill_value = lib.Timestamp(fill_value).value
+            except:
+                # the proper thing to do here would probably be to upcast to
+                # object (but numpy 1.6.1 doesn't do this properly)
+                fill_value = tslib.iNaT 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
-            return np.object_
+            dtype = np.object_
         elif issubclass(dtype.type, np.integer):
-            return np.float64
-        return dtype
+            dtype = np.float64
     elif is_bool(fill_value):
-        if issubclass(dtype.type, np.bool_):
-            return dtype
-        return np.object_
+        if not issubclass(dtype.type, np.bool_):
+            dtype = np.object_
     elif is_integer(fill_value):
         if issubclass(dtype.type, np.bool_):
-            return np.object_
+            dtype = np.object_
         elif issubclass(dtype.type, np.integer):
             # upcast to prevent overflow
             arr = np.asarray(fill_value)
             if arr != arr.astype(dtype):
-                return arr.dtype
-            return dtype
-        return dtype
+                dtype = arr.dtype
     elif is_complex(fill_value):
         if issubclass(dtype.type, np.bool_):
-            return np.object_
+            dtype = np.object_
         elif issubclass(dtype.type, (np.integer, np.floating)):
-            return np.complex_
-        return dtype
-    return np.object_
+            dtype = np.complex128
+    else:
+        dtype = np.object_
+    return dtype, fill_value
 
-def _maybe_upcast(values):
-    """ provide explicty type promotion and coercion """
-    new_dtype = _maybe_promote(values.dtype)
+def _maybe_upcast(values, fill_value=np.nan, copy=False):
+    """ provide explicty type promotion and coercion
+        if copy == True, then a copy is created even if no upcast is required """
+
+    new_dtype, fill_value = _maybe_promote(values.dtype, fill_value)
     if new_dtype != values.dtype:
         values = values.astype(new_dtype)
-    return values
+    elif copy:
+        values = values.copy()
+    return values, fill_value
 
 def _possibly_cast_item(obj, item, dtype):
     chunk = obj[item]

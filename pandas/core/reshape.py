@@ -149,8 +149,9 @@ class _Unstacker(object):
         stride = values.shape[1]
         result_width = width * stride
 
-        new_values = np.empty((length, result_width), dtype=_maybe_promote(values.dtype))
-        new_values.fill(np.nan)
+        dtype, fill_value = _maybe_promote(values.dtype)
+        new_values = np.empty((length, result_width), dtype=dtype)
+        new_values.fill(fill_value)
         new_mask = np.zeros((length, result_width), dtype=bool)
 
         # is there a simpler / faster way of doing this?
@@ -773,12 +774,12 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
     mask = np.zeros(np.prod(shape), dtype=bool)
     mask.put(selector, True)
 
-    pvalues = np.empty(panel_shape, dtype=values.dtype)
-    if not issubclass(pvalues.dtype.type, (np.integer, np.bool_)):
-        pvalues.fill(np.nan)
-    elif not mask.all():
-        pvalues = _maybe_upcast(pvalues)
-        pvalues.fill(np.nan)
+    if mask.all():
+        pvalues = np.empty(panel_shape, dtype=values.dtype)
+    else:
+        dtype, fill_value = _maybe_promote(values.dtype)
+        pvalues = np.empty(panel_shape, dtype=dtype)
+        pvalues.fill(fill_value)
 
     values = values
     for i in xrange(len(items)):

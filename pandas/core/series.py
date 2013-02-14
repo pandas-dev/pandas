@@ -2818,14 +2818,15 @@ copy : boolean, default False
             return values
 
         if offset is None:
-            new_values = pa.empty(len(self), dtype=_maybe_promote(self.dtype))
+            dtype, fill_value = _maybe_promote(self.dtype)
+            new_values = pa.empty(len(self), dtype=dtype)
 
             if periods > 0:
                 new_values[periods:] = self.values[:-periods]
-                new_values[:periods] = nan
+                new_values[:periods] = fill_value
             elif periods < 0:
                 new_values[:periods] = self.values[-periods:]
-                new_values[periods:] = nan
+                new_values[periods:] = fill_value
 
             return Series(new_values, index=self.index, name=self.name)
         elif isinstance(self.index, PeriodIndex):
@@ -3129,7 +3130,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                value, dtype = _infer_dtype_from_scalar(value)
+                dtype, value = _infer_dtype_from_scalar(value)
             else:
                 # need to possibly convert the value here
                 value = com._possibly_cast_to_datetime(value, dtype)

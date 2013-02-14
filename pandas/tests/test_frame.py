@@ -441,8 +441,10 @@ class CheckIndexing(object):
         self.assert_(self.frame['D'].dtype == np.int64)
 
         # #669, should not cast?
+        # this is now set to int64, which means a replacement of the column to
+        # the value dtype (and nothing to do with the existing dtype)
         self.frame['B'] = 0
-        self.assert_(self.frame['B'].dtype == np.float64)
+        self.assert_(self.frame['B'].dtype == np.int64)
 
         # cast if pass array of course
         self.frame['B'] = np.arange(len(self.frame))
