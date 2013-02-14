@@ -248,16 +248,22 @@ class CheckIndexing(object):
         df = self.tsframe.copy()
         df['E'] = 1
         df['E'] = df['E'].astype('int32')
+        df['E1'] = df['E'].copy()
         df['F'] = 1
         df['F'] = df['F'].astype('int64')
+        df['F1'] = df['F'].copy()
+
         casted = df[df>0]
         result = casted.get_dtype_counts()
-        expected = Series({'float64': 4, 'int32' : 1, 'int64' : 1})
-
-        ### when we always cast here's the result ###
-        #expected = Series({'float64': 6 })
+        expected = Series({'float64': 4, 'int32' : 2, 'int64' : 2})
         assert_series_equal(result, expected)
 
+        # int block splitting
+        df.ix[1:3,['E1','F1']] = 0
+        casted = df[df>0]
+        result = casted.get_dtype_counts()
+        expected = Series({'float64': 6, 'int32' : 1, 'int64' : 1})
+        assert_series_equal(result, expected)
 
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3, 4))
@@ -6031,6 +6037,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             
             # dtypes
             # can't check dtype when other is an ndarray
+
             if check_dtypes and not isinstance(other,np.ndarray):
                 self.assert_((rs.dtypes == df.dtypes).all() == True)
 
@@ -6066,13 +6073,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             dfi = df.copy()
             econd = cond.reindex_like(df).fillna(True)
             expected = dfi.mask(~econd)
+
+            #import pdb; pdb.set_trace()
             dfi.where(cond, np.nan, inplace=True)
             assert_frame_equal(dfi, expected)
 
             # dtypes (and confirm upcasts)x
             if check_dtypes:
                 for k, v in df.dtypes.iteritems():
-                    if issubclass(v.type,np.integer):
+                    if issubclass(v.type,np.integer) and not cond[k].all():
                         v = np.dtype('float64')
                     self.assert_(dfi[k].dtype == v)
 

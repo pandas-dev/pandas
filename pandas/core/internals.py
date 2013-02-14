@@ -304,14 +304,15 @@ class Block(object):
         if self._can_hold_element(new):
             new = self._try_cast(new)
             np.putmask(new_values, mask, new)
-        # upcast me
-        else:
+
+        # maybe upcast me
+        elif mask.any():
             # type of the new block
             if ((isinstance(new, np.ndarray) and issubclass(new.dtype, np.number)) or
                     isinstance(new, float)):
-                typ = float
+                typ = np.float64
             else:
-                typ = object
+                typ = np.object_
 
             # we need to exiplicty astype here to make a copy
             new_values = new_values.astype(typ)
@@ -515,14 +516,15 @@ class Block(object):
             return make_block(result, items, self.ref_items)
 
         # see if we can operate on the entire block, or need item-by-item
-        if cond.all().any():
+        if not self._can_hold_na:
+            axis = cond.ndim-1
             result_blocks = []
             for item in self.items:
                 loc  = self.items.get_loc(item)
                 item = self.items.take([loc])
-                v    = values.take([loc])
-                c    = cond.take([loc])
-                o    = other.take([loc]) if hasattr(other,'shape') else other
+                v    = values.take([loc],axis=axis)
+                c    = cond.take([loc],axis=axis)
+                o    = other.take([loc],axis=axis) if hasattr(other,'shape') else other
 
                 result = func(c,v,o)
                 if len(result) == 1:
