@@ -42,6 +42,11 @@ class _SparseMockBlockManager(object):
     def axes(self):
         return [self.sp_frame.columns, self.sp_frame.index]
 
+    @property
+    def blocks(self):
+        """ return our series in the column order """
+        s = self.sp_frame._series
+        return [ self.iget(i) for i in self.sp_frame.columns ]
 
 class SparseDataFrame(DataFrame):
     """
@@ -235,6 +240,10 @@ class SparseDataFrame(DataFrame):
         data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
 
+    def get_dtype_counts(self):
+        from collections import Counter
+        return Series(Counter([ v.dtype.name for k, v in self.iteritems() ]))
+     
     def astype(self, dtype):
         raise NotImplementedError
 

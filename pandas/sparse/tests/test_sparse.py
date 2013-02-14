@@ -821,6 +821,22 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sdf = SparseDataFrame(columns=range(4), index=arr)
         self.assertTrue(sdf[0].index is sdf[1].index)
 
+    def test_dtypes(self):
+        df = DataFrame(np.random.randn(10000, 4))
+        df.ix[:9998] = np.nan
+        sdf = df.to_sparse()
+
+        result = sdf.get_dtype_counts()
+        expected = Series({ 'float64' : 4 })
+        assert_series_equal(result, expected)
+
+    def test_str(self):
+        df = DataFrame(np.random.randn(10000, 4))
+        df.ix[:9998] = np.nan
+        sdf = df.to_sparse()
+
+        str(sdf)
+        
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())
