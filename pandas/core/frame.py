@@ -1234,7 +1234,7 @@ class DataFrame(NDFrame):
         panel : Panel
         """
         from pandas.core.panel import Panel
-        from pandas.core.reshape import block2d_to_block3d
+        from pandas.core.reshape import block2d_to_blocknd
 
         # only support this kind for now
         if (not isinstance(self.index, MultiIndex) or
@@ -1261,8 +1261,8 @@ class DataFrame(NDFrame):
 
         new_blocks = []
         for block in selfsorted._data.blocks:
-            newb = block2d_to_block3d(block.values.T, block.items, shape,
-                                      major_labels, minor_labels,
+            newb = block2d_to_blocknd(block.values.T, block.items, shape,
+                                      [ major_labels, minor_labels ],
                                       ref_items=selfsorted.columns)
             new_blocks.append(newb)
 

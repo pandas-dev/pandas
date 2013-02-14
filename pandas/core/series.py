@@ -15,7 +15,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
-                                _default_index, _maybe_upcast,
+                                _default_index, _maybe_promote,
                                 _asarray_tuplesafe, is_integer_dtype,
                                 _infer_dtype_from_scalar)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
@@ -2818,8 +2818,7 @@ copy : boolean, default False
             return values
 
         if offset is None:
-            new_values = pa.empty(len(self), dtype=self.dtype)
-            new_values = _maybe_upcast(new_values)
+            new_values = pa.empty(len(self), dtype=_maybe_promote(self.dtype))
 
             if periods > 0:
                 new_values[periods:] = self.values[:-periods]

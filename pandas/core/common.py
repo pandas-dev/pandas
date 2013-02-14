@@ -651,7 +651,7 @@ def _infer_dtype_from_scalar(val):
     # a 1-element ndarray
     if isinstance(val, pa.Array):
         if val.ndim != 0:
-            raise ValueError("invalid ndarray passed to _dtype_from_scalar")
+            raise ValueError("invalid ndarray passed to _infer_dtype_from_scalar")
 
         return val.item(), val.dtype
 
@@ -719,13 +719,21 @@ def _maybe_promote(dtype, fill_value=np.nan):
 
 
 def _maybe_upcast(values):
-    # TODO: convert remaining usage of _maybe_upcast to _maybe_promote
-    if issubclass(values.dtype.type, np.integer):
-        values = values.astype(np.float64)
-    elif issubclass(values.dtype.type, np.bool_):
-        values = values.astype(np.object_)
+    """ provide explicty type promotion and coercion """
+    new_dtype = _maybe_promote(values.dtype)
+    if new_dtype != values.dtype:
+        values = values.astype(new_dtype)
     return values
- 
+
+def _possibly_cast_item(obj, item, dtype):
+    chunk = obj[item]
+
+    if chunk.values.dtype != dtype:
+        if dtype in (np.object_, np.bool_):
+            obj[item] = chunk.astype(np.object_)
+        elif not issubclass(dtype, (np.integer, np.bool_)):  # pragma: no cover
+            raise ValueError("Unexpected dtype encountered: %s" % dtype)
+
 
 def _interp_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, mask, limit=None):
@@ -925,16 +933,6 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                     pass
 
     return value
-
-
-def _possibly_cast_item(obj, item, dtype):
-    chunk = obj[item]
-
-    if chunk.values.dtype != dtype:
-        if dtype in (np.object_, np.bool_):
-            obj[item] = chunk.astype(np.object_)
-        elif not issubclass(dtype, (np.integer, np.bool_)):  # pragma: no cover
-            raise ValueError("Unexpected dtype encountered: %s" % dtype)
 
 
 def _is_bool_indexer(key):
