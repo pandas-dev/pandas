@@ -32,9 +32,9 @@ pandas 0.11.0
   - Allow mixed dtypes (e.g ``float32/float64/int32/int16/int8``) to coexist in
     DataFrames and propogate in operations
   - Add function to pandas.io.data for retrieving stock index components from
-    Yahoo! finance (#2795)
+    Yahoo! finance (GH2795_)
   - Add ``squeeze`` function to reduce dimensionality of 1-len objects
-  - Support slicing with time objects (#2681)
+  - Support slicing with time objects (GH2681_)
 
 **Improvements to existing features**
 
@@ -46,7 +46,7 @@ pandas 0.11.0
     return a datetime64[ns] dtype with non-convertibles set as ``NaT``; will
     preserve an all-nan object (e.g. strings)
   - Series print output now includes the dtype by default
-  - Optimize internal reindexing routines for upcasting cases (#2819)
+  - Optimize internal reindexing routines (GH2819_, GH2867_)
   - ``describe_option()`` now reports the default and current value of options.
 
 **API Changes**
@@ -62,7 +62,8 @@ pandas 0.11.0
     (float32/float64); other types will be operated on, and will try to cast
     back to the input dtype (e.g. if an int is passed, as long as the output
     doesn't have nans, then an int will be returned)
-  - backfill/pad/take/diff/ohlc will now support ``float32/int16/int8`` operations
+  - backfill/pad/take/diff/ohlc will now support ``float32/int16/int8``
+    operations
   - Integer block types will upcast as needed in where operations (GH2793_)
   - Series now automatically will try to set the correct dtype based on passed
     datetimelike objects (datetime/Timestamp)
@@ -83,22 +84,31 @@ pandas 0.11.0
     (e.g. np.array(datetime(2001,1,1,0,0))), w/o dtype being passed
   - 0-dim ndarrays with a passed dtype are handled correctly
     (e.g. np.array(0.,dtype='float32'))
-  - Fix some boolean indexing inconsistencies in Series __getitem__/__setitem__
+  - Fix some boolean indexing inconsistencies in Series.__getitem__/__setitem__
     (GH2776_)
+  - Fix issues with DataFrame and Series constructor with integers that
+    overflow ``int64`` and some mixed typed type lists (GH2845_)
 
   ``HDFStore``
 
     - Fix weird PyTables error when using too many selectors in a where
-    - Provide dotted attribute access to ``get`` from stores (e.g. store.df == store['df'])
-    - Internally, change all variables to be private-like (now have leading underscore)
+    - Provide dotted attribute access to ``get`` from stores
+      (e.g. store.df == store['df'])
+    - Internally, change all variables to be private-like (now have leading
+      underscore)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
+.. _GH2681: https://github.com/pydata/pandas/issues/2681
+.. _GH2747: https://github.com/pydata/pandas/issues/2747
+.. _GH2751: https://github.com/pydata/pandas/issues/2751
+.. _GH2776: https://github.com/pydata/pandas/issues/2776
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
-.. _GH2751: https://github.com/pydata/pandas/issues/2751
-.. _GH2747: https://github.com/pydata/pandas/issues/2747
-.. _GH2776: https://github.com/pydata/pandas/issues/2776
+.. _GH2795: https://github.com/pydata/pandas/issues/2795
+.. _GH2819: https://github.com/pydata/pandas/issues/2819
+.. _GH2845: https://github.com/pydata/pandas/issues/2845
+.. _GH2867: https://github.com/pydata/pandas/issues/2867
 
 pandas 0.10.1
 =============
@@ -107,7 +117,7 @@ pandas 0.10.1
 
 **New features**
 
-  - Add data inferface to World Bank WDI pandas.io.wb (#2592)
+  - Add data inferface to World Bank WDI pandas.io.wb (GH2592_)
 
 **API Changes**
 
@@ -125,7 +135,8 @@ pandas 0.10.1
   - ``HDFStore``
 
     - enables storing of multi-index dataframes (closes GH1277_)
-    - support data column indexing and selection, via ``data_columns`` keyword in append
+    - support data column indexing and selection, via ``data_columns`` keyword
+      in append
     - support write chunking to reduce memory footprint, via ``chunksize``
       keyword to append
     - support automagic indexing via ``index`` keyword to append
@@ -138,11 +149,14 @@ pandas 0.10.1
     - added methods append_to_multiple/select_as_multiple/select_as_coordinates
       to do multiple-table append/selection
     - added support for datetime64 in columns
-    - added method ``unique`` to select the unique values in an indexable or data column
+    - added method ``unique`` to select the unique values in an indexable or
+      data column
     - added method ``copy`` to copy an existing store (and possibly upgrade)
-    - show the shape of the data on disk for non-table stores when printing the store
-    - added ability to read PyTables flavor tables (allows compatiblity to other HDF5 systems)
-  - Add ``logx`` option to DataFrame/Series.plot (GH2327_, #2565)
+    - show the shape of the data on disk for non-table stores when printing the
+      store
+    - added ability to read PyTables flavor tables (allows compatiblity to
+      other HDF5 systems)
+  - Add ``logx`` option to DataFrame/Series.plot (GH2327_, GH2565_)
   - Support reading gzipped data from file-like object
   - ``pivot_table`` aggfunc can be anything used in GroupBy.aggregate (GH2643_)
   - Implement DataFrame merges in case where set cardinalities might overflow
@@ -173,11 +187,12 @@ pandas 0.10.1
   - Fix DatetimeIndex handling of FixedOffset tz (GH2604_)
   - More robust detection of being in IPython session for wide DataFrame
     console formatting (GH2585_)
-  - Fix platform issues with ``file:///`` in unit test (#2564)
+  - Fix platform issues with ``file:///`` in unit test (GH2564_)
   - Fix bug and possible segfault when grouping by hierarchical level that
     contains NA values (GH2616_)
-  - Ensure that MultiIndex tuples can be constructed with NAs (seen in #2616)
-  - Fix int64 overflow issue when unstacking MultiIndex with many levels (#2616)
+  - Ensure that MultiIndex tuples can be constructed with NAs (GH2616_)
+  - Fix int64 overflow issue when unstacking MultiIndex with many levels
+    (GH2616_)
   - Exclude non-numeric data from DataFrame.quantile by default (GH2625_)
   - Fix a Cython C int64 boxing issue causing read_csv to return incorrect
     results (GH2599_)
@@ -188,12 +203,14 @@ pandas 0.10.1
   - Fix C parser-tokenizer bug with trailing fields. (GH2668_)
   - Don't exclude non-numeric data from GroupBy.max/min (GH2700_)
   - Don't lose time zone when calling DatetimeIndex.drop (GH2621_)
-  - Fix setitem on a Series with a boolean key and a non-scalar as value (GH2686_)
+  - Fix setitem on a Series with a boolean key and a non-scalar as value
+    (GH2686_)
   - Box datetime64 values in Series.apply/map (GH2627_, GH2689_)
   - Upconvert datetime + datetime64 values when concatenating frames (GH2624_)
   - Raise a more helpful error message in merge operations when one DataFrame
     has duplicate columns (GH2649_)
-  - Fix partial date parsing issue occuring only when code is run at EOM  (GH2618_)
+  - Fix partial date parsing issue occuring only when code is run at EOM
+    (GH2618_)
   - Prevent MemoryError when using counting sort in sortlevel with
     high-cardinality MultiIndex objects (GH2684_)
   - Fix Period resampling bug when all values fall into a single bin (GH2070_)
@@ -204,6 +221,7 @@ pandas 0.10.1
 .. _GH1277: https://github.com/pydata/pandas/issues/1277
 .. _GH2070: https://github.com/pydata/pandas/issues/2070
 .. _GH2327: https://github.com/pydata/pandas/issues/2327
+.. _GH2565: https://github.com/pydata/pandas/issues/2565
 .. _GH2585: https://github.com/pydata/pandas/issues/2585
 .. _GH2599: https://github.com/pydata/pandas/issues/2599
 .. _GH2604: https://github.com/pydata/pandas/issues/2604
@@ -232,6 +250,9 @@ pandas 0.10.1
 .. _GH2694: https://github.com/pydata/pandas/issues/2694
 .. _GH2686: https://github.com/pydata/pandas/issues/2686
 .. _GH2618: https://github.com/pydata/pandas/issues/2618
+.. _GH2592: https://github.com/pydata/pandas/issues/2592
+.. _GH2564: https://github.com/pydata/pandas/issues/2564
+.. _GH2616: https://github.com/pydata/pandas/issues/2616
 
 pandas 0.10.0
 =============
@@ -708,7 +729,7 @@ pandas 0.9.1
 .. _GH2117: https://github.com/pydata/pandas/issues/2117
 .. _GH2133: https://github.com/pydata/pandas/issues/2133
 .. _GH2114: https://github.com/pydata/pandas/issues/2114
-.. _GH2527: https://github.com/pydata/pandas/issues/2114
+.. _GH2527: https://github.com/pydata/pandas/issues/2527
 .. _GH2128: https://github.com/pydata/pandas/issues/2128
 .. _GH2008: https://github.com/pydata/pandas/issues/2008
 .. _GH2179: https://github.com/pydata/pandas/issues/2179
