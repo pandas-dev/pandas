@@ -23,13 +23,13 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _is_sequence)
+                                _default_index, _is_sequence, _infer_dtype_from_scalar)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
                                   _is_index_slice, _check_bool_indexer)
 from pandas.core.internals import BlockManager, make_block, form_blocks
-from pandas.core.series import Series, _radd_compat, _dtype_from_scalar
+from pandas.core.series import Series, _radd_compat
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
@@ -390,12 +390,8 @@ class DataFrame(NDFrame):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
             mask = ma.getmaskarray(data)
-            datacopy = ma.copy(data)
-            if issubclass(data.dtype.type, np.datetime64):
-                datacopy[mask] = tslib.iNaT
-            else:
-                datacopy = com._maybe_upcast(datacopy)
-                datacopy[mask] = NA
+            datacopy, fill_value = com._maybe_upcast(data, copy=True)
+            datacopy[mask] = fill_value
             mgr = self._init_ndarray(datacopy, index, columns, dtype=dtype,
                                      copy=copy)
         elif isinstance(data, np.ndarray):
@@ -437,7 +433,7 @@ class DataFrame(NDFrame):
                 if isinstance(data, basestring) and dtype is None:
                     dtype = np.object_
                 if dtype is None:
-                    data, dtype = _dtype_from_scalar(data)
+                    dtype, data = _infer_dtype_from_scalar(data)
 
                 values = np.empty((len(index), len(columns)), dtype=dtype)
                 values.fill(data)
@@ -1234,7 +1230,7 @@ class DataFrame(NDFrame):
         panel : Panel
         """
         from pandas.core.panel import Panel
-        from pandas.core.reshape import block2d_to_block3d
+        from pandas.core.reshape import block2d_to_blocknd
 
         # only support this kind for now
         if (not isinstance(self.index, MultiIndex) or
@@ -1261,8 +1257,8 @@ class DataFrame(NDFrame):
 
         new_blocks = []
         for block in selfsorted._data.blocks:
-            newb = block2d_to_block3d(block.values.T, block.items, shape,
-                                      major_labels, minor_labels,
+            newb = block2d_to_blocknd(block.values.T, block.items, shape,
+                                      [ major_labels, minor_labels ],
                                       ref_items=selfsorted.columns)
             new_blocks.append(newb)
 
@@ -1878,7 +1874,7 @@ class DataFrame(NDFrame):
             new_index, new_columns = self._expand_axes((index, col))
             result = self.reindex(index=new_index, columns=new_columns,
                                   copy=False)
-            likely_dtype = com._infer_dtype(value)
+            likely_dtype, value = _infer_dtype_from_scalar(value)
 
             made_bigger = not np.array_equal(new_columns, self.columns)
 
@@ -2207,6 +2203,9 @@ class DataFrame(NDFrame):
             if key in self.columns:
                 existing_piece = self[key]
 
+                # upcast the scalar
+                dtype, value = _infer_dtype_from_scalar(value)
+
                 # transpose hack
                 if isinstance(existing_piece, DataFrame):
                     shape = (len(existing_piece.columns), len(self.index))
@@ -2214,14 +2213,14 @@ class DataFrame(NDFrame):
                 else:
                     value = np.repeat(value, len(self.index))
 
-                    # special case for now
-                    if (com.is_float_dtype(existing_piece) and
-                            com.is_integer_dtype(value)):
-                        value = value.astype(np.float64)
+                value = value.astype(dtype)
 
             else:
-                value = np.repeat(value, len(self.index))
+                # upcast the scalar
+                dtype, value = _infer_dtype_from_scalar(value)
+                value = np.array(np.repeat(value, len(self.index)), dtype=dtype)
 
+            value = com._possibly_cast_to_datetime(value, dtype)
         return np.atleast_2d(np.asarray(value))
 
     def pop(self, item):
@@ -5460,11 +5459,17 @@ def _prep_ndarray(values, copy=True):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
 
-        arr = np.asarray(values)
-        # NumPy strings are a pain, convert to object
-        if issubclass(arr.dtype.type, basestring):
-            arr = np.array(values, dtype=object, copy=True)
-        values = arr
+        def convert(v):
+            return com._possibly_convert_platform(v)
+
+        # we could have a 1-dim or 2-dim list here
+        # this is equiv of np.asarray, but does object conversion
+        # and platform dtype preservation
+        if com.is_list_like(values[0]) or hasattr(values[0],'len'):
+            values = np.array([ convert(v) for v in values])
+        else:
+            values = convert(values)
+
     else:
         # drop subclass info, do not copy data
         values = np.asarray(values)

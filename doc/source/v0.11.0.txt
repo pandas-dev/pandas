@@ -3,7 +3,7 @@
 v0.11.0 (March ??, 2013)
 ------------------------
 
-This is a minor release from 0.10.1 and includes many new features and
+This is a major release from 0.10.1 and includes many new features and
 enhancements along with a large number of bug fixes. There are also a number of
 important API changes that long-time pandas users should pay close attention
 to.
@@ -13,7 +13,8 @@ API changes
 
 Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
-**Dtype Specification**
+Dtype Specification
+~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -29,7 +30,8 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
    df3
    df3.dtypes
 
-**Dtype conversion**
+Dtype Conversion
+~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
@@ -53,6 +55,26 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
    s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1,
                Timestamp('20010104'), '20010105'],dtype='O')
    s.convert_objects(convert_dates='coerce')
+
+Dtype Gotchas
+~~~~~~~~~~~~~
+
+**Platform Gotchas**
+
+Starting in 0.11.0, construction of DataFrame/Series will use default dtypes of ``int64`` and ``float64``,
+*regardless of platform*. This is not an apparent change from earlier versions of pandas. If you specify
+dtypes, they *WILL* be respected, however (GH2837_)
+
+The following will all result in ``int64`` dtypes
+
+.. ipython:: python
+
+    DataFrame([1,2],columns=['a']).dtypes
+    DataFrame({'a' : [1,2] }).dtypes
+    DataFrame({'a' : 1 }, index=range(2)).dtypes
+
+Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on 32-bit platforms!
+
 
 **Upcasting Gotchas**
 
@@ -82,21 +104,13 @@ While float dtypes are unchanged.
    casted
    casted.dtypes
 
-New features
-~~~~~~~~~~~~
+Datetimes Conversion
+~~~~~~~~~~~~~~~~~~~~
 
-**Enhancements**
-
-  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores (e.g. store.df == store['df'])
-
-**Bug Fixes**
-
-See the `full release notes
-<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
-on GitHub for a complete list.
-
-
-Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way. Furthermore datetime64 columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
+Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, 
+in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way.
+Furthermore ``datetime64[ns]`` columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
+(GH2809_, GH2810_)
 
 .. ipython:: python
 
@@ -111,8 +125,7 @@ Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` 
    df.ix[2:4,['A','timestamp']] = np.nan
    df
 
-Astype conversion on datetime64[ns] to object, implicity converts ``NaT`` to ``np.nan``
-
+Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`` to ``np.nan``
 
 .. ipython:: python
 
@@ -127,13 +140,32 @@ Astype conversion on datetime64[ns] to object, implicity converts ``NaT`` to ``n
    s.dtype
 
 
-``Squeeze`` to possibly remove length 1 dimensions from an object.
+New features
+~~~~~~~~~~~~
 
-.. ipython:: python
+**Enhancements**
 
-   p = Panel(randn(3,4,4),items=['ItemA','ItemB','ItemC'],
+  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
+    (e.g. store.df == store['df'])
+
+  - ``Squeeze`` to possibly remove length 1 dimensions from an object.
+
+    .. ipython:: python
+
+       p = Panel(randn(3,4,4),items=['ItemA','ItemB','ItemC'],
                           major_axis=date_range('20010102',periods=4),
                           minor_axis=['A','B','C','D'])
-   p
-   p.reindex(items=['ItemA']).squeeze()
-   p.reindex(items=['ItemA'],minor=['B']).squeeze()
+       p
+       p.reindex(items=['ItemA']).squeeze()
+       p.reindex(items=['ItemA'],minor=['B']).squeeze()
+
+**Bug Fixes**
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+
+.. _GH2809: https://github.com/pydata/pandas/issues/2809
+.. _GH2810: https://github.com/pydata/pandas/issues/2810
+.. _GH2837: https://github.com/pydata/pandas/issues/2837
+
