@@ -358,7 +358,7 @@ class CheckIndexing(object):
         # scalar
         self.panel4d['lG'] = 1
         self.panel4d['lE'] = True
-        self.assert_(self.panel4d['lG'].values.dtype == np.int_)
+        self.assert_(self.panel4d['lG'].values.dtype == np.int64)
         self.assert_(self.panel4d['lE'].values.dtype == np.bool_)
 
         # object dtype

@@ -53,6 +53,9 @@ pandas 0.11.0
 
   - Do not automatically upcast numeric specified dtypes to ``int64`` or
     ``float64`` (GH622_ and GH797_)
+  - DataFrame construction of lists and scalars, with no dtype present, will
+    result in casting to ``int64`` or ``float64``, regardless of platform.
+    This is not an apparent change in the API, but noting it.
   - Guarantee that ``convert_objects()`` for Series/DataFrame always returns a
     copy
   - groupby operations will respect dtypes for numeric float operations

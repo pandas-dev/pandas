@@ -9,7 +9,8 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
 from pandas.core.categorical import Categorical
-from pandas.core.common import notnull, _ensure_platform_int
+from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
+                                _maybe_upcast)
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
@@ -148,11 +149,10 @@ class _Unstacker(object):
         stride = values.shape[1]
         result_width = width * stride
 
-        new_values = np.empty((length, result_width), dtype=values.dtype)
+        dtype, fill_value = _maybe_promote(values.dtype)
+        new_values = np.empty((length, result_width), dtype=dtype)
+        new_values.fill(fill_value)
         new_mask = np.zeros((length, result_width), dtype=bool)
-
-        new_values = com._maybe_upcast(new_values)
-        new_values.fill(np.nan)
 
         # is there a simpler / faster way of doing this?
         for i in xrange(values.shape[1]):
@@ -761,40 +761,6 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     return DataFrame(values, columns=items, index=frame.index)
 
 
-def block2d_to_block3d(values, items, shape, major_labels, minor_labels,
-                       ref_items=None):
-    """
-    Developer method for pivoting DataFrame -> Panel. Used in HDFStore and
-    DataFrame.to_panel
-    """
-    from pandas.core.internals import make_block
-    panel_shape = (len(items),) + shape
-
-    # TODO: lexsort depth needs to be 2!!
-
-    # Create observation selection vector using major and minor
-    # labels, for converting to panel format.
-    selector = minor_labels + shape[1] * major_labels
-    mask = np.zeros(np.prod(shape), dtype=bool)
-    mask.put(selector, True)
-
-    pvalues = np.empty(panel_shape, dtype=values.dtype)
-    if not issubclass(pvalues.dtype.type, (np.integer, np.bool_)):
-        pvalues.fill(np.nan)
-    elif not mask.all():
-        pvalues = com._maybe_upcast(pvalues)
-        pvalues.fill(np.nan)
-
-    values = values
-    for i in xrange(len(items)):
-        pvalues[i].flat[mask] = values[:, i]
-
-    if ref_items is None:
-        ref_items = items
-
-    return make_block(pvalues, items, ref_items)
-
-
 def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
     """ pivot to the labels shape """
     from pandas.core.internals import make_block
@@ -808,12 +774,12 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
     mask = np.zeros(np.prod(shape), dtype=bool)
     mask.put(selector, True)
 
-    pvalues = np.empty(panel_shape, dtype=values.dtype)
-    if not issubclass(pvalues.dtype.type, (np.integer, np.bool_)):
-        pvalues.fill(np.nan)
-    elif not mask.all():
-        pvalues = com._maybe_upcast(pvalues)
-        pvalues.fill(np.nan)
+    if mask.all():
+        pvalues = np.empty(panel_shape, dtype=values.dtype)
+    else:
+        dtype, fill_value = _maybe_promote(values.dtype)
+        pvalues = np.empty(panel_shape, dtype=dtype)
+        pvalues.fill(fill_value)
 
     values = values
     for i in xrange(len(items)):

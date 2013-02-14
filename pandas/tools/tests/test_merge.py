@@ -287,7 +287,7 @@ class TestMerge(unittest.TestCase):
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
-        self.assert_(df1['B'].dtype == np.int)
+        self.assert_(df1['B'].dtype == np.int64)
         self.assert_(df1['D'].dtype == np.bool_)
 
         df2 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
