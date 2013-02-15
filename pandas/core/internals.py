@@ -304,14 +304,15 @@ class Block(object):
         if self._can_hold_element(new):
             new = self._try_cast(new)
             np.putmask(new_values, mask, new)
-        # upcast me
-        else:
+
+        # maybe upcast me
+        elif mask.any():
             # type of the new block
             if ((isinstance(new, np.ndarray) and issubclass(new.dtype, np.number)) or
                     isinstance(new, float)):
-                typ = float
+                typ = np.float64
             else:
-                typ = object
+                typ = np.object_
 
             # we need to exiplicty astype here to make a copy
             new_values = new_values.astype(typ)
@@ -384,17 +385,16 @@ class Block(object):
             new_values[:, periods:] = fill_value
         return make_block(new_values, self.items, self.ref_items)
 
-    def where(self, func, other, cond = None, raise_on_error = True, try_cast = False):
+    def eval(self, func, other, raise_on_error = True, try_cast = False):
         """ 
-        evaluate the block; return result block(s) from the result 
+        evaluate the block; return result block from the result 
 
         Parameters
         ----------
         func  : how to combine self, other
         other : a ndarray/object
-        cond  : the condition to respect, optional
-        raise_on_error : if True, raise when I can't perform the function,
-            False by default (and just return the data that we had coming in)
+        raise_on_error : if True, raise when I can't perform the function, False by default (and just return
+             the data that we had coming in)
 
         Returns
         -------
@@ -414,28 +414,7 @@ class Block(object):
                 values = values.T
                 is_transposed = True
 
-        # see if we can align cond
-        if cond is not None:
-            if not hasattr(cond, 'shape'):
-                raise ValueError('where must have a condition that is ndarray'
-                                 ' like')
-            if hasattr(cond, 'reindex_axis'):
-                axis = getattr(cond, '_het_axis', 0)
-                cond = cond.reindex_axis(self.items, axis=axis,
-                                         copy=True).values
-            else:
-                cond = cond.values
-
-            # may need to undo transpose of values
-            if hasattr(values, 'ndim'):
-                if (values.ndim != cond.ndim or
-                        values.shape == cond.shape[::-1]):
-                    values = values.T
-                    is_transposed =  not is_transposed
-
         args = [ values, other ]
-        if cond is not None:
-            args.append(cond)
         try:
             result = func(*args)
         except:
@@ -458,7 +437,106 @@ class Block(object):
         if try_cast:
             result = self._try_cast_result(result)
 
-        return [ make_block(result, self.items, self.ref_items) ]
+        return make_block(result, self.items, self.ref_items)
+
+    def where(self, other, cond, raise_on_error = True, try_cast = False):
+        """ 
+        evaluate the block; return result block(s) from the result 
+
+        Parameters
+        ----------
+        other : a ndarray/object
+        cond  : the condition to respect
+        raise_on_error : if True, raise when I can't perform the function, False by default (and just return
+             the data that we had coming in)
+
+        Returns
+        -------
+        a new block(s), the result of the func
+        """
+
+        values = self.values
+
+        # see if we can align other
+        if hasattr(other,'reindex_axis'):
+            axis = getattr(other,'_het_axis',0)
+            other = other.reindex_axis(self.items, axis=axis, copy=True).values
+
+        # make sure that we can broadcast
+        is_transposed = False
+        if hasattr(other, 'ndim') and hasattr(values, 'ndim'):
+            if values.ndim != other.ndim or values.shape == other.shape[::-1]:
+                values = values.T
+                is_transposed = True
+
+        # see if we can align cond
+        if not hasattr(cond,'shape'):
+            raise ValueError("where must have a condition that is ndarray like")
+        if hasattr(cond,'reindex_axis'):
+            axis = getattr(cond,'_het_axis',0)
+            cond = cond.reindex_axis(self.items, axis=axis, copy=True).values
+        else:
+            cond = cond.values
+
+        # may need to undo transpose of values
+        if hasattr(values, 'ndim'):
+            if values.ndim != cond.ndim or values.shape == cond.shape[::-1]:
+                values = values.T
+                is_transposed =  not is_transposed
+
+        # our where function
+        def func(c,v,o):
+            if c.flatten().all():
+                return v
+            
+            try:
+                return np.where(c,v,o)
+            except:
+                if raise_on_error:
+                    raise TypeError('Coulnd not operate %s with block values'
+                                    % repr(o))
+                else:
+                    # return the values
+                    result = np.empty(v.shape,dtype='float64')
+                    result.fill(np.nan)
+                    return result
+
+        def create_block(result, items, transpose = True):
+            if not isinstance(result, np.ndarray):
+                raise TypeError('Could not compare %s with block values'
+                                % repr(other))
+
+            if transpose and is_transposed:
+                result = result.T
+
+            # try to cast if requested
+            if try_cast:
+                result = self._try_cast_result(result)
+
+            return make_block(result, items, self.ref_items)
+
+        # see if we can operate on the entire block, or need item-by-item
+        if not self._can_hold_na:
+            axis = cond.ndim-1
+            result_blocks = []
+            for item in self.items:
+                loc  = self.items.get_loc(item)
+                item = self.items.take([loc])
+                v    = values.take([loc],axis=axis)
+                c    = cond.take([loc],axis=axis)
+                o    = other.take([loc],axis=axis) if hasattr(other,'shape') else other
+
+                result = func(c,v,o)
+                if len(result) == 1:
+                    result = np.repeat(result,self.shape[1:])
+
+                result = result.reshape(((1,) + self.shape[1:]))
+                result_blocks.append(create_block(result, item, transpose = False))
+
+            return result_blocks
+        else:
+            result = func(cond,values,other)
+            return create_block(result, self.items)
 
 def _mask_missing(array, missing_values):
     if not isinstance(missing_values, (list, np.ndarray)):
@@ -839,6 +917,9 @@ class BlockManager(object):
 
     def where(self, *args, **kwargs):
         return self.apply('where', *args, **kwargs)
+
+    def eval(self, *args, **kwargs):
+        return self.apply('eval', *args, **kwargs)
 
     def putmask(self, *args, **kwargs):
         return self.apply('putmask', *args, **kwargs)
