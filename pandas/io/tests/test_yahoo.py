@@ -74,6 +74,7 @@ class TestYahoo(unittest.TestCase):
     @slow
     @network
     def test_get_data(self):
+        import numpy as np
         #single symbol
         #http://finance.yahoo.com/q/hp?s=GOOG&a=09&b=08&c=2010&d=09&e=10&f=2010&g=d
         df = web.get_data_yahoo('GOOG')
@@ -82,6 +83,8 @@ class TestYahoo(unittest.TestCase):
         sl = ['AAPL', 'AMZN', 'GOOG']
         pan = web.get_data_yahoo(sl, '2012')
         ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
+        # the provider results are subject to change, disabled. GH2847
+        # assert result == expected
         assert ts[0].dayofyear == 96
 
         dfi = web.get_components_yahoo('^DJI')
@@ -94,7 +97,13 @@ class TestYahoo(unittest.TestCase):
                                  adjust_price=True)
         expected = [18.38, 27.45, 24.54]
         result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
-        assert result == expected
+        # the provider results are subject to change, disabled. GH2847
+        # assert result == expected
+
+        # sanity checking
+        t= np.array(result)
+        assert     np.issubdtype(t.dtype, np.floating)
+        assert     t.shape == (3,)
 
         pan = web.get_data_yahoo(dfi, '2011', ret_index=True)
         d = [[ 1.01757469,  1.01130524,  1.02414183],
@@ -104,7 +113,13 @@ class TestYahoo(unittest.TestCase):
 
         expected = pd.DataFrame(d)
         result = pan.Ret_Index.ix['01-18-11':'01-21-11'][['GE', 'INTC', 'MSFT']]
-        assert_almost_equal(result.values, expected.values)
+        # the provider results are subject to change, disabled. GH2847
+        # assert_almost_equal(result.values, expected.values)
+
+        # sanity checking
+        t= np.array(result)
+        assert     np.issubdtype(t.dtype, np.floating)
+        assert     t.shape == (4, 3)
 
 
 if __name__ == '__main__':
