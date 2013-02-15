@@ -425,6 +425,11 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     tuples = []
     for i in range(nlevels):
+        def keyfunc(x):
+            import re
+            numeric_tuple = re.sub("[^\d_]_?","",x).split("_")
+            return map(int,numeric_tuple)
+
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
         cnt = Counter()
@@ -432,7 +437,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
             label = prefix + '_l%d_g' % i + str(j)
             cnt[label] = ndupe_l[i]
         # cute Counter trick
-        result = list(sorted(cnt.elements()))[:nentries]
+        result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
         tuples.append(result)
 
     tuples = zip(*tuples)
