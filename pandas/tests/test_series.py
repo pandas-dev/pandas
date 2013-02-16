@@ -40,7 +40,7 @@ def _skip_if_no_pytz():
     except ImportError:
         raise nose.SkipTest
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Series test cases
 
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
@@ -340,6 +340,65 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         index = ['a', 'b', 'c']
         result = Series(data, index=index)
         expected = Series([0.0, nan, 2.0], index=index)
+        assert_series_equal(result, expected)
+
+        data[1] = 1.0
+        result = Series(data, index=index)
+        expected = Series([0.0, 1.0, 2.0], index=index)
+        assert_series_equal(result, expected)
+
+        data = ma.masked_all((3,), dtype=int)
+        result = Series(data)
+        expected = Series([nan, nan, nan], dtype=float)
+        assert_series_equal(result, expected)
+
+        data[0] = 0
+        data[2] = 2
+        index = ['a', 'b', 'c']
+        result = Series(data, index=index)
+        expected = Series([0, nan, 2], index=index, dtype=float)
+        assert_series_equal(result, expected)
+
+        data[1] = 1
+        result = Series(data, index=index)
+        expected = Series([0, 1, 2], index=index, dtype=int)
+        assert_series_equal(result, expected)
+
+        data = ma.masked_all((3,), dtype=bool)
+        result = Series(data)
+        expected = Series([nan, nan, nan], dtype=object)
+        assert_series_equal(result, expected)
+
+        data[0] = True
+        data[2] = False
+        index = ['a', 'b', 'c']
+        result = Series(data, index=index)
+        expected = Series([True, nan, False], index=index, dtype=object)
+        assert_series_equal(result, expected)
+
+        data[1] = True
+        result = Series(data, index=index)
+        expected = Series([True, True, False], index=index, dtype=bool)
+        assert_series_equal(result, expected)
+
+        from pandas import tslib
+        data = ma.masked_all((3,), dtype='M8[ns]')
+        result = Series(data)
+        expected = Series([tslib.iNaT, tslib.iNaT, tslib.iNaT], dtype='M8[ns]')
+        assert_series_equal(result, expected)
+
+        data[0] = datetime(2001, 1, 1)
+        data[2] = datetime(2001, 1, 3)
+        index = ['a', 'b', 'c']
+        result = Series(data, index=index)
+        expected = Series([datetime(2001, 1, 1), tslib.iNaT,
+                           datetime(2001, 1, 3)], index=index, dtype='M8[ns]')
+        assert_series_equal(result, expected)
+
+        data[1] = datetime(2001, 1, 2)
+        result = Series(data, index=index)
+        expected = Series([datetime(2001, 1, 1), datetime(2001, 1, 2),
+                           datetime(2001, 1, 3)], index=index, dtype='M8[ns]')
         assert_series_equal(result, expected)
 
     def test_constructor_default_index(self):
@@ -2922,7 +2981,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.convert_objects(convert_dates=True,convert_numeric=False)
         expected = Series([Timestamp('20010101'),Timestamp('20010102'),Timestamp('20010103')],dtype='M8[ns]')
         assert_series_equal(expected,result)
-        
+
         result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
         assert_series_equal(expected,result)
         result = s.convert_objects(convert_dates='coerce',convert_numeric=True)
@@ -3306,7 +3365,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s.fillna(method='ffill', inplace=True)
         assert_series_equal(s.fillna(method='ffill', inplace=False), s)
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # TimeSeries-specific
 
     def test_fillna(self):
@@ -3569,7 +3628,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = self.ts.values[:, np.newaxis]
         assert_almost_equal(result, expected)
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # GroupBy
 
     def test_select(self):
@@ -3582,7 +3641,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = self.ts[self.ts.weekday == 2]
         assert_series_equal(result, expected)
 
-#----------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Misc not safe for sparse
 
     def test_dropna_preserve_name(self):
