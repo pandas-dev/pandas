@@ -975,12 +975,17 @@ class YearBegin(DateOffset, CacheableOffset):
 
     def apply(self, other):
         def _increment(date):
-            year = date.year if date.month < self.month else date.year + 1
+            year = date.year
+            if date.month >= self.month:
+                year += 1
             return datetime(year, self.month, 1, date.hour, date.minute,
                             date.second, date.microsecond)
 
         def _decrement(date):
-            year = date.year if date.month > self.month else date.year - 1
+            year = date.year
+            if date.month < self.month or (date.month == self.month and
+                                           date.day == 1):
+                year -= 1
             return datetime(year, self.month, 1, date.hour, date.minute,
                             date.second, date.microsecond)
 

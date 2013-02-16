@@ -1128,6 +1128,7 @@ class TestYearBegin(unittest.TestCase):
 
         tests.append((YearBegin(-1),
                       {datetime(2007, 1, 1): datetime(2006, 1, 1),
+                       datetime(2007, 1, 15): datetime(2007, 1, 1),
                        datetime(2008, 6, 30): datetime(2008, 1, 1),
                        datetime(2008, 12, 31): datetime(2008, 1, 1),
                        datetime(2006, 12, 29): datetime(2006, 1, 1),
@@ -1141,6 +1142,7 @@ class TestYearBegin(unittest.TestCase):
 
         tests.append((YearBegin(month=4),
                       {datetime(2007, 4, 1): datetime(2008, 4, 1),
+                       datetime(2007, 4, 15): datetime(2008, 4, 1),
                        datetime(2007, 3, 1): datetime(2007, 4, 1),
                        datetime(2007, 12, 15): datetime(2008, 4, 1),
                        datetime(2012, 1, 31): datetime(2012, 4, 1), }))
