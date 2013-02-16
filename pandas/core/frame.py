@@ -604,6 +604,8 @@ class DataFrame(NDFrame):
         Check if it is needed to use info/summary view to represent a
         particular DataFrame.
         """
+        if not get_option("display.expand_frame_repr"):
+            return True
 
         if com.in_qtconsole():
             terminal_width, terminal_height = 100, 100
@@ -612,11 +614,10 @@ class DataFrame(NDFrame):
         max_rows = (terminal_height if get_option("display.max_rows") == 0
                     else get_option("display.max_rows"))
         max_columns = get_option("display.max_columns")
-        expand_repr = get_option("display.expand_frame_repr")
 
         if max_columns > 0:
             if (len(self.index) <= max_rows and
-                    (len(self.columns) <= max_columns and expand_repr)):
+                    (len(self.columns) <= max_columns)):
                 return False
             else:
                 return True
@@ -624,16 +625,14 @@ class DataFrame(NDFrame):
             # save us
             if (len(self.index) > max_rows or
                 (com.in_interactive_session() and
-                 len(self.columns) > terminal_width // 2 and
-                 not expand_repr)):
+                 len(self.columns) > terminal_width // 2)):
                 return True
             else:
                 buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
                 if (max([len(l) for l in value.split('\n')]) > terminal_width
-                    and com.in_interactive_session()
-                        and not expand_repr):
+                    and com.in_interactive_session()):
                     return True
                 else:
                     return False
