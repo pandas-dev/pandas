@@ -43,12 +43,14 @@ class TestYahoo(unittest.TestCase):
                 raise
 
 
+    @slow
     @network
     def test_get_quote(self):
         df = web.get_quote_yahoo(pd.Series(['GOOG', 'AAPL', 'GOOG']))
         assert_series_equal(df.ix[0], df.ix[2])
 
 
+    @slow
     @network
     def test_get_components(self):
 
@@ -70,8 +72,10 @@ class TestYahoo(unittest.TestCase):
         assert 'AMZN' in df.index
 
 
+    @slow
     @network
     def test_get_data(self):
+        import numpy as np
         #single symbol
         #http://finance.yahoo.com/q/hp?s=GOOG&a=09&b=08&c=2010&d=09&e=10&f=2010&g=d
         df = web.get_data_yahoo('GOOG')
@@ -88,6 +92,11 @@ class TestYahoo(unittest.TestCase):
         result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
         assert result == expected
 
+        # sanity checking
+        t= np.array(result)
+        assert     np.issubdtype(t.dtype, np.floating)
+        assert     t.shape == (3,)
+
         expected = [[ 18.99,  28.4 ,  25.18],
                     [ 18.58,  28.31,  25.13],
                     [ 19.03,  28.16,  25.52],
@@ -102,6 +111,10 @@ class TestYahoo(unittest.TestCase):
         result = pan.Ret_Index.ix[tstamp]['INTC']
         expected = 1.0
         assert result == expected
+
+        # sanity checking
+        t= np.array(result)
+        assert     np.issubdtype(t.dtype, np.floating)
 
 
 if __name__ == '__main__':
