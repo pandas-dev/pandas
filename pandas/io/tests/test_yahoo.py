@@ -83,8 +83,6 @@ class TestYahoo(unittest.TestCase):
         sl = ['AAPL', 'AMZN', 'GOOG']
         pan = web.get_data_yahoo(sl, '2012')
         ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
-        # the provider results are subject to change, disabled. GH2847
-        # assert result == expected
         assert ts[0].dayofyear == 96
 
         dfi = web.get_components_yahoo('^DJI')
@@ -93,33 +91,29 @@ class TestYahoo(unittest.TestCase):
         result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
         assert result == expected
 
-        pan = web.get_data_yahoo(dfi, 'JAN-01-12', 'JAN-31-12',
-                                 adjust_price=True)
-        expected = [18.38, 27.45, 24.54]
-        result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
-        # the provider results are subject to change, disabled. GH2847
-        # assert result == expected
-
         # sanity checking
         t= np.array(result)
         assert     np.issubdtype(t.dtype, np.floating)
         assert     t.shape == (3,)
 
-        pan = web.get_data_yahoo(dfi, '2011', ret_index=True)
-        d = [[ 1.01757469,  1.01130524,  1.02414183],
-             [ 1.00292912,  1.00770812,  1.01735194],
-             [ 1.00820152,  1.00462487,  1.01320257],
-             [ 1.08025776,  0.99845838,  1.00113165]]
+        expected = [[ 18.99,  28.4 ,  25.18],
+                    [ 18.58,  28.31,  25.13],
+                    [ 19.03,  28.16,  25.52],
+                    [ 18.81,  28.82,  25.87]]
+        result = pan.Open.ix['Jan-15-12':'Jan-20-12'][['GE', 'MSFT', 'INTC']].values
+        assert (result == expected).all()
 
-        expected = pd.DataFrame(d)
-        result = pan.Ret_Index.ix['01-18-11':'01-21-11'][['GE', 'INTC', 'MSFT']]
-        # the provider results are subject to change, disabled. GH2847
-        # assert_almost_equal(result.values, expected.values)
+        #Check ret_index
+        pan = web.get_data_yahoo(['GE', 'INTC', 'IBM'], '1977', '1987',
+                                 ret_index=True)
+        tstamp = pan.Ret_Index.INTC.first_valid_index()
+        result = pan.Ret_Index.ix[tstamp]['INTC']
+        expected = 1.0
+        assert result == expected
 
         # sanity checking
-        t= np.array(result)
+        t= np.array(pan)
         assert     np.issubdtype(t.dtype, np.floating)
-        assert     t.shape == (4, 3)
 
 
 if __name__ == '__main__':
