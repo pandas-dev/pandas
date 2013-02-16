@@ -107,7 +107,7 @@ While float dtypes are unchanged.
 Datetimes Conversion
 ~~~~~~~~~~~~~~~~~~~~
 
-Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value, 
+Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value,
 in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way.
 Furthermore ``datetime64[ns]`` columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
 (GH2809_, GH2810_)
@@ -158,6 +158,25 @@ New features
        p
        p.reindex(items=['ItemA']).squeeze()
        p.reindex(items=['ItemA'],minor=['B']).squeeze()
+
+  - In ``pd.io.data.Options``,
+
+    + Fix bug when trying to fetch data for the current month when already
+      past expiry.
+    + Now using lxml to scrape html instead of BeautifulSoup (lxml was faster).
+    + New instance variables for calls and puts are automatically created
+      when a method that creates them is called. This works for current month
+      where the instance variables are simply ``calls`` and ``puts``. Also
+      works for future expiry months and save the instance variable as
+      ``callsMMYY`` or ``putsMMYY``, where ``MMYY`` are, respectively, the
+      month and year of the option's expiry.
+    + ``Options.get_near_stock_price`` now allows the user to specify the
+      month for which to get relevant options data.
+    + ``Options.get_forward_data`` now has optional kwargs ``near`` and
+      ``above_below``. This allows the user to specify if they would like to
+      only return forward looking data for options near the current stock
+      price. This just obtains the data from Options.get_near_stock_price
+      instead of Options.get_xxx_data().
 
 **Bug Fixes**
 
