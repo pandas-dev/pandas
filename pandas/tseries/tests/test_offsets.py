@@ -1139,6 +1139,25 @@ class TestYearBegin(unittest.TestCase):
                        datetime(2008, 6, 30): datetime(2007, 1, 1),
                        datetime(2008, 12, 31): datetime(2007, 1, 1), }))
 
+        tests.append((YearBegin(month=4),
+                      {datetime(2007, 4, 1): datetime(2008, 4, 1),
+                       datetime(2007, 3, 1): datetime(2007, 4, 1),
+                       datetime(2007, 12, 15): datetime(2008, 4, 1),
+                       datetime(2012, 1, 31): datetime(2012, 4, 1), }))
+
+        tests.append((YearBegin(0, month=4),
+                      {datetime(2007, 4, 1): datetime(2007, 4, 1),
+                       datetime(2007, 3, 1): datetime(2007, 4, 1),
+                       datetime(2007, 12, 15): datetime(2008, 4, 1),
+                       datetime(2012, 1, 31): datetime(2012, 4, 1), }))
+
+        tests.append((YearBegin(-1, month=4),
+                      {datetime(2007, 4, 1): datetime(2006, 4, 1),
+                       datetime(2007, 3, 1): datetime(2006, 4, 1),
+                       datetime(2007, 12, 15): datetime(2007, 4, 1),
+                       datetime(2012, 1, 31): datetime(2011, 4, 1), }))
+
+
         for offset, cases in tests:
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
