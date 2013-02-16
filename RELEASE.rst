@@ -247,7 +247,6 @@ pandas 0.10.1
 .. _GH2698: https://github.com/pydata/pandas/issues/2698
 .. _GH2699: https://github.com/pydata/pandas/issues/2699
 .. _GH2700: https://github.com/pydata/pandas/issues/2700
-.. _GH2694: https://github.com/pydata/pandas/issues/2694
 .. _GH2686: https://github.com/pydata/pandas/issues/2686
 .. _GH2618: https://github.com/pydata/pandas/issues/2618
 .. _GH2592: https://github.com/pydata/pandas/issues/2592
@@ -1389,7 +1388,7 @@ pandas 0.8.0
   - Add ``order`` method to Index classes (GH1028_)
   - Avoid hash table creation in large monotonic hash table indexes (GH1160_)
   - Store time zones in HDFStore (GH1232_)
-  - Enable storage of sparse data structures in HDFStore (#85)
+  - Enable storage of sparse data structures in HDFStore (GH85_)
   - Enable Series.asof to work with arrays of timestamp inputs
   - Cython implementation of DataFrame.corr speeds up by > 100x (GH1349_, GH1354_)
   - Exclude "nuisance" columns automatically in GroupBy.transform (GH1364_)
@@ -1596,6 +1595,7 @@ pandas 0.8.0
 .. _GH1513: https://github.com/pydata/pandas/issues/1513
 .. _GH1533: https://github.com/pydata/pandas/issues/1533
 .. _GH1547: https://github.com/pydata/pandas/issues/1547
+.. _GH85: https://github.com/pydata/pandas/issues/85
 
 
 pandas 0.7.3
@@ -1719,7 +1719,6 @@ pandas 0.7.2
 
   - Add additional tie-breaking methods in DataFrame.rank (GH874_)
   - Add ascending parameter to rank in Series, DataFrame (GH875_)
-  - Add coerce_float option to DataFrame.from_records (GH893_)
   - Add sort_columns parameter to allow unsorted plots (GH918_)
   - IPython tab completion on GroupBy objects
 
@@ -1741,7 +1740,7 @@ pandas 0.7.2
   - Can select multiple hierarchical groups by passing list of values in .ix
     (GH134_)
   - Add level keyword to ``drop`` for dropping values from a level (GH159_)
-  - Add ``coerce_float`` option on DataFrame.from_records (# 893)
+  - Add ``coerce_float`` option on DataFrame.from_records (GH893_)
   - Raise exception if passed date_parser fails in ``read_csv``
   - Add ``axis`` option to DataFrame.fillna (GH174_)
   - Fixes to Panel to make it easier to subclass (GH888_)
@@ -1962,7 +1961,7 @@ pandas 0.7.0
     exact matches for the labels are found or if the index is monotonic (for
     range selections)
   - Label-based slicing and sequences of labels can be passed to ``[]`` on a
-    Series for both getting and setting (GH #86)
+    Series for both getting and setting (GH86_)
   - `[]` operator (``__getitem__`` and ``__setitem__``) will raise KeyError
     with integer indexes when an index is not contained in the index. The prior
     behavior would fall back on position-based indexing if a key was not found
@@ -1994,7 +1993,7 @@ pandas 0.7.0
   - Don't print length by default in Series.to_string, add `length` option (GH
     GH489_)
   - Improve Cython code for multi-groupby to aggregate without having to sort
-    the data (GH #93)
+    the data (GH93_)
   - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,
     test for backwards unpickling compatibility
   - Improve column reindexing performance by using specialized Cython take
@@ -2027,7 +2026,7 @@ pandas 0.7.0
   - Improve DataFrame.to_string and console formatting to be more consistent in
     the number of displayed digits (GH395_)
   - Use bottleneck if available for performing NaN-friendly statistical
-    operations that it implemented (GH #91)
+    operations that it implemented (GH91_)
   - Monkey-patch context to traceback in ``DataFrame.apply`` to indicate which
     row/column the function application failed on (GH614_)
   - Improved ability of read_table and read_clipboard to parse
@@ -2133,7 +2132,7 @@ pandas 0.7.0
   - Use right dropna function for SparseSeries. Return dense Series for NA fill
     value (GH730_)
   - Fix Index.format bug causing incorrectly string-formatted Series with
-    datetime indexes (# 726, 758)
+    datetime indexes (GH726_, GH758_)
   - Fix errors caused by object dtype arrays passed to ols (GH759_)
   - Fix error where column names lost when passing list of labels to
     DataFrame.__getitem__, (GH662_)
@@ -2303,6 +2302,10 @@ Thanks
 .. _GH764: https://github.com/pydata/pandas/issues/764
 .. _GH770: https://github.com/pydata/pandas/issues/770
 .. _GH771: https://github.com/pydata/pandas/issues/771
+.. _GH758: https://github.com/pydata/pandas/issues/758
+.. _GH86: https://github.com/pydata/pandas/issues/86
+.. _GH91: https://github.com/pydata/pandas/issues/91
+.. _GH93: https://github.com/pydata/pandas/issues/93
 
 
 pandas 0.6.1
@@ -2492,7 +2495,7 @@ pandas 0.6.0
   - Implement logical (boolean) operators &, |, ^ on DataFrame (GH347_)
   - Add `Series.mad`, mean absolute deviation, matching DataFrame
   - Add `QuarterEnd` DateOffset (GH321_)
-  - Add matrix multiplication function `dot` to DataFrame (GH #65)
+  - Add matrix multiplication function `dot` to DataFrame (GH65_)
   - Add `orient` option to `Panel.from_dict` to ease creation of mixed-type
     Panels (GH359_, GH301_)
   - Add `DataFrame.from_dict` with similar `orient` option
@@ -2500,7 +2503,7 @@ pandas 0.6.0
     for fast conversion to DataFrame (GH357_)
   - Can pass multiple levels to groupby, e.g. `df.groupby(level=[0, 1])` (GH
     GH103_)
-  - Can sort by multiple columns in `DataFrame.sort_index` (GH #92, GH362_)
+  - Can sort by multiple columns in `DataFrame.sort_index` (GH92_, GH362_)
   - Add fast `get_value` and `put_value` methods to DataFrame and
     micro-performance tweaks (GH360_)
   - Add `cov` instance methods to Series and DataFrame (GH194_, GH362_)
@@ -2705,6 +2708,8 @@ Thanks
 .. _GH405: https://github.com/pydata/pandas/issues/405
 .. _GH408: https://github.com/pydata/pandas/issues/408
 .. _GH416: https://github.com/pydata/pandas/issues/416
+.. _GH65: https://github.com/pydata/pandas/issues/65
+.. _GH92: https://github.com/pydata/pandas/issues/92
 
 
 pandas 0.5.0
