@@ -115,7 +115,7 @@ def get_quote_yahoo(symbols):
         return None
 
     for line in lines:
-        fields = line.strip().split(',')
+        fields = line.decode('utf-8').strip().split(',')
         for i, field in enumerate(fields):
             if field[-2:] == '%"':
                 data[header[i]].append(float(field.strip('"%')))
@@ -252,7 +252,7 @@ def get_components_yahoo(idx_sym):
     #break when no new components are found
     while (True in mask):
         urlStr = url.format(idx_mod, stats,  comp_idx)
-        lines = (urllib.urlopen(urlStr).read().strip().
+        lines = (urllib.urlopen(urlStr).read().decode('utf-8').strip().
                  strip('"').split('"\r\n"'))
 
         lines = [line.strip().split('","') for line in lines]
