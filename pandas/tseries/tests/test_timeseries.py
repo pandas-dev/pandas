@@ -675,6 +675,18 @@ class TestTimeSeries(unittest.TestCase):
         xp = datetime(2001, 1, 1)
         self.assert_(rs, xp)
 
+    def test_to_datetime_format(self):
+        values = ['1/1/2000', '1/2/2000', '1/3/2000']
+
+        def _parse_format(fmt, values):
+            return to_datetime([datetime.strptime(x, fmt)
+                                for x in values])
+
+        for fmt in ['%d/%m/%Y', '%m/%d/%Y']:
+            result = to_datetime(values, format=fmt)
+            expected = _parse_format(fmt, values)
+            self.assert_(result.equals(expected))
+
     def test_to_datetime_on_datetime64_series(self):
         # #2699
         s = Series(date_range('1/1/2000', periods=10))
@@ -2445,7 +2457,7 @@ class TestSeriesDatetime64(unittest.TestCase):
         # Work around NumPy 1.6 bugs
         #result = self.series.astype(object)
         #result2 = self.series.astype('O')
- 
+
         expected = Series(self.series, dtype=object)
 
         #assert_series_equal(result, expected)
