@@ -917,8 +917,9 @@ def array_strptime(ndarray[object] values, object fmt):
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
-
-
+    
+    dts.us = dts.ps = dts.as = 0
+    
     cdef dict _parse_code_table = {
         'y': 0,
         'Y': 1,
@@ -1082,7 +1083,7 @@ def array_strptime(ndarray[object] values, object fmt):
         dts.hour = hour
         dts.min = minute
         dts.sec = second
-        dts.us = <int> fraction * 1000000
+        dts.us = int(fraction * 1000000)
 
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
         _check_dts_bounds(iresult[i], &dts)
