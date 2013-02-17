@@ -1401,7 +1401,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
             # check the result is correct
             nona = self.series.dropna()
-            assert_almost_equal(f(nona), alternate(nona))
+            assert_almost_equal(f(nona), alternate(nona.values))
+            assert_almost_equal(f(self.series), alternate(nona.values))
 
             allna = self.series * nan
             self.assert_(np.isnan(f(allna)))
@@ -1409,6 +1410,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             # dtype=object with None, it works!
             s = Series([1, 2, 3, None, 5])
             f(s)
+
+            # 2888
+            l = [0]
+            l.extend(list(range(2**40,2**40+1000)))
+            s = Series(l, dtype='int64')
+            assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
             # check date range
             if check_objects:

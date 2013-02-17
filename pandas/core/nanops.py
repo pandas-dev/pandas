@@ -138,6 +138,9 @@ def _nanmedian(values, axis=None, skipna=True):
 
 
 def _nanvar(values, axis=None, skipna=True, ddof=1):
+    if not isinstance(values.dtype.type, np.floating):
+        values = values.astype('f8')
+
     mask = isnull(values)
 
     if axis is not None:
