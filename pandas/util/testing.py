@@ -14,7 +14,7 @@ from distutils.version import LooseVersion
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _is_sequence
 import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
@@ -375,6 +375,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     ndupe_l - (Optional), list of ints, the number of rows for which the
        label will repeated at the corresponding level, you can specify just
        the first few, the rest will use the default ndupe_l of 1.
+       len(ndupe_l) <= nlevels.
     idx_type - "i"/"f"/"s"/"u"/"dt".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,
@@ -386,8 +387,8 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     from pandas.util.compat import Counter
     if ndupe_l is None:
-        ndupe_l = [1] * nentries
-    assert len(ndupe_l) <= nentries
+        ndupe_l = [1] * nlevels
+    assert (_is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
     assert (names is None or names is False
             or names is True or len(names) is nlevels)
     assert idx_type is None or \
@@ -417,9 +418,9 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         raise ValueError('"%s" is not a legal value for `idx_type`, use  '
                          '"i"/"f"/"s"/"u"/"dt".' % idx_type)
 
-    if len(ndupe_l) < nentries:
-        ndupe_l.extend([1] * (nentries - len(ndupe_l)))
-    assert len(ndupe_l) == nentries
+    if len(ndupe_l) < nlevels:
+        ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
+    assert len(ndupe_l) == nlevels
 
     assert all([x > 0 for x in ndupe_l])
 
@@ -503,6 +504,7 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
                              r_idx_names=["FEE","FI","FO","FAM"],
                              c_idx_nlevels=2)
 
+    >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
     """
 
     assert c_idx_nlevels > 0
