@@ -48,6 +48,8 @@ pandas 0.11.0
   - Series print output now includes the dtype by default
   - Optimize internal reindexing routines (GH2819_, GH2867_)
   - ``describe_option()`` now reports the default and current value of options.
+  - Add ``format`` option to ``pandas.to_datetime`` with faster conversion of
+    strings that can be parsed with datetime.strptime
 
 **API Changes**
 
