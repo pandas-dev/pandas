@@ -110,8 +110,17 @@ to sparse
     sp_index = None
     fill_value = None
 
-    def __new__(cls, data, sparse_index=None, kind='integer', fill_value=None,
+    def __new__(cls, data, sparse_index=None, index=None, kind='integer', fill_value=None,
                 dtype=np.float64, copy=False):
+
+        if index is not None:
+            if data is None:
+                data = np.nan
+            if not np.isscalar(data):
+                raise Exception("must only pass scalars with an index ")
+            values = np.empty(len(index),dtype='float64')
+            values.fill(data)
+            data = values
 
         if dtype is not None:
             dtype = np.dtype(dtype)
@@ -445,6 +454,17 @@ to sparse
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
+
+def _maybe_to_dense(obj):
+    """ try to convert to dense """
+    if hasattr(obj,'to_dense'):
+        return obj.to_dense()
+    return obj
+
+def _maybe_to_sparse(array):
+    if not isinstance(array, SparseArray):
+        array = com._values_from_object(array)
+    return array
 
 def make_sparse(arr, kind='block', fill_value=nan):
     """

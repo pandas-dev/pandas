@@ -1017,12 +1017,6 @@ def _maybe_box(indexer, values, obj, key):
     # return the value
     return values
 
-def _maybe_to_dense(obj):
-    """ try to convert to dense """
-    if hasattr(obj,'to_dense'):
-        return obj.to_dense()
-    return obj
-
 def _values_from_object(series):
     # compat with ndarray or series
     return series.values if hasattr(series,'values') else series
@@ -1177,45 +1171,6 @@ def _is_bool_indexer(key):
             return False
 
     return False
-
-
-def _conform_bool_indexer(ax, key, as_array = False):
-    """ boolean indexing, need to check that the data are aligned, otherwise
-        disallowed
-
-        ax is the passed object (could be a series/frame/index itself
-        key is a boolean indexing key
-        as_array, return as a ndarray if True (otherwise don't coerce)
-    """
-
-    from pandas.core.series import Series
-
-    # boolean indexing, need to check that the data are aligned, otherwise
-    # disallowed
-    result = key
-    if isinstance(key, Series) and key.dtype == np.bool_:
-        index = getattr(ax,'index',ax)
-        if not key.index.equals(index):
-            result = key.reindex(index)
-        result = result.values
-    
-    if isinstance(result, np.ndarray) and result.dtype == np.object_:
-        mask = isnull(result)
-        if mask.any():
-            raise ValueError('cannot index with vector containing '
-                             'NA / NaN values')
-
-    # coerce to bool type
-    if not hasattr(result, 'shape'):
-        result = np.array(result)
-    if result.dtype != np.bool_:
-        result = result.astype(np.bool_)
-
-    # return as an ndarray
-    if as_array:
-        result = np.asarray(result, dtype=bool)
-
-    return result
 
 def _default_index(n):
     from pandas.core.index import Int64Index

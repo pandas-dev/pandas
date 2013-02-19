@@ -9,8 +9,8 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.common import (isnull, notnull, _pickle_array, 
-                                _unpickle_array, _try_sort,
-                                _maybe_to_dense)
+                                _unpickle_array, _try_sort)
+from pandas.sparse.array import _maybe_to_dense, _maybe_to_sparse
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 from pandas.core.series import Series
@@ -110,9 +110,10 @@ class SparseDataFrame(DataFrame):
                 columns = Index([])
             else:
                 for c in columns:
-                    data[c] = SparseSeries(np.nan, index=index,
-                                            kind=self._default_kind,
-                                            fill_value=self._default_fill_value)
+                    data[c] = SparseArray(np.nan,
+                                          index=index,
+                                          kind=self._default_kind,
+                                          fill_value=self._default_fill_value)
             mgr = self._init_dict(data, index, columns)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
@@ -142,10 +143,10 @@ class SparseDataFrame(DataFrame):
         if index is None:
             index = extract_index(data.values())
 
-        sp_maker = lambda x: SparseSeries(x, index=index,
-                                          kind=self._default_kind,
-                                          fill_value=self._default_fill_value,
-                                          copy=True)
+        sp_maker = lambda x: SparseArray(x,
+                                         kind=self._default_kind,
+                                         fill_value=self._default_fill_value,
+                                         copy=True)
         sdict = {}
         for k, v in data.iteritems():
             if isinstance(v, Series):
@@ -295,9 +296,9 @@ class SparseDataFrame(DataFrame):
     # Support different internal representation of SparseDataFrame
 
     def _set_item(self, key, value):
-        sp_maker = lambda x: SparseSeries(x, index=self.index,
-                                          fill_value=self._default_fill_value,
-                                          kind=self._default_kind)
+        sp_maker = lambda x: SparseArray(x, 
+                                         fill_value=self._default_fill_value,
+                                         kind=self._default_kind)
         if hasattr(value, '__iter__'):
             if isinstance(value, Series):
                 clean_series = value.reindex(self.index)
@@ -310,34 +311,7 @@ class SparseDataFrame(DataFrame):
         else:
             clean_series = sp_maker(value)
 
-    def _get_columns(self):
-        return self._columns
-
-    def _set_columns(self, cols):
-        if len(cols) != len(self._series):
-            raise Exception('Columns length %d did not match data %d!' %
-                            (len(cols), len(self._series)))
-
-        cols = _ensure_index(cols)
-
-        # rename the _series if needed
-        existing = getattr(self,'_columns',None)
-        if existing is not None and len(existing) == len(cols):
-
-            new_series = {}
-            for i, col in enumerate(existing):
-                new_col = cols[i]
-                if new_col in new_series:  # pragma: no cover
-                    raise Exception('Non-unique mapping!')
-                new_series[new_col] = self._series.get(col)
-
-            self._series = new_series
-
-        self._columns = cols
-        self._data.set(key, clean_series)
-
-    index = property(fget=_get_index, fset=_set_index)
-    columns = property(fget=_get_columns, fset=_set_columns)
+        self._data.set(key, _maybe_to_sparse(clean_series))
 
     def __getitem__(self, key):
         """
@@ -834,7 +808,7 @@ def dict_to_manager(sdict, columns, index):
     axes = [_ensure_index(columns), _ensure_index(index)]
 
     # segregates dtypes and forms blocks matching to columns
-    blocks = form_blocks([ sdict[c] for c in columns ], columns, axes)
+    blocks = form_blocks([ _maybe_to_sparse(sdict[c]) for c in columns ], columns, axes)
 
     # consolidate for now
     mgr = BlockManager(blocks, axes)

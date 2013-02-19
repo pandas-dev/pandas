@@ -3,7 +3,7 @@
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.common as com
-from pandas.core.common import (_is_bool_indexer, _conform_bool_indexer)
+from pandas.core.common import _is_bool_indexer
 import pandas.lib as lib
 
 import numpy as np

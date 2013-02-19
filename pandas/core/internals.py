@@ -10,7 +10,8 @@ from pandas.core.common import _possibly_downcast_to_dtype, isnull
 from pandas.core.index import Index, MultiIndex, _ensure_index, _handle_legacy_indexes
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
-from pandas.sparse.array import SparseArray, make_sparse
+from pandas.sparse.array import make_sparse, _maybe_to_sparse, SparseArray
+from pandas.sparse.array import SparseArray
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.expressions as expressions
@@ -169,11 +170,7 @@ class Block(object):
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis,
                                  fill_value=fill_value, mask_info=mask_info)
-<<<<<<< HEAD
-        return make_block(new_values, self.items, self.ref_items, fastpath=True)
-=======
-        return make_block(new_values, self.items, self.ref_items, ndim=self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
 
     def reindex_items_from(self, new_ref_items, copy=True):
         """
@@ -195,11 +192,7 @@ class Block(object):
             new_values = com.take_nd(self.values, masked_idx, axis=0,
                                      allow_fill=False)
             new_items = self.items.take(masked_idx)
-<<<<<<< HEAD
-        return make_block(new_values, new_items, new_ref_items, fastpath=True)
-=======
-        return make_block(new_values, new_items, new_ref_items, ndim=self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(new_values, new_items, new_ref_items, ndim=self.ndim, fastpath=True)
 
     def get(self, item):
         loc = self.items.get_loc(item)
@@ -303,11 +296,7 @@ class Block(object):
 
         try:
             newb = make_block(com._astype_nansafe(self.values, dtype, copy = copy),
-<<<<<<< HEAD
-                              self.items, self.ref_items, fastpath=True)
-=======
-                              self.items, self.ref_items, ndim = self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+                              self.items, self.ref_items, ndim=self.ndim, fastpath=True)
         except:
             if raise_on_error is True:
                 raise
@@ -452,11 +441,7 @@ class Block(object):
         if inplace:
             return self
 
-<<<<<<< HEAD
-        return [ make_block(new_values, self.items, self.ref_items, fastpath=True) ]
-=======
-        return make_block(new_values, self.items, self.ref_items)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(new_values, self.items, self.ref_items, fastpath=True)
 
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None, coerce=False):
@@ -487,22 +472,14 @@ class Block(object):
         else:
             com.backfill_2d(transf(values), limit=limit, mask=mask)
 
-<<<<<<< HEAD
-        return make_block(values, self.items, self.ref_items, klass=self.__class__, fastpath=True)
-=======
-        return make_block(values, self.items, self.ref_items, ndim = self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
 
     def take(self, indexer, ref_items, axis=1):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis=axis,
                                  allow_fill=False)
-<<<<<<< HEAD
-        return make_block(new_values, self.items, ref_items, klass=self.__class__, fastpath=True)
-=======
-        return make_block(new_values, self.items, self.ref_items, ndim = self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(new_values, self.items, ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
 
     def get_values(self, dtype=None):
         return self.values
@@ -510,11 +487,7 @@ class Block(object):
     def diff(self, n):
         """ return block for the diff of the values """
         new_values = com.diff(self.values, n, axis=1)
-<<<<<<< HEAD
-        return make_block(new_values, self.items, self.ref_items, fastpath=True)
-=======
-        return make_block(new_values, self.items, self.ref_items, ndim = self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
 
     def shift(self, indexer, periods):
         """ shift the block by periods, possibly upcast """
@@ -527,11 +500,7 @@ class Block(object):
             new_values[:, :periods] = fill_value
         else:
             new_values[:, periods:] = fill_value
-<<<<<<< HEAD
-        return make_block(new_values, self.items, self.ref_items, fastpath=True)
-=======
-        return make_block(new_values, self.items, self.ref_items, ndim = self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
 
     def eval(self, func, other, raise_on_error = True, try_cast = False):
         """
@@ -586,11 +555,7 @@ class Block(object):
         if try_cast:
             result = self._try_cast_result(result)
 
-<<<<<<< HEAD
-        return make_block(result, self.items, self.ref_items, fastpath=True)
-=======
-        return make_block(result, self.items, self.ref_items, ndim = self.ndim)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
+        return make_block(result, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
 
     def where(self, other, cond, raise_on_error = True, try_cast = False):
         """
@@ -1097,13 +1062,15 @@ class SparseBlock(Block):
             return []
         return super(SparseBlock, self).split_block_at(self, item)
 
-def make_block(values, items, ref_items, klass = None, fastpath=False):
+def make_block(values, items, ref_items, klass=None, ndim=None, fastpath=False):
 
     if klass is None:
         dtype = values.dtype
         vtype = dtype.type
 
-        if issubclass(vtype, np.floating):
+        if isinstance(values, SparseArray):
+            klass = SparseBlock
+        elif issubclass(vtype, np.floating):
             klass = FloatBlock
         elif issubclass(vtype, np.complexfloating):
             klass = ComplexBlock
@@ -1772,11 +1739,7 @@ class BlockManager(object):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-        value = _block_shape(value,self.ndim-1)
-        if value.shape[1:] != self.shape[1:]:
-            raise AssertionError('Shape of new values must be compatible '
-                                 'with manager shape')
-        if not is_sparse(value):
+        if not isinstance(value, SparseArray):
             if value.ndim == self.ndim - 1:
                 value = value.reshape((1,) + value.shape)
             if value.shape[1:] != self.shape[1:]:
@@ -2018,16 +1981,11 @@ class BlockManager(object):
                             'the axis length')
 
         new_axes = list(self.axes)
-<<<<<<< HEAD
         if new_index is None:
             new_index = self.axes[axis].take(indexer)
 
         new_axes[axis] = new_index 
         return self.apply('take',axes=new_axes,indexer=indexer,ref_items=new_axes[0],axis=axis)
-=======
-        new_axes[axis] = self.axes[axis].take(indexer)
-        return self.apply('take', axes = new_axes, indexer = indexer, axis=axis)
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
 
     def merge(self, other, lsuffix=None, rsuffix=None):
         if not self._is_indexed_like(other):
@@ -2269,7 +2227,7 @@ def form_blocks(arrays, names, axes):
     sparse_items = []
     datetime_items = []
     for k, v in zip(names, arrays):
-        if is_sparse(v):
+        if isinstance(v, SparseArray):
             sparse_items.append((k,v))
         elif issubclass(v.dtype.type, np.floating):
             float_items.append((k, v))
@@ -2367,8 +2325,6 @@ def _multi_blockify(tuples, ref_items, dtype = None):
 
 def _sparse_blockify(tuples, ref_items, dtype = None):
     """ return an array of blocks that potentially have different dtypes (and are sparse) """
-    from pandas.sparse.series import SparseSeries
-    from pandas.sparse.list   import SparseList
 
     new_blocks = []
     for names, array in tuples:
@@ -2377,13 +2333,7 @@ def _sparse_blockify(tuples, ref_items, dtype = None):
             names = [ names ]
         items = ref_items[ref_items.isin(names)]
 
-        # make sure that we only have SpareseArrays here
-        if isinstance(array,SparseSeries):
-            array = array.values
-        elif isintance(array,SparseList):
-            array = SparseArray(array)
-
-        block = make_block(array, items, ref_items)
+        block = make_block(_maybe_to_sparse(array), items, ref_items)
         new_blocks.append(block)
 
     return new_blocks
