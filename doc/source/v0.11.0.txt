@@ -140,10 +140,8 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`
    s.dtype
 
 
-New features
+Enhancements
 ~~~~~~~~~~~~
-
-**Enhancements**
 
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
     (e.g. store.df == store['df'])
@@ -178,7 +176,37 @@ New features
       price. This just obtains the data from Options.get_near_stock_price
       instead of Options.get_xxx_data().
 
-**Bug Fixes**
+Bug Fixes
+~~~~~~~~~
+
+  - Timedeltas are now fully operational (closes GH2898_)
+
+    .. ipython:: python
+
+        from datetime import datetime, timedelta
+        s  = Series(date_range('2012-1-1', periods=3, freq='D'))
+        td = Series([ timedelta(days=i) for i in range(3) ])
+        df = DataFrame(dict(A = s, B = td))
+        df
+        s - s.max()
+        s - datetime(2011,1,1,3,5)
+        s + timedelta(minutes=5)
+        df['C'] = df['A'] + df['B']
+        df
+        df.dtypes
+
+        # timedelta are representas as ``NaT``
+        y = s - s.shift()
+	y
+
+	# can be set via ``np.nan``
+	y[1] = np.nan
+	y
+
+        # works on lhs too
+   	s.max() - s
+        datetime(2011,1,1,3,5) - s
+        timedelta(minutes=5) + s
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -187,4 +215,5 @@ on GitHub for a complete list.
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
+.. _GH2898: https://github.com/pydata/pandas/issues/2898
 

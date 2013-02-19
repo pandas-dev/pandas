@@ -82,6 +82,7 @@ cdef extern from "numpy/arrayobject.h":
         NPY_COMPLEX512
 
         NPY_DATETIME
+        NPY_TIMEDELTA
 
         NPY_INTP
 

@@ -912,6 +912,8 @@ method:
    panel.to_frame()
 
 
+.. _dsintro.panel4d:
+
 Panel4D (Experimental)
 ----------------------
 

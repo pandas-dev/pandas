@@ -92,6 +92,10 @@ def infer_dtype(object _values):
         if is_unicode_array(values):
             return 'unicode'
 
+    elif is_timedelta(val):
+        if is_timedelta_or_timedelta64_array(values):
+            return 'timedelta'
+
     for i in range(n):
         val = util.get_value_1d(values, i)
         if util.is_integer_object(val):
@@ -265,6 +269,10 @@ def is_datetime64_array(ndarray values):
             return False
     return True
 
+def is_timedelta(object o):
+    import datetime
+    return isinstance(o,datetime.timedelta) or isinstance(o,np.timedelta64)
+
 def is_timedelta_array(ndarray values):
     import datetime
     cdef int i, n = len(values)
@@ -275,6 +283,24 @@ def is_timedelta_array(ndarray values):
             return False
     return True
 
+def is_timedelta64_array(ndarray values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not isinstance(values[i],np.timedelta64):
+            return False
+    return True
+
+def is_timedelta_or_timedelta64_array(ndarray values):
+    import datetime
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not (isinstance(values[i],datetime.timedelta) or isinstance(values[i],np.timedelta64)):
+            return False
+    return True
 
 def is_date_array(ndarray[object] values):
     cdef int i, n = len(values)

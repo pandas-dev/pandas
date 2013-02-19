@@ -32,7 +32,7 @@ from datetime cimport *
 
 from tslib cimport convert_to_tsobject
 import tslib
-from tslib import NaT, Timestamp
+from tslib import NaT, Timestamp, repr_timedelta64
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -160,6 +160,9 @@ def time64_to_datetime(ndarray[int64_t, ndim=1] arr):
 
     return result
 
+cdef inline int64_t get_timedelta64_value(val):
+    return val.view('i8')
+
 #----------------------------------------------------------------------
 # isnull / notnull related
 
@@ -174,6 +177,8 @@ cpdef checknull(object val):
         return get_datetime64_value(val) == NPY_NAT
     elif val is NaT:
         return True
+    elif util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
     elif is_array(val):
         return False
     else:
@@ -186,6 +191,8 @@ cpdef checknull_old(object val):
         return get_datetime64_value(val) == NPY_NAT
     elif val is NaT:
         return True
+    elif util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
     elif is_array(val):
         return False
     else:

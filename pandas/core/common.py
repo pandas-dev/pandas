@@ -148,9 +148,9 @@ def _isnull_ndarraylike(obj):
     elif values.dtype == np.dtype('M8[ns]'):
         # this is the NaT pattern
         result = values.view('i8') == tslib.iNaT
-    elif issubclass(values.dtype.type, np.timedelta64):
-        # -np.isfinite(values.view('i8'))
-        result = np.ones(values.shape, dtype=bool)
+    elif values.dtype == np.dtype('m8[ns]'):
+        # this is the NaT pattern
+        result = values.view('i8') == tslib.iNaT
     else:
         # -np.isfinite(obj)
         result = np.isnan(obj)
@@ -902,35 +902,50 @@ def _possibly_convert_platform(values):
     return values
 
 
+def _possibly_cast_to_timedelta(value):
+    """ try to cast to timedelta64 w/o coercion """
+    new_value = tslib.array_to_timedelta64(value.astype(object), coerce=False)
+    if new_value.dtype == 'i8':
+        value = np.array(new_value,dtype='timedelta64[ns]')
+    return value
+
 def _possibly_cast_to_datetime(value, dtype, coerce = False):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
 
     if isinstance(dtype, basestring):
         dtype = np.dtype(dtype)
 
-    if dtype is not None and is_datetime64_dtype(dtype):
-        if np.isscalar(value):
-            if value == tslib.iNaT or isnull(value):
-                value = tslib.iNaT
-        else:
-            value = np.array(value)
+    if dtype is not None:
+        is_datetime64  = is_datetime64_dtype(dtype)
+        is_timedelta64 = is_timedelta64_dtype(dtype)
 
-            # have a scalar array-like (e.g. NaT)
-            if value.ndim == 0:
-                value = tslib.iNaT
+        if is_datetime64 or is_timedelta64:
 
-            # we have an array of datetime & nulls
-            elif np.prod(value.shape):
-                try:
-                    value = tslib.array_to_datetime(value, coerce = coerce)
-                except:
-                    pass
+            if np.isscalar(value):
+                if value == tslib.iNaT or isnull(value):
+                    value = tslib.iNaT
+            else:
+                value = np.array(value)
+
+                # have a scalar array-like (e.g. NaT)
+                if value.ndim == 0:
+                    value = tslib.iNaT
+
+                # we have an array of datetime or timedeltas & nulls
+                elif np.prod(value.shape) and value.dtype != dtype:
+                    try:
+                        if is_datetime64:
+                            value = tslib.array_to_datetime(value, coerce = coerce)
+                        elif is_timedelta64:
+                            value = _possibly_cast_to_timedelta(value)
+                    except:
+                        pass
 
     elif dtype is None:
         # we might have a array (or single object) that is datetime like, and no dtype is passed
         # don't change the value unless we find a datetime set
         v = value
-        if not (is_list_like(v) or hasattr(v,'len')):
+        if not is_list_like(v):
             v = [ v ]
         if len(v):
             inferred_type = lib.infer_dtype(v)
@@ -939,6 +954,8 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                     value = tslib.array_to_datetime(np.array(v))
                 except:
                     pass
+            elif inferred_type == 'timedelta':
+                value = _possibly_cast_to_timedelta(value)
 
     return value
 
@@ -1281,6 +1298,16 @@ def is_datetime64_dtype(arr_or_dtype):
     return issubclass(tipo, np.datetime64)
 
 
+def is_timedelta64_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    elif isinstance(arr_or_dtype, type):
+        tipo = np.dtype(arr_or_dtype).type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.timedelta64)
+
+
 def is_float_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         tipo = arr_or_dtype.type
@@ -1290,8 +1317,7 @@ def is_float_dtype(arr_or_dtype):
 
 
 def is_list_like(arg):
-    return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
-
+    return hasattr(arg, '__iter__') and not isinstance(arg, basestring) or hasattr(arg,'len')
 
 def _is_sequence(x):
     try:
