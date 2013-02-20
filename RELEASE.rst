@@ -130,6 +130,22 @@ pandas 0.11.0
 
   - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
     (GH2747_)
+  - Refactor of series.py/frame.py/panel.py to move common code to generic.py
+    all axis creation and manipulation code is now common (except for Series)
+
+    - added _setup_axes to created generic NDFrame structures
+    - moved methods
+
+      - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
+      - __str__,__bytes__,__repr__
+      - __iter__,keys,__contains__,__len__,__neg__,__invert__
+      - convert_objects,as_blocks
+      - _indexed_same
+
+    - swapaxes on a Panel with the same axes specified now return a copy 
+      (consistent with DataFrame)
+
+
 
 **Bug Fixes**
 

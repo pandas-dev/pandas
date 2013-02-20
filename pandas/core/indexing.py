@@ -110,21 +110,21 @@ class _NDFrameIndexer(object):
             if isinstance(value, Series):
                 value = self._align_series(indexer, value)
 
-            het_axis = self.obj._het_axis
-            het_idx = indexer[het_axis]
+            info_axis = self.obj._info_axis_number
+            info_idx = indexer[info_axis]
 
-            if isinstance(het_idx, (int, long)):
-                het_idx = [het_idx]
+            if isinstance(info_idx, (int, long)):
+                info_idx = [info_idx]
 
-            plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
-            item_labels = self.obj._get_axis(het_axis)
+            plane_indexer = indexer[:info_axis] + indexer[info_axis + 1:]
+            item_labels = self.obj._get_axis(info_axis)
 
             if isinstance(value, (np.ndarray, DataFrame)) and value.ndim > 1:
                 raise ValueError('Setting mixed-type DataFrames with '
                                  'array/DataFrame pieces not yet supported')
 
             try:
-                for item in item_labels[het_idx]:
+                for item in item_labels[info_idx]:
                     data = self.obj[item]
                     values = data.values
                     if np.prod(values.shape):
@@ -132,7 +132,7 @@ class _NDFrameIndexer(object):
                             value, getattr(data, 'dtype', None))
                         values[plane_indexer] = value
             except ValueError:
-                for item, v in zip(item_labels[het_idx], value):
+                for item, v in zip(item_labels[info_idx], value):
                     data = self.obj[item]
                     values = data.values
                     if np.prod(values.shape):

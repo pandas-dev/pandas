@@ -1751,7 +1751,7 @@ class NDFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
 
         result = {}
-        if axis != obj._het_axis:
+        if axis != obj._info_axis_number:
             try:
                 for name, data in self:
                     # for name in self.indices:

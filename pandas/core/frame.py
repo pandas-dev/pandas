@@ -332,16 +332,13 @@ def _comp_method(func, name, str_rep):
 
 class DataFrame(NDFrame):
     _auto_consolidate = True
-    _het_axis = 1
-    _info_axis = 'columns'
-    _col_klass = Series
+    _verbose_info = True
 
-    _AXIS_NUMBERS = {
-        'index': 0,
-        'columns': 1
-    }
+    @property
+    def _constructor(self):
+        return DataFrame
 
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    _constructor_sliced = Series
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
@@ -449,15 +446,6 @@ class DataFrame(NDFrame):
 
         NDFrame.__init__(self, mgr)
 
-    @classmethod
-    def _from_axes(cls, data, axes):
-        # for construction from BlockManager
-        if isinstance(data, BlockManager):
-            return cls(data)
-        else:
-            columns, index = axes
-            return cls(data, index=index, columns=columns, copy=False)
-
     def _init_mgr(self, mgr, index, columns, dtype=None, copy=False):
         if columns is not None:
             mgr = mgr.reindex_axis(columns, axis=0, copy=False)
@@ -556,17 +544,6 @@ class DataFrame(NDFrame):
         block = make_block(values.T, columns, columns)
         return BlockManager([block], [columns, index])
 
-    def _wrap_array(self, arr, axes, copy=False):
-        index, columns = axes
-        return self._constructor(arr, index=index, columns=columns, copy=copy)
-
-    @property
-    def _verbose_info(self):
-        import warnings
-        warnings.warn('The _verbose_info property will be removed in version '
-                      '0.12', FutureWarning)
-        return get_option('display.max_info_rows') is None
-
     @_verbose_info.setter
     def _verbose_info(self, value):
         import warnings
@@ -588,12 +565,7 @@ class DataFrame(NDFrame):
     def shape(self):
         return (len(self.index), len(self.columns))
 
-    #----------------------------------------------------------------------
     # Class behavior
-
-    @property
-    def empty(self):
-        return not (len(self.columns) > 0 and len(self.index) > 0)
 
     def __nonzero__(self):
         raise ValueError("Cannot call bool() on DataFrame.")
@@ -637,28 +609,6 @@ class DataFrame(NDFrame):
                 else:
                     return False
 
-    def __str__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
     def __unicode__(self):
         """
         Return a string representation for a particular DataFrame
@@ -687,14 +637,6 @@ class DataFrame(NDFrame):
         return (get_option("display.expand_frame_repr")
                 and com.in_interactive_session())
 
-    def __repr__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
-
     def _repr_html_(self):
         """
         Return a html representation for a particular DataFrame.
@@ -712,15 +654,6 @@ class DataFrame(NDFrame):
                         self.to_html() + '\n</div>')
         else:
             return None
-
-    def __iter__(self):
-        """
-        Iterate over columns of the frame.
-        """
-        return iter(self.columns)
-
-    def keys(self):
-        return self.columns
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
@@ -758,12 +691,8 @@ class DataFrame(NDFrame):
         items = iteritems
 
     def __len__(self):
-        """Returns length of index"""
+        """ we are reversed, so shortcut this here """
         return len(self.index)
-
-    def __contains__(self, key):
-        """True if DataFrame has this column"""
-        return key in self.columns
 
     #----------------------------------------------------------------------
     # Arithmetic methods
@@ -809,14 +738,6 @@ class DataFrame(NDFrame):
         __div__ = _arith_method(operator.div, '__div__', '/', default_axis=None)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
                                  default_axis=None)
-
-    def __neg__(self):
-        arr = operator.neg(self.values)
-        return self._wrap_array(arr, self.axes, copy=False)
-
-    def __invert__(self):
-        arr = operator.inv(self.values)
-        return self._wrap_array(arr, self.axes, copy=False)
 
     # Comparison methods
     __eq__ = _comp_method(operator.eq, '__eq__', '==')
@@ -1596,12 +1517,6 @@ class DataFrame(NDFrame):
         """
         return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
 
-    #----------------------------------------------------------------------
-    # properties for index and columns
-
-    columns = lib.AxisProperty(0)
-    index = lib.AxisProperty(1)
-
     def as_matrix(self, columns=None):
         """
         Convert the frame to its Numpy-array matrix representation. Columns
@@ -1630,61 +1545,10 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
         return self._data.as_matrix(columns).T
 
-    values = property(fget=as_matrix)
-
-    def as_blocks(self, columns=None):
-        """
-        Convert the frame to a dict of dtype -> DataFrames that each has a homogeneous dtype.
-        are presented in sorted order unless a specific list of columns is
-        provided.
-
-        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in as_matrix)
-
-        Parameters
-        ----------
-        columns : array-like
-            Specific column order
-
-        Returns
-        -------
-        values : a list of DataFrames
-        """
-        self._consolidate_inplace()
-
-        bd = dict()
-        for b in self._data.blocks:
-            b = b.reindex_items_from(columns or b.items)
-            bd[str(b.dtype)] = DataFrame(BlockManager([ b ], [ b.items, self.index ]))
-        return bd
-
-    blocks = property(fget=as_blocks)
-
     def transpose(self):
-        """
-        Returns a DataFrame with the rows/columns switched. If the DataFrame is
-        homogeneously-typed, the data is not copied
-        """
-        return self._constructor(data=self.values.T, index=self.columns,
-                                 columns=self.index, copy=False)
+        return super(DataFrame, self).transpose(1,0)
 
     T = property(transpose)
-
-    def swapaxes(self, i, j):
-        """
-        Like ndarray.swapaxes, equivalent to transpose
-
-        Returns
-        -------
-        swapped : DataFrame
-            View on original data (no copy)
-        """
-        if i in (0, 1) and j in (0, 1):
-            if i == j:
-                return self
-            return self._constructor(data=self.values.T, index=self.columns,
-                                     columns=self.index, copy=False)
-        else:
-            raise ValueError('Axis numbers must be in (0, 1)')
 
     #----------------------------------------------------------------------
     # Picklability
@@ -1840,12 +1704,6 @@ class DataFrame(NDFrame):
         # icol
         else:
 
-            """ 
-            Notes
-            -----
-            If slice passed, the resulting data will be a view
-            """
-
             label = self.columns[i]
             if isinstance(i, slice):
                 # need to return view
@@ -1857,8 +1715,8 @@ class DataFrame(NDFrame):
                     return self.take(i, axis=1, convert=True)
 
                 values = self._data.iget(i)
-                return self._col_klass.from_array(values, index=self.index,
-                                                  name=label)
+                return self._constructor_sliced.from_array(values, index=self.index,
+                                                           name=label)
 
     def iget_value(self, i, j):
         return self.iat[i,j]
@@ -2119,17 +1977,6 @@ class DataFrame(NDFrame):
             value = com._possibly_cast_to_datetime(value, dtype)
         return np.atleast_2d(np.asarray(value))
 
-    def pop(self, item):
-        """
-        Return column and drop from frame. Raise KeyError if not found.
-
-        Returns
-        -------
-        column : Series
-        """
-        return NDFrame.pop(self, item)
-        
-    # to support old APIs
     @property
     def _series(self):
         return self._data.get_series_dict()
@@ -3560,11 +3407,6 @@ class DataFrame(NDFrame):
         return self._constructor(result, index=new_index,
                                  columns=new_columns, copy=False)
 
-    def _indexed_same(self, other):
-        same_index = self.index.equals(other.index)
-        same_columns = self.columns.equals(other.columns)
-        return same_index and same_columns
-
     def _combine_series(self, other, func, fill_value=None, axis=None,
                         level=None):
         if axis is not None:
@@ -4820,6 +4662,7 @@ class DataFrame(NDFrame):
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
+
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
@@ -4906,6 +4749,7 @@ class DataFrame(NDFrame):
         return Series(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
+        """ let's be explict about this """
         if axis_num == 0:
             return self.columns
         elif axis_num == 1:
@@ -5222,6 +5066,7 @@ class DataFrame(NDFrame):
         """
         return self.where(~cond, NA)
 
+DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
 _EMPTY_SERIES = Series([])
 
 

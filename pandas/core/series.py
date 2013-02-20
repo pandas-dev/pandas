@@ -381,11 +381,6 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
 
 
 class Series(pa.Array, generic.PandasObject):
-    _AXIS_NUMBERS = {
-        'index': 0
-    }
-
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
@@ -3163,6 +3158,7 @@ class Series(pa.Array, generic.PandasObject):
         from pandas.core.strings import StringMethods
         return StringMethods(self)
 
+Series._setup_axes(['index'], build_axes = False)
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #------------------------------------------------------------------------------
