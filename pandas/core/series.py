@@ -2521,30 +2521,6 @@ class Series(pa.Array, generic.PandasObject):
             raise ValueError("cannot reindex series on non-zero axis!")
         return self.reindex(index=labels,**kwargs)
 
-    def reindex_like(self, other, method=None, limit=None, fill_value=pa.NA):
-        """
-        Reindex Series to match index of another Series, optionally with
-        filling logic
-
-        Parameters
-        ----------
-        other : Series
-        method : string or None
-            See Series.reindex docstring
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Notes
-        -----
-        Like calling s.reindex(other.index, method=...)
-
-        Returns
-        -------
-        reindexed : Series
-        """
-        return self.reindex(other.index, method=method, limit=limit,
-                            fill_value=fill_value)
-
     def take(self, indices, axis=0, convert=True):
         """
         Analogous to ndarray.take, return Series corresponding to requested
