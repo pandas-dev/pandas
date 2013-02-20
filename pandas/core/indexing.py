@@ -6,6 +6,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
+from pandas.core.common import _is_bool_indexer, is_series, is_dataframe
 import pandas.lib as lib
 
 import numpy as np
@@ -30,6 +31,7 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(object):
+    _exception   = KeyError
 
     def __init__(self, obj, name):
         self.obj = obj
@@ -100,7 +102,6 @@ class _NDFrameIndexer(object):
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
-        from pandas import Panel, DataFrame, Series
 
         # also has the side effect of consolidating in-place
 
@@ -110,17 +111,17 @@ class _NDFrameIndexer(object):
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
 
-            if isinstance(value, Series):
+            if is_series(value):
                 value = self._align_series(indexer, value)
 
-            het_axis = self.obj._het_axis
-            het_idx = indexer[het_axis]
+            info_axis = self.obj._info_axis_number
+            info_idx = indexer[info_axis]
 
-            if com.is_integer(het_idx):
-                het_idx = [het_idx]
+            if com.is_integer(info_idx):
+                info_idx = [info_idx]
 
-            plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
-            item_labels = self.obj._get_axis(het_axis)
+            plane_indexer = indexer[:info_axis] + indexer[info_axis + 1:]
+            item_labels = self.obj._get_axis(info_axis)
 
             def setter(item, v):
                 data = self.obj[item]
@@ -129,12 +130,12 @@ class _NDFrameIndexer(object):
                     result, changed = com._maybe_upcast_indexer(values,plane_indexer,v,dtype=getattr(data,'dtype',None))
                     self.obj[item] = result
 
-            labels = item_labels[het_idx]
+            labels = item_labels[info_idx]
 
             if _is_list_like(value):
 
                 # we have an equal len Frame
-                if isinstance(value, DataFrame) and value.ndim > 1:
+                if is_dataframe(value) and value.ndim > 1:
 
                     for item in labels:
 
@@ -175,10 +176,10 @@ class _NDFrameIndexer(object):
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
 
-            if isinstance(value, Series):
+            if is_series(value):
                 value = self._align_series(indexer, value)
 
-            if isinstance(value, DataFrame):
+            elif is_dataframe(value):
                 value = self._align_frame(indexer, value)
 
             if isinstance(value, Panel):
@@ -321,22 +322,14 @@ class _NDFrameIndexer(object):
         return True
 
     def _multi_take(self, tup):
-        from pandas.core.frame import DataFrame
-        from pandas.core.panel import Panel
-        from pandas.core.panel4d import Panel4D
+        """ create the reindex map for our objects, raise the _exception if we can't create the indexer """
 
-        if isinstance(self.obj, DataFrame):
-            index = self._convert_for_reindex(tup[0], axis=0)
-            columns = self._convert_for_reindex(tup[1], axis=1)
-            return self.obj.reindex(index=index, columns=columns)
-        elif isinstance(self.obj, Panel4D):
-            conv = [self._convert_for_reindex(x, axis=i)
-                    for i, x in enumerate(tup)]
-            return self.obj.reindex(labels=tup[0], items=tup[1], major=tup[2], minor=tup[3])
-        elif isinstance(self.obj, Panel):
-            conv = [self._convert_for_reindex(x, axis=i)
-                    for i, x in enumerate(tup)]
-            return self.obj.reindex(items=tup[0], major=tup[1], minor=tup[2])
+        try:
+            o = self.obj
+            d = dict([ (a,self._convert_for_reindex(t, axis=o._get_axis_number(a))) for t, a in zip(tup, o._AXIS_ORDERS) ])
+            return o.reindex(**d)
+        except:
+            raise self._exception
 
     def _convert_for_reindex(self, key, axis=0):
         labels = self.obj._get_axis(axis)
@@ -359,7 +352,6 @@ class _NDFrameIndexer(object):
             return keyarr
 
     def _getitem_lowerdim(self, tup):
-        from pandas.core.frame import DataFrame
 
         ax0 = self.obj._get_axis(0)
         # a bit kludgy
@@ -404,7 +396,7 @@ class _NDFrameIndexer(object):
 
                     # unfortunately need an odious kludge here because of
                     # DataFrame transposing convention
-                    if (isinstance(section, DataFrame) and i > 0
+                    if (is_dataframe(section) and i > 0
                             and len(new_key) == 2):
                         a, b = new_key
                         new_key = b, a
@@ -1041,18 +1033,21 @@ def _check_bool_indexer(ax, key):
     result = key
     if _is_series(key) and not key.index.equals(ax):
         result = result.reindex(ax)
-        mask = com.isnull(result)
+        mask = com.isnull(result.values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series key provided')
 
-    # com._is_bool_indexer has already checked for nulls in the case of an
-    # object array key, so no check needed here
-    result = np.asarray(result, dtype=bool)
+        result = result.astype(bool).values
+
+    else:
+        # com._is_bool_indexer has already checked for nulls in the case of an
+        # object array key, so no check needed here
+        result = np.asarray(result, dtype=bool)
+
     return result
 
 def _is_series(obj):
-    from pandas.core.series import Series
-    return isinstance(obj, Series)
+    return is_series(obj)
 
 
 def _maybe_convert_indices(indices, n):
@@ -1073,9 +1068,10 @@ def _maybe_convert_ix(*args):
     """
     We likely want to take the cross-product
     """
+
     ixify = True
     for arg in args:
-        if not isinstance(arg, (np.ndarray, list)):
+        if not (isinstance(arg, (np.ndarray, list)) or is_series(arg)):
             ixify = False
 
     if ixify:

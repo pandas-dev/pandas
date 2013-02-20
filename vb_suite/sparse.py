@@ -11,8 +11,8 @@ from pandas.core.sparse import SparseSeries, SparseDataFrame
 
 K = 50
 N = 50000
-rng = np.asarray(DateRange('1/1/2000', periods=N,
-                           offset=datetools.Minute()))
+rng = np.asarray(date_range('1/1/2000', periods=N,
+                           freq='T'))
 
 # rng2 = np.asarray(rng).astype('M8[ns]').astype('i8')
 

@@ -294,6 +294,8 @@ def _convert_by(by):
     elif (np.isscalar(by) or isinstance(by, np.ndarray)
           or hasattr(by, '__call__')):
         by = [by]
+    elif isinstance(by, Series):
+        by = [by]
     else:
         by = list(by)
     return by

@@ -25,7 +25,7 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
-                                _infer_dtype_from_scalar)
+                                _infer_dtype_from_scalar, _values_from_object)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
@@ -36,6 +36,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
+from pandas.sparse.array import SparseArray
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
@@ -198,7 +199,7 @@ def _arith_method(op, name, str_rep = None, default_axis='columns', fill_zeros=N
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, np.ndarray):
+            if isinstance(y, (np.ndarray, Series)):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 result[mask] = op(xrav[mask], yrav[mask])
@@ -253,7 +254,7 @@ def _flex_comp_method(op, name, str_rep = None, default_axis='columns'):
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, np.ndarray):
+            if isinstance(y, (np.ndarray, Series)):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 result[mask] = op(np.array(list(xrav[mask])),
@@ -371,16 +372,13 @@ class DataFrame(NDFrame):
     read_csv / read_table / read_clipboard
     """
     _auto_consolidate = True
-    _het_axis = 1
-    _info_axis = 'columns'
-    _col_klass = Series
+    _verbose_info = True
 
-    _AXIS_NUMBERS = {
-        'index': 0,
-        'columns': 1
-    }
+    @property
+    def _constructor(self):
+        return DataFrame
 
-    _AXIS_NAMES = dict((v, k) for k, v in compat.iteritems(_AXIS_NUMBERS))
+    _constructor_sliced = Series
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
@@ -391,7 +389,7 @@ class DataFrame(NDFrame):
             data = data._data
 
         if isinstance(data, BlockManager):
-            mgr = self._init_mgr(data, index, columns, dtype=dtype, copy=copy)
+            mgr = self._init_mgr(data, axes = dict(index=index, columns=columns), dtype=dtype, copy=copy)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
@@ -403,7 +401,7 @@ class DataFrame(NDFrame):
                 data = data.copy()
             mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                      copy=copy)
-        elif isinstance(data, np.ndarray):
+        elif isinstance(data, (np.ndarray,Series)):
             if data.dtype.names:
                 data_columns, data = _rec_to_dict(data)
                 if columns is None:
@@ -451,30 +449,7 @@ class DataFrame(NDFrame):
             else:
                 raise PandasError('DataFrame constructor not properly called!')
 
-        NDFrame.__init__(self, mgr)
-
-    @classmethod
-    def _from_axes(cls, data, axes):
-        # for construction from BlockManager
-        if isinstance(data, BlockManager):
-            return cls(data)
-        else:
-            columns, index = axes
-            return cls(data, index=index, columns=columns, copy=False)
-
-    def _init_mgr(self, mgr, index, columns, dtype=None, copy=False):
-        if columns is not None:
-            mgr = mgr.reindex_axis(columns, axis=0, copy=False)
-        if index is not None:
-            mgr = mgr.reindex_axis(index, axis=1, copy=False)
-        # do not copy BlockManager unless explicitly done
-        if copy and dtype is None:
-            mgr = mgr.copy()
-        elif dtype is not None:
-            # avoid copy if we can
-            if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
-                mgr = mgr.astype(dtype)
-        return mgr
+        NDFrame.__init__(self, mgr, fastpath=True)
 
     def _init_dict(self, data, index, columns, dtype=None):
         """
@@ -536,6 +511,10 @@ class DataFrame(NDFrame):
             else:
                 values = values.reindex(index)
 
+            # zero len case (GH #2234)
+            if not len(values) and len(columns):
+                values = np.empty((0,1), dtype=object)
+
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
@@ -559,23 +538,11 @@ class DataFrame(NDFrame):
 
         return create_block_manager_from_blocks([ values.T ], [ columns, index ])
 
-    def _wrap_array(self, arr, axes, copy=False):
-        index, columns = axes
-        return self._constructor(arr, index=index, columns=columns, copy=copy)
-
     @property
     def _verbose_info(self):
         warnings.warn('The _verbose_info property will be removed in version '
                       '0.13. please use "max_info_rows"', FutureWarning)
         return get_option('display.max_info_rows') is None
-
-    @_verbose_info.setter
-    def _verbose_info(self, value):
-        warnings.warn('The _verbose_info property will be removed in version '
-                      '0.13. please use "max_info_rows"', FutureWarning)
-
-        value = None if value else 1000000
-        set_option('display.max_info_rows', value)
 
     @property
     def axes(self):
@@ -585,8 +552,10 @@ class DataFrame(NDFrame):
     def shape(self):
         return (len(self.index), len(self.columns))
 
-    #----------------------------------------------------------------------
     # Class behavior
+    def __nonzero__(self):
+        raise ValueError("Cannot call bool() on DataFrame.")
+
     def _repr_fits_vertical_(self):
         """
         Check length against max_rows.
@@ -725,15 +694,6 @@ class DataFrame(NDFrame):
         else:
             return None
 
-    def __iter__(self):
-        """
-        Iterate over columns of the frame.
-        """
-        return iter(self.columns)
-
-    def keys(self):
-        return self.columns
-
     def iteritems(self):
         """Iterator over (column, series) pairs"""
         if self.columns.is_unique and hasattr(self, '_item_cache'):
@@ -767,9 +727,7 @@ class DataFrame(NDFrame):
         """
         columns = self.columns
         for k, v in zip(self.index, self.values):
-            s = v.view(Series)
-            s.index = columns
-            s.name = k
+            s = Series(v,index=columns,name=k)
             yield k, s
 
     def itertuples(self, index=True):
@@ -789,12 +747,8 @@ class DataFrame(NDFrame):
         items = iteritems
 
     def __len__(self):
-        """Returns length of index"""
+        """Returns length of info axis, but here we use the index """
         return len(self.index)
-
-    def __contains__(self, key):
-        """True if DataFrame has this column"""
-        return key in self.columns
 
     #----------------------------------------------------------------------
     # Arithmetic methods
@@ -852,14 +806,6 @@ class DataFrame(NDFrame):
                                 default_axis=None, fill_zeros=np.inf, truediv=False)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
                                  default_axis=None, fill_zeros=np.inf)
-
-    def __neg__(self):
-        arr = operator.neg(self.values)
-        return self._wrap_array(arr, self.axes, copy=False)
-
-    def __invert__(self):
-        arr = operator.inv(self.values)
-        return self._wrap_array(arr, self.axes, copy=False)
 
     # Comparison methods
     __eq__ = _comp_method(operator.eq, '__eq__', '==')
@@ -1684,134 +1630,19 @@ class DataFrame(NDFrame):
 
     @property
     def dtypes(self):
-        return self.apply(lambda x: x.dtype)
+        return self.apply(lambda x: x.dtype, reduce=False)
 
-    def convert_objects(self, convert_dates=True, convert_numeric=False, copy=True):
-        """
-        Attempt to infer better dtype for object columns
-
-        Parameters
-        ----------
-        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
-        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
-        copy : boolean, return a copy if True (True by default)
-
-        Returns
-        -------
-        converted : DataFrame
-        """
-        return self._constructor(self._data.convert(convert_dates=convert_dates,
-                                                    convert_numeric=convert_numeric,
-                                                    copy=copy))
-
-    #----------------------------------------------------------------------
-    # properties for index and columns
-
-    columns = lib.AxisProperty(0)
-    index = lib.AxisProperty(1)
-
-    def as_matrix(self, columns=None):
-        """
-        Convert the frame to its Numpy-array matrix representation. Columns
-        are presented in sorted order unless a specific list of columns is
-        provided.
-
-        NOTE: the dtype will be a lower-common-denominator dtype (implicit upcasting)
-              that is to say if the dtypes (even of numeric types) are mixed, the one that accomodates all will be chosen
-              use this with care if you are not dealing with the blocks
-
-              e.g. if the dtypes are float16,float32         -> float32
-                                     float16,float32,float64 -> float64
-                                     int32,uint8             -> int32
-
-        Parameters
-        ----------
-        columns : array-like
-            Specific column order
-
-        Returns
-        -------
-        values : ndarray
-            If the DataFrame is heterogeneous and contains booleans or objects,
-            the result will be of dtype=object
-        """
-        self._consolidate_inplace()
-        return self._data.as_matrix(columns).T
-
-    values = property(fget=as_matrix)
-
-    def as_blocks(self, columns=None):
-        """
-        Convert the frame to a dict of dtype -> DataFrames that each has a homogeneous dtype.
-        are presented in sorted order unless a specific list of columns is
-        provided.
-
-        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in as_matrix)
-
-        Parameters
-        ----------
-        columns : array-like
-            Specific column order
-
-        Returns
-        -------
-        values : a list of DataFrames
-        """
-        self._consolidate_inplace()
-
-        bd = dict()
-        for b in self._data.blocks:
-            b = b.reindex_items_from(columns or b.items)
-            bd[str(b.dtype)] = DataFrame(BlockManager([ b ], [ b.items, self.index ]))
-        return bd
-
-    blocks = property(fget=as_blocks)
+    @property
+    def ftypes(self):
+        return self.apply(lambda x: x.ftype, reduce=False)
 
     def transpose(self):
-        """
-        Returns a DataFrame with the rows/columns switched. If the DataFrame is
-        homogeneously-typed, the data is not copied
-        """
-        return self._constructor(data=self.values.T, index=self.columns,
-                                 columns=self.index, copy=False)
+        return super(DataFrame, self).transpose(1,0)
 
     T = property(transpose)
 
-    def swapaxes(self, i, j):
-        """
-        Like ndarray.swapaxes, equivalent to transpose
-
-        Returns
-        -------
-        swapped : DataFrame
-            View on original data (no copy)
-        """
-        if i in (0, 1) and j in (0, 1):
-            if i == j:
-                return self
-            return self._constructor(data=self.values.T, index=self.columns,
-                                     columns=self.index, copy=False)
-        else:
-            raise ValueError('Axis numbers must be in (0, 1)')
-
     #----------------------------------------------------------------------
     # Picklability
-
-    def __getstate__(self):
-        return self._data
-
-    def __setstate__(self, state):
-        # old DataFrame pickle
-        if isinstance(state, BlockManager):
-            self._data = state
-        elif isinstance(state[0], dict):  # pragma: no cover
-            self._unpickle_frame_compat(state)
-        else:  # pragma: no cover
-            # old pickling format, for compatibility
-            self._unpickle_matrix_compat(state)
-
-        # ordinarily created in NDFrame
-        self._item_cache = {}
 
     # legacy pickle formats
     def _unpickle_frame_compat(self, state):  # pragma: no cover
@@ -1846,15 +1677,6 @@ class DataFrame(NDFrame):
         self._data = dm._data
 
     #----------------------------------------------------------------------
-    # Array interface
-
-    def __array__(self, dtype=None):
-        return self.values
-
-    def __array_wrap__(self, result):
-        return self._constructor(result, index=self.index,
-                                 columns=self.columns, copy=False)
-
     #----------------------------------------------------------------------
     # Getting and setting elements
 
@@ -1873,7 +1695,7 @@ class DataFrame(NDFrame):
         """
         series = self._get_item_cache(col)
         engine = self.index._engine
-        return engine.get_value(series, index)
+        return engine.get_value(series.values, index)
 
     def set_value(self, index, col, value):
         """
@@ -1894,7 +1716,7 @@ class DataFrame(NDFrame):
         try:
             series = self._get_item_cache(col)
             engine = self.index._engine
-            engine.set_value(series, index, value)
+            engine.set_value(series.values, index, value)
             return self
         except KeyError:
             new_index, new_columns = self._expand_axes((index, col))
@@ -1968,8 +1790,8 @@ class DataFrame(NDFrame):
                     return self.take(i, axis=1, convert=True)
 
                 values = self._data.iget(i)
-                return self._col_klass.from_array(values, index=self.index,
-                                                  name=label)
+                return self._constructor_sliced.from_array(values, index=self.index,
+                                                           name=label, fastpath=True)
 
     def iget_value(self, i, j):
         return self.iat[i,j]
@@ -1981,7 +1803,7 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._getitem_slice(indexer)
 
-        if isinstance(key, (np.ndarray, list)):
+        if isinstance(key, (Series, np.ndarray, list)):
             # either boolean or fancy integer index
             return self._getitem_array(key)
         elif isinstance(key, DataFrame):
@@ -2023,7 +1845,7 @@ class DataFrame(NDFrame):
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
-        if isinstance(loc, (slice, np.ndarray)):
+        if isinstance(loc, (slice, Series, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = _maybe_droplevels(new_columns, key)
             if self._is_mixed_type:
@@ -2051,15 +1873,9 @@ class DataFrame(NDFrame):
         return self.where(key)
 
     def _slice(self, slobj, axis=0, raise_on_error=False):
-        if axis == 0:
-            mgr_axis = 1
-        else:
-            mgr_axis = 0
-
-        self._consolidate_inplace()
-        new_data = self._data.get_slice(slobj, axis=mgr_axis,
-                                        raise_on_error=raise_on_error)
-
+        axis = self._get_block_manager_axis(axis)
+        new_data = self._data.get_slice(slobj, axis=axis)
+        new_data = self._data.get_slice(slobj, axis=axis, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def _box_item_values(self, key, values):
@@ -2067,32 +1883,11 @@ class DataFrame(NDFrame):
         if values.ndim == 2:
             return self._constructor(values.T, columns=items, index=self.index)
         else:
-            return Series.from_array(values, index=self.index, name=items)
+            return self._box_col_values(values, items)
 
-    def __getattr__(self, name):
-        """After regular attribute access, try looking up the name of a column.
-        This allows simpler access to columns for interactive use."""
-        if name in self.columns:
-            return self[name]
-        raise AttributeError("'%s' object has no attribute '%s'" %
-                             (type(self).__name__, name))
-
-    def __setattr__(self, name, value):
-        """After regular attribute access, try looking up the name of a column.
-        This allows simpler access to columns for interactive use."""
-        if name == '_data':
-            super(DataFrame, self).__setattr__(name, value)
-        else:
-            try:
-                existing = getattr(self, name)
-                if isinstance(existing, Index):
-                    super(DataFrame, self).__setattr__(name, value)
-                elif name in self.columns:
-                    self[name] = value
-                else:
-                    object.__setattr__(self, name, value)
-            except (AttributeError, TypeError):
-                object.__setattr__(self, name, value)
+    def _box_col_values(self, values, items):
+        """ provide boxed values for a column """
+        return self._constructor_sliced.from_array(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
         # see if we can slice the rows
@@ -2100,7 +1895,7 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, (np.ndarray, list)):
+        if isinstance(key, (Series, np.ndarray, list)):
             self._setitem_array(key, value)
         elif isinstance(key, DataFrame):
             self._setitem_frame(key, value)
@@ -2236,17 +2031,6 @@ class DataFrame(NDFrame):
             value = com._possibly_cast_to_datetime(value, dtype)
         return np.atleast_2d(np.asarray(value))
 
-    def pop(self, item):
-        """
-        Return column and drop from frame. Raise KeyError if not found.
-
-        Returns
-        -------
-        column : Series
-        """
-        return NDFrame.pop(self, item)
-
-    # to support old APIs
     @property
     def _series(self):
         return self._data.get_series_dict()
@@ -2438,237 +2222,40 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=NA, method=None, limit=None, fill_axis=0):
-        """
-        Align two DataFrame object on their index and columns with the
-        specified join method for each axis Index
+    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
+      frame = self
 
-        Parameters
-        ----------
-        other : DataFrame or Series
-        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
-        axis : {0, 1, None}, default None
-            Align on index (0), columns (1), or both (None)
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        copy : boolean, default True
-            Always returns new objects. If copy=False and no reindexing is
-            required then original objects are returned.
-        fill_value : scalar, default np.NaN
-            Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value
-        method : str, default None
-        limit : int, default None
-        fill_axis : {0, 1}, default 0
-            Filling axis, method and limit
+      columns = axes['columns']
+      if columns is not None:
+          frame = frame._reindex_columns(columns, copy, level,
+                                         fill_value, limit)
 
-        Returns
-        -------
-        (left, right) : (DataFrame, type of other)
-            Aligned objects
-        """
-        if axis is not None:
-            axis = self._get_axis_number(axis)
-        if isinstance(other, DataFrame):
-            return self._align_frame(other, join=join, axis=axis, level=level,
-                                     copy=copy, fill_value=fill_value,
-                                     method=method, limit=limit,
-                                     fill_axis=fill_axis)
-        elif isinstance(other, Series):
-            return self._align_series(other, join=join, axis=axis, level=level,
-                                      copy=copy, fill_value=fill_value,
-                                      method=method, limit=limit,
-                                      fill_axis=fill_axis)
-        else:  # pragma: no cover
-            raise TypeError('unsupported type: %s' % type(other))
+      index = axes['index']
+      if index is not None:
+          frame = frame._reindex_index(index, method, copy, level,
+                                       fill_value, limit)
 
-    def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=NA, method=None, limit=None,
-                     fill_axis=0):
-        # defaults
-        join_index, join_columns = None, None
-        ilidx, iridx = None, None
-        clidx, cridx = None, None
+      return frame
 
-        if axis is None or axis == 0:
-            if not self.index.equals(other.index):
-                join_index, ilidx, iridx = \
-                    self.index.join(other.index, how=join, level=level,
-                                    return_indexers=True)
+    def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
+                       limit=None):
+        new_index, indexer = self.index.reindex(new_index, method, level,
+                                                limit=limit)
+        return self._reindex_with_indexers({ 0 : [ new_index, indexer ] },
+                                           copy=copy, fill_value=fill_value)
 
-        if axis is None or axis == 1:
-            if not self.columns.equals(other.columns):
-                join_columns, clidx, cridx = \
-                    self.columns.join(other.columns, how=join, level=level,
-                                      return_indexers=True)
+    def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
+                         limit=None):
+        new_columns, indexer = self.columns.reindex(new_columns, level=level,
+                                                    limit=limit)
+        return self._reindex_with_indexers({ 1 : [ new_columns, indexer ] },
+                                           copy=copy, fill_value=fill_value)
 
-        left = self._reindex_with_indexers(join_index, ilidx,
-                                           join_columns, clidx, copy,
-                                           fill_value=fill_value)
-        right = other._reindex_with_indexers(join_index, iridx,
-                                             join_columns, cridx, copy,
-                                             fill_value=fill_value)
+    def _reindex_multi(self, axes, copy, fill_value):
+        """ we are guaranteed non-Nones in the axes! """
 
-        if method is not None:
-            left = left.fillna(axis=fill_axis, method=method, limit=limit)
-            right = right.fillna(axis=fill_axis, method=method, limit=limit)
-
-        return left, right
-
-    def _align_series(self, other, join='outer', axis=None, level=None,
-                      copy=True, fill_value=None, method=None, limit=None,
-                      fill_axis=0):
-        fdata = self._data
-        if axis == 0:
-            join_index = self.index
-            lidx, ridx = None, None
-            if not self.index.equals(other.index):
-                join_index, lidx, ridx = self.index.join(other.index, how=join,
-                                                         return_indexers=True)
-
-            if lidx is not None:
-                fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
-        elif axis == 1:
-            join_index = self.columns
-            lidx, ridx = None, None
-            if not self.columns.equals(other.index):
-                join_index, lidx, ridx = \
-                    self.columns.join(other.index, how=join,
-                                      return_indexers=True)
-
-            if lidx is not None:
-                fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
-        else:
-            raise ValueError('Must specify axis=0 or 1')
-
-        if copy and fdata is self._data:
-            fdata = fdata.copy()
-
-        left_result = DataFrame(fdata)
-        right_result = other if ridx is None else other.reindex(join_index)
-
-        fill_na = notnull(fill_value) or (method is not None)
-        if fill_na:
-            return (left_result.fillna(fill_value, method=method, limit=limit,
-                                       axis=fill_axis),
-                    right_result.fillna(fill_value, method=method,
-                                        limit=limit))
-        else:
-            return left_result, right_result
-
-    def reindex(self, index=None, columns=None, method=None, level=None,
-                fill_value=NA, limit=None, copy=True, takeable=False):
-        """Conform DataFrame to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        copy=False
-
-        Parameters
-        ----------
-        index : array-like, optional
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
-        columns : array-like, optional
-            Same usage as index argument
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed DataFrame
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        fill_value : scalar, default np.NaN
-            Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-        takeable : the labels are locations (and not labels)
-
-        Examples
-        --------
-        >>> df.reindex(index=[date1, date2, date3], columns=['A', 'B', 'C'])
-
-        Returns
-        -------
-        reindexed : same type as calling instance
-        """
-        self._consolidate_inplace()
-        frame = self
-
-        if (index is not None and columns is not None
-            and method is None and level is None
-                and not self._is_mixed_type):
-            return self._reindex_multi(index, columns, copy, fill_value)
-
-        if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level,
-                                           fill_value, limit, takeable)
-
-        if index is not None:
-            frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit, takeable)
-
-        return frame
-
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     limit=None, fill_value=NA):
-        """Conform DataFrame to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        copy=False
-
-        Parameters
-        ----------
-        index : array-like, optional
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
-        axis : {0, 1}
-            0 -> index (rows)
-            1 -> columns
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed DataFrame
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Examples
-        --------
-        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
-
-        See also
-        --------
-        DataFrame.reindex, DataFrame.reindex_like
-
-        Returns
-        -------
-        reindexed : same type as calling instance
-        """
-        self._consolidate_inplace()
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            return self._reindex_index(labels, method, copy, level,
-                                       fill_value=fill_value,
-                                       limit=limit)
-        elif axis == 1:
-            return self._reindex_columns(labels, copy, level,
-                                         fill_value=fill_value,
-                                         limit=limit)
-        else:  # pragma: no cover
-            raise ValueError('Must specify axis=0 or 1')
-
-    def _reindex_multi(self, new_index, new_columns, copy, fill_value):
-        new_index, row_indexer = self.index.reindex(new_index)
-        new_columns, col_indexer = self.columns.reindex(new_columns)
+        new_index, row_indexer = self.index.reindex(axes['index'])
+        new_columns, col_indexer = self.columns.reindex(axes['columns'])
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
@@ -2677,12 +2264,9 @@ class DataFrame(NDFrame):
             return self._constructor(new_values, index=new_index,
                                      columns=new_columns)
         elif row_indexer is not None:
-            return self._reindex_with_indexers(new_index, row_indexer,
-                                               None, None, copy, fill_value)
+            return self._reindex_with_indexers({ 0 : [ new_index,   row_indexer ] }, copy=copy, fill_value=fill_value)
         elif col_indexer is not None:
-            return self._reindex_with_indexers(None, None,
-                                               new_columns, col_indexer,
-                                               copy, fill_value)
+            return self._reindex_with_indexers({ 1 : [ new_columns, col_indexer ] }, copy=copy, fill_value=fill_value)
         else:
             return self.copy() if copy else self
 
@@ -2753,8 +2337,6 @@ class DataFrame(NDFrame):
         return self.reindex(index=other.index, columns=other.columns,
                             method=method, copy=copy, limit=limit,
                             fill_value=fill_value)
-
-    truncate = generic.truncate
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
@@ -2987,45 +2569,11 @@ class DataFrame(NDFrame):
             else:
                 new_columns = self.columns.take(indices)
                 new_index = self.index
-            return DataFrame(new_values, index=new_index,
-                             columns=new_columns)
+            return self._constructor(new_values, index=new_index,
+                                     columns=new_columns)
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods
-
-    def filter(self, items=None, like=None, regex=None):
-        """
-        Restrict frame's columns to set of items or wildcard
-
-        Parameters
-        ----------
-        items : list-like
-            List of columns to restrict to (must not all be present)
-        like : string
-            Keep columns where "arg in col == True"
-        regex : string (regular expression)
-            Keep columns with re.search(regex, col) == True
-
-        Notes
-        -----
-        Arguments are mutually exclusive, but this is not checked for
-
-        Returns
-        -------
-        DataFrame with filtered columns
-        """
-        import re
-        if items is not None:
-            return self.reindex(columns=[r for r in items if r in self])
-        elif like:
-            matchf = lambda x: (like in x if isinstance(x, compat.string_types)
-                                else like in str(x))
-            return self.select(matchf, axis=1)
-        elif regex:
-            matcher = re.compile(regex)
-            return self.select(lambda x: matcher.search(x) is not None, axis=1)
-        else:
-            raise ValueError('items was None!')
 
     def dropna(self, axis=0, how='any', thresh=None, subset=None):
         """
@@ -3143,13 +2691,13 @@ class DataFrame(NDFrame):
             if np.iterable(cols) and not isinstance(cols, compat.string_types):
                 if isinstance(cols, tuple):
                     if cols in self.columns:
-                        values = [self[cols]]
+                        values = [self[cols].values]
                     else:
                         values = [_m8_to_i8(self[x].values) for x in cols]
                 else:
                     values = [_m8_to_i8(self[x].values) for x in cols]
             else:
-                values = [self[cols]]
+                values = [self[cols].values]
 
         keys = lib.fast_zip_fillna(values)
         duplicated = lib.duplicated(keys, take_last=take_last)
@@ -3375,373 +2923,6 @@ class DataFrame(NDFrame):
         return result
 
     #----------------------------------------------------------------------
-    # Filling NA's
-
-    def fillna(self, value=None, method=None, axis=0, inplace=False,
-               limit=None, downcast=None):
-        """
-        Fill NA/NaN values using the specified method
-
-        Parameters
-        ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        value : scalar or dict
-            Value to use to fill holes (e.g. 0), alternately a dict of values
-            specifying which value to use for each column (columns not in the
-            dict will not be filled). This value cannot be a list.
-        axis : {0, 1}, default 0
-            0: fill column-by-column
-            1: fill row-by-row
-        inplace : boolean, default False
-            If True, fill the DataFrame in place. Note: this will modify any
-            other views on this DataFrame, like if you took a no-copy slice of
-            an existing DataFrame, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-        downcast : dict, default is None, a dict of item->dtype of what to
-            downcast if possible
-
-        See also
-        --------
-        reindex, asfreq
-
-        Returns
-        -------
-        filled : DataFrame
-        """
-        if isinstance(value, (list, tuple)):
-            raise TypeError('"value" parameter must be a scalar or dict, but '
-                            'you passed a "{0}"'.format(type(value).__name__))
-        self._consolidate_inplace()
-
-        axis = self._get_axis_number(axis)
-        if value is None:
-            if method is None:
-                raise ValueError('must specify a fill method or value')
-            if self._is_mixed_type and axis == 1:
-                if inplace:
-                    raise NotImplementedError()
-                return self.T.fillna(method=method, limit=limit).T
-
-            method = com._clean_fill_method(method)
-            new_data = self._data.interpolate(method  = method,
-                                              axis    = axis,
-                                              limit   = limit,
-                                              inplace = inplace,
-                                              coerce  = True)
-        else:
-            if method is not None:
-                raise ValueError('cannot specify both a fill method and value')
-            # Float type values
-            if len(self.columns) == 0:
-                return self
-            if isinstance(value, (dict, Series)):
-                if axis == 1:
-                    raise NotImplementedError('Currently only can fill '
-                                              'with dict/Series column '
-                                              'by column')
-
-                result = self if inplace else self.copy()
-                for k, v in compat.iteritems(value):
-                    if k not in result:
-                        continue
-                    result[k].fillna(v, inplace=True)
-                return result
-            else:
-                new_data = self._data.fillna(value, inplace=inplace,
-                                             downcast=downcast)
-
-        if inplace:
-            self._data = new_data
-        else:
-            return self._constructor(new_data)
-
-    def ffill(self, axis=0, inplace=False, limit=None):
-        return self.fillna(method='ffill', axis=axis, inplace=inplace,
-                           limit=limit)
-
-    def bfill(self, axis=0, inplace=False, limit=None):
-        return self.fillna(method='bfill', axis=axis, inplace=inplace,
-                           limit=limit)
-
-    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method=None, axis=None):
-        """
-        Replace values given in 'to_replace' with 'value'.
-
-        Parameters
-        ----------
-        to_replace : str, regex, list, dict, Series, numeric, or None
-
-            * str or regex:
-
-                - str: string exactly matching `to_replace` will be replaced
-                  with `value`
-                - regex: regexs matching `to_replace` will be replaced with
-                  `value`
-
-            * list of str, regex, or numeric:
-
-                - First, if `to_replace` and `value` are both lists, they
-                  **must** be the same length.
-                - Second, if ``regex=True`` then all of the strings in **both**
-                  lists will be interpreted as regexs otherwise they will match
-                  directly. This doesn't matter much for `value` since there
-                  are only a few possible substitution regexes you can use.
-                - str and regex rules apply as above.
-
-            * dict:
-
-                - Nested dictionaries, e.g., {'a': {'b': nan}}, are read as
-                  follows: look in column 'a' for the value 'b' and replace it
-                  with nan. You can nest regular expressions as well. Note that
-                  column names (the top-level dictionary keys in a nested
-                  dictionary) **cannot** be regular expressions.
-                - Keys map to column names and values map to substitution
-                  values. You can treat this as a special case of passing two
-                  lists except that you are specifying the column to search in.
-
-            * None:
-
-                - This means that the ``regex`` argument must be a string,
-                  compiled regular expression, or list, dict, ndarray or Series
-                  of such elements. If `value` is also ``None`` then this
-                  **must** be a nested dictionary or ``Series``.
-
-            See the examples section for examples of each of these.
-        value : scalar, dict, list, str, regex, default None
-            Value to use to fill holes (e.g. 0), alternately a dict of values
-            specifying which value to use for each column (columns not in the
-            dict will not be filled). Regular expressions, strings and lists or
-            dicts of such objects are also allowed.
-        inplace : boolean, default False
-            If True, fill the DataFrame in place. Note: this will modify any
-            other views on this DataFrame, like if you took a no-copy slice of
-            an existing DataFrame, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-        regex : bool or same types as `to_replace`, default False
-            Whether to interpret `to_replace` and/or `value` as regular
-            expressions. If this is ``True`` then `to_replace` *must* be a
-            string. Otherwise, `to_replace` must be ``None`` because this
-            parameter will be interpreted as a regular expression or a list,
-            dict, or array of regular expressions.
-
-        See also
-        --------
-        reindex, asfreq, fillna
-
-        Returns
-        -------
-        filled : DataFrame
-
-        Raises
-        ------
-        AssertionError
-            * If `regex` is not a ``bool`` and `to_replace` is not ``None``.
-        TypeError
-            * If `to_replace` is a ``dict`` and `value` is not a ``list``,
-              ``dict``, ``ndarray``, or ``Series``
-            * If `to_replace` is ``None`` and `regex` is not compilable into a
-              regular expression or is a list, dict, ndarray, or Series.
-        ValueError
-            * If `to_replace` and `value` are ``list`` s or ``ndarray`` s, but
-              they are not the same length.
-
-        Notes
-        -----
-        * Regex substitution is performed under the hood with ``re.sub``. The
-          rules for substitution for ``re.sub`` are the same.
-        * Regular expressions will only substitute on strings, meaning you
-          cannot provide, for example, a regular expression matching floating
-          point numbers and expect the columns in your frame that have a
-          numeric dtype to be matched. However, if those floating point numbers
-          *are* strings, then you can do this.
-        * This method has *a lot* of options. You are encouraged to experiment
-          and play with this method to gain intuition about how it works.
-
-        """
-        if not com.is_bool(regex) and to_replace is not None:
-            raise AssertionError("'to_replace' must be 'None' if 'regex' is "
-                                 "not a bool")
-        if method is not None:
-            warnings.warn('the "method" argument is deprecated and will be removed in'
-                 'v0.13; this argument has no effect')
-
-        if axis is not None:
-            warnings.warn('the "axis" argument is deprecated and will be removed in'
-                 'v0.13; this argument has no effect')
-
-        self._consolidate_inplace()
-
-        if value is None:
-            if not isinstance(to_replace, (dict, Series)):
-                if not isinstance(regex, (dict, Series)):
-                    raise TypeError('If "to_replace" and "value" are both None'
-                                    ' then regex must be a mapping')
-                to_replace = regex
-                regex = True
-
-            items = list(to_replace.items())
-            keys, values = zip(*items)
-
-            are_mappings = [isinstance(v, (dict, Series)) for v in values]
-
-            if any(are_mappings):
-                if not all(are_mappings):
-                    raise TypeError("If a nested mapping is passed, all values"
-                                    " of the top level mapping must be "
-                                    "mappings")
-                # passed a nested dict/Series
-                to_rep_dict = {}
-                value_dict = {}
-
-                for k, v in items:
-                    to_rep_dict[k] = list(v.keys())
-                    value_dict[k] = list(v.values())
-
-                to_replace, value = to_rep_dict, value_dict
-            else:
-                to_replace, value = keys, values
-
-            return self.replace(to_replace, value, inplace=inplace,
-                                limit=limit, regex=regex)
-        else:
-            if not len(self.columns):
-                return self
-
-            new_data = self._data
-            if isinstance(to_replace, (dict, Series)):
-                if isinstance(value, (dict, Series)):  # {'A' : NA} -> {'A' : 0}
-                    new_data = self._data
-                    for c, src in compat.iteritems(to_replace):
-                        if c in value and c in self:
-                            new_data = new_data.replace(src, value[c],
-                                                        filter=[c],
-                                                        inplace=inplace,
-                                                        regex=regex)
-
-                elif not isinstance(value, (list, np.ndarray)):  # {'A': NA} -> 0
-                    new_data = self._data
-                    for k, src in compat.iteritems(to_replace):
-                        if k in self:
-                            new_data = new_data.replace(src, value,
-                                                        filter=[k],
-                                                        inplace=inplace,
-                                                        regex=regex)
-                else:
-                    raise TypeError('Fill value must be scalar, dict, or '
-                                    'Series')
-
-            elif isinstance(to_replace, (list, np.ndarray)):
-                # [NA, ''] -> [0, 'missing']
-                if isinstance(value, (list, np.ndarray)):
-                    if len(to_replace) != len(value):
-                        raise ValueError('Replacement lists must match '
-                                         'in length. Expecting %d got %d ' %
-                                         (len(to_replace), len(value)))
-
-                    new_data = self._data.replace_list(to_replace, value,
-                                                       inplace=inplace,
-                                                       regex=regex)
-
-                else:  # [NA, ''] -> 0
-                    new_data = self._data.replace(to_replace, value,
-                                                  inplace=inplace, regex=regex)
-            elif to_replace is None:
-                if not (com.is_re_compilable(regex) or
-                        isinstance(regex, (list, dict, np.ndarray, Series))):
-                    raise TypeError("'regex' must be a string or a compiled "
-                                    "regular expression or a list or dict of "
-                                    "strings or regular expressions, you "
-                                    "passed a {0}".format(type(regex)))
-                return self.replace(regex, value, inplace=inplace, limit=limit,
-                                    regex=True)
-            else:
-
-                # dest iterable dict-like
-                if isinstance(value, (dict, Series)):  # NA -> {'A' : 0, 'B' : -1}
-                    new_data = self._data
-
-                    for k, v in compat.iteritems(value):
-                        if k in self:
-                            new_data = new_data.replace(to_replace, v,
-                                                        filter=[k],
-                                                        inplace=inplace,
-                                                        regex=regex)
-
-                elif not isinstance(value, (list, np.ndarray)):  # NA -> 0
-                    new_data = self._data.replace(to_replace, value,
-                                                  inplace=inplace, regex=regex)
-                else:
-                    raise TypeError('Invalid "to_replace" type: '
-                                    '{0}'.format(type(to_replace)))  # pragma: no cover
-
-        new_data = new_data.convert(copy=not inplace, convert_numeric=False)
-
-        if inplace:
-            self._data = new_data
-        else:
-            return self._constructor(new_data)
-
-    def interpolate(self, to_replace, method='pad', axis=0, inplace=False,
-                    limit=None):
-        """Interpolate values according to different methods.
-
-        Parameters
-        ----------
-        to_replace : dict, Series
-        method : str
-        axis : int
-        inplace : bool
-        limit : int, default None
-
-        Returns
-        -------
-        frame : interpolated
-
-        See Also
-        --------
-        reindex, replace, fillna
-        """
-        warn('DataFrame.interpolate will be removed in v0.13, please use '
-             'either DataFrame.fillna or DataFrame.replace instead',
-             FutureWarning)
-        if self._is_mixed_type and axis == 1:
-            return self.T.replace(to_replace, method=method, limit=limit).T
-
-        method = com._clean_fill_method(method)
-
-        if isinstance(to_replace, (dict, Series)):
-            if axis == 0:
-                return self.replace(to_replace, method=method, inplace=inplace,
-                                    limit=limit, axis=axis)
-            elif axis == 1:
-                obj = self.T
-                if inplace:
-                    obj.replace(to_replace, method=method, limit=limit,
-                                inplace=inplace, axis=0)
-                    return obj.T
-                return obj.replace(to_replace, method=method, limit=limit,
-                                   inplace=inplace, axis=0).T
-            else:
-                raise ValueError('Invalid value for axis')
-        else:
-            new_data = self._data.interpolate(method=method, axis=axis,
-                                              limit=limit, inplace=inplace,
-                                              missing=to_replace, coerce=False)
-
-            if inplace:
-                self._data = new_data
-            else:
-                return self._constructor(new_data)
-
-    #----------------------------------------------------------------------
     # Rename
 
     def rename(self, index=None, columns=None, copy=True, inplace=False):
@@ -3831,11 +3012,6 @@ class DataFrame(NDFrame):
 
         return self._constructor(result, index=new_index,
                                  columns=new_columns, copy=False)
-
-    def _indexed_same(self, other):
-        same_index = self.index.equals(other.index)
-        same_columns = self.columns.equals(other.columns)
-        return same_index and same_columns
 
     def _combine_series(self, other, func, fill_value=None, axis=None,
                         level=None):
@@ -4325,7 +3501,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False, raw=False,
+    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=True,
               args=(), **kwds):
         """
         Applies function along input axis of DataFrame. Objects passed to
@@ -4343,6 +3519,7 @@ class DataFrame(NDFrame):
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
+        reduce : bool, default True, try to apply reduction procedures
         raw : boolean, default False
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
@@ -4386,8 +3563,7 @@ class DataFrame(NDFrame):
                     # How to determine this better?
                     is_reduction = False
                     try:
-                        is_reduction = not isinstance(f(_EMPTY_SERIES),
-                                                      np.ndarray)
+                        is_reduction = not isinstance(f(_EMPTY_SERIES), Series)
                     except Exception:
                         pass
 
@@ -4399,7 +3575,7 @@ class DataFrame(NDFrame):
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(f, axis)
                 else:
-                    return self._apply_standard(f, axis)
+                    return self._apply_standard(f, axis, reduce=reduce)
             else:
                 return self._apply_broadcast(f, axis)
 
@@ -4416,21 +3592,26 @@ class DataFrame(NDFrame):
         else:
             return Series(result, index=self._get_agg_axis(axis))
 
-    def _apply_standard(self, func, axis, ignore_failures=False):
-        try:
+    def _apply_standard(self, func, axis, ignore_failures=False, reduce=True):
 
-            if self._is_mixed_type:  # maybe a hack for now
-                raise AssertionError('Must be mixed type DataFrame')
-            values = self.values
-            dummy = Series(NA, index=self._get_axis(axis),
-                           dtype=values.dtype)
+        # try to reduce first (by default)
+        # this only matters if the reduction in values is of different dtype
+        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
+        if reduce:
+            try:
 
-            labels = self._get_agg_axis(axis)
-            result = lib.reduce(values, func, axis=axis, dummy=dummy,
-                                labels=labels)
-            return Series(result, index=self._get_agg_axis(axis))
-        except Exception:
-            pass
+                if self._is_mixed_type:  # maybe a hack for now
+                    raise AssertionError('Must be mixed type DataFrame')
+                values = self.values.ravel()
+                dummy = Series(NA, index=self._get_axis(axis),
+                               dtype=values.dtype)
+
+                labels = self._get_agg_axis(axis)
+                result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                    labels=labels)
+                return Series(result, index=self._get_agg_axis(axis))
+            except Exception:
+                pass
 
         if axis == 0:
             series_gen = (self.icol(i) for i in range(len(self.columns)))
@@ -4537,8 +3718,8 @@ class DataFrame(NDFrame):
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if com.is_datetime64_dtype(x):
-                x = lib.map_infer(x, lib.Timestamp)
-            return lib.map_infer(x, func)
+                x = lib.map_infer(_values_from_object(x), lib.Timestamp)
+            return lib.map_infer(_values_from_object(x), func)
         return self.apply(infer)
 
     #----------------------------------------------------------------------
@@ -5268,6 +4449,7 @@ class DataFrame(NDFrame):
         return Series(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
+        """ let's be explict about this """
         if axis_num == 0:
             return self.columns
         elif axis_num == 1:
@@ -5538,78 +4720,7 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
-    def where(self, cond, other=NA, inplace=False, try_cast=False, raise_on_error=True):
-        """
-        Return a DataFrame with the same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from other.
-
-        Parameters
-        ----------
-        cond : boolean DataFrame or array
-        other : scalar or DataFrame
-        inplace : boolean, default False
-            Whether to perform the operation in place on the data
-        try_cast : boolean, default False
-            try to cast the result back to the input type (if possible),
-        raise_on_error : boolean, default True
-            Whether to raise on invalid data types (e.g. trying to where on
-            strings)
-
-        Returns
-        -------
-        wh : DataFrame
-        """
-        if isinstance(cond, DataFrame):
-            # this already checks for index/column equality
-            cond = cond.reindex(self.index, columns=self.columns)
-        else:
-            if not hasattr(cond, 'shape'):
-                raise ValueError('where requires an ndarray like object for its '
-                                 'condition')
-            if cond.shape != self.shape:
-                raise ValueError('Array conditional must be same shape as self')
-            cond = self._constructor(cond, index=self.index,
-                                     columns=self.columns)
-
-        if inplace:
-            cond = -(cond.fillna(True).astype(bool))
-        else:
-            cond = cond.fillna(False).astype(bool)
-
-        if isinstance(other, DataFrame):
-            _, other = self.align(other, join='left', fill_value=NA)
-        elif isinstance(other,np.ndarray):
-            if other.shape != self.shape:
-                raise ValueError('other must be the same shape as self '
-                                 'when an ndarray')
-            other = self._constructor(other, self.index, self.columns)
-
-        if inplace:
-            # we may have different type blocks come out of putmask, so
-            # reconstruct the block manager
-            self._data = self._data.putmask(cond,other,inplace=True)
-
-        else:
-            new_data = self._data.where(other, cond,
-                                        raise_on_error=raise_on_error,
-                                        try_cast=try_cast)
-
-            return self._constructor(new_data)
-
-    def mask(self, cond):
-        """
-        Returns copy of self whose values are replaced with nan if the
-        inverted condition is True
-
-        Parameters
-        ----------
-        cond: boolean DataFrame or array
-
-        Returns
-        -------
-        wh: DataFrame
-        """
-        return self.where(~cond, NA)
+DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
 
 _EMPTY_SERIES = Series([])
 
@@ -5783,7 +4894,7 @@ def _prep_ndarray(values, copy=True):
 
 
 def _rec_to_dict(arr):
-    if isinstance(arr, np.ndarray):
+    if isinstance(arr, (np.ndarray, Series)):
         columns = list(arr.dtype.names)
         sdict = dict((k, arr[k]) for k in columns)
     elif isinstance(arr, DataFrame):
@@ -5829,7 +4940,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_of_series_to_arrays(data, columns,
                                          coerce_float=coerce_float,
                                          dtype=dtype)
-    elif isinstance(data, np.ndarray):
+    elif isinstance(data, (np.ndarray, Series)):
         columns = list(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns

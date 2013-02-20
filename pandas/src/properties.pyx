@@ -58,26 +58,6 @@ cdef class AxisProperty(object):
     def __set__(self, obj, value):
         obj._set_axis(self.axis, value)
 
-cdef class SeriesIndex(object):
-    cdef:
-        object _check_type
-
-    def __init__(self):
-        from pandas.core.index import _ensure_index
-        self._check_type = _ensure_index
-
-    def __get__(self, obj, type):
-        return obj._index
-
-    def __set__(self, obj, value):
-        if len(obj) != len(value):
-            raise AssertionError('Index length did not match values')
-        obj._index = val = self._check_type(value)
-        if hasattr(val, 'tz'):
-            # hack for #2139
-            obj._make_time_series()
-
-
 cdef class ValuesProperty(object):
 
     def __get__(self, obj, type):

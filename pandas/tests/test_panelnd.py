@@ -29,11 +29,11 @@ class TestPanelnd(unittest.TestCase):
         # create a 4D
         Panel4D = panelnd.create_nd_panel_factory(
             klass_name='Panel4D',
-            axis_orders=['labels', 'items', 'major_axis', 'minor_axis'],
-            axis_slices={'items': 'items', 'major_axis': 'major_axis',
-                         'minor_axis': 'minor_axis'},
+            orders=['labels', 'items', 'major_axis', 'minor_axis'],
+            slices={'items': 'items', 'major_axis': 'major_axis',
+                    'minor_axis': 'minor_axis'},
             slicer=Panel,
-            axis_aliases={'major': 'major_axis', 'minor': 'minor_axis'},
+            aliases={'major': 'major_axis', 'minor': 'minor_axis'},
             stat_axis=2)
 
         p4d = Panel4D(dict(L1=tm.makePanel(), L2=tm.makePanel()))
@@ -43,11 +43,11 @@ class TestPanelnd(unittest.TestCase):
         # create a 4D
         Panel4D = panelnd.create_nd_panel_factory(
             klass_name='Panel4D',
-            axis_orders=['labels', 'items', 'major_axis', 'minor_axis'],
-            axis_slices={'items': 'items', 'major_axis': 'major_axis',
-                         'minor_axis': 'minor_axis'},
+            orders=['labels', 'items', 'major_axis', 'minor_axis'],
+            slices={'items': 'items', 'major_axis': 'major_axis',
+                    'minor_axis': 'minor_axis'},
             slicer='Panel',
-            axis_aliases={'major': 'major_axis', 'minor': 'minor_axis'},
+            aliases={'major': 'major_axis', 'minor': 'minor_axis'},
             stat_axis=2)
 
         p4d = Panel4D(dict(L1=tm.makePanel(), L2=tm.makePanel()))
@@ -58,14 +58,14 @@ class TestPanelnd(unittest.TestCase):
         self.assertRaises(Exception,
                           panelnd.create_nd_panel_factory,
                           klass_name='Panel4D',
-                          axis_orders=['labels', 'items', 'major_axis',
-                                       'minor_axis'],
-                          axis_slices={'items': 'items',
-                                       'major_axis': 'major_axis',
-                                       'minor_axis': 'minor_axis'},
+                          orders=['labels', 'items', 'major_axis',
+                                  'minor_axis'],
+                          slices={'items': 'items',
+                                  'major_axis': 'major_axis',
+                                  'minor_axis': 'minor_axis'},
                           slicer='foo',
-                          axis_aliases={'major': 'major_axis',
-                                        'minor': 'minor_axis'},
+                          aliases={'major': 'major_axis',
+                                   'minor': 'minor_axis'},
                           stat_axis=2)
 
     def test_5d_construction(self):
@@ -73,11 +73,11 @@ class TestPanelnd(unittest.TestCase):
         # create a 4D
         Panel4D = panelnd.create_nd_panel_factory(
             klass_name='Panel4D',
-            axis_orders=['labels1', 'items', 'major_axis', 'minor_axis'],
-            axis_slices={'items': 'items', 'major_axis': 'major_axis',
-                         'minor_axis': 'minor_axis'},
+            orders=['labels1', 'items', 'major_axis', 'minor_axis'],
+            slices={'items': 'items', 'major_axis': 'major_axis',
+                    'minor_axis': 'minor_axis'},
             slicer=Panel,
-            axis_aliases={'major': 'major_axis', 'minor': 'minor_axis'},
+            aliases={'major': 'major_axis', 'minor': 'minor_axis'},
             stat_axis=2)
 
         p4d = Panel4D(dict(L1=tm.makePanel(), L2=tm.makePanel()))
@@ -85,13 +85,13 @@ class TestPanelnd(unittest.TestCase):
         # create a 5D
         Panel5D = panelnd.create_nd_panel_factory(
             klass_name='Panel5D',
-            axis_orders=['cool1', 'labels1', 'items', 'major_axis',
-                         'minor_axis'],
-            axis_slices={'labels1': 'labels1', 'items': 'items',
-                         'major_axis': 'major_axis',
-                         'minor_axis': 'minor_axis'},
+            orders=['cool1', 'labels1', 'items', 'major_axis',
+                    'minor_axis'],
+            slices={'labels1': 'labels1', 'items': 'items',
+                    'major_axis': 'major_axis',
+                    'minor_axis': 'minor_axis'},
             slicer=Panel4D,
-            axis_aliases={'major': 'major_axis', 'minor': 'minor_axis'},
+            aliases={'major': 'major_axis', 'minor': 'minor_axis'},
             stat_axis=2)
 
         p5d = Panel5D(dict(C1=p4d))

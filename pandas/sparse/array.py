@@ -101,18 +101,31 @@ sparse_index : {BlockIndex, IntIndex}, optional
 
 Notes
 -----
-SparseSeries objects are immutable via the typical Python means. If you
+SparseArray objects are immutable via the typical Python means. If you
 must change values, convert to dense, make your changes, then convert back
 to sparse
     """
     __array_priority__ = 15
+    _typ = 'array'
+    _subtyp = 'sparse_array'
 
     sp_index = None
     fill_value = None
 
-    def __new__(cls, data, sparse_index=None, kind='integer', fill_value=None,
-                copy=False):
+    def __new__(cls, data, sparse_index=None, index=None, kind='integer', fill_value=None,
+                dtype=np.float64, copy=False):
 
+        if index is not None:
+            if data is None:
+                data = np.nan
+            if not np.isscalar(data):
+                raise Exception("must only pass scalars with an index ")
+            values = np.empty(len(index),dtype='float64')
+            values.fill(data)
+            data = values
+
+        if dtype is not None:
+            dtype = np.dtype(dtype)
         is_sparse_array = isinstance(data, SparseArray)
         if fill_value is None:
             if is_sparse_array:
@@ -135,14 +148,22 @@ to sparse
 
         # Create array, do *not* copy data by default
         if copy:
-            subarr = np.array(values, dtype=np.float64, copy=True)
+            subarr = np.array(values, dtype=dtype, copy=True)
         else:
-            subarr = np.asarray(values, dtype=np.float64)
+            subarr = np.asarray(values, dtype=dtype)
+
+
+        # if we have a bool type, make sure that we have a bool fill_value
+        if (dtype is not None and issubclass(dtype.type,np.bool_)) or (data is not None and lib.is_bool_array(subarr)):
+            if np.isnan(fill_value) or not fill_value:
+                fill_value = False
+            else:
+                fill_value = bool(fill_value)
 
         # Change the class of the array to be the subclass type.
         output = subarr.view(cls)
         output.sp_index = sparse_index
-        output.fill_value = np.float64(fill_value)
+        output.fill_value = fill_value
         return output
 
     @property
@@ -182,11 +203,15 @@ to sparse
         self.fill_value = fill_value
 
     def __len__(self):
-        return self.sp_index.length
+        try:
+            return self.sp_index.length
+        except:
+            return 0
 
     def __unicode__(self):
-        return '%s\n%s' % (com.pprint_thing(self),
-                           com.pprint_thing(self.sp_index))
+        return '%s\nFill: %s\n%s' % (com.pprint_thing(self),
+                                     com.pprint_thing(self.fill_value),
+                                     com.pprint_thing(self.sp_index))
 
     # Arithmetic operators
 
@@ -236,6 +261,29 @@ to sparse
     def sp_values(self):
         # caching not an option, leaks memory
         return self.view(np.ndarray)
+    
+    def get_values(self, fill=None):
+        """ return a dense representation """
+        return self.to_dense(fill=fill)
+
+    def to_dense(self, fill=None):
+        """
+        Convert SparseSeries to (dense) Series
+        """
+        values = self.values
+
+        # fill the nans
+        if fill is None:
+            fill = self.fill_value
+        if not np.isnan(fill):
+            values[np.isnan(values)] = fill
+
+        return values
+
+    def __iter__(self):
+        for i in xrange(len(self)):
+            yield self._get_val_at(i)
+        raise StopIteration
 
     def __getitem__(self, key):
         """
@@ -260,8 +308,8 @@ to sparse
         if loc < 0:
             loc += n
 
-        if loc >= len(self) or loc < 0:
-            raise IndexError('out of bounds access')
+        if loc >= n or loc < 0:
+            raise Exception('Out of bounds access')
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
@@ -282,13 +330,21 @@ to sparse
         indices = np.asarray(indices, dtype=int)
 
         n = len(self)
-        if (indices < 0).any() or (indices >= n).any():
-            raise IndexError('out of bounds access')
+        if (indices >= n).any():
+            raise Exception('out of bounds access')
 
         if self.sp_index.npoints > 0:
-            locs = np.array([self.sp_index.lookup(loc) for loc in indices])
+            locs = np.array([self.sp_index.lookup(loc) if loc > -1 else -1 for loc in indices ])
             result = self.sp_values.take(locs)
-            result[locs == -1] = self.fill_value
+            mask = locs == -1
+            if mask.any():
+                try:
+                    result[mask] = self.fill_value
+                except (ValueError):
+                    # wrong dtype
+                    result = result.astype('float64')
+                    result[mask] = self.fill_value
+
         else:
             result = np.empty(len(indices))
             result.fill(self.fill_value)
@@ -296,16 +352,26 @@ to sparse
         return result
 
     def __setitem__(self, key, value):
-        raise TypeError('%r object does not support item assignment' % self.__class__.__name__)
+        #if com.is_integer(key):
+        #    self.values[key] = value
+        #else:
+        #    raise Exception("SparseArray does not support seting non-scalars via setitem")
+        raise Exception("SparseArray does not support setting via setitem")
 
     def __setslice__(self, i, j, value):
-        raise TypeError('%r object does not support item assignment' % self.__class__.__name__)
+        if i < 0:
+            i = 0
+        if j < 0:
+            j = 0
+        slobj = slice(i, j)
 
-    def to_dense(self):
-        """
-        Convert SparseSeries to (dense) Series
-        """
-        return self.values
+        #if not np.isscalar(value):
+        #    raise Exception("SparseArray does not support seting non-scalars via slices")
+
+        #x = self.values
+        #x[slobj] = value
+        #self.values = x
+        raise Exception("SparseArray does not support seting via slices")
 
     def astype(self, dtype=None):
         """
@@ -326,6 +392,7 @@ to sparse
         else:
             values = self.sp_values
         return SparseArray(values, sparse_index=self.sp_index,
+                           dtype = self.dtype,
                            fill_value=self.fill_value)
 
     def count(self):
@@ -407,6 +474,19 @@ to sparse
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
 
+def _maybe_to_dense(obj):
+    """ try to convert to dense """
+    if hasattr(obj,'to_dense'):
+        return obj.to_dense()
+    return obj
+
+def _maybe_to_sparse(array):
+    if com.is_sparse_series(array):
+        array = SparseArray(array.values,sparse_index=array.sp_index,fill_value=array.fill_value,copy=True)
+    if not isinstance(array, SparseArray):
+        array = com._values_from_object(array)
+    return array
+
 def make_sparse(arr, kind='block', fill_value=nan):
     """
     Convert ndarray to sparse format
@@ -421,7 +501,13 @@ def make_sparse(arr, kind='block', fill_value=nan):
     -------
     (sparse_values, index) : (ndarray, SparseIndex)
     """
-    arr = np.asarray(arr)
+    if hasattr(arr,'values'):
+        arr = arr.values
+    else:
+        if np.isscalar(arr):
+            arr = [ arr ]
+        arr = np.asarray(arr)
+
     length = len(arr)
 
     if np.isnan(fill_value):

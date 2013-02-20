@@ -564,20 +564,21 @@ class TestResample(unittest.TestCase):
             tm.assert_frame_equal(result, exp)
 
     def test_how_lambda_functions(self):
-        ts = _simple_ts('1/1/2000', '4/1/2000')
 
+        ts = _simple_ts('1/1/2000', '4/1/2000')
+                
         result = ts.resample('M', how=lambda x: x.mean())
         exp = ts.resample('M', how='mean')
         tm.assert_series_equal(result, exp)
-
+        
         self.assertRaises(Exception, ts.resample, 'M',
-                          how=[lambda x: x.mean(), lambda x: x.std()])
-
+                          how=[lambda x: x.mean(), lambda x: x.std(ddof=1)])
+                
         result = ts.resample('M', how={'foo': lambda x: x.mean(),
-                                       'bar': lambda x: x.std()})
+                                       'bar': lambda x: x.std(ddof=1)})
         foo_exp = ts.resample('M', how='mean')
         bar_exp = ts.resample('M', how='std')
-
+        
         tm.assert_series_equal(result['foo'], foo_exp)
         tm.assert_series_equal(result['bar'], bar_exp)
 

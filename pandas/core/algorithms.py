@@ -186,7 +186,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False):
         values = com._ensure_object(values)
         keys, counts = htable.value_count_object(values, mask)
 
-    result = Series(counts, index=keys)
+    result = Series(counts, index=com._values_from_object(keys))
 
     if sort:
         result.sort()
