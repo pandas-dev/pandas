@@ -1132,8 +1132,10 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = self.panel.swapaxes(0, 1)
         self.assert_(result.items is self.panel.major_axis)
 
-        # this should not work
-        self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
+        # this works, but return a copy
+        result = self.panel.swapaxes('items', 'items')
+        assert_panel_equal(self.panel,result)
+        self.assert_(id(self.panel) != id(result))
 
     def test_transpose(self):
         result = self.panel.transpose('minor', 'major', 'items')

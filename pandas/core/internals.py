@@ -331,12 +331,12 @@ class Block(object):
 
         # may need to align the new
         if hasattr(new, 'reindex_axis'):
-            axis = getattr(new, '_het_axis', 0)
+            axis = getattr(new, '_info_axis_number', 0)
             new = new.reindex_axis(self.items, axis=axis, copy=False).values.T
 
         # may need to align the mask
         if hasattr(mask, 'reindex_axis'):
-            axis = getattr(mask, '_het_axis', 0)
+            axis = getattr(mask, '_info_axis_number', 0)
             mask = mask.reindex_axis(self.items, axis=axis, copy=False).values.T
 
         if self._can_hold_element(new):
@@ -457,7 +457,7 @@ class Block(object):
 
         # see if we can align other
         if hasattr(other, 'reindex_axis'):
-            axis = getattr(other, '_het_axis', 0)
+            axis = getattr(other, '_info_axis_number', 0)
             other = other.reindex_axis(self.items, axis=axis, copy=True).values
 
         # make sure that we can broadcast
@@ -513,7 +513,7 @@ class Block(object):
 
         # see if we can align other
         if hasattr(other,'reindex_axis'):
-            axis = getattr(other,'_het_axis',0)
+            axis = getattr(other,'_info_axis_number',0)
             other = other.reindex_axis(self.items, axis=axis, copy=True).values
 
         # make sure that we can broadcast
@@ -527,7 +527,7 @@ class Block(object):
         if not hasattr(cond,'shape'):
             raise ValueError("where must have a condition that is ndarray like")
         if hasattr(cond,'reindex_axis'):
-            axis = getattr(cond,'_het_axis',0)
+            axis = getattr(cond,'_info_axis_number',0)
             cond = cond.reindex_axis(self.items, axis=axis, copy=True).values
         else:
             cond = cond.values

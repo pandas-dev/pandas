@@ -413,11 +413,6 @@ class Series(pa.Array, generic.PandasObject):
         input data
     copy : boolean, default False
     """
-    _AXIS_NUMBERS = {
-        'index': 0
-    }
-
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
@@ -3188,6 +3183,7 @@ class Series(pa.Array, generic.PandasObject):
         from pandas.core.strings import StringMethods
         return StringMethods(self)
 
+Series._setup_axes(['index'], build_axes = False)
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #------------------------------------------------------------------------------

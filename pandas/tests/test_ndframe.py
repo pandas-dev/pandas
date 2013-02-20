@@ -14,21 +14,6 @@ class TestNDFrame(unittest.TestCase):
         tdf = t.makeTimeDataFrame()
         self.ndf = NDFrame(tdf._data)
 
-    def test_constructor(self):
-        # with cast
-        ndf = NDFrame(self.ndf._data, dtype=np.int64)
-        self.assert_(ndf.values.dtype == np.int64)
-
-    def test_ndim(self):
-        self.assertEquals(self.ndf.ndim, 2)
-
-    def test_astype(self):
-        casted = self.ndf.astype(int)
-        self.assert_(casted.values.dtype == np.int_)
-
-        casted = self.ndf.astype(np.int32)
-        self.assert_(casted.values.dtype == np.int32)
-
     def test_squeeze(self):
         # noop
         for s in [ t.makeFloatSeries(), t.makeStringSeries(), t.makeObjectSeries() ]:

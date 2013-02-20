@@ -880,8 +880,10 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         result = self.panel4d.swapaxes(0, 1)
         self.assert_(result.labels is self.panel4d.items)
 
-        # this should also work
-        self.assertRaises(Exception, self.panel4d.swapaxes, 'items', 'items')
+        # this works, but return a copy
+        result = self.panel4d.swapaxes('items', 'items')
+        assert_panel4d_equal(self.panel4d,result)
+        self.assert_(id(self.panel4d) != id(result))
 
     def test_to_frame(self):
         raise nose.SkipTest

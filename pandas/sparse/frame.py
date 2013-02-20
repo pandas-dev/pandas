@@ -75,11 +75,13 @@ class SparseDataFrame(DataFrame):
     _columns = None
     _series = None
     _is_mixed_type = False
-    _col_klass = SparseSeries
     ndim = 2
 
+    _constructor_sliced = SparseSeries
+
     def __init__(self, data=None, index=None, columns=None,
-                 default_kind='block', default_fill_value=None):
+                 default_kind='block', default_fill_value=None,
+                 copy=False):
         if default_fill_value is None:
             default_fill_value = np.nan
 
@@ -408,7 +410,7 @@ class SparseDataFrame(DataFrame):
 
             return self[label]
             # values = self._data.iget(i)
-            # return self._col_klass.from_array(
+            # return self._constructor_sliced.from_array(
             #     values, index=self.index, name=label,
             #     fill_value= self.default_fill_value)
 

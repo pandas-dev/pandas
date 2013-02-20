@@ -573,7 +573,6 @@ class SparseSeries(SparseArray, Series):
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
-
 class SparseTimeSeries(SparseSeries, TimeSeries):
     """Data structure for labeled, sparse floating point data, with `TimeStamp`
     index labels

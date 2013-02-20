@@ -33,7 +33,6 @@ Panel4D = create_nd_panel_factory(
         )
     )
 
-
 def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,
                  minor_axis=None, copy=False, dtype=None):
 

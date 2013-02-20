@@ -1,14 +1,17 @@
 # pylint: disable=W0231,E1101
 
+import operator
 import numpy as np
 
 from pandas.core.index import MultiIndex
 import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
+from pandas.core.internals import BlockManager
+from pandas.core.indexing import _NDFrameIndexer
 import pandas.core.common as com
 import pandas.lib as lib
-
+from pandas.util import py3compat
 
 class PandasError(Exception):
     pass
@@ -16,23 +19,93 @@ class PandasError(Exception):
 
 class PandasObject(object):
 
-    _AXIS_NUMBERS = {
-        'index': 0,
-        'columns': 1
-    }
+    #----------------------------------------------------------------------
+    # Construction
 
-    _AXIS_ALIASES = {}
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    @property
+    def _constructor(self):
+        raise NotImplementedError
 
-    def save(self, path):
-        com.save(self, path)
-
-    @classmethod
-    def load(cls, path):
-        return com.load(path)
+    @property
+    def _constructor_sliced(self):
+        raise NotImplementedError
 
     #----------------------------------------------------------------------
-    # Axis name business
+    # Axis
+
+    @classmethod
+    def _setup_axes(cls, axes, info_axis = None, stat_axis = None, aliases = None, slicers = None,
+                    axes_are_reversed = False, build_axes = True):
+        """ provide axes setup for the major PandasObjects
+
+            axes : the names of the axes in order (lowest to highest)
+            info_axis_num : the axis of the selector dimension (int)
+            stat_axis_num : the number of axis for the default stats (int)
+            aliases : other names for a single axis (dict)
+            slicers : how axes slice to others (dict)
+            axes_are_reversed : boolean whether to treat passed axes as reversed (DataFrame)
+            build_axes : setup the axis properties (default True)
+            """
+
+        cls._AXIS_ORDERS  = axes
+        cls._AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(axes) ])
+        cls._AXIS_LEN     = len(axes)
+        cls._AXIS_ALIASES = aliases or dict()
+        cls._AXIS_NAMES   = dict([(i, a) for i, a in enumerate(axes) ])
+        cls._AXIS_SLICEMAP = slicers or None
+        cls._AXIS_REVERSED = axes_are_reversed
+
+        # indexing support
+        cls._ix = None
+
+        if info_axis is not None:
+            cls._info_axis_number = info_axis
+            cls._info_axis_name   = axes[info_axis]
+
+        if stat_axis is not None:
+            cls._stat_axis_number = stat_axis
+            cls._stat_axis_name   = axes[stat_axis]
+
+        # setup the actual axis
+        if build_axes:
+            if axes_are_reversed:
+                m = cls._AXIS_LEN-1
+                for i, a in cls._AXIS_NAMES.items():
+                    setattr(cls,a,lib.AxisProperty(m-i))
+            else:
+                for i, a in cls._AXIS_NAMES.items():
+                    setattr(cls,a,lib.AxisProperty(i))
+
+    def _construct_axes_dict(self, axes=None, **kwargs):
+        """ return an axes dictionary for myself """
+        d = dict([(a, getattr(self, a)) for a in (axes or self._AXIS_ORDERS)])
+        d.update(kwargs)
+        return d
+
+    @staticmethod
+    def _construct_axes_dict_from(self, axes, **kwargs):
+        """ return an axes dictionary for the passed axes """
+        d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
+        d.update(kwargs)
+        return d
+
+    def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
+        """ return an axes dictionary for myself """
+        d = dict([(self._AXIS_SLICEMAP[a], getattr(self, a))
+                 for a in (axes or self._AXIS_ORDERS)])
+        d.update(kwargs)
+        return d
+
+    @classmethod
+    def _from_axes(cls, data, axes):
+        # for construction from BlockManager
+        if isinstance(data, BlockManager):
+            return cls(data)
+        else:
+            if cls._AXIS_REVERSED:
+                axes = axes[::-1]
+            d = cls._construct_axes_dict_from(cls, axes, copy=False)
+            return cls(data, **d)
 
     def _get_axis_number(self, axis):
         axis = self._AXIS_ALIASES.get(axis, axis)
@@ -62,6 +135,14 @@ class PandasObject(object):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
+    @property
+    def _info_axis(self):
+        return getattr(self, self._info_axis_name)
+
+    @property
+    def _stat_axis(self):
+        return getattr(self, self._stat_axis_name)
+
     #----------------------------------------------------------------------
     # Indexers
     @classmethod
@@ -76,6 +157,105 @@ class PandasObject(object):
             return getattr(self,iname)
 
         setattr(cls,name,property(_indexer))
+
+    #----------------------------------------------------------------------
+    # Reconstruction
+
+    def save(self, path):
+        com.save(self, path)
+
+    @classmethod
+    def load(cls, path):
+        return com.load(path)
+
+    #----------------------------------------------------------------------
+    # Comparisons
+
+    def _indexed_same(self, other):
+        return all([getattr(self, a).equals(getattr(other, a)) for a in self._AXIS_ORDERS])
+
+    def reindex(self, *args, **kwds):
+        raise NotImplementedError
+
+    def __neg__(self):
+        arr = operator.neg(self.values)
+        return self._wrap_array(arr, self.axes, copy=False)
+
+    def __invert__(self):
+        arr = operator.inv(self.values)
+        return self._wrap_array(arr, self.axes, copy=False)
+
+    #----------------------------------------------------------------------
+    # Iteration
+
+    def __iter__(self):
+        """
+        Iterate over infor axis
+        """
+        return iter(self._info_axis)
+
+    def keys(self):
+        """ return the info axis names """
+        return self._info_axis
+
+    def iteritems(self):
+        for h in self._info_axis:
+            yield h, self[h]
+
+    # Name that won't get automatically converted to items by 2to3. items is
+    # already in use for the first axis.
+    iterkv = iteritems
+
+    def __len__(self):
+        """Returns length of info axis """
+        return len(self._info_axis)
+
+    def __contains__(self, key):
+        """True if the key is in the info axis """
+        return key in self._info_axis
+
+    @property
+    def empty(self):
+        return not all(len(getattr(self, a)) > 0 for a in self._AXIS_ORDERS)
+
+    #----------------------------------------------------------------------
+    # Formatting
+
+    def __unicode__(self):
+        raise NotImplementedError
+
+    def __str__(self):
+        """
+        Return a string representation for a particular Object
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular Object
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        encoding = com.get_option("display.encoding")
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Object
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
+
+    #----------------------------------------------------------------------
+    # Methods
 
     def abs(self):
         """
@@ -416,9 +596,6 @@ class PandasObject(object):
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
 
-    def reindex(self, *args, **kwds):
-        raise NotImplementedError
-
     def tshift(self, periods=1, freq=None, **kwds):
         """
         Shift the time index, using the index's frequency if available
@@ -502,8 +679,6 @@ class NDFrame(PandasObject):
     axes : list
     copy : boolean, default False
     """
-    # kludge
-    _default_stat_axis = 0
 
     def __init__(self, data, axes=None, copy=False, dtype=None):
         if dtype is not None:
@@ -518,46 +693,194 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
-    def astype(self, dtype, copy = True, raise_on_error = True):
-        """
-        Cast object to input numpy.dtype
-        Return a copy when copy = True (be really careful with this!)
-
-        Parameters
-        ----------
-        dtype : numpy.dtype or Python type
-        raise_on_error : raise on invalid input
-
-        Returns
-        -------
-        casted : type of caller
-        """
-
-        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
-        return self._constructor(mgr)
+    #----------------------------------------------------------------------
+    # Axes
 
     @property
-    def _constructor(self):
-        return NDFrame
+    def shape(self):
+        return tuple(len(getattr(self, a)) for a in self._AXIS_ORDERS)
 
     @property
     def axes(self):
-        return self._data.axes
-
-    def __repr__(self):
-        return 'NDFrame'
-
-    @property
-    def values(self):
-        return self._data.as_matrix()
+        """ we do it this way because if we have reversed axes, then 
+        the block manager shows then reversed """
+        return [getattr(self, a) for a in self._AXIS_ORDERS]
 
     @property
     def ndim(self):
         return self._data.ndim
 
+    def _expand_axes(self, key):
+        new_axes = []
+        for k, ax in zip(key, self.axes):
+            if k not in ax:
+                if type(k) != ax.dtype.type:
+                    ax = ax.astype('O')
+                new_axes.append(ax.insert(len(ax), k))
+            else:
+                new_axes.append(ax)
+
+        return new_axes
+
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
+
+    def transpose(self, *args, **kwargs):
+        """
+        Permute the dimensions of the Object
+
+        Parameters
+        ----------
+        axes : int or name (or alias)
+        copy : boolean, default False
+            Make a copy of the underlying data. Mixed-dtype data will
+            always result in a copy
+
+        Examples
+        --------
+        >>> p.transpose(2, 0, 1)
+        >>> p.transpose(2, 0, 1, copy=True)
+
+        Returns
+        -------
+        y : same as input
+        """
+
+        # construct the args
+        args = list(args)
+        for a in self._AXIS_ORDERS:
+            if not a in kwargs:
+                try:
+                    kwargs[a] = args.pop(0)
+                except (IndexError):
+                    raise ValueError(
+                        "not enough arguments specified to transpose!")
+
+        axes = [self._get_axis_number(kwargs[a]) for a in self._AXIS_ORDERS]
+
+        # we must have unique axes
+        if len(axes) != len(set(axes)):
+            raise ValueError('Must specify %s unique axes' % self._AXIS_LEN)
+
+        new_axes = self._construct_axes_dict_from(
+            self, [self._get_axis(x) for x in axes])
+        new_values = self.values.transpose(tuple(axes))
+        if kwargs.get('copy') or (len(args) and args[-1]):
+            new_values = new_values.copy()
+        return self._constructor(new_values, **new_axes)
+
+    def swapaxes(self, axis1, axis2, copy=True):
+        """
+        Interchange axes and swap values axes appropriately
+
+        Returns
+        -------
+        y : same as input
+        """
+        i = self._get_axis_number(axis1)
+        j = self._get_axis_number(axis2)
+
+        if i == j:
+            if copy:
+                return self.copy()
+            return self
+
+        mapping = {i: j, j: i}
+
+        new_axes = (self._get_axis(mapping.get(k, k))
+                    for k in range(self._AXIS_LEN))
+        new_values = self.values.swapaxes(i, j)
+        if copy:
+            new_values = new_values.copy()
+
+        return self._constructor(new_values, *new_axes)
+
+    def pop(self, item):
+        """
+        Return item and drop from frame. Raise KeyError if not found.
+        """
+        result = self[item]
+        del self[item]
+        return result
+
+    def squeeze(self):
+        """ squeeze length 1 dimensions """
+        try:
+            return self.ix[tuple([ slice(None) if len(a) > 1 else a[0] for a in self.axes ])]
+        except:
+            return self
+
+    def swaplevel(self, i, j, axis=0):
+        """
+        Swap levels i and j in a MultiIndex on a particular axis
+
+        Parameters
+        ----------
+        i, j : int, string (can be mixed)
+            Level of index to be swapped. Can pass level name as string.
+
+        Returns
+        -------
+        swapped : type of caller (new object)
+        """
+        axis = self._get_axis_number(axis)
+        result = self.copy()
+        labels = result._data.axes[axis]
+        result._data.set_axis(axis, labels.swaplevel(i, j))
+        return result
+
+    def rename_axis(self, mapper, axis=0, copy=True):
+        """
+        Alter index and / or columns using input function or functions.
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is.
+
+        Parameters
+        ----------
+        mapper : dict-like or function, optional
+        axis : int, default 0
+        copy : boolean, default True
+            Also copy underlying data
+
+        See also
+        --------
+        DataFrame.rename
+
+        Returns
+        -------
+        renamed : type of caller
+        """
+        # should move this at some point
+        from pandas.core.series import _get_rename_function
+
+        mapper_f = _get_rename_function(mapper)
+
+        if axis == 0:
+            new_data = self._data.rename_items(mapper_f, copydata=copy)
+        else:
+            new_data = self._data.rename_axis(mapper_f, axis=axis)
+            if copy:
+                new_data = new_data.copy()
+
+        return self._constructor(new_data)
+
+    #----------------------------------------------------------------------
+    # Array Interface
+
+    def _wrap_array(self, arr, axes, copy=False):
+        d = self._construct_axes_dict_from(self, axes, copy=copy)
+        return self._constructor(arr, **d)
+
+    def __array__(self, dtype=None):
+        return self.values
+
+    def __array_wrap__(self, result):
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        return self._constructor(result, **d)
+
+    #----------------------------------------------------------------------
+    # Fancy Indexing
 
     def __getitem__(self, item):
         return self._get_item_cache(item)
@@ -620,32 +943,14 @@ class NDFrame(PandasObject):
         from pandas import Series
         return Series(self._data.get_dtype_counts())
 
-    def pop(self, item):
-        """
-        Return item and drop from frame. Raise KeyError if not found.
-        """
-        result = self[item]
-        del self[item]
-        return result
+    def _reindex_axis(self, new_index, fill_method, axis, copy):
+        new_data = self._data.reindex_axis(new_index, axis=axis,
+                                           method=fill_method, copy=copy)
 
-    def squeeze(self):
-        """ squeeze length 1 dimensions """
-        try:
-            return self.ix[tuple([ slice(None) if len(a) > 1 else a[0] for a in self.axes ])]
-        except:
+        if new_data is self._data and not copy:
             return self
-
-    def _expand_axes(self, key):
-        new_axes = []
-        for k, ax in zip(key, self.axes):
-            if k not in ax:
-                if type(k) != ax.dtype.type:
-                    ax = ax.astype('O')
-                new_axes.append(ax.insert(len(ax), k))
-            else:
-                new_axes.append(ax)
-
-        return new_axes
+        else:
+            return self._constructor(new_data)
 
     #----------------------------------------------------------------------
     # Consolidation of internals
@@ -685,14 +990,83 @@ class NDFrame(PandasObject):
     def _is_numeric_mixed_type(self):
         return self._data.is_numeric_mixed_type
 
-    def _reindex_axis(self, new_index, fill_method, axis, copy):
-        new_data = self._data.reindex_axis(new_index, axis=axis,
-                                           method=fill_method, copy=copy)
+    #----------------------------------------------------------------------
+    # Methods
 
-        if new_data is self._data and not copy:
-            return self
-        else:
-            return self._constructor(new_data)
+    def as_matrix(self):
+        raise NotImplementedError
+
+    @property
+    def values(self):
+        return self.as_matrix()
+
+    @property
+    def _get_values(self):
+        # compat
+        return self.values
+
+    def as_blocks(self, columns=None):
+        """
+        Convert the frame to a dict of dtype -> Constructor Types that each has a homogeneous dtype.
+        are presented in sorted order unless a specific list of columns is
+        provided.
+
+        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in as_matrix)
+
+        Parameters
+        ----------
+        columns : array-like
+            Specific column order
+
+        Returns
+        -------
+        values : a list of Object
+        """
+        self._consolidate_inplace()
+
+        bd = dict()
+        for b in self._data.blocks:
+            b = b.reindex_items_from(columns or b.items)
+            bd[str(b.dtype)] = self._constructor(BlockManager([ b ], [ b.items, self.index ]))
+        return bd
+
+    @property
+    def blocks(self):
+        return self.as_blocks()
+
+    def astype(self, dtype, copy = True, raise_on_error = True):
+        """
+        Cast object to input numpy.dtype
+        Return a copy when copy = True (be really careful with this!)
+
+        Parameters
+        ----------
+        dtype : numpy.dtype or Python type
+        raise_on_error : raise on invalid input
+
+        Returns
+        -------
+        casted : type of caller
+        """
+
+        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
+        return self._constructor(mgr)
+
+    def convert_objects(self, convert_dates=True, convert_numeric=True):
+        """
+        Attempt to infer better dtype for object columns
+        Always returns a copy (even if no object columns)
+
+        Parameters
+        ----------
+        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
+        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
+
+        Returns
+        -------
+        converted : DataFrame
+        """
+        return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
 
     def cumsum(self, axis=None, skipna=True):
         """
@@ -711,7 +1085,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -730,9 +1104,6 @@ class NDFrame(PandasObject):
             result = y.cumsum(axis)
         return self._wrap_array(result, self.axes, copy=False)
 
-    def _wrap_array(self, array, axes, copy=False):
-        raise NotImplementedError
-
     def cumprod(self, axis=None, skipna=True):
         """
         Return cumulative product over requested axis as DataFrame
@@ -750,7 +1121,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -785,7 +1156,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -821,7 +1192,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -858,25 +1229,6 @@ class NDFrame(PandasObject):
             data = data.copy()
         return self._constructor(data)
 
-    def swaplevel(self, i, j, axis=0):
-        """
-        Swap levels i and j in a MultiIndex on a particular axis
-
-        Parameters
-        ----------
-        i, j : int, string (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
-
-        Returns
-        -------
-        swapped : type of caller (new object)
-        """
-        axis = self._get_axis_number(axis)
-        result = self.copy()
-        labels = result._data.axes[axis]
-        result._data.set_axis(axis, labels.swaplevel(i, j))
-        return result
-
     def add_prefix(self, prefix):
         """
         Concatenate prefix string with panel items names.
@@ -905,42 +1257,6 @@ class NDFrame(PandasObject):
         with_suffix : type of caller
         """
         new_data = self._data.add_suffix(suffix)
-        return self._constructor(new_data)
-
-    def rename_axis(self, mapper, axis=0, copy=True):
-        """
-        Alter index and / or columns using input function or functions.
-        Function / dict values must be unique (1-to-1). Labels not contained in
-        a dict / Series will be left as-is.
-
-        Parameters
-        ----------
-        mapper : dict-like or function, optional
-        axis : int, default 0
-        copy : boolean, default True
-            Also copy underlying data
-
-        See also
-        --------
-        DataFrame.rename
-
-        Returns
-        -------
-        renamed : type of caller
-        """
-        # should move this at some point
-        from pandas.core.series import _get_rename_function
-
-        mapper_f = _get_rename_function(mapper)
-
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            new_data = self._data.rename_items(mapper_f, copydata=copy)
-        else:
-            new_data = self._data.rename_axis(mapper_f, axis=axis)
-            if copy:
-                new_data = new_data.copy()
-
         return self._constructor(new_data)
 
     def take(self, indices, axis=0, convert=True):

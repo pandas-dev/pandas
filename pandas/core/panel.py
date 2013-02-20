@@ -166,74 +166,11 @@ class Panel(NDFrame):
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
     """
 
-    _AXIS_ORDERS = ['items', 'major_axis', 'minor_axis']
-    _AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(_AXIS_ORDERS)])
-    _AXIS_ALIASES = {
-        'major': 'major_axis',
-        'minor': 'minor_axis'
-    }
-    _AXIS_NAMES = dict([(i, a) for i, a in enumerate(_AXIS_ORDERS)])
-    _AXIS_SLICEMAP = {
-        'major_axis': 'index',
-        'minor_axis': 'columns'
-    }
-    _AXIS_LEN = len(_AXIS_ORDERS)
-
-    # major
-    _default_stat_axis = 1
-
-    # info axis
-    _het_axis = 0
-    _info_axis = _AXIS_ORDERS[_het_axis]
-
-    items = lib.AxisProperty(0)
-    major_axis = lib.AxisProperty(1)
-    minor_axis = lib.AxisProperty(2)
-
     @property
     def _constructor(self):
         return type(self)
 
-    # return the type of the slice constructor
     _constructor_sliced = DataFrame
-
-    def _construct_axes_dict(self, axes=None, **kwargs):
-        """ Return an axes dictionary for myself """
-        d = dict([(a, getattr(self, a)) for a in (axes or self._AXIS_ORDERS)])
-        d.update(kwargs)
-        return d
-
-    @staticmethod
-    def _construct_axes_dict_from(self, axes, **kwargs):
-        """ Return an axes dictionary for the passed axes """
-        d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
-        d.update(kwargs)
-        return d
-
-    def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
-        """ Return an axes dictionary for myself """
-        d = dict([(self._AXIS_SLICEMAP[a], getattr(self, a))
-                 for a in (axes or self._AXIS_ORDERS)])
-        d.update(kwargs)
-        return d
-
-    __add__ = _arith_method(operator.add, '__add__')
-    __sub__ = _arith_method(operator.sub, '__sub__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__')
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
-    __mul__ = _arith_method(operator.mul, '__mul__')
-    __pow__ = _arith_method(operator.pow, '__pow__')
-
-    __radd__ = _arith_method(operator.add, '__radd__')
-    __rmul__ = _arith_method(operator.mul, '__rmul__')
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__')
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
-
-    if not py3compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__')
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
 
     def __init__(self, data=None, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
@@ -269,18 +206,9 @@ class Panel(NDFrame):
 
         NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
-    @classmethod
-    def _from_axes(cls, data, axes):
-        # for construction from BlockManager
-        if isinstance(data, BlockManager):
-            return cls(data)
-        else:
-            d = cls._construct_axes_dict_from(cls, axes, copy=False)
-            return cls(data, **d)
-
     def _init_dict(self, data, axes, dtype=None):
         from pandas.util.compat import OrderedDict
-        haxis = axes.pop(self._het_axis)
+        haxis = axes.pop(self._info_axis_number)
 
         # prefilter if haxis passed
         if haxis is not None:
@@ -324,10 +252,6 @@ class Panel(NDFrame):
     def _init_arrays(self, arrays, arr_names, axes):
         return create_block_manager_from_arrays(arrays, arr_names, axes)
 
-    @property
-    def shape(self):
-        return [len(getattr(self, a)) for a in self._AXIS_ORDERS]
-
     @classmethod
     def from_dict(cls, data, intersect=False, orient='items', dtype=None):
         """
@@ -367,16 +291,35 @@ class Panel(NDFrame):
         ks = d['data'].keys()
         if not isinstance(d['data'],OrderedDict):
             ks = list(sorted(ks))
-        d[cls._info_axis] = Index(ks)
+        d[cls._info_axis_name] = Index(ks)
         return cls(**d)
 
+    # Comparison methods
+    __add__ = _arith_method(operator.add, '__add__')
+    __sub__ = _arith_method(operator.sub, '__sub__')
+    __truediv__ = _arith_method(operator.truediv, '__truediv__')
+    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
+    __mul__ = _arith_method(operator.mul, '__mul__')
+    __pow__ = _arith_method(operator.pow, '__pow__')
+
+    __radd__ = _arith_method(operator.add, '__radd__')
+    __rmul__ = _arith_method(operator.mul, '__rmul__')
+    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
+    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__')
+    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
+    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
+
+    if not py3compat.PY3:
+        __div__ = _arith_method(operator.div, '__div__')
+        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
+
     def __getitem__(self, key):
-        if isinstance(getattr(self, self._info_axis), MultiIndex):
+        if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
         return super(Panel, self).__getitem__(key)
 
     def _getitem_multilevel(self, key):
-        info = getattr(self, self._info_axis)
+        info = self._info_axis
         loc = info.get_loc(key)
         if isinstance(loc, (slice, np.ndarray)):
             new_index = info[loc]
@@ -386,7 +329,7 @@ class Panel(NDFrame):
             new_values = self.values[slices]
 
             d = self._construct_axes_dict(self._AXIS_ORDERS[1:])
-            d[self._info_axis] = result_index
+            d[self._info_axis_name] = result_index
             result = self._constructor(new_values, **d)
             return result
         else:
@@ -413,21 +356,7 @@ class Panel(NDFrame):
         return create_block_manager_from_blocks([ values ], fixed_axes)
 
     #----------------------------------------------------------------------
-    # Array interface
-
-    def __array__(self, dtype=None):
-        return self.values
-
-    def __array_wrap__(self, result):
-        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d)
-
-    #----------------------------------------------------------------------
     # Comparison methods
-
-    def _indexed_same(self, other):
-        return all([getattr(self, a).equals(getattr(other, a))
-                    for a in self._AXIS_ORDERS])
 
     def _compare_constructor(self, other, func):
         if not self._indexed_same(other):
@@ -435,7 +364,7 @@ class Panel(NDFrame):
                             'same type objects')
 
         new_data = {}
-        for col in getattr(self, self._info_axis):
+        for col in self._info_axis:
             new_data[col] = func(self[col], other[col])
 
         d = self._construct_axes_dict(copy=False)
@@ -445,12 +374,6 @@ class Panel(NDFrame):
     __and__ = _arith_method(operator.and_, '__and__')
     __or__ = _arith_method(operator.or_, '__or__')
     __xor__ = _arith_method(operator.xor, '__xor__')
-
-    def __neg__(self):
-        return -1 * self
-
-    def __invert__(self):
-        return -1 * self
 
     # Comparison methods
     __eq__ = _comp_method(operator.eq, '__eq__')
@@ -469,28 +392,6 @@ class Panel(NDFrame):
 
     #----------------------------------------------------------------------
     # Magic methods
-
-    def __str__(self):
-        """
-        Return a string representation for a particular Panel
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular Panel
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
 
     def __unicode__(self):
         """
@@ -519,25 +420,6 @@ class Panel(NDFrame):
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
         return output
 
-    def __repr__(self):
-        """
-        Return a string representation for a particular Panel
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
-
-    def __iter__(self):
-        return iter(getattr(self, self._info_axis))
-
-    def iteritems(self):
-        for h in getattr(self, self._info_axis):
-            yield h, self[h]
-
-    # Name that won't get automatically converted to items by 2to3. items is
-    # already in use for the first axis.
-    iterkv = iteritems
-
     def _get_plane_axes(self, axis):
         """
         Get my plane axes: these are already
@@ -557,10 +439,6 @@ class Panel(NDFrame):
             columns = self.minor_axis
 
         return index, columns
-
-    def _wrap_array(self, arr, axes, copy=False):
-        d = self._construct_axes_dict_from(self, axes, copy=copy)
-        return self._constructor(arr, **d)
 
     fromDict = from_dict
 
@@ -603,15 +481,9 @@ class Panel(NDFrame):
             df.to_excel(writer, name, na_rep=na_rep)
         writer.save()
 
-    # TODO: needed?
-    def keys(self):
-        return list(getattr(self, self._info_axis))
-
-    def _get_values(self):
+    def as_matrix(self):
         self._consolidate_inplace()
         return self._data.as_matrix()
-
-    values = property(fget=_get_values)
 
     #----------------------------------------------------------------------
     # Getting and setting elements
@@ -670,7 +542,7 @@ class Panel(NDFrame):
             args  = list(args)
             likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
             made_bigger = not np.array_equal(
-                axes[0], getattr(self, self._info_axis))
+                axes[0], self._info_axis)
             # how to make this logic simpler?
             if made_bigger:
                 com._possibly_cast_item(result, args[0], likely_dtype)
@@ -684,7 +556,7 @@ class Panel(NDFrame):
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of an item.
         This allows simpler access to items for interactive use."""
-        if name in getattr(self, self._info_axis):
+        if name in self._info_axis:
             return self[name]
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
@@ -714,21 +586,6 @@ class Panel(NDFrame):
 
         mat = mat.reshape(tuple([1]) + shape[1:])
         NDFrame._set_item(self, key, mat)
-
-    def pop(self, item):
-        """
-        Return item slice from panel and delete from panel
-
-        Parameters
-        ----------
-        key : object
-            Must be contained in panel's items
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        return NDFrame.pop(self, item)
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
@@ -1120,76 +977,6 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
-    def swapaxes(self, axis1='major', axis2='minor', copy=True):
-        """
-        Interchange axes and swap values axes appropriately
-
-        Returns
-        -------
-        y : Panel (new object)
-        """
-        i = self._get_axis_number(axis1)
-        j = self._get_axis_number(axis2)
-
-        if i == j:
-            raise ValueError('Cannot specify the same axis')
-
-        mapping = {i: j, j: i}
-
-        new_axes = (self._get_axis(mapping.get(k, k))
-                    for k in range(self._AXIS_LEN))
-        new_values = self.values.swapaxes(i, j)
-        if copy:
-            new_values = new_values.copy()
-
-        return self._constructor(new_values, *new_axes)
-
-    def transpose(self, *args, **kwargs):
-        """
-        Permute the dimensions of the Panel
-
-        Parameters
-        ----------
-        items : int or one of {'items', 'major', 'minor'}
-        major : int or one of {'items', 'major', 'minor'}
-        minor : int or one of {'items', 'major', 'minor'}
-        copy : boolean, default False
-            Make a copy of the underlying data. Mixed-dtype data will
-            always result in a copy
-
-        Examples
-        --------
-        >>> p.transpose(2, 0, 1)
-        >>> p.transpose(2, 0, 1, copy=True)
-
-        Returns
-        -------
-        y : Panel (new object)
-        """
-
-        # construct the args
-        args = list(args)
-        for a in self._AXIS_ORDERS:
-            if not a in kwargs:
-                try:
-                    kwargs[a] = args.pop(0)
-                except (IndexError):
-                    raise ValueError(
-                        "not enough arguments specified to transpose!")
-
-        axes = [self._get_axis_number(kwargs[a]) for a in self._AXIS_ORDERS]
-
-        # we must have unique axes
-        if len(axes) != len(set(axes)):
-            raise ValueError('Must specify %s unique axes' % self._AXIS_LEN)
-
-        new_axes = self._construct_axes_dict_from(
-            self, [self._get_axis(x) for x in axes])
-        new_values = self.values.transpose(tuple(axes))
-        if kwargs.get('copy') or (len(args) and args[-1]):
-            new_values = new_values.copy()
-        return self._constructor(new_values, **new_axes)
-
     def to_frame(self, filter_observations=True):
         """
         Transform wide format into long (stacked) format as DataFrame
@@ -1280,7 +1067,7 @@ class Panel(NDFrame):
         result = f(self.values)
 
         axes = self._get_plane_axes(axis_name)
-        if result.ndim == 2 and axis_name != self._info_axis:
+        if result.ndim == 2 and axis_name != self._info_axis_name:
             result = result.T
 
         return self._constructor_sliced(result,
@@ -1289,7 +1076,7 @@ class Panel(NDFrame):
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
         axes = self._get_plane_axes(axis)
-        if result.ndim == 2 and axis != self._info_axis:
+        if result.ndim == 2 and axis != self._info_axis_name:
             result = result.T
 
         # do we have reduced dimensionalility?
@@ -1460,9 +1247,9 @@ class Panel(NDFrame):
         if not isinstance(other, self._constructor):
             other = self._constructor(other)
 
-        axis = self._info_axis
-        axis_values = getattr(self, axis)
-        other = other.reindex(**{axis: axis_values})
+        axis_name   = self._info_axis_name
+        axis_values = self._info_axis
+        other = other.reindex(**{axis_name: axis_values})
 
         for frame in axis_values:
             self[frame].update(other[frame], join, overwrite, filter_func,
@@ -1709,6 +1496,13 @@ If all values are NA, result will be NA"""
             return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
         cls.min = min
 
+Panel._setup_axes(axes      = ['items', 'major_axis', 'minor_axis'], 
+                  info_axis = 0,
+                  stat_axis = 1,
+                  aliases   = { 'major': 'major_axis',
+                                'minor': 'minor_axis' },
+                  slicers   = { 'major_axis': 'index',
+                                'minor_axis': 'columns' })
 Panel._add_aggregate_operations()
 
 WidePanel = Panel

@@ -42,6 +42,20 @@ pandas 0.12.0
 
   - When removing an object from a store, **store.remove(key)**, raises
     **KeyError** if **key** is not a valid store object.
+  - Refactor of series.py/frame.py/panel.py to move common code to generic.py
+    all axis creation and manipulation code is now common (except for Series)
+
+    - added _setup_axes to created generic NDFrame structures
+    - moved methods
+
+      - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
+      - __str__,__bytes__,__repr__
+      - __iter__,keys,__contains__,__len__,__neg__,__invert__
+      - convert_objects,as_blocks
+      - _indexed_same
+
+    - swapaxes on a Panel with the same axes specified now return a copy 
+      (consistent with DataFrame)
 
 **Bug Fixes**
 
@@ -63,7 +77,6 @@ pandas 0.12.0
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
-
 
 pandas 0.11.0
 =============
@@ -210,6 +223,7 @@ pandas 0.11.0
 
   - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
     (GH2747_)
+
   - util.testing.assert_frame_equal now checks the column and index names (GH2964_)
   - Constructors will now return a more informative ValueError on failures
     when invalid shapes are passed
