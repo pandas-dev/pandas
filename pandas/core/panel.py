@@ -6,9 +6,8 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 import operator
 import sys
 import numpy as np
-from pandas.core.common import (PandasError, _mut_exclusive,
-                                _try_sort, _default_index,
-                                _infer_dtype_from_scalar,
+from pandas.core.common import (PandasError, 
+                                _try_sort, _default_index, _infer_dtype_from_scalar,
                                 notnull)
 from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -553,14 +552,6 @@ class Panel(NDFrame):
         d = self._construct_axes_dict_for_slice(self._AXIS_ORDERS[1:])
         return self._constructor_sliced(values, **d)
 
-    def __getattr__(self, name):
-        """After regular attribute access, try looking up the name of an item.
-        This allows simpler access to items for interactive use."""
-        if name in self._info_axis:
-            return self[name]
-        raise AttributeError("'%s' object has no attribute '%s'" %
-                             (type(self).__name__, name))
-
     def _slice(self, slobj, axis=0, raise_on_error=False):
         new_data = self._data.get_slice(slobj,
                                         axis=axis,
@@ -586,20 +577,6 @@ class Panel(NDFrame):
 
         mat = mat.reshape(tuple([1]) + shape[1:])
         NDFrame._set_item(self, key, mat)
-
-    def __getstate__(self):
-        "Returned pickled representation of the panel"
-        return self._data
-
-    def __setstate__(self, state):
-        # old Panel pickle
-        if isinstance(state, BlockManager):
-            self._data = state
-        elif len(state) == 4:  # pragma: no cover
-            self._unpickle_panel_compat(state)
-        else:  # pragma: no cover
-            raise ValueError('unrecognized pickle')
-        self._item_cache = {}
 
     def _unpickle_panel_compat(self, state):  # pragma: no cover
         "Unpickle the panel"
@@ -633,62 +610,15 @@ class Panel(NDFrame):
         axes = self._get_plane_axes(axis)
         return frame.reindex(**self._extract_axes_for_slice(self, axes))
 
-    def reindex(self, major=None, minor=None, method=None,
-                major_axis=None, minor_axis=None, copy=True, **kwargs):
-        """
-        Conform panel to new axis or axes
-
-        Parameters
-        ----------
-        major : Index or sequence, default None
-            Can also use 'major_axis' keyword
-        items : Index or sequence, default None
-        minor : Index or sequence, default None
-            Can also use 'minor_axis' keyword
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-
-        Returns
-        -------
-        Panel (new object)
-        """
-        result = self
-
-        major = _mut_exclusive(major, major_axis)
-        minor = _mut_exclusive(minor, minor_axis)
-        al = self._AXIS_LEN
-
+    def _needs_reindex_multi(self, axes, method, level):
         # only allowing multi-index on Panel (and not > dims)
-        if (method is None and not self._is_mixed_type and al <= 3):
-            items = kwargs.get('items')
-            if com._count_not_none(items, major, minor) == 3:
-                try:
-                    return self._reindex_multi(items, major, minor)
-                except:
-                    pass
+        return method is None and not self._is_mixed_type and self._AXIS_LEN <= 3 and com._count_not_none(*axes.values()) == 3
 
-        if major is not None:
-            result = result._reindex_axis(major, method, al - 2, copy)
-
-        if minor is not None:
-            result = result._reindex_axis(minor, method, al - 1, copy)
-
-        for i, a in enumerate(self._AXIS_ORDERS[0:al - 2]):
-            a = kwargs.get(a)
-            if a is not None:
-                result = result._reindex_axis(a, method, i, copy)
-
-        if result is self and copy:
-            raise ValueError('Must specify at least one axis')
-
-        return result
-
-    def _reindex_multi(self, items, major, minor):
+    def _reindex_multi(self, axes, copy, fill_value):
+        """ we are guaranteed non-Nones in the axes! """
+        items = axes['items']
+        major = axes['major_axis']
+        minor = axes['minor_axis']
         a0, a1, a2 = len(items), len(major), len(minor)
 
         values = self.values
@@ -714,52 +644,6 @@ class Panel(NDFrame):
         return Panel(new_values, items=new_items, major_axis=new_major,
                      minor_axis=new_minor)
 
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
-        """Conform Panel to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        copy=False
-
-        Parameters
-        ----------
-        index : array-like, optional
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
-        axis : {0, 1}
-            0 -> index (rows)
-            1 -> columns
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed DataFrame
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-
-        Returns
-        -------
-        reindexed : Panel
-        """
-        self._consolidate_inplace()
-        return self._reindex_axis(labels, method, axis, copy)
-
-    def reindex_like(self, other, method=None):
-        """ return an object with matching indicies to myself
-
-        Parameters
-        ----------
-        other : Panel
-        method : string or None
-
-        Returns
-        -------
-        reindexed : Panel
-        """
-        d = other._construct_axes_dict(method=method)
-        return self.reindex(**d)
-
     def dropna(self, axis=0, how='any'):
         """
         Drop 2D from panel, holding passed axis constant
@@ -782,7 +666,7 @@ class Panel(NDFrame):
         values = self.values
         mask = com.notnull(values)
 
-        for ax in reversed(sorted(set(range(3)) - set([axis]))):
+        for ax in reversed(sorted(set(range(self._AXIS_LEN)) - set([axis]))):
             mask = mask.sum(ax)
 
         per_slice = np.prod(values.shape[:axis] + values.shape[axis + 1:])

@@ -1604,22 +1604,6 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Picklability
 
-    def __getstate__(self):
-        return self._data
-
-    def __setstate__(self, state):
-        # old DataFrame pickle
-        if isinstance(state, BlockManager):
-            self._data = state
-        elif isinstance(state[0], dict):  # pragma: no cover
-            self._unpickle_frame_compat(state)
-        else:  # pragma: no cover
-            # old pickling format, for compatibility
-            self._unpickle_matrix_compat(state)
-
-        # ordinarily created in NDFrame
-        self._item_cache = {}
-
     # legacy pickle formats
     def _unpickle_frame_compat(self, state):  # pragma: no cover
         from pandas.core.common import _unpickle_array
@@ -1653,15 +1637,6 @@ class DataFrame(NDFrame):
         self._data = dm._data
 
     #----------------------------------------------------------------------
-    # Array interface
-
-    def __array__(self, dtype=None):
-        return self.values
-
-    def __array_wrap__(self, result):
-        return self._constructor(result, index=self.index,
-                                 columns=self.columns, copy=False)
-
     #----------------------------------------------------------------------
     # Getting and setting elements
 
@@ -1852,12 +1827,9 @@ class DataFrame(NDFrame):
         return self.where(key)
 
     def _slice(self, slobj, axis=0, raise_on_error=False):
-        if axis == 0:
-            mgr_axis = 1
-        else:
-            mgr_axis = 0
-
-        new_data = self._data.get_slice(slobj, axis=mgr_axis, raise_on_error=raise_on_error)
+        axis = self._get_block_manager_axis(axis)
+        new_data = self._data.get_slice(slobj, axis=axis)
+        new_data = self._data.get_slice(slobj, axis=axis, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def _box_item_values(self, key, values):
@@ -1866,31 +1838,6 @@ class DataFrame(NDFrame):
             return self._constructor(values.T, columns=items, index=self.index)
         else:
             return Series.from_array(values, index=self.index, name=items)
-
-    def __getattr__(self, name):
-        """After regular attribute access, try looking up the name of a column.
-        This allows simpler access to columns for interactive use."""
-        if name in self.columns:
-            return self[name]
-        raise AttributeError("'%s' object has no attribute '%s'" %
-                             (type(self).__name__, name))
-
-    def __setattr__(self, name, value):
-        """After regular attribute access, try looking up the name of a column.
-        This allows simpler access to columns for interactive use."""
-        if name == '_data':
-            super(DataFrame, self).__setattr__(name, value)
-        else:
-            try:
-                existing = getattr(self, name)
-                if isinstance(existing, Index):
-                    super(DataFrame, self).__setattr__(name, value)
-                elif name in self.columns:
-                    self[name] = value
-                else:
-                    object.__setattr__(self, name, value)
-            except (AttributeError, TypeError):
-                object.__setattr__(self, name, value)
 
     def __setitem__(self, key, value):
         # see if we can slice the rows
@@ -2279,12 +2226,13 @@ class DataFrame(NDFrame):
                     self.columns.join(other.columns, how=join, level=level,
                                       return_indexers=True)
 
-        left = self._reindex_with_indexers(join_index, ilidx,
-                                           join_columns, clidx, copy,
-                                           fill_value=fill_value)
-        right = other._reindex_with_indexers(join_index, iridx,
-                                             join_columns, cridx, copy,
-                                             fill_value=fill_value)
+        left  = self._reindex_with_indexers({ 0 : [ join_index,   ilidx ],
+                                              1 : [ join_columns, clidx ] },
+                                            copy=copy, fill_value=fill_value)
+        right = other._reindex_with_indexers({ 0 : [ join_index,   iridx ],
+                                               1 : [ join_columns, cridx ] }, 
+                                             copy=copy, fill_value=fill_value)
+            
 
         if method is not None:
             left = left.fillna(axis=fill_axis, method=method, limit=limit)
@@ -2333,116 +2281,40 @@ class DataFrame(NDFrame):
         else:
             return left_result, right_result
 
-    def reindex(self, index=None, columns=None, method=None, level=None,
-                fill_value=NA, limit=None, copy=True):
-        """Conform DataFrame to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        copy=False
+    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
+      frame = self
 
-        Parameters
-        ----------
-        index : array-like, optional
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
-        columns : array-like, optional
-            Same usage as index argument
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed DataFrame
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        fill_value : scalar, default np.NaN
-            Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Examples
-        --------
-        >>> df.reindex(index=[date1, date2, date3], columns=['A', 'B', 'C'])
-
-        Returns
-        -------
-        reindexed : same type as calling instance
-        """
-        self._consolidate_inplace()
-        frame = self
-
-        if (index is not None and columns is not None
-            and method is None and level is None
-                and not self._is_mixed_type):
-            return self._reindex_multi(index, columns, copy, fill_value)
-
-        if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level,
-                                           fill_value, limit)
-
-        if index is not None:
-            frame = frame._reindex_index(index, method, copy, level,
+      columns = axes['columns']
+      if columns is not None:
+          frame = frame._reindex_columns(columns, copy, level,
                                          fill_value, limit)
 
-        return frame
+      index = axes['index']
+      if index is not None:
+          frame = frame._reindex_index(index, method, copy, level,
+                                       fill_value, limit)
 
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     limit=None, fill_value=NA):
-        """Conform DataFrame to new index with optional filling logic, placing
-        NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        copy=False
+      return frame
 
-        Parameters
-        ----------
-        index : array-like, optional
-            New labels / index to conform to. Preferably an Index object to
-            avoid duplicating data
-        axis : {0, 1}
-            0 -> index (rows)
-            1 -> columns
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed DataFrame
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        limit : int, default None
-            Maximum size gap to forward or backward fill
+    def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
+                       limit=None):
+        new_index, indexer = self.index.reindex(new_index, method, level,
+                                                limit=limit)
+        return self._reindex_with_indexers({ 0 : [ new_index, indexer ] }, 
+                                           copy=copy, fill_value=fill_value)
 
-        Examples
-        --------
-        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
+    def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
+                         limit=None):
+        new_columns, indexer = self.columns.reindex(new_columns, level=level,
+                                                    limit=limit)
+        return self._reindex_with_indexers({ 1 : [ new_columns, indexer ] }, 
+                                           copy=copy, fill_value=fill_value)
 
-        See also
-        --------
-        DataFrame.reindex, DataFrame.reindex_like
+    def _reindex_multi(self, axes, copy, fill_value):
+        """ we are guaranteed non-Nones in the axes! """
 
-        Returns
-        -------
-        reindexed : same type as calling instance
-        """
-        self._consolidate_inplace()
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            return self._reindex_index(labels, method, copy, level,
-                                       fill_value=fill_value,
-                                       limit=limit)
-        elif axis == 1:
-            return self._reindex_columns(labels, copy, level,
-                                         fill_value=fill_value,
-                                         limit=limit)
-        else:  # pragma: no cover
-            raise ValueError('Must specify axis=0 or 1')
-
-    def _reindex_multi(self, new_index, new_columns, copy, fill_value):
-        new_index, row_indexer = self.index.reindex(new_index)
-        new_columns, col_indexer = self.columns.reindex(new_columns)
+        new_index, row_indexer = self.index.reindex(axes['index'])
+        new_columns, col_indexer = self.columns.reindex(axes['columns'])
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
@@ -2451,80 +2323,11 @@ class DataFrame(NDFrame):
             return self._constructor(new_values, index=new_index,
                                      columns=new_columns)
         elif row_indexer is not None:
-            return self._reindex_with_indexers(new_index, row_indexer,
-                                               None, None, copy, fill_value)
+            return self._reindex_with_indexers({ 0 : [ new_index,   row_indexer ] }, copy=copy, fill_value=fill_value)
         elif col_indexer is not None:
-            return self._reindex_with_indexers(None, None,
-                                               new_columns, col_indexer,
-                                               copy, fill_value)
+            return self._reindex_with_indexers({ 1 : [ new_columns, col_indexer ] }, copy=copy, fill_value=fill_value)
         else:
             return self.copy() if copy else self
-
-    def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None):
-        new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit)
-        return self._reindex_with_indexers(new_index, indexer, None, None,
-                                           copy, fill_value)
-
-    def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None):
-        new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit)
-        return self._reindex_with_indexers(None, None, new_columns, indexer,
-                                           copy, fill_value)
-
-    def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
-                               copy, fill_value):
-        new_data = self._data
-        if row_indexer is not None:
-            row_indexer = com._ensure_int64(row_indexer)
-            new_data = new_data.reindex_indexer(index, row_indexer, axis=1,
-                                                fill_value=fill_value)
-        elif index is not None and index is not new_data.axes[1]:
-            new_data = new_data.copy(deep=copy)
-            new_data.axes[1] = index
-
-        if col_indexer is not None:
-            # TODO: speed up on homogeneous DataFrame objects
-            col_indexer = com._ensure_int64(col_indexer)
-            new_data = new_data.reindex_indexer(columns, col_indexer, axis=0,
-                                                fill_value=fill_value)
-        elif columns is not None and columns is not new_data.axes[0]:
-            new_data = new_data.reindex_items(columns, copy=copy,
-                                              fill_value=fill_value)
-
-        if copy and new_data is self._data:
-            new_data = new_data.copy()
-
-        return DataFrame(new_data)
-
-    def reindex_like(self, other, method=None, copy=True, limit=None,
-                     fill_value=NA):
-        """
-        Reindex DataFrame to match indices of another DataFrame, optionally
-        with filling logic
-
-        Parameters
-        ----------
-        other : DataFrame
-        method : string or None
-        copy : boolean, default True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Notes
-        -----
-        Like calling s.reindex(index=other.index, columns=other.columns,
-                               method=...)
-
-        Returns
-        -------
-        reindexed : DataFrame
-        """
-        return self.reindex(index=other.index, columns=other.columns,
-                            method=method, copy=copy, limit=limit,
-                            fill_value=fill_value)
 
     truncate = generic.truncate
 

@@ -6571,6 +6571,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_align(self):
+
         af, bf = self.frame.align(self.frame)
         self.assert_(af._data is not self.frame._data)
 

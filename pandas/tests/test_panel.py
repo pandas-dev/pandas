@@ -1003,11 +1003,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                                     major=self.panel.major_axis,
                                     minor=self.panel.minor_axis)
 
-        assert(result.items is self.panel.items)
-        assert(result.major_axis is self.panel.major_axis)
-        assert(result.minor_axis is self.panel.minor_axis)
+        self.assert_(result.items is self.panel.items)
+        self.assert_(result.major_axis is self.panel.major_axis)
+        self.assert_(result.minor_axis is self.panel.minor_axis)
 
-        self.assertRaises(Exception, self.panel.reindex)
+        # this ok
+        result = self.panel.reindex()
+        self.assert_(result == self.panel)
 
         # with filling
         smaller_major = self.panel.major_axis[::5]
@@ -1021,7 +1023,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         # don't necessarily copy
         result = self.panel.reindex(major=self.panel.major_axis, copy=False)
-        self.assert_(result is self.panel)
+        assert_panel_equal(result,self.panel)
+        self.assert_((result is self.panel) == False)
 
     def test_reindex_like(self):
         # reindex_like

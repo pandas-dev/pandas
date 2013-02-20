@@ -769,7 +769,9 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         assert(result.major_axis is self.panel4d.major_axis)
         assert(result.minor_axis is self.panel4d.minor_axis)
 
-        self.assertRaises(Exception, self.panel4d.reindex)
+        # don't necessarily copy
+        result = self.panel4d.reindex()
+        self.assert_(result is self.panel4d)
 
         # with filling
         smaller_major = self.panel4d.major_axis[::5]
@@ -784,7 +786,8 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
         # don't necessarily copy
         result = self.panel4d.reindex(
             major=self.panel4d.major_axis, copy=False)
-        self.assert_(result is self.panel4d)
+        assert_panel4d_equal(result,self.panel4d)
+        self.assert_((result is self.panel4d) == False)
 
     def test_reindex_like(self):
         # reindex_like
