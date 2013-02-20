@@ -50,8 +50,9 @@ cdef inline is_definitely_invalid_key(object val):
         except TypeError:
             return True
 
+    # we have a _data, means we are a NDFrame
     return (PySlice_Check(val) or cnp.PyArray_Check(val)
-            or PyList_Check(val))
+            or PyList_Check(val) or hasattr(val,'_data'))
 
 def get_value_at(ndarray arr, object loc):
     if arr.descr.type_num == NPY_DATETIME:

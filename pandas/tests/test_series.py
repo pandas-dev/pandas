@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
-from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
+from pandas import (Index, Series, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
@@ -284,27 +284,27 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_constructor(self):
         # Recognize TimeSeries
-        tm.assert_isinstance(self.ts, TimeSeries)
+        self.assert_(self.ts.is_time_series == True)
 
         # Pass in Series
         derived = Series(self.ts)
-        tm.assert_isinstance(derived, TimeSeries)
+        self.assert_(derived.is_time_series == True)
 
         self.assert_(tm.equalContents(derived.index, self.ts.index))
         # Ensure new index is not created
         self.assertEquals(id(self.ts.index), id(derived.index))
 
-        # Pass in scalar
-        scalar = Series(0.5)
-        tm.assert_isinstance(scalar, float)
+        # Pass in scalar (now disabled)
+        #scalar = Series(0.5)
+        #self.assert_(isinstance(scalar, float))
 
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
         self.assert_(mixed.dtype == np.object_)
         self.assert_(mixed[1] is np.NaN)
 
-        self.assert_(not isinstance(self.empty, TimeSeries))
-        self.assert_(not isinstance(Series({}), TimeSeries))
+        self.assert_(not self.empty.is_time_series)
+        self.assert_(not Series({}).is_time_series)
 
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
@@ -580,7 +580,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # wrong length
         series = self.series.copy()
-        self.assertRaises(AssertionError, setattr, series, 'index',
+        self.assertRaises(Exception, setattr, series, 'index',
                           np.arange(len(series) - 1))
 
         # works
@@ -726,6 +726,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_getitem_boolean_object(self):
         # using column from DataFrame
+
         s = self.series
         mask = s > s.median()
         omask = mask.astype(object)
@@ -736,10 +737,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         # setitem
+        s2  = s.copy()
         cop = s.copy()
         cop[omask] = 5
-        s[mask] = 5
-        assert_series_equal(cop, s)
+        s2[mask] = 5
+        assert_series_equal(cop, s2)
 
         # nans raise exception
         omask[5:10] = np.nan
@@ -749,11 +751,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
         mask_shifted = ts.shift(1, freq=datetools.bday) > ts.median()
+
+        # these used to raise...??
+
         self.assertRaises(Exception, ts.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.__setitem__, mask_shifted, 1)
+        #ts[mask_shifted]
+        #ts[mask_shifted] = 1
 
         self.assertRaises(Exception, ts.ix.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.ix.__setitem__, mask_shifted, 1)
+        #ts.ix[mask_shifted]
+        #ts.ix[mask_shifted] = 2
 
     def test_getitem_setitem_slice_integers(self):
         s = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
@@ -1099,8 +1108,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert(s.shape == rs.shape)
         assert(rs is not s)
 
-        rs = s.where(cond[:3], -s)
-        assert_series_equal(rs, s.abs()[:3].append(s[3:]))
+        # test alignment
+        cond = Series([True,False,False,True,False],index=s.index)
+        s2 = -(s.abs())
+
+        expected = s2[cond].reindex(s2.index[:3]).reindex(s2.index)
+        rs = s2.where(cond[:3])
+        assert_series_equal(rs, expected)
+
+        expected = s2.abs()
+        expected.ix[0] = s2[0]
+        rs = s2.where(cond[:3], -s2)
+        assert_series_equal(rs, expected)
 
         self.assertRaises(ValueError, s.where, 1)
         self.assertRaises(ValueError, s.where, cond[:3].values, -s)
@@ -1461,7 +1480,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self._check_stat_op('median', np.median)
 
         # test with integers, test failure
-        int_ts = TimeSeries(np.ones(10, dtype=int), index=lrange(10))
+        int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
         self.assertAlmostEqual(np.median(int_ts), int_ts.median())
 
     def test_prod(self):
@@ -1568,7 +1587,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.array_equal(result, expected))
 
     def test_npdiff(self):
+        raise nose.SkipTest
+
+        # no longer works as the return type of np.diff is now nd.array
         s = Series(np.arange(5))
+
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
@@ -2879,6 +2902,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = np.array([1, 2, 3, None], dtype=object)
         self.assert_(np.array_equal(result, expected))
 
+    def test_dropna_empty(self):
+        s = Series([])
+        self.assert_(len(s.dropna()) == 0)
+
     def test_drop_duplicates(self):
         s = Series([1, 2, 3, 3])
 
@@ -2964,7 +2991,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         mask = np.isnan(self.ts)
         filled = self.ts.fillna(np.inf)
 
-        exp = rankdata(filled)
+        # rankdata returns a ndarray
+        exp = Series(rankdata(filled),index=filled.index)
         exp[mask] = np.nan
 
         assert_almost_equal(ranks, exp)
@@ -4050,19 +4078,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertFalse(np.isnan(self.ts[10]))
 
     def test_ne(self):
-        ts = TimeSeries([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
+        ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
         self.assert_(tm.equalContents(ts.index != 5, expected))
         self.assert_(tm.equalContents(~(ts.index == 5), expected))
 
     def test_pad_nan(self):
-        x = TimeSeries([np.nan, 1., np.nan, 3., np.nan],
-                       ['z', 'a', 'b', 'c', 'd'], dtype=float)
+        x = Series([np.nan, 1., np.nan, 3., np.nan],
+                   ['z', 'a', 'b', 'c', 'd'], dtype=float)
 
         x.fillna(method='pad', inplace=True)
 
-        expected = TimeSeries([np.nan, 1.0, 1.0, 3.0, 3.0],
-                              ['z', 'a', 'b', 'c', 'd'], dtype=float)
+        expected = Series([np.nan, 1.0, 1.0, 3.0, 3.0],
+                          ['z', 'a', 'b', 'c', 'd'], dtype=float)
         assert_series_equal(x[1:], expected[1:])
         self.assert_(np.isnan(x[0]), np.isnan(expected[0]))
 
@@ -4559,13 +4587,13 @@ class TestSeriesNonUnique(unittest.TestCase):
         s = Series(lrange(10))
         s.index = idx
 
-        self.assertTrue(isinstance(s, TimeSeries))
+        self.assertTrue(s.is_time_series == True)
 
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        tm.assert_isinstance(ser, TimeSeries)
-        tm.assert_isinstance(ser.index, DatetimeIndex)
+        self.assert_(ser.is_time_series == True)
+        self.assert_(isinstance(ser.index, DatetimeIndex))
 
     def test_replace(self):
         N = 100

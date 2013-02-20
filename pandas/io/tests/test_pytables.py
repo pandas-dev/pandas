@@ -1329,7 +1329,8 @@ class TestHDFStore(unittest.TestCase):
 
             # datetime with embedded nans as object
             df = tm.makeDataFrame()
-            s = Series(datetime.datetime(2001,1,2),index=df.index,dtype=object)
+            s = Series(datetime.datetime(2001,1,2),index=df.index)
+            s = s.astype(object)
             s[0:5] = np.nan
             df['invalid'] = s
             self.assert_(df.dtypes['invalid'] == np.object_)

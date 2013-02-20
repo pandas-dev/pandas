@@ -27,10 +27,8 @@ try:
 except Exception:  # pragma: no cover
     pass
 
-
 class PandasError(Exception):
     pass
-
 
 class AmbiguousIndexError(PandasError, KeyError):
     pass
@@ -45,6 +43,19 @@ _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
 _DATELIKE_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]'] ])
+
+def is_series(obj):
+    return getattr(obj,'_typ',None) == 'series'
+def is_sparse_series(obj):
+    return getattr(obj,'_subtyp',None) in ('sparse_series','sparse_time_series')
+def is_sparse_array_like(obj):
+    return getattr(obj,'_subtyp',None) in ['sparse_array','sparse_series','sparse_array']
+def is_dataframe(obj):
+    return getattr(obj,'_typ',None) == 'dataframe'
+def is_panel(obj):
+    return getattr(obj,'_typ',None) == 'panel'
+def is_generic(obj):
+    return getattr(obj,'_data',None) is not None
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -67,14 +78,12 @@ def _isnull_new(obj):
     if lib.isscalar(obj):
         return lib.checknull(obj)
 
-    from pandas.core.generic import PandasContainer
-    if isinstance(obj, np.ndarray):
+    if is_series(obj) or isinstance(obj, np.ndarray):
         return _isnull_ndarraylike(obj)
-    elif isinstance(obj, PandasContainer):
-        # TODO: optimize for DataFrame, etc.
+    elif is_generic(obj):
         return obj.apply(isnull)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
-        return _isnull_ndarraylike(obj)
+        return _isnull_ndarraylike(np.asarray(obj))
     else:
         return obj is None
 
@@ -94,14 +103,12 @@ def _isnull_old(obj):
     if lib.isscalar(obj):
         return lib.checknull_old(obj)
 
-    from pandas.core.generic import PandasContainer
-    if isinstance(obj, np.ndarray):
+    if is_series(obj) or isinstance(obj, np.ndarray):
         return _isnull_ndarraylike_old(obj)
-    elif isinstance(obj, PandasContainer):
-        # TODO: optimize for DataFrame, etc.
+    elif is_generic(obj):
         return obj.apply(_isnull_old)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
-        return _isnull_ndarraylike_old(obj)
+        return _isnull_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
 
@@ -134,39 +141,41 @@ def _use_inf_as_null(key):
 
 
 def _isnull_ndarraylike(obj):
-    from pandas import Series
-    values = np.asarray(obj)
 
-    if values.dtype.kind in ('O', 'S', 'U'):
+    values = obj
+    dtype  = values.dtype
+
+    if dtype.kind in ('O', 'S', 'U'):
         # Working around NumPy ticket 1542
         shape = values.shape
 
-        if values.dtype.kind in ('S', 'U'):
+        if dtype.kind in ('S', 'U'):
             result = np.zeros(values.shape, dtype=bool)
         else:
             result = np.empty(shape, dtype=bool)
             vec = lib.isnullobj(values.ravel())
             result[:] = vec.reshape(shape)
 
-        if isinstance(obj, Series):
-            result = Series(result, index=obj.index, copy=False)
-    elif values.dtype == np.dtype('M8[ns]'):
+    elif dtype in _DATELIKE_DTYPES:
         # this is the NaT pattern
-        result = values.view('i8') == tslib.iNaT
-    elif values.dtype == np.dtype('m8[ns]'):
-        # this is the NaT pattern
-        result = values.view('i8') == tslib.iNaT
+        v = getattr(values,'asi8',None)
+        if v is None:
+            v = values.view('i8')
+        result = v == tslib.iNaT
     else:
-        # -np.isfinite(obj)
         result = np.isnan(obj)
+
+    if is_series(obj):
+        from pandas import Series
+        result = Series(result, index=obj.index, copy=False)
+
     return result
 
-
 def _isnull_ndarraylike_old(obj):
-    from pandas import Series
-    values = np.asarray(obj)
+    values = obj
+    dtype  = values.dtype
 
-    if values.dtype.kind in ('O', 'S', 'U'):
+    if dtype.kind in ('O', 'S', 'U'):
         # Working around NumPy ticket 1542
         shape = values.shape
 
@@ -177,15 +186,20 @@ def _isnull_ndarraylike_old(obj):
             vec = lib.isnullobj_old(values.ravel())
             result[:] = vec.reshape(shape)
 
-        if isinstance(obj, Series):
-            result = Series(result, index=obj.index, copy=False)
-    elif values.dtype == np.dtype('M8[ns]'):
+    elif dtype in _DATELIKE_DTYPES:
         # this is the NaT pattern
-        result = values.view('i8') == tslib.iNaT
+        v = getattr(values,'asi8',None)
+        if v is None:
+            v = values.view('i8')
+        result = v == tslib.iNaT
     else:
         result = -np.isfinite(obj)
-    return result
 
+    if is_series(obj):
+        from pandas import Series
+        result = Series(result, index=obj.index, copy=False)
+
+    return result
 
 def notnull(obj):
     """Replacement for numpy.isfinite / -numpy.isnan which is suitable for use
@@ -922,7 +936,7 @@ def _possibly_downcast_to_dtype(result, dtype):
     """ try to cast to the specified dtype (e.g. convert back to bool/int
         or could be an astype of float64->float32 """
 
-    if not isinstance(result, np.ndarray):
+    if np.isscalar(result):
         return result
 
     try:
@@ -1091,6 +1105,34 @@ def backfill_2d(values, limit=None, mask=None):
         # for test coverage
         pass
 
+def interpolate_2d(values, method='pad', axis=0, limit=None, missing=None):
+    """ perform an actual interpolation of values, values will be make 2-d if needed
+        fills inplace, returns the result """
+
+    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
+
+    # reshape a 1 dim if needed
+    ndim = values.ndim
+    if values.ndim == 1:
+        if axis != 0:
+            raise Exception("cannot interpolate on a ndim == 1 with axis != 0")
+        values = values.reshape(tuple((1,) + values.shape))
+
+    if missing is None:
+        mask = None
+    else:  # todo create faster fill func without masking
+        mask = mask_missing(transf(values), missing)
+
+    if method == 'pad':
+        pad_2d(transf(values), limit=limit, mask=mask)
+    else:
+        backfill_2d(transf(values), limit=limit, mask=mask)
+
+    # reshape back
+    if ndim == 1:
+        values = values[0]
+
+    return values
 
 def _consensus_name_attr(objs):
     name = objs[0].name
@@ -1102,9 +1144,27 @@ def _consensus_name_attr(objs):
 #----------------------------------------------------------------------
 # Lots of little utilities
 
+def _maybe_box(indexer, values, obj, key):
+
+    # if we have multiples coming back, box em
+    if isinstance(values, np.ndarray):
+        return obj[indexer.get_loc(key)]
+
+    # return the value
+    return values
+
+def _values_from_object(o):
+    """ return my values or the object if we are say an ndarray """
+    return o.get_values() if hasattr(o,'get_values') else o
 
 def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     """ if we have an object dtype, try to coerce dates and/or numers """
+
+    # if we have passed in a list or scalar
+    if isinstance(values, (list,tuple)):
+        values = np.array(values,dtype=np.object_)
+    if not hasattr(values,'dtype'):
+        values = np.array([values],dtype=np.object_)
 
     # convert dates
     if convert_dates and values.dtype == np.object_:
@@ -1143,6 +1203,8 @@ def _possibly_convert_platform(values):
     if isinstance(values, (list,tuple)):
         values = lib.list_to_object_array(values)
     if getattr(values,'dtype',None) == np.object_:
+        if hasattr(values,'values'):
+            values = values.values
         values = lib.maybe_convert_objects(values)
 
     return values
@@ -1191,15 +1253,14 @@ def _possibly_cast_to_timedelta(value, coerce=True):
         return np.array([ convert(v,dtype) for v in value ], dtype='m8[ns]')
 
     # deal with numpy not being able to handle certain timedelta operations
-    if isinstance(value,np.ndarray) and value.dtype.kind == 'm':
+    if (isinstance(value,np.ndarray) or is_series(value)) and value.dtype.kind == 'm':
         if value.dtype != 'timedelta64[ns]':
             value = value.astype('timedelta64[ns]')
         return value
 
     # we don't have a timedelta, but we want to try to convert to one (but don't force it)
     if coerce:
-
-        new_value = tslib.array_to_timedelta64(value.astype(object), coerce=False)
+        new_value = tslib.array_to_timedelta64(_values_from_object(value).astype(object), coerce=False)
         if new_value.dtype == 'i8':
             value = np.array(new_value,dtype='timedelta64[ns]')
 
@@ -1271,25 +1332,26 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
 
 
 def _is_bool_indexer(key):
-    if isinstance(key, np.ndarray) and key.dtype == np.object_:
-        key = np.asarray(key)
+    if isinstance(key, np.ndarray) or is_series(key):
+        if key.dtype == np.object_:
+            key = np.asarray(_values_from_object(key))
 
-        if not lib.is_bool_array(key):
-            if isnull(key).any():
-                raise ValueError('cannot index with vector containing '
-                                 'NA / NaN values')
-            return False
-        return True
-    elif isinstance(key, np.ndarray) and key.dtype == np.bool_:
-        return True
+            if len(key) and not lib.is_bool_array(key):
+                if isnull(key).any():
+                    raise ValueError('cannot index with vector containing '
+                                     'NA / NaN values')
+                return False
+            return True
+        elif key.dtype == np.bool_:
+            return True
     elif isinstance(key, list):
         try:
-            return np.asarray(key).dtype == np.bool_
+            arr = np.asarray(key)
+            return arr.dtype == np.bool_ and len(arr) == len(key)
         except TypeError:  # pragma: no cover
             return False
 
     return False
-
 
 def _default_index(n):
     from pandas.core.index import Int64Index
@@ -1728,7 +1790,6 @@ def _all_none(*args):
             return False
     return True
 
-
 class UTF8Recoder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
@@ -1890,14 +1951,14 @@ def _to_pydatetime(x):
 
 def _where_compat(mask, arr1, arr2):
     if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:
-        new_vals = np.where(mask, arr1.view(np.int64), arr2.view(np.int64))
+        new_vals = np.where(mask, arr1.view('i8'), arr2.view('i8'))
         return new_vals.view(_NS_DTYPE)
 
     import pandas.tslib as tslib
     if arr1.dtype == _NS_DTYPE:
-        arr1 = tslib.ints_to_pydatetime(arr1.view(np.int64))
+        arr1 = tslib.ints_to_pydatetime(arr1.view('i8'))
     if arr2.dtype == _NS_DTYPE:
-        arr2 = tslib.ints_to_pydatetime(arr2.view(np.int64))
+        arr2 = tslib.ints_to_pydatetime(arr2.view('i8'))
 
     return np.where(mask, arr1, arr2)
 

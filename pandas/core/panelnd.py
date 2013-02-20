@@ -5,20 +5,21 @@ from pandas.compat import zip
 import pandas.compat as compat
 
 
-def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_aliases=None, stat_axis=2,ns=None):
+
+def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None, stat_axis=2, info_axis=0, ns=None):
     """ manufacture a n-d class:
 
         parameters
         ----------
-        klass_name  : the klass name
-        axis_orders : the names of the axes in order (highest to lowest)
-        axis_slices : a dictionary that defines how the axes map to the sliced axis
-        slicer      : the class representing a slice of this panel
-        axis_aliases: a dictionary defining aliases for various axes
+        klass_name : the klass name
+        orders     : the names of the axes in order (highest to lowest)
+        slices     : a dictionary that defines how the axes map to the sliced axis
+        slicer     : the class representing a slice of this panel
+        aliases    : a dictionary defining aliases for various axes
                         default = { major : major_axis, minor : minor_axis }
-        stat_axis   : the default statistic axis
+        stat_axis  : the default statistic axis
                         default = 2
-        het_axis    : the info axis
+        info_axis  : the info axis
 
 
         returns
@@ -40,22 +41,14 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
     ns = {} if not ns else ns
     klass = type(klass_name, (slicer,), ns)
 
-    # add the class variables
-    klass._AXIS_ORDERS = axis_orders
-    klass._AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(axis_orders)])
-    klass._AXIS_ALIASES = axis_aliases or dict()
-    klass._AXIS_NAMES = dict([(i, a) for i, a in enumerate(axis_orders)])
-    klass._AXIS_SLICEMAP = axis_slices
-    klass._AXIS_LEN = len(axis_orders)
-    klass._default_stat_axis = stat_axis
-    klass._het_axis = 0
-    klass._info_axis = axis_orders[klass._het_axis]
+    # setup the axes
+    klass._setup_axes(axes      = orders,
+                      info_axis = info_axis,
+                      stat_axis = stat_axis,
+                      aliases   = aliases,
+                      slicers   = slices)
 
     klass._constructor_sliced = slicer
-
-    # add the axes
-    for i, a in enumerate(axis_orders):
-        setattr(klass, a, lib.AxisProperty(i))
 
     #### define the methods ####
     def __init__(self, *args, **kwargs):

@@ -1348,7 +1348,6 @@ class TestMultiIndex(unittest.TestCase):
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
         stacked = df.stack()
-
         idx = stacked.index
 
         slob = slice(*idx.slice_locs(df.index[5], df.index[15]))

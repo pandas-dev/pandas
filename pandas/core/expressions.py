@@ -58,7 +58,7 @@ def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
     """ return a boolean if we WILL be using numexpr """
     if op_str is not None:
-        
+
         # required min elements (otherwise we are adding overhead)
         if np.prod(a.shape) > _MIN_ELEMENTS:
 
@@ -89,9 +89,9 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False, **eval_kwargs):
                 a_value = a_value.values
             if hasattr(b_value,'values'):
                 b_value = b_value.values
-            result = ne.evaluate('a_value %s b_value' % op_str, 
-                                 local_dict={ 'a_value' : a_value, 
-                                              'b_value' : b_value }, 
+            result = ne.evaluate('a_value %s b_value' % op_str,
+                                 local_dict={ 'a_value' : a_value,
+                                              'b_value' : b_value },
                                  casting='safe', **eval_kwargs)
         except (ValueError) as detail:
             if 'unknown type object' in str(detail):
@@ -105,7 +105,7 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False, **eval_kwargs):
 
     return result
 
-def _where_standard(cond, a, b, raise_on_error=True):           
+def _where_standard(cond, a, b, raise_on_error=True):
     return np.where(cond, a, b)
 
 def _where_numexpr(cond, a, b, raise_on_error = False):
@@ -123,8 +123,8 @@ def _where_numexpr(cond, a, b, raise_on_error = False):
                 b_value = b_value.values
             result = ne.evaluate('where(cond_value,a_value,b_value)',
                                  local_dict={ 'cond_value' : cond_value,
-                                              'a_value' : a_value, 
-                                              'b_value' : b_value }, 
+                                              'a_value' : a_value,
+                                              'b_value' : b_value },
                                  casting='safe')
         except (ValueError) as detail:
             if 'unknown type object' in str(detail):

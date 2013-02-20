@@ -98,9 +98,10 @@ class TestOLS(BaseTest):
 
     def testWLS(self):
         # WLS centered SS changed (fixed) in 0.5.0
-        if sm.version.version < '0.5.0':
-            raise nose.SkipTest
-
+        v = sm.version.version.split('.')
+        if int(v[0]) >= 0 and int(v[1]) <= 5:
+            if int(v[2]) < 1:
+                raise nose.SkipTest
         print( "Make sure you're using statsmodels 0.5.0.dev-cec4f26 or later.")
 
         X = DataFrame(np.random.randn(30, 4), columns=['A', 'B', 'C', 'D'])
