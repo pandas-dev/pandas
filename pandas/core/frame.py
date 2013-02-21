@@ -1658,7 +1658,7 @@ class DataFrame(NDFrame):
     def dtypes(self):
         return self.apply(lambda x: x.dtype)
 
-    def convert_objects(self, convert_dates=True, convert_numeric=True):
+    def convert_objects(self, convert_dates=True, convert_numeric=False):
         """
         Attempt to infer better dtype for object columns
         Always returns a copy (even if no object columns)

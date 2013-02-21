@@ -41,10 +41,11 @@ pandas 0.11.0
   - added ``blocks`` attribute to DataFrames, to return a dict of dtypes to
     homogeneously dtyped DataFrames
   - added keyword ``convert_numeric`` to ``convert_objects()`` to try to
-    convert object dtypes to numeric types
+    convert object dtypes to numeric types (default is False)
   - ``convert_dates`` in ``convert_objects`` can now be ``coerce`` which will
     return a datetime64[ns] dtype with non-convertibles set as ``NaT``; will
-    preserve an all-nan object (e.g. strings)
+    preserve an all-nan object (e.g. strings), default is True (to perform
+    soft-conversion
   - Series print output now includes the dtype by default
   - Optimize internal reindexing routines (GH2819_, GH2867_)
   - ``describe_option()`` now reports the default and current value of options.
@@ -69,12 +70,14 @@ pandas 0.11.0
   - Integer block types will upcast as needed in where operations (GH2793_)
   - Series now automatically will try to set the correct dtype based on passed
     datetimelike objects (datetime/Timestamp)
-     - timedelta64 are returned in appropriate cases (e.g. Series - Series,
-       when both are datetime64)
-     - mixed datetimes and objects (GH2751_) in a constructor witll be casted
-       correctly
-     - astype on datetimes to object are now handled (as well as NaT
-       conversions to np.nan)
+
+    - timedelta64 are returned in appropriate cases (e.g. Series - Series,
+      when both are datetime64)
+    - mixed datetimes and objects (GH2751_) in a constructor witll be casted
+      correctly
+    - astype on datetimes to object are now handled (as well as NaT
+      conversions to np.nan)
+
   - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
     (GH2747_)
 
@@ -92,13 +95,16 @@ pandas 0.11.0
     overflow ``int64`` and some mixed typed type lists (GH2845_)
   - Fix issue with slow printing of wide frames resulting (GH2807_)
 
-  ``HDFStore``
+  - ``HDFStore``
 
     - Fix weird PyTables error when using too many selectors in a where
     - Provide dotted attribute access to ``get`` from stores
       (e.g. store.df == store['df'])
     - Internally, change all variables to be private-like (now have leading
       underscore)
+
+  - Bug showing up in applymap where some object type columns are converted (GH2909_)
+    had an incorrect default in convert_objects
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -113,6 +119,7 @@ pandas 0.11.0
 .. _GH2845: https://github.com/pydata/pandas/issues/2845
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2909: https://github.com/pydata/pandas/issues/2909
 
 pandas 0.10.1
 =============

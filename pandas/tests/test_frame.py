@@ -6793,6 +6793,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = self.frame.applymap(lambda x: (x, x))
         self.assert_(isinstance(result['A'][0], tuple))
 
+        # GH 2909, object conversion to float in constructor?
+        df = DataFrame(data=[1,'a'])
+        result = df.applymap(lambda x: x)
+        self.assert_(result.dtypes[0] == object)
+
+        df = DataFrame(data=[1.,'a'])
+        result = df.applymap(lambda x: x)
+        self.assert_(result.dtypes[0] == object)
+
     def test_filter(self):
         # items
 
