@@ -4,14 +4,14 @@ from pandas.core.panelnd import create_nd_panel_factory
 from pandas.core.panel import Panel
 
 Panel4D = create_nd_panel_factory(
-    klass_name='Panel4D',
-    axis_orders=['labels', 'items', 'major_axis', 'minor_axis'],
-    axis_slices={'labels': 'labels', 'items': 'items',
-                 'major_axis': 'major_axis',
-                 'minor_axis': 'minor_axis'},
-    slicer=Panel,
-    axis_aliases={'major': 'major_axis', 'minor': 'minor_axis'},
-    stat_axis=2,
+    klass_name = 'Panel4D',
+    orders     = ['labels', 'items', 'major_axis', 'minor_axis'],
+    slices     = {'labels': 'labels', 'items': 'items',
+                    'major_axis': 'major_axis',
+                    'minor_axis': 'minor_axis'},
+    slicer     = Panel,
+    aliases    = {'major': 'major_axis', 'minor': 'minor_axis'},
+    stat_axis  = 2)
     ns=dict(__doc__=  """
     Represents a 4 dimensonal structured
 

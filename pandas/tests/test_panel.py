@@ -1732,15 +1732,18 @@ class TestLongPanel(unittest.TestCase):
 def test_monotonic():
     pos = np.array([1, 2, 3, 5])
 
-    assert panelm._monotonic(pos)
+    def _monotonic(arr):
+        return not (arr[1:] < arr[:-1]).any()
+
+    assert _monotonic(pos)
 
     neg = np.array([1, 2, 3, 4, 3])
 
-    assert not panelm._monotonic(neg)
+    assert not _monotonic(neg)
 
     neg2 = np.array([5, 1, 2, 3, 4, 5])
 
-    assert not panelm._monotonic(neg2)
+    assert not _monotonic(neg2)
 
 
 def test_panel_index():

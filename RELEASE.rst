@@ -43,11 +43,11 @@ pandas 0.12.0
   - When removing an object from a store, **store.remove(key)**, raises
     **KeyError** if **key** is not a valid store object.
   - Refactor of series.py/frame.py/panel.py to move common code to generic.py
-
-    all axis creation and manipulation code is now common (except for Series)
+    all axis creation code is common (including Series), most common
+    code is moved to generic.py
 
     - added _setup_axes to created generic NDFrame structures
-    - moved methods (some methods moved from series as well)
+    - moved methods
 
       - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
       - __str__,__bytes__,__repr__
@@ -55,12 +55,17 @@ pandas 0.12.0
       - convert_objects,as_blocks,as_matrix,values
       - __getstate__,__setstate__ (though compat remains in frame/panel)
       - __getattr__,__setattr__
-      - _indexed_same,reindex_like,reindex
-        (sparse.py required some changes)
+      - _indexed_same,reindex_like,reindex,align,where,mask
+      - filter (also added axis argument to selectively filter on a different axis)
+      - reindex,reindex_axis (which was the biggest change to make generic)
+      - truncate (moved to become part of PandasObject)
 
     These are API changes which make Panel more consistent with DataFrame
     - swapaxes on a Panel with the same axes specified now return a copy 
     - support attribute access for setting
+    - filter supports same api as original DataFrame filter
+
+  - Reindex called with no arguments will now return a copy of the input object
 
 **Bug Fixes**
 
@@ -280,7 +285,6 @@ pandas 0.11.0
 
   - Bug showing up in applymap where some object type columns are converted (GH2909_)
     had an incorrect default in convert_objects
-  - Reindex called with no arguments will now return a copy of the input object
 
   - TimeDeltas
 
