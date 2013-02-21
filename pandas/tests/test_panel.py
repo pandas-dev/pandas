@@ -980,7 +980,8 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         # this ok
         result = self.panel.reindex()
-        self.assert_(result == self.panel)
+        assert_panel_equal(result,self.panel)
+        self.assert_((result is self.panel) == False)
 
         # with filling
         smaller_major = self.panel.major_axis[::5]

@@ -177,6 +177,7 @@ pandas 0.11.0
 
   - Bug showing up in applymap where some object type columns are converted (GH2909_)
     had an incorrect default in convert_objects
+  - Reindex called with no arguments will now return a copy of the input object
 
   - TimeDeltas
 

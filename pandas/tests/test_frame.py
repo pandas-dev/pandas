@@ -6242,6 +6242,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
 
+        # copy with no axes
+        result = self.frame.reindex()
+        assert_frame_equal(result,self.frame)
+        self.assert_((result is self.frame) == False)
+
     def test_reindex_name_remains(self):
         s = Series(random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
