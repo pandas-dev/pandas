@@ -691,7 +691,7 @@ class DataFrame(NDFrame):
         items = iteritems
 
     def __len__(self):
-        """ we are reversed, so shortcut this here """
+        """Returns length of info axis, but here we use the index """
         return len(self.index)
 
     #----------------------------------------------------------------------
@@ -1501,50 +1501,6 @@ class DataFrame(NDFrame):
     def dtypes(self):
         return self.apply(lambda x: x.dtype)
 
-    def convert_objects(self, convert_dates=True, convert_numeric=False):
-        """
-        Attempt to infer better dtype for object columns
-        Always returns a copy (even if no object columns)
-
-        Parameters
-        ----------
-        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
-        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
-
-        Returns
-        -------
-        converted : DataFrame
-        """
-        return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
-
-    def as_matrix(self, columns=None):
-        """
-        Convert the frame to its Numpy-array matrix representation. Columns
-        are presented in sorted order unless a specific list of columns is
-        provided.
-
-        NOTE: the dtype will be a lower-common-denominator dtype (implicit upcasting)
-              that is to say if the dtypes (even of numeric types) are mixed, the one that accomodates all will be chosen
-              use this with care if you are not dealing with the blocks
-
-              e.g. if the dtypes are float16,float32         -> float32
-                                     float16,float32,float64 -> float64
-                                     int32,uint8             -> int32
-
-        Parameters
-        ----------
-        columns : array-like
-            Specific column order
-
-        Returns
-        -------
-        values : ndarray
-            If the DataFrame is heterogeneous and contains booleans or objects,
-            the result will be of dtype=object
-        """
-        self._consolidate_inplace()
-        return self._data.as_matrix(columns).T
-
     def transpose(self):
         return super(DataFrame, self).transpose(1,0)
 
@@ -2107,125 +2063,6 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=NA, method=None, limit=None, fill_axis=0):
-        """
-        Align two DataFrame object on their index and columns with the
-        specified join method for each axis Index
-
-        Parameters
-        ----------
-        other : DataFrame or Series
-        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
-        axis : {0, 1, None}, default None
-            Align on index (0), columns (1), or both (None)
-        level : int or name
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level
-        copy : boolean, default True
-            Always returns new objects. If copy=False and no reindexing is
-            required then original objects are returned.
-        fill_value : scalar, default np.NaN
-            Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value
-        method : str, default None
-        limit : int, default None
-        fill_axis : {0, 1}, default 0
-            Filling axis, method and limit
-
-        Returns
-        -------
-        (left, right) : (DataFrame, type of other)
-            Aligned objects
-        """
-        if isinstance(other, DataFrame):
-            return self._align_frame(other, join=join, axis=axis, level=level,
-                                     copy=copy, fill_value=fill_value,
-                                     method=method, limit=limit,
-                                     fill_axis=fill_axis)
-        elif isinstance(other, Series):
-            return self._align_series(other, join=join, axis=axis, level=level,
-                                      copy=copy, fill_value=fill_value,
-                                      method=method, limit=limit,
-                                      fill_axis=fill_axis)
-        else:  # pragma: no cover
-            raise TypeError('unsupported type: %s' % type(other))
-
-    def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=NA, method=None, limit=None,
-                     fill_axis=0):
-        # defaults
-        join_index, join_columns = None, None
-        ilidx, iridx = None, None
-        clidx, cridx = None, None
-
-        if axis is None or axis == 0:
-            if not self.index.equals(other.index):
-                join_index, ilidx, iridx = \
-                    self.index.join(other.index, how=join, level=level,
-                                    return_indexers=True)
-
-        if axis is None or axis == 1:
-            if not self.columns.equals(other.columns):
-                join_columns, clidx, cridx = \
-                    self.columns.join(other.columns, how=join, level=level,
-                                      return_indexers=True)
-
-        left  = self._reindex_with_indexers({ 0 : [ join_index,   ilidx ],
-                                              1 : [ join_columns, clidx ] },
-                                            copy=copy, fill_value=fill_value)
-        right = other._reindex_with_indexers({ 0 : [ join_index,   iridx ],
-                                               1 : [ join_columns, cridx ] }, 
-                                             copy=copy, fill_value=fill_value)
-            
-
-        if method is not None:
-            left = left.fillna(axis=fill_axis, method=method, limit=limit)
-            right = right.fillna(axis=fill_axis, method=method, limit=limit)
-
-        return left, right
-
-    def _align_series(self, other, join='outer', axis=None, level=None,
-                      copy=True, fill_value=None, method=None, limit=None,
-                      fill_axis=0):
-        fdata = self._data
-        if axis == 0:
-            join_index = self.index
-            lidx, ridx = None, None
-            if not self.index.equals(other.index):
-                join_index, lidx, ridx = self.index.join(other.index, how=join,
-                                                         return_indexers=True)
-
-            if lidx is not None:
-                fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
-        elif axis == 1:
-            join_index = self.columns
-            lidx, ridx = None, None
-            if not self.columns.equals(other.index):
-                join_index, lidx, ridx = \
-                    self.columns.join(other.index, how=join,
-                                      return_indexers=True)
-
-            if lidx is not None:
-                fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
-        else:
-            raise ValueError('Must specify axis=0 or 1')
-
-        if copy and fdata is self._data:
-            fdata = fdata.copy()
-
-        left_result = DataFrame(fdata)
-        right_result = other if ridx is None else other.reindex(join_index)
-
-        fill_na = notnull(fill_value) or (method is not None)
-        if fill_na:
-            return (left_result.fillna(fill_value, method=method, limit=limit,
-                                       axis=fill_axis),
-                    right_result.fillna(fill_value, method=method,
-                                        limit=limit))
-        else:
-            return left_result, right_result
-
     def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
       frame = self
 
@@ -2272,8 +2109,6 @@ class DataFrame(NDFrame):
             return self._reindex_with_indexers({ 1 : [ new_columns, col_indexer ] }, copy=copy, fill_value=fill_value)
         else:
             return self.copy() if copy else self
-
-    truncate = generic.truncate
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
@@ -2513,40 +2348,6 @@ class DataFrame(NDFrame):
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods
-
-    def filter(self, items=None, like=None, regex=None):
-        """
-        Restrict frame's columns to set of items or wildcard
-
-        Parameters
-        ----------
-        items : list-like
-            List of columns to restrict to (must not all be present)
-        like : string
-            Keep columns where "arg in col == True"
-        regex : string (regular expression)
-            Keep columns with re.search(regex, col) == True
-
-        Notes
-        -----
-        Arguments are mutually exclusive, but this is not checked for
-
-        Returns
-        -------
-        DataFrame with filtered columns
-        """
-        import re
-        if items is not None:
-            return self.reindex(columns=[r for r in items if r in self])
-        elif like:
-            matchf = lambda x: (like in x if isinstance(x, basestring)
-                                else like in str(x))
-            return self.select(matchf, axis=1)
-        elif regex:
-            matcher = re.compile(regex)
-            return self.select(lambda x: matcher.search(x) is not None, axis=1)
-        else:
-            raise ValueError('items was None!')
 
     def dropna(self, axis=0, how='any', thresh=None, subset=None):
         """
@@ -4799,76 +4600,6 @@ class DataFrame(NDFrame):
         DataFrame
         """
         return self.mul(other, fill_value=1.)
-
-    def where(self, cond, other=NA, inplace=False, try_cast=False, raise_on_error=True):
-        """
-        Return a DataFrame with the same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from other.
-
-        Parameters
-        ----------
-        cond : boolean DataFrame or array
-        other : scalar or DataFrame
-        inplace : boolean, default False
-            Whether to perform the operation in place on the data
-        try_cast : boolean, default False
-            try to cast the result back to the input type (if possible),
-        raise_on_error : boolean, default True
-            Whether to raise on invalid data types (e.g. trying to where on
-            strings)
-
-        Returns
-        -------
-        wh : DataFrame
-        """
-        if isinstance(cond, DataFrame):
-            # this already checks for index/column equality
-            cond = cond.reindex(self.index, columns=self.columns)
-        else:
-            if not hasattr(cond, 'shape'):
-                raise ValueError('where requires an ndarray like object for its '
-                                 'condition')
-            if cond.shape != self.shape:
-                raise ValueError('Array conditional must be same shape as self')
-            cond = self._constructor(cond, index=self.index,
-                                     columns=self.columns)
-
-        if inplace:
-            cond = -(cond.fillna(True).astype(bool))
-        else:
-            cond = cond.fillna(False).astype(bool)
-
-        if isinstance(other, DataFrame):
-            _, other = self.align(other, join='left', fill_value=NA)
-        elif isinstance(other,np.ndarray):
-            if other.shape != self.shape:
-                raise ValueError('other must be the same shape as self '
-                                 'when an ndarray')
-            other = DataFrame(other, self.index, self.columns)
-
-        if inplace:
-            # we may have different type blocks come out of putmask, so reconstruct the block manager
-            self._data = self._data.putmask(cond,other,inplace=True)
-
-        else:
-            new_data = self._data.where(other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
-
-            return self._constructor(new_data)
-
-    def mask(self, cond):
-        """
-        Returns copy of self whose values are replaced with nan if the
-        inverted condition is True
-
-        Parameters
-        ----------
-        cond: boolean DataFrame or array
-
-        Returns
-        -------
-        wh: DataFrame
-        """
-        return self.where(~cond, NA)
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
 _EMPTY_SERIES = Series([])

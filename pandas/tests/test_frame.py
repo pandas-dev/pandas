@@ -7172,10 +7172,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_filter(self):
         # items
-
         filtered = self.frame.filter(['A', 'B', 'E'])
         self.assertEqual(len(filtered.columns), 2)
         self.assert_('E' not in filtered)
+
+        filtered = self.frame.filter(['A', 'B', 'E'], axis='columns')
+        self.assertEqual(len(filtered.columns), 2)
+        self.assert_('E' not in filtered)
+
+        # other axis
+        idx = self.frame.index[0:4]
+        filtered = self.frame.filter(idx, axis='index')
+        expected = self.frame.reindex(index=idx)
+        assert_frame_equal(filtered,expected)
 
         # like
         fcopy = self.frame.copy()

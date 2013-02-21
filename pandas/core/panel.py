@@ -887,21 +887,6 @@ class Panel(NDFrame):
     to_long = deprecate('to_long', to_frame)
     toLong = deprecate('toLong', to_frame)
 
-    def filter(self, items):
-        """
-        Restrict items in panel to input list
-
-        Parameters
-        ----------
-        items : sequence
-
-        Returns
-        -------
-        y : Panel
-        """
-        intersection = self.items.intersection(items)
-        return self.reindex(items=intersection)
-
     def apply(self, func, axis='major'):
         """
         Apply
@@ -1358,10 +1343,6 @@ Panel._add_aggregate_operations()
 
 WidePanel = Panel
 LongPanel = DataFrame
-
-
-def _monotonic(arr):
-    return not (arr[1:] < arr[:-1]).any()
 
 
 def install_ipython_completers():  # pragma: no cover

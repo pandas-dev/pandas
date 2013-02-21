@@ -2540,7 +2540,7 @@ class Series(pa.Array, generic.PandasObject):
         new_values = self.values.take(indices)
         return Series(new_values, index=new_index, name=self.name)
 
-    truncate = generic.truncate
+    truncate = generic.PandasObject.truncate
 
     def fillna(self, value=None, method=None, inplace=False,
                limit=None):
