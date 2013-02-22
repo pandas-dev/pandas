@@ -204,7 +204,7 @@ def _calc_return_index(price_df):
 
     #Check for first stock listings after starting date of index in ret_index
     #If True, find first_valid_index and set previous entry to 1.
-    if(~mask).any:
+    if(~mask).any():
         for sym in mask.index[~mask]:
             tstamp = df[sym].first_valid_index()
             t_idx = df.index.get_loc(tstamp) - 1
