@@ -137,3 +137,21 @@ s = Series(['abcdefg', np.nan]*500000)
 
 series_string_vector_slice = Benchmark('s.str[:5]', setup,
                                        start_date=datetime(2012, 8, 1))
+
+#----------------------------------------------------------------------
+# df.info() and get_dtype_counts() # 2807
+
+setup = common_setup + """
+df = pandas.DataFrame(np.random.randn(10,10000))
+"""
+
+frame_get_dtype_counts = Benchmark('df.get_dtype_counts()', setup,
+                                       start_date=datetime(2012, 8, 1))
+
+##
+setup = common_setup + """
+df = pandas.DataFrame(np.random.randn(10,10000))
+"""
+
+frame_wide_repr = Benchmark('df.repr()', setup,
+                                       start_date=datetime(2012, 8, 1))
