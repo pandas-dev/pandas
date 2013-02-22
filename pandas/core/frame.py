@@ -1676,7 +1676,11 @@ class DataFrame(NDFrame):
 
     def get_dtype_counts(self):
         """ return the counts of dtypes in this frame """
-        return Series(dict([ (dtype, len(df.columns)) for dtype, df in self.blocks.iteritems() ]))
+        self._consolidate_inplace()
+        counts = dict()
+        for b in self._data.blocks:
+            counts[b.dtype.name] = counts.get(b.dtype,0) + b.shape[0]
+        return Series(counts)
 
     #----------------------------------------------------------------------
     # properties for index and columns
