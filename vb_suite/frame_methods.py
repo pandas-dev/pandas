@@ -153,5 +153,5 @@ setup = common_setup + """
 df = pandas.DataFrame(np.random.randn(10,10000))
 """
 
-frame_wide_repr = Benchmark('df.repr()', setup,
+frame_wide_repr = Benchmark('repr(df)', setup,
                                        start_date=datetime(2012, 8, 1))
