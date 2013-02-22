@@ -90,6 +90,7 @@ pandas 0.11.0
     (GH2776_)
   - Fix issues with DataFrame and Series constructor with integers that
     overflow ``int64`` and some mixed typed type lists (GH2845_)
+  - Fix issue with slow printing of wide frames resulting (GH2807_)
 
   ``HDFStore``
 
@@ -111,6 +112,7 @@ pandas 0.11.0
 .. _GH2819: https://github.com/pydata/pandas/issues/2819
 .. _GH2845: https://github.com/pydata/pandas/issues/2845
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
+.. _GH2807: https://github.com/pydata/pandas/issues/2807
 
 pandas 0.10.1
 =============
