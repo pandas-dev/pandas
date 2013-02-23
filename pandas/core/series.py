@@ -15,7 +15,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
-                                _default_index, _maybe_promote,
+                                _default_index, _maybe_promote, _maybe_upcast,
                                 _asarray_tuplesafe, is_integer_dtype,
                                 _infer_dtype_from_scalar)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
@@ -88,12 +88,15 @@ def _arith_method(op, name):
 
             # rhs is either a timedelta or a series/ndarray
             if lib.is_timedelta_array(rvalues):
-                rvalues = pa.array([ np.timedelta64(v) for v in rvalues ],dtype='timedelta64[ns]')
+                rvalues = pa.array([np.timedelta64(v) for v in rvalues],
+                                   dtype='timedelta64[ns]')
                 dtype = 'M8[ns]'
             elif com.is_datetime64_dtype(rvalues):
                 dtype = 'timedelta64[ns]'
             else:
-                raise ValueError("cannot operate on a series with out a rhs of a series/ndarray of type datetime64[ns] or a timedelta")
+                raise ValueError('cannot operate on a series with out a rhs '
+                                 'of a series/ndarray of type datetime64[ns] '
+                                 'or a timedelta')
 
             lvalues = lvalues.view('i8')
             rvalues = rvalues.view('i8')
@@ -430,32 +433,32 @@ class Series(pa.Array, generic.PandasObject):
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False):
-        """One-dimensional ndarray with axis labels (including time
-series). Labels need not be unique but must be any hashable type. The object
-supports both integer- and label-based indexing and provides a host of methods
-for performing operations involving the index. Statistical methods from ndarray
-have been overridden to automatically exclude missing data (currently
-represented as NaN)
+        """
+        One-dimensional ndarray with axis labels (including time series).
+        Labels need not be unique but must be any hashable type. The object
+        supports both integer- and label-based indexing and provides a host of
+        methods for performing operations involving the index. Statistical
+        methods from ndarray have been overridden to automatically exclude
+        missing data (currently represented as NaN)
 
-Operations between Series (+, -, /, *, **) align values based on their
-associated index values-- they need not be the same length. The result
-index will be the sorted union of the two indexes.
+        Operations between Series (+, -, /, *, **) align values based on their
+        associated index values-- they need not be the same length. The result
+        index will be the sorted union of the two indexes.
 
-Parameters
-----------
-data : array-like, dict, or scalar value
-    Contains data stored in Series
-index : array-like or Index (1d)
-
-    Values must be unique and hashable, same length as data. Index object
-    (or other iterable of same length as data) Will default to
-    np.arange(len(data)) if not provided. If both a dict and index sequence
-    are used, the index will override the keys found in the dict.
-
-dtype : numpy.dtype or None
-    If None, dtype will be inferred copy : boolean, default False Copy
-    input data
-copy : boolean, default False
+        Parameters
+        ----------
+        data : array-like, dict, or scalar value
+            Contains data stored in Series
+        index : array-like or Index (1d)
+            Values must be unique and hashable, same length as data. Index
+            object (or other iterable of same length as data) Will default to
+            np.arange(len(data)) if not provided. If both a dict and index
+            sequence are used, the index will override the keys found in the
+            dict.
+        dtype : numpy.dtype or None
+            If None, dtype will be inferred copy : boolean, default False Copy
+            input data
+        copy : boolean, default False
         """
         pass
 
@@ -769,7 +772,8 @@ copy : boolean, default False
         See numpy.ndarray.astype
         """
         casted = com._astype_nansafe(self.values, dtype)
-        return self._constructor(casted, index=self.index, name=self.name, dtype=casted.dtype)
+        return self._constructor(casted, index=self.index, name=self.name,
+                                 dtype=casted.dtype)
 
     def convert_objects(self, convert_dates=True, convert_numeric=True):
         """
@@ -778,8 +782,12 @@ copy : boolean, default False
 
         Parameters
         ----------
-        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
-        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
+        convert_dates : boolean, default True
+            if True, attempt to soft convert_dates, if 'coerce', force
+            conversion (and non-convertibles get NaT)
+        convert_numeric : boolean, default True
+            if True attempt to coerce to numbers (including strings),
+            non-convertibles get NaN
 
         Returns
         -------
@@ -982,7 +990,8 @@ copy : boolean, default False
         """
         Return a string representation for a particular DataFrame
 
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
         """
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0
@@ -2416,7 +2425,7 @@ copy : boolean, default False
             raise ValueError("cannot reindex series on non-zero axis!")
         return self.reindex(index=labels,**kwargs)
 
-    def reindex_like(self, other, method=None, limit=None):
+    def reindex_like(self, other, method=None, limit=None, fill_value=pa.NA):
         """
         Reindex Series to match index of another Series, optionally with
         filling logic
@@ -2437,7 +2446,8 @@ copy : boolean, default False
         -------
         reindexed : Series
         """
-        return self.reindex(other.index, method=method, limit=limit)
+        return self.reindex(other.index, method=method, limit=limit,
+                            fill_value=fill_value)
 
     def take(self, indices, axis=0):
         """
@@ -3060,10 +3070,14 @@ def remove_na(arr):
 
 def _sanitize_array(data, index, dtype=None, copy=False,
                     raise_cast_failure=False):
+
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
-        data = ma.copy(data)
-        data[mask] = pa.NA
+        if mask.any():
+            data, fill_value = _maybe_upcast(data, copy=True)
+            data[mask] = fill_value
+        else:
+            data = data.copy()
 
     def _try_cast(arr):
         try:
@@ -3112,7 +3126,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     raise
                 subarr = pa.array(data, dtype=object, copy=copy)
                 subarr = lib.maybe_convert_objects(subarr)
-            
+
         else:
             subarr = com._possibly_convert_platform(data)
 
