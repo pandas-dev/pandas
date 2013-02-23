@@ -212,15 +212,18 @@ class PandasObject(object):
         rule : the offset string or object representing target conversion
         how : string, method for down- or re-sampling, default to 'mean' for
               downsampling
-        fill_method : string, fill_method for upsampling, default None
         axis : int, optional, default 0
+        fill_method : string, fill_method for upsampling, default None
         closed : {'right', 'left'}, default None
             Which side of bin interval is closed
         label : {'right', 'left'}, default None
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
-        loffset : timedelta
+        kind: "period"/"timestamp"
+        loffset: timedelta
             Adjust the resampled time labels
+        limit: int, default None
+            Maximum size gap to when reindexing with fill_method
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
