@@ -1459,13 +1459,15 @@ class DataFrame(NDFrame):
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
                 justify=None, force_unicode=None, bold_rows=True,
-                classes=None):
+                classes=None, escape=True):
         """
         to_html-specific options
         bold_rows : boolean, default True
             Make the row labels bold in the output
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
+        escape : boolean, default True
+            Convert the characters <, >, and & to HTML-safe sequences.
 
         Render a DataFrame to an html table.
         """
@@ -1488,7 +1490,8 @@ class DataFrame(NDFrame):
                                            justify=justify,
                                            index_names=index_names,
                                            header=header, index=index,
-                                           bold_rows=bold_rows)
+                                           bold_rows=bold_rows,
+                                           escape=escape)
         formatter.to_html(classes=classes)
 
         if buf is None:
