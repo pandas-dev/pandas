@@ -1385,7 +1385,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         Sort column names to determine plot ordering
     title : string
         Title to use for the plot
-    grid : boolean, default True
+    grid : boolean, default False
         Axis grid lines
     legend : boolean, default True
         Place legend on axis subplots
