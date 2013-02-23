@@ -98,6 +98,8 @@ pandas 0.11.0
   - ``HDFStore``
 
     - Fix weird PyTables error when using too many selectors in a where
+      also correctly filter on any number of values in a Term expression
+      (so not using numexpr filtering, but isin filtering)
     - Provide dotted attribute access to ``get`` from stores
       (e.g. store.df == store['df'])
     - Internally, change all variables to be private-like (now have leading
