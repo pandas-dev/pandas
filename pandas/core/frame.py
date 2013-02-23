@@ -23,7 +23,8 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _is_sequence, _infer_dtype_from_scalar)
+                                _default_index, _maybe_upcast, _is_sequence,
+                                _infer_dtype_from_scalar)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
@@ -390,9 +391,12 @@ class DataFrame(NDFrame):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
             mask = ma.getmaskarray(data)
-            datacopy, fill_value = com._maybe_upcast(data, copy=True)
-            datacopy[mask] = fill_value
-            mgr = self._init_ndarray(datacopy, index, columns, dtype=dtype,
+            if mask.any():
+                data, fill_value = _maybe_upcast(data, copy=True)
+                data[mask] = fill_value
+            else:
+                data = data.copy()
+            mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                      copy=copy)
         elif isinstance(data, np.ndarray):
             if data.dtype.names:
@@ -2701,7 +2705,8 @@ class DataFrame(NDFrame):
 
         return DataFrame(new_data)
 
-    def reindex_like(self, other, method=None, copy=True, limit=None):
+    def reindex_like(self, other, method=None, copy=True, limit=None,
+                     fill_value=NA):
         """
         Reindex DataFrame to match indices of another DataFrame, optionally
         with filling logic
@@ -2724,7 +2729,8 @@ class DataFrame(NDFrame):
         reindexed : DataFrame
         """
         return self.reindex(index=other.index, columns=other.columns,
-                            method=method, copy=copy, limit=limit)
+                            method=method, copy=copy, limit=limit,
+                            fill_value=fill_value)
 
     truncate = generic.truncate
 
