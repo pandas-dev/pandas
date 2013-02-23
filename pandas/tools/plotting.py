@@ -1476,28 +1476,28 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     kind : {'line', 'bar', 'barh'}
         bar : vertical bar plot
         barh : horizontal bar plot
-    rot : int, default 30
-        Rotation for tick labels
     use_index : boolean, default True
         Plot index as axis tick labels
-    ax : matplotlib axis object
-        If not passed, uses gca()
-    style : string, default matplotlib default
-        matplotlib line style to use
-    ax : matplotlib axis object
-        If not passed, uses gca()
-    logx : boolean, default False
-        For line plots, use log scaling on x axis
-    logy : boolean, default False
-        For line plots, use log scaling on y axis
+    rot : int, default None
+        Rotation for tick labels
     xticks : sequence
         Values to use for the xticks
     yticks : sequence
         Values to use for the yticks
     xlim : 2-tuple/list
     ylim : 2-tuple/list
-    rot : int, default None
-        Rotation for ticks
+    ax : matplotlib axis object
+        If not passed, uses gca()
+    style : string, default matplotlib default
+        matplotlib line style to use
+    grid : matplot grid
+    legend: matplot legende
+    logx : boolean, default False
+        For line plots, use log scaling on x axis
+    logy : boolean, default False
+        For line plots, use log scaling on y axis
+    secondary_y : boolean or sequence of ints, default False
+        If True then y-axis will be on the right
     kwds : keywords
         Options to pass to matplotlib plotting method
 

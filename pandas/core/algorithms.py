@@ -214,11 +214,11 @@ def quantile(x, q, interpolation_method='fraction'):
 
     Parameters
     ----------
-    a : ndarray
+    x : ndarray
         Values from which to extract score.
     q : scalar or array
         Percentile at which to extract score.
-    interpolation : {'fraction', 'lower', 'higher'}, optional
+    interpolation_method : {'fraction', 'lower', 'higher'}, optional
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
 
