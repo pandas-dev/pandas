@@ -1202,9 +1202,28 @@ class TestSeriesFormatting(unittest.TestCase):
                 self.assert_('+10' in line)
 
     def test_timedelta64(self):
+
+        from pandas import date_range
+        from datetime import datetime
+
         Series(np.array([1100, 20], dtype='timedelta64[s]')).to_string()
         # check this works
         # GH2146
+
+        # adding NaTs
+        s = Series(date_range('2012-1-1', periods=3, freq='D'))
+        y = s-s.shift(1)
+        result = y.to_string()
+        self.assertTrue('1 days, 00:00:00' in result)
+        self.assertTrue('NaT' in result)
+        self.assertTrue('timedelta64[ns]' in result)
+
+        # with frac seconds
+        s = Series(date_range('2012-1-1', periods=3, freq='D'))
+        y = s-datetime(2012,1,1,microsecond=150)
+        result = y.to_string()
+        self.assertTrue('00:00:00.000150' in result)
+        self.assertTrue('timedelta64[ns]' in result)
 
     def test_mixed_datetime64(self):
         df = DataFrame({'A': [1, 2],

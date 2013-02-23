@@ -1012,6 +1012,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = IntArrayFormatter
     elif com.is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
+    elif com.is_timedelta64_dtype(values.dtype):
+        fmt_klass = Timedelta64Formatter
     else:
         fmt_klass = GenericArrayFormatter
 
@@ -1170,7 +1172,6 @@ class Datetime64Formatter(GenericArrayFormatter):
         fmt_values = [formatter(x) for x in self.values]
         return _make_fixed_width(fmt_values, self.justify)
 
-
 def _format_datetime64(x, tz=None):
     if isnull(x):
         return 'NaT'
@@ -1178,6 +1179,24 @@ def _format_datetime64(x, tz=None):
     stamp = lib.Timestamp(x, tz=tz)
     return stamp._repr_base
 
+
+class Timedelta64Formatter(Datetime64Formatter):
+
+    def get_result(self):
+        if self.formatter:
+            formatter = self.formatter
+        else:
+
+            formatter = _format_timedelta64
+
+        fmt_values = [formatter(x) for x in self.values]
+        return _make_fixed_width(fmt_values, self.justify)
+
+def _format_timedelta64(x):
+    if isnull(x):
+        return 'NaT'
+
+    return lib.repr_timedelta64(x)
 
 def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0:

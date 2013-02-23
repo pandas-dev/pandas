@@ -77,6 +77,8 @@ pandas 0.11.0
       correctly
     - astype on datetimes to object are now handled (as well as NaT
       conversions to np.nan)
+    - all timedelta like objects will be correctly assigned to ``timedelta64``
+      with mixed ``NaN`` and/or ``NaT`` allowed
 
   - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
     (GH2747_)
@@ -108,6 +110,16 @@ pandas 0.11.0
   - Bug showing up in applymap where some object type columns are converted (GH2909_)
     had an incorrect default in convert_objects
 
+  - TimeDeltas
+
+    - Series ops with a Timestamp on the rhs was throwing an exception (GH2898_)
+      added tests for Series ops with datetimes,timedeltas,Timestamps, and datelike 
+      Series on both lhs and rhs
+    - Series will now set its dtype automatically to ``timedelta64[ns]``
+      if all passed objects are timedelta objects
+    - Support null checking on timedelta64, representing (and formatting) with NaT
+    - Support setitem with np.nan value, converts to NaT
+
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
@@ -121,6 +133,7 @@ pandas 0.11.0
 .. _GH2845: https://github.com/pydata/pandas/issues/2845
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 
 pandas 0.10.1

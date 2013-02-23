@@ -17,7 +17,7 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_promote, _maybe_upcast,
                                 _asarray_tuplesafe, is_integer_dtype,
-                                _infer_dtype_from_scalar)
+                                _infer_dtype_from_scalar, is_list_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer
@@ -81,18 +81,51 @@ def _arith_method(op, name):
 
         lvalues, rvalues = self, other
 
-        if com.is_datetime64_dtype(self):
+        is_timedelta = com.is_timedelta64_dtype(self)
+        is_datetime  = com.is_datetime64_dtype(self)
 
-            if not isinstance(rvalues, pa.Array):
-                rvalues = pa.array([rvalues])
+        if is_datetime or is_timedelta:
+
+            # convert the argument to an ndarray
+            def convert_to_array(values):
+                if not is_list_like(values):
+                    values = np.array([values])
+                inferred_type = lib.infer_dtype(values)
+                if inferred_type in set(['datetime64','datetime','date','time']):
+                    if isinstance(values, pa.Array) and com.is_datetime64_dtype(values):
+                        pass
+                    else:
+                        values = tslib.array_to_datetime(values)
+                else:
+                    values = pa.array(values)
+                return values
+
+            # swap the valuesor com.is_timedelta64_dtype(self):
+            if is_timedelta:
+                lvalues, rvalues = rvalues, lvalues
+                lvalues = convert_to_array(lvalues)
+                is_timedelta = False
+
+            rvalues = convert_to_array(rvalues)
 
             # rhs is either a timedelta or a series/ndarray
-            if lib.is_timedelta_array(rvalues):
-                rvalues = pa.array([np.timedelta64(v) for v in rvalues],
-                                   dtype='timedelta64[ns]')
+            if lib.is_timedelta_or_timedelta64_array(rvalues):
+
+                # need to convert timedelta to ns here
+                # safest to convert it to an object arrany to process
+                rvalues = tslib.array_to_timedelta64(rvalues.astype(object))
                 dtype = 'M8[ns]'
             elif com.is_datetime64_dtype(rvalues):
                 dtype = 'timedelta64[ns]'
+
+                # we may have to convert to object unfortunately here
+                mask = isnull(lvalues) | isnull(rvalues)
+                if mask.any():
+                    def wrap_results(x):
+                        x = pa.array(x,dtype='timedelta64[ns]')
+                        np.putmask(x,mask,tslib.iNaT)
+                        return x
+
             else:
                 raise ValueError('cannot operate on a series with out a rhs '
                                  'of a series/ndarray of type datetime64[ns] '
@@ -104,7 +137,6 @@ def _arith_method(op, name):
         if isinstance(rvalues, Series):
             lvalues = lvalues.values
             rvalues = rvalues.values
-
 
             if self.index.equals(other.index):
                 name = _maybe_match_name(self, other)
@@ -123,12 +155,14 @@ def _arith_method(op, name):
             arr = na_op(lvalues, rvalues)
 
             name = _maybe_match_name(self, other)
-            return Series(arr, index=join_idx, name=name,dtype=dtype)
+            return Series(wrap_results(arr), index=join_idx, name=name,dtype=dtype)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
-            return Series(na_op(lvalues.values, rvalues),
+            if hasattr(lvalues,'values'):
+                lvalues = lvalues.values
+            return Series(wrap_results(na_op(lvalues, rvalues)),
                           index=self.index, name=self.name, dtype=dtype)
     return wrapper
 
@@ -690,6 +724,18 @@ class Series(pa.Array, generic.PandasObject):
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
             # Could not hash item
+        except ValueError:
+            
+            # reassign a null value to iNaT
+            if com.is_timedelta64_dtype(self.dtype):
+                if isnull(value):
+                    value = tslib.iNaT
+
+                    try:
+                        self.index._engine.set_value(self, key, value)
+                        return
+                    except (TypeError):
+                        pass
 
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
