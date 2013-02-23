@@ -1393,9 +1393,10 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density'}
         bar : vertical bar plot
         barh : horizontal bar plot
+        kde/density : Kernel Density Estimation plot
     logx : boolean, default False
         For line plots, use log scaling on x axis
     logy : boolean, default False
@@ -1473,9 +1474,10 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     Parameters
     ----------
     label : label argument to provide to plot
-    kind : {'line', 'bar', 'barh'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density'}
         bar : vertical bar plot
         barh : horizontal bar plot
+        kde/density : Kernel Density Estimation plot
     use_index : boolean, default True
         Plot index as axis tick labels
     rot : int, default None
