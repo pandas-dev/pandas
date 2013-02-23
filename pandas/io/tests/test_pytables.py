@@ -1679,6 +1679,46 @@ class TestHDFStore(unittest.TestCase):
             expected = df.reindex(index=list(df.index)[0:10],columns=['A'])
             tm.assert_frame_equal(expected, result)
 
+    def test_select_with_many_inputs(self):
+
+        with ensure_clean(self.path) as store:
+
+            df = DataFrame(dict(ts=bdate_range('2012-01-01', periods=300), 
+                                A=np.random.randn(300),
+                                B=range(300),
+                                users = ['a']*50 + ['b']*50 + ['c']*100 + ['a%03d' % i for i in range(100)]))
+            store.remove('df')
+            store.append('df', df, data_columns=['ts', 'A', 'B', 'users'])
+
+            # regular select
+            result = store.select('df', [Term('ts', '>=', Timestamp('2012-02-01'))])
+            expected = df[df.ts >= Timestamp('2012-02-01')]
+            tm.assert_frame_equal(expected, result)
+
+            # small selector
+            result = store.select('df', [Term('ts', '>=', Timestamp('2012-02-01')),Term('users',['a','b','c'])])
+            expected = df[ (df.ts >= Timestamp('2012-02-01')) & df.users.isin(['a','b','c']) ]
+            tm.assert_frame_equal(expected, result)
+
+            # big selector along the columns
+            selector = [ 'a','b','c' ] + [ 'a%03d' % i for i in xrange(60) ]
+            result = store.select('df', [Term('ts', '>=', Timestamp('2012-02-01')),Term('users',selector)])
+            expected = df[ (df.ts >= Timestamp('2012-02-01')) & df.users.isin(selector) ]
+            tm.assert_frame_equal(expected, result)
+
+            selector = range(100,200)
+            result = store.select('df', [Term('B', selector)])
+            expected = df[ df.B.isin(selector) ]
+            tm.assert_frame_equal(expected, result)
+            self.assert_(len(result) == 100)
+
+            # big selector along the index
+            selector = Index(df.ts[0:100].values)
+            result  = store.select('df', [Term('ts', selector)])
+            expected = df[ df.ts.isin(selector.values) ]
+            tm.assert_frame_equal(expected, result)
+            self.assert_(len(result) == 100)
+
     def test_panel_select(self):
 
         wp = tm.makePanel()

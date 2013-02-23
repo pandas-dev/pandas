@@ -24,7 +24,7 @@ from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.reshape import block2d_to_blocknd, factor_indexer
-from pandas.core.index import Int64Index
+from pandas.core.index import Int64Index, _ensure_index
 import pandas.core.common as com
 from pandas.tools.merge import concat
 
@@ -1886,6 +1886,7 @@ class Table(Storer):
     table_type  = None
     levels      = 1
     is_table    = True
+    is_shape_reversed = False
 
     def __init__(self, *args, **kwargs):
         super(Table, self).__init__(*args, **kwargs)
@@ -2282,16 +2283,37 @@ class Table(Storer):
                 labels = Index(labels) & Index(columns)
             obj = obj.reindex_axis(labels, axis=axis, copy=False)
 
-        def reindex(obj, axis, filt, ordered):
-            ordd = ordered & filt
-            ordd = sorted(ordered.get_indexer(ordd))
-            return obj.reindex_axis(ordered.take(ordd), axis=obj._get_axis_number(axis), copy=False)
-
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:
-            for axis, filt in self.selection.filter:
-                obj = reindex(
-                    obj, axis, filt, getattr(obj, obj._get_axis_name(axis)))
+            for field, filt in self.selection.filter:
+
+                def process_filter(field, filt):
+
+                    for axis_name in obj._AXIS_NAMES.values():
+                        axis_number = obj._get_axis_number(axis_name)
+                        axis_values = obj._get_axis(axis_name)
+
+                        # see if the field is the name of an axis
+                        if field == axis_name:
+                            ordd = axis_values & filt
+                            ordd = sorted(axis_values.get_indexer(ordd))
+                            return obj.reindex_axis(axis_values.take(ordd), axis=axis_number, copy=False)
+
+                        # this might be the name of a file IN an axis
+                        elif field in axis_values:
+
+                            # we need to filter on this dimension
+                            values = _ensure_index(getattr(obj,field).values)
+                            filt   = _ensure_index(filt)
+
+                            # hack until we support reversed dim flags
+                            if isinstance(obj,DataFrame):
+                                axis_number = 1-axis_number
+                            return obj.ix._getitem_axis(values.isin(filt),axis=axis_number)
+
+                    raise Exception("cannot find the field [%s] for filtering!" % field)
+  
+                obj = process_filter(field, filt)
 
         return obj
 
@@ -2648,7 +2670,7 @@ class AppendableFrameTable(AppendableTable):
     table_type = 'appendable_frame'
     ndim = 2
     obj_type = DataFrame
-
+    
     @property
     def is_transposed(self):
         return self.index_axes[0].axis == 1
@@ -3054,9 +3076,11 @@ class Term(object):
         """ convert the expression that is in the term to something that is accepted by pytables """
 
         if self.kind == 'datetime64' or self.kind == 'datetime' :
-            return [lib.Timestamp(v).value, None]
+            v = lib.Timestamp(v)
+            return [v.value, v]
         elif isinstance(v, datetime) or hasattr(v, 'timetuple') or self.kind == 'date':
-            return [time.mktime(v.timetuple()), None]
+            v = time.mktime(v.timetuple())
+            return [v, Timestamp(v) ]
         elif self.kind == 'integer':
             v = int(float(v))
             return [v, v]
@@ -3070,7 +3094,8 @@ class Term(object):
                 v = bool(v)
             return [v, v]
         elif not isinstance(v, basestring):
-            return [str(v), None]
+            v = str(v)
+            return [v, v]
 
         # string quoting
         return ["'" + v + "'", v]
