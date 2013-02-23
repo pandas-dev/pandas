@@ -482,7 +482,9 @@ cdef class DatetimeEngine(Int64Engine):
 
 cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
-        if isinstance(value, Timestamp):
+        if isinstance(value,np.ndarray):
+            pass
+        elif isinstance(value, Timestamp):
             return value.value
         elif value is None or value != value:
             return iNaT

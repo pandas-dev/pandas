@@ -443,8 +443,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(tslib.iNaT, dtype='M8[ns]', index=range(5))
         self.assert_(isnull(s).all() == True)
 
-        s = Series(tslib.NaT, dtype='M8[ns]', index=range(5))
-        self.assert_(isnull(s).all() == True)
+        #### in theory this should be all nulls, but since
+        #### we are not specifying a dtype is ambiguous
+        s = Series(tslib.iNaT, index=range(5))
+        self.assert_(isnull(s).all() == False)
 
         s = Series(nan, dtype='M8[ns]', index=range(5))
         self.assert_(isnull(s).all() == True)
@@ -1674,12 +1676,126 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # it works!
         _ = s1 * s2
 
-    def test_operators_datetime64(self):
+    def test_constructor_dtype_timedelta64(self):
+
+        td = Series([ timedelta(days=i) for i in range(3) ])
+        self.assert_(td.dtype=='timedelta64[ns]')
+
+        # mixed with NaT
+        from pandas import tslib
+        td = Series([ timedelta(days=i) for i in range(3) ] + [ tslib.NaT ], dtype='m8[ns]' )
+        self.assert_(td.dtype=='timedelta64[ns]')
+
+        td = Series([ timedelta(days=i) for i in range(3) ] + [ tslib.iNaT ], dtype='m8[ns]' )
+        self.assert_(td.dtype=='timedelta64[ns]')
+
+        td = Series([ timedelta(days=i) for i in range(3) ] + [ np.nan ], dtype='m8[ns]' )
+        self.assert_(td.dtype=='timedelta64[ns]')
+
+        # this is an invalid casting
+        self.assertRaises(Exception, Series, [ timedelta(days=i) for i in range(3) ] + [ 'foo' ], dtype='m8[ns]' )
+
+        # leave as object here
+        td = Series([ timedelta(days=i) for i in range(3) ] + [ 'foo' ])
+        self.assert_(td.dtype=='object')
+
+    def test_operators_timedelta64(self):
+
+        # invalid ops
+        self.assertRaises(Exception, self.objSeries.__add__, 1)
+        self.assertRaises(Exception, self.objSeries.__add__, np.array(1,dtype=np.int64))
+        self.assertRaises(Exception, self.objSeries.__sub__, 1)
+        self.assertRaises(Exception, self.objSeries.__sub__, np.array(1,dtype=np.int64))
+
+        # seriese ops
         v1 = date_range('2012-1-1', periods=3, freq='D')
         v2 = date_range('2012-1-2', periods=3, freq='D')
         rs = Series(v2) - Series(v1)
         xp = Series(1e9 * 3600 * 24, rs.index).astype('timedelta64[ns]')
         assert_series_equal(rs, xp)
+        self.assert_(rs.dtype=='timedelta64[ns]')
+
+        df = DataFrame(dict(A = v1))
+        td = Series([ timedelta(days=i) for i in range(3) ])
+        self.assert_(td.dtype=='timedelta64[ns]')
+
+        # series on the rhs
+        result = df['A'] - df['A'].shift()
+        self.assert_(result.dtype=='timedelta64[ns]')
+
+        result = df['A'] + td
+        self.assert_(result.dtype=='M8[ns]')
+
+        # scalar Timestamp on rhs
+        maxa = df['A'].max()
+        self.assert_(isinstance(maxa,Timestamp))
+
+        resultb = df['A']- df['A'].max()
+        self.assert_(resultb.dtype=='timedelta64[ns]')
+
+        # timestamp on lhs
+        result = resultb + df['A']
+        expected = Series([Timestamp('20111230'),Timestamp('20120101'),Timestamp('20120103')])
+        assert_series_equal(result,expected)
+
+        # datetimes on rhs
+        result = df['A'] - datetime(2001,1,1)
+        self.assert_(result.dtype=='timedelta64[ns]')
+        
+        result = df['A'] + datetime(2001,1,1)
+        self.assert_(result.dtype=='timedelta64[ns]')
+
+        td = datetime(2001,1,1,3,4)
+        resulta = df['A'] - td
+        self.assert_(resulta.dtype=='timedelta64[ns]')
+        
+        resultb = df['A'] + td
+        self.assert_(resultb.dtype=='timedelta64[ns]')
+
+        # timedelta on lhs
+        result = resultb + td
+        self.assert_(resultb.dtype=='timedelta64[ns]')
+
+        # timedeltas on rhs
+        td = timedelta(days=1)
+        resulta = df['A'] + td
+        resultb = resulta - td
+        assert_series_equal(resultb,df['A'])
+
+        td = timedelta(minutes=5,seconds=3)
+        resulta = df['A'] + td
+        resultb = resulta - td
+        self.assert_(resultb.dtype=='M8[ns]')
+
+    def test_timedelta64_nan(self):
+
+        from pandas import tslib
+        td = Series([ timedelta(days=i) for i in range(10) ])
+
+        # nan ops on timedeltas
+        td1 = td.copy()
+        td1[0] = np.nan
+        self.assert_(isnull(td1[0]) == True)
+        self.assert_(td1[0].view('i8') == tslib.iNaT)
+        td1[0] = td[0]
+        self.assert_(isnull(td1[0]) == False)
+
+        td1[1] = tslib.iNaT
+        self.assert_(isnull(td1[1]) == True)
+        self.assert_(td1[1].view('i8') == tslib.iNaT)
+        td1[1] = td[1]
+        self.assert_(isnull(td1[1]) == False)
+
+        td1[2] = tslib.NaT
+        self.assert_(isnull(td1[2]) == True)
+        self.assert_(td1[2].view('i8') == tslib.iNaT)
+        td1[2] = td[2]
+        self.assert_(isnull(td1[2]) == False)
+
+        ####  boolean setting
+        #### this doesn't work, not sure numpy even supports it
+        #result = td[(td>np.timedelta64(timedelta(days=3))) & (td<np.timedelta64(timedelta(days=7)))] = np.nan
+        #self.assert_(isnull(result).sum() == 7)
 
     # NumPy limitiation =(
 
@@ -1890,10 +2006,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # all NaNs
         allna = self.series * nan
         self.assert_(isnull(allna.idxmax()))
-
-    def test_operators_date(self):
-        result = self.objSeries + timedelta(1)
-        result = self.objSeries - timedelta(1)
 
     def test_operators_corner(self):
         series = self.ts
@@ -2177,6 +2289,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(hist, expected)
 
     def test_unique(self):
+
         # 714 also, dtype=float
         s = Series([1.2345] * 100)
         s[::2] = np.nan

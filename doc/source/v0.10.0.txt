@@ -330,7 +330,7 @@ N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
-:ref:`Docs <dsintro-panel4d>` for NDim. Here is a taste of what to expect.
+:ref:`Docs <dsintro.panel4d>` for NDim. Here is a taste of what to expect.
 
      .. ipython:: python
 

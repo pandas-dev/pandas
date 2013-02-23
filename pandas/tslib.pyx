@@ -2,7 +2,7 @@
 
 cimport numpy as np
 from numpy cimport (int32_t, int64_t, import_array, ndarray,
-                    NPY_INT64, NPY_DATETIME)
+                    NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
 from cpython cimport *
@@ -880,6 +880,73 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     # oresult[i] = val
 
         return oresult
+
+def array_to_timedelta64(ndarray[object] values, coerce=True):
+    """ convert an ndarray to an array of ints that are timedeltas
+        force conversion if coerce = True,
+        else return an object array """
+    cdef:
+        Py_ssize_t i, n
+        object val
+        ndarray[int64_t] result
+
+    n = values.shape[0]
+    result = np.empty(n, dtype='i8')
+    for i in range(n):
+        val = values[i]
+
+        # in py3 this is already an int, don't convert
+        if is_integer_object(val):
+            result[i] = val
+
+        elif isinstance(val,timedelta) or isinstance(val,np.timedelta64):
+
+             if isinstance(val, np.timedelta64):
+                 if val.dtype != 'm8[ns]':
+                      val = val.astype('m8[ns]')
+                 val = val.item()
+             else:
+                 val = _delta_to_nanoseconds(np.timedelta64(val).item())
+
+             result[i] = val
+        
+        elif util._checknull(val) or val == iNaT or val is NaT:
+             result[i] = iNaT
+
+        else:
+             
+             # just return, don't convert
+             if not coerce:
+                 return values.copy()
+
+             result[i] = iNaT
+
+    return result
+
+def repr_timedelta64(object value):
+   """ provide repr for timedelta64 """
+   
+   ivalue = value.view('i8')
+
+   frac   = float(ivalue)/1e9
+   days   = int(frac) / 86400
+   frac  -= days*86400
+   hours  = int(frac) / 3600
+   frac  -= hours * 3600
+   minutes  = int(frac) / 60
+   seconds  = frac - minutes * 60
+   nseconds = int(seconds)
+
+   if nseconds == seconds:
+      seconds_pretty = "%02d" % nseconds
+   else:
+      sp = abs(int(1e6*(seconds-nseconds)))
+      seconds_pretty = "%02d.%06d" % (nseconds,sp)
+
+   if days:
+       return "%d days, %02d:%02d:%s" % (days,hours,minutes,seconds_pretty)
+
+   return "%02d:%02d:%s" % (hours,minutes,seconds_pretty)
 
 def array_strptime(ndarray[object] values, object fmt):
     cdef:

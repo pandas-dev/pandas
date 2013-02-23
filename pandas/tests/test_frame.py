@@ -2859,6 +2859,32 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected.sort()
         assert_series_equal(result, expected)
 
+    def test_timedeltas(self):
+
+        from pandas import date_range
+        df = DataFrame(dict(A = Series(date_range('2012-1-1', periods=3, freq='D')),
+                            B = Series([ timedelta(days=i) for i in range(3) ])))
+        result = df.get_dtype_counts()
+        expected = Series({'datetime64[ns]': 1, 'timedelta64[ns]' : 1 })
+        result.sort()
+        expected.sort()
+        assert_series_equal(result, expected)
+
+        df['C'] = df['A'] + df['B']
+        expected = Series({'datetime64[ns]': 2, 'timedelta64[ns]' : 1 })
+        result = df.get_dtype_counts()
+        result.sort()
+        expected.sort()
+        assert_series_equal(result, expected)
+
+        # mixed int types
+        df['D'] = 1
+        expected = Series({'datetime64[ns]': 2, 'timedelta64[ns]' : 1, 'int64' : 1 })
+        result = df.get_dtype_counts()
+        result.sort()
+        expected.sort()
+        assert_series_equal(result, expected)
+
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))
