@@ -1010,15 +1010,6 @@ class YearBegin(DateOffset, CacheableOffset):
 
         return result
 
-        if other.month != 1 or other.day != 1:
-            other = datetime(other.year, 1, 1,
-                             other.hour, other.minute, other.second,
-                             other.microsecond)
-            if n <= 0:
-                n = n + 1
-        other = other + relativedelta(years=n, day=1)
-        return other
-
     def onOffset(self, dt):
         return dt.month == self.month and dt.day == 1
 
