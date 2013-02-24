@@ -53,6 +53,7 @@ import pandas.algos as _algos
 
 from pandas.core.config import get_option
 
+
 #----------------------------------------------------------------------
 # Docstring templates
 

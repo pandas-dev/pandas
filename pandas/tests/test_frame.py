@@ -35,7 +35,6 @@ import pandas.lib as lib
 
 from numpy.testing.decorators import slow
 
-
 def _skip_if_no_scipy():
     try:
         import scipy.stats
