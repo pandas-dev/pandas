@@ -1088,7 +1088,7 @@ class DataCol(IndexCol):
 
         self.values = list(block.items)
         dtype = block.dtype.name
-        inferred_type = lib.infer_dtype(block.values.flatten())
+        inferred_type = lib.infer_dtype(block.values.ravel())
 
         if inferred_type == 'datetime64':
             self.set_atom_datetime64(block)
@@ -1116,7 +1116,7 @@ class DataCol(IndexCol):
         data = block.fillna(nan_rep).values
 
         # itemsize is the maximum length of a string (along any dimension)
-        itemsize = lib.max_len_string_array(data.flatten())
+        itemsize = lib.max_len_string_array(data.ravel())
 
         # specified min_itemsize?
         if isinstance(min_itemsize, dict):
@@ -1209,7 +1209,7 @@ class DataCol(IndexCol):
         # convert nans
         if self.kind == 'string':
             self.data = lib.array_replace_from_nan_rep(
-                self.data.flatten(), nan_rep).reshape(self.data.shape)
+                self.data.ravel(), nan_rep).reshape(self.data.shape)
         return self
 
     def get_attr(self):
@@ -1628,7 +1628,7 @@ class GenericStorer(Storer):
         if value.dtype.type == np.object_:
 
             # infer the type, warn if we have a non-string type here (for performance)
-            inferred_type = lib.infer_dtype(value.flatten())
+            inferred_type = lib.infer_dtype(value.ravel())
             if empty_array:
                 pass
             elif inferred_type == 'string':
