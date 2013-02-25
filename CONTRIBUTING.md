@@ -2,14 +2,20 @@ Guidelines
 ---
 
 All contributions, bug reports, bug fixes, documentation improvments,
-enhancements and ideas are welcome. Please try and follow these guidelines
-as best you can, this makes it easier for us to accept your contribution or
-address the issue you're having.
+enhancements and ideas are welcome.
+
+The Github "issues" tab contains some issues labels "Good as first PR", these are
+tasks which do not require deep knowledge of the package. Look those up if you're
+looking for a quick way to help out.
+
+Please try and follow these guidelines, as this makes it easier for us to accept
+your contribution or address the issue you're having.
 
 - When submitting a bug report:
   - Please include a short, self-contained python snippet.
   - Specify the pandas version used. (you can check `pandas.__version__`).
   - Explain what the expected behavior was, and what you saw instead.
+
 - When submitting a Pull Request
   - **Make sure the test suite passes**., and that means on python3 as well.
     You can use "test_fast.sh", or tox locally and/or enable Travis-CI on your fork.
@@ -30,13 +36,24 @@ address the issue you're having.
   - An informal commit message format is in effect for the project, please try
     and adhere to it. Use a "ENH: ", "TST:", "BUG:", "DOC:", etc' prefix in
     your commit title. Check the output of "git log" for examples.
-  - RELEASE.rst and doc/source/vx.y.z.txt contain an on-going changelog for each 
+  - RELEASE.rst and doc/source/vx.y.z.txt contain an on-going changelog for each
     release as it is worked on. Add entries to these files as needed in
     a separate commit in your PR, documenting the fix, enhancement or (unavoidable)
-    breaking change.    
+    breaking change.
   - For extra brownie points, use "git rebase -i" to squash and reorder
     commits in your PR so that the history makes the most sense. Use your own
     judgment to decide what history needs to be preserved.
+  - On the subject of [PEP8](http://www.python.org/dev/peps/pep-0008/): yes.
+  - On the subject of massive PEP8 fix PRs touching everything, please consider the following:
+    - They create merge conflicts for people working in their own fork.
+    - They makes git blame less effective.
+    - Different tools / people achieve PEP8 in different styles. This can create
+      "style wars" and churn that produces little real benefit.
+    - If your code changes are intermixed with style fixes, they are harder to review
+      before merging. Keep style fixes in separate commits.
+    - it's fine to clean-up a little around an area you just worked on.
+
+    Having said that, if you still feel a PEP8 storm is in order, go for it.
 
 Please see [Developers](http://pandas.pydata.org/developers.html) page on
 the project website for more details.
