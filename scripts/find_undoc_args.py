@@ -112,6 +112,7 @@ def main():
     # only include if there are missing arguments in the docstring (less false positives)
     # and there are at least some documented arguments
     collect = [e for e in collect if e.undoc_names and len(e.undoc_names) != e.nsig_names]
+    collect.sort(key=lambda x:x.path)
 
     if args.github_repo:
         for i,item in enumerate(collect,1):
