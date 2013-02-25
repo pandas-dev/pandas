@@ -342,7 +342,7 @@ BIC:                            %(bic).3f
 
             for t in xrange(T + 1):
                 index = t + p
-                y = values.take(xrange(index, index - p, -1), axis=0).flatten()
+                y = values.take(xrange(index, index - p, -1), axis=0).ravel()
                 trans_Z = np.hstack(([1], y))
                 trans_Z = trans_Z.reshape(1, len(trans_Z))
 
