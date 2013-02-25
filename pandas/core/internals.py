@@ -486,7 +486,7 @@ class Block(object):
 
         # our where function
         def func(c,v,o):
-            if c.flatten().all():
+            if c.ravel().all():
                 return v
             
             try:
@@ -649,7 +649,7 @@ class ObjectBlock(Block):
     @property
     def is_bool(self):
         """ we can be a bool if we have only bool values but are of type object """
-        return lib.is_bool_array(self.values.flatten())
+        return lib.is_bool_array(self.values.ravel())
 
     def convert(self, convert_dates = True, convert_numeric = True, copy = True):
         """ attempt to coerce any object types to better types
@@ -751,7 +751,7 @@ def make_block(values, items, ref_items):
 
     # try to infer a datetimeblock
     if klass is None and np.prod(values.shape):
-        flat = values.flatten()
+        flat = values.ravel()
         inferred_type = lib.infer_dtype(flat)
         if inferred_type == 'datetime':
 

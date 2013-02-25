@@ -45,6 +45,20 @@ df = DataFrame(np.random.randn(3000, 30))
 frame_to_csv = Benchmark("df.to_csv('__test__.csv')", setup,
                          start_date=datetime(2011, 1, 1))
 
+#----------------------------------
+setup = common_setup + """
+from pandas import concat, Timestamp
+
+df_float  = DataFrame(np.random.randn(1000, 30),dtype='float64')
+df_int    = DataFrame(np.random.randn(1000, 30),dtype='int64')
+df_bool   = DataFrame(True,index=df_float.index,columns=df_float.columns)
+df_object = DataFrame('foo',index=df_float.index,columns=df_float.columns)
+df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
+df        = concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+"""
+frame_to_csv_mixed = Benchmark("df.to_csv('__test__.csv')", setup,
+                               start_date=datetime(2012, 6, 1))
+
 #----------------------------------------------------------------------
 # parse dates, ISO8601 format
 
