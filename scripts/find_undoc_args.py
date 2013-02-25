@@ -13,15 +13,18 @@ import argparse
 # arg name is positional is not prefixed with - or --
 
 parser = argparse.ArgumentParser(description='Program description.')
-parser.add_argument('-p', '--path', metavar='PATH', type=str,required=False,
+parser.add_argument('-p', '--path', metavar='PATH', type=str, required=False,
                     default=None,
                    help='full path relative to which paths wills be reported',action='store')
 parser.add_argument('-m', '--module', metavar='MODULE', type=str,required=True,
                    help='name of package to import and examine',action='store')
+parser.add_argument('-G', '--github_repo', metavar='REPO', type=str,required=False,
+                   help='github project where the the coe lives, e.g. "pydata/pandas"',
+                   default=None,action='store')
 
 args = parser.parse_args()
 
-Entry=namedtuple("Entry","func loc undoc_names missing_args nsig_names ndoc_names")
+Entry=namedtuple("Entry","func path lnum undoc_names missing_args nsig_names ndoc_names")
 
 def entry_gen(root_ns,module_name):
 
@@ -45,7 +48,8 @@ def entry_gen(root_ns,module_name):
 def cmp_docstring_sig(f):
     def build_loc(f):
         path=f.func_code.co_filename.split(args.path,1)[-1][1:]
-        return "+{} {}".format(f.func_code.co_firstlineno,path)
+        return dict(path=path,lnum=f.func_code.co_firstlineno)
+
     import inspect
     sig_names=set(inspect.getargspec(f).args)
     doc = f.func_doc.lower()
@@ -57,9 +61,48 @@ def cmp_docstring_sig(f):
     doc_names.discard("kwds")
     doc_names.discard("kwargs")
     doc_names.discard("args")
-    return Entry(func=f,loc=build_loc(f),undoc_names=sig_names.difference(doc_names),
+    return Entry(func=f,path=build_loc(f)['path'],lnum=build_loc(f)['lnum'],
+                 undoc_names=sig_names.difference(doc_names),
                  missing_args=doc_names.difference(sig_names),nsig_names=len(sig_names),
                  ndoc_names=len(doc_names))
+
+def format_id(i):
+    return i
+
+def format_item_as_github_task_list( i,item,repo):
+    tmpl = "- [ ] {id}) [{file}:{lnum} ({func_name}())]({link}) -  __Missing__[{nmissing}/{total_args}]: {undoc_names}"
+
+    link_tmpl = "https://github.com/{repo}/blob/master/{file}#L{lnum}"
+
+    link = link_tmpl.format(repo=repo,file=item.path ,lnum=item.lnum           )
+
+    s = tmpl.format(id=i,file=item.path ,
+                      lnum=item.lnum,
+                      func_name=item.func.__name__,
+                      link=link,
+                      nmissing=len(item.undoc_names),
+                      total_args=item.nsig_names,
+                      undoc_names=list(item.undoc_names))
+
+    if item.missing_args:
+        s+= "    __Extra__(?): {missing_args}".format(missing_args=list(item.missing_args))
+
+    return s
+
+def format_item_as_plain(i,item):
+    tmpl = "+{lnum} {path} {func_name}(): Missing[{nmissing}/{total_args}]={undoc_names}"
+
+    s = tmpl.format(path=item.path ,
+                      lnum=item.lnum,
+                      func_name=item.func.__name__,
+                      nmissing=len(item.undoc_names),
+                      total_args=item.nsig_names,
+                      undoc_names=list(item.undoc_names))
+
+    if item.missing_args:
+        s+= " Extra(?)={missing_args}".format(missing_args=list(item.missing_args))
+
+    return s
 
 def main():
     module = __import__(args.module)
@@ -70,13 +113,12 @@ def main():
     # and there are at least some documented arguments
     collect = [e for e in collect if e.undoc_names and len(e.undoc_names) != e.nsig_names]
 
-    tmpl = "{}:[{}]\t missing[{}/{}]={}"
-    for x in collect:
-        s=  tmpl.format(x.loc,x.func.__name__,len(x.undoc_names),
-                        x.nsig_names,list(x.undoc_names))
-        if x.missing_args:
-            s+= " extra(?)={}".format(list(x.missing_args))
-        print(s)
+    if args.github_repo:
+        for i,item in enumerate(collect,1):
+            print( format_item_as_github_task_list(i,item,args.github_repo))
+    else:
+        for i,item in enumerate(collect,1):
+            print( format_item_as_plain(i, item))
 
 if __name__ == "__main__":
     import sys
