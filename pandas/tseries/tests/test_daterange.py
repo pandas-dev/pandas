@@ -90,6 +90,17 @@ class TestDateRange(unittest.TestCase):
         self.assertEquals(len(rng), 50)
         self.assertEquals(rng[0], datetime(2010, 9, 1, 5))
 
+    def test_timezone_comparaison_bug(self):
+        start = Timestamp('20130220 10:00', tz='US/Eastern')
+        try:
+            date_range(start, periods=2, tz='US/Eastern')
+        except AssertionError:
+            self.fail()
+
+    def test_timezone_comparaison_assert(self):
+        start = Timestamp('20130220 10:00', tz='US/Eastern')
+        self.assertRaises(AssertionError, date_range, start, periods=2, tz='Europe/Berlin')
+
     def test_comparison(self):
         d = self.rng[10]
 
