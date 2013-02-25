@@ -304,12 +304,14 @@ class DatetimeIndex(Int64Index):
             raise ValueError('Start and end cannot both be tz-aware with '
                              'different timezones')
 
+        inferred_tz = tools._maybe_get_tz(inferred_tz)
+        tz = tools._maybe_get_tz(tz)
+
         if tz is not None and inferred_tz is not None:
             assert(inferred_tz == tz)
         elif inferred_tz is not None:
             tz = inferred_tz
 
-        tz = tools._maybe_get_tz(tz)
 
         if start is not None:
             if normalize:
