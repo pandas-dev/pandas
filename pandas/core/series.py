@@ -695,6 +695,9 @@ class Series(pa.Array, generic.PandasObject):
         except Exception:
             return self.values[indexer]
 
+    def get_dtype_counts(self):
+        return Series({ self.dtype.name : 1 })
+
     def where(self, cond, other=nan, inplace=False):
         """
         Return a Series where cond is True; otherwise values are from other

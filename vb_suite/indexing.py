@@ -83,7 +83,7 @@ bm_df_getitem3 = Benchmark(statement, setup,
 # Boolean DataFrame row selection
 
 setup = common_setup + """
-df = DataFrame(np.random.randn(10000, 4), columns=['A', 'B', 'C', 'D'])
+df  = DataFrame(np.random.randn(10000, 4), columns=['A', 'B', 'C', 'D'])
 indexer = df['B'] > 0
 obj_indexer = indexer.astype('O')
 """
@@ -93,6 +93,14 @@ indexing_dataframe_boolean_rows = \
 indexing_dataframe_boolean_rows_object = \
     Benchmark("df[obj_indexer]", setup,
               name='indexing_dataframe_boolean_rows_object')
+
+setup = common_setup + """
+df  = DataFrame(np.random.randn(100000, 100))
+df2 = DataFrame(np.random.randn(100000, 100))
+"""
+indexing_dataframe_boolean = \
+    Benchmark("df > df2", setup, name='indexing_dataframe_boolean',
+              start_date=datetime(2012, 1, 1))
 
 #----------------------------------------------------------------------
 # MultiIndex sortlevel

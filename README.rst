@@ -70,6 +70,11 @@ Dependencies
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support with ``date_range``
 
+Highly Recommended Dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * `numexpr <http://code.google.com/p/numexpr/>`__: to accelerate some expression evaluation operations
+  * `bottleneck <http://berkeleyanalytics.com/>`__: to accelerate certain numerical operations
+
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 

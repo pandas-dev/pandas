@@ -60,6 +60,8 @@ if sys.version_info[0] >= 3:
                          'install_requires': ['python-dateutil >= 2',
                                               'pytz',
                                               'numpy >= %s' % min_numpy_ver],
+                         'extras_require' : { 'numexpr' : ['numexpr>=1.4.2'], 
+                                              'bottleneck' : ['bottleneck>=0.5.0'] },
                          'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
                                                      ],
                          }
