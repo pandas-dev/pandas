@@ -65,14 +65,14 @@ docstring_to_string = """
 
 class SeriesFormatter(object):
 
-    def __init__(self, series, buf=None, header=True, length=True,
-                 na_rep='NaN', name=False, float_format=None, dtype=True):
+    def __init__(self, series, buf=None, header=True, length=True, dtype=True,
+                 na_rep='NaN', name=False, float_format=None):
         self.series = series
         self.buf = buf if buf is not None else StringIO(u"")
         self.name = name
-        self.dtype = dtype
         self.na_rep = na_rep
         self.length = length
+        self.dtype  = dtype
         self.header = header
 
         if float_format is None:
