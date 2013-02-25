@@ -1000,6 +1000,40 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, s.__setitem__, inds_notfound, 0)
         self.assertRaises(Exception, s.__setitem__, arr_inds_notfound, 0)
 
+    def test_iloc_getitem(self):
+        s = Series(np.random.randn(10), index=list('abcdefghij'))
+
+        result = s.iloc[1]
+        exp = s.ix['b']
+        self.assert_(result == exp)
+
+        result = s.iloc[2:4]
+        expected = s.ix['c':'d']
+        assert_series_equal(result, expected)
+
+        # negative indexing
+        result = s.iloc[-1]
+        exp = s.ix['j']
+        self.assert_(result == exp)
+
+        # out-of-bounds exception
+        self.assertRaises(IndexError, s.iloc.__getitem__, tuple([12]))
+
+        # trying to use a label
+        self.assertRaises(ValueError, s.iloc.__getitem__, tuple(['j']))
+
+    def test_iloc_setitem(self):
+        s = Series(np.random.randn(10), index=range(0,20,2))
+
+        s.iloc[1] = 1
+        result = s.iloc[1]
+        self.assert_(result == 1)
+
+        s.iloc[:4] = 0
+        expected = s.iloc[:4]
+        result = s.iloc[:4]
+        assert_series_equal(result, expected)
+
     def test_ix_getitem(self):
         inds = self.series.index[[3, 4, 7]]
         assert_series_equal(self.series.ix[inds], self.series.reindex(inds))

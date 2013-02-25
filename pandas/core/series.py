@@ -20,7 +20,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _infer_dtype_from_scalar, is_list_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer
+from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
@@ -547,14 +547,26 @@ class Series(pa.Array, generic.PandasObject):
         self.index = _handle_legacy_indexes([index])[0]
         self.name = name
 
-    _ix = None
-
+    # indexers
     @property
     def ix(self):
         if self._ix is None:
-            self._ix = _SeriesIndexer(self)
+            self._ix = _SeriesIndexer(self, 'ix')
 
         return self._ix
+
+    def _ixs(self, i, axis=0):
+        return self.values[i]
+
+    @property
+    def _is_mixed_type(self):
+        return False
+
+    def _slice(self, slobj, axis=0, raise_on_error=False):
+        if raise_on_error:
+            _check_slice_bounds(slobj, self.values)
+            
+        return self._constructor(self.values[slobj], index=self.index[slobj])
 
     def __getitem__(self, key):
         try:

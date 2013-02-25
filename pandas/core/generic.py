@@ -3,6 +3,7 @@
 import numpy as np
 
 from pandas.core.index import MultiIndex
+from pandas.core.indexing import _NDFrameIndexer, _NDFrameLocIndexer
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
 import pandas.lib as lib
@@ -69,6 +70,29 @@ class PandasObject(object):
         abs: type of caller
         """
         return np.abs(self)
+
+
+    #----------------------------------------------------------------------
+    # integer indexing
+    _iloc = None
+
+    @property
+    def iloc(self):
+        if self._iloc is None:
+            self._iloc = _NDFrameLocIndexer(self, 'iloc')
+
+        return self._iloc
+
+    #----------------------------------------------------------------------
+    # Fancy indexing
+    _ix = None
+
+    @property
+    def ix(self):
+        if self._ix is None:
+            self._ix = _NDFrameIndexer(self, 'ix')
+
+        return self._ix
 
     def get(self, key, default=None):
         """
@@ -395,10 +419,6 @@ class PandasObject(object):
 
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
-
-    @property
-    def ix(self):
-        raise NotImplementedError
 
     def reindex(self, *args, **kwds):
         raise NotImplementedError

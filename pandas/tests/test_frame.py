@@ -1451,6 +1451,108 @@ class CheckIndexing(object):
         result = self.frame.ix[self.frame.index[5], 'E']
         self.assert_(com.is_integer(result))
 
+    def test_iloc_getitem(self):
+        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2), columns=range(0,8,2))
+
+        result = df.iloc[2]
+        exp = df.ix[4]
+        assert_series_equal(result, exp)
+
+        result = df.iloc[2,2]
+        exp = df.ix[4,4]
+        self.assert_(result == exp)
+
+        # slice
+        result = df.iloc[4:8]
+        expected = df.ix[8:14]
+        assert_frame_equal(result, expected)
+
+        result = df.iloc[:,2:3]
+        expected = df.ix[:,4:5]
+        assert_frame_equal(result, expected)
+
+        # list of integers
+        result = df.iloc[[0,1,3]]
+        expected = df.ix[[0,2,6]]
+        assert_frame_equal(result, expected)
+
+        result = df.iloc[[0,1,3],[0,1]]
+        expected = df.ix[[0,2,6],[0,2]]
+        assert_frame_equal(result, expected)
+
+        # neg indicies
+        result = df.iloc[[-1,1,3],[-1,1]]
+        expected = df.ix[[18,2,6],[6,2]]
+        assert_frame_equal(result, expected)
+
+        # dups indicies
+        result = df.iloc[[-1,-1,1,3],[-1,1]]
+        expected = df.ix[[18,18,2,6],[6,2]]
+        assert_frame_equal(result, expected)
+
+        # with index-like
+        s = Series(index=range(1,5))
+        result = df.iloc[s.index]
+        expected = df.ix[[2,4,6,8]]
+        assert_frame_equal(result, expected)
+        
+        # out-of-bounds slice
+        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(None),slice(1,5,None)]))
+        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(None),slice(-5,3,None)]))
+        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(1,11,None)]))
+        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(-11,3,None)]))
+
+        # try with labelled frame
+        df = DataFrame(np.random.randn(10, 4), index=list('abcdefghij'), columns=list('ABCD'))
+
+        result = df.iloc[1,1]
+        exp = df.ix['b','B']
+        self.assert_(result == exp)
+
+        result = df.iloc[:,2:3]
+        expected = df.ix[:,['C']]
+        assert_frame_equal(result, expected)
+
+        # negative indexing
+        result = df.iloc[-1,-1]
+        exp = df.ix['j','D']
+        self.assert_(result == exp)
+
+        # out-of-bounds exception
+        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([10,5]))
+
+        # trying to use a label
+        self.assertRaises(ValueError, df.iloc.__getitem__, tuple(['j','D']))
+
+    def test_iloc_setitem(self):
+        df = DataFrame(np.random.randn(10, 4), index=list('abcdefghij'), columns=list('ABCD'))
+
+        df.iloc[1,1] = 1
+        result = df.iloc[1,1]
+        self.assert_(result == 1)
+
+        df.iloc[:,2:3] = 0
+        expected = df.iloc[:,2:3]
+        result = df.iloc[:,2:3]
+        assert_frame_equal(result, expected)
+
+    def test_iloc_multiindex(self):
+        df = DataFrame(np.random.randn(3, 3), 
+                       columns=[[2,2,4],[6,8,10]],
+                       index=[[4,4,8],[8,10,12]])
+
+        rs = df.iloc[2]
+        xp = df.irow(2)
+        assert_series_equal(rs, xp)
+
+        rs = df.iloc[:,2]
+        xp = df.icol(2)
+        assert_series_equal(rs, xp)
+
+        rs = df.iloc[2,2]
+        xp = df.values[2,2]
+        self.assert_(rs == xp)
+
     def test_irow(self):
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
 
@@ -6305,7 +6407,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             econd = cond.reindex_like(df).fillna(True)
             expected = dfi.mask(~econd)
 
-            #import pdb; pdb.set_trace()
             dfi.where(cond, np.nan, inplace=True)
             assert_frame_equal(dfi, expected)
 

@@ -540,16 +540,6 @@ class Panel(NDFrame):
 
         return index, columns
 
-    # Fancy indexing
-    _ix = None
-
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _NDFrameIndexer(self)
-
-        return self._ix
-
     def _wrap_array(self, arr, axes, copy=False):
         d = self._construct_axes_dict_from(self, axes, copy=copy)
         return self._constructor(arr, **d)
@@ -679,8 +669,8 @@ class Panel(NDFrame):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
 
-    def _slice(self, slobj, axis=0):
-        new_data = self._data.get_slice(slobj, axis=axis)
+    def _slice(self, slobj, axis=0, raise_on_error=False):
+        new_data = self._data.get_slice(slobj, axis=axis, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def __setitem__(self, key, value):

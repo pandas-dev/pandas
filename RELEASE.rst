@@ -35,6 +35,7 @@ pandas 0.11.0
     Yahoo! finance (GH2795_)
   - Add ``squeeze`` function to reduce dimensionality of 1-len objects
   - Support slicing with time objects (GH2681_)
+  - Add ``.iloc`` attribute, to support location-based indexing, analagous to ``.ix``
 
 **Improvements to existing features**
 
@@ -127,6 +128,7 @@ pandas 0.11.0
   - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
   - Bug in argsort of ``datetime64[ns]`` Series with ``NaT`` (GH2967_)
   - Bug in idxmin/idxmax of ``datetime64[ns]`` Series with ``NaT`` (GH2982__)
+  - ``icol`` with negative indicies was return ``nan`` (see GH2922_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -145,6 +147,7 @@ pandas 0.11.0
 .. _GH2849: https://github.com/pydata/pandas/issues/2849
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
+.. _GH2922: https://github.com/pydata/pandas/issues/2922
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
 .. _GH2967: https://github.com/pydata/pandas/issues/2967

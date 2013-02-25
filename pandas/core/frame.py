@@ -568,16 +568,6 @@ class DataFrame(NDFrame):
     def _constructor(self):
         return DataFrame
 
-    # Fancy indexing
-    _ix = None
-
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _NDFrameIndexer(self)
-
-        return self._ix
-
     @property
     def shape(self):
         return (len(self.index), len(self.columns))
@@ -1947,6 +1937,12 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
             if isinstance(label, Index):
+
+                # if we have negative indicies, translate to postive here 
+                # (take doesen't deal properly with these)
+                l = len(self.columns)
+                i = [ v if v >= 0 else l+v for v in i ]
+
                 return self.take(i, axis=1)
 
             values = self._data.iget(i)
@@ -2054,13 +2050,13 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
 
-    def _slice(self, slobj, axis=0):
+    def _slice(self, slobj, axis=0, raise_on_error=False):
         if axis == 0:
             mgr_axis = 1
         else:
             mgr_axis = 0
 
-        new_data = self._data.get_slice(slobj, axis=mgr_axis)
+        new_data = self._data.get_slice(slobj, axis=mgr_axis, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def _box_item_values(self, key, values):

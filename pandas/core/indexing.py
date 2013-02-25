@@ -17,9 +17,10 @@ class IndexingError(Exception):
 
 class _NDFrameIndexer(object):
 
-    def __init__(self, obj):
+    def __init__(self, obj, name):
         self.obj = obj
         self.ndim = obj.ndim
+        self.name = name
 
     def __iter__(self):
         raise NotImplementedError('ix is not iterable')
@@ -50,8 +51,8 @@ class _NDFrameIndexer(object):
     def _get_loc(self, key, axis=0):
         return self.obj._ixs(key, axis=axis)
 
-    def _slice(self, obj, axis=0):
-        return self.obj._slice(obj, axis=axis)
+    def _slice(self, obj, axis=0, raise_on_error=False):
+        return self.obj._slice(obj, axis=axis, raise_on_error=raise_on_error)
 
     def __setitem__(self, key, value):
         # kludgetastic
@@ -221,7 +222,7 @@ class _NDFrameIndexer(object):
             if _is_null_slice(key):
                 continue
 
-            retval = retval.ix._getitem_axis(key, axis=i)
+            retval = getattr(retval,self.name)._getitem_axis(key, axis=i)
 
         return retval
 
@@ -325,7 +326,7 @@ class _NDFrameIndexer(object):
                     if len(new_key) == 1:
                         new_key, = new_key
 
-                return section.ix[new_key]
+                return getattr(section,self.name)[new_key]
 
         raise IndexingError('not applicable')
 
@@ -593,6 +594,64 @@ class _NDFrameIndexer(object):
         else:
             return self.obj.take(indexer, axis=axis)
 
+class _NDFrameLocIndexer(_NDFrameIndexer):
+    """ purely location based indexing """
+
+    def __getitem__(self, key):
+        if type(key) is tuple:
+
+            for i, k in enumerate(key):
+                if i >= self.obj.ndim:
+                    raise ValueError('Too many indexers')
+                if not (isinstance(k, slice) or com.is_integer(k) or _is_list_like(k)):
+                    raise ValueError("Location based indexing can only have slice or integer indexers")
+
+            return self._getitem_tuple(key)
+        else:
+            return self._getitem_axis(key, axis=0)
+
+    def _getitem_tuple(self, tup):
+
+        retval = self.obj
+        for i, key in enumerate(tup):
+            if _is_null_slice(key):
+                continue
+
+            retval = getattr(retval,self.name)._getitem_axis(key, axis=i)
+
+        return retval
+
+    def _get_slice_axis(self, slice_obj, axis=0):
+        obj = self.obj
+
+        if not _need_slice(slice_obj):
+            return obj
+
+        if isinstance(slice_obj, slice):
+            return self._slice(slice_obj, axis=axis, raise_on_error=True)
+        else:
+            return self.obj.take(slice_obj, axis=axis)
+
+    def _getitem_axis(self, key, axis=0):
+
+        if isinstance(key, slice):
+            return self._get_slice_axis(key, axis=axis)
+
+        # a single integer
+        else:
+
+            if not (com.is_integer(key) or _is_list_like(key)):
+                raise ValueError("Cannot index by location index with a non-integer key")
+
+            return self._get_loc(key,axis=axis)
+
+    def _convert_to_indexer(self, obj, axis=0):
+        """ much simpler as we only have to deal with slice/integer """
+        if isinstance(obj, slice) or com.is_integer(obj):
+            return obj
+
+        raise ValueError("Can only index by location with a slice or integer key")
+
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps
 
@@ -736,6 +795,17 @@ def _need_slice(obj):
             obj.stop is not None or
             (obj.step is not None and obj.step != 1))
 
+
+def _check_slice_bounds(slobj, values):
+    l = len(values)
+    start = slobj.start
+    if start is not None:
+        if start < -l or start > l-1:
+            raise IndexError("out-of-bounds on slice (start)")
+    stop = slobj.stop
+    if stop is not None:
+        if stop < -l-1 or stop > l:
+            raise IndexError("out-of-bounds on slice (end)")
 
 def _maybe_droplevels(index, key):
     # drop levels

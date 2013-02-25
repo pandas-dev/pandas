@@ -177,6 +177,86 @@ largely as a convenience since it is such a common operation.
    df[:3]
    df[::-1]
 
+Location Based Indexing
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas provides a suite of methods in order to get **purely integer based indexing**. 
+The semantics follow closely python and numpy slicing. These are ``0-based`` indexing.
+When slicing, the start bounds is *included*, while the upper bound is *excluded*.
+Invalid selections will raise with an ``IndexError``. Trying to use a non-integer,
+even a **valid** label will raise a ``ValueError``. Integers, lists of integers, and slices
+are allowed indexers.
+
+The ``.iloc`` attribute is the primary access method .
+
+.. ipython:: python
+
+   s1 = Series(np.random.randn(5),index=range(0,10,2))
+   s1
+   s1.iloc[:3]
+   s1.iloc[3]
+
+Note that setting works as well:
+
+.. ipython:: python
+
+   s1.iloc[:3] = 0
+   s1
+
+With a DataFrame
+
+.. ipython:: python
+
+   df1 = DataFrame(np.random.randn(6,4),index=range(0,12,2),columns=range(0,8,2))
+   df1
+
+   # integer access
+   df1.iloc[5,2]
+
+   # slices
+   df1.iloc[:3]
+   df1.iloc[1:5,2:4]
+
+   # integer lists
+   df1.iloc[[1,3,5],[1,3]]
+
+For slicing rows explicitly.
+
+.. ipython:: python
+
+   # this is equivalent to ``df1.iloc[1:3,:]``
+   df1.irow(range(1,3))
+
+For slicing columns explicitly.
+
+.. ipython:: python
+
+   # this is equivalent to ``df1.iloc[:,1:3]``
+   df1.icol(range(1,3))
+
+For getting a value explicity.
+
+.. ipython:: python
+
+   # this is equivalent to ``df1.iloc[1,1]``
+   df1.iget_value(1,1)
+
+There is one signficant departure from standard python/numpy slicing semantics.
+python/numpy allow slicing past the end of an array without an associated error.
+
+.. ipython:: python
+
+    # these are allowed in python/numpy.
+    x = list('abcdef')
+    x[4:10]
+    x[8:10]
+
+::
+
+    >>> df.iloc[:,3:6]
+    IndexError: out-of-bounds on slice (end)
+
+
 Boolean indexing
 ~~~~~~~~~~~~~~~~
 
