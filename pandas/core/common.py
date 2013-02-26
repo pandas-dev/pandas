@@ -324,11 +324,11 @@ _take_1d_dict = {
     ('float64', 'float64'): algos.take_1d_float64_float64,
     ('object', 'object'): algos.take_1d_object_object,
     ('bool', 'bool'):
-        _view_wrapper(algos.take_1d_bool_bool, np.uint8, np.uint8),
+    _view_wrapper(algos.take_1d_bool_bool, np.uint8, np.uint8),
     ('bool', 'object'):
-        _view_wrapper(algos.take_1d_bool_object, np.uint8, None),
-    ('datetime64[ns]','datetime64[ns]'):
-        _view_wrapper(algos.take_1d_int64_int64, np.int64, np.int64, np.int64)
+    _view_wrapper(algos.take_1d_bool_object, np.uint8, None),
+    ('datetime64[ns]', 'datetime64[ns]'):
+    _view_wrapper(algos.take_1d_int64_int64, np.int64, np.int64, np.int64)
 }
 
 
@@ -351,12 +351,12 @@ _take_2d_axis0_dict = {
     ('float64', 'float64'): algos.take_2d_axis0_float64_float64,
     ('object', 'object'): algos.take_2d_axis0_object_object,
     ('bool', 'bool'):
-        _view_wrapper(algos.take_2d_axis0_bool_bool, np.uint8, np.uint8),
+    _view_wrapper(algos.take_2d_axis0_bool_bool, np.uint8, np.uint8),
     ('bool', 'object'):
-        _view_wrapper(algos.take_2d_axis0_bool_object, np.uint8, None),
-    ('datetime64[ns]','datetime64[ns]'):
-        _view_wrapper(algos.take_2d_axis0_int64_int64, np.int64, np.int64,
-                      fill_wrap=np.int64)
+    _view_wrapper(algos.take_2d_axis0_bool_object, np.uint8, None),
+    ('datetime64[ns]', 'datetime64[ns]'):
+    _view_wrapper(algos.take_2d_axis0_int64_int64, np.int64, np.int64,
+                  fill_wrap=np.int64)
 }
 
 
@@ -379,12 +379,12 @@ _take_2d_axis1_dict = {
     ('float64', 'float64'): algos.take_2d_axis1_float64_float64,
     ('object', 'object'): algos.take_2d_axis1_object_object,
     ('bool', 'bool'):
-        _view_wrapper(algos.take_2d_axis1_bool_bool, np.uint8, np.uint8),
+    _view_wrapper(algos.take_2d_axis1_bool_bool, np.uint8, np.uint8),
     ('bool', 'object'):
-        _view_wrapper(algos.take_2d_axis1_bool_object, np.uint8, None),
-    ('datetime64[ns]','datetime64[ns]'):
-        _view_wrapper(algos.take_2d_axis1_int64_int64, np.int64, np.int64,
-                      fill_wrap=np.int64)
+    _view_wrapper(algos.take_2d_axis1_bool_object, np.uint8, None),
+    ('datetime64[ns]', 'datetime64[ns]'):
+    _view_wrapper(algos.take_2d_axis1_int64_int64, np.int64, np.int64,
+                  fill_wrap=np.int64)
 }
 
 
@@ -407,12 +407,12 @@ _take_2d_multi_dict = {
     ('float64', 'float64'): algos.take_2d_multi_float64_float64,
     ('object', 'object'): algos.take_2d_multi_object_object,
     ('bool', 'bool'):
-        _view_wrapper(algos.take_2d_multi_bool_bool, np.uint8, np.uint8),
+    _view_wrapper(algos.take_2d_multi_bool_bool, np.uint8, np.uint8),
     ('bool', 'object'):
-        _view_wrapper(algos.take_2d_multi_bool_object, np.uint8, None),
-    ('datetime64[ns]','datetime64[ns]'):
-        _view_wrapper(algos.take_2d_multi_int64_int64, np.int64, np.int64,
-                      fill_wrap=np.int64)
+    _view_wrapper(algos.take_2d_multi_bool_object, np.uint8, None),
+    ('datetime64[ns]', 'datetime64[ns]'):
+    _view_wrapper(algos.take_2d_multi_int64_int64, np.int64, np.int64,
+                  fill_wrap=np.int64)
 }
 
 
@@ -440,7 +440,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
         if func is not None:
             func = _convert_wrapper(func, out_dtype)
             return func
-    
+
     def func(arr, indexer, out, fill_value=np.nan):
         _take_nd_generic(arr, indexer, out, axis=axis,
                          fill_value=fill_value, mask_info=mask_info)
@@ -645,10 +645,11 @@ def _infer_dtype_from_scalar(val):
     # a 1-element ndarray
     if isinstance(val, pa.Array):
         if val.ndim != 0:
-            raise ValueError("invalid ndarray passed to _infer_dtype_from_scalar")
+            raise ValueError(
+                "invalid ndarray passed to _infer_dtype_from_scalar")
 
         dtype = val.dtype
-        val   = val.item()
+        val = val.item()
 
     elif isinstance(val, basestring):
 
@@ -662,7 +663,7 @@ def _infer_dtype_from_scalar(val):
 
     elif isinstance(val, np.datetime64):
         # ugly hacklet
-        val   = lib.Timestamp(val).value
+        val = lib.Timestamp(val).value
         dtype = np.dtype('M8[ns]')
 
     elif is_bool(val):
@@ -695,7 +696,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
             except:
                 # the proper thing to do here would probably be to upcast to
                 # object (but numpy 1.6.1 doesn't do this properly)
-                fill_value = tslib.iNaT 
+                fill_value = tslib.iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -760,10 +761,10 @@ _backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
 
 def pad_1d(values, limit=None, mask=None):
 
-    dtype   = values.dtype.name
+    dtype = values.dtype.name
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos,'pad_inplace_%s' % dtype,None)
+        _method = getattr(algos, 'pad_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _pad_1d_datetime
     elif values.dtype == np.object_:
@@ -780,10 +781,10 @@ def pad_1d(values, limit=None, mask=None):
 
 def backfill_1d(values, limit=None, mask=None):
 
-    dtype   = values.dtype.name
+    dtype = values.dtype.name
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos,'backfill_inplace_%s' % dtype,None)
+        _method = getattr(algos, 'backfill_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _backfill_1d_datetime
     elif values.dtype == np.object_:
@@ -801,10 +802,10 @@ def backfill_1d(values, limit=None, mask=None):
 
 def pad_2d(values, limit=None, mask=None):
 
-    dtype   = values.dtype.name
+    dtype = values.dtype.name
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos,'pad_2d_inplace_%s' % dtype,None)
+        _method = getattr(algos, 'pad_2d_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _pad_2d_datetime
     elif values.dtype == np.object_:
@@ -826,10 +827,10 @@ def pad_2d(values, limit=None, mask=None):
 
 def backfill_2d(values, limit=None, mask=None):
 
-    dtype   = values.dtype.name
+    dtype = values.dtype.name
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos,'backfill_2d_inplace_%s' % dtype,None)
+        _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype, None)
     elif is_datetime64_dtype(values):
         _method = _backfill_2d_datetime
     elif values.dtype == np.object_:
@@ -868,20 +869,23 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
 
         # we take an aggressive stance and convert to datetime64[ns]
         if convert_dates == 'coerce':
-            new_values = _possibly_cast_to_datetime(values, 'M8[ns]', coerce = True)
+            new_values = _possibly_cast_to_datetime(
+                values, 'M8[ns]', coerce=True)
 
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
                 values = new_values
 
         else:
-            values = lib.maybe_convert_objects(values, convert_datetime=convert_dates)
+            values = lib.maybe_convert_objects(
+                values, convert_datetime=convert_dates)
 
     # convert to numeric
     if convert_numeric and values.dtype == np.object_:
         try:
-            new_values = lib.maybe_convert_numeric(values,set(),coerce_numeric=True)
-            
+            new_values = lib.maybe_convert_numeric(
+                values, set(), coerce_numeric=True)
+
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
                 values = new_values
@@ -891,10 +895,11 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
 
     return values
 
+
 def _possibly_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
-    if isinstance(values, (list,tuple)):
+    if isinstance(values, (list, tuple)):
         values = lib.list_to_object_array(values)
     if values.dtype == np.object_:
         values = lib.maybe_convert_objects(values)
@@ -906,17 +911,18 @@ def _possibly_cast_to_timedelta(value):
     """ try to cast to timedelta64 w/o coercion """
     new_value = tslib.array_to_timedelta64(value.astype(object), coerce=False)
     if new_value.dtype == 'i8':
-        value = np.array(new_value,dtype='timedelta64[ns]')
+        value = np.array(new_value, dtype='timedelta64[ns]')
     return value
 
-def _possibly_cast_to_datetime(value, dtype, coerce = False):
+
+def _possibly_cast_to_datetime(value, dtype, coerce=False):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
 
     if isinstance(dtype, basestring):
         dtype = np.dtype(dtype)
 
     if dtype is not None:
-        is_datetime64  = is_datetime64_dtype(dtype)
+        is_datetime64 = is_datetime64_dtype(dtype)
         is_timedelta64 = is_timedelta64_dtype(dtype)
 
         if is_datetime64 or is_timedelta64:
@@ -935,7 +941,8 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                 elif np.prod(value.shape) and value.dtype != dtype:
                     try:
                         if is_datetime64:
-                            value = tslib.array_to_datetime(value, coerce = coerce)
+                            value = tslib.array_to_datetime(
+                                value, coerce=coerce)
                         elif is_timedelta64:
                             value = _possibly_cast_to_timedelta(value)
                     except:
@@ -946,7 +953,7 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
         # don't change the value unless we find a datetime set
         v = value
         if not is_list_like(v):
-            v = [ v ]
+            v = [v]
         if len(v):
             inferred_type = lib.infer_dtype(v)
             if inferred_type == 'datetime':
@@ -1127,13 +1134,14 @@ def banner(message):
     bar = '=' * 80
     return '%s\n%s\n%s' % (bar, message, bar)
 
+
 def _long_prod(vals):
     result = 1L
     for x in vals:
         result *= x
     return result
 
-    
+
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.
@@ -1317,7 +1325,8 @@ def is_float_dtype(arr_or_dtype):
 
 
 def is_list_like(arg):
-    return hasattr(arg, '__iter__') and not isinstance(arg, basestring) or hasattr(arg,'len')
+    return hasattr(arg, '__iter__') and not isinstance(arg, basestring) or hasattr(arg, 'len')
+
 
 def _is_sequence(x):
     try:
@@ -1336,7 +1345,7 @@ _ensure_platform_int = algos.ensure_platform_int
 _ensure_object = algos.ensure_object
 
 
-def _astype_nansafe(arr, dtype, copy = True):
+def _astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False """
     if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)

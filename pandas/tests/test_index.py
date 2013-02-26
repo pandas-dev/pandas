@@ -349,12 +349,12 @@ class TestIndex(unittest.TestCase):
         self.assertEquals(formatted, expected)
 
         # 2845
-        index = Index([1, 2.0+3.0j, np.nan])
+        index = Index([1, 2.0 + 3.0j, np.nan])
         formatted = index.format()
         expected = [str(index[0]), str(index[1]), str(index[2])]
         self.assertEquals(formatted, expected)
 
-        index = Index([1, 2.0+3.0j, None])
+        index = Index([1, 2.0 + 3.0j, None])
         formatted = index.format()
         expected = [str(index[0]), str(index[1]), '']
         self.assertEquals(formatted, expected)

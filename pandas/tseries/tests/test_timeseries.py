@@ -1428,7 +1428,7 @@ class TestTimeSeries(unittest.TestCase):
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
 
         ind = date_range(start="2000/1/1", freq="D", periods=10)
-        df1 = DataFrame({'date': ind, 'test':range(10)})
+        df1 = DataFrame({'date': ind, 'test': range(10)})
 
         # it works!
         pd.concat([df1, df2_obj])
@@ -1443,12 +1443,12 @@ class TestDatetimeIndex(unittest.TestCase):
     _multiprocess_can_split_ = True
 
     def test_stringified_slice_with_tz(self):
-        #GH2658
+        # GH2658
         import datetime
-        start=datetime.datetime.now()
-        idx=DatetimeIndex(start=start,freq="1d",periods=10)
-        df=DataFrame(range(10),index=idx)
-        df["2013-01-14 23:44:34.437768-05:00":] # no exception here
+        start = datetime.datetime.now()
+        idx = DatetimeIndex(start=start, freq="1d", periods=10)
+        df = DataFrame(range(10), index=idx)
+        df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
     def test_append_join_nondatetimeindex(self):
         rng = date_range('1/1/2000', periods=10)
@@ -2452,16 +2452,17 @@ class TestSeriesDatetime64(unittest.TestCase):
 
     def test_intercept_astype_object(self):
 
-        # this test no longer makes sense as series is by default already M8[ns]
+        # this test no longer makes sense as series is by default already
+        # M8[ns]
 
         # Work around NumPy 1.6 bugs
-        #result = self.series.astype(object)
-        #result2 = self.series.astype('O')
+        # result = self.series.astype(object)
+        # result2 = self.series.astype('O')
 
         expected = Series(self.series, dtype=object)
 
-        #assert_series_equal(result, expected)
-        #assert_series_equal(result2, expected)
+        # assert_series_equal(result, expected)
+        # assert_series_equal(result2, expected)
 
         df = DataFrame({'a': self.series,
                         'b': np.random.randn(len(self.series))})

@@ -128,7 +128,7 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF %(can_copy)s:
@@ -187,7 +187,6 @@ def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                     outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
 
 """
-
 
 
 '''
@@ -2096,6 +2095,7 @@ ensure_functions = [
     ('object', 'OBJECT', 'object_'),
 ]
 
+
 def generate_ensure_dtypes():
     output = StringIO()
     for name, ctype, dtype in ensure_functions:
@@ -2123,17 +2123,17 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
 #-------------------------------------------------------------------------
 # Generators
 
-def generate_put_template(template, use_ints = True, use_floats = True):
+def generate_put_template(template, use_ints=True, use_floats=True):
     floats_list = [
         ('float64', 'float64_t', 'float64_t', 'np.float64'),
         ('float32', 'float32_t', 'float32_t', 'np.float32'),
-        ]
+    ]
     ints_list = [
-        ('int8',  'int8_t',  'float32_t', 'np.float32'),
+        ('int8', 'int8_t', 'float32_t', 'np.float32'),
         ('int16', 'int16_t', 'float32_t', 'np.float32'),
         ('int32', 'int32_t', 'float64_t', 'np.float64'),
         ('int64', 'int64_t', 'float64_t', 'np.float64'),
-        ]
+    ]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
@@ -2142,13 +2142,14 @@ def generate_put_template(template, use_ints = True, use_floats = True):
 
     output = StringIO()
     for name, c_type, dest_type, dest_dtype in function_list:
-        func = template % {'name' : name, 
-                           'c_type' : c_type,
-                           'dest_type' : dest_type.replace('_t', ''),
-                           'dest_type2' : dest_type,
-                           'dest_dtype' : dest_dtype}
+        func = template % {'name': name,
+                           'c_type': c_type,
+                           'dest_type': dest_type.replace('_t', ''),
+                           'dest_type2': dest_type,
+                           'dest_dtype': dest_dtype}
         output.write(func)
     return output.getvalue()
+
 
 def generate_take_template(template, exclude=None):
     # name, dest, ctypein, ctypeout, preval, postval, cancopy
@@ -2176,7 +2177,7 @@ def generate_take_template(template, exclude=None):
     ]
 
     output = StringIO()
-    for (name, dest, c_type_in, c_type_out, 
+    for (name, dest, c_type_in, c_type_out,
          preval, postval, can_copy) in function_list:
         if exclude is not None and name in exclude:
             continue
@@ -2187,6 +2188,7 @@ def generate_take_template(template, exclude=None):
                            'can_copy': 'True' if can_copy else 'False'}
         output.write(func)
     return output.getvalue()
+
 
 def generate_from_template(template, exclude=None):
     # name, ctype, capable of holding NA
@@ -2250,6 +2252,7 @@ take_templates = [take_1d_template,
                   take_2d_axis1_template,
                   take_2d_multi_template]
 
+
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
         print >> f, header
@@ -2266,7 +2269,7 @@ def generate_take_cython_file(path='generated.pyx'):
             print >> f, generate_put_template(template)
 
         for template in groupbys:
-            print >> f, generate_put_template(template, use_ints = False)
+            print >> f, generate_put_template(template, use_ints=False)
 
         # for template in templates_1d_datetime:
         #     print >> f, generate_from_template_datetime(template)

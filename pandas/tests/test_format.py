@@ -101,19 +101,19 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assert_('...' not in repr(df))
 
     def test_repr_chop_threshold(self):
-        df = DataFrame([[0.1, 0.5],[0.5, -0.1]])
-        pd.reset_option("display.chop_threshold") # default None
+        df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
+        pd.reset_option("display.chop_threshold")  # default None
         self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
 
-        with option_context("display.chop_threshold", 0.2 ):
+        with option_context("display.chop_threshold", 0.2):
             self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0')
 
-        with option_context("display.chop_threshold", 0.6 ):
+        with option_context("display.chop_threshold", 0.6):
             self.assertEqual(repr(df), '   0  1\n0  0  0\n1  0  0')
 
-        with option_context("display.chop_threshold", None ):
-            self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
-
+        with option_context("display.chop_threshold", None):
+            self.assertEqual(
+                repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
 
     def test_repr_should_return_str(self):
         """
@@ -159,7 +159,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                 self.assert_(len(line) == line_len)
 
         # it works even if sys.stdin in None
-        _stdin= sys.stdin
+        _stdin = sys.stdin
         try:
             sys.stdin = None
             repr(df)
@@ -271,8 +271,8 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         test_dict = {'co<l1': {a: "<type 'str'>",
                                b: "<type 'str'>"},
-                     'co>l2':{a: "<type 'str'>",
-                              b: "<type 'str'>"}}
+                     'co>l2': {a: "<type 'str'>",
+                               b: "<type 'str'>"}}
         rs = pd.DataFrame(test_dict).to_html()
         xp = """<table border="1" class="dataframe">
   <thead>
@@ -1212,7 +1212,7 @@ class TestSeriesFormatting(unittest.TestCase):
 
         # adding NaTs
         s = Series(date_range('2012-1-1', periods=3, freq='D'))
-        y = s-s.shift(1)
+        y = s - s.shift(1)
         result = y.to_string()
         self.assertTrue('1 days, 00:00:00' in result)
         self.assertTrue('NaT' in result)
@@ -1220,7 +1220,7 @@ class TestSeriesFormatting(unittest.TestCase):
 
         # with frac seconds
         s = Series(date_range('2012-1-1', periods=3, freq='D'))
-        y = s-datetime(2012,1,1,microsecond=150)
+        y = s - datetime(2012, 1, 1, microsecond=150)
         result = y.to_string()
         self.assertTrue('00:00:00.000150' in result)
         self.assertTrue('timedelta64[ns]' in result)

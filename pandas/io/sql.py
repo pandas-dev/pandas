@@ -179,14 +179,14 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
         warnings.warn("append is deprecated, use if_exists instead",
                       FutureWarning)
         if kwargs['append']:
-            if_exists='append'
+            if_exists = 'append'
         else:
-            if_exists='fail'
+            if_exists = 'fail'
     exists = table_exists(name, con, flavor)
     if if_exists == 'fail' and exists:
-        raise ValueError, "Table '%s' already exists." % name
+        raise ValueError("Table '%s' already exists." % name)
 
-    #create or drop-recreate if necessary
+    # create or drop-recreate if necessary
     create = None
     if exists and if_exists == 'replace':
         create = "DROP TABLE %s" % name
@@ -201,8 +201,8 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     cur = con.cursor()
     # Replace spaces in DataFrame column names with _.
     safe_names = [s.replace(' ', '_').strip() for s in frame.columns]
-    flavor_picker = {'sqlite' : _write_sqlite,
-                     'mysql' : _write_mysql}
+    flavor_picker = {'sqlite': _write_sqlite,
+                     'mysql': _write_mysql}
 
     func = flavor_picker.get(flavor, None)
     if func is None:
@@ -210,6 +210,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     func(frame, name, safe_names, cur)
     cur.close()
     con.commit()
+
 
 def _write_sqlite(frame, table, names, cur):
     bracketed_names = ['[' + column + ']' for column in names]
@@ -220,6 +221,7 @@ def _write_sqlite(frame, table, names, cur):
     data = [tuple(x) for x in frame.values]
     cur.executemany(insert_query, data)
 
+
 def _write_mysql(frame, table, names, cur):
     bracketed_names = ['`' + column + '`' for column in names]
     col_names = ','.join(bracketed_names)
@@ -229,15 +231,17 @@ def _write_mysql(frame, table, names, cur):
     data = [tuple(x) for x in frame.values]
     cur.executemany(insert_query, data)
 
+
 def table_exists(name, con, flavor):
     flavor_map = {
         'sqlite': ("SELECT name FROM sqlite_master "
                    "WHERE type='table' AND name='%s';") % name,
-        'mysql' : "SHOW TABLES LIKE '%s'" % name}
+        'mysql': "SHOW TABLES LIKE '%s'" % name}
     query = flavor_map.get(flavor, None)
     if query is None:
         raise NotImplementedError
     return len(tquery(query, con)) > 0
+
 
 def get_sqltype(pytype, flavor):
     sqltype = {'mysql': 'VARCHAR (63)',
@@ -248,7 +252,7 @@ def get_sqltype(pytype, flavor):
         sqltype['sqlite'] = 'REAL'
 
     if issubclass(pytype, np.integer):
-        #TODO: Refine integer size.
+        # TODO: Refine integer size.
         sqltype['mysql'] = 'BIGINT'
         sqltype['sqlite'] = 'INTEGER'
 
@@ -265,6 +269,7 @@ def get_sqltype(pytype, flavor):
         sqltype['sqlite'] = 'INTEGER'
 
     return sqltype[flavor]
+
 
 def get_schema(frame, name, flavor, keys=None):
     "Return a CREATE TABLE statement to suit the contents of a DataFrame."
@@ -290,6 +295,7 @@ def get_schema(frame, name, flavor, keys=None):
                                    'keystr': keystr}
     return create_statement
 
+
 def sequence2dict(seq):
     """Helper function for cx_Oracle.
 
@@ -302,6 +308,6 @@ def sequence2dict(seq):
     http://www.gingerandjohn.com/archives/2004/02/26/cx_oracle-executemany-example/
     """
     d = {}
-    for k,v in zip(range(1, 1 + len(seq)), seq):
+    for k, v in zip(range(1, 1 + len(seq)), seq):
         d[str(k)] = v
     return d

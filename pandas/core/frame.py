@@ -318,7 +318,7 @@ def _comp_method(func, name):
 
             # straight boolean comparisions we want to allow all columns
             # (regardless of dtype to pass thru)
-            return self._combine_const(other, func, raise_on_error = False).fillna(True).astype(bool)
+            return self._combine_const(other, func, raise_on_error=False).fillna(True).astype(bool)
 
     f.__name__ = name
 
@@ -1012,9 +1012,11 @@ class DataFrame(NDFrame):
 
                 # reorder according to the columns
                 if len(columns) and len(arr_columns):
-                    indexer     = _ensure_index(arr_columns).get_indexer(columns)
-                    arr_columns = _ensure_index([ arr_columns[i] for i in indexer ])
-                    arrays      = [ arrays[i] for i in indexer ]
+                    indexer = _ensure_index(
+                        arr_columns).get_indexer(columns)
+                    arr_columns = _ensure_index(
+                        [arr_columns[i] for i in indexer])
+                    arrays = [arrays[i] for i in indexer]
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = _to_arrays(data, columns)
@@ -1263,7 +1265,7 @@ class DataFrame(NDFrame):
         new_blocks = []
         for block in selfsorted._data.blocks:
             newb = block2d_to_blocknd(block.values.T, block.items, shape,
-                                      [ major_labels, minor_labels ],
+                                      [major_labels, minor_labels],
                                       ref_items=selfsorted.columns)
             new_blocks.append(newb)
 
@@ -1684,7 +1686,7 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
         counts = dict()
         for b in self._data.blocks:
-            counts[b.dtype.name] = counts.get(b.dtype,0) + b.shape[0]
+            counts[b.dtype.name] = counts.get(b.dtype, 0) + b.shape[0]
         return Series(counts)
 
     #----------------------------------------------------------------------
@@ -1745,7 +1747,8 @@ class DataFrame(NDFrame):
         bd = dict()
         for b in self._data.blocks:
             b = b.reindex_items_from(columns or b.items)
-            bd[str(b.dtype)] = DataFrame(BlockManager([ b ], [ b.items, self.index ]))
+            bd[str(b.dtype)] = DataFrame(BlockManager([b], [
+                                                      b.items, self.index]))
         return bd
 
     blocks = property(fget=as_blocks)
@@ -2227,7 +2230,8 @@ class DataFrame(NDFrame):
             else:
                 # upcast the scalar
                 dtype, value = _infer_dtype_from_scalar(value)
-                value = np.array(np.repeat(value, len(self.index)), dtype=dtype)
+                value = np.array(
+                    np.repeat(value, len(self.index)), dtype=dtype)
 
             value = com._possibly_cast_to_datetime(value, dtype)
         return np.atleast_2d(np.asarray(value))
@@ -3393,11 +3397,11 @@ class DataFrame(NDFrame):
                 return self.T.fillna(method=method, limit=limit).T
 
             method = com._clean_fill_method(method)
-            new_data = self._data.interpolate(method  = method,
-                                              axis    = axis,
-                                              limit   = limit,
-                                              inplace = inplace,
-                                              coerce  = True)
+            new_data = self._data.interpolate(method=method,
+                                              axis=axis,
+                                              limit=limit,
+                                              inplace=inplace,
+                                              coerce=True)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
@@ -3547,12 +3551,12 @@ class DataFrame(NDFrame):
 
         else:
 
-            new_data = self._data.interpolate(method  = method,
-                                              axis    = axis,
-                                              limit   = limit,
-                                              inplace = inplace,
-                                              missing = to_replace,
-                                              coerce  = False)
+            new_data = self._data.interpolate(method=method,
+                                              axis=axis,
+                                              limit=limit,
+                                              inplace=inplace,
+                                              missing=to_replace,
+                                              coerce=False)
 
             if inplace:
                 self._data = new_data
@@ -3725,10 +3729,11 @@ class DataFrame(NDFrame):
         if fill_value is not None:
             raise NotImplementedError
 
-        new_data = left._data.eval(func, right, axes = [left.columns, self.index])
+        new_data = left._data.eval(
+            func, right, axes=[left.columns, self.index])
         return self._constructor(new_data)
 
-    def _combine_const(self, other, func, raise_on_error = True):
+    def _combine_const(self, other, func, raise_on_error=True):
         if self.empty:
             return self
 
@@ -5082,7 +5087,7 @@ class DataFrame(NDFrame):
 
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
-            lower, upper = min(lower,upper), max(lower,upper)
+            lower, upper = min(lower, upper), max(lower, upper)
 
         return self.apply(lambda x: x.clip(lower=lower, upper=upper))
 
@@ -5282,7 +5287,8 @@ class DataFrame(NDFrame):
                 raise ValueError('where requires an ndarray like object for its '
                                  'condition')
             if cond.shape != self.shape:
-                raise ValueError('Array conditional must be same shape as self')
+                raise ValueError(
+                    'Array conditional must be same shape as self')
             cond = self._constructor(cond, index=self.index,
                                      columns=self.columns)
 
@@ -5293,18 +5299,20 @@ class DataFrame(NDFrame):
 
         if isinstance(other, DataFrame):
             _, other = self.align(other, join='left', fill_value=NA)
-        elif isinstance(other,np.ndarray):
+        elif isinstance(other, np.ndarray):
             if other.shape != self.shape:
                 raise ValueError('other must be the same shape as self '
                                  'when an ndarray')
             other = DataFrame(other, self.index, self.columns)
 
         if inplace:
-            # we may have different type blocks come out of putmask, so reconstruct the block manager
-            self._data = self._data.putmask(cond,other,inplace=True)
+            # we may have different type blocks come out of putmask, so
+            # reconstruct the block manager
+            self._data = self._data.putmask(cond, other, inplace=True)
 
         else:
-            new_data = self._data.where(other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+            new_data = self._data.where(
+                other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
 
             return self._constructor(new_data)
 
@@ -5476,8 +5484,8 @@ def _prep_ndarray(values, copy=True):
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
-        if com.is_list_like(values[0]) or hasattr(values[0],'len'):
-            values = np.array([ convert(v) for v in values])
+        if com.is_list_like(values[0]) or hasattr(values[0], 'len'):
+            values = np.array([convert(v) for v in values])
         else:
             values = convert(values)
 
@@ -5668,6 +5676,7 @@ def _homogenize(data, index, dtype=None):
         homogenized.append(v)
 
     return homogenized
+
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized

@@ -489,7 +489,7 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
-    def astype(self, dtype, copy = True, raise_on_error = True):
+    def astype(self, dtype, copy=True, raise_on_error=True):
         """
         Cast object to input numpy.dtype
         Return a copy when copy = True (be really careful with this!)
@@ -504,7 +504,8 @@ class NDFrame(PandasObject):
         casted : type of caller
         """
 
-        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
+        mgr = self._data.astype(
+            dtype, copy=copy, raise_on_error=raise_on_error)
         return self._constructor(mgr)
 
     @property
@@ -597,7 +598,7 @@ class NDFrame(PandasObject):
     def squeeze(self):
         """ squeeze length 1 dimensions """
         try:
-            return self.ix[tuple([ slice(None) if len(a) > 1 else a[0] for a in self.axes ])]
+            return self.ix[tuple([slice(None) if len(a) > 1 else a[0] for a in self.axes])]
         except:
             return self
 

@@ -111,6 +111,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan):
     else:
         return lib.map_infer(arr, f)
 
+
 def str_title(arr):
     """
     Convert strings to titlecased version

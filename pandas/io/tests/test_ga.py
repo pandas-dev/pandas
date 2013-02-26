@@ -163,7 +163,7 @@ class TestGoogle(unittest.TestCase):
             assert 'newVisits' in df
             assert 'pageviewsPerVisit' in df
 
-            #dynamic
+            # dynamic
             df = read_ga(
                 metrics=['avgTimeOnSite', 'visitors', 'newVisits',
                          'pageviewsPerVisit'],

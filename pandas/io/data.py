@@ -91,7 +91,7 @@ def get_quote_yahoo(symbols):
     if isinstance(symbols, str):
         sym_list = symbols
     elif not isinstance(symbols, Series):
-        symbols  = Series(symbols)
+        symbols = Series(symbols)
         sym_list = str.join('+', symbols)
     else:
         sym_list = str.join('+', symbols)
@@ -202,8 +202,8 @@ def _calc_return_index(price_df):
     mask = ~df.ix[1].isnull() & df.ix[0].isnull()
     df.ix[0][mask] = 1
 
-    #Check for first stock listings after starting date of index in ret_index
-    #If True, find first_valid_index and set previous entry to 1.
+    # Check for first stock listings after starting date of index in ret_index
+    # If True, find first_valid_index and set previous entry to 1.
     if(~mask).any():
         for sym in mask.index[~mask]:
             tstamp = df[sym].first_valid_index()
@@ -236,8 +236,8 @@ def get_components_yahoo(idx_sym):
     idx_df : DataFrame
     """
     stats = 'snx'
-    #URL of form:
-    #http://download.finance.yahoo.com/d/quotes.csv?s=@%5EIXIC&f=snxl1d1t1c1ohgv
+    # URL of form:
+    # http://download.finance.yahoo.com/d/quotes.csv?s=@%5EIXIC&f=snxl1d1t1c1ohgv
     url = 'http://download.finance.yahoo.com/d/quotes.csv?s={0}&f={1}' \
           '&e=.csv&h={2}'
 
@@ -248,10 +248,10 @@ def get_components_yahoo(idx_sym):
     mask = [True]
     comp_idx = 1
 
-    #LOOP across component index structure,
-    #break when no new components are found
+    # LOOP across component index structure,
+    # break when no new components are found
     while (True in mask):
-        urlStr = url.format(idx_mod, stats,  comp_idx)
+        urlStr = url.format(idx_mod, stats, comp_idx)
         lines = (urllib.urlopen(urlStr).read().decode('utf-8').strip().
                  strip('"').split('"\r\n"'))
 
@@ -320,21 +320,22 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
         return Panel(stocks).swapaxes('items', 'minor')
 
     if 'name' in kwargs:
-        warnings.warn("Arg 'name' is deprecated, please use 'symbols' instead.",
-                      FutureWarning)
+        warnings.warn(
+            "Arg 'name' is deprecated, please use 'symbols' instead.",
+            FutureWarning)
         symbols = kwargs['name']
 
-    #If a single symbol, (e.g., 'GOOG')
+    # If a single symbol, (e.g., 'GOOG')
     if isinstance(symbols, (str, int)):
         sym = symbols
         hist_data = _get_hist_yahoo(sym, start=start, end=end)
-    #Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
+    # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
         try:
             hist_data = dl_mult_symbols(Series(symbols.index))
         except ValueError:
             raise
-    else: #Guess a Series
+    else:  # Guess a Series
         try:
             hist_data = dl_mult_symbols(symbols)
         except TypeError:
@@ -517,11 +518,11 @@ class Options(object):
 
             else:
                 url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
-                                                            '+Options')
+                          '+Options')
 
         else:  # Default to current month
             url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
-                                                            '+Options')
+                      '+Options')
 
         parsed = parse(urllib2.urlopen(url))
         doc = parsed.getroot()
@@ -590,11 +591,11 @@ class Options(object):
 
             else:
                 url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
-                                                            '+Options')
+                          '+Options')
 
         else:  # Default to current month
             url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
-                                                            '+Options')
+                      '+Options')
 
         parsed = parse(urllib2.urlopen(url))
         doc = parsed.getroot()
@@ -660,11 +661,11 @@ class Options(object):
 
             else:
                 url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
-                                                            '+Options')
+                          '+Options')
 
         else:  # Default to current month
             url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
-                                                            '+Options')
+                      '+Options')
 
         parsed = parse(urllib2.urlopen(url))
         doc = parsed.getroot()
@@ -730,7 +731,7 @@ class Options(object):
 
             # NOTE: For some reason the put commas in all values >1000. We remove
             #       them here
-            df_c.Strike = df_c.Strike.astype(str).apply(lambda x: \
+            df_c.Strike = df_c.Strike.astype(str).apply(lambda x:
                                                         x.replace(',', ''))
             # Now make sure Strike column has dtype float
             df_c.Strike = df_c.Strike.astype(float)
@@ -758,7 +759,7 @@ class Options(object):
 
             # NOTE: For some reason the put commas in all values >1000. We remove
             #       them here
-            df_p.Strike = df_p.Strike.astype(str).apply(lambda x: \
+            df_p.Strike = df_p.Strike.astype(str).apply(lambda x:
                                                         x.replace(',', ''))
             # Now make sure Strike column has dtype float
             df_p.Strike = df_p.Strike.astype(float)
@@ -845,13 +846,13 @@ class Options(object):
                             call_frame = self.__getattribute__(name)
                         except:
                             call_frame = self.get_call_data(in_months[mon],
-                                                        in_years[mon])
+                                                            in_years[mon])
 
                     else:
                         call_frame = self.get_near_stock_price(call=True,
                                                                put=False,
-                                                    above_below=above_below,
-                                                    month=m2, year=y2)
+                                                               above_below=above_below,
+                                                               month=m2, year=y2)
 
                     tick = str(call_frame.Symbol[0])
                     start = len(self.symbol)
@@ -880,13 +881,13 @@ class Options(object):
                             put_frame = self.__getattribute__(name)
                         except:
                             put_frame = self.get_call_data(in_months[mon],
-                                                        in_years[mon])
+                                                           in_years[mon])
 
                     else:
                         put_frame = self.get_near_stock_price(call=False,
                                                               put=True,
-                                                    above_below=above_below,
-                                                    month=m2, year=y2)
+                                                              above_below=above_below,
+                                                              month=m2, year=y2)
 
                     # Add column with expiry data to this frame.
                     tick = str(put_frame.Symbol[0])

@@ -106,10 +106,12 @@ def test_isnull_datetime():
     assert(mask[0])
     assert(not mask[1:].any())
 
+
 def test_datetimeindex_from_empty_datetime64_array():
-    for unit in [ 'ms', 'us', 'ns' ]:
+    for unit in ['ms', 'us', 'ns']:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
         assert(len(idx) == 0)
+
 
 def test_any_none():
     assert(com._any_none(1, 2, 3, None))
@@ -659,10 +661,10 @@ class TestTake(unittest.TestCase):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
-    
+
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(11045376L, 11360736L, (5,3))*100000000000
+        arr = np.random.randint(11045376L, 11360736L, (5, 3)) * 100000000000
         arr = arr.view(dtype='datetime64[ns]')
         indexer = [0, 2, -1, 1, -1]
 

@@ -110,7 +110,7 @@ class TestConfig(unittest.TestCase):
         # current value is reported
         self.assertFalse(
             'bar' in self.cf.describe_option('l', _print_desc=False))
-        self.cf.set_option("l","bar")
+        self.cf.set_option("l", "bar")
         self.assertTrue(
             'bar' in self.cf.describe_option('l', _print_desc=False))
 

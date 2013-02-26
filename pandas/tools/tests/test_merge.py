@@ -423,8 +423,8 @@ class TestMerge(unittest.TestCase):
 
     def test_join_float64_float32(self):
 
-        a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype = np.float64)
-        b = DataFrame(randn(10, 1), columns=['c'], dtype = np.float32)
+        a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype=np.float64)
+        b = DataFrame(randn(10, 1), columns=['c'], dtype=np.float32)
         joined = a.join(b)
         self.assert_(joined.dtypes['a'] == 'float64')
         self.assert_(joined.dtypes['b'] == 'float64')
@@ -434,7 +434,7 @@ class TestMerge(unittest.TestCase):
         b = np.random.random(100).astype('float64')
         c = np.random.random(100).astype('float32')
         df = DataFrame({'a': a, 'b': b, 'c': c})
-        xpdf = DataFrame({'a': a, 'b': b, 'c': c })
+        xpdf = DataFrame({'a': a, 'b': b, 'c': c})
         s = DataFrame(np.random.random(5).astype('float32'), columns=['md'])
         rs = df.merge(s, left_on='a', right_index=True)
         self.assert_(rs.dtypes['a'] == 'int64')
@@ -731,6 +731,7 @@ class TestMerge(unittest.TestCase):
 
         self.assertRaises(Exception, merge, df, df2)
 
+
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
         result = x.join(y, how=how)
@@ -805,7 +806,7 @@ class TestMergeMulti(unittest.TestCase):
 
         left = DataFrame({'k1': [0, 1, 2] * 8,
                           'k2': ['foo', 'bar'] * 12,
-                          'v': np.array(np.arange(24),dtype=np.int64) })
+                          'v': np.array(np.arange(24), dtype=np.int64)})
 
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
@@ -822,8 +823,8 @@ class TestMergeMulti(unittest.TestCase):
         # test join with multi dtypes blocks
         left = DataFrame({'k1': [0, 1, 2] * 8,
                           'k2': ['foo', 'bar'] * 12,
-                          'k3' : np.array([0, 1, 2]*8, dtype=np.float32),
-                          'v': np.array(np.arange(24),dtype=np.int32) })
+                          'k3': np.array([0, 1, 2] * 8, dtype=np.float32),
+                          'v': np.array(np.arange(24), dtype=np.int32)})
 
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
@@ -845,29 +846,30 @@ class TestMergeMulti(unittest.TestCase):
     def test_join_multi_dtypes(self):
 
         # test with multi dtypes in the join index
-        def _test(dtype1,dtype2):
+        def _test(dtype1, dtype2):
             left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
                               'k2': ['foo', 'bar'] * 12,
-                              'v': np.array(np.arange(24),dtype=np.int64) })
-            
+                              'v': np.array(np.arange(24), dtype=np.int64)})
+
             index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
-            right = DataFrame({'v2': np.array([5, 7], dtype=dtype2)}, index=index)
-            
+            right = DataFrame(
+                {'v2': np.array([5, 7], dtype=dtype2)}, index=index)
+
             result = left.join(right, on=['k1', 'k2'])
-            
+
             expected = left.copy()
 
             if dtype2.kind == 'i':
                 dtype2 = np.dtype('float64')
-            expected['v2'] = np.array(np.nan,dtype=dtype2)
+            expected['v2'] = np.array(np.nan, dtype=dtype2)
             expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
             expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
-            
+
             tm.assert_frame_equal(result, expected)
 
-        for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
-            for d2 in [np.int64,np.float64,np.float32,np.float16]:
-                _test(np.dtype(d1),np.dtype(d2))
+        for d1 in [np.int64, np.int32, np.int16, np.int8, np.uint8]:
+            for d2 in [np.int64, np.float64, np.float32, np.float16]:
+                _test(np.dtype(d1), np.dtype(d2))
 
     def test_left_merge_na_buglet(self):
         left = DataFrame({'id': list('abcde'), 'v1': randn(5),
@@ -921,6 +923,7 @@ class TestMergeMulti(unittest.TestCase):
         # it works!
         result = merge(df1, df2, how='outer')
         self.assertTrue(len(result) == 2000)
+
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):

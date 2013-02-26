@@ -435,9 +435,9 @@ class GroupBy(object):
                 dtype = obj.dtype
 
             if _is_numeric_dtype(dtype):
-                
+
                 # need to respect a non-number here (e.g. Decimal)
-                if len(result) and issubclass(type(result[0]),(np.number,float,int)):
+                if len(result) and issubclass(type(result[0]), (np.number, float, int)):
                     if issubclass(dtype.type, (np.integer, np.bool_)):
 
                         # castable back to an int/bool as we don't have nans
@@ -495,8 +495,8 @@ class GroupBy(object):
                 values = result
                 if _is_numeric_dtype(values.dtype):
                     values = com.ensure_float(values)
-                
-                output[name] = self._try_cast(values[mask],result)
+
+                output[name] = self._try_cast(values[mask], result)
 
         return self._wrap_aggregated_output(output)
 
@@ -745,16 +745,16 @@ class Grouper(object):
     # Aggregation functions
 
     _cython_functions = {
-        'add'  : 'group_add',
-        'prod' : 'group_prod',
-        'min'  : 'group_min',
-        'max'  : 'group_max',
-        'mean' : 'group_mean',
-        'median': dict(name = 'group_median'),
-        'var'  : 'group_var',
-        'std'  : 'group_var',
-        'first': dict(name = 'group_nth', f = lambda func, a, b, c, d: func(a, b, c, d, 1)),
-        'last' : 'group_last',
+        'add': 'group_add',
+        'prod': 'group_prod',
+        'min': 'group_min',
+        'max': 'group_max',
+        'mean': 'group_mean',
+        'median': dict(name='group_median'),
+        'var': 'group_var',
+        'std': 'group_var',
+        'first': dict(name='group_nth', f=lambda func, a, b, c, d: func(a, b, c, d, 1)),
+        'last': 'group_last',
     }
 
     _cython_transforms = {
@@ -772,18 +772,20 @@ class Grouper(object):
     def _get_aggregate_function(self, how, values):
 
         dtype_str = values.dtype.name
+
         def get_func(fname):
 
-            # find the function, or use the object function, or return a generic
-            for dt in [dtype_str,'object']:
-                f = getattr(_algos,"%s_%s" % (fname,dtype_str),None)
+            # find the function, or use the object function, or return a
+            # generic
+            for dt in [dtype_str, 'object']:
+                f = getattr(_algos, "%s_%s" % (fname, dtype_str), None)
                 if f is not None:
                     return f
-            return getattr(_algos,fname,None)
+            return getattr(_algos, fname, None)
 
         ftype = self._cython_functions[how]
 
-        if isinstance(ftype,dict):
+        if isinstance(ftype, dict):
             func = afunc = get_func(ftype['name'])
 
             # a sub-function
@@ -795,12 +797,12 @@ class Grouper(object):
 
                 # need to curry our sub-function
                 func = wrapper
-                
+
         else:
             func = get_func(ftype)
 
         if func is None:
-            raise NotImplementedError("function is not implemented for this dtype: [how->%s,dtype->%s]" % (how,dtype_str))
+            raise NotImplementedError("function is not implemented for this dtype: [how->%s,dtype->%s]" % (how, dtype_str))
         return func, dtype_str
 
     def aggregate(self, values, how, axis=0):
@@ -862,8 +864,8 @@ class Grouper(object):
         return result, names
 
     def _aggregate(self, result, counts, values, how, is_numeric):
-        agg_func,dtype  = self._get_aggregate_function(how, values)
-        trans_func      = self._cython_transforms.get(how, lambda x: x)
+        agg_func, dtype = self._get_aggregate_function(how, values)
+        trans_func = self._cython_transforms.get(how, lambda x: x)
 
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
@@ -1063,16 +1065,16 @@ class BinGrouper(Grouper):
     # cython aggregation
 
     _cython_functions = {
-        'add'  : 'group_add_bin',
-        'prod' : 'group_prod_bin',
-        'mean' : 'group_mean_bin',
-        'min'  : 'group_min_bin',
-        'max'  : 'group_max_bin',
-        'var'  : 'group_var_bin',
-        'std'  : 'group_var_bin',
-        'ohlc' : 'group_ohlc',
-        'first': dict(name = 'group_nth_bin', f = lambda func, a, b, c, d: func(a, b, c, d, 1)),
-        'last' : 'group_last_bin',
+        'add': 'group_add_bin',
+        'prod': 'group_prod_bin',
+        'mean': 'group_mean_bin',
+        'min': 'group_min_bin',
+        'max': 'group_max_bin',
+        'var': 'group_var_bin',
+        'std': 'group_var_bin',
+        'ohlc': 'group_ohlc',
+        'first': dict(name='group_nth_bin', f=lambda func, a, b, c, d: func(a, b, c, d, 1)),
+        'last': 'group_last_bin',
     }
 
     _name_functions = {
@@ -1083,8 +1085,8 @@ class BinGrouper(Grouper):
 
     def _aggregate(self, result, counts, values, how, is_numeric=True):
 
-        agg_func,dtype = self._get_aggregate_function(how, values)
-        trans_func     = self._cython_transforms.get(how, lambda x: x)
+        agg_func, dtype = self._get_aggregate_function(how, values)
+        trans_func = self._cython_transforms.get(how, lambda x: x)
 
         if values.ndim > 3:
             # punting for now
@@ -1734,14 +1736,16 @@ class NDFrameGroupBy(GroupBy):
                 for name, data in self:
                     # for name in self.indices:
                     #     data = self.get_group(name, obj=obj)
-                    result[name] = self._try_cast(func(data, *args, **kwargs),data)
+                    result[name] = self._try_cast(
+                        func(data, *args, **kwargs), data)
             except Exception:
                 return self._aggregate_item_by_item(func, *args, **kwargs)
         else:
             for name in self.indices:
                 try:
                     data = self.get_group(name, obj=obj)
-                    result[name] = self._try_cast(func(data, *args, **kwargs), data)
+                    result[name] = self._try_cast(
+                        func(data, *args, **kwargs), data)
                 except Exception:
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)

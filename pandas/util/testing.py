@@ -88,7 +88,7 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
-def assert_almost_equal(a, b, check_less_precise = False):
+def assert_almost_equal(a, b, check_less_precise=False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
@@ -174,7 +174,7 @@ def assert_series_equal(left, right, check_dtype=True,
                getattr(right, 'freqstr', None))
 
 
-def assert_frame_equal(left, right, check_dtype=True, 
+def assert_frame_equal(left, right, check_dtype=True,
                        check_index_type=False,
                        check_column_type=False,
                        check_frame_type=False,
@@ -191,7 +191,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert(col in right)
         lcol = left.icol(i)
         rcol = right.icol(i)
-        assert_series_equal(lcol, rcol, 
+        assert_series_equal(lcol, rcol,
                             check_dtype=check_dtype,
                             check_index_type=check_index_type,
                             check_less_precise=check_less_precise)
@@ -206,7 +206,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert(left.columns.inferred_type == right.columns.inferred_type)
 
 
-def assert_panel_equal(left, right, 
+def assert_panel_equal(left, right,
                        check_panel_type=False,
                        check_less_precise=False):
     if check_panel_type:
@@ -218,7 +218,8 @@ def assert_panel_equal(left, right,
 
     for col, series in left.iterkv():
         assert(col in right)
-        assert_frame_equal(series, right[col], check_less_precise=check_less_precise)
+        assert_frame_equal(
+            series, right[col], check_less_precise=check_less_precise)
 
     for col in right:
         assert(col in left)
@@ -233,7 +234,8 @@ def assert_panel4d_equal(left, right,
 
     for col, series in left.iterkv():
         assert(col in right)
-        assert_panel_equal(series, right[col], check_less_precise=check_less_precise)
+        assert_panel_equal(
+            series, right[col], check_less_precise=check_less_precise)
 
     for col in right:
         assert(col in left)
@@ -428,8 +430,8 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     for i in range(nlevels):
         def keyfunc(x):
             import re
-            numeric_tuple = re.sub("[^\d_]_?","",x).split("_")
-            return map(int,numeric_tuple)
+            numeric_tuple = re.sub("[^\d_]_?", "", x).split("_")
+            return map(int, numeric_tuple)
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1

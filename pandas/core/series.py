@@ -82,7 +82,7 @@ def _arith_method(op, name):
         lvalues, rvalues = self, other
 
         is_timedelta = com.is_timedelta64_dtype(self)
-        is_datetime  = com.is_datetime64_dtype(self)
+        is_datetime = com.is_datetime64_dtype(self)
 
         if is_datetime or is_timedelta:
 
@@ -91,7 +91,7 @@ def _arith_method(op, name):
                 if not is_list_like(values):
                     values = np.array([values])
                 inferred_type = lib.infer_dtype(values)
-                if inferred_type in set(['datetime64','datetime','date','time']):
+                if inferred_type in set(['datetime64', 'datetime', 'date', 'time']):
                     if isinstance(values, pa.Array) and com.is_datetime64_dtype(values):
                         pass
                     else:
@@ -122,8 +122,8 @@ def _arith_method(op, name):
                 mask = isnull(lvalues) | isnull(rvalues)
                 if mask.any():
                     def wrap_results(x):
-                        x = pa.array(x,dtype='timedelta64[ns]')
-                        np.putmask(x,mask,tslib.iNaT)
+                        x = pa.array(x, dtype='timedelta64[ns]')
+                        np.putmask(x, mask, tslib.iNaT)
                         return x
 
             else:
@@ -155,12 +155,12 @@ def _arith_method(op, name):
             arr = na_op(lvalues, rvalues)
 
             name = _maybe_match_name(self, other)
-            return Series(wrap_results(arr), index=join_idx, name=name,dtype=dtype)
+            return Series(wrap_results(arr), index=join_idx, name=name, dtype=dtype)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
-            if hasattr(lvalues,'values'):
+            if hasattr(lvalues, 'values'):
                 lvalues = lvalues.values
             return Series(wrap_results(na_op(lvalues, rvalues)),
                           index=self.index, name=self.name, dtype=dtype)
@@ -725,7 +725,7 @@ class Series(pa.Array, generic.PandasObject):
                 raise IndexError(key)
             # Could not hash item
         except ValueError:
-            
+
             # reassign a null value to iNaT
             if com.is_timedelta64_dtype(self.dtype):
                 if isnull(value):
@@ -739,7 +739,7 @@ class Series(pa.Array, generic.PandasObject):
 
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
-            self.where(~key,value,inplace=True)
+            self.where(~key, value, inplace=True)
         else:
             self._set_with(key, value)
 
@@ -841,8 +841,8 @@ class Series(pa.Array, generic.PandasObject):
         """
         if self.dtype == np.object_:
             return Series(com._possibly_convert_objects(self.values,
-                convert_dates=convert_dates, convert_numeric=convert_numeric),
-                index=self.index, name=self.name)
+                                                        convert_dates=convert_dates, convert_numeric=convert_numeric),
+                          index=self.index, name=self.name)
         return self.copy()
 
     def repeat(self, reps):
@@ -2469,7 +2469,7 @@ class Series(pa.Array, generic.PandasObject):
         """ for compatibility with higher dims """
         if axis != 0:
             raise ValueError("cannot reindex series on non-zero axis!")
-        return self.reindex(index=labels,**kwargs)
+        return self.reindex(index=labels, **kwargs)
 
     def reindex_like(self, other, method=None, limit=None, fill_value=pa.NA):
         """

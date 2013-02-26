@@ -100,10 +100,11 @@ class SeriesFormatter(object):
             footer += 'Length: %d' % len(self.series)
 
         if self.dtype:
-            if getattr(self.series.dtype,'name',None):
+            if getattr(self.series.dtype, 'name', None):
                 if footer:
                     footer += ', '
-                footer += 'Dtype: %s' % com.pprint_thing(self.series.dtype.name)
+                footer += 'Dtype: %s' % com.pprint_thing(
+                    self.series.dtype.name)
 
         return unicode(footer)
 
@@ -516,7 +517,7 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = '<%s>' % kind
 
-        esc = {'<' : r'&lt;', '>' : r'&gt;'}
+        esc = {'<': r'&lt;', '>': r'&gt;'}
         rs = com.pprint_thing(s, escape_chars=esc)
         self.write(
             '%s%s</%s>' % (start_tag, rs, kind), indent)
@@ -1102,19 +1103,19 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _format_with(self, fmt_str):
         def _val(x, threshold):
             if notnull(x):
-                if threshold is None or  abs(x) >  get_option("display.chop_threshold"):
-                    return  fmt_str % x
+                if threshold is None or abs(x) > get_option("display.chop_threshold"):
+                    return fmt_str % x
                 else:
-                    if fmt_str.endswith("e"): # engineering format
-                        return  "0"
+                    if fmt_str.endswith("e"):  # engineering format
+                        return "0"
                     else:
-                        return  fmt_str % 0
+                        return fmt_str % 0
             else:
 
                 return self.na_rep
 
         threshold = get_option("display.chop_threshold")
-        fmt_values = [ _val(x, threshold) for x in self.values]
+        fmt_values = [_val(x, threshold) for x in self.values]
         return _trim_zeros(fmt_values, self.na_rep)
 
     def get_result(self):
@@ -1172,6 +1173,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         fmt_values = [formatter(x) for x in self.values]
         return _make_fixed_width(fmt_values, self.justify)
 
+
 def _format_datetime64(x, tz=None):
     if isnull(x):
         return 'NaT'
@@ -1192,11 +1194,13 @@ class Timedelta64Formatter(Datetime64Formatter):
         fmt_values = [formatter(x) for x in self.values]
         return _make_fixed_width(fmt_values, self.justify)
 
+
 def _format_timedelta64(x):
     if isnull(x):
         return 'NaT'
 
     return lib.repr_timedelta64(x)
+
 
 def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0:
