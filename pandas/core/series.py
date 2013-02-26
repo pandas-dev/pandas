@@ -1047,9 +1047,10 @@ class Series(pa.Array, generic.PandasObject):
         elif len(self.index) > 0:
             result = self._get_repr(print_header=True,
                                     length=len(self) > 50,
-                                    name=True)
+                                    name=True,
+                                    dtype=True)
         else:
-            result = u'Series([], dtype=%s)' % self.dtype
+            result = u'Series([], Dtype: %s)' % self.dtype
 
         assert type(result) == unicode
         return result
@@ -1069,9 +1070,10 @@ class Series(pa.Array, generic.PandasObject):
         """
         num = max_vals // 2
         head = self[:num]._get_repr(print_header=True, length=False,
-                                    name=False)
+                                    dtype=False, name=False)
         tail = self[-(max_vals - num):]._get_repr(print_header=False,
                                                   length=False,
+                                                  dtype=False,
                                                   name=False)
         result = head + '\n...\n' + tail
         result = '%s\n%s' % (result, self._repr_footer())
@@ -1085,7 +1087,7 @@ class Series(pa.Array, generic.PandasObject):
                                              com.pprint_thing(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
-                  nanRep=None, length=False, name=False):
+                  nanRep=None, length=False, dtype=False, name=False):
         """
         Render a string representation of the Series
 
@@ -1100,6 +1102,8 @@ class Series(pa.Array, generic.PandasObject):
             default None
         length : boolean, default False
             Add the Series length
+        dtype : boolean, default False
+            Add the Series dtype
         name : boolean, default False
             Add the Series name (which may be None)
 
@@ -1114,7 +1118,7 @@ class Series(pa.Array, generic.PandasObject):
             na_rep = nanRep
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
-                                  length=length, name=name)
+                                  length=length, dtype=dtype, name=name)
 
         assert type(the_repr) == unicode
 
@@ -1123,7 +1127,7 @@ class Series(pa.Array, generic.PandasObject):
         else:
             print >> buf, the_repr
 
-    def _get_repr(self, name=False, print_header=False, length=True,
+    def _get_repr(self, name=False, print_header=False, length=True, dtype=True,
                   na_rep='NaN', float_format=None):
         """
 
@@ -1131,7 +1135,7 @@ class Series(pa.Array, generic.PandasObject):
         """
 
         formatter = fmt.SeriesFormatter(self, name=name, header=print_header,
-                                        length=length, na_rep=na_rep,
+                                        length=length, dtype=dtype, na_rep=na_rep,
                                         float_format=float_format)
         result = formatter.to_string()
         assert type(result) == unicode
@@ -3287,7 +3291,8 @@ class TimeSeries(Series):
 
         namestr = "Name: %s, " % str(
             self.name) if self.name is not None else ""
-        return '%s%sLength: %d' % (freqstr, namestr, len(self))
+        return '%s%sLength: %d, Dtype: %s' % (freqstr, namestr, len(self),
+                                              com.pprint_thing(self.dtype.name))
 
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
