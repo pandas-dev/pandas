@@ -725,7 +725,7 @@ class Series(pa.Array, generic.PandasObject):
                 raise IndexError(key)
             # Could not hash item
         except ValueError:
-            
+
             # reassign a null value to iNaT
             if com.is_timedelta64_dtype(self.dtype):
                 if isnull(value):
@@ -2141,7 +2141,7 @@ class Series(pa.Array, generic.PandasObject):
         def _try_mergesort(arr):
             # easier to ask forgiveness than permission
             try:
-                return arr.argsort(kind='mergesort')
+                return arr.argsort(kind=kind)
             except TypeError:
                 # stable sort not available for object dtype
                 return arr.argsort()
