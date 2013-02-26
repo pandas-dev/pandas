@@ -2138,13 +2138,15 @@ class Series(pa.Array, generic.PandasObject):
         -------
         y : Series
         """
-        def _try_mergesort(arr):
+        def _try_kind_sort(arr):
             # easier to ask forgiveness than permission
             try:
+                # if kind==mergesort, it can fail for object dtype
                 return arr.argsort(kind=kind)
             except TypeError:
                 # stable sort not available for object dtype
-                return arr.argsort()
+                # uses the argsort default quicksort
+                return arr.argsort(kind='quicksort')
 
         arr = self.values
         sortedIdx = pa.empty(len(self), dtype=np.int32)
@@ -2154,7 +2156,7 @@ class Series(pa.Array, generic.PandasObject):
         good = -bad
         idx = pa.arange(len(self))
 
-        argsorted = _try_mergesort(arr[good])
+        argsorted = _try_kind_sort(arr[good])
 
         if not ascending:
             argsorted = argsorted[::-1]
