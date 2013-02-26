@@ -298,7 +298,11 @@ class DatetimeIndex(Int64Index):
         if end is not None:
             end = Timestamp(end)
 
-        inferred_tz = tools._infer_tzinfo(start, end)
+        try:
+            inferred_tz = tools._infer_tzinfo(start, end)
+        except:
+            raise ValueError('Start and end cannot both be tz-aware with '
+                             'different timezones')
 
         if tz is not None and inferred_tz is not None:
             assert(inferred_tz == tz)
@@ -1538,17 +1542,21 @@ def _generate_regular_range(start, end, periods, offset):
             b = Timestamp(start).value
             e = Timestamp(end).value
             e += stride - e % stride
+            # end.tz == start.tz by this point due to _generate implementation
+            tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
             e = b + periods * stride
+            tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
             b = e - periods * stride
+            tz = end.tz
         else:
             raise NotImplementedError
 
         data = np.arange(b, e, stride, dtype=np.int64)
-        data = data.view(_NS_DTYPE)
+        data = DatetimeIndex._simple_new(data, None, tz=tz)
     else:
         if isinstance(start, Timestamp):
             start = start.to_pydatetime()
