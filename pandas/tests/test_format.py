@@ -585,6 +585,15 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assertTrue('ccccc' in result)
             self.assertTrue('ddddd' in result)
 
+    def test_long_series(self):
+        n = 1000
+        s = Series(np.random.randint(-50,50,n),index=['s%04d' % x for x in xrange(n)], dtype='int64')
+
+        import re
+        str_rep = str(s)
+        nmatches = len(re.findall('Dtype',str_rep))
+        self.assert_(nmatches == 1)
+
     def test_to_string(self):
         from pandas import read_table
         import re
@@ -1119,7 +1128,7 @@ class TestSeriesFormatting(unittest.TestCase):
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
         result = [x.split()[1] for x in result.split('\n')]
-        expected = [format(x) for x in self.ts] + [u'float64']
+        expected = [format(x) for x in self.ts]
         self.assertEqual(result, expected)
 
         # empty string
@@ -1132,7 +1141,7 @@ class TestSeriesFormatting(unittest.TestCase):
         # name and length
         cp = self.ts.copy()
         cp.name = 'foo'
-        result = cp.to_string(length=True, name=True)
+        result = cp.to_string(length=True, name=True, dtype=True)
         last_line = result.split('\n')[-1].strip()
         self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d, Dtype: float64" % len(cp))
 
@@ -1149,8 +1158,7 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0     foo\n'
                     u'1     NaN\n'
                     u'2   -1.23\n'
-                    u'3    4.56\n'
-                    u'Dtype: object')
+                    u'3    4.56')
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
@@ -1159,8 +1167,7 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0    foo\n'
                     '1    NaN\n'
                     '2    bar\n'
-                    '3    baz\n'
-                    u'Dtype: object')
+                    '3    baz')
         self.assertEqual(result, expected)
 
         s = Series(['foo', 5, 'bar', 'baz'])
@@ -1168,8 +1175,7 @@ class TestSeriesFormatting(unittest.TestCase):
         expected = (u'0    foo\n'
                     '1      5\n'
                     '2    bar\n'
-                    '3    baz\n'
-                    u'Dtype: object')
+                    '3    baz')
         self.assertEqual(result, expected)
 
     def test_to_string_float_na_spacing(self):
@@ -1181,8 +1187,7 @@ class TestSeriesFormatting(unittest.TestCase):
                     '1    1.5678\n'
                     '2       NaN\n'
                     '3   -3.0000\n'
-                    '4       NaN\n'
-                    u'Dtype: float64')
+                    '4       NaN')
         self.assertEqual(result, expected)
 
     def test_unicode_name_in_footer(self):
@@ -1216,14 +1221,12 @@ class TestSeriesFormatting(unittest.TestCase):
         result = y.to_string()
         self.assertTrue('1 days, 00:00:00' in result)
         self.assertTrue('NaT' in result)
-        self.assertTrue('timedelta64[ns]' in result)
 
         # with frac seconds
         s = Series(date_range('2012-1-1', periods=3, freq='D'))
         y = s-datetime(2012,1,1,microsecond=150)
         result = y.to_string()
         self.assertTrue('00:00:00.000150' in result)
-        self.assertTrue('timedelta64[ns]' in result)
 
     def test_mixed_datetime64(self):
         df = DataFrame({'A': [1, 2],
