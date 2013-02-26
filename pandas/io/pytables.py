@@ -1596,6 +1596,16 @@ class GenericStorer(Storer):
 
         return name, index
 
+
+    def write_array_empty(self, key, value):
+        """ write a 0-len array """
+
+        # ugly hack for length 0 axes
+        arr = np.empty((1,) * value.ndim)
+        self._handle.createArray(self.group, key, arr)
+        getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+        getattr(self.group, key)._v_attrs.shape = value.shape
+        
     def write_array(self, key, value):
         if key in self.group:
             self._handle.removeNode(self.group, key)
@@ -1618,11 +1628,16 @@ class GenericStorer(Storer):
 
             if atom is not None:
                 # create an empty chunked array and fill it from value
-                ca = self._handle.createCArray(self.group, key, atom,
-                                              value.shape,
-                                              filters=self._filters)
-                ca[:] = value
-                getattr(self.group, key)._v_attrs.transposed = transposed
+                if not empty_array:
+                    ca = self._handle.createCArray(self.group, key, atom,
+                                                   value.shape,
+                                                   filters=self._filters)
+                    ca[:] = value
+                    getattr(self.group, key)._v_attrs.transposed = transposed
+
+                else:
+                    self.write_array_empty(key, value)
+
                 return
 
         if value.dtype.type == np.object_:
@@ -1645,11 +1660,7 @@ class GenericStorer(Storer):
             getattr(self.group, key)._v_attrs.value_type = 'datetime64'
         else:
             if empty_array:
-                # ugly hack for length 0 axes
-                arr = np.empty((1,) * value.ndim)
-                self._handle.createArray(self.group, key, arr)
-                getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
-                getattr(self.group, key)._v_attrs.shape = value.shape
+                self.write_array_empty(key, value)
             else:
                 self._handle.createArray(self.group, key, value)
 
@@ -1720,7 +1731,7 @@ class SparseSeriesStorer(GenericStorer):
         self.write_index('sp_index', obj.sp_index)
         self.write_array('sp_values', obj.sp_values)
         self.attrs.name = obj.name
-        self.attrs.dill_value = obj.fill_value
+        self.attrs.fill_value = obj.fill_value
         self.attrs.kind = obj.kind
 
 class SparseFrameStorer(GenericStorer):
