@@ -1282,6 +1282,7 @@ class TestHDFStore(unittest.TestCase):
         s.ix[3:5, 1:3] = np.nan
         s.ix[8:10, -2] = np.nan
         ss = s.to_sparse()
+
         self._check_double_roundtrip(ss, tm.assert_frame_equal,
                                      check_frame_type=True)
         
@@ -1564,6 +1565,36 @@ class TestHDFStore(unittest.TestCase):
             store['a'] = ts
 
             tm.assert_series_equal(store['a'], ts)
+
+    def test_sparse_with_compression(self):
+
+        # GH 2931
+
+        # make sparse dataframe
+        df = DataFrame(np.random.binomial(n=1, p=.01, size=(1e3, 10))).to_sparse(fill_value=0)
+
+        # case 1: store uncompressed
+        self._check_double_roundtrip(df, tm.assert_frame_equal,
+                                     compression = False,
+                                     check_frame_type=True)
+
+        # case 2: store compressed (works)
+        self._check_double_roundtrip(df, tm.assert_frame_equal,
+                                     compression = 'zlib',
+                                     check_frame_type=True)
+
+        # set one series to be completely sparse
+        df[0] = np.zeros(1e3)
+
+        # case 3: store df with completely sparse series uncompressed
+        self._check_double_roundtrip(df, tm.assert_frame_equal,
+                                     compression = False,
+                                     check_frame_type=True)
+
+        # case 4: try storing df with completely sparse series compressed (fails)
+        self._check_double_roundtrip(df, tm.assert_frame_equal,
+                                     compression = 'zlib',
+                                     check_frame_type=True)
 
     def test_select(self):
         wp = tm.makePanel()
@@ -1967,7 +1998,7 @@ class TestHDFStore(unittest.TestCase):
                                 **kwargs):
         options = {}
         if compression:
-            options['complib'] = _default_compressor
+            options['complib'] = compression or _default_compressor
 
         with ensure_clean(self.path, 'w', **options) as store:
             store['obj'] = obj
