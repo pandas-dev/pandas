@@ -459,8 +459,8 @@ class TestBinGroupers(unittest.TestCase):
 
     def test_group_bin_functions(self):
 
-        dtypes = ['float32','float64']
-        funcs  = ['add', 'mean', 'prod', 'min', 'max', 'var']
+        dtypes = ['float32', 'float64']
+        funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']
 
         np_funcs = {
             'add': np.sum,
@@ -476,8 +476,8 @@ class TestBinGroupers(unittest.TestCase):
                 check_less_precise = False
                 if d == 'float32':
                     check_less_precise = True
-                args = [getattr(algos, 'group_%s_%s' % (fname,d)),
-                        getattr(algos, 'group_%s_bin_%s' % (fname,d)),
+                args = [getattr(algos, 'group_%s_%s' % (fname, d)),
+                        getattr(algos, 'group_%s_bin_%s' % (fname, d)),
                         np_funcs[fname],
                         d,
                         check_less_precise]
@@ -505,7 +505,8 @@ class TestBinGroupers(unittest.TestCase):
         exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
                         np_func(obj[9:])],
                        dtype=dtype)
-        assert_almost_equal(out.squeeze(), exp, check_less_precise=check_less_precise)
+        assert_almost_equal(
+            out.squeeze(), exp, check_less_precise=check_less_precise)
 
         # duplicate bins
         bins = np.array([3, 6, 10, 10], dtype=np.int64)
@@ -515,19 +516,20 @@ class TestBinGroupers(unittest.TestCase):
         exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
                         np_func(obj[6:10]), np.nan],
                        dtype=dtype)
-        assert_almost_equal(out.squeeze(), exp, check_less_precise=check_less_precise)
+        assert_almost_equal(
+            out.squeeze(), exp, check_less_precise=check_less_precise)
 
 
 def test_group_ohlc():
 
     def _check(dtype):
-        obj = np.array(np.random.randn(20),dtype=dtype)
+        obj = np.array(np.random.randn(20), dtype=dtype)
 
         bins = np.array([6, 12], dtype=np.int64)
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        
-        func = getattr(algos,'group_ohlc_%s' % dtype)
+
+        func = getattr(algos, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], bins)
 
         def _ohlc(group):
@@ -548,6 +550,7 @@ def test_group_ohlc():
 
     _check('float32')
     _check('float64')
+
 
 def test_try_parse_dates():
     from dateutil.parser import parse

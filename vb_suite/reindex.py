@@ -89,9 +89,10 @@ reindex_fillna_pad_float32 = Benchmark("ts4.fillna(method='pad')", setup,
 reindex_fillna_backfill = Benchmark("ts3.fillna(method='backfill')", setup,
                                     name="reindex_fillna_backfill",
                                     start_date=datetime(2011, 3, 1))
-reindex_fillna_backfill_float32 = Benchmark("ts4.fillna(method='backfill')", setup,
-                                            name="reindex_fillna_backfill_float32",
-                                            start_date=datetime(2013, 1, 1))
+reindex_fillna_backfill_float32 = Benchmark(
+    "ts4.fillna(method='backfill')", setup,
+    name="reindex_fillna_backfill_float32",
+    start_date=datetime(2013, 1, 1))
 
 #----------------------------------------------------------------------
 # align on level

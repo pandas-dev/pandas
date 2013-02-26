@@ -274,4 +274,3 @@ store = HDFStore(f)
 write_store_table_dc = Benchmark(
     "store.append('df15',df,data_columns=True)", setup15, cleanup="store.close()",
     start_date=start_date)
-

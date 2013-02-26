@@ -276,7 +276,7 @@ class TestTSPlot(unittest.TestCase):
     def test_nonzero_base(self):
         import matplotlib.pyplot as plt
         plt.close('all')
-        #GH2571
+        # GH2571
         idx = (date_range('2012-12-20', periods=24, freq='H') +
                timedelta(minutes=30))
         df = DataFrame(np.arange(24), index=idx)

@@ -641,16 +641,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_sortlevel_large_cardinality(self):
 
         # #2684 (int64)
-        index = MultiIndex.from_arrays([np.arange(4000)]*3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype = np.int64)
+        index = MultiIndex.from_arrays([np.arange(4000)] * 3)
+        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int64)
 
         # it works!
         result = df.sortlevel(0)
         self.assertTrue(result.index.lexsort_depth == 3)
 
         # #2684 (int32)
-        index = MultiIndex.from_arrays([np.arange(4000)]*3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype = np.int32)
+        index = MultiIndex.from_arrays([np.arange(4000)] * 3)
+        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int32)
 
         # it works!
         result = df.sortlevel(0)
@@ -1796,9 +1796,9 @@ Thur,Lunch,Yes,51.51,17"""
     def test_duplicate_groupby_issues(self):
         idx_tp = [('600809', '20061231'), ('600809', '20070331'),
                   ('600809', '20070630'), ('600809', '20070331')]
-        dt = ['demo','demo','demo','demo']
+        dt = ['demo', 'demo', 'demo', 'demo']
 
-        idx = MultiIndex.from_tuples(idx_tp,names = ['STK_ID','RPT_Date'])
+        idx = MultiIndex.from_tuples(idx_tp, names=['STK_ID', 'RPT_Date'])
         s = Series(dt, index=idx)
 
         result = s.groupby(s.index).first()

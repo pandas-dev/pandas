@@ -813,21 +813,23 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 self.assert_(panel[i].values.dtype.name == dtype)
 
         # only nan holding types allowed here
-        for dtype in ['float64','float32','object']:
-            panel = Panel(items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
-            _check_dtype(panel,dtype)
+        for dtype in ['float64', 'float32', 'object']:
+            panel = Panel(items=range(
+                2), major_axis=range(10), minor_axis=range(5), dtype=dtype)
+            _check_dtype(panel, dtype)
 
-        for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.array(np.random.randn(2,10,5),dtype=dtype),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
-            _check_dtype(panel,dtype)
+        for dtype in ['float64', 'float32', 'int64', 'int32', 'object']:
+            panel = Panel(np.array(np.random.randn(2, 10, 5), dtype=dtype), items=range(2), major_axis=range(10), minor_axis=range(5), dtype=dtype)
+            _check_dtype(panel, dtype)
 
-        for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.array(np.random.randn(2,10,5),dtype='O'),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
-            _check_dtype(panel,dtype)
+        for dtype in ['float64', 'float32', 'int64', 'int32', 'object']:
+            panel = Panel(np.array(np.random.randn(2, 10, 5), dtype='O'), items=range(2), major_axis=range(10), minor_axis=range(5), dtype=dtype)
+            _check_dtype(panel, dtype)
 
-        for dtype in ['float64','float32','int64','int32','object']:
-            panel = Panel(np.random.randn(2,10,5),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
-            _check_dtype(panel,dtype)
+        for dtype in ['float64', 'float32', 'int64', 'int32', 'object']:
+            panel = Panel(np.random.randn(2, 10, 5), items=range(
+                2), major_axis=range(10), minor_axis=range(5), dtype=dtype)
+            _check_dtype(panel, dtype)
 
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())

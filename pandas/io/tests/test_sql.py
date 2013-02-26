@@ -27,6 +27,7 @@ _formatters = {
     bool: lambda x: "'%s'" % x,
 }
 
+
 def format_query(sql, *args):
     """
 
@@ -41,11 +42,13 @@ def format_query(sql, *args):
 
     return sql % tuple(processed_args)
 
+
 def _skip_if_no_MySQLdb():
     try:
         import MySQLdb
     except ImportError:
         raise nose.SkipTest('MySQLdb not installed, skipping')
+
 
 class TestSQLite(unittest.TestCase):
 
@@ -215,8 +218,8 @@ class TestSQLite(unittest.TestCase):
     def test_keyword_as_column_names(self):
         '''
         '''
-        df = DataFrame({'From':np.ones(5)})
-        sql.write_frame(df, con = self.db, name = 'testkeywords')
+        df = DataFrame({'From': np.ones(5)})
+        sql.write_frame(df, con=self.db, name='testkeywords')
 
 
 class TestMySQL(unittest.TestCase):
@@ -378,7 +381,8 @@ class TestMySQL(unittest.TestCase):
         drop_sql = "DROP TABLE IF EXISTS test_table2"
         cur = self.db.cursor()
         cur.execute(drop_sql)
-        sql.write_frame(frame2, name='test_table2', con=self.db, flavor='mysql')
+        sql.write_frame(
+            frame2, name='test_table2', con=self.db, flavor='mysql')
         result = sql.read_frame("select * from test_table2", self.db,
                                 index_col='Idx')
         expected = frame.copy()
@@ -439,8 +443,8 @@ class TestMySQL(unittest.TestCase):
         '''
         '''
         _skip_if_no_MySQLdb()
-        df = DataFrame({'From':np.ones(5)})
-        sql.write_frame(df, con = self.db, name = 'testkeywords',
+        df = DataFrame({'From': np.ones(5)})
+        sql.write_frame(df, con=self.db, name='testkeywords',
                         if_exists='replace', flavor='mysql')
 
 

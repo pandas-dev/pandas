@@ -146,7 +146,7 @@ df = pandas.DataFrame(np.random.randn(10,10000))
 """
 
 frame_get_dtype_counts = Benchmark('df.get_dtype_counts()', setup,
-                                       start_date=datetime(2012, 8, 1))
+                                   start_date=datetime(2012, 8, 1))
 
 ##
 setup = common_setup + """
@@ -154,4 +154,4 @@ df = pandas.DataFrame(np.random.randn(10,10000))
 """
 
 frame_wide_repr = Benchmark('repr(df)', setup,
-                                       start_date=datetime(2012, 8, 1))
+                            start_date=datetime(2012, 8, 1))

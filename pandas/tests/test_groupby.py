@@ -67,7 +67,7 @@ class TestGroupBy(unittest.TestCase):
                                           'B': ['one', 'one', 'two', 'three',
                                                 'two', 'two', 'one', 'three'],
                                           'C': np.random.randn(8),
-                                          'D': np.array(np.random.randn(8),dtype='float32')})
+                                          'D': np.array(np.random.randn(8), dtype='float32')})
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
@@ -505,19 +505,18 @@ class TestGroupBy(unittest.TestCase):
     def test_with_na(self):
         index = Index(np.arange(10))
 
-        for dtype in ['float64','float32','int64','int32','int16','int8']:
+        for dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']:
             values = Series(np.ones(10), index, dtype=dtype)
             labels = Series([nan, 'foo', 'bar', 'bar', nan, nan, 'bar',
                              'bar', nan, 'foo'], index=index)
-
 
             # this SHOULD be an int
             grouped = values.groupby(labels)
             agged = grouped.agg(len)
             expected = Series([4, 2], index=['bar', 'foo'])
-            
+
             assert_series_equal(agged, expected, check_dtype=False)
-            #self.assert_(issubclass(agged.dtype.type, np.integer))
+            # self.assert_(issubclass(agged.dtype.type, np.integer))
 
             # explicity return a float from my function
             def f(x):
@@ -525,7 +524,7 @@ class TestGroupBy(unittest.TestCase):
 
             agged = grouped.agg(f)
             expected = Series([4, 2], index=['bar', 'foo'])
-            
+
             assert_series_equal(agged, expected, check_dtype=False)
             self.assert_(issubclass(agged.dtype.type, np.dtype(dtype).type))
 
@@ -1125,7 +1124,8 @@ class TestGroupBy(unittest.TestCase):
 
     def test_max_min_non_numeric(self):
         # #2700
-        aa = DataFrame({'nn':[11,11,22,22],'ii':[1,2,3,4],'ss':4*['mama']})
+        aa = DataFrame(
+            {'nn': [11, 11, 22, 22], 'ii': [1, 2, 3, 4], 'ss': 4 * ['mama']})
 
         result = aa.groupby('nn').max()
         self.assertTrue('ss' in result)
@@ -2226,6 +2226,7 @@ class TestGroupBy(unittest.TestCase):
         result = df[1].groupby(level=0).first()
         got_dt = result.dtype
         self.assert_(issubclass(got_dt.type, np.datetime64))
+
 
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())

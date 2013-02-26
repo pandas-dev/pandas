@@ -623,6 +623,7 @@ class TestDataFramePlots(unittest.TestCase):
         xticks = ax.lines[0].get_xdata()
         self.assert_(xticks[0] < xticks[1])
 
+
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
     @classmethod

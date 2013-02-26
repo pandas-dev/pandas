@@ -1130,7 +1130,7 @@ class Index(np.ndarray):
             If None, defaults to the beginning
         end : label, default None
             If None, defaults to the end
-        step : int, default None 
+        step : int, default None
 
         Returns
         -------

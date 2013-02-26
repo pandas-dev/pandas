@@ -657,7 +657,7 @@ class Panel(NDFrame):
             axes = self._expand_axes(args)
             d = self._construct_axes_dict_from(self, axes, copy=False)
             result = self.reindex(**d)
-            args  = list(args)
+            args = list(args)
             likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
             made_bigger = not np.array_equal(
                 axes[0], getattr(self, self._info_axis))

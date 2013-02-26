@@ -217,14 +217,15 @@ class Block(object):
         else:
             return make_block(new_values, self.items, self.ref_items)
 
-    def astype(self, dtype, copy = True, raise_on_error = True):
+    def astype(self, dtype, copy=True, raise_on_error=True):
         """
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
         """
         try:
-            newb = make_block(com._astype_nansafe(self.values, dtype, copy = copy),
-                              self.items, self.ref_items)
+            newb = make_block(
+                com._astype_nansafe(self.values, dtype, copy=copy),
+                self.items, self.ref_items)
         except:
             if raise_on_error is True:
                 raise
@@ -239,7 +240,7 @@ class Block(object):
                                 self.itemsize, newb.dtype.name, newb.itemsize))
         return newb
 
-    def convert(self, copy = True, **kwargs):
+    def convert(self, copy=True, **kwargs):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
             by definition we are not an ObjectBlock here!  """
@@ -299,7 +300,8 @@ class Block(object):
         # may need to align the mask
         if hasattr(mask, 'reindex_axis'):
             axis = getattr(mask, '_het_axis', 0)
-            mask = mask.reindex_axis(self.items, axis=axis, copy=False).values.T
+            mask = mask.reindex_axis(
+                self.items, axis=axis, copy=False).values.T
 
         if self._can_hold_element(new):
             new = self._try_cast(new)
@@ -319,17 +321,17 @@ class Block(object):
 
             # we create a new block type
             np.putmask(new_values, mask, new)
-            return [ make_block(new_values, self.items, self.ref_items) ]
+            return [make_block(new_values, self.items, self.ref_items)]
 
         if inplace:
-            return [ self ]
+            return [self]
 
-        return [ make_block(new_values, self.items, self.ref_items) ]
+        return [make_block(new_values, self.items, self.ref_items)]
 
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None, coerce=False):
 
-        # if we are coercing, then don't force the conversion 
+        # if we are coercing, then don't force the conversion
         # if the block can't hold the type
         if coerce:
             if not self._can_hold_na:
@@ -337,7 +339,7 @@ class Block(object):
                     return self
                 else:
                     return self.copy()
-        
+
         values = self.values if inplace else self.values.copy()
 
         if values.ndim != 2:
@@ -385,9 +387,9 @@ class Block(object):
             new_values[:, periods:] = fill_value
         return make_block(new_values, self.items, self.ref_items)
 
-    def eval(self, func, other, raise_on_error = True, try_cast = False):
-        """ 
-        evaluate the block; return result block from the result 
+    def eval(self, func, other, raise_on_error=True, try_cast=False):
+        """
+        evaluate the block; return result block from the result
 
         Parameters
         ----------
@@ -414,7 +416,7 @@ class Block(object):
                 values = values.T
                 is_transposed = True
 
-        args = [ values, other ]
+        args = [values, other]
         try:
             result = func(*args)
         except:
@@ -423,7 +425,7 @@ class Block(object):
                                 % repr(other))
             else:
                 # return the values
-                result = np.empty(values.shape,dtype='O')
+                result = np.empty(values.shape, dtype='O')
                 result.fill(np.nan)
 
         if not isinstance(result, np.ndarray):
@@ -439,9 +441,9 @@ class Block(object):
 
         return make_block(result, self.items, self.ref_items)
 
-    def where(self, other, cond, raise_on_error = True, try_cast = False):
-        """ 
-        evaluate the block; return result block(s) from the result 
+    def where(self, other, cond, raise_on_error=True, try_cast=False):
+        """
+        evaluate the block; return result block(s) from the result
 
         Parameters
         ----------
@@ -458,8 +460,8 @@ class Block(object):
         values = self.values
 
         # see if we can align other
-        if hasattr(other,'reindex_axis'):
-            axis = getattr(other,'_het_axis',0)
+        if hasattr(other, 'reindex_axis'):
+            axis = getattr(other, '_het_axis', 0)
             other = other.reindex_axis(self.items, axis=axis, copy=True).values
 
         # make sure that we can broadcast
@@ -470,10 +472,11 @@ class Block(object):
                 is_transposed = True
 
         # see if we can align cond
-        if not hasattr(cond,'shape'):
-            raise ValueError("where must have a condition that is ndarray like")
-        if hasattr(cond,'reindex_axis'):
-            axis = getattr(cond,'_het_axis',0)
+        if not hasattr(cond, 'shape'):
+            raise ValueError(
+                "where must have a condition that is ndarray like")
+        if hasattr(cond, 'reindex_axis'):
+            axis = getattr(cond, '_het_axis', 0)
             cond = cond.reindex_axis(self.items, axis=axis, copy=True).values
         else:
             cond = cond.values
@@ -482,26 +485,26 @@ class Block(object):
         if hasattr(values, 'ndim'):
             if values.ndim != cond.ndim or values.shape == cond.shape[::-1]:
                 values = values.T
-                is_transposed =  not is_transposed
+                is_transposed = not is_transposed
 
         # our where function
-        def func(c,v,o):
+        def func(c, v, o):
             if c.ravel().all():
                 return v
-            
+
             try:
-                return np.where(c,v,o)
+                return np.where(c, v, o)
             except:
                 if raise_on_error:
                     raise TypeError('Coulnd not operate %s with block values'
                                     % repr(o))
                 else:
                     # return the values
-                    result = np.empty(v.shape,dtype='float64')
+                    result = np.empty(v.shape, dtype='float64')
                     result.fill(np.nan)
                     return result
 
-        def create_block(result, items, transpose = True):
+        def create_block(result, items, transpose=True):
             if not isinstance(result, np.ndarray):
                 raise TypeError('Could not compare %s with block values'
                                 % repr(other))
@@ -517,26 +520,29 @@ class Block(object):
 
         # see if we can operate on the entire block, or need item-by-item
         if not self._can_hold_na:
-            axis = cond.ndim-1
+            axis = cond.ndim - 1
             result_blocks = []
             for item in self.items:
-                loc  = self.items.get_loc(item)
+                loc = self.items.get_loc(item)
                 item = self.items.take([loc])
-                v    = values.take([loc],axis=axis)
-                c    = cond.take([loc],axis=axis)
-                o    = other.take([loc],axis=axis) if hasattr(other,'shape') else other
+                v = values.take([loc], axis=axis)
+                c = cond.take([loc], axis=axis)
+                o = other.take(
+                    [loc], axis=axis) if hasattr(other, 'shape') else other
 
-                result = func(c,v,o)
+                result = func(c, v, o)
                 if len(result) == 1:
-                    result = np.repeat(result,self.shape[1:])
+                    result = np.repeat(result, self.shape[1:])
 
                 result = result.reshape(((1,) + self.shape[1:]))
-                result_blocks.append(create_block(result, item, transpose = False))
+                result_blocks.append(
+                    create_block(result, item, transpose=False))
 
             return result_blocks
         else:
-            result = func(cond,values,other)
+            result = func(cond, values, other)
             return create_block(result, self.items)
+
 
 def _mask_missing(array, missing_values):
     if not isinstance(missing_values, (list, np.ndarray)):
@@ -555,9 +561,11 @@ def _mask_missing(array, missing_values):
             mask |= array == missing_values
     return mask
 
+
 class NumericBlock(Block):
     is_numeric = True
     _can_hold_na = True
+
 
 class FloatBlock(NumericBlock):
 
@@ -651,7 +659,7 @@ class ObjectBlock(Block):
         """ we can be a bool if we have only bool values but are of type object """
         return lib.is_bool_array(self.values.ravel())
 
-    def convert(self, convert_dates = True, convert_numeric = True, copy = True):
+    def convert(self, convert_dates=True, convert_numeric=True, copy=True):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
             by definition we ARE an ObjectBlock!!!!!
@@ -899,15 +907,15 @@ class BlockManager(object):
 
     def apply(self, f, *args, **kwargs):
         """ iterate over the blocks, collect and create a new block manager """
-        axes = kwargs.pop('axes',None)
+        axes = kwargs.pop('axes', None)
         result_blocks = []
         for blk in self.blocks:
             if callable(f):
                 applied = f(blk, *args, **kwargs)
             else:
-                applied = getattr(blk,f)(*args, **kwargs)
+                applied = getattr(blk, f)(*args, **kwargs)
 
-            if isinstance(applied,list):
+            if isinstance(applied, list):
                 result_blocks.extend(applied)
             else:
                 result_blocks.append(applied)
@@ -978,7 +986,7 @@ class BlockManager(object):
         self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
 
-    def get_numeric_data(self, copy=False, type_list=None, as_blocks = False):
+    def get_numeric_data(self, copy=False, type_list=None, as_blocks=False):
         """
         Parameters
         ----------
@@ -1403,7 +1411,8 @@ class BlockManager(object):
 
         new_blocks = []
         for block in self.blocks:
-            newb = block.reindex_axis(indexer, axis=axis, fill_value=fill_value)
+            newb = block.reindex_axis(
+                indexer, axis=axis, fill_value=fill_value)
             new_blocks.append(newb)
 
         new_axes = list(self.axes)
@@ -1713,10 +1722,10 @@ def _simple_blockify(tuples, ref_items, dtype):
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
-    return [ make_block(values, block_items, ref_items) ]
+    return [make_block(values, block_items, ref_items)]
 
 
-def _multi_blockify(tuples, ref_items, dtype = None):
+def _multi_blockify(tuples, ref_items, dtype=None):
     """ return an array of blocks that potentially have different dtypes """
 
     # group by dtype
@@ -1730,6 +1739,7 @@ def _multi_blockify(tuples, ref_items, dtype = None):
         new_blocks.append(block)
 
     return new_blocks
+
 
 def _stack_arrays(tuples, ref_items, dtype):
     from pandas.core.series import Series
@@ -1776,7 +1786,8 @@ def _blocks_to_series_dict(blocks, index=None):
 
 
 def _interleaved_dtype(blocks):
-    if not len(blocks): return None
+    if not len(blocks):
+        return None
 
     from collections import defaultdict
     counts = defaultdict(lambda: [])

@@ -1036,7 +1036,7 @@ class LinePlot(MPLPlot):
         # hack this for 0.10.1, creating more technical debt...sigh
         from pandas.core.frame import DataFrame
         if (isinstance(self.data, (Series, DataFrame))
-            and isinstance(self.data.index, DatetimeIndex)):
+                and isinstance(self.data.index, DatetimeIndex)):
             import pandas.tseries.frequencies as freqmod
             base = freqmod.get_freq(freq)
             x = self.data.index

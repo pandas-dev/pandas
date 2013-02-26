@@ -86,11 +86,13 @@ redirect : str, optional
     Local host redirect if unspecified
 """
 
+
 def reset_token_store():
     """
     Deletes the default token store
     """
     auth.reset_default_token_store()
+
 
 @Substitution(extras=_AUTH_PARAMS)
 @Appender(_GA_READER_DOC)
@@ -378,6 +380,7 @@ def _maybe_add_arg(query, field, data, prefix='ga'):
             data = [data]
         data = ','.join(['%s:%s' % (prefix, x) for x in data])
         query[field] = data
+
 
 def _get_match(obj_store, name, id, **kwargs):
     key, val = None, None
