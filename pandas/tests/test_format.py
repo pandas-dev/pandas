@@ -479,6 +479,30 @@ class TestDataFrameFormatting(unittest.TestCase):
         repr(df.T)
         fmt.set_printoptions(max_rows=200)
 
+    def test_large_frame_repr(self):
+        old_max_rows = pd.get_option('display.max_rows')
+        old_max_info_rows = pd.get_option('display.max_info_rows')
+
+        nrows, ncols = 3, 2
+
+        # need to set max rows so that we get an info-style repr
+        pd.set_option('display.max_rows', nrows - 1)
+        pd.set_option('display.max_info_rows', nrows)
+
+        smallx = DataFrame(np.random.rand(nrows, ncols))
+        repr_small = repr(smallx)
+
+        bigx = DataFrame(np.random.rand(nrows + 1, ncols))
+        repr_big = repr(bigx)
+
+        diff = len(repr_small.splitlines()) - len(repr_big.splitlines())
+
+        # the difference in line count is the number of columns
+        self.assertEqual(diff, ncols)
+
+        pd.set_option('display.max_rows', old_max_rows)
+        pd.set_option('display.max_info_rows', old_max_info_rows)
+
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]

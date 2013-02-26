@@ -53,7 +53,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
 
-from pandas.core.config import get_option
+from pandas.core.config import get_option, set_option
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -332,7 +332,6 @@ def _comp_method(func, name, str_rep):
 
 class DataFrame(NDFrame):
     _auto_consolidate = True
-    _verbose_info = True
     _het_axis = 1
     _info_axis = 'columns'
     _col_klass = Series
@@ -562,6 +561,22 @@ class DataFrame(NDFrame):
         return self._constructor(arr, index=index, columns=columns, copy=copy)
 
     @property
+    def _verbose_info(self):
+        import warnings
+        warnings.warn('The _verbose_info property will be removed in version '
+                      '0.12', FutureWarning)
+        return get_option('display.max_info_rows') is None
+
+    @_verbose_info.setter
+    def _verbose_info(self, value):
+        import warnings
+        warnings.warn('The _verbose_info property will be removed in version '
+                      '0.12', FutureWarning)
+
+        value = None if value else 1000000
+        set_option('display.max_info_rows', value)
+
+    @property
     def axes(self):
         return [self.index, self.columns]
 
@@ -653,7 +668,9 @@ class DataFrame(NDFrame):
         """
         buf = StringIO(u"")
         if self._need_info_repr_():
-            self.info(buf=buf, verbose=self._verbose_info)
+            max_info_rows = get_option('display.max_info_rows')
+            verbose = max_info_rows is None or self.shape[0] <= max_info_rows
+            self.info(buf=buf, verbose=verbose)
         else:
             is_wide = self._need_wide_repr()
             line_width = None

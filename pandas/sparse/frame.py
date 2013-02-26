@@ -66,7 +66,6 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries. Will not
         override SparseSeries passed in
     """
-    _verbose_info = False
     _columns = None
     _series = None
     _is_mixed_type = False
