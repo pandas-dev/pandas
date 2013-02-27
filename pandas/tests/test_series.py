@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, date
 import os
 import operator
 import unittest
+import types
 
 import nose
 
@@ -3940,6 +3941,36 @@ class TestSeriesNonUnique(unittest.TestCase):
         # it works! #1807
         Series(Series(["a", "c", "b"]).unique()).sort()
 
+
+    def test_dot_notation_items_access(self):
+        '''
+        cf #1903
+        '''
+        s = Series({'a' : 11, 'b' : 12, 'c' : 13,
+                    'append' : 14, 'T' : 15,
+                    '100' : 16, '*' : 17})
+        
+        # check dot notation / getattr()
+        self.assert_(s.a == getattr(s, 'a') == s['a'] == 11)
+        self.assert_(s.b == getattr(s, 'b') == s['b'] == 12)
+        self.assert_(s.c == getattr(s, 'c') == s['c'] == 13)
+
+        # check getattr() for special keys (no dot notation)
+        self.assert_(getattr(s, '100') == s['100'] == 16)
+        self.assert_(getattr(s, '*') == s['*'] == 17)
+        
+        # check AttributeError on non-existing series keys
+        self.assertRaises(AttributeError, getattr, s, 'aaa')
+        self.assertRaises(AttributeError, getattr, s, 'other_key')
+        
+        # Existing methods/property should overwrite attribute dot notation
+        self.assert_(isinstance(s.append,  types.MethodType))
+        self.assert_(isinstance(s.T,  Series))
+
+        # Masked attributes are still available via dict notation
+        self.assert_(s['append'] == 14)
+        self.assert_(s['T'] == 15)
+        
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

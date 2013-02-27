@@ -550,6 +550,22 @@ class Series(pa.Array, generic.PandasObject):
 
         return self._ix
 
+
+    def __getattr__(self, key):
+        # make sure there is something to look into
+        if self.index is not None:
+            # If attribute is in the Series index ...
+            if key in self.index:
+                # ... return item as an attribute
+                return self[key]
+            else:
+                # ... raise the usual exception
+                raise AttributeError("'Series' object has no attribute '%s'" % key)
+        else:
+            # ... raise the usual exception
+            raise AttributeError("'Series' object has no attribute '%s'" % key)
+
+        
     def __getitem__(self, key):
         try:
             return self.index.get_value(self, key)
