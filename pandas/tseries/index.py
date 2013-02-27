@@ -1731,7 +1731,8 @@ def _process_concat_data(to_concat, name):
             else:
                 to_concat = [x.values for x in to_concat]
 
-            klass = DatetimeIndex
+            # well, technically not a "class" anymore...oh well
+            klass = DatetimeIndex._simple_new
             kwargs = {'tz': tz}
             concat = com._concat_compat
     else:

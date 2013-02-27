@@ -42,6 +42,13 @@ import pandas.core.common as com
 from numpy.testing.decorators import slow
 
 
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
+
+
 class TestTimeSeriesDuplicates(unittest.TestCase):
     _multiprocess_can_split_ = True
 
@@ -166,13 +173,6 @@ def assert_range_equal(left, right):
     assert(left.equals(right))
     assert(left.freq == right.freq)
     assert(left.tz == right.tz)
-
-
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        raise nose.SkipTest
 
 
 class TestTimeSeries(unittest.TestCase):
@@ -1264,6 +1264,29 @@ class TestTimeSeries(unittest.TestCase):
         rng2.name = 'bar'
         self.assert_(rng1.append(rng1).name == 'foo')
         self.assert_(rng1.append(rng2).name is None)
+
+    def test_append_concat_tz(self):
+        #GH 2938
+        _skip_if_no_pytz()
+
+        rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
+                         tz='US/Eastern')
+        rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
+                         tz='US/Eastern')
+        rng3 = date_range('5/8/2012 1:45', periods=20, freq='5T',
+                         tz='US/Eastern')
+        ts = Series(np.random.randn(len(rng)), rng)
+        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        ts2 = Series(np.random.randn(len(rng2)), rng2)
+        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
+
+        result = ts.append(ts2)
+        result_df = df.append(df2)
+        self.assert_(result.index.equals(rng3))
+        self.assert_(result_df.index.equals(rng3))
+
+        appended = rng.append(rng2)
+        self.assert_(appended.equals(rng3))
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
