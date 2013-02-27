@@ -549,6 +549,10 @@ class Series(pa.Array, generic.PandasObject):
 
     # indexers
     @property
+    def axes(self):
+        return [ self.index ]
+
+    @property
     def ix(self):
         if self._ix is None:
             self._ix = _SeriesIndexer(self, 'ix')
@@ -556,7 +560,7 @@ class Series(pa.Array, generic.PandasObject):
         return self._ix
 
     def _ixs(self, i, axis=0):
-        return self.values[i]
+        return self[self.index[i]]
 
     @property
     def _is_mixed_type(self):

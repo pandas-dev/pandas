@@ -3,7 +3,7 @@
 import numpy as np
 
 from pandas.core.index import MultiIndex
-from pandas.core.indexing import _NDFrameIndexer, _NDFrameLocIndexer
+import pandas.core.indexing as indexing
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
 import pandas.lib as lib
@@ -60,6 +60,21 @@ class PandasObject(object):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
+    #----------------------------------------------------------------------
+    # Indexers
+    @classmethod
+    def _create_indexer(cls, name, indexer):
+        """ create an indexer like _name in the class """
+        iname = '_%s' % name
+        setattr(cls,iname,None)
+
+        def _indexer(self):
+            if getattr(self,iname,None) is None:
+                setattr(self,iname,indexer(self, name))
+            return getattr(self,iname)
+
+        setattr(cls,name,property(_indexer))
+
     def abs(self):
         """
         Return an object with absolute value taken. Only applicable to objects
@@ -70,29 +85,6 @@ class PandasObject(object):
         abs: type of caller
         """
         return np.abs(self)
-
-
-    #----------------------------------------------------------------------
-    # integer indexing
-    _iloc = None
-
-    @property
-    def iloc(self):
-        if self._iloc is None:
-            self._iloc = _NDFrameLocIndexer(self, 'iloc')
-
-        return self._iloc
-
-    #----------------------------------------------------------------------
-    # Fancy indexing
-    _ix = None
-
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _NDFrameIndexer(self, 'ix')
-
-        return self._ix
 
     def get(self, key, default=None):
         """
@@ -486,6 +478,9 @@ class PandasObject(object):
             np.putmask(rs.values, mask, np.nan)
         return rs
 
+# install the indexerse
+for _name, _indexer in indexing.get_indexers_list():
+    PandasObject._create_indexer(_name,_indexer)
 
 class NDFrame(PandasObject):
     """

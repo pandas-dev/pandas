@@ -7,6 +7,17 @@ import pandas.lib as lib
 
 import numpy as np
 
+# the supported indexers
+def get_indexers_list():
+
+    return [
+        ('ix'  ,_NDFrameIndexer),
+        ('iloc',_iLocIndexer   ),
+        ('loc' ,_LocIndexer    ),
+        ('at'  ,_AtIndexer     ),
+        ('iat' ,_iAtIndexer    ),
+        ]
+
 # "null slice"
 _NS = slice(None, None)
 
@@ -594,8 +605,11 @@ class _NDFrameIndexer(object):
         else:
             return self.obj.take(indexer, axis=axis)
 
-class _NDFrameLocIndexer(_NDFrameIndexer):
-    """ purely location based indexing """
+class _LocationIndexer(_NDFrameIndexer):
+    _valid_types = None
+
+    def _has_valid_type(self, k):
+        raise NotImplemented
 
     def __getitem__(self, key):
         if type(key) is tuple:
@@ -603,8 +617,8 @@ class _NDFrameLocIndexer(_NDFrameIndexer):
             for i, k in enumerate(key):
                 if i >= self.obj.ndim:
                     raise ValueError('Too many indexers')
-                if not (isinstance(k, slice) or com.is_integer(k) or _is_list_like(k)):
-                    raise ValueError("Location based indexing can only have slice or integer indexers")
+                if not self._has_valid_type(k):
+                    raise ValueError("Location based indexing can only have [%s] types" % self._valid_types)
 
             return self._getitem_tuple(key)
         else:
@@ -622,6 +636,33 @@ class _NDFrameLocIndexer(_NDFrameIndexer):
         return retval
 
     def _get_slice_axis(self, slice_obj, axis=0):
+        raise NotImplemented
+
+    def _getitem_axis(self, key, axis=0):
+        raise NotImplemented
+
+    def _convert_to_indexer(self, obj, axis=0):
+        """ much simpler as we only have to deal with our valid types """
+        if self._has_valid_type(obj):
+            return obj
+
+        raise ValueError("Can only index by location with a [%s]" % self._valid_types)
+
+class _LocIndexer(_LocationIndexer):
+    """ purely label based location based indexing """
+    _valid_types = None
+
+    def _has_valid_type(self, k):
+        return True
+
+class _iLocIndexer(_LocationIndexer):
+    """ purely integer based location based indexing """
+    _valid_types = "integer, integer slice, listlike of integers, boolean array"
+
+    def _has_valid_type(self, k):
+        return isinstance(k, slice) or com.is_integer(k) or _is_list_like(k) or com._is_bool_indexer(k)
+
+    def _get_slice_axis(self, slice_obj, axis=0):
         obj = self.obj
 
         if not _need_slice(slice_obj):
@@ -637,7 +678,14 @@ class _NDFrameLocIndexer(_NDFrameIndexer):
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 
-        # a single integer
+        elif com._is_bool_indexer(key):
+            
+            labels = self.obj._get_axis(axis)
+            key = _check_bool_indexer(labels, key)
+            inds, = key.nonzero()
+            return self.obj.take(inds, axis=axis)
+
+        # a single integer or a list of integers
         else:
 
             if not (com.is_integer(key) or _is_list_like(key)):
@@ -645,12 +693,45 @@ class _NDFrameLocIndexer(_NDFrameIndexer):
 
             return self._get_loc(key,axis=axis)
 
-    def _convert_to_indexer(self, obj, axis=0):
-        """ much simpler as we only have to deal with slice/integer """
-        if isinstance(obj, slice) or com.is_integer(obj):
-            return obj
 
-        raise ValueError("Can only index by location with a slice or integer key")
+class _ScalarAccessIndexer(_NDFrameIndexer):
+    """ access scalars quickly """
+
+    def _convert_key(self, key):
+        return list(key)
+
+    def __getitem__(self, key):
+        if not isinstance(key, tuple):
+            raise ValueError('Invalid call for scalar access (getting)!')
+        if len(key) != self.obj.ndim:
+            raise ValueError('Not enough indexers for scalar access (getting)!')
+        key = self._convert_key(key)
+        return self.obj.get_value(*key)
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, tuple):
+            raise ValueError('Invalid call for scalar access (setting)!')
+        if len(key) != self.obj.ndim:
+            raise ValueError('Not enough indexers for scalar access (setting)!')
+        key = self._convert_key(key)
+        key.append(value)
+        self.obj.set_value(*key)
+
+class _AtIndexer(_ScalarAccessIndexer):
+    """ label based scalar accessor """
+    pass
+
+class _iAtIndexer(_ScalarAccessIndexer):
+    """ integer based scalar accessor """
+
+    def _convert_key(self, key):
+        """ require  integer args (and convert to label arguments) """
+        ckey = []
+        for a, i in zip(self.obj.axes,key):
+            if not com.is_integer(i):
+                raise ValueError("iAt based indexing can only have integer indexers")
+            ckey.append(a[i])
+        return ckey
 
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps
