@@ -38,6 +38,8 @@ detect NA values.
 However, it comes with it a couple of trade-offs which I most certainly have
 not ignored.
 
+.. _gotchas.intna:
+
 Support for integer ``NA``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
