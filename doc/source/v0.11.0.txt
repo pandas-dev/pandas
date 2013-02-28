@@ -11,65 +11,66 @@ to.
 API changes
 ~~~~~~~~~~~
 
-Location Based Indexing
-~~~~~~~~~~~~~~~~~~~~~~~
+Indexing Choice
+~~~~~~~~~~~~~~~
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. 
-The semantics follow closely python and numpy slicing. These are ``0-based`` indexing.
-When slicing, the start bounds is *included*, while the upper bound is *excluded*.
-Invalid selections will raise with an ``IndexError``. Trying to use a non-integer,
-even a **valid** label will raise a ``ValueError``. Integers, lists of integers, and slices
-are allowed indexers.
+Starting in 0.11.0, object selection has had a number of user-requested additions in
+order to support more explicit location based indexing. Pandas now supports
+three types of multi-axis indexing.
 
-The ``.iloc`` attribute is the primary access method .
+  - ``.loc`` is strictly label based, will raise ``KeyError`` when the items are not found,
+    allowed inputs are:
 
-.. ipython:: python
+    - A single label, e.g. ``5`` or ``'a'``
 
-   s1 = Series(np.random.randn(5),index=range(0,10,2))
-   s1
-   s1.iloc[:3]
-   s1.iloc[3]
+      (note that ``5`` when used as a *label* of an integer based index)
+    - A list or array of labels ``['a', 'b', 'c']``
+    - A slice object with labels ``'a':'f'``
 
-Note that setting works as well:
+      (note that contrary to usual python slices, **both** the start and the stop are included!)
+    - A boolean array
 
-.. ipython:: python
+    See more at :ref:`Label indexing <indexing.label>`
 
-   s1.iloc[:3] = 0
-   s1
+  - ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will 
+    raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
 
-With a DataFrame
+    - An integer e.g. ``5``
+    - A list or array of integers ``[4, 3, 0]``
+    - A slice object with ints ``1:7``
+    - A boolean array
 
-.. ipython:: python
+    See more at :ref:`Integer indexing <indexing.integer>` 
 
-   df1 = DataFrame(np.random.randn(8,4),index=range(0,16,2),columns=range(0,8,2))
+  - ``.ix`` supports mixed integer and label based access. It is primarily label based, but
+    will fallback to integer positional access. ``.ix`` is the most general and will support 
+    any of the inputsx to ``.loc`` and ``.iloc``, as well as support for floating point label schemes.
+    As using integer slices with ``.ix`` have different behavior depending on whether the slice 
+    is interpreted as integer location based or label position based, it's usually better to be 
+    explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
 
-   # integer access
-   df1.iloc[5,2]
+    See more at :ref:`Advanced indexing <indexing.advanced>`
 
-   # slices
-   df1.iloc[:3]
-   df1.iloc[1:5,2:4]
 
-   # integer lists
-   df1.iloc[[1,3,5],[1,3]]
+Indexing Deprecations
+~~~~~~~~~~~~~~~~~~~~~
 
-There is one signficant departure from standard python/numpy slicing semantics.
-python/numpy allow slicing past the end of an array without an associated error.
+Starting in version 0.11.0, the methods may be deprecated in future versions.
 
-.. ipython:: python
+  - ``irow``
+  - ``icol``
+  - ``iget_value``
 
-    # these are allowed in python/numpy.
-    x = list('abcdef')
-    x[4:10]
-    x[8:10]
+See the section :ref:`Integer indexing <indexing.integer>` for substitutes.
 
-::
+Cross-sectional slices on non-hierarchical indices are now easily
+performed using ``.loc`` and/or ``.loc``. The methods ``xs`` (for DataFrame),
+``minor_xs`` and ``major_xs`` (for Panel), exist primarily for backward
+compatibility
 
-    >>> df.iloc[:,3:6]
-    IndexError: out-of-bounds on slice (end)
 
-Dtype Specification
-~~~~~~~~~~~~~~~~~~~
+Dtypes
+~~~~~~
 
 Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 

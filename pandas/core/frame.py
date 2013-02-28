@@ -1884,94 +1884,71 @@ class DataFrame(NDFrame):
             return result.set_value(index, col, value)
 
     def irow(self, i, copy=False):
-        """
-        Retrieve the i-th row or rows of the DataFrame by location
-
-        Parameters
-        ----------
-        i : int, slice, or sequence of integers
-
-        Notes
-        -----
-        If slice passed, the resulting data will be a view
-
-        Returns
-        -------
-        row : Series (int) or DataFrame (slice, sequence)
-        """
-        if isinstance(i, slice):
-            return self[i]
-        else:
-            label = self.index[i]
-            if isinstance(label, Index):
-                return self.reindex(label)
-            else:
-                try:
-                    new_values = self._data.fast_2d_xs(i, copy=copy)
-                except:
-                    new_values = self._data.fast_2d_xs(i, copy=True)
-                return Series(new_values, index=self.columns,
-                              name=self.index[i])
+        return self._ixs(i,axis=0)
 
     def icol(self, i):
-        """
-        Retrieve the i-th column or columns of the DataFrame by location
+        return self._ixs(i,axis=1)
 
-        Parameters
-        ----------
+    def _ixs(self, i, axis=0, copy=False):
+        """ 
         i : int, slice, or sequence of integers
-
-        Notes
-        -----
-        If slice passed, the resulting data will be a view
-
-        Returns
-        -------
-        column : Series (int) or DataFrame (slice, sequence)
+        axis : int
         """
-        label = self.columns[i]
-        if isinstance(i, slice):
-            # need to return view
-            lab_slice = slice(label[0], label[-1])
-            return self.ix[:, lab_slice]
-        else:
-            label = self.columns[i]
-            if isinstance(label, Index):
 
-                # if we have negative indicies, translate to postive here 
-                # (take doesen't deal properly with these)
-                l = len(self.columns)
-                i = [ v if v >= 0 else l+v for v in i ]
-
-                return self.take(i, axis=1)
-
-            values = self._data.iget(i)
-            return self._col_klass.from_array(values, index=self.index,
-                                              name=label)
-
-    def _ixs(self, i, axis=0):
+        # irow
         if axis == 0:
-            return self.irow(i)
+
+            """
+            Notes
+            -----
+            If slice passed, the resulting data will be a view
+            """
+
+            if isinstance(i, slice):
+                return self[i]
+            else:
+                label = self.index[i]
+                if isinstance(label, Index):
+                    return self.reindex(label)
+                else:
+                    try:
+                        new_values = self._data.fast_2d_xs(i, copy=copy)
+                    except:
+                        new_values = self._data.fast_2d_xs(i, copy=True)
+                    return Series(new_values, index=self.columns,
+                                  name=self.index[i])
+
+        # icol
         else:
-            return self.icol(i)
+
+            """ 
+            Notes
+            -----
+            If slice passed, the resulting data will be a view
+            """
+
+            label = self.columns[i]
+            if isinstance(i, slice):
+                # need to return view
+                lab_slice = slice(label[0], label[-1])
+                return self.ix[:, lab_slice]
+            else:
+                label = self.columns[i]
+                if isinstance(label, Index):
+
+                    # if we have negative indicies, translate to postive here 
+                    # (take doesen't deal properly with these)
+                    l = len(self.columns)
+                    i = [ v if v >= 0 else l+v for v in i ]
+                    
+                    return self.take(i, axis=1)
+
+                values = self._data.iget(i)
+                return self._col_klass.from_array(values, index=self.index,
+                                                  name=label)
 
     def iget_value(self, i, j):
-        """
-        Return scalar value stored at row i and column j, where i and j are
-        integers
-
-        Parameters
-        ----------
-        i : int
-        j : int
-
-        Returns
-        -------
-        value : scalar value
-        """
-        row = self.index[i]
-        col = self.columns[j]
-        return self.get_value(row, col)
+        return self.iat[i,j]
 
     def __getitem__(self, key):
         if isinstance(key, slice):

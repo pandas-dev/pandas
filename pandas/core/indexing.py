@@ -320,8 +320,12 @@ class _NDFrameIndexer(object):
             if _is_label_like(key) or isinstance(key, tuple):
                 section = self._getitem_axis(key, axis=i)
 
+                # we have yielded a scalar ?
+                if not _is_list_like(section):
+                    return section
+
                 # might have been a MultiIndex
-                if section.ndim == self.ndim:
+                elif section.ndim == self.ndim:
                     new_key = tup[:i] + (_NS,) + tup[i + 1:]
                     # new_key = tup[:i] + tup[i+1:]
                 else:
@@ -639,7 +643,7 @@ class _LocationIndexer(_NDFrameIndexer):
 
 class _LocIndexer(_LocationIndexer):
     """ purely label based location based indexing """
-    _valid_types = "labels (MUST BE INCLUSIVE), slices of labels, slices of integers if the index is integers, boolean"
+    _valid_types = "labels (MUST BE INCLUSIVE), slices of labels (BOTH endpoints included! Can be slices of integers if the index is integers), listlike of labels, boolean"
     _exception   = KeyError
 
     def _has_valid_type(self, key, axis):
@@ -652,10 +656,15 @@ class _LocIndexer(_LocationIndexer):
 
         if isinstance(key, slice):
 
-            if key.start is not None and key.start not in ax:
-                raise KeyError
-            if key.stop is not None and key.stop-1 not in ax:
-                raise KeyError
+            if key.start is not None:
+                if key.start not in ax:
+                    raise KeyError("start bound [%s] is not the [%s]" % (key.start,self.obj._get_axis_name(axis)))
+            if key.stop is not None:
+                stop = key.stop
+                if com.is_integer(stop):
+                    stop -= 1
+                if stop not in ax:
+                    raise KeyError("stop bound [%s] is not in the [%s]" % (stop,self.obj._get_axis_name(axis)))
 
         elif com._is_bool_indexer(key):
                 return True
@@ -665,7 +674,7 @@ class _LocIndexer(_LocationIndexer):
             # require all elements in the index
             idx = _ensure_index(key)
             if not idx.isin(ax).all():
-                raise KeyError
+                raise KeyError("[%s] are not in ALL in the [%s]" % (key,self.obj._get_axis_name(axis)))
 
             return True
 
@@ -673,10 +682,10 @@ class _LocIndexer(_LocationIndexer):
 
             # if its empty we want a KeyError here
             if not len(ax):
-                raise KeyError
+                raise KeyError("The [%s] axis is empty" % self.obj._get_axis_name(axis))
 
             if not key in ax:
-                raise KeyError
+                raise KeyError("the label [%s] is not in the [%s]" % (key,self.obj._get_axis_name(axis)))
 
         return True
 
@@ -684,6 +693,9 @@ class _LocIndexer(_LocationIndexer):
         labels = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
+            ltype = labels.inferred_type
+            if ltype == 'mixed-integer-float' or ltype == 'mixed-integer':
+                raise ValueError('cannot slice with a non-single type label array')
             return self._get_slice_axis(key, axis=axis)
         elif com._is_bool_indexer(key):
             return self._getbool_axis(key, axis=axis)
@@ -703,7 +715,7 @@ class _LocIndexer(_LocationIndexer):
 
 class _iLocIndexer(_LocationIndexer):
     """ purely integer based location based indexing """
-    _valid_types = "integer, integer slice, listlike of integers, boolean array"
+    _valid_types = "integer, integer slice (START point is INCLUDED, END point is EXCLUDED), listlike of integers, boolean array"
     _exception   = IndexError
 
     def _has_valid_type(self, key, axis):
@@ -763,7 +775,13 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
     def __getitem__(self, key):
         if not isinstance(key, tuple):
-            raise ValueError('Invalid call for scalar access (getting)!')
+            
+            # we could have a convertible item here (e.g. Timestamp)
+            if not _is_list_like(key):
+                key = tuple([ key ])
+            else:
+                raise ValueError('Invalid call for scalar access (getting)!')
+
         if len(key) != self.obj.ndim:
             raise ValueError('Not enough indexers for scalar access (getting)!')
         key = self._convert_key(key)
