@@ -10,7 +10,7 @@
    np.set_printoptions(precision=4, suppress=True)
 
 *****************************
-Essential basic functionality
+Essential Basic Functionality
 *****************************
 
 Here we discuss a lot of the essential functionality common to the pandas data
@@ -114,7 +114,7 @@ either match on the *index* or *columns* via the **axis** keyword:
    d = {'one' : Series(randn(3), index=['a', 'b', 'c']),
         'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
         'three' : Series(randn(3), index=['b', 'c', 'd'])}
-   df = DataFrame(d)
+   df = df_orig = DataFrame(d)
    df
    row = df.ix[1]
    column = df['two']
@@ -936,8 +936,8 @@ The ``by`` argument can take a list of column names, e.g.:
 
 .. ipython:: python
 
-   df = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
-   df[['one', 'two', 'three']].sort_index(by=['one','two'])
+   df1 = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df1[['one', 'two', 'three']].sort_index(by=['one','two'])
 
 Series has the method ``order`` (analogous to `R's order function
 <http://stat.ethz.ch/R-manual/R-patched/library/base/html/order.html>`__) which
@@ -959,10 +959,8 @@ Some other sorting notes / nuances:
     method will likely be deprecated in a future release in favor of just using
     ``sort_index``.
 
-.. _basics.cast:
-
-Copying, type casting
----------------------
+Copying
+-------
 
 The ``copy`` method on pandas objects copies the underlying data (though not
 the axis indexes, since they are immutable) and returns a new object. Note that
@@ -978,36 +976,132 @@ To be clear, no pandas methods have the side effect of modifying your data;
 almost all methods return new objects, leaving the original object
 untouched. If data is modified, it is because you did so explicitly.
 
-Data can be explicitly cast to a NumPy dtype by using the ``astype`` method or
-alternately passing the ``dtype`` keyword argument to the object constructor.
+DTypes
+------
+
+.. _basics.dtypes:
+
+The main types stored in pandas objects are float, int, boolean, datetime64[ns],
+and object. A convenient ``dtypes`` attribute for DataFrames returns a Series with 
+the data type of each column.
 
 .. ipython:: python
 
-   df = DataFrame(np.arange(12).reshape((4, 3)))
-   df[0].dtype
-   df.astype(float)[0].dtype
-   df = DataFrame(np.arange(12).reshape((4, 3)), dtype=float)
-   df[0].dtype
+   dft = DataFrame(dict( A = np.random.rand(3), B = 1, C = 'foo', D = Timestamp('20010102'), 
+                         E = Series([1.0]*3).astype('float32'), 
+			 F = False,
+			 G = Series([1]*3,dtype='int8')))
+   dft
 
-.. _basics.cast.infer:
+If a DataFrame contains columns of multiple dtypes, the dtype of the column
+will be chosen to accommodate all of the data types (dtype=object is the most
+general).
 
-Inferring better types for object columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``convert_objects`` DataFrame method will attempt to convert
-``dtype=object`` columns to a better NumPy dtype. Occasionally (after
-transposing multiple times, for example), a mixed-type DataFrame will end up
-with everything as ``dtype=object``. This method attempts to fix that:
+The related method ``get_dtype_counts`` will return the number of columns of
+each type:
 
 .. ipython:: python
 
-   df = DataFrame(randn(6, 3), columns=['a', 'b', 'c'])
-   df['d'] = 'foo'
-   df
-   df = df.T.T
-   df.dtypes
-   converted = df.convert_objects()
-   converted.dtypes
+   dft.get_dtype_counts()
+
+Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0). 
+If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, 
+or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
+
+.. ipython:: python
+
+   df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
+   df1
+   df1.dtypes
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), 
+                         B = Series(randn(8)), 
+                         C = Series(np.array(randn(8),dtype='uint8')) ))
+   df2
+   df2.dtypes
+
+   # here you get some upcasting
+   df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
+   df3
+   df3.dtypes
+
+   # this is lower-common-denomicator upcasting (meaning you get the dtype which can accomodate all of the types)
+   df3.values.dtype
+
+Astype
+~~~~~~
+
+.. _basics.cast:
+
+You can use the ``astype`` method to convert dtypes from one to another. These *always* return a copy. 
+Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation, 
+then the more *general* one will be used as the result of the operation.
+
+.. ipython:: python
+
+   df3
+   df3.dtypes
+
+   # conversion of dtypes
+   df3.astype('float32').dtypes
+
+Object Conversion
+~~~~~~~~~~~~~~~~~
+
+To force conversion of specific types of number conversion, pass ``convert_numeric = True``. 
+This will force strings and numbers alike to be numbers if possible, otherwise the will be set to ``np.nan``.
+To force conversion to ``datetime64[ns]``, pass ``convert_dates = 'coerce'``. 
+This will convert any datetimelike object to dates, forcing other values to ``NaT``.
+
+In addition, ``convert_objects`` will attempt to *soft* conversion of any *object* dtypes, meaning that if all 
+the objects in a Series are of the same type, the Series will have that dtype.
+
+.. ipython:: python
+
+   # mixed type conversions
+   df3['D'] = '1.'
+   df3['E'] = '1'
+   df3.convert_objects(convert_numeric=True).dtypes
+
+   # same, but specific dtype conversion
+   df3['D'] = df3['D'].astype('float16')
+   df3['E'] = df3['E'].astype('int32')
+   df3.dtypes
+
+   # forcing date coercion
+   s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1, Timestamp('20010104'), '20010105'],dtype='O')
+   s
+   s.convert_objects(convert_dates='coerce')
+
+
+Upcasting Gotchas
+~~~~~~~~~~~~~~~~~
+
+Performing indexing operations on ``integer`` type data can easily upcast the data to ``floating``.
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
+See also :ref:`integer na gotchas <gotchas.intna>`
+
+.. ipython:: python
+
+   dfi = df3.astype('int32')
+   dfi['E'] = 1
+   dfi
+   dfi.dtypes
+
+   casted = dfi[dfi>0]
+   casted
+   casted.dtypes
+
+While float dtypes are unchanged.
+
+.. ipython:: python
+
+   dfa = df3.copy()
+   dfa['A'] = dfa['A'].astype('float32')
+   dfa.dtypes
+
+   casted = dfa[df2>0]
+   casted
+   casted.dtypes
 
 .. _basics.serialize:
 
@@ -1157,8 +1251,9 @@ For instance:
 .. ipython:: python
 
    set_eng_float_format(accuracy=3, use_eng_prefix=True)
-   df['a']/1.e3
-   df['a']/1.e6
+   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s/1.e3
+   s/1.e6
 
 .. ipython:: python
    :suppress:

@@ -17,7 +17,7 @@ New Features
   ``MultiIndex`` (IS188_)
 - :ref:`Set <indexing.mixed_type_setting>` values in mixed-type
   ``DataFrame`` objects via ``.ix`` indexing attribute (GH135_)
-- Added new ``DataFrame`` :ref:`methods <dsintro.column_types>`
+- Added new ``DataFrame`` :ref:`methods <basics.dtypes>`
   ``get_dtype_counts`` and property ``dtypes`` (ENHdc_)
 - Added :ref:`ignore_index <merging.ignore_index>` option to
   ``DataFrame.append`` to stack DataFrames (ENH1b_)
