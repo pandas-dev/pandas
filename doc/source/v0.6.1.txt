@@ -23,7 +23,7 @@ New features
   DataFrame, fast versions of scipy.stats.rankdata (GH428_)
 - Implement :ref:`DataFrame.from_items <basics.dataframe.from_items>` alternate
   constructor (GH444_)
-- DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast.infer>`
+- DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast>`
   for object columns (GH302_)
 - Add :ref:`rolling_corr_pairwise <stats.moments.corr_pairwise>` function for
   computing Panel of correlation matrices (GH189_)
