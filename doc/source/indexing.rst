@@ -53,7 +53,7 @@ indexing functionality:
 
 .. ipython:: python
 
-   dates = np.asarray(date_range('1/1/2000', periods=8))
+   dates = date_range('1/1/2000', periods=8)
    df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df
    panel = Panel({'one' : df, 'two' : df - df.mean()})
@@ -81,21 +81,29 @@ Fast scalar value getting and setting
 Since indexing with ``[]`` must handle a lot of cases (single-label access,
 slicing, boolean indexing, etc.), it has a bit of overhead in order to figure
 out what you're asking for. If you only want to access a scalar value, the
-fastest way is to use the ``get_value`` method, which is implemented on all of
-the data structures:
+fastest way is to use the ``at`` and ``iat`` methods, which are implemented on all of
+the data structures.
+
+Similary to ``loc`` and ``at`` provides **label** based lookups, while, ``iat`` provides
+**integer** based lookups analagously to ``iloc``
 
 .. ipython:: python
 
-   s.get_value(dates[5])
-   df.get_value(dates[5], 'A')
+   type(dates[5])
+   dates[5]
+   s.at[dates[5]]
+   s.iat[5]
+   df.at[dates[5], 'A']
+   df.iat[3, 0]
 
-There is an analogous ``set_value`` method which has the additional capability
+You can also set using these same indexers. These have the additional capability
 of enlarging an object. This method *always* returns a reference to the object
 it modified, which in the case of enlargement, will be a **new object**:
 
 .. ipython:: python
 
-   df.set_value(dates[5], 'E', 7)
+   df.at[dates[5], 'E'] = 7
+   df.iat[3, 0] = 7
 
 Additional Column Access
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -177,8 +185,57 @@ largely as a convenience since it is such a common operation.
    df[:3]
    df[::-1]
 
-Location Based Indexing
-~~~~~~~~~~~~~~~~~~~~~~~
+Label Based Indexing
+~~~~~~~~~~~~~~~~~~~~
+
+Pandas provides a suite of methods in order to get **purely label based indexing**. 
+This is a strict inclusion based protocol. **ALL** of the labels for which you ask,
+must be in the index or a KeyError will be raised! When slicing, the start bounds is 
+*included*, **AND** the upper bound is *included*. Invalid selections will raise with 
+an ``KeyError``. Integers are valid indicies (and labels), but standard semantics
+**DO NOT APPLY**, labels must be **INCLUSIVE**. Valid selection include: *label, listlike 
+of labels, boolean indexers, and label slices*
+
+The ``.loc`` attribute is the primary access method.
+
+.. ipython:: python
+
+   s1 = Series(np.random.randn(6),index=list('abcdef'))
+   s1
+   s1.loc['c':]
+   s1.loc['b']
+
+Note that setting works as well:
+
+.. ipython:: python
+
+   s1.loc['c':] = 0
+   s1
+
+With a DataFrame
+
+.. ipython:: python
+
+   df1 = DataFrame(np.random.randn(6,4),index=list('abcdef'),columns=range(4))
+   df1
+   df1.loc[['a','b','d'],:]
+
+   # slices (this is an ok integer slice because it encompasses all of the labels)
+   df1.loc['d':,1:3]
+
+   # boolean
+   df1.loc[:,[True,True,False,False]]
+
+For getting a value explicity.
+
+.. ipython:: python
+
+   # this is equivalent to ``df1.at['a',1]``
+   df1.loc['a',1]
+
+
+Integer Based Indexing
+~~~~~~~~~~~~~~~~~~~~~~
 
 Pandas provides a suite of methods in order to get **purely integer based indexing**. 
 The semantics follow closely python and numpy slicing. These are ``0-based`` indexing.
@@ -224,22 +281,20 @@ For slicing rows explicitly.
 
 .. ipython:: python
 
-   # this is equivalent to ``df1.iloc[1:3,:]``
-   df1.irow(range(1,3))
+   df1.iloc[1:3,:]
 
 For slicing columns explicitly.
 
 .. ipython:: python
 
-   # this is equivalent to ``df1.iloc[:,1:3]``
-   df1.icol(range(1,3))
+   df1.iloc[:,1:3]
 
 For getting a value explicity.
 
 .. ipython:: python
 
-   # this is equivalent to ``df1.iloc[1,1]``
-   df1.iget_value(1,1)
+   # this is equivalent to ``df1.iat[1,1]``
+   df1.iloc[1,1]
 
 There is one signficant departure from standard python/numpy slicing semantics.
 python/numpy allow slicing past the end of an array without an associated error.

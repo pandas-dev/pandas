@@ -12,7 +12,7 @@ from pandas.core.common import (PandasError, _mut_exclusive,
 from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
-from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
+from pandas.core.indexing import _maybe_droplevels, _is_list_like
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
@@ -1069,6 +1069,11 @@ class Panel(NDFrame):
         # for compatibility with .ix indexing
         # Won't work with hierarchical indexing yet
         key = self._get_axis(axis)[i]
+
+        # xs cannot handle a non-scalar key, so just reindex here
+        if _is_list_like(key):
+            return self.reindex(**{ self._get_axis_name(axis) : key })
+
         return self.xs(key, axis=axis)
 
     def groupby(self, function, axis='major'):

@@ -560,7 +560,31 @@ class Series(pa.Array, generic.PandasObject):
         return self._ix
 
     def _ixs(self, i, axis=0):
-        return self[self.index[i]]
+        """
+        Return the i-th value or values in the Series by location
+
+        Parameters
+        ----------
+        i : int, slice, or sequence of integers
+
+        Returns
+        -------
+        value : scalar (int) or Series (slice, sequence)
+        """
+        try:
+            return _index.get_value_at(self, i)
+        except IndexError:
+            raise
+        except:
+            if isinstance(i, slice):
+                return self[i]
+            else:
+                label = self.index[i]
+                if isinstance(label, Index):
+                    return self.reindex(label)
+                else:
+                    return _index.get_value_at(self, i)
+
 
     @property
     def _is_mixed_type(self):
@@ -924,34 +948,9 @@ class Series(pa.Array, generic.PandasObject):
         except KeyError:
             return default
 
-    def iget_value(self, i):
-        """
-        Return the i-th value or values in the Series by location
-
-        Parameters
-        ----------
-        i : int, slice, or sequence of integers
-
-        Returns
-        -------
-        value : scalar (int) or Series (slice, sequence)
-        """
-        try:
-            return _index.get_value_at(self, i)
-        except IndexError:
-            raise
-        except:
-            if isinstance(i, slice):
-                return self[i]
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    return self.reindex(label)
-                else:
-                    return _index.get_value_at(self, i)
-
-    iget = iget_value
-    irow = iget_value
+    iget_value = _ixs
+    iget = _ixs
+    irow = _ixs
 
     def get_value(self, label):
         """

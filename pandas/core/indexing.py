@@ -1,7 +1,7 @@
 # pylint: disable=W0223
 
 from pandas.core.common import _asarray_tuplesafe
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.common as com
 import pandas.lib as lib
 
@@ -607,9 +607,10 @@ class _NDFrameIndexer(object):
 
 class _LocationIndexer(_NDFrameIndexer):
     _valid_types = None
+    _exception   = Exception
 
-    def _has_valid_type(self, k):
-        raise NotImplemented
+    def _has_valid_type(self, k, axis):
+        raise NotImplementedError()
 
     def __getitem__(self, key):
         if type(key) is tuple:
@@ -617,12 +618,96 @@ class _LocationIndexer(_NDFrameIndexer):
             for i, k in enumerate(key):
                 if i >= self.obj.ndim:
                     raise ValueError('Too many indexers')
-                if not self._has_valid_type(k):
+                if not self._has_valid_type(k,i):
                     raise ValueError("Location based indexing can only have [%s] types" % self._valid_types)
 
             return self._getitem_tuple(key)
         else:
             return self._getitem_axis(key, axis=0)
+
+    def _getitem_axis(self, key, axis=0):
+        raise NotImplementedError()
+
+    def _getbool_axis(self, key, axis=0):
+            labels = self.obj._get_axis(axis)
+            key = _check_bool_indexer(labels, key)
+            inds, = key.nonzero()
+            try:
+                return self.obj.take(inds, axis=axis)
+            except (Exception), detail:
+                raise self._exception(detail)
+
+class _LocIndexer(_LocationIndexer):
+    """ purely label based location based indexing """
+    _valid_types = "labels (MUST BE INCLUSIVE), slices of labels, slices of integers if the index is integers, boolean"
+    _exception   = KeyError
+
+    def _has_valid_type(self, key, axis):
+        ax = self.obj._get_axis(axis)
+
+        # valid for a label where all labels are in the index
+        # slice of lables (where start-end in labels)
+        # slice of integers (only if in the lables)
+        # boolean
+
+        if isinstance(key, slice):
+
+            if key.start is not None and key.start not in ax:
+                raise KeyError
+            if key.stop is not None and key.stop-1 not in ax:
+                raise KeyError
+
+        elif com._is_bool_indexer(key):
+                return True
+
+        elif _is_list_like(key):
+
+            # require all elements in the index
+            idx = _ensure_index(key)
+            if not idx.isin(ax).all():
+                raise KeyError
+
+            return True
+
+        else:
+
+            # if its empty we want a KeyError here
+            if not len(ax):
+                raise KeyError
+
+            if not key in ax:
+                raise KeyError
+
+        return True
+
+    def _getitem_axis(self, key, axis=0):
+        labels = self.obj._get_axis(axis)
+
+        if isinstance(key, slice):
+            return self._get_slice_axis(key, axis=axis)
+        elif com._is_bool_indexer(key):
+            return self._getbool_axis(key, axis=axis)
+        elif _is_list_like(key) and not (isinstance(key, tuple) and
+                                         isinstance(labels, MultiIndex)):
+
+            if hasattr(key, 'ndim') and key.ndim > 1:
+                raise ValueError('Cannot index with multidimensional key')
+
+            return self._getitem_iterable(key, axis=axis)
+        else:
+            indexer = labels.get_loc(key)
+            return self._get_loc(indexer, axis=axis)
+
+    def _get_loc(self, key, axis=0):
+        return self.obj._ixs(key, axis=axis)
+
+class _iLocIndexer(_LocationIndexer):
+    """ purely integer based location based indexing """
+    _valid_types = "integer, integer slice, listlike of integers, boolean array"
+    _exception   = IndexError
+
+    def _has_valid_type(self, key, axis):
+        return isinstance(key, slice) or com.is_integer(key) or com._is_bool_indexer(key) or _is_list_like(key)
 
     def _getitem_tuple(self, tup):
 
@@ -634,33 +719,6 @@ class _LocationIndexer(_NDFrameIndexer):
             retval = getattr(retval,self.name)._getitem_axis(key, axis=i)
 
         return retval
-
-    def _get_slice_axis(self, slice_obj, axis=0):
-        raise NotImplemented
-
-    def _getitem_axis(self, key, axis=0):
-        raise NotImplemented
-
-    def _convert_to_indexer(self, obj, axis=0):
-        """ much simpler as we only have to deal with our valid types """
-        if self._has_valid_type(obj):
-            return obj
-
-        raise ValueError("Can only index by location with a [%s]" % self._valid_types)
-
-class _LocIndexer(_LocationIndexer):
-    """ purely label based location based indexing """
-    _valid_types = None
-
-    def _has_valid_type(self, k):
-        return True
-
-class _iLocIndexer(_LocationIndexer):
-    """ purely integer based location based indexing """
-    _valid_types = "integer, integer slice, listlike of integers, boolean array"
-
-    def _has_valid_type(self, k):
-        return isinstance(k, slice) or com.is_integer(k) or _is_list_like(k) or com._is_bool_indexer(k)
 
     def _get_slice_axis(self, slice_obj, axis=0):
         obj = self.obj
@@ -679,11 +737,7 @@ class _iLocIndexer(_LocationIndexer):
             return self._get_slice_axis(key, axis=axis)
 
         elif com._is_bool_indexer(key):
-            
-            labels = self.obj._get_axis(axis)
-            key = _check_bool_indexer(labels, key)
-            inds, = key.nonzero()
-            return self.obj.take(inds, axis=axis)
+            return self._getbool_axis(key, axis=axis)
 
         # a single integer or a list of integers
         else:
@@ -692,6 +746,13 @@ class _iLocIndexer(_LocationIndexer):
                 raise ValueError("Cannot index by location index with a non-integer key")
 
             return self._get_loc(key,axis=axis)
+
+    def _convert_to_indexer(self, obj, axis=0):
+        """ much simpler as we only have to deal with our valid types """
+        if self._has_valid_type(obj,axis):
+            return obj
+
+        raise ValueError("Can only index by location with a [%s]" % self._valid_types)
 
 
 class _ScalarAccessIndexer(_NDFrameIndexer):
