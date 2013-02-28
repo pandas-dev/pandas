@@ -2943,6 +2943,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.asof(s.index[0])
         self.assertEqual(result, s[0])
 
+    def test_cast_on_putmask(self):
+
+        # GH 2746
+
+        # need to upcast
+        s = Series([1,2],index=[1,2],dtype='int64')
+        s[[True, False]] = Series([0],index=[1],dtype='int64')
+        expected = Series([0,2],index=[1,2],dtype='float64')
+
+        assert_series_equal(s, expected)
+
     def test_astype_cast_nan_int(self):
         df = Series([1.0, 2.0, 3.0, np.nan])
         self.assertRaises(ValueError, df.astype, np.int64)
