@@ -201,7 +201,7 @@ def _arith_method(op, name, default_axis='columns'):
                 mask = notnull(xrav)
                 result[mask] = op(xrav[mask], y)
 
-            np.putmask(result, -mask, NA)
+            result, changed = com._maybe_upcast_putmask(result,-mask,np.nan)
             result = result.reshape(x.shape)
 
         return result

@@ -722,6 +722,20 @@ def _maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
+def _maybe_upcast_putmask(result, mask, other):
+    """ a safe version of put mask that (potentially upcasts the result
+        return the result and a changed flag """
+    try:
+        np.putmask(result, mask, other)
+    except:
+        # our type is wrong here, need to upcast
+        if (-mask).any():
+            result, fill_value = _maybe_upcast(result, copy=True)
+            np.putmask(result, mask, other)
+            return result, True
+
+    return result, False
+
 def _maybe_upcast(values, fill_value=np.nan, copy=False):
     """ provide explicty type promotion and coercion
         if copy == True, then a copy is created even if no upcast is required """
