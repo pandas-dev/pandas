@@ -142,7 +142,7 @@ class CheckNameIntegration(object):
                     "qux    one       7",
                     "       two       8",
                     "       three     9",
-                    "Name: sth, Dtype: int64"]
+                    "Name: sth, dtype: int64"]
         expected = "\n".join(expected)
         self.assertEquals(repr(s), expected)
 

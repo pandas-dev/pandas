@@ -103,7 +103,7 @@ class SeriesFormatter(object):
             if getattr(self.series.dtype,'name',None):
                 if footer:
                     footer += ', '
-                footer += 'Dtype: %s' % com.pprint_thing(self.series.dtype.name)
+                footer += 'dtype: %s' % com.pprint_thing(self.series.dtype.name)
 
         return unicode(footer)
 
