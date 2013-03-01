@@ -1786,9 +1786,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(result.dtype=='m8[ns]')
         assert_series_equal(result,expected)
 
+
     def test_timedelta64_functions(self):
 
         from datetime import timedelta
+        from pandas import date_range
 
         # index min/max
         td = Series(date_range('2012-1-1', periods=3, freq='D'))-Timestamp('20120101')
@@ -1807,6 +1809,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         #result = td.idxmax()
         #self.assert_(result == 2)
+
+        # abs
+        s1 = Series(date_range('20120101',periods=3))
+        s2 = Series(date_range('20120102',periods=3))
+        expected = Series(s2-s1)
+
+        # this fails as numpy returns timedelta64[us]
+        #result = np.abs(s1-s2)
+        #assert_frame_equal(result,expected)
+
+        result = (s1-s2).abs()
+        assert_series_equal(result,expected)
 
     def test_sub_of_datetime_from_TimeSeries(self): 
         from pandas.core import common as com
