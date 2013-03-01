@@ -904,9 +904,12 @@ def _possibly_convert_platform(values):
 
 def _possibly_cast_to_timedelta(value):
     """ try to cast to timedelta64 w/o coercion """
-    new_value = tslib.array_to_timedelta64(value.astype(object), coerce=False)
-    if new_value.dtype == 'i8':
-        value = np.array(new_value,dtype='timedelta64[ns]')
+    try:
+        new_value = tslib.array_to_timedelta64(value.astype(object), coerce=False)
+        if new_value.dtype == 'i8':
+            value = np.array(new_value,dtype='timedelta64[ns]')
+    except OverflowError:
+        pass
     return value
 
 def _possibly_cast_to_datetime(value, dtype, coerce = False):
