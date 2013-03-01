@@ -70,7 +70,8 @@ def _arith_method(op, name):
             else:
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
-            np.putmask(result, -mask, pa.NA)
+
+            result, changed = com._maybe_upcast_putmask(result,-mask,pa.NA)
 
         return result
 
@@ -680,7 +681,13 @@ class Series(pa.Array, generic.PandasObject):
         if len(other) != len(ser):
             raise ValueError('Length of replacements must equal series length')
 
-        np.putmask(ser, ~cond, other)
+        result, changed = com._maybe_upcast_putmask(ser,~cond,other)
+        if changed:
+
+            # need to actually change ser here
+            if inplace:
+                ser.dtype = result.dtype
+                ser[:] = result
 
         return None if inplace else ser
 

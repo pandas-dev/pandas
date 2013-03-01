@@ -120,9 +120,12 @@ pandas 0.11.0
     - Support null checking on timedelta64, representing (and formatting) with NaT
     - Support setitem with np.nan value, converts to NaT
 
+  - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
+
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
+.. _GH2746: https://github.com/pydata/pandas/issues/2746
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
 .. _GH2776: https://github.com/pydata/pandas/issues/2776
