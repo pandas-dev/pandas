@@ -591,7 +591,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         import re
         str_rep = str(s)
-        nmatches = len(re.findall('Dtype',str_rep))
+        nmatches = len(re.findall('dtype',str_rep))
         self.assert_(nmatches == 1)
 
     def test_to_string(self):

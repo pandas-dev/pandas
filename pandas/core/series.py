@@ -1057,7 +1057,7 @@ class Series(pa.Array, generic.PandasObject):
                                     name=True,
                                     dtype=True)
         else:
-            result = u'Series([], Dtype: %s)' % self.dtype
+            result = u'Series([], dtype: %s)' % self.dtype
 
         assert type(result) == unicode
         return result
@@ -1080,8 +1080,8 @@ class Series(pa.Array, generic.PandasObject):
                                     dtype=False, name=False)
         tail = self[-(max_vals - num):]._get_repr(print_header=False,
                                                   length=False,
-                                                  dtype=False,
-                                                  name=False)
+                                                  name=False,
+                                                  dtype=False)
         result = head + '\n...\n' + tail
         result = '%s\n%s' % (result, self._repr_footer())
 
@@ -1090,8 +1090,8 @@ class Series(pa.Array, generic.PandasObject):
     def _repr_footer(self):
         namestr = u"Name: %s, " % com.pprint_thing(
             self.name) if self.name is not None else ""
-        return u'%sLength: %d, Dtype: %s' % (namestr, len(self),
-                                             com.pprint_thing(self.dtype.name))
+        return u'%sLength: %d, dtype: %s' % (namestr, len(self),
+                                             str(self.dtype.name))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, dtype=False, name=False):
