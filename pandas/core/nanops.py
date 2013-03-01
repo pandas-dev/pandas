@@ -77,8 +77,10 @@ def _isfinite(values):
 def _na_ok_dtype(dtype):
     return not issubclass(dtype.type, (np.integer, np.datetime64, np.timedelta64))
 
-def _needs_view_dtype(dtype):
-    return issubclass(dtype.type, (np.datetime64,np.timedelta64))
+def _view_if_needed(values):
+    if issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+        return values.view(np.int64)
+    return values
 
 def _wrap_results(result,dtype):
     """ wrap our results if needed """
@@ -192,8 +194,7 @@ def _nanmin(values, axis=None, skipna=True):
         values = values.copy()
         np.putmask(values, mask, np.inf)
 
-    if _needs_view_dtype(dtype):
-        values = values.view(np.int64)
+    values = _view_if_needed(values)
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
@@ -225,8 +226,7 @@ def _nanmax(values, axis=None, skipna=True):
         values = values.copy()
         np.putmask(values, mask, -np.inf)
 
-    if _needs_view_dtype(dtype):
-        values = values.view(np.int64)
+    values = _view_if_needed(values)
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
@@ -255,6 +255,7 @@ def nanargmax(values, axis=None, skipna=True):
     Returns -1 in the NA case
     """
     mask = _isfinite(values)
+    values = _view_if_needed(values)
     if not issubclass(values.dtype.type, np.integer):
         values = values.copy()
         np.putmask(values, mask, -np.inf)
@@ -268,6 +269,7 @@ def nanargmin(values, axis=None, skipna=True):
     Returns -1 in the NA case
     """
     mask = _isfinite(values)
+    values = _view_if_needed(values)
     if not issubclass(values.dtype.type, np.integer):
         values = values.copy()
         np.putmask(values, mask, np.inf)
