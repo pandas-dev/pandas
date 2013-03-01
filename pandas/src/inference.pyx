@@ -24,6 +24,7 @@ try:
     _TYPE_MAP[np.complex256] = 'complex'
     _TYPE_MAP[np.float16] = 'floating'
     _TYPE_MAP[np.datetime64] = 'datetime64'
+    _TYPE_MAP[np.timedelta64] = 'timedelta64'
 except AttributeError:
     pass
 

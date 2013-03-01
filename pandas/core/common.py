@@ -904,6 +904,13 @@ def _possibly_convert_platform(values):
 
 def _possibly_cast_to_timedelta(value):
     """ try to cast to timedelta64 w/o coercion """
+
+    # deal with numpy not being able to handle certain timedelta operations
+    if isinstance(value,np.ndarray) and value.dtype.kind == 'm':
+        if value.dtype != 'timedelta64[ns]':
+            value = value.astype('timedelta64[ns]')
+        return value
+
     new_value = tslib.array_to_timedelta64(value.astype(object), coerce=False)
     if new_value.dtype == 'i8':
         value = np.array(new_value,dtype='timedelta64[ns]')

@@ -928,25 +928,50 @@ def repr_timedelta64(object value):
    
    ivalue = value.view('i8')
 
+   # put frac in seconds
    frac   = float(ivalue)/1e9
-   days   = int(frac) / 86400
-   frac  -= days*86400
-   hours  = int(frac) / 3600
-   frac  -= hours * 3600
-   minutes  = int(frac) / 60
-   seconds  = frac - minutes * 60
-   nseconds = int(seconds)
+   sign   = np.sign(frac)
+   frac   = np.abs(frac)
 
-   if nseconds == seconds:
-      seconds_pretty = "%02d" % nseconds
+   if frac >= 86400:
+      days   = int(frac / 86400)
+      frac  -= days * 86400
    else:
-      sp = abs(int(1e6*(seconds-nseconds)))
-      seconds_pretty = "%02d.%06d" % (nseconds,sp)
+      days   = 0
+
+   if frac >= 3600:
+      hours  = int(frac / 3600)
+      frac  -= hours * 3600
+   else:
+      hours  = 0
+
+   if frac >= 60:
+      minutes = int(frac / 60)
+      frac   -= minutes * 60
+   else:
+      minutes  = 0
+
+   if frac >= 1:
+      seconds = int(frac)
+      frac   -= seconds
+   else:
+      seconds = 0
+
+   if frac == int(frac):
+      seconds_pretty = "%02d" % seconds
+   else:
+      sp = abs(round(1e6*frac))
+      seconds_pretty = "%02d.%06d" % (seconds,sp)
+
+   if sign < 0:
+       sign_pretty = "-"
+   else:
+       sign_pretty = ""
 
    if days:
-       return "%d days, %02d:%02d:%s" % (days,hours,minutes,seconds_pretty)
+       return "%s%d days, %02d:%02d:%s" % (sign_pretty,days,hours,minutes,seconds_pretty)
 
-   return "%02d:%02d:%s" % (hours,minutes,seconds_pretty)
+   return "%s%02d:%02d:%s" % (sign_pretty,hours,minutes,seconds_pretty)
 
 def array_strptime(ndarray[object] values, object fmt):
     cdef:

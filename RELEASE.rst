@@ -115,10 +115,12 @@ pandas 0.11.0
     - Series ops with a Timestamp on the rhs was throwing an exception (GH2898_)
       added tests for Series ops with datetimes,timedeltas,Timestamps, and datelike 
       Series on both lhs and rhs
-    - Series will now set its dtype automatically to ``timedelta64[ns]``
-      if all passed objects are timedelta objects
+    - Fixed subtle timedelta64 inference issue on py3
+    - Fixed some formatting issues on timedelta when negative
     - Support null checking on timedelta64, representing (and formatting) with NaT
     - Support setitem with np.nan value, converts to NaT
+    - Support min/max ops in a Dataframe (abs not working, nor do we error on non-supported ops)
+    - Support idxmin/idxmax in a Series (but with no NaT)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797

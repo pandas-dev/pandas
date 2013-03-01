@@ -961,3 +961,19 @@ Operands can also appear in a reversed order (a singluar object operated with a 
     s.max() - s
     datetime(2011,1,1,3,5) - s
     timedelta(minutes=5) + s
+
+Some timedelta numeric like operations are supported.
+
+.. ipython:: python
+
+    s  = Series(date_range('2012-1-1', periods=3, freq='D'))
+    df = DataFrame(dict(A = s - Timestamp('20120101')-timedelta(minutes=5,seconds=5),
+                        B = s - Series(date_range('2012-1-2', periods=3, freq='D'))))
+    df
+
+    # timedelta arithmetic
+    td - timedelta(minutes=5,seconds=5,microseconds=5)
+
+    # min/max operations
+    df.min()
+    df.min(axis=1)
