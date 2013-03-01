@@ -155,7 +155,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                 line = line.decode(get_option("display.encoding"))
             except:
                 pass
-            if not line.startswith('Dtype:'):
+            if not line.startswith('dtype:'):
                 self.assert_(len(line) == line_len)
 
         # it works even if sys.stdin in None
@@ -1081,7 +1081,7 @@ c  10  11  12  13  14\
                 2.03954217305e+10, 5.59897817305e+10]
         skip = True
         for line in repr(DataFrame({'A': vals})).split('\n'):
-            if line.startswith('Dtype:'):
+            if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
                 self.assert_(('+010' in line) or skip)
@@ -1143,7 +1143,7 @@ class TestSeriesFormatting(unittest.TestCase):
         cp.name = 'foo'
         result = cp.to_string(length=True, name=True, dtype=True)
         last_line = result.split('\n')[-1].strip()
-        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d, Dtype: float64" % len(cp))
+        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d, dtype: float64" % len(cp))
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
@@ -1199,7 +1199,7 @@ class TestSeriesFormatting(unittest.TestCase):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
                 2.03954217305e+10, 5.59897817305e+10]
         for line in repr(Series(vals)).split('\n'):
-            if line.startswith('Dtype:'):
+            if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
                 self.assert_('+010' in line)
