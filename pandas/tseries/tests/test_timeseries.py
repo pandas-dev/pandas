@@ -2621,6 +2621,15 @@ class TestTimestamp(unittest.TestCase):
         stamp = Timestamp(datetime(2011, 1, 1))
         self.assertEquals(d[stamp], 5)
 
+    def test_sub_of_datetime_from_TimeSeries(self):
+        # suitable place for this test?
+        from datetime import datetime
+        a = Timestamp(datetime(1993,01,07,13,30,00))
+        b = datetime(1993, 6, 22, 13, 30)
+        a = pd.TimeSeries([a],dtype='datetime64[ns]')
+        pd.core.common._possibly_cast_to_timedelta(np.abs(a - b))
+        # don't die with an OverflowError, simply don't coerce
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
