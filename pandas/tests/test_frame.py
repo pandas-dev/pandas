@@ -2884,6 +2884,53 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected.sort()
         assert_series_equal(result, expected)
 
+    def test_operators_timedelta64(self):
+
+        from pandas import date_range
+        from datetime import datetime, timedelta
+        df = DataFrame(dict(A = date_range('2012-1-1', periods=3, freq='D'),
+                            B = date_range('2012-1-2', periods=3, freq='D'),
+                            C = Timestamp('20120101')-timedelta(minutes=5,seconds=5)))
+
+        diffs = DataFrame(dict(A = df['A']-df['C'],
+                               B = df['A']-df['B']))
+
+
+        # min
+        result = diffs.min()
+        self.assert_(result[0] == diffs.ix[0,'A'])
+        self.assert_(result[1] == diffs.ix[0,'B'])
+
+        result = diffs.min(axis=1)
+        self.assert_((result == diffs.ix[0,'B']).all() == True)
+
+        # max
+        result = diffs.max()
+        self.assert_(result[0] == diffs.ix[2,'A'])
+        self.assert_(result[1] == diffs.ix[2,'B'])
+
+        result = diffs.max(axis=1)
+        self.assert_((result == diffs['A']).all() == True)
+
+        # abs ###### THIS IS BROKEN NOW ###### (results are dtype=timedelta64[us]
+        result = np.abs(df['A']-df['B'])
+        result = diffs.abs()
+        expected = DataFrame(dict(A = df['A']-df['C'],
+                                  B = df['B']-df['A']))
+        #assert_frame_equal(result,expected)
+
+        # mixed frame
+        mixed = diffs.copy()
+        mixed['C'] = 'foo'
+        mixed['D'] = 1
+        mixed['E'] = 1.
+
+        # this is ok
+        result = mixed.min()
+
+        # this is not
+        result = mixed.min(axis=1)
+
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))

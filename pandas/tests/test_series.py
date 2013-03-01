@@ -1740,32 +1740,82 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # datetimes on rhs
         result = df['A'] - datetime(2001,1,1)
-        self.assert_(result.dtype=='timedelta64[ns]')
+        expected = Series([timedelta(days=4017+i) for i in range(3)])
+        assert_series_equal(result,expected)
+        self.assert_(result.dtype=='m8[ns]')
         
         result = df['A'] + datetime(2001,1,1)
-        self.assert_(result.dtype=='timedelta64[ns]')
+        expected = Series([timedelta(days=26663+i) for i in range(3)])
+        assert_series_equal(result,expected)
+        self.assert_(result.dtype=='m8[ns]')
 
-        td = datetime(2001,1,1,3,4)
-        resulta = df['A'] - td
-        self.assert_(resulta.dtype=='timedelta64[ns]')
+        d = datetime(2001,1,1,3,4)
+        resulta = df['A'] - d
+        self.assert_(resulta.dtype=='m8[ns]')
         
-        resultb = df['A'] + td
-        self.assert_(resultb.dtype=='timedelta64[ns]')
+        resultb = df['A'] + d
+        self.assert_(resultb.dtype=='m8[ns]')
+
+        # roundtrip
+        resultb = resulta + d
+        assert_series_equal(df['A'],resultb)
 
         # timedelta on lhs
-        result = resultb + td
-        self.assert_(resultb.dtype=='timedelta64[ns]')
+        result = resultb + d
+        self.assert_(result.dtype=='m8[ns]')
 
         # timedeltas on rhs
         td = timedelta(days=1)
         resulta = df['A'] + td
         resultb = resulta - td
         assert_series_equal(resultb,df['A'])
+        self.assert_(resultb.dtype=='M8[ns]')
 
+        # roundtrip
         td = timedelta(minutes=5,seconds=3)
         resulta = df['A'] + td
         resultb = resulta - td
+        assert_series_equal(df['A'],resultb)
         self.assert_(resultb.dtype=='M8[ns]')
+
+        # td operate with td
+        td1 = Series([timedelta(minutes=5,seconds=3)]*3)
+        td2 = timedelta(minutes=5,seconds=4)
+        result = td1-td2
+        expected = Series([timedelta(seconds=0)]*3)-Series([timedelta(seconds=1)]*3)
+        self.assert_(result.dtype=='m8[ns]')
+        assert_series_equal(result,expected)
+
+    def test_timedelta64_functions(self):
+
+        from datetime import timedelta
+
+        # index min/max
+        td = Series(date_range('2012-1-1', periods=3, freq='D'))-Timestamp('20120101')
+
+        result = td.idxmin()
+        self.assert_(result == 0)
+
+        result = td.idxmax()
+        self.assert_(result == 2)
+
+        # with NaT (broken)
+        td[0] = np.nan
+
+        #result = td.idxmin()
+        #self.assert_(result == 1)
+
+        #result = td.idxmax()
+        #self.assert_(result == 2)
+
+    def test_sub_of_datetime_from_TimeSeries(self): 
+        from pandas.core import common as com
+        from datetime import datetime 
+        a = Timestamp(datetime(1993,01,07,13,30,00)) 
+        b = datetime(1993, 6, 22, 13, 30) 
+        a = Series([a])
+        result = com._possibly_cast_to_timedelta(np.abs(a - b)) 
+        self.assert_(result.dtype == 'timedelta64[ns]')
 
     def test_timedelta64_nan(self):
 

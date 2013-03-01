@@ -82,10 +82,10 @@ def _arith_method(op, name):
 
         lvalues, rvalues = self, other
 
-        is_timedelta = com.is_timedelta64_dtype(self)
-        is_datetime  = com.is_datetime64_dtype(self)
+        is_timedelta_lhs = com.is_timedelta64_dtype(self)
+        is_datetime_lhs  = com.is_datetime64_dtype(self)
 
-        if is_datetime or is_timedelta:
+        if is_datetime_lhs or is_timedelta_lhs:
 
             # convert the argument to an ndarray
             def convert_to_array(values):
@@ -97,26 +97,27 @@ def _arith_method(op, name):
                         pass
                     else:
                         values = tslib.array_to_datetime(values)
+                elif inferred_type in set(['timedelta','timedelta64']):
+                    # need to convert timedelta to ns here
+                    # safest to convert it to an object arrany to process
+                    if isinstance(values, pa.Array) and com.is_timedelta64_dtype(values):
+                        pass
+                    else:
+                        values = com._possibly_cast_to_timedelta(values)
                 else:
                     values = pa.array(values)
                 return values
 
-            # swap the valuesor com.is_timedelta64_dtype(self):
-            if is_timedelta:
-                lvalues, rvalues = rvalues, lvalues
-                lvalues = convert_to_array(lvalues)
-                is_timedelta = False
-
+            # convert lhs and rhs
+            lvalues = convert_to_array(lvalues)
             rvalues = convert_to_array(rvalues)
 
-            # rhs is either a timedelta or a series/ndarray
-            if lib.is_timedelta_or_timedelta64_array(rvalues):
+            is_timedelta_rhs = com.is_timedelta64_dtype(rvalues)
+            is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
 
-                # need to convert timedelta to ns here
-                # safest to convert it to an object arrany to process
-                rvalues = tslib.array_to_timedelta64(rvalues.astype(object))
-                dtype = 'M8[ns]'
-            elif com.is_datetime64_dtype(rvalues):
+            # 2 datetimes or 2 timedeltas
+            if (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and is_datetime_rhs):
+                
                 dtype = 'timedelta64[ns]'
 
                 # we may have to convert to object unfortunately here
@@ -126,6 +127,10 @@ def _arith_method(op, name):
                         x = pa.array(x,dtype='timedelta64[ns]')
                         np.putmask(x,mask,tslib.iNaT)
                         return x
+
+            # datetime and timedelta
+            elif (is_timedelta_lhs and is_datetime_rhs) or (is_timedelta_rhs and is_datetime_lhs):
+                dtype = 'M8[ns]'
 
             else:
                 raise ValueError('cannot operate on a series with out a rhs '
