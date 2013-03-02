@@ -29,6 +29,7 @@ pandas 0.11.0
 
 **New features**
 
+  - New documentation section, ``10 Minutes to Pandas``
   - Allow mixed dtypes (e.g ``float32/float64/int32/int16/int8``) to coexist in
     DataFrames and propogate in operations
   - Add function to pandas.io.data for retrieving stock index components from

@@ -4,15 +4,19 @@ v0.11.0 (March ??, 2013)
 ------------------------
 
 This is a major release from 0.10.1 and includes many new features and
-enhancements along with a large number of bug fixes. There are also a number of
-important API changes that long-time pandas users should pay close attention
-to.
+enhancements along with a large number of bug fixes. The methods of Selecting
+Data have had quite a number of additions, and Dtype support is now full-fledged.
+There are also a number of important API changes that long-time pandas users should 
+pay close attention to.
+
+There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
+primarily geared to new users.
 
 API changes
 ~~~~~~~~~~~
 
-Indexing Choice
-~~~~~~~~~~~~~~~
+Selection Choices
+~~~~~~~~~~~~~~~~~
 
 Starting in 0.11.0, object selection has had a number of user-requested additions in
 order to support more explicit location based indexing. Pandas now supports
@@ -23,14 +27,14 @@ three types of multi-axis indexing.
 
     - A single label, e.g. ``5`` or ``'a'``
 
-      (note that ``5`` when used as a *label* of an integer based index)
+      (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
     - A list or array of labels ``['a', 'b', 'c']``
     - A slice object with labels ``'a':'f'``
 
       (note that contrary to usual python slices, **both** the start and the stop are included!)
     - A boolean array
 
-    See more at :ref:`Label indexing <indexing.label>`
+    See more at :ref:`Selection by Label <indexing.label>`
 
   - ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will 
     raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
@@ -40,20 +44,23 @@ three types of multi-axis indexing.
     - A slice object with ints ``1:7``
     - A boolean array
 
-    See more at :ref:`Integer indexing <indexing.integer>` 
+    See more at :ref:`Selection by Position <indexing.integer>` 
 
   - ``.ix`` supports mixed integer and label based access. It is primarily label based, but
     will fallback to integer positional access. ``.ix`` is the most general and will support 
-    any of the inputsx to ``.loc`` and ``.iloc``, as well as support for floating point label schemes.
+    any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes.
+
     As using integer slices with ``.ix`` have different behavior depending on whether the slice 
     is interpreted as integer location based or label position based, it's usually better to be 
     explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
 
-    See more at :ref:`Advanced indexing <indexing.advanced>`
+    ``.ix`` is especially usefull when dealing with mixed positional/label based hierarchial indexes. 
+
+    See more at :ref:`Advanced Indexing <indexing.advanced>` and :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>`
 
 
-Indexing Deprecations
-~~~~~~~~~~~~~~~~~~~~~
+Selection Deprecations
+~~~~~~~~~~~~~~~~~~~~~~
 
 Starting in version 0.11.0, the methods may be deprecated in future versions.
 
@@ -61,13 +68,17 @@ Starting in version 0.11.0, the methods may be deprecated in future versions.
   - ``icol``
   - ``iget_value``
 
-See the section :ref:`Integer indexing <indexing.integer>` for substitutes.
+See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
 
-Cross-sectional slices on non-hierarchical indices are now easily
-performed using ``.loc`` and/or ``.loc``. The methods ``xs`` (for DataFrame),
-``minor_xs`` and ``major_xs`` (for Panel), exist primarily for backward
-compatibility
+Cross-sectional slices on non-hierarchical indices are now easily performed using
+``.loc`` and/or ``.loc``. The methods:
 
+  - ``xs`` (for DataFrame),
+  - ``minor_xs`` and ``major_xs`` (for Panel)
+
+now exist primarily for backward compatibility.
+
+See the section :ref:`Selection by Label <indexing.label>` for substitutes.
 
 Dtypes
 ~~~~~~

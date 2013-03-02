@@ -643,7 +643,7 @@ class _LocationIndexer(_NDFrameIndexer):
 
 class _LocIndexer(_LocationIndexer):
     """ purely label based location based indexing """
-    _valid_types = "labels (MUST BE INCLUSIVE), slices of labels (BOTH endpoints included! Can be slices of integers if the index is integers), listlike of labels, boolean"
+    _valid_types = "labels (MUST BE IN THE INDEX), slices of labels (BOTH endpoints included! Can be slices of integers if the index is integers), listlike of labels, boolean"
     _exception   = KeyError
 
     def _has_valid_type(self, key, axis):

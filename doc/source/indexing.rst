@@ -14,9 +14,9 @@
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
 
-***************************
-Indexing and selecting data
-***************************
+**************
+Selecting Data
+**************
 
 The axis labeling information in pandas objects serves many purposes:
 
@@ -44,14 +44,14 @@ three types of multi-axis indexing.
 
     - A single label, e.g. ``5`` or ``'a'``
 
-      (note that ``5`` when used as a *label* of an integer based index)
+      (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
     - A list or array of labels ``['a', 'b', 'c']``
     - A slice object with labels ``'a':'f'``
 
       (note that contrary to usual python slices, **both** the start and the stop are included!)
     - A boolean array
 
-    See more at :ref:`Label indexing <indexing.label>`
+    See more at :ref:`Selection by Label <indexing.label>`
 
   - ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will 
     raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
@@ -61,16 +61,19 @@ three types of multi-axis indexing.
     - A slice object with ints ``1:7``
     - A boolean array
 
-    See more at :ref:`Integer indexing <indexing.integer>` 
+    See more at :ref:`Selection by Position <indexing.integer>` 
 
   - ``.ix`` supports mixed integer and label based access. It is primarily label based, but
     will fallback to integer positional access. ``.ix`` is the most general and will support 
-    any of the inputsx to ``.loc`` and ``.iloc``, as well as support for floating point label schemes.
+    any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes.
+
     As using integer slices with ``.ix`` have different behavior depending on whether the slice 
     is interpreted as integer location based or label position based, it's usually better to be 
     explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
 
-    See more at :ref:`Advanced indexing <indexing.advanced>`
+    ``.ix`` is especially useful when dealing with mixed positional and label based hierarchial indexes. 
+
+    See more at :ref:`Advanced Indexing <indexing.advanced>` and :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>`
 
 Getting values from object with multi-axes uses the following notation (using ``.loc`` as an 
 example, but applies to ``.iloc`` and ``.ix`` as well) Any of the axes accessors may be the null 
@@ -86,23 +89,28 @@ slice ``:``. Axes left out of the specification are assumed to be ``:``.
     DataFrame; ``df.loc[row_indexer,column_indexer]``
     Panel; ``p.loc[item_indexer,major_indexer,minor_indexer]``
 
-Indexing Deprecations
-~~~~~~~~~~~~~~~~~~~~~
+Deprecations
+~~~~~~~~~~~~
 
-Starting in version 0.11.0, the methods may be deprecated in future versions.
+Starting in version 0.11.0, these methods may be deprecated in future versions.
 
   - ``irow``
   - ``icol``
   - ``iget_value``
 
-See the section :ref:`Integer indexing <indexing.integer>` for substitutes.
+See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
 
 .. _indexing.xs:
 
-Cross-sectional slices on non-hierarchical indices are now easily
-performed using ``.loc`` and/or ``.loc``. The methods ``xs`` (for DataFrame),
-``minor_xs`` and ``major_xs`` (for Panel), exist primarily for backward
-compatibility.
+Cross-sectional slices on non-hierarchical indices are now easily performed using
+``.loc`` and/or ``.loc``. The methods:
+
+  - ``xs`` (for DataFrame),
+  - ``minor_xs`` and ``major_xs`` (for Panel)
+
+now exist primarily for backward compatibility.
+
+See the section at :ref:`Selection by Label <indexing.label>` for substitutes.
 
 .. _indexing.basics:
 
@@ -114,11 +122,14 @@ As mentioned when introducing the data structures in the :ref:`last section
 for those familiar with implementing class behavior in Python) is selecting out
 lower-dimensional slices. Thus,
 
-  - **Series**: ``series[label]`` returns a scalar value
-  - **DataFrame**: ``frame[colname]`` returns a Series corresponding to the
-    passed column name
-  - **Panel**: ``panel[itemname]`` returns a DataFrame corresponding to the
-    passed item name
+.. csv-table::
+    :header: "Object Type", "Selection", "Return Value Type"
+    :widths: 30, 30, 60
+    :delim: ;
+
+    Series; ``series[label]``; scalar value
+    DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
+    Panel; ``panel[itemname]``; ``DataFrame`` corresponing to the itemname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
@@ -144,21 +155,22 @@ Thus, as per above, we have the most basic indexing using ``[]``:
    s[dates[5]]
    panel['two']
 
-Additional Column Access
-~~~~~~~~~~~~~~~~~~~~~~~~
+Attribute Access
+~~~~~~~~~~~~~~~~
 
 .. _indexing.columns.multiple:
 
 .. _indexing.df_cols:
 
-You may access a column on a dataframe directly as an attribute:
+You may access a column on a ``DataFrame``, and a item on a ``Panel`` directly as an attribute:
 
 .. ipython:: python
 
    df.A
+   panel.one
 
 If you are using the IPython environment, you may also use tab-completion to
-see the accessible columns of a DataFrame.
+see these accessable attributes.
 
 You can pass a list of columns to ``[]`` to select columns in that order:
 If a column is not contained in the DataFrame, an exception will be
@@ -177,7 +189,7 @@ Slicing ranges
 ~~~~~~~~~~~~~~
 
 The most robust and consistent way of slicing ranges along arbitrary axes is
-described in the :ref:`Integer indexing <indexing.integer>` section detailing
+described in the :ref:`Selection by Position <indexing.integer>` section detailing
 the ``.iloc`` method. For now, we explain the semantics of slicing using the
 ``[]`` operator.
 
@@ -208,8 +220,8 @@ largely as a convenience since it is such a common operation.
 
 .. _indexing.label:
 
-Label Based Indexing
-~~~~~~~~~~~~~~~~~~~~
+Selection By Label
+~~~~~~~~~~~~~~~~~~
 
 Pandas provides a suite of methods in order to have **purely label based indexing**. 
 This is a strict inclusion based protocol. **ALL** of the labels for which you ask,
@@ -224,7 +236,7 @@ The following are valid inputs:
 
     - A single label, e.g. ``5`` or ``'a'``
 
-      (note that ``5`` when used as a *label* of an integer based index)
+      (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
     - A list or array of labels ``['a', 'b', 'c']``
     - A slice object with labels ``'a':'f'``
 
@@ -253,7 +265,10 @@ With a DataFrame
    df1
    df1.loc[['a','b','d'],:]
 
-   # slices
+Accessing via label slices
+
+.. ipython:: python
+
    df1.loc['d':,'A':'C']
 
 For getting a cross section using a label (equiv to deprecated ``df.xs('a')``)
@@ -262,7 +277,10 @@ For getting a cross section using a label (equiv to deprecated ``df.xs('a')``)
 
    df1.loc['a']
 
-   # boolean
+For getting values with a boolean array
+
+.. ipython:: python
+
    df1.loc['a']>0
    df1.loc[:,df1.loc['a']>0]
 
@@ -275,8 +293,8 @@ For getting a value explicity (equiv to deprecated ``df.get_value('a','A')``)
 
 .. _indexing.integer:
 
-Integer Based Indexing
-~~~~~~~~~~~~~~~~~~~~~~
+Selection By Position
+~~~~~~~~~~~~~~~~~~~~~
 
 Pandas provides a suite of methods in order to get **purely integer based indexing**. 
 The semantics follow closely python and numpy slicing. These are ``0-based`` indexing.
@@ -314,17 +332,23 @@ With a DataFrame
    df1 = DataFrame(np.random.randn(6,4),index=range(0,12,2),columns=range(0,8,2))
    df1
 
-   # integer access
-   df1.iloc[5,2]
+Select via integer slicing
 
-   # slices
+.. ipython:: python
+
    df1.iloc[:3]
    df1.iloc[1:5,2:4]
 
-   # integer lists
+Select via integer list
+
+.. ipython:: python
+
    df1.iloc[[1,3,5],[1,3]]
 
-   # boolean
+Select via boolean array
+
+.. ipython:: python
+
    df1.iloc[:,df1.iloc[0]>0]
 
 For slicing rows explicitly (equiv to deprecated ``df.irow(slice(1,3))``).
@@ -339,7 +363,7 @@ For slicing columns explicitly (equiv to deprecated ``df.icol(slice(1,3))``).
 
    df1.iloc[:,1:3]
 
-For getting a value explicity (equiv to deprecated ``df.get_value(1,1)``)
+For getting a scalar via integer position (equiv to deprecated ``df.get_value(1,1)``)
 
 .. ipython:: python
 
@@ -449,8 +473,8 @@ more complex criteria:
    df2[criterion & (df2['b'] == 'x')]
 
 
-Note, with the choice methods :ref:`Label indexing <indexing.label>`, :ref:`Integer indexing <indexing.integer>`,
-and :ref:`Advanced indexing <indexing.advanced>` may select along more than one axis using boolean vectors combined with other
+Note, with the choice methods :ref:`Selection by Label <indexing.label>`, :ref:`Selection by Position <indexing.integer>`,
+and :ref:`Advanced Indexing <indexing.advanced>` may select along more than one axis using boolean vectors combined with other
 indexing expressions.
 
 Where and Masking
@@ -645,8 +669,8 @@ Advanced Indexing with ``.ix``
    to use any passed *integer* as *label* locations first (like what ``.loc``
    would do, then to fall back on *positional* indexing, like what ``.iloc`` would do).
 
-The syntax of using ``.ix`` is identical to ``.loc``, in :ref:`Label indexing <indexing.label>`,
-and ``.iloc`` in :ref:`Integer indexing <indexing.integer>`.
+The syntax of using ``.ix`` is identical to ``.loc``, in :ref:`Selection by Label <indexing.label>`,
+and ``.iloc`` in :ref:`Selection by Position <indexing.integer>`.
 
 The ``.ix`` attribute takes the following inputs:
 
@@ -979,6 +1003,8 @@ of tuples:
 
    s.reindex(index[:3])
    s.reindex([('foo', 'two'), ('bar', 'one'), ('qux', 'one'), ('baz', 'one')])
+
+.. _indexing.advanced_hierarchical:
 
 Advanced indexing with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

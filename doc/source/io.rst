@@ -970,7 +970,7 @@ one can use the ExcelWriter class, as in the following example:
    df2.to_excel(writer, sheet_name='sheet2')
    writer.save()
 
-.. _io-hdf5:
+.. _io.hdf5:
 
 HDF5 (PyTables)
 ---------------
@@ -1058,6 +1058,7 @@ These stores are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
 retrieved in their entirety.
 
+.. _io.hdf5-table:
 
 Storing in Table format
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1091,6 +1092,8 @@ supported.
    # the type of stored data
    store.root.df._v_attrs.pandas_type
 
+.. _io.hdf5-keys:
+
 Hierarchical Keys
 ~~~~~~~~~~~~~~~~~
 
@@ -1114,6 +1117,8 @@ everying in the sub-store and BELOW, so be *careful*.
    # remove all nodes under this level
    store.remove('food')
    store
+
+.. _io.hdf5-types:
 
 Storing Mixed Types in a Table
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1169,6 +1174,8 @@ storing/selecting from homogeneous index DataFrames.
         # the levels are automatically included as data columns
         store.select('df_mi', Term('foo=bar'))
 
+
+.. _io.hdf5-query:
 
 Querying a Table
 ~~~~~~~~~~~~~~~~
@@ -1372,6 +1379,7 @@ table (optional) to let it have the remaining columns. The argument
    store.select_as_multiple(['df1_mt', 'df2_mt'], where=['A>0', 'B>0'],
                              selector = 'df1_mt')
 
+.. _io.hdf5-delete:
 
 Delete from a Table
 ~~~~~~~~~~~~~~~~~~~
