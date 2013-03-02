@@ -5103,6 +5103,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_series_equal(result, expected)
 
+    def test_drop_names(self):
+        df = DataFrame([[1, 2, 3],[3, 4, 5],[5, 6, 7]], index=['a', 'b', 'c'], columns=['d', 'e', 'f'])
+        df.index.name, df.columns.name = 'first', 'second'
+        df_dropped_b = df.drop('b')
+        df_dropped_e = df.drop('e', axis=1)
+        self.assert_(df_dropped_b.index.name == 'first')
+        self.assert_(df_dropped_e.index.name == 'first')
+        self.assert_(df_dropped_b.columns.name == 'second')
+        self.assert_(df_dropped_e.columns.name == 'second')
+
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = randn(N)

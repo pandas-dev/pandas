@@ -178,7 +178,8 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_index_type=False,
                        check_column_type=False,
                        check_frame_type=False,
-                       check_less_precise=False):
+                       check_less_precise=False,
+                       check_names=False):
     if check_frame_type:
         assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
@@ -204,6 +205,9 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert(type(left.columns) == type(right.columns))
         assert(left.columns.dtype == right.columns.dtype)
         assert(left.columns.inferred_type == right.columns.inferred_type)
+    if check_names:
+        assert(left.index.names == right.index.names)
+        assert(left.columns.names == right.columns.names)
 
 
 def assert_panel_equal(left, right, 
