@@ -3305,7 +3305,7 @@ class TimeSeries(Series):
 
         namestr = "Name: %s, " % str(
             self.name) if self.name is not None else ""
-        return '%s%sLength: %d, Dtype: %s' % (freqstr, namestr, len(self),
+        return '%s%sLength: %d, dtype: %s' % (freqstr, namestr, len(self),
                                               com.pprint_thing(self.dtype.name))
 
     def to_timestamp(self, freq=None, how='start', copy=True):
