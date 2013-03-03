@@ -340,7 +340,7 @@ class PandasObject(object):
         dropped : type of caller
         """
         axis_name = self._get_axis_name(axis)
-        axis = self._get_axis(axis)
+        axis, axis_ = self._get_axis(axis), axis
 
         if axis.is_unique:
             if level is not None:
@@ -349,8 +349,13 @@ class PandasObject(object):
                 new_axis = axis.drop(labels, level=level)
             else:
                 new_axis = axis.drop(labels)
+            dropped = self.reindex(**{axis_name: new_axis})
+            try:
+                dropped.axes[axis_].names = axis.names
+            except AttributeError:
+                pass
+            return dropped
 
-            return self.reindex(**{axis_name: new_axis})
         else:
             if level is not None:
                 if not isinstance(axis, MultiIndex):
