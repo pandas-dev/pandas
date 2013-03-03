@@ -200,10 +200,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert(type(left.index) == type(right.index))
         assert(left.index.dtype == right.index.dtype)
         assert(left.index.inferred_type == right.index.inferred_type)
+        assert(left.index.names == right.index.names)
     if check_column_type:
         assert(type(left.columns) == type(right.columns))
         assert(left.columns.dtype == right.columns.dtype)
         assert(left.columns.inferred_type == right.columns.inferred_type)
+        assert(left.columns.names == right.columns.names)
 
 
 def assert_panel_equal(left, right, 
