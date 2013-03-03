@@ -9,9 +9,9 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
-*****************************
-Essential Basic Functionality
-*****************************
+==============================
+ Essential Basic Functionality
+==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
 structures. Here's how to create some of the objects used in the examples from
@@ -373,6 +373,8 @@ value, ``idxmin`` and ``idxmax`` return the first matching index:
    df3 = DataFrame([2, 1, 1, 3, np.nan], columns=['A'], index=list('edcba'))
    df3
    df3['A'].idxmin()
+
+.. _basics.discretization:
 
 Value counts (histogramming)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -976,10 +978,10 @@ To be clear, no pandas methods have the side effect of modifying your data;
 almost all methods return new objects, leaving the original object
 untouched. If data is modified, it is because you did so explicitly.
 
+.. _basics.dtypes:
+
 dtypes
 ------
-
-.. _basics.dtypes:
 
 The main types stored in pandas objects are ``float``, ``int``, ``bool``, ``datetime64[ns]``, ``timedelta[ns]``,
 and ``object``. In addition these dtypes have item sizes, e.g. ``int64`` and ``int32``. A convenient ``dtypes`` 

@@ -55,9 +55,9 @@ class _NDFrameIndexer(object):
             raise IndexingError('no slices here')
 
         try:
-            return self.obj.xs(label, axis=axis, copy=False)
+            return self.obj._xs(label, axis=axis, copy=False)
         except Exception:
-            return self.obj.xs(label, axis=axis, copy=True)
+            return self.obj._xs(label, axis=axis, copy=True)
 
     def _get_loc(self, key, axis=0):
         return self.obj._ixs(key, axis=axis)
@@ -85,6 +85,9 @@ class _NDFrameIndexer(object):
             indexer = self._convert_to_indexer(key)
 
         self._setitem_with_indexer(indexer, value)
+
+    def _has_valid_tuple(self, key):
+        pass
 
     def _convert_tuple(self, key):
         keyidx = []
@@ -223,6 +226,9 @@ class _NDFrameIndexer(object):
         # ugly hack for GH #836
         if self._multi_take_opportunity(tup):
             return self._multi_take(tup)
+
+        # no multi-index, so validate all of the indexers
+        self._has_valid_tuple(tup)
 
         # no shortcut needed
         retval = self.obj
@@ -616,15 +622,16 @@ class _LocationIndexer(_NDFrameIndexer):
     def _has_valid_type(self, k, axis):
         raise NotImplementedError()
 
+    def _has_valid_tuple(self, key):
+        """ check the key for valid keys across my indexer """
+        for i, k in enumerate(key):
+            if i >= self.obj.ndim:
+                raise ValueError('Too many indexers')
+            if not self._has_valid_type(k,i):
+                raise ValueError("Location based indexing can only have [%s] types" % self._valid_types)
+
     def __getitem__(self, key):
         if type(key) is tuple:
-
-            for i, k in enumerate(key):
-                if i >= self.obj.ndim:
-                    raise ValueError('Too many indexers')
-                if not self._has_valid_type(k,i):
-                    raise ValueError("Location based indexing can only have [%s] types" % self._valid_types)
-
             return self._getitem_tuple(key)
         else:
             return self._getitem_axis(key, axis=0)
@@ -707,11 +714,7 @@ class _LocIndexer(_LocationIndexer):
 
             return self._getitem_iterable(key, axis=axis)
         else:
-            indexer = labels.get_loc(key)
-            return self._get_loc(indexer, axis=axis)
-
-    def _get_loc(self, key, axis=0):
-        return self.obj._ixs(key, axis=axis)
+            return self._get_label(key, axis=axis)
 
 class _iLocIndexer(_LocationIndexer):
     """ purely integer based location based indexing """
@@ -723,6 +726,7 @@ class _iLocIndexer(_LocationIndexer):
 
     def _getitem_tuple(self, tup):
 
+        self._has_valid_tuple(tup)
         retval = self.obj
         for i, key in enumerate(tup):
             if _is_null_slice(key):

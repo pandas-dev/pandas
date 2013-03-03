@@ -559,6 +559,9 @@ class Series(pa.Array, generic.PandasObject):
 
         return self._ix
 
+    def _xs(self, key, axis=0, level=None, copy=True):
+        return self.__getitem__(key)
+
     def _ixs(self, i, axis=0):
         """
         Return the i-th value or values in the Series by location

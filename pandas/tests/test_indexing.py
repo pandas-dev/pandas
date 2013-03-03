@@ -609,22 +609,68 @@ class TestIndexing(unittest.TestCase):
         assert_series_equal(result, expected)
 
     def test_iloc_multiindex(self):
-        df = DataFrame(np.random.randn(3, 3), 
-                       columns=[[2,2,4],[6,8,10]],
-                       index=[[4,4,8],[8,10,12]])
+        mi_labels = DataFrame(np.random.randn(4, 3), columns=[['i', 'i', 'j'],
+                                                              ['A', 'A', 'B']],
+                              index=[['i', 'i', 'j', 'k'], ['X', 'X', 'Y','Y']])
 
-        rs = df.iloc[2]
-        xp = df.irow(2)
+        mi_int    = DataFrame(np.random.randn(3, 3), 
+                              columns=[[2,2,4],[6,8,10]],
+                              index=[[4,4,8],[8,10,12]])
+
+
+        # the first row
+        rs = mi_int.iloc[0]
+        xp = mi_int.ix[4].ix[8]
         assert_series_equal(rs, xp)
 
-        rs = df.iloc[:,2]
-        xp = df.icol(2)
+        # 2nd (last) columns
+        rs = mi_int.iloc[:,2]
+        xp = mi_int.ix[:,2]
         assert_series_equal(rs, xp)
 
-        rs = df.iloc[2,2]
-        xp = df.values[2,2]
+        # corner column
+        rs = mi_int.iloc[2,2]
+        xp = mi_int.ix[:,2].ix[2]
         self.assert_(rs == xp)
 
+        # this is basically regular indexing
+        rs = mi_labels.iloc[2,2]
+        xp = mi_labels.ix['j'].ix[:,'j'].ix[0,0]
+        self.assert_(rs == xp)
+
+    def test_loc_multiindex(self):
+
+        mi_labels = DataFrame(np.random.randn(3, 3), columns=[['i', 'i', 'j'],
+                                                              ['A', 'A', 'B']],
+                              index=[['i', 'i', 'j'], ['X', 'X', 'Y']])
+
+        mi_int    = DataFrame(np.random.randn(3, 3), 
+                              columns=[[2,2,4],[6,8,10]],
+                              index=[[4,4,8],[8,10,12]])
+
+        # the first row
+        rs = mi_labels.loc['i']
+        xp = mi_labels.ix['i']
+        assert_frame_equal(rs, xp)
+
+        # 2nd (last) columns
+        rs = mi_labels.loc[:,'j']
+        xp = mi_labels.ix[:,'j']
+        assert_frame_equal(rs, xp)
+
+        # corner column
+        rs = mi_labels.loc['j'].loc[:,'j']
+        xp = mi_labels.ix['j'].ix[:,'j']
+        assert_frame_equal(rs,xp)
+
+        # with a tuple
+        rs = mi_labels.loc[('i','X')]
+        xp = mi_labels.ix[('i','X')]
+        assert_frame_equal(rs,xp)
+
+        rs = mi_int.loc[4]
+        xp = mi_int.ix[4]
+        assert_frame_equal(rs,xp)
 
 if __name__ == '__main__':
     import nose

@@ -59,6 +59,7 @@ pandas 0.11.0
   - Add ``format`` option to ``pandas.to_datetime`` with faster conversion of
     strings that can be parsed with datetime.strptime
   - Add ``axes`` property to ``Series`` for compatibility 
+  - Add ``xs`` function to ``Series`` for compatibility 
 
 **API Changes**
 
@@ -135,7 +136,6 @@ pandas 0.11.0
   - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
   - Bug in argsort of ``datetime64[ns]`` Series with ``NaT`` (GH2967_)
   - Bug in idxmin/idxmax of ``datetime64[ns]`` Series with ``NaT`` (GH2982__)
-  - ``icol`` with negative indicies was return ``nan`` (see GH2922_)
   - Bug in ``icol`` with negative indicies was incorrect producing incorrect return values (see GH2922_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622

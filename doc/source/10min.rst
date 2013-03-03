@@ -67,7 +67,7 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
                         'E' : 'foo' })
    df2
 
-Having specific dtypes
+Having specific :ref:`dtypes <basics.dtypes>`
 
 .. ipython:: python
 
@@ -83,7 +83,7 @@ See the top & bottom rows of the frame
 .. ipython:: python
 
    df.head()
-   df.tail()
+   df.tail(3)
 
 Display the index,columns, and the underlying numpy data
 
@@ -99,6 +99,24 @@ Describe shows a quick statistic summary of your data
 
    df.describe()
 
+Transposing your data
+
+.. ipython:: python
+
+   df.T
+
+Sorting by an axis
+
+.. ipython:: python
+
+   df.sort_index(axis=1, ascending=False)
+
+Sorting by values
+
+.. ipython:: python
+
+   df.sort(columns='B')
+
 Selection
 ---------
 
@@ -112,6 +130,7 @@ Selecting a single column, which yields a ``Series``
 
 .. ipython:: python
 
+   # equivalently ``df.A``
    df['A']
 
 Selecting via ``[]``, which slices the rows.
@@ -167,7 +186,6 @@ Select via the position of the passed integers
 
 .. ipython:: python
 
-   # this is a cross-section of the object
    df.iloc[3]
 
 By integer slices, acting similar to numpy/python
@@ -220,7 +238,7 @@ Pandas will detect this and raise ``IndexError``, rather than return an empty st
 
 ::
 
-    >>> df.iloc[:,3:6]
+    >>> df.iloc[:,8:10]
     IndexError: out-of-bounds on slice (end)
 
 Boolean Indexing
@@ -232,7 +250,7 @@ Using a single column's values to select data.
 
    df[df.A > 0]
 
-A ``where`` operation.
+A ``where`` operation for getting.
 
 .. ipython:: python
 
@@ -270,6 +288,14 @@ Setting by assigning with a numpy array
    df.loc[:,'D'] = np.array([5] * len(df))
    df
 
+A ``where`` operation with setting.
+
+.. ipython:: python
+
+   df2 = df.copy()
+   df2[df2 > 0] = -df2
+   df2
+
 Missing Data
 ------------
 
@@ -297,6 +323,12 @@ Filling missing data
 
    df1.fillna(value=5)
 
+To get the boolean mask where values are ``nan``
+
+.. ipython:: python
+
+   pd.isnull(df1)
+
 
 Operations
 ----------
@@ -305,6 +337,8 @@ See the :ref:`Basic section on Binary Ops <basics.binop>`
 
 Stats
 ~~~~~
+
+Operations in general *exclude* missing data.
 
 Performing a descriptive statistic
 
@@ -318,11 +352,15 @@ Same operation on the other axis
 
    df.mean(1)
 
-Operations on missing data, exclude the data
+Operating with objects that have different dimensionality and need alignment.
+In addition, pandas automatically broadcasts along the specified dimension.
 
 .. ipython:: python
 
-  df1.mean()
+   s = pd.Series([1,3,5,np.nan,6,8],index=dates).shift(2)
+   s
+   df.sub(s,axis='index')
+
 
 Apply
 ~~~~~
@@ -333,6 +371,27 @@ Applying functions to the data
 
    df.apply(np.cumsum)
    df.apply(lambda x: x.max() - x.min())
+
+Histogramming
+~~~~~~~~~~~~~
+
+See more at :ref:`Histogramming and Discretization <basics.discretization>`
+
+.. ipython:: python
+
+   s = Series(np.random.randint(0,7,size=10))
+   s
+   s.value_counts()
+
+String Methods
+~~~~~~~~~~~~~~
+
+See more at :ref:`Vectorized String Methods <basics.string_methods>`
+
+.. ipython:: python
+
+   s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s.str.lower()
 
 Merge
 -----
@@ -425,6 +484,9 @@ Reshaping
 See the section on :ref:`Hierarchical Indexing <indexing.hierarchical>` and
 see the section on :ref:`Reshaping <reshaping.stacking>`).
 
+Stack
+~~~~~
+
 .. ipython:: python
 
    tuples = zip(*[['bar', 'bar', 'baz', 'baz',
@@ -452,6 +514,26 @@ unstacks the **last level**:
    stacked.unstack()
    stacked.unstack(1)
    stacked.unstack(0)
+
+Pivot Tables
+~~~~~~~~~~~~
+See the section on :ref:`Pivot Tables <reshaping.pivot>`).
+
+.. ipython:: python
+
+   df = DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
+                   'B' : ['A', 'B', 'C'] * 4,
+                   'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
+                   'D' : np.random.randn(12),
+                   'E' : np.random.randn(12)})
+   df
+
+We can produce pivot tables from this data very easily:
+
+.. ipython:: python
+
+   pivot_table(df, values='D', rows=['A', 'B'], cols=['C'])
+
 
 Time Series
 -----------
@@ -581,3 +663,25 @@ Reading from a HDF5 Store
    store.close()
    os.remove('foo.h5')
 
+Excel
+~~~~~
+
+Reading and writing to :ref:`MS Excel <io.excel>`
+
+Writing to an excel file
+
+.. ipython:: python
+
+   df.to_excel('foo.xlsx', sheet_name='sheet1')
+
+Reading from an excel file
+
+.. ipython:: python
+
+   xls = ExcelFile('foo.xlsx')
+   xls.parse('sheet1', index_col=None, na_values=['NA'])
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('foo.xlsx')

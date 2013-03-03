@@ -2343,6 +2343,8 @@ class DataFrame(NDFrame):
             result.index = new_index
             return result
 
+    _xs = xs
+
     def lookup(self, row_labels, col_labels):
         """
         Label-based "fancy indexing" function for DataFrame. Given equal-length

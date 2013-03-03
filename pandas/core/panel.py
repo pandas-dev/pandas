@@ -1065,6 +1065,8 @@ class Panel(NDFrame):
         new_data = self._data.xs(key, axis=axis_number, copy=copy)
         return self._constructor_sliced(new_data)
 
+    _xs = xs
+
     def _ixs(self, i, axis=0):
         # for compatibility with .ix indexing
         # Won't work with hierarchical indexing yet

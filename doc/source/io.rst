@@ -906,6 +906,8 @@ And then import the data directly to a DataFrame by calling:
    clipdf
 
 
+.. _io.excel:
+
 Excel files
 -----------
 
