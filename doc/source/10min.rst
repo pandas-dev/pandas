@@ -7,6 +7,7 @@
 
    import numpy as np
    import random
+   import os
    np.random.seed(123456)
    from pandas import *
    import pandas as pd
@@ -466,6 +467,45 @@ limited to, financial applications. See the :ref:`Time Series section <timeserie
    ts = pd.Series(randint(0, 500, len(rng)), index=rng)
    ts.resample('5Min', how='sum')
 
+Time zone representation
+
+.. ipython:: python
+
+   rng = pd.date_range('3/6/2012 00:00', periods=5, freq='D')
+   ts = pd.Series(randn(len(rng)), rng)
+   ts_utc = ts.tz_localize('UTC')
+   ts_utc
+
+Convert to another time zone
+
+.. ipython:: python
+
+   ts_utc.tz_convert('US/Eastern')
+
+Converting between time span representations
+
+.. ipython:: python
+
+   rng = pd.date_range('1/1/2012', periods=5, freq='M')
+   ts = pd.Series(randn(len(rng)), index=rng)
+   ts
+   ps = ts.to_period()
+   ps
+   ps.to_timestamp()
+
+Converting between period and timestamp enables some convenient arithmetic
+functions to be used. In the following example, we convert a quarterly
+frequency with year ending in November to 9am of the end of the month following
+the quarter end:
+
+.. ipython:: python
+
+   prng = period_range('1990Q1', '2000Q4', freq='Q-NOV')
+   ts = Series(randn(len(prng)), prng)
+   ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
+   ts.head()
+
+
 Plotting
 --------
 
@@ -512,6 +552,11 @@ CSV
 
    pd.read_csv('foo.csv')
 
+.. ipython:: python
+   :suppress:
+
+   os.remove('foo.csv')
+
 HDF5
 ~~~~
 
@@ -532,9 +577,7 @@ Reading from a HDF5 Store
 
 .. ipython:: python
    :suppress:
-   :okexcept:
 
    store.close()
    os.remove('foo.h5')
-   os.remove('foo.csv')
 

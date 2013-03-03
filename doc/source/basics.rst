@@ -976,14 +976,14 @@ To be clear, no pandas methods have the side effect of modifying your data;
 almost all methods return new objects, leaving the original object
 untouched. If data is modified, it is because you did so explicitly.
 
-DTypes
+dtypes
 ------
 
 .. _basics.dtypes:
 
-The main types stored in pandas objects are float, int, boolean, datetime64[ns],
-and object. A convenient ``dtypes`` attribute for DataFrames returns a Series with 
-the data type of each column.
+The main types stored in pandas objects are ``float``, ``int``, ``bool``, ``datetime64[ns]``, ``timedelta[ns]``,
+and ``object``. In addition these dtypes have item sizes, e.g. ``int64`` and ``int32``. A convenient ``dtypes`` 
+attribute for DataFrames returns a Series with the data type of each column.
 
 .. ipython:: python
 
@@ -992,10 +992,25 @@ the data type of each column.
 			 F = False,
 			 G = Series([1]*3,dtype='int8')))
    dft
+   dft.dtypes
 
-If a DataFrame contains columns of multiple dtypes, the dtype of the column
-will be chosen to accommodate all of the data types (dtype=object is the most
+On a ``Series`` use the ``dtype`` method.
+
+.. ipython:: python
+
+   dft['A'].dtype
+
+If a pandas object contains data multiple dtypes *IN A SINGLE COLUMN*, the dtype of the 
+column will be chosen to accommodate all of the data types (``object`` is the most
 general).
+
+.. ipython:: python
+
+   # these ints are coerced to floats
+   Series([1, 2, 3, 4, 5, 6.])
+
+   # string data forces an ``object`` dtype
+   Series([1, 2, 3, 6., 'foo'])
 
 The related method ``get_dtype_counts`` will return the number of columns of
 each type:
@@ -1019,15 +1034,42 @@ or a passed ``Series``, then it will be preserved in DataFrame operations. Furth
    df2
    df2.dtypes
 
-   # here you get some upcasting
+defaults
+~~~~~~~~
+
+By default integer types are ``int64`` and float types are ``float64``, *REGARDLESS* of platform (32-bit or 64-bit).
+
+The following will all result in ``int64`` dtypes.
+
+.. ipython:: python
+
+    DataFrame([1,2],columns=['a']).dtypes
+    DataFrame({'a' : [1,2] }).dtypes
+    DataFrame({'a' : 1 }, index=range(2)).dtypes
+
+Numpy, however will choose *platform-dependent* types when creating arrays.
+Thus, ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on 32-bit platform.
+
+
+upcasting
+~~~~~~~~~
+
+Types can potentially be *upcasted* when combined with other types, meaning they are promoted from the current type (say ``int`` to ``float``)
+
+.. ipython:: python
+
    df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
    df3
    df3.dtypes
 
-   # this is lower-common-denomicator upcasting (meaning you get the dtype which can accomodate all of the types)
+The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning the dtype that can accomodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can 
+force some *upcasting*.
+
+.. ipython:: python
+
    df3.values.dtype
 
-Astype
+astype
 ~~~~~~
 
 .. _basics.cast:
@@ -1044,7 +1086,7 @@ then the more *general* one will be used as the result of the operation.
    # conversion of dtypes
    df3.astype('float32').dtypes
 
-Object Conversion
+object conversion
 ~~~~~~~~~~~~~~~~~
 
 To force conversion of specific types of number conversion, pass ``convert_numeric = True``. 
@@ -1067,16 +1109,19 @@ the objects in a Series are of the same type, the Series will have that dtype.
    df3['E'] = df3['E'].astype('int32')
    df3.dtypes
 
-   # forcing date coercion
+This is a *forced coercion* on datelike types. This might be useful if you are reading in data which is mostly dates, but occasionally has non-dates intermixed and you want to make those values ``nan``.
+
+.. ipython:: python
+
    s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1, Timestamp('20010104'), '20010105'],dtype='O')
    s
    s.convert_objects(convert_dates='coerce')
 
 
-Upcasting Gotchas
-~~~~~~~~~~~~~~~~~
+gotchas
+~~~~~~~
 
-Performing indexing operations on ``integer`` type data can easily upcast the data to ``floating``.
+Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
 The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
 See also :ref:`integer na gotchas <gotchas.intna>`
 

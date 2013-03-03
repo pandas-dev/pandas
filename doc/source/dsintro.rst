@@ -447,7 +447,7 @@ DataFrame:
 
 .. ipython:: python
 
-   df.loc('b')
+   df.loc['b']
    df.iloc[2]
 
 For a more exhaustive treatment of more sophisticated label-based indexing and
