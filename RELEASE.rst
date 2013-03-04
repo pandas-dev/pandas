@@ -131,6 +131,7 @@ pandas 0.11.0
   - Add ``time()`` method to DatetimeIndex (GH3180_)
   - Return NA when using Series.str[...] for values that are not long enough
     (GH3223_)
+  - Display cursor coordinate information in time-series plots (GH1670_)
 
 **API Changes**
 
@@ -314,6 +315,7 @@ pandas 0.11.0
 .. _GH2745: https://github.com/pydata/pandas/issues/2745
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
+.. _GH1670: https://github.com/pydata/pandas/issues/1670
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
 .. _GH2719: https://github.com/pydata/pandas/issues/2719
 .. _GH2746: https://github.com/pydata/pandas/issues/2746
