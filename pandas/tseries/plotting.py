@@ -82,6 +82,10 @@ def tsplot(series, plotf, **kwargs):
     left, right = _get_xlim(ax.get_lines())
     ax.set_xlim(left, right)
 
+    # x and y coord info
+    tz = series.index.to_datetime().tz
+    ax.format_coord = lambda t, y : "t = {}    y = {:8f}".format(datetime.fromtimestamp(t, tz), y)
+
     return lines
 
 
