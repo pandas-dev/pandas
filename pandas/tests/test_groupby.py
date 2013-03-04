@@ -140,17 +140,17 @@ class TestGroupBy(unittest.TestCase):
         first = grouped.first()
         expected = self.df.ix[[1, 0], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
-        assert_frame_equal(first, expected)
+        assert_frame_equal(first, expected, check_names=False)
 
         last = grouped.last()
         expected = self.df.ix[[5, 7], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
-        assert_frame_equal(last, expected)
+        assert_frame_equal(last, expected, check_names=False)
 
         nth = grouped.nth(1)
         expected = self.df.ix[[3, 2], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
-        assert_frame_equal(nth, expected)
+        assert_frame_equal(nth, expected, check_names=False)
 
         # it works!
         grouped['B'].first()
@@ -169,17 +169,17 @@ class TestGroupBy(unittest.TestCase):
         first = grouped.first()
         expected = self.df_mixed_floats.ix[[1, 0], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
-        assert_frame_equal(first, expected)
+        assert_frame_equal(first, expected, check_names=False)
 
         last = grouped.last()
         expected = self.df_mixed_floats.ix[[5, 7], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
-        assert_frame_equal(last, expected)
+        assert_frame_equal(last, expected, check_names=False)
 
         nth = grouped.nth(1)
         expected = self.df_mixed_floats.ix[[3, 2], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
-        assert_frame_equal(nth, expected)
+        assert_frame_equal(nth, expected, check_names=False)
 
     def test_grouper_iter(self):
         self.assertEqual(sorted(self.df.groupby('A').grouper), ['bar', 'foo'])
@@ -290,8 +290,8 @@ class TestGroupBy(unittest.TestCase):
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
         exp_df = DataFrame(columns=self.tsframe.columns, dtype=float)
-        assert_frame_equal(grouped.sum(), exp_df)
-        assert_frame_equal(grouped.agg(np.sum), exp_df)
+        assert_frame_equal(grouped.sum(), exp_df, check_names=False)
+        assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}, dtype=float))
 
     def test_agg_grouping_is_list_tuple(self):
@@ -629,7 +629,7 @@ class TestGroupBy(unittest.TestCase):
         tscopy = self.tsframe.copy()
         tscopy['weekday'] = [x.weekday() for x in tscopy.index]
         stragged = tscopy.groupby('weekday').aggregate(np.mean)
-        assert_frame_equal(stragged, aggregated)
+        assert_frame_equal(stragged, aggregated, check_names=False)
 
         # transform
         transformed = grouped.transform(lambda x: x - x.mean())
@@ -785,7 +785,8 @@ class TestGroupBy(unittest.TestCase):
         agged = grouped.mean()
         expected = self.df.groupby(['A', 'B']).mean()
         assert_frame_equal(agged.ix[:, ['C', 'D']],
-                           expected.ix[:, ['C', 'D']])
+                           expected.ix[:, ['C', 'D']],
+                           check_names=False)  # TODO groupby get drops names
 
         # some "groups" with no data
         df = DataFrame({'v1': np.random.randn(6),
@@ -843,6 +844,7 @@ class TestGroupBy(unittest.TestCase):
                     expected[n1][n2] = op(gp2.ix[:, ['C', 'D']])
             expected = dict((k, DataFrame(v)) for k, v in expected.iteritems())
             expected = Panel.fromDict(expected).swapaxes(0, 1)
+            expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 
             # a little bit crude
             for col in ['C', 'D']:
@@ -1105,6 +1107,7 @@ class TestGroupBy(unittest.TestCase):
             for cat, group in grouped:
                 exp[cat] = op(group['C'])
             exp = DataFrame({'C': exp})
+            exp.index.name = 'A'
             result = op(grouped)
             assert_frame_equal(result, exp)
 
@@ -1259,6 +1262,7 @@ class TestGroupBy(unittest.TestCase):
         mapped_level1 = np.array([mapper1.get(x) for x in deleveled['second']])
         expected0 = frame.groupby(mapped_level0).sum()
         expected1 = frame.groupby(mapped_level1).sum()
+        expected0.index.name, expected1.index.name = 'first', 'second'
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
@@ -1483,7 +1487,7 @@ class TestGroupBy(unittest.TestCase):
 
         result = grouped.sum()
         expected = self.df.groupby('A').sum()
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)  # Note: no names when grouping by value
 
     def test_apply_typecast_fail(self):
         df = DataFrame({'d': [1., 1., 1., 2., 2., 2.],
@@ -1663,7 +1667,7 @@ class TestGroupBy(unittest.TestCase):
     def test_groupby_list_infer_array_like(self):
         result = self.df.groupby(list(self.df['A'])).mean()
         expected = self.df.groupby(self.df['A']).mean()
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)
 
         self.assertRaises(Exception, self.df.groupby, list(self.df['A'][:-1]))
 
@@ -2099,6 +2103,7 @@ class TestGroupBy(unittest.TestCase):
 
         expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
+        expected.index.name = 'myfactor'
 
         assert_frame_equal(result, expected)
         self.assert_(result.index.name == cats.name)
@@ -2110,6 +2115,7 @@ class TestGroupBy(unittest.TestCase):
         ord_labels = np.asarray(cats).take(idx)
         ord_data = data.take(idx)
         expected = ord_data.groupby(ord_labels, sort=False).describe()
+        expected.index.names = ['myfactor', None]
         assert_frame_equal(desc_result, expected)
 
     def test_groupby_groups_datetimeindex(self):

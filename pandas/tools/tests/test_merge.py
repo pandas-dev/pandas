@@ -357,6 +357,7 @@ class TestMerge(unittest.TestCase):
         joined = df1.join(df2, how='outer')
         ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        expected.index.names = index1.names
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
 
@@ -366,6 +367,7 @@ class TestMerge(unittest.TestCase):
         joined = df1.join(df2, how='outer').sortlevel(0)
         ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        expected.index.names = index1.names
 
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
@@ -739,7 +741,7 @@ def _check_merge(x, y):
                          sort=True)
         expected = expected.set_index('index')
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)  # TODO check_names on merge?
 
 
 class TestMergeMulti(unittest.TestCase):
