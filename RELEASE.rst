@@ -51,6 +51,7 @@ pandas 0.11.0
   - ``describe_option()`` now reports the default and current value of options.
   - Add ``format`` option to ``pandas.to_datetime`` with faster conversion of
     strings that can be parsed with datetime.strptime
+  - Display cursor coordinate information in time-series plots (GH1670_)
 
 **API Changes**
 
@@ -126,6 +127,7 @@ pandas 0.11.0
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
+.. _GH1670: https://github.com/pydata/pandas/issues/1670
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
 .. _GH2746: https://github.com/pydata/pandas/issues/2746
 .. _GH2747: https://github.com/pydata/pandas/issues/2747

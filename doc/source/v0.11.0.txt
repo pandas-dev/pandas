@@ -175,6 +175,7 @@ Enhancements
       only return forward looking data for options near the current stock
       price. This just obtains the data from Options.get_near_stock_price
       instead of Options.get_xxx_data().
+    + Cursor coordinate information is now displayed in time-series plots.
 
 Bug Fixes
 ~~~~~~~~~
