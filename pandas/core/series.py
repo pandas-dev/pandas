@@ -2092,16 +2092,17 @@ class Series(pa.Array, generic.PandasObject):
 
         Returns
         -------
-        argsorted : Series
+        argsorted : Series, with -1 indicated where nan values are present
+
         """
         values = self.values
         mask = isnull(values)
 
         if mask.any():
-            result = values.copy()
+            result = Series(-1,index=self.index,name=self.name)
             notmask = -mask
-            result[notmask] = np.argsort(values[notmask], kind=kind)
-            return Series(result, index=self.index, name=self.name)
+            result.values[notmask] = np.argsort(self.values[notmask], kind=kind)
+            return result
         else:
             return Series(np.argsort(values, kind=kind), index=self.index,
                           name=self.name)
