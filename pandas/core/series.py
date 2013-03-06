@@ -711,6 +711,19 @@ class Series(pa.Array, generic.PandasObject):
         """
         return self.where(~cond, nan)
 
+    def abs(self):
+        """
+        Return an object with absolute value taken. Only applicable to objects
+        that are all numeric
+
+        Returns
+        -------
+        abs: type of caller
+        """
+        obj = np.abs(self)
+        obj = com._possibly_cast_to_timedelta(obj, coerce=False)
+        return obj
+
     def __setitem__(self, key, value):
         try:
             try:
