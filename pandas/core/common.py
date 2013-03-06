@@ -1651,8 +1651,13 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     rather then calling this directly.
     """
     fmt = u"[%s]" if hasattr(seq, '__setitem__') else u"(%s)"
-    return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1, **kwds)
-                                    for e in seq[:len(seq)])
+
+    nitems = get_option("max_seq_items") or len(seq)
+    body = ", ".join(pprint_thing(e, _nest_lvl + 1, **kwds)
+                                    for e in seq[:nitems])
+    if nitems < len(seq):
+        body+= ", ..."
+    return fmt % body
 
 
 def _pprint_dict(seq, _nest_lvl=0):
