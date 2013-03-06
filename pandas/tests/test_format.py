@@ -1076,6 +1076,18 @@ c  10  11  12  13  14\
         result = df.to_html(classes=["sortable", "draggable"])
         self.assertEqual(result, expected)
 
+    def test_pprint_pathological_object(self):
+        """
+        if the test fails, the stack will overflow and nose crash,
+        but it won't hang.
+        """
+        class A:
+            def __getitem__(self, key):
+                return 3 # obviously simplified
+        self.assertTrue("A instance" in repr(A()) )
+        df = pandas.DataFrame([A()])
+        repr(df) # just don't dine
+
     def test_float_trim_zeros(self):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
                 2.03954217305e+10, 5.59897817305e+10]
