@@ -4559,6 +4559,7 @@ class DataFrame(NDFrame):
                 baseCov.fill(np.nan)
             else:
                 baseCov = np.cov(mat.T)
+            baseCov = baseCov.reshape((len(cols),len(cols)))
         else:
             baseCov = _algos.nancorr(com._ensure_float64(mat), cov=True,
                                      minp=min_periods)
