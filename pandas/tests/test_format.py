@@ -1084,7 +1084,6 @@ c  10  11  12  13  14\
         class A:
             def __getitem__(self, key):
                 return 3 # obviously simplified
-        self.assertTrue("A instance" in repr(A()) )
         df = pandas.DataFrame([A()])
         repr(df) # just don't dine
 
