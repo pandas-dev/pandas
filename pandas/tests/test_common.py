@@ -26,6 +26,11 @@ def test_is_sequence():
     assert(not is_seq(u"abcd"))
     assert(not is_seq(np.int64))
 
+    class A(object):
+        def __getitem__(self):
+            return 1
+
+    assert(not is_seq(A()))
 
 def test_notnull():
     assert notnull(1.)
