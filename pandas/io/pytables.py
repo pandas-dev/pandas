@@ -2296,7 +2296,7 @@ class Table(Storer):
 
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:
-            for field, filt in self.selection.filter:
+            for field, op, filt in self.selection.filter:
 
                 def process_filter(field, filt):
 
@@ -2306,9 +2306,8 @@ class Table(Storer):
 
                         # see if the field is the name of an axis
                         if field == axis_name:
-                            ordd = axis_values & filt
-                            ordd = sorted(axis_values.get_indexer(ordd))
-                            return obj.reindex_axis(axis_values.take(ordd), axis=axis_number, copy=False)
+                            takers = op(axis_values,filt)
+                            return obj.ix._getitem_axis(takers,axis=axis_number)
 
                         # this might be the name of a file IN an axis
                         elif field in axis_values:
@@ -2320,7 +2319,8 @@ class Table(Storer):
                             # hack until we support reversed dim flags
                             if isinstance(obj,DataFrame):
                                 axis_number = 1-axis_number
-                            return obj.ix._getitem_axis(values.isin(filt),axis=axis_number)
+                            takers = op(values,filt)
+                            return obj.ix._getitem_axis(takers,axis=axis_number)
 
                     raise Exception("cannot find the field [%s] for filtering!" % field)
   
@@ -2969,7 +2969,7 @@ class Term(object):
         # backwards compatible
         if isinstance(field, dict):
             self.field = field.get('field')
-            self.op = field.get('op') or '='
+            self.op = field.get('op') or '=='
             self.value = field.get('value')
 
         # passed a term
@@ -2996,7 +2996,7 @@ class Term(object):
                     self.op = op
                     self.value = value
                 else:
-                    self.op = '='
+                    self.op = '=='
                     self.value = op
 
         else:
@@ -3008,8 +3008,8 @@ class Term(object):
             raise Exception("Could not create this term [%s]" % str(self))
 
         # = vs ==
-        if self.op == '==':
-            self.op = '='
+        if self.op == '=':
+            self.op = '=='
 
         # we have valid conditions
         if self.op in ['>', '>=', '<', '<=']:
@@ -3055,22 +3055,29 @@ class Term(object):
             values = [[v, v] for v in self.value]
 
         # equality conditions
-        if self.op in ['=', '!=']:
+        if self.op in ['==', '!=']:
+
+            # our filter op expression
+            if self.op == '!=':
+                filter_op = lambda axis, values: not axis.isin(values)
+            else:
+                filter_op = lambda axis, values: axis.isin(values)
+
 
             if self.is_in_table:
 
                 # too many values to create the expression?
                 if len(values) <= self._max_selectors:
                     self.condition = "(%s)" % ' | '.join(
-                        ["(%s == %s)" % (self.field, v[0]) for v in values])
+                        ["(%s %s %s)" % (self.field, self.op, v[0]) for v in values])
 
                 # use a filter after reading
                 else:
-                    self.filter = (self.field, Index([v[1] for v in values]))
+                    self.filter = (self.field, filter_op, Index([v[1] for v in values]))
 
             else:
 
-                self.filter = (self.field, Index([v[1] for v in values]))
+                self.filter = (self.field, filter_op, Index([v[1] for v in values]))
 
         else:
 
