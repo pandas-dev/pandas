@@ -440,7 +440,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
         if func is not None:
             func = _convert_wrapper(func, out_dtype)
             return func
-    
+
     def func(arr, indexer, out, fill_value=np.nan):
         _take_nd_generic(arr, indexer, out, axis=axis,
                          fill_value=fill_value, mask_info=mask_info)
@@ -695,7 +695,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
             except:
                 # the proper thing to do here would probably be to upcast to
                 # object (but numpy 1.6.1 doesn't do this properly)
-                fill_value = tslib.iNaT 
+                fill_value = tslib.iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -895,7 +895,7 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     if convert_numeric and values.dtype == np.object_:
         try:
             new_values = lib.maybe_convert_numeric(values,set(),coerce_numeric=True)
-            
+
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
                 values = new_values
@@ -1154,7 +1154,7 @@ def _long_prod(vals):
         result *= x
     return result
 
-    
+
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.
@@ -1343,6 +1343,7 @@ def is_list_like(arg):
 def _is_sequence(x):
     try:
         iter(x)
+        len(x) # it has a length
         return not isinstance(x, basestring) and True
     except Exception:
         return False
@@ -1647,7 +1648,8 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     rather then calling this directly.
     """
     fmt = u"[%s]" if hasattr(seq, '__setitem__') else u"(%s)"
-    return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1, **kwds) for e in seq)
+    return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1, **kwds)
+                                    for e in seq[:len(seq)])
 
 
 def _pprint_dict(seq, _nest_lvl=0):

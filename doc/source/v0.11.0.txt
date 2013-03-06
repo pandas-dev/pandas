@@ -208,6 +208,9 @@ Bug Fixes
         datetime(2011,1,1,3,5) - s
         timedelta(minutes=5) + s
 
+  - Fix pretty-printing of infinite data structures, GH2978
+
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
@@ -216,4 +219,4 @@ on GitHub for a complete list.
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
-
+.. _GH2978: https://github.com/pydata/pandas/issues/2978
