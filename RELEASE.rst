@@ -125,6 +125,7 @@ pandas 0.11.0
     - Support idxmin/idxmax in a Series (but with no NaT)
 
   - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
+  - Bug in argsort of ``datetime64[ns]`` Series with ``NaT`` (GH2967_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -145,6 +146,7 @@ pandas 0.11.0
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
+.. _GH2967: https://github.com/pydata/pandas/issues/2967
 
 
 pandas 0.10.1
