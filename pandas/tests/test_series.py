@@ -1404,6 +1404,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         argsorted = self.ts.argsort()
         self.assert_(issubclass(argsorted.dtype.type, np.integer))
 
+        # GH 2967 (introduced bug in 0.11-dev I think)
+        s = Series([Timestamp('201301%02d'% (i+1)) for i in range(5)])
+        self.assert_(s.dtype == 'datetime64[ns]')
+        shifted = s.shift(-1)
+        self.assert_(shifted.dtype == 'datetime64[ns]')
+        self.assert_(isnull(shifted[4]) == True)
+
+        result = s.argsort()
+        expected = Series(range(5),dtype='int64')
+        assert_series_equal(result,expected)
+
+        result = shifted.argsort()
+        expected = Series(range(4) + [-1],dtype='int64')
+        assert_series_equal(result,expected)
+
     def test_argsort_stable(self):
         s = Series(np.random.randint(0, 100, size=10000))
         mindexer = s.argsort(kind='mergesort')
