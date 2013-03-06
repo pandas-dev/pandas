@@ -106,6 +106,8 @@ pandas 0.11.0
       (e.g. store.df == store['df'])
     - Internally, change all variables to be private-like (now have leading
       underscore)
+    - fixes for query parsing to correctly interpret boolean and != (GH2849_, GH2973_)
+    - fixes for pathological case on SparseSeries with 0-len array and compression (GH2931_)
 
   - Bug showing up in applymap where some object type columns are converted (GH2909_)
     had an incorrect default in convert_objects
@@ -138,8 +140,11 @@ pandas 0.11.0
 .. _GH2845: https://github.com/pydata/pandas/issues/2845
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2849: https://github.com/pydata/pandas/issues/2849
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
+.. _GH2931: https://github.com/pydata/pandas/issues/2931
+.. _GH2973: https://github.com/pydata/pandas/issues/2973
 
 
 pandas 0.10.1
