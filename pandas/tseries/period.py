@@ -152,6 +152,26 @@ class Period(object):
         else:  # pragma: no cover
             raise TypeError(other)
 
+    def __lt__(self, other):
+        if other.freq != self.freq:
+            raise ValueError("Cannot compare non-conforming periods")
+        return self.ordinal < other.ordinal
+
+    def __le__(self, other):
+        if other.freq != self.freq:
+            raise ValueError("Cannot compare non-conforming periods")
+        return self.ordinal <= other.ordinal
+
+    def __gt__(self, other):
+        if other.freq != self.freq:
+            raise ValueError("Cannot compare non-conforming periods")
+        return self.ordinal > other.ordinal
+
+    def __ge__(self, other):
+        if other.freq != self.freq:
+            raise ValueError("Cannot compare non-conforming periods")
+        return self.ordinal >= other.ordinal
+
     def asfreq(self, freq, how='E'):
         """
         Convert Period to desired frequency, either at the start or end of the

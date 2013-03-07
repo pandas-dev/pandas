@@ -2,7 +2,7 @@ import unittest
 
 from numpy import nan
 import numpy as np
-from pandas import Index, isnull
+from pandas import Index, isnull, Period
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas.lib as lib
@@ -61,6 +61,35 @@ class TestTseriesUtil(unittest.TestCase):
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
+class TestPeriod(unittest.TestCase):
+    def setUp(self):
+        self.january1 = Period('2000-01', 'M')
+        self.january2 = Period('2000-01', 'M')
+        self.february = Period('2000-02', 'M')
+        self.march = Period('2000-03', 'M')
+
+    def test_equal(self):
+        self.assertEqual(self.january1,self.january2)
+
+    def test_notEqual(self):
+        self.assertNotEqual(self.january1, self.february)
+
+    def test_greater(self):
+        self.assertGreater(self.february, self.january1)
+
+    def test_greaterEqual(self):
+        self.assertGreaterEqual(self.january1, self.january2)
+
+    def test_smallerEqual(self):
+        self.assertLessEqual(self.january1, self.january2)
+
+    def test_smaller(self):
+        self.assertLess(self.january1, self.february)
+
+    def test_sort(self):
+        periods = [self.march, self.january1, self.february]
+        correctPeriods = [self.january1, self.february, self.march]
+        self.assertListEqual(sorted(periods), correctPeriods)
 
 def test_left_join_indexer_unique():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
