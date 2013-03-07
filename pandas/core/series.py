@@ -2112,13 +2112,13 @@ class Series(pa.Array, generic.PandasObject):
         mask = isnull(values)
 
         if mask.any():
-            result = Series(-1,index=self.index,name=self.name)
+            result = Series(-1,index=self.index,name=self.name,dtype='int64')
             notmask = -mask
             result.values[notmask] = np.argsort(self.values[notmask], kind=kind)
             return result
         else:
             return Series(np.argsort(values, kind=kind), index=self.index,
-                          name=self.name)
+                          name=self.name,dtype='int64')
 
     def rank(self, method='average', na_option='keep', ascending=True):
         """
