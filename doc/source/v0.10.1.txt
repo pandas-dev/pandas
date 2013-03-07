@@ -232,4 +232,5 @@ on GitHub for a complete list.
 .. _GH2626: https://github.com/pydata/pandas/issues/2626
 .. _GH2613: https://github.com/pydata/pandas/issues/2613
 .. _GH2602: https://github.com/pydata/pandas/issues/2602
+.. _GH2687: https://github.com/pydata/pandas/issues/2687
 .. _GH2563: https://github.com/pydata/pandas/issues/2563

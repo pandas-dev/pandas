@@ -12,7 +12,7 @@ from pandas.core.common import (PandasError, _mut_exclusive,
 from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
-from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
+from pandas.core.indexing import _maybe_droplevels, _is_list_like
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
@@ -540,16 +540,6 @@ class Panel(NDFrame):
 
         return index, columns
 
-    # Fancy indexing
-    _ix = None
-
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _NDFrameIndexer(self)
-
-        return self._ix
-
     def _wrap_array(self, arr, axes, copy=False):
         d = self._construct_axes_dict_from(self, axes, copy=copy)
         return self._constructor(arr, **d)
@@ -679,8 +669,8 @@ class Panel(NDFrame):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
 
-    def _slice(self, slobj, axis=0):
-        new_data = self._data.get_slice(slobj, axis=axis)
+    def _slice(self, slobj, axis=0, raise_on_error=False):
+        new_data = self._data.get_slice(slobj, axis=axis, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def __setitem__(self, key, value):
@@ -1075,10 +1065,17 @@ class Panel(NDFrame):
         new_data = self._data.xs(key, axis=axis_number, copy=copy)
         return self._constructor_sliced(new_data)
 
+    _xs = xs
+
     def _ixs(self, i, axis=0):
         # for compatibility with .ix indexing
         # Won't work with hierarchical indexing yet
         key = self._get_axis(axis)[i]
+
+        # xs cannot handle a non-scalar key, so just reindex here
+        if _is_list_like(key):
+            return self.reindex(**{ self._get_axis_name(axis) : key })
+
         return self.xs(key, axis=axis)
 
     def groupby(self, function, axis='major'):

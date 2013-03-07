@@ -20,7 +20,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _infer_dtype_from_scalar, is_list_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer
+from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
@@ -547,14 +547,57 @@ class Series(pa.Array, generic.PandasObject):
         self.index = _handle_legacy_indexes([index])[0]
         self.name = name
 
-    _ix = None
+    # indexers
+    @property
+    def axes(self):
+        return [ self.index ]
 
     @property
     def ix(self):
         if self._ix is None:
-            self._ix = _SeriesIndexer(self)
+            self._ix = _SeriesIndexer(self, 'ix')
 
         return self._ix
+
+    def _xs(self, key, axis=0, level=None, copy=True):
+        return self.__getitem__(key)
+
+    def _ixs(self, i, axis=0):
+        """
+        Return the i-th value or values in the Series by location
+
+        Parameters
+        ----------
+        i : int, slice, or sequence of integers
+
+        Returns
+        -------
+        value : scalar (int) or Series (slice, sequence)
+        """
+        try:
+            return _index.get_value_at(self, i)
+        except IndexError:
+            raise
+        except:
+            if isinstance(i, slice):
+                return self[i]
+            else:
+                label = self.index[i]
+                if isinstance(label, Index):
+                    return self.reindex(label)
+                else:
+                    return _index.get_value_at(self, i)
+
+
+    @property
+    def _is_mixed_type(self):
+        return False
+
+    def _slice(self, slobj, axis=0, raise_on_error=False):
+        if raise_on_error:
+            _check_slice_bounds(slobj, self.values)
+            
+        return self._constructor(self.values[slobj], index=self.index[slobj])
 
     def __getitem__(self, key):
         try:
@@ -908,34 +951,9 @@ class Series(pa.Array, generic.PandasObject):
         except KeyError:
             return default
 
-    def iget_value(self, i):
-        """
-        Return the i-th value or values in the Series by location
-
-        Parameters
-        ----------
-        i : int, slice, or sequence of integers
-
-        Returns
-        -------
-        value : scalar (int) or Series (slice, sequence)
-        """
-        try:
-            return _index.get_value_at(self, i)
-        except IndexError:
-            raise
-        except:
-            if isinstance(i, slice):
-                return self[i]
-            else:
-                label = self.index[i]
-                if isinstance(label, Index):
-                    return self.reindex(label)
-                else:
-                    return _index.get_value_at(self, i)
-
-    iget = iget_value
-    irow = iget_value
+    iget_value = _ixs
+    iget = _ixs
+    irow = _ixs
 
     def get_value(self, label):
         """

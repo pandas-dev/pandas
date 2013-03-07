@@ -217,7 +217,7 @@ The width of each line can be changed via 'line_width' (80 by default):
 Updated PyTables Support
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-:ref:`Docs <io-hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
+:ref:`Docs <io.hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect.
 
 .. ipython:: python
    :suppress:

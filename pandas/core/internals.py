@@ -5,6 +5,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
+from pandas.core.indexing import _check_slice_bounds
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -1034,8 +1035,12 @@ class BlockManager(object):
         return self.get_numeric_data(copy=copy, type_list=(BoolBlock,),
                                      as_blocks=as_blocks)
 
-    def get_slice(self, slobj, axis=0):
+    def get_slice(self, slobj, axis=0, raise_on_error=False):
         new_axes = list(self.axes)
+
+        if raise_on_error:
+            _check_slice_bounds(slobj, new_axes[axis])
+
         new_axes[axis] = new_axes[axis][slobj]
 
         if axis == 0:

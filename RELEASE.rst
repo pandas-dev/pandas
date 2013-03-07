@@ -29,12 +29,19 @@ pandas 0.11.0
 
 **New features**
 
+  - New documentation section, ``10 Minutes to Pandas``
   - Allow mixed dtypes (e.g ``float32/float64/int32/int16/int8``) to coexist in
     DataFrames and propogate in operations
   - Add function to pandas.io.data for retrieving stock index components from
     Yahoo! finance (GH2795_)
   - Add ``squeeze`` function to reduce dimensionality of 1-len objects
   - Support slicing with time objects (GH2681_)
+  - Added ``.iloc`` attribute, to support strict integer based indexing, analagous to ``.ix`` (GH2922_)
+  - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix``
+  - Added ``.iat``  attribute, to support fast scalar access via integers (replaces ``iget_value/iset_value``)
+  - Added ``.at``   attribute, to support fast scalar access via labels (replaces ``get_value/set_value``)
+  - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer 
+    (via ``_ixs`` methods in each object)
 
 **Improvements to existing features**
 
@@ -51,6 +58,8 @@ pandas 0.11.0
   - ``describe_option()`` now reports the default and current value of options.
   - Add ``format`` option to ``pandas.to_datetime`` with faster conversion of
     strings that can be parsed with datetime.strptime
+  - Add ``axes`` property to ``Series`` for compatibility 
+  - Add ``xs`` function to ``Series`` for compatibility 
 
 **API Changes**
 
@@ -127,6 +136,7 @@ pandas 0.11.0
   - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
   - Bug in argsort of ``datetime64[ns]`` Series with ``NaT`` (GH2967_)
   - Bug in idxmin/idxmax of ``datetime64[ns]`` Series with ``NaT`` (GH2982__)
+  - Bug in ``icol`` with negative indicies was incorrect producing incorrect return values (see GH2922_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -145,6 +155,7 @@ pandas 0.11.0
 .. _GH2849: https://github.com/pydata/pandas/issues/2849
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
+.. _GH2922: https://github.com/pydata/pandas/issues/2922
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
 .. _GH2967: https://github.com/pydata/pandas/issues/2967

@@ -6305,7 +6305,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             econd = cond.reindex_like(df).fillna(True)
             expected = dfi.mask(~econd)
 
-            #import pdb; pdb.set_trace()
             dfi.where(cond, np.nan, inplace=True)
             assert_frame_equal(dfi, expected)
 
