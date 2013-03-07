@@ -158,7 +158,7 @@ class TestPivotTable(unittest.TestCase):
         df2 = df.rename(columns=str)
         table2 = df2.pivot_table(values='4', rows=['0', '1', '3'], cols=['2'])
 
-        tm.assert_frame_equal(table, table2)
+        tm.assert_frame_equal(table, table2, check_names=False)
 
     def test_pivot_no_level_overlap(self):
         # GH #1181

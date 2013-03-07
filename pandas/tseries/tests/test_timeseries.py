@@ -2348,7 +2348,7 @@ class TestDatetime64(unittest.TestCase):
         d2 = d1.reset_index()
         self.assert_(d2.dtypes[0] == np.dtype('M8[ns]'))
         d3 = d2.set_index('index')
-        assert_frame_equal(d1, d3)
+        assert_frame_equal(d1, d3, check_names=False)
 
         # #2329
         stamp = datetime(2012, 11, 22)

@@ -514,6 +514,7 @@ ignore,this,row
                              columns=[1, 2, 3],
                              index=[datetime(2000, 1, 1), datetime(2000, 1, 2),
                                     datetime(2000, 1, 3)])
+        expected.index.name = 0
         tm.assert_frame_equal(data, expected)
         tm.assert_frame_equal(data, data2)
 
@@ -627,7 +628,7 @@ c,4,5
         idx = DatetimeIndex([datetime(2009, 1, 31, 0, 10, 0),
                              datetime(2009, 2, 28, 10, 20, 0),
                              datetime(2009, 3, 31, 8, 30, 0)]).asobject
-        idx.name = 'date'
+        idx.name = 'date_time'
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
         tm.assert_frame_equal(rs, xp)
 
@@ -636,7 +637,7 @@ c,4,5
         idx = DatetimeIndex([datetime(2009, 1, 31, 0, 10, 0),
                              datetime(2009, 2, 28, 10, 20, 0),
                              datetime(2009, 3, 31, 8, 30, 0)]).asobject
-        idx.name = 'date'
+        idx.name = 'date_time'
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
         tm.assert_frame_equal(rs, xp)
 
@@ -967,7 +968,7 @@ bar,two,12,13,14,15
         df = self.read_csv(StringIO(no_header), index_col=[0, 1],
                            header=None, names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_names=False)
 
         # 2 implicit first cols
         df2 = self.read_csv(StringIO(data2))
@@ -977,7 +978,7 @@ bar,two,12,13,14,15
         df = self.read_csv(StringIO(no_header), index_col=[1, 0], names=names,
                            header=None)
         expected = self.read_csv(StringIO(data), index_col=[1, 0])
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_names=False)
 
     def test_multi_index_parse_dates(self):
         data = """index1,index2,A,B,C
@@ -1162,11 +1163,13 @@ a,b,c,d
 
         xp = DataFrame({'b': [np.nan], 'd': [5]},
                        MultiIndex.from_tuples([(0, 1)]))
+        xp.index.names = ['a', 'c']
         df = self.read_csv(StringIO(data), na_values={}, index_col=[0, 2])
         tm.assert_frame_equal(df, xp)
 
         xp = DataFrame({'b': [np.nan], 'd': [5]},
                        MultiIndex.from_tuples([(0, 1)]))
+        xp.index.names = ['a', 'c']
         df = self.read_csv(StringIO(data), na_values={}, index_col=['a', 'c'])
         tm.assert_frame_equal(df, xp)
 
@@ -1249,7 +1252,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(df2, df)
 
         df3 = self.read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
-        tm.assert_frame_equal(df3, df)
+        tm.assert_frame_equal(df3, df, check_names=False)
 
     def test_multiple_date_cols_chunked(self):
         df = self.read_csv(StringIO(self.ts_data), parse_dates={

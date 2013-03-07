@@ -179,7 +179,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_column_type=False,
                        check_frame_type=False,
                        check_less_precise=False,
-                       check_names=False):
+                       check_names=True):
     if check_frame_type:
         assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
@@ -222,7 +222,7 @@ def assert_panel_equal(left, right,
 
     for col, series in left.iterkv():
         assert(col in right)
-        assert_frame_equal(series, right[col], check_less_precise=check_less_precise)
+        assert_frame_equal(series, right[col], check_less_precise=check_less_precise, check_names=False)  # TODO strangely check_names fails in py3 ?
 
     for col in right:
         assert(col in left)

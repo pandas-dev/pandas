@@ -133,6 +133,8 @@ class CheckIndexing(object):
         result2 = self.frame[Index(['B', 'A'])]
 
         expected = self.frame.ix[:, ['B', 'A']]
+        expected.columns.name = 'foo'
+
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
@@ -1678,7 +1680,8 @@ class SafeForSparse(object):
         df = self.frame.copy()
         s = df.pop(self.frame.columns[-1])
         joined = df.join(s)
-        assert_frame_equal(joined, self.frame)
+
+        assert_frame_equal(joined, self.frame, check_names=False) # TODO should this check_names ?
 
         s.name = None
         self.assertRaises(Exception, df.join, s)
@@ -1896,7 +1899,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # multiple columns
         result = df.set_index(['A', df['B'].values], drop=False)
         expected = df.set_index(['A', 'B'], drop=False)
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False) # TODO should set_index check_names ?
 
     def test_set_index_cast_datetimeindex(self):
         df = DataFrame({'A': [datetime(2000, 1, 1) + timedelta(i)
@@ -3721,12 +3724,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_('A' not in self.frame)
 
     def test_pop(self):
+        self.frame.columns.name = 'baz'
+
         A = self.frame.pop('A')
         self.assert_('A' not in self.frame)
 
         self.frame['foo'] = 'bar'
         foo = self.frame.pop('foo')
         self.assert_('foo' not in self.frame)
+        # TODO self.assert_(self.frame.columns.name == 'baz')
 
     def test_pop_non_unique_cols(self):
         df = DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})
@@ -4410,7 +4416,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.to_csv(path)
         result = DataFrame.from_csv(path, index_col=[0, 1, 2],
                                     parse_dates=False)
-        assert_frame_equal(result, df)
+        assert_frame_equal(result, df, check_names=False)  # TODO from_csv names index ['Unnamed: 1', 'Unnamed: 2'] should it ?
 
         # column aliases
         col_aliases = Index(['AA', 'X', 'Y', 'Z'])
@@ -4437,8 +4443,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.to_csv(path)
         recons = DataFrame.from_csv(path)
 
-        assert_frame_equal(self.frame, recons)
-        assert_frame_equal(np.isinf(self.frame), np.isinf(recons))
+        assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name 
+        assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
 
         try:
             os.remove(path)
@@ -4457,8 +4463,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.to_csv(path)
         recons = DataFrame.from_csv(path)
 
-        assert_frame_equal(self.frame, recons)
-        assert_frame_equal(np.isinf(self.frame), np.isinf(recons))
+        assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name 
+        assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
 
         os.remove(path)
 
@@ -4477,7 +4483,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame.to_csv(path)
         df = DataFrame.from_csv(path, index_col=[0, 1], parse_dates=False)
 
-        assert_frame_equal(frame, df)
+        assert_frame_equal(frame, df, check_names=False)  # TODO to_csv drops column name
         self.assertEqual(frame.index.names, df.index.names)
         self.frame.index = old_index  # needed if setUP becomes a classmethod
 
@@ -4489,7 +4495,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         tsframe.to_csv(path, index_label=['time', 'foo'])
         recons = DataFrame.from_csv(path, index_col=[0, 1])
-        assert_frame_equal(tsframe, recons)
+        assert_frame_equal(tsframe, recons, check_names=False)  # TODO to_csv drops column name
 
         # do not load index
         tsframe.to_csv(path)
@@ -4546,7 +4552,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newdf.to_csv(path)
 
         recons = pan.read_csv(path, index_col=0)
-        assert_frame_equal(recons, newdf)
+        assert_frame_equal(recons, newdf, check_names=False)  # don't check_names as t != 1 
 
         os.remove(path)
 
@@ -4582,7 +4588,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.to_csv(buf)
         buf.seek(0)
         recons = pan.read_csv(buf, index_col=0)
-        assert_frame_equal(recons, self.frame)
+        assert_frame_equal(recons, self.frame, check_names=False)  # TODO to_csv drops column name
 
     def test_to_csv_float_format(self):
         filename = '__tmp_to_csv_float_format__.csv'
@@ -5868,6 +5874,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             'One': {'A': 1., 'B': 2., 'C': 3.},
             'Two': {'A': 1., 'B': 2., 'C': 3.}
         })
+        expected.index.name, expected.columns.name = 'index', 'columns'
 
         assert_frame_equal(pivoted, expected)
 
@@ -5896,7 +5903,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({}, columns=['a', 'b', 'c'])
         result = df.pivot('a', 'b', 'c')
         expected = DataFrame({})
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)
 
     def test_pivot_integer_bug(self):
         df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")])
@@ -6401,10 +6408,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_frame_equal(renamed, renamed2)
         assert_frame_equal(renamed2.rename(columns=str.upper),
-                           self.frame)
+                           self.frame, check_names=False)
 
         # index
-
         data = {
             'A': {'foo': 0, 'bar': 1}
         }
@@ -6953,7 +6959,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.frame.select(lambda x: x in ('B', 'D'), axis=1)
         expected = self.frame.reindex(columns=['B', 'D'])
-        assert_frame_equal(result, expected)
+
+        assert_frame_equal(result, expected, check_names=False)  # TODO should reindex check_names?
 
     def test_sort_index(self):
         frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
@@ -8238,30 +8245,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # only remove certain columns
         frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
         rs = frame.reset_index(['A', 'B'])
-        assert_frame_equal(rs, self.frame)
+
+        assert_frame_equal(rs, self.frame, check_names=False)  # TODO should reset_index check_names ?
 
         rs = frame.reset_index(['index', 'A', 'B'])
-        assert_frame_equal(rs, self.frame.reset_index())
+        assert_frame_equal(rs, self.frame.reset_index(), check_names=False)
 
         rs = frame.reset_index(['index', 'A', 'B'])
-        assert_frame_equal(rs, self.frame.reset_index())
+        assert_frame_equal(rs, self.frame.reset_index(), check_names=False)
 
         rs = frame.reset_index('A')
         xp = self.frame.reset_index().set_index(['index', 'B'])
-        assert_frame_equal(rs, xp)
+        assert_frame_equal(rs, xp, check_names=False)
 
         # test resetting in place
         df = self.frame.copy()
         resetted = self.frame.reset_index()
         df.reset_index(inplace=True)
-        assert_frame_equal(df, resetted)
+        assert_frame_equal(df, resetted, check_names=False)
 
         frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
         rs = frame.reset_index('A', drop=True)
         xp = self.frame.copy()
         del xp['A']
         xp = xp.set_index(['B'], append=True)
-        assert_frame_equal(rs, xp)
+        assert_frame_equal(rs, xp, check_names=False)
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)

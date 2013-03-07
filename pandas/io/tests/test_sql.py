@@ -174,6 +174,7 @@ class TestSQLite(unittest.TestCase):
                                 index_col='Idx')
         expected = frame.copy()
         expected.index = Index(range(len(frame2))) + 10
+        expected.index.name = 'Idx'
         tm.assert_frame_equal(expected, result)
 
     def test_tquery(self):
