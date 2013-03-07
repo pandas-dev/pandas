@@ -1,5 +1,6 @@
 import pandas.core.config as cf
-from pandas.core.config import is_int, is_bool, is_text, is_float
+from pandas.core.config import (is_int, is_bool, is_text, is_float,
+                                is_instance_factory)
 from pandas.core.format import detect_console_encoding
 
 """
@@ -151,7 +152,8 @@ with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)
-    cf.register_option('max_info_rows', 1000000, pc_max_info_rows_doc)
+    cf.register_option('max_info_rows', 1000000, pc_max_info_rows_doc,
+                       validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 100, pc_max_rows_doc, validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc, validator=is_int)
