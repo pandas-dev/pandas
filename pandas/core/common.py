@@ -682,19 +682,30 @@ def _infer_dtype_from_scalar(val):
 
 
 def _maybe_promote(dtype, fill_value=np.nan):
+
+    # if we passed an array here, determine the fill value by dtype
+    if isinstance(fill_value,np.ndarray):
+        if issubclass(fill_value.dtype.type, (np.datetime64,np.timedelta64)):
+            fill_value = tslib.iNaT
+        else:
+            fill_value = np.nan
+
     # returns tuple of (dtype, fill_value)
-    if issubclass(dtype.type, np.datetime64):
+    if issubclass(dtype.type, (np.datetime64,np.timedelta64)):
         # for now: refuse to upcast datetime64
         # (this is because datetime64 will not implicitly upconvert
         #  to object correctly as of numpy 1.6.1)
         if isnull(fill_value):
             fill_value = tslib.iNaT
         else:
-            try:
-                fill_value = lib.Timestamp(fill_value).value
-            except:
-                # the proper thing to do here would probably be to upcast to
-                # object (but numpy 1.6.1 doesn't do this properly)
+            if issubclass(dtype.type, np.datetime64):
+                try:
+                    fill_value = lib.Timestamp(fill_value).value
+                except:
+                    # the proper thing to do here would probably be to upcast to
+                    # object (but numpy 1.6.1 doesn't do this properly)
+                    fill_value = tslib.iNaT
+            else:
                 fill_value = tslib.iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -722,7 +733,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _maybe_upcast_putmask(result, mask, other):
+def _maybe_upcast_putmask(result, mask, other, dtype=None):
     """ a safe version of put mask that (potentially upcasts the result
         return the result and a changed flag """
     try:
@@ -730,16 +741,25 @@ def _maybe_upcast_putmask(result, mask, other):
     except:
         # our type is wrong here, need to upcast
         if (-mask).any():
-            result, fill_value = _maybe_upcast(result, copy=True)
+            result, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
             np.putmask(result, mask, other)
             return result, True
 
     return result, False
 
-def _maybe_upcast(values, fill_value=np.nan, copy=False):
+def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     """ provide explicty type promotion and coercion
-        if copy == True, then a copy is created even if no upcast is required """
-    new_dtype, fill_value = _maybe_promote(values.dtype, fill_value)
+
+        Parameters
+        ----------
+        values : the ndarray that we want to maybe upcast
+        fill_value : what we want to fill with
+        dtype : if None, then use the dtype of the values, else coerce to this type
+        copy : if True always make a copy even if no upcast is required """
+
+    if dtype is None:
+        dtype = values.dtype
+    new_dtype, fill_value = _maybe_promote(dtype, fill_value)
     if new_dtype != values.dtype:
         values = values.astype(new_dtype)
     elif copy:
@@ -914,7 +934,6 @@ def _possibly_convert_platform(values):
         values = lib.maybe_convert_objects(values)
 
     return values
-
 
 def _possibly_cast_to_timedelta(value, coerce=True):
     """ try to cast to timedelta64 w/o coercion """
