@@ -188,7 +188,7 @@ class Period(object):
         ordinal = (self + 1).start_time.value - 1
         return Timestamp(ordinal)
 
-    def to_timestamp(self, freq=None, how='start'):
+    def to_timestamp(self, freq=None, how='start',tz=None):
         """
         Return the Timestamp representation of the Period at the target
         frequency at the specified end (how) of the Period
@@ -216,7 +216,7 @@ class Period(object):
         val = self.asfreq(freq, how)
 
         dt64 = tslib.period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64)
+        return Timestamp(dt64,tz=tz)
 
     year = _period_field_accessor('year', 0)
     month = _period_field_accessor('month', 3)
