@@ -470,6 +470,44 @@ class TestDataFrameFormatting(unittest.TestCase):
         repr(df.T)
         fmt.set_printoptions(max_rows=200)
 
+    def test_large_frame_repr(self):
+        def wrap_rows_options(f):
+            def _f(*args, **kwargs):
+                old_max_rows = pd.get_option('display.max_rows')
+                old_max_info_rows = pd.get_option('display.max_info_rows')
+                o = f(*args, **kwargs)
+                pd.set_option('display.max_rows', old_max_rows)
+                pd.set_option('display.max_info_rows', old_max_info_rows)
+                return o
+            return _f
+
+        @wrap_rows_options
+        def test_setting(value, nrows=3, ncols=2):
+            if value is None:
+                expected_difference = 0
+            elif isinstance(value, int):
+                expected_difference = ncols
+            else:
+                raise ValueError("'value' must be int or None")
+
+            pd.set_option('display.max_rows', nrows - 1)
+            pd.set_option('display.max_info_rows', value)
+
+            smallx = DataFrame(np.random.rand(nrows, ncols))
+            repr_small = repr(smallx)
+
+            bigx = DataFrame(np.random.rand(nrows + 1, ncols))
+            repr_big = repr(bigx)
+
+            diff = len(repr_small.splitlines()) - len(repr_big.splitlines())
+
+            # the difference in line count is the number of columns
+            self.assertEqual(diff, expected_difference)
+
+        test_setting(None)
+        test_setting(3)
+        self.assertRaises(ValueError, test_setting, 'string')
+
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]

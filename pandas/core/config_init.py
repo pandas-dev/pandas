@@ -1,5 +1,6 @@
 import pandas.core.config as cf
-from pandas.core.config import is_int, is_bool, is_text, is_float
+from pandas.core.config import (is_int, is_bool, is_text, is_float,
+                                is_instance_factory)
 from pandas.core.format import detect_console_encoding
 
 """
@@ -123,10 +124,24 @@ pc_chop_threshold_doc = """
     will be displayed as exactly 0 by repr and friends.
 """
 
+pc_max_info_rows_doc = """
+: int or None
+    max_info_rows is the maximum number of rows for which a frame will
+    perform a null check on its columns when repr'ing To a console.
+    The default is 1,000,000 rows. So, if a DataFrame has more
+    1,000,000 rows there will be no null check performed on the
+    columns and thus the representation will take much less time to
+    display in an interactive session. A value of None means always
+    perform a null check when repr'ing.
+"""
+
+
 with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)
+    cf.register_option('max_info_rows', 1000000, pc_max_info_rows_doc,
+                       validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 100, pc_max_rows_doc, validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc, validator=is_int)
