@@ -2214,7 +2214,7 @@ class DataFrame(NDFrame):
         column : Series
         """
         return NDFrame.pop(self, item)
-
+        
     # to support old APIs
     @property
     def _series(self):
