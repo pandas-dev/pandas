@@ -75,7 +75,7 @@ three types of multi-axis indexing.
 
     See more at :ref:`Advanced Indexing <indexing.advanced>` and :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>`
 
-Getting values from object with multi-axes uses the following notation (using ``.loc`` as an 
+Getting values from an object with multi-axes selection uses the following notation (using ``.loc`` as an 
 example, but applies to ``.iloc`` and ``.ix`` as well) Any of the axes accessors may be the null 
 slice ``:``. Axes left out of the specification are assumed to be ``:``.
 (e.g. ``p.loc['a']`` is equiv to ``p.loc['a',:,:]``)
@@ -103,12 +103,10 @@ See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
 .. _indexing.xs:
 
 Cross-sectional slices on non-hierarchical indices are now easily performed using
-``.loc`` and/or ``.loc``. The methods:
+``.loc`` and/or ``.loc``. These methods now exist primarily for backward compatibility.
 
   - ``xs`` (for DataFrame),
   - ``minor_xs`` and ``major_xs`` (for Panel)
-
-now exist primarily for backward compatibility.
 
 See the section at :ref:`Selection by Label <indexing.label>` for substitutes.
 
@@ -230,9 +228,7 @@ must be in the index or a ``KeyError`` will be raised!
 When slicing, the start bound is *included*, **AND** the stop bound is *included*.
 Integers are valid labels, but they refer to the label *and not the position*.
 
-The ``.loc`` attribute is the primary access method.
-
-The following are valid inputs:
+The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
     - A single label, e.g. ``5`` or ``'a'``
 
@@ -261,7 +257,9 @@ With a DataFrame
 
 .. ipython:: python
 
-   df1 = DataFrame(np.random.randn(6,4),index=list('abcdef'),columns=list('ABCD'))
+   df1 = DataFrame(np.random.randn(6,4),
+                   index=list('abcdef'),
+                   columns=list('ABCD'))
    df1
    df1.loc[['a','b','d'],:]
 
@@ -302,9 +300,7 @@ The semantics follow closely python and numpy slicing. These are ``0-based`` ind
 When slicing, the start bounds is *included*, while the upper bound is *excluded*.
 Trying to use a non-integer, even a **valid** label will raise a ``IndexError``.
 
-The ``.iloc`` attribute is the primary access method .
-
-The following are valid inputs:
+The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
    - An integer e.g. ``5``
    - A list or array of integers ``[4, 3, 0]``
@@ -329,7 +325,9 @@ With a DataFrame
 
 .. ipython:: python
 
-   df1 = DataFrame(np.random.randn(6,4),index=range(0,12,2),columns=range(0,8,2))
+   df1 = DataFrame(np.random.randn(6,4),
+                   index=range(0,12,2),
+                   columns=range(0,8,2))
    df1
 
 Select via integer slicing
@@ -428,6 +426,8 @@ Boolean indexing
 .. _indexing.boolean:
 
 Another common operation is the use of boolean vectors to filter the data.
+The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
+These are grouped using parentheses.
 
 Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
@@ -436,6 +436,7 @@ Using a boolean vector to index a Series works exactly as in a numpy ndarray:
    s[s > 0]
    s[(s < 0) & (s > -0.5)]
    s[(s < -1) | (s > 1 )]
+   s[~(s < 0)]
 
 You may select rows from a DataFrame using a boolean vector the same length as
 the DataFrame's index (for example, something derived from one of the columns
@@ -472,10 +473,14 @@ more complex criteria:
    # Multiple criteria
    df2[criterion & (df2['b'] == 'x')]
 
-
 Note, with the choice methods :ref:`Selection by Label <indexing.label>`, :ref:`Selection by Position <indexing.integer>`,
-and :ref:`Advanced Indexing <indexing.advanced>` may select along more than one axis using boolean vectors combined with other
+and :ref:`Advanced Indexing <indexing.advanced>` you may select along more than one axis using boolean vectors combined with other
 indexing expressions.
+
+.. ipython:: python
+
+   df2.loc[criterion & (df2['b'] == 'x'),'b':'c']
+  
 
 Where and Masking
 ~~~~~~~~~~~~~~~~~
@@ -484,21 +489,24 @@ Selecting values from a Series with a boolean vector generally returns a subset 
 To guarantee that selection output has the same shape as the original data, you can use the
 ``where`` method in ``Series`` and ``DataFrame``.
 
+
+To return only the selected rows
+
 .. ipython:: python
 
-   # return only the selected rows
    s[s > 0]
 
-   # return a Series of the same shape as the original
+To return a Series of the same shape as the original
+
+.. ipython:: python
+
    s.where(s > 0)
 
 Selecting values from a DataFrame with a boolean critierion now also preserves input data shape.
-``where`` is used under the hood as the implementation.
+``where`` is used under the hood as the implementation. Equivalent is ``df.where(df < 0)``
 
 .. ipython:: python
 
-   # return a DataFrame of the same shape as the original
-   # this is equiavalent to ``df.where(df < 0)``
    df[df < 0]
 
 In addition, ``where`` takes an optional ``other`` argument for replacement of values where the
@@ -665,7 +673,7 @@ Advanced Indexing with ``.ix``
 
    The recent addition of ``.loc`` and ``.iloc`` have enabled users to be quite
    explicit about indexing choices. ``.ix`` allows a great flexibility to specify
-   indexing locations by *label* an/or *integer position*. Pandas will attempt
+   indexing locations by *label* and/or *integer position*. Pandas will attempt
    to use any passed *integer* as *label* locations first (like what ``.loc``
    would do, then to fall back on *positional* indexing, like what ``.iloc`` would do).
 
