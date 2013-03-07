@@ -131,7 +131,7 @@ pandas 0.11.0
     - Support null checking on timedelta64, representing (and formatting) with NaT
     - Support setitem with np.nan value, converts to NaT
     - Support min/max ops in a Dataframe (abs not working, nor do we error on non-supported ops)
-    - Support idxmin/idxmax/abs in a Series (but with no NaT)
+    - Support idxmin/idxmax/abs/max/min in a Series (GH2989_, GH2982_)
 
   - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
   - Bug in argsort of ``datetime64[ns]`` Series with ``NaT`` (GH2967_)
@@ -160,6 +160,7 @@ pandas 0.11.0
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
 .. _GH2967: https://github.com/pydata/pandas/issues/2967
 .. _GH2982: https://github.com/pydata/pandas/issues/2982
+.. _GH2989: https://github.com/pydata/pandas/issues/2989
 
 
 pandas 0.10.1

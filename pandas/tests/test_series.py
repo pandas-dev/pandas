@@ -1838,6 +1838,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = (s1-s2).abs()
         assert_series_equal(result,expected)
 
+        # max/min
+        result = td.max()
+        expected = Series([timedelta(2)],dtype='timedelta64[ns]')
+        assert_series_equal(result,expected)
+
+        result = td.min()
+        expected = Series([timedelta(1)],dtype='timedelta64[ns]')
+        assert_series_equal(result,expected)
+
     def test_sub_of_datetime_from_TimeSeries(self): 
         from pandas.core import common as com
         from datetime import datetime 

@@ -146,7 +146,13 @@ def _wrap_results(result,dtype):
             result = result.view(dtype)
     elif issubclass(dtype.type, np.timedelta64):
         if not isinstance(result, np.ndarray):
-            pass
+
+            # this is a scalar timedelta result!
+            # we have series convert then take the element (scalar)
+            # as series will do the right thing in py3 (and deal with numpy 1.6.2
+            # bug in that it results dtype of timedelta64[us]
+            from pandas import Series
+            result = Series([result],dtype='timedelta64[ns]')
         else:
             result = result.view(dtype)
 
