@@ -955,10 +955,10 @@ def _possibly_cast_to_timedelta(value, coerce=True):
 def _possibly_cast_to_datetime(value, dtype, coerce = False):
     """ try to cast the array/value to a datetimelike dtype, converting float nan to iNaT """
 
-    if isinstance(dtype, basestring):
-        dtype = np.dtype(dtype)
-
     if dtype is not None:
+        if isinstance(dtype, basestring):
+            dtype = np.dtype(dtype)
+
         is_datetime64  = is_datetime64_dtype(dtype)
         is_timedelta64 = is_timedelta64_dtype(dtype)
 
@@ -984,21 +984,28 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                     except:
                         pass
 
-    elif dtype is None:
-        # we might have a array (or single object) that is datetime like, and no dtype is passed
-        # don't change the value unless we find a datetime set
-        v = value
-        if not is_list_like(v):
-            v = [ v ]
-        if len(v):
-            inferred_type = lib.infer_dtype(v)
-            if inferred_type == 'datetime':
-                try:
-                    value = tslib.array_to_datetime(np.array(v))
-                except:
-                    pass
-            elif inferred_type == 'timedelta':
-                value = _possibly_cast_to_timedelta(value)
+    else:
+
+        # only do this if we have an array and the dtype of the array is not setup already
+        # we are not an integer/object, so don't bother with this conversion
+        if isinstance(value, np.ndarray) and not (issubclass(value.dtype.type, np.integer) or value.dtype == np.object_):
+            pass
+
+        else:
+            # we might have a array (or single object) that is datetime like, and no dtype is passed
+            # don't change the value unless we find a datetime set
+            v = value
+            if not is_list_like(v):
+                v = [ v ]
+            if len(v):
+                inferred_type = lib.infer_dtype(v)
+                if inferred_type == 'datetime':
+                    try:
+                        value = tslib.array_to_datetime(np.array(v))
+                    except:
+                        pass
+                elif inferred_type == 'timedelta':
+                    value = _possibly_cast_to_timedelta(value)
 
     return value
 
