@@ -437,8 +437,8 @@ The basics of indexing are as follows:
     :widths: 30, 20, 10
 
     Select column, ``df[col]``, Series
-    Select row by label, ``df.xs(label)`` or ``df.ix[label]``, Series
-    Select row by location (int), ``df.ix[loc]``, Series
+    Select row by label, ``df.loc[label]``, Series
+    Select row by integer location, ``df.iloc[loc]``, Series
     Slice rows, ``df[5:10]``, DataFrame
     Select rows by boolean vector, ``df[bool_vec]``, DataFrame
 
@@ -447,8 +447,8 @@ DataFrame:
 
 .. ipython:: python
 
-   df.xs('b')
-   df.ix[2]
+   df.loc['b']
+   df.iloc[2]
 
 For a more exhaustive treatment of more sophisticated label-based indexing and
 slicing, see the :ref:`section on indexing <indexing>`. We will address the
@@ -475,7 +475,7 @@ row-wise. For example:
 
 .. ipython:: python
 
-   df - df.ix[0]
+   df - df.iloc[0]
 
 In the special case of working with time series data, if the Series is a
 TimeSeries (which it will be automatically if the index contains datetime
@@ -592,7 +592,7 @@ DataFrame in tabular form, though it won't always fit the console width:
 
 .. ipython:: python
 
-   print baseball.ix[-20:, :12].to_string()
+   print baseball.iloc[-20:, :12].to_string()
 
 New since 0.10.0, wide DataFrames will now be printed across multiple rows by
 default:

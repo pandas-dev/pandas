@@ -3,6 +3,7 @@
 import numpy as np
 
 from pandas.core.index import MultiIndex
+import pandas.core.indexing as indexing
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
 import pandas.lib as lib
@@ -58,6 +59,21 @@ class PandasObject(object):
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
         return getattr(self, name)
+
+    #----------------------------------------------------------------------
+    # Indexers
+    @classmethod
+    def _create_indexer(cls, name, indexer):
+        """ create an indexer like _name in the class """
+        iname = '_%s' % name
+        setattr(cls,iname,None)
+
+        def _indexer(self):
+            if getattr(self,iname,None) is None:
+                setattr(self,iname,indexer(self, name))
+            return getattr(self,iname)
+
+        setattr(cls,name,property(_indexer))
 
     def abs(self):
         """
@@ -396,10 +412,6 @@ class PandasObject(object):
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
 
-    @property
-    def ix(self):
-        raise NotImplementedError
-
     def reindex(self, *args, **kwds):
         raise NotImplementedError
 
@@ -466,6 +478,9 @@ class PandasObject(object):
             np.putmask(rs.values, mask, np.nan)
         return rs
 
+# install the indexerse
+for _name, _indexer in indexing.get_indexers_list():
+    PandasObject._create_indexer(_name,_indexer)
 
 class NDFrame(PandasObject):
     """
