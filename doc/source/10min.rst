@@ -126,11 +126,11 @@ See the :ref:`Indexing section <indexing>`
 Getting
 ~~~~~~~
 
-Selecting a single column, which yields a ``Series``
+Selecting a single column, which yields a ``Series``,
+equivalent to ``df.A``
 
 .. ipython:: python
 
-   # equivalently ``df.A``
    df['A']
 
 Selecting via ``[]``, which slices the rows.
@@ -142,6 +142,8 @@ Selecting via ``[]``, which slices the rows.
 
 Selection by Label
 ~~~~~~~~~~~~~~~~~~
+
+See more in :ref:`Selection by Label <indexing.label>`
 
 For getting a cross section using a label
 
@@ -181,6 +183,8 @@ For getting fast access to a scalar (equiv to the prior method)
 
 Selection by Position
 ~~~~~~~~~~~~~~~~~~~~~
+
+See more in :ref:`Selection by Position <indexing.integer>`
 
 Select via the position of the passed integers
 
@@ -286,6 +290,11 @@ Setting by assigning with a numpy array
 .. ipython:: python
 
    df.loc[:,'D'] = np.array([5] * len(df))
+
+The result of the prior setting operations
+
+.. ipython:: python
+
    df
 
 A ``where`` operation with setting.
@@ -517,7 +526,7 @@ unstacks the **last level**:
 
 Pivot Tables
 ~~~~~~~~~~~~
-See the section on :ref:`Pivot Tables <reshaping.pivot>`).
+See the section on :ref:`Pivot Tables <reshaping.pivot>`.
 
 .. ipython:: python
 

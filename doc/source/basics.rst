@@ -989,7 +989,10 @@ attribute for DataFrames returns a Series with the data type of each column.
 
 .. ipython:: python
 
-   dft = DataFrame(dict( A = np.random.rand(3), B = 1, C = 'foo', D = Timestamp('20010102'), 
+   dft = DataFrame(dict( A = np.random.rand(3), 
+                         B = 1, 
+                         C = 'foo', 
+                         D = Timestamp('20010102'), 
                          E = Series([1.0]*3).astype('float32'), 
 			 F = False,
 			 G = Series([1]*3,dtype='int8')))
@@ -1014,8 +1017,8 @@ general).
    # string data forces an ``object`` dtype
    Series([1, 2, 3, 6., 'foo'])
 
-The related method ``get_dtype_counts`` will return the number of columns of
-each type:
+The method ``get_dtype_counts`` will return the number of columns of
+each type in a ``DataFrame``:
 
 .. ipython:: python
 
@@ -1023,7 +1026,8 @@ each type:
 
 Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0). 
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, 
-or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
+or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, 
+different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
 .. ipython:: python
 
@@ -1039,9 +1043,8 @@ or a passed ``Series``, then it will be preserved in DataFrame operations. Furth
 defaults
 ~~~~~~~~
 
-By default integer types are ``int64`` and float types are ``float64``, *REGARDLESS* of platform (32-bit or 64-bit).
-
-The following will all result in ``int64`` dtypes.
+By default integer types are ``int64`` and float types are ``float64``, 
+*REGARDLESS* of platform (32-bit or 64-bit). The following will all result in ``int64`` dtypes.
 
 .. ipython:: python
 
@@ -1050,13 +1053,18 @@ The following will all result in ``int64`` dtypes.
     DataFrame({'a' : 1 }, index=range(2)).dtypes
 
 Numpy, however will choose *platform-dependent* types when creating arrays.
-Thus, ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on 32-bit platform.
+The following **WILL** result in ``int32`` on 32-bit platform.
+
+.. ipython:: python
+
+    frame = DataFrame(np.array([1,2]))
 
 
 upcasting
 ~~~~~~~~~
 
-Types can potentially be *upcasted* when combined with other types, meaning they are promoted from the current type (say ``int`` to ``float``)
+Types can potentially be *upcasted* when combined with other types, meaning they are promoted 
+from the current type (say ``int`` to ``float``)
 
 .. ipython:: python
 
@@ -1064,7 +1072,8 @@ Types can potentially be *upcasted* when combined with other types, meaning they
    df3
    df3.dtypes
 
-The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning the dtype that can accomodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can 
+The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning 
+the dtype that can accomodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can 
 force some *upcasting*.
 
 .. ipython:: python
@@ -1076,7 +1085,10 @@ astype
 
 .. _basics.cast:
 
-You can use the ``astype`` method to convert dtypes from one to another. These *always* return a copy. 
+You can use the ``astype`` method to explicity convert dtypes from one to another. These will by default return a copy,
+even if the dtype was unchanged (pass ``copy=False`` to change this behavior). In addition, they will raise an
+exception if the astype operation is invalid.
+
 Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation, 
 then the more *general* one will be used as the result of the operation.
 
@@ -1091,17 +1103,13 @@ then the more *general* one will be used as the result of the operation.
 object conversion
 ~~~~~~~~~~~~~~~~~
 
-To force conversion of specific types of number conversion, pass ``convert_numeric = True``. 
-This will force strings and numbers alike to be numbers if possible, otherwise the will be set to ``np.nan``.
-To force conversion to ``datetime64[ns]``, pass ``convert_dates = 'coerce'``. 
-This will convert any datetimelike object to dates, forcing other values to ``NaT``.
-
-In addition, ``convert_objects`` will attempt to *soft* conversion of any *object* dtypes, meaning that if all 
-the objects in a Series are of the same type, the Series will have that dtype.
+``convert_objects`` is a method to try to force conversion of types from the ``object`` dtype to other types.
+To force conversion of specific types that are *number like*, e.g. could be a string that represents a number,
+pass ``convert_numeric=True``. This will force strings and numbers alike to be numbers if possible, otherwise 
+they will be set to ``np.nan``.
 
 .. ipython:: python
 
-   # mixed type conversions
    df3['D'] = '1.'
    df3['E'] = '1'
    df3.convert_objects(convert_numeric=True).dtypes
@@ -1111,14 +1119,21 @@ the objects in a Series are of the same type, the Series will have that dtype.
    df3['E'] = df3['E'].astype('int32')
    df3.dtypes
 
-This is a *forced coercion* on datelike types. This might be useful if you are reading in data which is mostly dates, but occasionally has non-dates intermixed and you want to make those values ``nan``.
+To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``. 
+This will convert any datetimelike object to dates, forcing other values to ``NaT``.
+This might be useful if you are reading in data which is mostly dates,
+but occasionally has non-dates intermixed and you want to represent as missing.
 
 .. ipython:: python
 
-   s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1, Timestamp('20010104'), '20010105'],dtype='O')
+   s = Series([datetime(2001,1,1,0,0), 
+              'foo', 1.0, 1, Timestamp('20010104'), 
+              '20010105'],dtype='O')
    s
    s.convert_objects(convert_dates='coerce')
 
+In addition, ``convert_objects`` will attempt the *soft* conversion of any *object* dtypes, meaning that if all 
+the objects in a Series are of the same type, the Series will have that dtype.
 
 gotchas
 ~~~~~~~

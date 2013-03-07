@@ -12,9 +12,6 @@ pay close attention to.
 There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
 primarily geared to new users.
 
-API changes
-~~~~~~~~~~~
-
 Selection Choices
 ~~~~~~~~~~~~~~~~~
 
@@ -62,7 +59,7 @@ three types of multi-axis indexing.
 Selection Deprecations
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Starting in version 0.11.0, the methods may be deprecated in future versions.
+Starting in version 0.11.0, these methods may be deprecated in future versions.
 
   - ``irow``
   - ``icol``
@@ -90,7 +87,9 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
    df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
    df1
    df1.dtypes
-   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), B = Series(randn(8)), C = Series(randn(8),dtype='uint8') ))
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), 
+                         B = Series(randn(8)), 
+                         C = Series(randn(8),dtype='uint8') ))
    df2
    df2.dtypes
 
@@ -102,15 +101,22 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
 Dtype Conversion
 ~~~~~~~~~~~~~~~~
 
+This is lower-common-denomicator upcasting, meaning you get the dtype which can accomodate all of the types
+
 .. ipython:: python
 
-   # this is lower-common-denomicator upcasting (meaning you get the dtype which can accomodate all of the types)
    df3.values.dtype
 
-   # conversion of dtypes
+Conversion
+
+.. ipython:: python
+
    df3.astype('float32').dtypes
 
-   # mixed type conversions
+Mixed Conversion
+
+.. ipython:: python
+
    df3['D'] = '1.'
    df3['E'] = '1'
    df3.convert_objects(convert_numeric=True).dtypes
@@ -120,7 +126,10 @@ Dtype Conversion
    df3['E'] = df3['E'].astype('int32')
    df3.dtypes
 
-   # forcing date coercion
+Forcing Date coercion (and setting ``NaT`` when not datelike)
+
+.. ipython:: python
+
    s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1,
                Timestamp('20010104'), '20010105'],dtype='O')
    s.convert_objects(convert_dates='coerce')
@@ -148,7 +157,7 @@ Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on
 **Upcasting Gotchas**
 
 Performing indexing operations on integer type data can easily upcast the data.
-The dtype of the input data will be preserved in cases where ``nans`` are not introduced (coming soon).
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
 
 .. ipython:: python
 
@@ -209,11 +218,14 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`
    s.dtype
 
 
+API changes
+~~~~~~~~~~~
+
 Enhancements
 ~~~~~~~~~~~~
 
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
-    (e.g. store.df == store['df'])
+    (e.g. ``store.df == store['df']``)
 
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
