@@ -1816,14 +1816,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = td.idxmax()
         self.assert_(result == 2)
 
-        # with NaT (broken)
+        # GH 2982
+        # with NaT 
         td[0] = np.nan
 
-        #result = td.idxmin()
-        #self.assert_(result == 1)
+        result = td.idxmin()
+        self.assert_(result == 1)
 
-        #result = td.idxmax()
-        #self.assert_(result == 2)
+        result = td.idxmax()
+        self.assert_(result == 2)
 
         # abs
         s1 = Series(date_range('20120101',periods=3))
@@ -2065,6 +2066,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         allna = self.series * nan
         self.assert_(isnull(allna.idxmin()))
 
+        # datetime64[ns]
+        from pandas import date_range
+        s = Series(date_range('20130102',periods=6))
+        result = s.idxmin()
+        self.assert_(result == 0)
+
+        s[0] = np.nan
+        result = s.idxmin()
+        self.assert_(result == 1)
+
     def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isnull check.
@@ -2085,6 +2096,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # all NaNs
         allna = self.series * nan
         self.assert_(isnull(allna.idxmax()))
+
+        from pandas import date_range
+        s = Series(date_range('20130102',periods=6))
+        result = s.idxmax()
+        self.assert_(result == 5)
+
+        s[5] = np.nan
+        result = s.idxmax()
+        self.assert_(result == 4)
 
     def test_operators_corner(self):
         series = self.ts

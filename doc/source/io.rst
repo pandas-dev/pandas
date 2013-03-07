@@ -1186,7 +1186,7 @@ A query is specified using the ``Term`` class under the hood.
 
 Valid terms can be created from ``dict, list, tuple, or
 string``. Objects can be embeded as values. Allowed operations are: ``<,
-<=, >, >=, =``. ``=`` will be inferred as an implicit set operation
+<=, >, >=, =, !=``. ``=`` will be inferred as an implicit set operation
 (e.g. if 2 or more values are provided). The following are all valid
 terms.
 
