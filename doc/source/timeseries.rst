@@ -966,14 +966,30 @@ Some timedelta numeric like operations are supported.
 
 .. ipython:: python
 
-    s  = Series(date_range('2012-1-1', periods=3, freq='D'))
+    td - timedelta(minutes=5,seconds=5,microseconds=5)
+
+``min, max`` and the corresponding ``idxmin, idxmax`` operations are support on frames
+
+.. ipython:: python
+
     df = DataFrame(dict(A = s - Timestamp('20120101')-timedelta(minutes=5,seconds=5),
                         B = s - Series(date_range('2012-1-2', periods=3, freq='D'))))
     df
 
-    # timedelta arithmetic
-    td - timedelta(minutes=5,seconds=5,microseconds=5)
 
-    # min/max operations
     df.min()
     df.min(axis=1)
+
+    df.idxmin()
+    df.idxmax()
+
+``min, max`` operations are support on series, these return a single element ``timedelta64[ns]`` Series (this avoids
+having to deal with numpy timedelta64 issues). ``idxmin, idxmax`` are supported as well.
+
+.. ipython:: python
+
+    df.min().max()
+    df.min(axis=1).min()
+
+    df.min().idxmax()
+    df.min(axis=1).idxmin()
