@@ -209,23 +209,26 @@ class _MergeOperation(object):
             if name in result:
                 key_col = result[name]
 
-                if name in self.left and left_indexer is not None:
-                    na_indexer = (left_indexer == -1).nonzero()[0]
-                    if len(na_indexer) == 0:
-                        continue
+                if left_indexer is not None and right_indexer is not None:
 
-                    right_na_indexer = right_indexer.take(na_indexer)
-                    key_col.put(
-                        na_indexer, com.take_1d(self.right_join_keys[i],
-                                                right_na_indexer))
-                elif name in self.right and right_indexer is not None:
-                    na_indexer = (right_indexer == -1).nonzero()[0]
-                    if len(na_indexer) == 0:
-                        continue
+                    if name in self.left:
+                        na_indexer = (left_indexer == -1).nonzero()[0]
+                        if len(na_indexer) == 0:
+                            continue
 
-                    left_na_indexer = left_indexer.take(na_indexer)
-                    key_col.put(na_indexer, com.take_1d(self.left_join_keys[i],
-                                                        left_na_indexer))
+                        right_na_indexer = right_indexer.take(na_indexer)
+                        key_col.put(
+                            na_indexer, com.take_1d(self.right_join_keys[i],
+                                                    right_na_indexer))
+                    elif name in self.right:
+                        na_indexer = (right_indexer == -1).nonzero()[0]
+                        if len(na_indexer) == 0:
+                            continue
+
+                        left_na_indexer = left_indexer.take(na_indexer)
+                        key_col.put(na_indexer, com.take_1d(self.left_join_keys[i],
+                                                            left_na_indexer))
+
             elif left_indexer is not None:
                 if name is None:
                     name = 'key_%d' % i
