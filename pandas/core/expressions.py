@@ -9,15 +9,46 @@ import numpy as np
 
 try:
     import numexpr as ne
-    _USE_NUMEXPR = True
+    _NUMEXPR_INSTALLED = True
 except ImportError:  # pragma: no cover
-    _USE_NUMEXPR = False
+    _NUMEXPR_INSTALLED = False
+
+_USE_NUMEXPR = _NUMEXPR_INSTALLED
+_evaluate    = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = set(['int64','int32','float64','float32','bool'])
 
 # the minimum prod shape that we will use numexpr
 _MIN_ELEMENTS   = 10000
+
+def set_use_numexpr(v = True):
+    # set/unset to use numexpr
+    global _USE_NUMEXPR
+    if _NUMEXPR_INSTALLED:
+        #print "setting use_numexpr : was->%s, now->%s" % (_USE_NUMEXPR,v)
+        _USE_NUMEXPR = v
+
+    # choose what we are going to do
+    global _evaluate
+    if not _USE_NUMEXPR:
+        _evaluate = _evaluate_standard
+    else:
+        _evaluate = _evaluate_numexpr
+
+    #print "evaluate -> %s" % _evaluate
+
+def set_numexpr_threads(n = None):
+    # if we are using numexpr, set the threads to n
+    # otherwise reset
+    try:
+        if _NUMEXPR_INSTALLED and _USE_NUMEXPR:
+            if n is None:
+                n = ne.detect_number_of_cores()
+            ne.set_num_threads(n)
+    except:
+        pass
+
 
 def _evaluate_standard(op, op_str, a, b, raise_on_error=True):
     """ standard evaluation """
@@ -73,11 +104,8 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False):
 
     return result
 
-# choose what we are going to do
-if not _USE_NUMEXPR:
-    _evaluate = _evaluate_standard
-else:
-    _evaluate = _evaluate_numexpr
+# turn myself on
+set_use_numexpr(True)
 
 def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True):
     """ evaluate and return the expression of the op on a and b

@@ -102,6 +102,28 @@ indexing_dataframe_boolean = \
     Benchmark("df > df2", setup, name='indexing_dataframe_boolean',
               start_date=datetime(2012, 1, 1))
 
+setup = common_setup + """
+import pandas.core.expressions as expr
+df  = DataFrame(np.random.randn(100000, 100))
+df2 = DataFrame(np.random.randn(100000, 100))
+expr.set_numexpr_threads(1)
+"""
+
+indexing_dataframe_boolean_st = \
+    Benchmark("df > df2", setup, name='indexing_dataframe_boolean_st',cleanup="expr.set_numexpr_threads()",
+              start_date=datetime(2012, 1, 1))
+
+setup = common_setup + """
+import pandas.core.expressions as expr
+df  = DataFrame(np.random.randn(100000, 100))
+df2 = DataFrame(np.random.randn(100000, 100))
+expr.set_use_numexpr(False)
+"""
+
+indexing_dataframe_boolean_no_ne = \
+    Benchmark("df > df2", setup, name='indexing_dataframe_boolean_no_ne',cleanup="expr.set_use_numexpr(True)",
+              start_date=datetime(2012, 1, 1))
+
 #----------------------------------------------------------------------
 # MultiIndex sortlevel
 
