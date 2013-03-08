@@ -5056,6 +5056,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].cov()
         assert_frame_equal(result, expected)
 
+        # Single column frame
+        df = DataFrame(np.linspace(0.0,1.0,10))
+        result = df.cov()
+        expected = DataFrame(np.cov(df.values.T).reshape((1,1)),
+                             index=df.columns,columns=df.columns)
+        assert_frame_equal(result, expected)
+        df.ix[0] = np.nan
+        result = df.cov()
+        expected = DataFrame(np.cov(df.values[1:].T).reshape((1,1)),
+                             index=df.columns,columns=df.columns)
+        assert_frame_equal(result, expected)
+
     def test_corrwith(self):
         a = self.tsframe
         noise = Series(randn(len(a)), index=a.index)
