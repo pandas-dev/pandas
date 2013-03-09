@@ -73,6 +73,7 @@ Dependencies
 Highly Recommended Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * `numexpr <http://code.google.com/p/numexpr/>`__: to accelerate some expression evaluation operations
+       also required by `PyTables`
   * `bottleneck <http://berkeleyanalytics.com/>`__: to accelerate certain numerical operations
 
 Optional dependencies
