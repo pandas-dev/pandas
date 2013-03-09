@@ -2732,9 +2732,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        indexed_df = df.set_index(['A', 'B'])
-        indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
-        indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
+        >>> indexed_df = df.set_index(['A', 'B'])
+        >>> indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
+        >>> indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
 
         Returns
         -------
