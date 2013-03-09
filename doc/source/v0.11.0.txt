@@ -224,6 +224,12 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
+  - Numexpr is now a 'highly recommended dependency', to accelerate certain
+    types of expression evaluation
+
+  - Bottleneck is now a 'highly recommended dependency', to accelerate certain
+    types of numerical evaluations
+
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
     (e.g. ``store.df == store['df']``)
 
