@@ -418,17 +418,17 @@ class Block(object):
         args = [ values, other ]
         try:
             result = func(*args)
-        except:
+        except (Exception), detail:
             if raise_on_error:
-                raise TypeError('Coulnd not operate %s with block values'
-                                % repr(other))
+                raise TypeError('Could not operate [%s] with block values [%s]'
+                                % (repr(other),str(detail)))
             else:
                 # return the values
                 result = np.empty(values.shape,dtype='O')
                 result.fill(np.nan)
 
         if not isinstance(result, np.ndarray):
-            raise TypeError('Could not compare %s with block values'
+            raise TypeError('Could not compare [%s] with block values'
                             % repr(other))
 
         if is_transposed:
@@ -492,10 +492,10 @@ class Block(object):
             
             try:
                 return np.where(c,v,o)
-            except:
+            except (Exception), detail:
                 if raise_on_error:
-                    raise TypeError('Coulnd not operate %s with block values'
-                                    % repr(o))
+                    raise TypeError('Could not operate [%s] with block values [%s]'
+                                    % (repr(o),str(detail)))
                 else:
                     # return the values
                     result = np.empty(v.shape,dtype='float64')
@@ -504,7 +504,7 @@ class Block(object):
 
         def create_block(result, items, transpose = True):
             if not isinstance(result, np.ndarray):
-                raise TypeError('Could not compare %s with block values'
+                raise TypeError('Could not compare [%s] with block values'
                                 % repr(other))
 
             if transpose and is_transposed:
@@ -842,6 +842,14 @@ class BlockManager(object):
     def _get_items(self):
         return self.axes[0]
     items = property(fget=_get_items)
+
+    def get_dtype_counts(self):
+        """ return a dict of the counts of dtypes in BlockManager """
+        self._consolidate_inplace()
+        counts = dict()
+        for b in self.blocks:
+            counts[b.dtype.name] = counts.get(b.dtype,0) + b.shape[0]
+        return counts
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]

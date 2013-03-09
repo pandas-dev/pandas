@@ -31,6 +31,7 @@ from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
                                   _is_index_slice, _check_bool_indexer)
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
+import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
@@ -52,7 +53,6 @@ import pandas.tslib as tslib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option
-
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -186,10 +186,10 @@ class DataConflictError(Exception):
 # Factory helper methods
 
 
-def _arith_method(op, name, default_axis='columns'):
+def _arith_method(op, name, str_rep = None, default_axis='columns'):
     def na_op(x, y):
         try:
-            result = op(x, y)
+            result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
@@ -240,7 +240,7 @@ def _arith_method(op, name, default_axis='columns'):
     return f
 
 
-def _flex_comp_method(op, name, default_axis='columns'):
+def _flex_comp_method(op, name, str_rep = None, default_axis='columns'):
 
     def na_op(x, y):
         try:
@@ -268,7 +268,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
     @Appender('Wrapper for flexible comparison methods %s' % name)
     def f(self, other, axis=default_axis, level=None):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._flex_compare_frame(other, na_op, level)
+            return self._flex_compare_frame(other, na_op, str_rep, level)
 
         elif isinstance(other, Series):
             return self._combine_series(other, na_op, None, axis, level)
@@ -294,7 +294,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
 
-                return self._flex_compare_frame(casted, na_op, level)
+                return self._flex_compare_frame(casted, na_op, str_rep, level)
 
             else:  # pragma: no cover
                 raise ValueError("Bad argument shape")
@@ -307,11 +307,11 @@ def _flex_comp_method(op, name, default_axis='columns'):
     return f
 
 
-def _comp_method(func, name):
+def _comp_method(func, name, str_rep):
     @Appender('Wrapper for comparison method %s' % name)
     def f(self, other):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._compare_frame(other, func)
+            return self._compare_frame(other, func, str_rep)
         elif isinstance(other, Series):
             return self._combine_series_infer(other, func)
         else:
@@ -750,11 +750,11 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Arithmetic methods
 
-    add = _arith_method(operator.add, 'add')
-    mul = _arith_method(operator.mul, 'multiply')
-    sub = _arith_method(operator.sub, 'subtract')
-    div = divide = _arith_method(lambda x, y: x / y, 'divide')
-    pow = _arith_method(operator.pow, 'pow')
+    add = _arith_method(operator.add, 'add', '+')
+    mul = _arith_method(operator.mul, 'multiply', '*')
+    sub = _arith_method(operator.sub, 'subtract', '-')
+    div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
+    pow = _arith_method(operator.pow, 'pow', '**')
 
     radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
@@ -762,14 +762,14 @@ class DataFrame(NDFrame):
     rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
     rpow = _arith_method(lambda x, y: y ** x, 'rpow')
 
-    __add__ = _arith_method(operator.add, '__add__', default_axis=None)
-    __sub__ = _arith_method(operator.sub, '__sub__', default_axis=None)
-    __mul__ = _arith_method(operator.mul, '__mul__', default_axis=None)
-    __truediv__ = _arith_method(operator.truediv, '__truediv__',
+    __add__ = _arith_method(operator.add, '__add__', '+', default_axis=None)
+    __sub__ = _arith_method(operator.sub, '__sub__', '-', default_axis=None)
+    __mul__ = _arith_method(operator.mul, '__mul__', '*', default_axis=None)
+    __truediv__ = _arith_method(operator.truediv, '__truediv__', '/',
                                 default_axis=None)
     __floordiv__ = _arith_method(operator.floordiv, '__floordiv__',
                                  default_axis=None)
-    __pow__ = _arith_method(operator.pow, '__pow__', default_axis=None)
+    __pow__ = _arith_method(operator.pow, '__pow__', '**', default_axis=None)
 
     __radd__ = _arith_method(_radd_compat, '__radd__', default_axis=None)
     __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
@@ -782,13 +782,13 @@ class DataFrame(NDFrame):
                              default_axis=None)
 
     # boolean operators
-    __and__ = _arith_method(operator.and_, '__and__')
-    __or__ = _arith_method(operator.or_, '__or__')
+    __and__ = _arith_method(operator.and_, '__and__', '&')
+    __or__ = _arith_method(operator.or_, '__or__', '|')
     __xor__ = _arith_method(operator.xor, '__xor__')
 
     # Python 2 division methods
     if not py3compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__', default_axis=None)
+        __div__ = _arith_method(operator.div, '__div__', '/', default_axis=None)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
                                  default_axis=None)
 
@@ -801,19 +801,19 @@ class DataFrame(NDFrame):
         return self._wrap_array(arr, self.axes, copy=False)
 
     # Comparison methods
-    __eq__ = _comp_method(operator.eq, '__eq__')
-    __ne__ = _comp_method(operator.ne, '__ne__')
-    __lt__ = _comp_method(operator.lt, '__lt__')
-    __gt__ = _comp_method(operator.gt, '__gt__')
-    __le__ = _comp_method(operator.le, '__le__')
-    __ge__ = _comp_method(operator.ge, '__ge__')
+    __eq__ = _comp_method(operator.eq, '__eq__', '==')
+    __ne__ = _comp_method(operator.ne, '__ne__', '!=')
+    __lt__ = _comp_method(operator.lt, '__lt__', '<' )
+    __gt__ = _comp_method(operator.gt, '__gt__', '>' )
+    __le__ = _comp_method(operator.le, '__le__', '<=')
+    __ge__ = _comp_method(operator.ge, '__ge__', '>=')
 
-    eq = _flex_comp_method(operator.eq, 'eq')
-    ne = _flex_comp_method(operator.ne, 'ne')
-    gt = _flex_comp_method(operator.gt, 'gt')
-    lt = _flex_comp_method(operator.lt, 'lt')
-    ge = _flex_comp_method(operator.ge, 'ge')
-    le = _flex_comp_method(operator.le, 'le')
+    eq = _flex_comp_method(operator.eq, 'eq', '==')
+    ne = _flex_comp_method(operator.ne, 'ne', '!=')
+    lt = _flex_comp_method(operator.lt, 'lt', '<')
+    gt = _flex_comp_method(operator.gt, 'gt', '>')
+    le = _flex_comp_method(operator.le, 'le', '<=')
+    ge = _flex_comp_method(operator.ge, 'ge', '>=')
 
     def dot(self, other):
         """
@@ -1668,14 +1668,6 @@ class DataFrame(NDFrame):
         converted : DataFrame
         """
         return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
-
-    def get_dtype_counts(self):
-        """ return the counts of dtypes in this frame """
-        self._consolidate_inplace()
-        counts = dict()
-        for b in self._data.blocks:
-            counts[b.dtype.name] = counts.get(b.dtype,0) + b.shape[0]
-        return Series(counts)
 
     #----------------------------------------------------------------------
     # properties for index and columns
@@ -3710,25 +3702,25 @@ class DataFrame(NDFrame):
         new_data = self._data.eval(func, other, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
-    def _compare_frame(self, other, func):
+    def _compare_frame(self, other, func, str_rep):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
                             'DataFrame objects')
 
-        new_data = {}
-        for col in self.columns:
-            new_data[col] = func(self[col], other[col])
+        def _compare(a, b):
+            return dict([ (col,func(a[col], b[col])) for col in a.columns ])
+        new_data = expressions.evaluate(_compare, str_rep, self, other)
 
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns, copy=False)
 
-    def _flex_compare_frame(self, other, func, level):
+    def _flex_compare_frame(self, other, func, str_rep, level):
         if not self._indexed_same(other):
             self, other = self.align(other, 'outer', level=level)
 
-        new_data = {}
-        for col in self.columns:
-            new_data[col] = func(self[col], other[col])
+        def _compare(a, b):
+            return dict([ (col,func(a[col], b[col])) for col in a.columns ])
+        new_data = expressions.evaluate(_compare, str_rep, self, other)
 
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns, copy=False)
