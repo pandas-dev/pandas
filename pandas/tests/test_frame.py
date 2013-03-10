@@ -3246,6 +3246,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         rs = df.to_records(convert_datetime64=False)
         self.assert_(rs['index'][0] == df.index.values[0])
 
+    def test_to_records_with_Mapping_type(self):
+        import email
+        from email.parser import Parser
+        import collections
+
+        collections.Mapping.register(email.message.Message)
+
+        headers = Parser().parsestr('From: <user@example.com>\n'
+                'To: <someone_else@example.com>\n'
+                'Subject: Test message\n'
+                '\n'
+                'Body would go here\n')
+
+        frame = DataFrame.from_records([headers])
+        all( x in frame for x in ['Type','Subject','From'])
+
     def test_from_records_to_records(self):
         # from numpy documentation
         arr = np.zeros((2,), dtype=('i4,f4,a10'))
