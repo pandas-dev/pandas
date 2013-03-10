@@ -170,6 +170,14 @@ def value_counts(values, sort=True, ascending=False):
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
         keys, counts = htable.value_count_int64(values)
+    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+
+        dtype = values.dtype
+        values = values.view(np.int64)
+        keys, counts = htable.value_count_int64(values)
+
+        # convert the keys back to the dtype we came in
+        keys = Series(keys,dtype=dtype)
     else:
         mask = com.isnull(values)
         values = com._ensure_object(values)

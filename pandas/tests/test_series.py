@@ -2396,6 +2396,27 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([], dtype=np.int64)
         assert_series_equal(hist, expected)
 
+        # GH 3002, datetime64[ns]
+        import StringIO
+        import pandas as pd
+        f = StringIO.StringIO("xxyyzz20100101PIE\nxxyyzz20100101GUM\nxxyyww20090101EGG\nfoofoo20080909PIE")
+        df = pd.read_fwf(f, widths=[6,8,3], names=["person_id", "dt", "food"], parse_dates=["dt"])
+        s = df.dt.copy()
+        result = s.value_counts()
+        self.assert_(result.index.dtype == 'datetime64[ns]')
+
+        # with NaT
+        s = s.append(Series({ 4 : pd.NaT }))
+        result = s.value_counts()
+        self.assert_(result.index.dtype == 'datetime64[ns]')
+
+        # timedelta64[ns]
+        from datetime import timedelta
+        td = df.dt-df.dt+timedelta(1)
+        result = td.value_counts()
+        #self.assert_(result.index.dtype == 'timedelta64[ns]')
+        self.assert_(result.index.dtype == 'int64')
+
     def test_unique(self):
 
         # 714 also, dtype=float

@@ -13,6 +13,7 @@ import pandas.index as _index
 from pandas.lib import Timestamp
 
 from pandas.util.decorators import cache_readonly
+from pandas.core.common import isnull
 import pandas.core.common as com
 from pandas.util import py3compat
 from pandas.core.config import get_option
@@ -94,6 +95,8 @@ class Index(np.ndarray):
                     return Index(result.to_pydatetime(), dtype=_o_dtype)
                 else:
                     return result
+            elif issubclass(data.dtype.type, np.timedelta64):
+                return Int64Index(data, copy=copy, name=name)
 
             if dtype is not None:
                 try:
@@ -435,9 +438,12 @@ class Index(np.ndarray):
             zero_time = time(0, 0)
             result = []
             for dt in self:
-                if dt.time() != zero_time or dt.tzinfo is not None:
-                    return header + [u'%s' % x for x in self]
-                result.append(u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
+                if isnull(dt):
+                    result.append(u'NaT')
+                else:
+                    if dt.time() != zero_time or dt.tzinfo is not None:
+                        return header + [u'%s' % x for x in self]
+                    result.append(u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
             return header + result
 
         values = self.values
