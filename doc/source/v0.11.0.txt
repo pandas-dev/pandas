@@ -12,6 +12,8 @@ pay close attention to.
 There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
 primarily geared to new users.
 
+There are several libraries that are now :ref:`Recommended Dependencies <install.recommended_dependencies>`
+
 Selection Choices
 ~~~~~~~~~~~~~~~~~
 
@@ -224,11 +226,11 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
-  - Numexpr is now a 'highly recommended dependency', to accelerate certain
-    types of expression evaluation
+  - Numexpr is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
+    types of numerical and boolean operations
 
-  - Bottleneck is now a 'highly recommended dependency', to accelerate certain
-    types of numerical evaluations
+  - Bottleneck is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
+    types of ``nan`` operations
 
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
     (e.g. ``store.df == store['df']``)
