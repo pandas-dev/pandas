@@ -42,6 +42,7 @@ pandas 0.11.0
   - Added ``.at``   attribute, to support fast scalar access via labels (replaces ``get_value/set_value``)
   - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer 
     (via ``_ixs`` methods in each object)
+  - Added support for expression evaluation using the ``numexpr`` library
 
 **Improvements to existing features**
 

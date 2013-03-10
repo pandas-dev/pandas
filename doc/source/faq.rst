@@ -23,8 +23,8 @@ Frequently Asked Questions (FAQ)
 
 .. _ref-monkey-patching:
 
-
-----------------------------------------------------
+Adding Features to your Pandas Installation
+-------------------------------------------
 
 Pandas is a powerful tool and already has a plethora of data manipulation
 operations implemented, most of them are very fast as well.
