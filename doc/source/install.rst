@@ -70,7 +70,23 @@ Dependencies
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support
 
-Optional dependencies
+.. _install.recommended_dependencies:
+
+Recommended Dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+  * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations. 
+    ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
+  * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+    evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
+
+.. note::
+
+   You are highly encouraged to install these libraries, as they provide large speedups, especially 
+   if working with large data sets.
+
+
+Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `Cython <http://www.cython.org>`__: Only necessary to build development
