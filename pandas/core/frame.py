@@ -17,6 +17,7 @@ from StringIO import StringIO
 import csv
 import operator
 import sys
+import collections
 
 from numpy import nan as NA
 import numpy as np
@@ -413,7 +414,7 @@ class DataFrame(NDFrame):
                 if index is None and isinstance(data[0], Series):
                     index = _get_names_from_index(data)
 
-                if isinstance(data[0], (list, tuple, dict, Series)):
+                if isinstance(data[0], (list, tuple, collections.Mapping, Series)):
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
@@ -5527,7 +5528,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], dict):
+    elif isinstance(data[0], collections.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float,
                                        dtype=dtype)
