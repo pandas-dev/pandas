@@ -114,6 +114,15 @@ class TestDataFrameFormatting(unittest.TestCase):
         with option_context("display.chop_threshold", None ):
             self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
 
+    def test_repr_obeys_max_seq_limit(self):
+        import pandas.core.common as com
+
+        #unlimited
+        reset_option("display.max_seq_items")
+        self.assertTrue(len(com.pprint_thing(range(1000)))> 2000)
+
+        with option_context("display.max_seq_items",5):
+            self.assertTrue(len(com.pprint_thing(range(1000)))< 100)
 
     def test_repr_should_return_str(self):
         """

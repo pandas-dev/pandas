@@ -122,7 +122,15 @@ pc_chop_threshold_doc = """
     if set to a float value, all float values smaller then the given threshold
     will be displayed as exactly 0 by repr and friends.
 """
+pc_max_seq_items = """
+: int or None
 
+    when pretty-printing a long sequence, no more then `max_seq_items`
+    will be printed. If items are ommitted, they will be denoted by the addition
+    of "..." to the resulting string.
+
+    If set to None, the number of items to be printed is unlimited.
+"""
 with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
@@ -149,6 +157,7 @@ with cf.config_prefix('display'):
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('line_width', 80, pc_line_width_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
+    cf.register_option('max_seq_items', None, pc_max_seq_items)
 
 tc_sim_interactive_doc = """
 : boolean
