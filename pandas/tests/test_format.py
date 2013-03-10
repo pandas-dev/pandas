@@ -1226,6 +1226,18 @@ class TestSeriesFormatting(unittest.TestCase):
             else:
                 self.assert_('+10' in line)
 
+    def test_datetimeindex(self):
+
+        from pandas import date_range, NaT, Timestamp
+        index = date_range('20130102',periods=6)
+        s = Series(1,index=index)
+        result = s.to_string()
+        self.assertTrue('2013-01-02' in result)
+
+        s = Series(2, index=[ Timestamp('20130111'), NaT ]).append(s)
+        result = s.to_string()
+        self.assertTrue('NaT' in result)
+
     def test_timedelta64(self):
 
         from pandas import date_range

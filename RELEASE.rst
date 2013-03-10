@@ -136,6 +136,8 @@ pandas 0.11.0
 
   - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
   - Bug in argsort of ``datetime64[ns]`` Series with ``NaT`` (GH2967_)
+  - Bug in value_counts of ``datetime64[ns]`` Series (GH3002_)
+  - Fixed printing of ``NaT` in an index
   - Bug in idxmin/idxmax of ``datetime64[ns]`` Series with ``NaT`` (GH2982__)
   - Bug in ``icol`` with negative indicies was incorrect producing incorrect return values (see GH2922_)
 
@@ -162,6 +164,7 @@ pandas 0.11.0
 .. _GH2967: https://github.com/pydata/pandas/issues/2967
 .. _GH2982: https://github.com/pydata/pandas/issues/2982
 .. _GH2989: https://github.com/pydata/pandas/issues/2989
+.. _GH3002: https://github.com/pydata/pandas/issues/3002
 
 
 pandas 0.10.1
