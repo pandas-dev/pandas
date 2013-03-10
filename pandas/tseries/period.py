@@ -128,8 +128,12 @@ class Period(object):
 
     def __eq__(self, other):
         if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
             return (self.ordinal == other.ordinal
                     and _gfc(self.freq) == _gfc(other.freq))
+        else:
+            raise TypeError(other)
         return False
 
     def __hash__(self):
@@ -153,24 +157,36 @@ class Period(object):
             raise TypeError(other)
 
     def __lt__(self, other):
-        if other.freq != self.freq:
-            raise ValueError("Cannot compare non-conforming periods")
-        return self.ordinal < other.ordinal
+        if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
+            return self.ordinal < other.ordinal
+        else:
+            raise TypeError(other)
 
     def __le__(self, other):
-        if other.freq != self.freq:
-            raise ValueError("Cannot compare non-conforming periods")
-        return self.ordinal <= other.ordinal
+        if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
+            return self.ordinal <= other.ordinal
+        else:
+            raise TypeError(other)
 
     def __gt__(self, other):
-        if other.freq != self.freq:
-            raise ValueError("Cannot compare non-conforming periods")
-        return self.ordinal > other.ordinal
+        if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
+            return self.ordinal > other.ordinal
+        else:
+            raise TypeError(other)
 
     def __ge__(self, other):
-        if other.freq != self.freq:
-            raise ValueError("Cannot compare non-conforming periods")
-        return self.ordinal >= other.ordinal
+        if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
+            return self.ordinal >= other.ordinal
+        else:
+            raise TypeError(other)
 
     def asfreq(self, freq, how='E'):
         """
