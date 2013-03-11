@@ -268,6 +268,9 @@ Enhancements
   - added option `display.max_seq_items` to control the number of
     elements printed per sequence pprinting it.
 
+  - added option `display.chop_threshold` to control display of small numerical
+    values. (GH2739_)
+
 
 Bug Fixes
 ~~~~~~~~~
@@ -312,3 +315,4 @@ on GitHub for a complete list.
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2978: https://github.com/pydata/pandas/issues/2978
+.. _GH2739: https://github.com/pydata/pandas/issues/2739
