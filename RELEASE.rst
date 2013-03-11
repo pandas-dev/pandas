@@ -118,6 +118,7 @@ pandas 0.11.0
       underscore)
     - fixes for query parsing to correctly interpret boolean and != (GH2849_, GH2973_)
     - fixes for pathological case on SparseSeries with 0-len array and compression (GH2931_)
+    - fixes bug with writing rows if part of a block was all-nan (GH3012_)
 
   - Bug showing up in applymap where some object type columns are converted (GH2909_)
     had an incorrect default in convert_objects
@@ -165,6 +166,7 @@ pandas 0.11.0
 .. _GH2982: https://github.com/pydata/pandas/issues/2982
 .. _GH2989: https://github.com/pydata/pandas/issues/2989
 .. _GH3002: https://github.com/pydata/pandas/issues/3002
+.. _GH3012: https://github.com/pydata/pandas/issues/3012
 
 
 pandas 0.10.1

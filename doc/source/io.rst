@@ -1461,8 +1461,7 @@ beginning. You can use the supplied ``PyTables`` utility
 ``ptrepack``. In addition, ``ptrepack`` can change compression levels
 after the fact.
 
-   - ``ptrepack --chunkshape=auto --propindexes --complevel=9
-       --complib=blosc in.h5 out.h5``
+   - ``ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc in.h5 out.h5``
 
 Furthermore ``ptrepack in.h5 out.h5`` will *repack* the file to allow
 you to reuse previously deleted space. Aalternatively, one can simply
@@ -1473,6 +1472,10 @@ Notes & Caveats
 
    - Once a ``table`` is created its items (Panel) / columns (DataFrame)
      are fixed; only exactly the same columns can be appended
+   - If a row has ``np.nan`` for **EVERY COLUMN** (having a ``nan``
+     in a string, or a ``NaT`` in a datetime-like column counts as having
+     a value), then those rows **WILL BE DROPPED IMPLICITLY**. This limitation
+     *may* be addressed in the future.
    - You can not append/select/delete to a non-table (table creation is
      determined on the first append, or by passing ``table=True`` in a
      put operation)
@@ -1498,13 +1501,13 @@ Notes & Caveats
 
      .. ipython:: python
 
-     store.append('wp_big_strings', wp, min_itemsize = { 'minor_axis' : 30 })
-     wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
-     store.append('wp_big_strings', wp)
-     store.select('wp_big_strings')
+       store.append('wp_big_strings', wp, min_itemsize = { 'minor_axis' : 30 })
+       wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
+       store.append('wp_big_strings', wp)
+       store.select('wp_big_strings')
 
-     # we have provided a minimum minor_axis indexable size
-     store.root.wp_big_strings.table
+       # we have provided a minimum minor_axis indexable size
+       store.root.wp_big_strings.table
 
 DataTypes
 ~~~~~~~~~

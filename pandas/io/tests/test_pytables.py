@@ -417,6 +417,85 @@ class TestHDFStore(unittest.TestCase):
             store.append('df', df)
             tm.assert_frame_equal(store['df'], df)
 
+    def test_append_some_nans(self):
+
+        with ensure_clean(self.path) as store:
+            df = DataFrame({'A' : Series(np.random.randn(20)).astype('int32'),
+                            'A1' : np.random.randn(20),
+                            'A2' : np.random.randn(20),
+                            'B' : 'foo', 'C' : 'bar', 'D' : Timestamp("20010101"), 'E' : datetime.datetime(2001,1,2,0,0) },
+                           index=np.arange(20))
+            # some nans
+            store.remove('df1')
+            df.ix[0:15,['A1','B','D','E']] = np.nan
+            store.append('df1', df[:10])
+            store.append('df1', df[10:])
+            tm.assert_frame_equal(store['df1'], df)
+
+            # first column
+            df1 = df.copy()
+            df1.ix[:,'A1'] = np.nan
+            store.remove('df1')
+            store.append('df1', df1[:10])
+            store.append('df1', df1[10:])
+            tm.assert_frame_equal(store['df1'], df1)
+
+            # 2nd column
+            df2 = df.copy()
+            df2.ix[:,'A2'] = np.nan
+            store.remove('df2')
+            store.append('df2', df2[:10])
+            store.append('df2', df2[10:])
+            tm.assert_frame_equal(store['df2'], df2)
+
+            # datetimes
+            df3 = df.copy()
+            df3.ix[:,'E'] = np.nan
+            store.remove('df3')
+            store.append('df3', df3[:10])
+            store.append('df3', df3[10:])
+            tm.assert_frame_equal(store['df3'], df3)
+
+            ##### THIS IS A BUG, should not drop these all-nan rows
+            ##### BUT need to store the index which we don't want to do....
+            # nan some entire rows
+            df = DataFrame({'A1' : np.random.randn(20),
+                            'A2' : np.random.randn(20)},
+                           index=np.arange(20))
+
+            store.remove('df4')
+            df.ix[0:15,:] = np.nan
+            store.append('df4', df[:10])
+            store.append('df4', df[10:])
+            tm.assert_frame_equal(store['df4'], df[-4:])
+            self.assert_(store.get_storer('df4').nrows == 4)
+
+            # nan some entire rows (string are still written!)
+            df = DataFrame({'A1' : np.random.randn(20),
+                            'A2' : np.random.randn(20),
+                            'B' : 'foo', 'C' : 'bar'},
+                           index=np.arange(20))
+
+            store.remove('df5')
+            df.ix[0:15,:] = np.nan
+            store.append('df5', df[:10])
+            store.append('df5', df[10:])
+            tm.assert_frame_equal(store['df5'], df)
+            self.assert_(store.get_storer('df5').nrows == 20)
+
+            # nan some entire rows (but since we have dates they are still written!)
+            df = DataFrame({'A1' : np.random.randn(20),
+                            'A2' : np.random.randn(20),
+                            'B' : 'foo', 'C' : 'bar', 'D' : Timestamp("20010101"), 'E' : datetime.datetime(2001,1,2,0,0) },
+                           index=np.arange(20))
+
+            store.remove('df6')
+            df.ix[0:15,:] = np.nan
+            store.append('df6', df[:10])
+            store.append('df6', df[10:])
+            tm.assert_frame_equal(store['df6'], df)
+            self.assert_(store.get_storer('df6').nrows == 20)
+
     def test_append_frame_column_oriented(self):
 
         with ensure_clean(self.path) as store:
