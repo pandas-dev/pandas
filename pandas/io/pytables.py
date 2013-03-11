@@ -2577,7 +2577,7 @@ class AppendableTable(LegacyTable):
         # consolidate masks
         mask = masks[0]
         for m in masks[1:]:
-            m = mask & m
+            mask = mask & m
 
         # the arguments
         indexes = [a.cvalues for a in self.index_axes]
