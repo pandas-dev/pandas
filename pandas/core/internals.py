@@ -1334,11 +1334,22 @@ class BlockManager(object):
         if item in self.items:
             raise Exception('cannot insert %s, already exists' % item)
 
-        new_items = self.items.insert(loc, item)
-        self.set_items_norename(new_items)
+        try:
+            new_items = self.items.insert(loc, item)
+            self.set_items_norename(new_items)
 
-        # new block
-        self._add_new_block(item, value, loc=loc)
+            # new block
+            self._add_new_block(item, value, loc=loc)
+
+        except:
+
+            # so our insertion operation failed, so back out of the new items
+            # GH 3010
+            new_items = self.items.delete(loc)
+            self.set_items_norename(new_items)
+            
+            # re-raise
+            raise
 
         if len(self.blocks) > 100:
             self._consolidate_inplace()

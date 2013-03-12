@@ -1968,6 +1968,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         foo = DataFrame({'a': ['a', 'b', 'c']}, dtype=np.float64)
         self.assert_(foo['a'].dtype == object)
 
+        # GH 3010, constructing with odd arrays
+        df = DataFrame(np.ones((4,2)))
+   
+        # this is ok
+        df['foo'] = np.ones((4,2)).tolist()
+
+        # this is not ok
+        self.assertRaises(AssertionError, df.__setitem__, tuple(['test']), np.ones((4,2)))
+
+        # this is ok
+        df['foo2'] = np.ones((4,2)).tolist()
+
+
     def test_constructor_dtype_nocast_view(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
