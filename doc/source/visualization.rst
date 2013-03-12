@@ -131,7 +131,9 @@ keyword:
    plt.figure()
 
    @savefig frame_plot_secondary_y.png width=4.5in
-   df.plot(secondary_y=['A', 'B'])
+   ax = df.plot(secondary_y=['A', 'B'])
+   ax.set_ylabel('CD scale')
+   ax.right_ax.set_ylabel('AB scale')
 
 Note that the columns plotted on the secondary y-axis is automatically marked
 with "(right)" in the legend. To turn off the automatic marking, use the
