@@ -2200,6 +2200,7 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
 
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_bool_bool(ndarray[uint8_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2209,16 +2210,20 @@ def take_1d_bool_bool(ndarray[uint8_t] values,
         uint8_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_bool_object(ndarray[uint8_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2228,16 +2233,20 @@ def take_1d_bool_object(ndarray[uint8_t] values,
         object fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = True if values[idx] > 0 else False
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int8_int8(ndarray[int8_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2247,16 +2256,20 @@ def take_1d_int8_int8(ndarray[int8_t] values,
         int8_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int8_int32(ndarray[int8_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2266,16 +2279,20 @@ def take_1d_int8_int32(ndarray[int8_t] values,
         int32_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int8_int64(ndarray[int8_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2285,16 +2302,20 @@ def take_1d_int8_int64(ndarray[int8_t] values,
         int64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int8_float64(ndarray[int8_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2304,16 +2325,20 @@ def take_1d_int8_float64(ndarray[int8_t] values,
         float64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int16_int16(ndarray[int16_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2323,16 +2348,20 @@ def take_1d_int16_int16(ndarray[int16_t] values,
         int16_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int16_int32(ndarray[int16_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2342,16 +2371,20 @@ def take_1d_int16_int32(ndarray[int16_t] values,
         int32_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int16_int64(ndarray[int16_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2361,16 +2394,20 @@ def take_1d_int16_int64(ndarray[int16_t] values,
         int64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int16_float64(ndarray[int16_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2380,16 +2417,20 @@ def take_1d_int16_float64(ndarray[int16_t] values,
         float64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int32_int32(ndarray[int32_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2399,16 +2440,20 @@ def take_1d_int32_int32(ndarray[int32_t] values,
         int32_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int32_int64(ndarray[int32_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2418,16 +2463,20 @@ def take_1d_int32_int64(ndarray[int32_t] values,
         int64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int32_float64(ndarray[int32_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2437,16 +2486,20 @@ def take_1d_int32_float64(ndarray[int32_t] values,
         float64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int64_int64(ndarray[int64_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2456,16 +2509,20 @@ def take_1d_int64_int64(ndarray[int64_t] values,
         int64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_int64_float64(ndarray[int64_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2475,16 +2532,20 @@ def take_1d_int64_float64(ndarray[int64_t] values,
         float64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_float32_float32(ndarray[float32_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2494,16 +2555,20 @@ def take_1d_float32_float32(ndarray[float32_t] values,
         float32_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_float32_float64(ndarray[float32_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2513,16 +2578,20 @@ def take_1d_float32_float64(ndarray[float32_t] values,
         float64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_float64_float64(ndarray[float64_t] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2532,16 +2601,20 @@ def take_1d_float64_float64(ndarray[float64_t] values,
         float64_t fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_object_object(ndarray[object] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -2551,12 +2624,15 @@ def take_1d_object_object(ndarray[object] values,
         object fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = values[idx]
 
@@ -2572,6 +2648,7 @@ def take_2d_axis0_bool_bool(ndarray[uint8_t, ndim=2] values,
         uint8_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2586,6 +2663,8 @@ def take_2d_axis0_bool_bool(ndarray[uint8_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2597,6 +2676,8 @@ def take_2d_axis0_bool_bool(ndarray[uint8_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2612,6 +2693,7 @@ def take_2d_axis0_bool_object(ndarray[uint8_t, ndim=2] values,
         object fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2626,6 +2708,8 @@ def take_2d_axis0_bool_object(ndarray[uint8_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2637,6 +2721,8 @@ def take_2d_axis0_bool_object(ndarray[uint8_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = True if values[idx, j] > 0 else False
@@ -2652,6 +2738,7 @@ def take_2d_axis0_int8_int8(ndarray[int8_t, ndim=2] values,
         int8_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2666,6 +2753,8 @@ def take_2d_axis0_int8_int8(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2677,6 +2766,8 @@ def take_2d_axis0_int8_int8(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2692,6 +2783,7 @@ def take_2d_axis0_int8_int32(ndarray[int8_t, ndim=2] values,
         int32_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2706,6 +2798,8 @@ def take_2d_axis0_int8_int32(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2717,6 +2811,8 @@ def take_2d_axis0_int8_int32(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2732,6 +2828,7 @@ def take_2d_axis0_int8_int64(ndarray[int8_t, ndim=2] values,
         int64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2746,6 +2843,8 @@ def take_2d_axis0_int8_int64(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2757,6 +2856,8 @@ def take_2d_axis0_int8_int64(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2772,6 +2873,7 @@ def take_2d_axis0_int8_float64(ndarray[int8_t, ndim=2] values,
         float64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2786,6 +2888,8 @@ def take_2d_axis0_int8_float64(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2797,6 +2901,8 @@ def take_2d_axis0_int8_float64(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2812,6 +2918,7 @@ def take_2d_axis0_int16_int16(ndarray[int16_t, ndim=2] values,
         int16_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2826,6 +2933,8 @@ def take_2d_axis0_int16_int16(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2837,6 +2946,8 @@ def take_2d_axis0_int16_int16(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2852,6 +2963,7 @@ def take_2d_axis0_int16_int32(ndarray[int16_t, ndim=2] values,
         int32_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2866,6 +2978,8 @@ def take_2d_axis0_int16_int32(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2877,6 +2991,8 @@ def take_2d_axis0_int16_int32(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2892,6 +3008,7 @@ def take_2d_axis0_int16_int64(ndarray[int16_t, ndim=2] values,
         int64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2906,6 +3023,8 @@ def take_2d_axis0_int16_int64(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2917,6 +3036,8 @@ def take_2d_axis0_int16_int64(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2932,6 +3053,7 @@ def take_2d_axis0_int16_float64(ndarray[int16_t, ndim=2] values,
         float64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2946,6 +3068,8 @@ def take_2d_axis0_int16_float64(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2957,6 +3081,8 @@ def take_2d_axis0_int16_float64(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -2972,6 +3098,7 @@ def take_2d_axis0_int32_int32(ndarray[int32_t, ndim=2] values,
         int32_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -2986,6 +3113,8 @@ def take_2d_axis0_int32_int32(ndarray[int32_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -2997,6 +3126,8 @@ def take_2d_axis0_int32_int32(ndarray[int32_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3012,6 +3143,7 @@ def take_2d_axis0_int32_int64(ndarray[int32_t, ndim=2] values,
         int64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3026,6 +3158,8 @@ def take_2d_axis0_int32_int64(ndarray[int32_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3037,6 +3171,8 @@ def take_2d_axis0_int32_int64(ndarray[int32_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3052,6 +3188,7 @@ def take_2d_axis0_int32_float64(ndarray[int32_t, ndim=2] values,
         float64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3066,6 +3203,8 @@ def take_2d_axis0_int32_float64(ndarray[int32_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3077,6 +3216,8 @@ def take_2d_axis0_int32_float64(ndarray[int32_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3092,6 +3233,7 @@ def take_2d_axis0_int64_int64(ndarray[int64_t, ndim=2] values,
         int64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3106,6 +3248,8 @@ def take_2d_axis0_int64_int64(ndarray[int64_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3117,6 +3261,8 @@ def take_2d_axis0_int64_int64(ndarray[int64_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3132,6 +3278,7 @@ def take_2d_axis0_int64_float64(ndarray[int64_t, ndim=2] values,
         float64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3146,6 +3293,8 @@ def take_2d_axis0_int64_float64(ndarray[int64_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3157,6 +3306,8 @@ def take_2d_axis0_int64_float64(ndarray[int64_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3172,6 +3323,7 @@ def take_2d_axis0_float32_float32(ndarray[float32_t, ndim=2] values,
         float32_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3186,6 +3338,8 @@ def take_2d_axis0_float32_float32(ndarray[float32_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3197,6 +3351,8 @@ def take_2d_axis0_float32_float32(ndarray[float32_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3212,6 +3368,7 @@ def take_2d_axis0_float32_float64(ndarray[float32_t, ndim=2] values,
         float64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3226,6 +3383,8 @@ def take_2d_axis0_float32_float64(ndarray[float32_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3237,6 +3396,8 @@ def take_2d_axis0_float32_float64(ndarray[float32_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3252,6 +3413,7 @@ def take_2d_axis0_float64_float64(ndarray[float64_t, ndim=2] values,
         float64_t fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3266,6 +3428,8 @@ def take_2d_axis0_float64_float64(ndarray[float64_t, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3277,6 +3441,8 @@ def take_2d_axis0_float64_float64(ndarray[float64_t, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3292,6 +3458,7 @@ def take_2d_axis0_object_object(ndarray[object, ndim=2] values,
         object fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -3306,6 +3473,8 @@ def take_2d_axis0_object_object(ndarray[object, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -3317,6 +3486,8 @@ def take_2d_axis0_object_object(ndarray[object, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = values[idx, j]
@@ -3334,6 +3505,7 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3347,6 +3519,8 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3358,6 +3532,8 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3374,6 +3550,7 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3387,6 +3564,8 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3398,6 +3577,8 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = True if values[i, idx] > 0 else False
@@ -3414,6 +3595,7 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3427,6 +3609,8 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3438,6 +3622,8 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3454,6 +3640,7 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3467,6 +3654,8 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3478,6 +3667,8 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3494,6 +3685,7 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3507,6 +3699,8 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3518,6 +3712,8 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3534,6 +3730,7 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3547,6 +3744,8 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3558,6 +3757,8 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3574,6 +3775,7 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3587,6 +3789,8 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3598,6 +3802,8 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3614,6 +3820,7 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3627,6 +3834,8 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3638,6 +3847,8 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3654,6 +3865,7 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3667,6 +3879,8 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3678,6 +3892,8 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3694,6 +3910,7 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3707,6 +3924,8 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3718,6 +3937,8 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3734,6 +3955,7 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3747,6 +3969,8 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3758,6 +3982,8 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3774,6 +4000,7 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3787,6 +4014,8 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3798,6 +4027,8 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3814,6 +4045,7 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3827,6 +4059,8 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3838,6 +4072,8 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3854,6 +4090,7 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3867,6 +4104,8 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3878,6 +4117,8 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3894,6 +4135,7 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3907,6 +4149,8 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3918,6 +4162,8 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3934,6 +4180,7 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3947,6 +4194,8 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3958,6 +4207,8 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -3974,6 +4225,7 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -3987,6 +4239,8 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -3998,6 +4252,8 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -4014,6 +4270,7 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -4027,6 +4284,8 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -4038,6 +4297,8 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -4054,6 +4315,7 @@ def take_2d_axis1_object_object(ndarray[object, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -4067,6 +4329,8 @@ def take_2d_axis1_object_object(ndarray[object, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -4078,6 +4342,8 @@ def take_2d_axis1_object_object(ndarray[object, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = values[i, idx]
@@ -4089,27 +4355,35 @@ def take_2d_multi_bool_bool(ndarray[uint8_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[uint8_t, ndim=2] outbuf = out
         uint8_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4117,27 +4391,35 @@ def take_2d_multi_bool_object(ndarray[uint8_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[object, ndim=2] outbuf = out
         object fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = True if values[idx, idx1[j]] > 0 else False
+                    outbuf[i, j] = True if values[ridx, cidx] > 0 else False
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4145,27 +4427,35 @@ def take_2d_multi_int8_int8(ndarray[int8_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int8_t, ndim=2] outbuf = out
         int8_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4173,27 +4463,35 @@ def take_2d_multi_int8_int32(ndarray[int8_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int32_t, ndim=2] outbuf = out
         int32_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4201,27 +4499,35 @@ def take_2d_multi_int8_int64(ndarray[int8_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int64_t, ndim=2] outbuf = out
         int64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4229,27 +4535,35 @@ def take_2d_multi_int8_float64(ndarray[int8_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[float64_t, ndim=2] outbuf = out
         float64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4257,27 +4571,35 @@ def take_2d_multi_int16_int16(ndarray[int16_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int16_t, ndim=2] outbuf = out
         int16_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4285,27 +4607,35 @@ def take_2d_multi_int16_int32(ndarray[int16_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int32_t, ndim=2] outbuf = out
         int32_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4313,27 +4643,35 @@ def take_2d_multi_int16_int64(ndarray[int16_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int64_t, ndim=2] outbuf = out
         int64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4341,27 +4679,35 @@ def take_2d_multi_int16_float64(ndarray[int16_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[float64_t, ndim=2] outbuf = out
         float64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4369,27 +4715,35 @@ def take_2d_multi_int32_int32(ndarray[int32_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int32_t, ndim=2] outbuf = out
         int32_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4397,27 +4751,35 @@ def take_2d_multi_int32_int64(ndarray[int32_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int64_t, ndim=2] outbuf = out
         int64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4425,27 +4787,35 @@ def take_2d_multi_int32_float64(ndarray[int32_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[float64_t, ndim=2] outbuf = out
         float64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4453,27 +4823,35 @@ def take_2d_multi_int64_int64(ndarray[int64_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[int64_t, ndim=2] outbuf = out
         int64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4481,27 +4859,35 @@ def take_2d_multi_int64_float64(ndarray[int64_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[float64_t, ndim=2] outbuf = out
         float64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4509,27 +4895,35 @@ def take_2d_multi_float32_float32(ndarray[float32_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[float32_t, ndim=2] outbuf = out
         float32_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4537,27 +4931,35 @@ def take_2d_multi_float32_float64(ndarray[float32_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[float64_t, ndim=2] outbuf = out
         float64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4565,27 +4967,35 @@ def take_2d_multi_float64_float64(ndarray[float64_t, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[float64_t, ndim=2] outbuf = out
         float64_t fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -4593,27 +5003,35 @@ def take_2d_multi_object_object(ndarray[object, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[object, ndim=2] outbuf = out
         object fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = values[idx, idx1[j]]
+                    outbuf[i, j] = values[ridx, cidx]
 
 
 @cython.boundscheck(False)

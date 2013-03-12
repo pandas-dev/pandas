@@ -311,11 +311,17 @@ class TestTake(unittest.TestCase):
                 expected = data.take(indexer)
                 expected[3] = np.nan
                 tm.assert_almost_equal(out, expected)
+
+                indexer = [2, 1, 10, -1]
+                self.assertRaises(IndexError, com.take_1d, data,
+                                  indexer, out=out)
+
             else:
                 self.assertRaises(Exception, com.take_1d, data,
                                   indexer, out=out)
                 # no exception o/w
                 data.take(indexer, out=out)
+
 
         _test_dtype(np.float64, True)
         _test_dtype(np.float32, True)
@@ -396,6 +402,13 @@ class TestTake(unittest.TestCase):
                 expected1[:, 3] = np.nan
                 tm.assert_almost_equal(out0, expected0)
                 tm.assert_almost_equal(out1, expected1)
+
+                indexer = [2, 1, 10, -1]
+                self.assertRaises(IndexError, com.take_nd, data,
+                                  indexer, out=out0, axis=0)
+                self.assertRaises(IndexError, com.take_nd, data,
+                                  indexer, out=out1, axis=1)
+
             else:
                 self.assertRaises(Exception, com.take_nd, data,
                                   indexer, out=out0, axis=0)
@@ -502,6 +515,15 @@ class TestTake(unittest.TestCase):
                 tm.assert_almost_equal(out0, expected0)
                 tm.assert_almost_equal(out1, expected1)
                 tm.assert_almost_equal(out2, expected2)
+
+                indexer = [2, 1, 10, -1]
+                self.assertRaises(IndexError, com.take_nd, data,
+                                  indexer, out=out0, axis=0)
+                self.assertRaises(IndexError, com.take_nd, data,
+                                  indexer, out=out1, axis=1)
+                self.assertRaises(IndexError, com.take_nd, data,
+                                  indexer, out=out2, axis=2)
+
             else:
                 self.assertRaises(Exception, com.take_nd, data,
                                   indexer, out=out0, axis=0)
@@ -664,7 +686,7 @@ class TestTake(unittest.TestCase):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
-    
+
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
         arr = np.random.randint(11045376L, 11360736L, (5,3))*100000000000
