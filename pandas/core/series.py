@@ -1126,7 +1126,8 @@ class Series(pa.Array, generic.PandasObject):
         else:
             result = u'Series([], dtype: %s)' % self.dtype
 
-        assert type(result) == unicode
+        if not ( type(result) == unicode):
+            raise AssertionError()
         return result
 
     def __repr__(self):
@@ -1194,7 +1195,9 @@ class Series(pa.Array, generic.PandasObject):
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
                                   length=length, dtype=dtype, name=name)
 
-        assert type(the_repr) == unicode
+        # catch contract violations
+        if not  type(the_repr) == unicode:
+            raise AssertionError("expected unicode string")
 
         if buf is None:
             return the_repr
@@ -1212,7 +1215,8 @@ class Series(pa.Array, generic.PandasObject):
                                         length=length, dtype=dtype, na_rep=na_rep,
                                         float_format=float_format)
         result = formatter.to_string()
-        assert type(result) == unicode
+        if not ( type(result) == unicode):
+            raise AssertionError()
         return result
 
     def __iter__(self):

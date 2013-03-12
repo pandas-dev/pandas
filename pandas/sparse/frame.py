@@ -709,7 +709,9 @@ class SparseDataFrame(DataFrame):
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         if isinstance(other, Series):
-            assert(other.name is not None)
+            if not (other.name is not None):
+                raise AssertionError()
+
             other = SparseDataFrame({other.name: other},
                                     default_fill_value=self.default_fill_value)
 

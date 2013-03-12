@@ -46,10 +46,12 @@ def _maybe_cast(arr):
 
 
 def _check_columns(cols):
-    assert(len(cols) > 0)
+    if not ((len(cols) > 0)):
+        raise AssertionError()
 
     N = len(cols[0])
     for c in cols[1:]:
-        assert(len(c) == N)
+        if not ((len(c) == N)):
+            raise AssertionError()
 
     return N

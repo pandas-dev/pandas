@@ -110,7 +110,8 @@ class SparseSeries(SparseArray, Series):
             if isinstance(data, SparseSeries) and index is None:
                 index = data.index
             elif index is not None:
-                assert(len(index) == len(data))
+                if not (len(index) == len(data)):
+                    raise AssertionError()
 
             sparse_index = data.sp_index
             values = np.asarray(data)
@@ -128,7 +129,8 @@ class SparseSeries(SparseArray, Series):
                                                    fill_value=fill_value)
             else:
                 values = data
-                assert(len(values) == sparse_index.npoints)
+                if not (len(values) == sparse_index.npoints):
+                    raise AssertionError()
         else:
             if index is None:
                 raise Exception('must pass index!')
@@ -446,7 +448,8 @@ class SparseSeries(SparseArray, Series):
         -------
         reindexed : SparseSeries
         """
-        assert(isinstance(new_index, splib.SparseIndex))
+        if not (isinstance(new_index, splib.SparseIndex)):
+            raise AssertionError()
 
         new_values = self.sp_index.to_int_index().reindex(self.sp_values,
                                                           self.fill_value,

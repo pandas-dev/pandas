@@ -28,7 +28,8 @@ def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            assert(tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo))
+            if not (tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo)):
+                raise AssertionError()
         return tz
     tz = None
     if start is not None:

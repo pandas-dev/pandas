@@ -500,10 +500,13 @@ def _period_index_cmp(opname):
     def wrapper(self, other):
         if isinstance(other, Period):
             func = getattr(self.values, opname)
-            assert(other.freq == self.freq)
+            if not (other.freq == self.freq):
+                raise AssertionError()
+
             result = func(other.ordinal)
         elif isinstance(other, PeriodIndex):
-            assert(other.freq == self.freq)
+            if not (other.freq == self.freq):
+                raise AssertionError()
             return getattr(self.values, opname)(other.values)
         else:
             other = Period(other, freq=self.freq)
@@ -1230,7 +1233,8 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
             base, mult = _gfc(freq)
             if mult != 1:
                 raise ValueError('Only mult == 1 supported')
-            assert(base == FreqGroup.FR_QTR)
+            if not (base == FreqGroup.FR_QTR):
+                raise AssertionError()
 
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):

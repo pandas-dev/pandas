@@ -618,7 +618,8 @@ class Panel(NDFrame):
         value : scalar value
         """
         # require an arg for each axis
-        assert(len(args) == self._AXIS_LEN)
+        if not ((len(args) == self._AXIS_LEN)):
+            raise AssertionError()
 
         # hm, two layers to the onion
         frame = self._get_item_cache(args[0])
@@ -642,7 +643,8 @@ class Panel(NDFrame):
             otherwise a new object
         """
         # require an arg for each axis and the value
-        assert(len(args) == self._AXIS_LEN + 1)
+        if not ((len(args) == self._AXIS_LEN + 1)):
+            raise AssertionError()
 
         try:
             frame = self._get_item_cache(args[0])
@@ -685,7 +687,8 @@ class Panel(NDFrame):
                 **self._construct_axes_dict_for_slice(self._AXIS_ORDERS[1:]))
             mat = value.values
         elif isinstance(value, np.ndarray):
-            assert(value.shape == shape[1:])
+            if not ((value.shape == shape[1:])):
+                raise AssertionError()
             mat = np.asarray(value)
         elif np.isscalar(value):
             dtype, value = _infer_dtype_from_scalar(value)
@@ -1481,7 +1484,8 @@ class Panel(NDFrame):
         else:
             if copy:
                 values = values.copy()
-        assert(values.ndim == self._AXIS_LEN)
+        if not ((values.ndim == self._AXIS_LEN)):
+            raise AssertionError()
         return values
 
     @staticmethod
