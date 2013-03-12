@@ -38,6 +38,10 @@ pandas 0.12.0
     including TimeStamp and *Index now produces valid python code strings and
     can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
 
+**New features**
+
+**Improvements to existing features**
+
 **API Changes**
 
   - When removing an object from a store, **store.remove(key)**, raises
