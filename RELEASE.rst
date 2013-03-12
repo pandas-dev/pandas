@@ -140,7 +140,8 @@ pandas 0.11.0
   - Bug in value_counts of ``datetime64[ns]`` Series (GH3002_)
   - Fixed printing of ``NaT` in an index
   - Bug in idxmin/idxmax of ``datetime64[ns]`` Series with ``NaT`` (GH2982__)
-  - Bug in ``icol`` with negative indicies was incorrect producing incorrect return values (see GH2922_)
+  - Bug in ``icol, take`` with negative indicies was producing incorrect return 
+    values (see GH2922_, GH2892_), also check for out-of-bounds indices (GH3029_)
   - Bug in DataFrame column insertion when the column creation fails, existing frame is left in
     an irrecoverable state (GH3010_)
   - Bug in DataFrame update where non-specified values could cause dtype changes (GH3016_)
@@ -161,6 +162,7 @@ pandas 0.11.0
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2849: https://github.com/pydata/pandas/issues/2849
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
+.. _GH2892: https://github.com/pydata/pandas/issues/2892
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 .. _GH2922: https://github.com/pydata/pandas/issues/2922
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
@@ -171,6 +173,7 @@ pandas 0.11.0
 .. _GH3002: https://github.com/pydata/pandas/issues/3002
 .. _GH3010: https://github.com/pydata/pandas/issues/3010
 .. _GH3012: https://github.com/pydata/pandas/issues/3012
+.. _GH3029: https://github.com/pydata/pandas/issues/3029
 
 
 pandas 0.10.1

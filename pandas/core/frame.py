@@ -28,7 +28,8 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
-                                  _is_index_slice, _check_bool_indexer)
+                                  _is_index_slice, _check_bool_indexer,
+                                  _maybe_convert_indices)
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
@@ -1928,11 +1929,6 @@ class DataFrame(NDFrame):
                 label = self.columns[i]
                 if isinstance(label, Index):
 
-                    # if we have negative indicies, translate to postive here 
-                    # (take doesen't deal properly with these)
-                    l = len(self.columns)
-                    i = [ v if v >= 0 else l+v for v in i ]
-                    
                     return self.take(i, axis=1)
 
                 values = self._data.iget(i)
@@ -2911,11 +2907,13 @@ class DataFrame(NDFrame):
         -------
         taken : DataFrame
         """
-        if isinstance(indices, list):
-            indices = np.array(indices)
+
+        # check/convert indicies here
+        indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+
         if self._is_mixed_type:
             if axis == 0:
-                new_data = self._data.take(indices, axis=1)
+                new_data = self._data.take(indices, axis=1, verify=False)
                 return DataFrame(new_data)
             else:
                 new_columns = self.columns.take(indices)

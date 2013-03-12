@@ -1013,7 +1013,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         expected = self.panel.reindex(minor=['D', 'A', 'B', 'C'])
         assert_panel_equal(result, expected)
 
-        self.assertRaises(Exception, self.panel.take, [3, -1, 1, 2], axis=2)
+        # neg indicies ok
+        expected = self.panel.reindex(minor=['D', 'D', 'B', 'C'])
+        result = self.panel.take([3, -1, 1, 2], axis=2)
+        assert_panel_equal(result, expected)
+
         self.assertRaises(Exception, self.panel.take, [4, 0, 1, 2], axis=2)
 
     def test_sort_index(self):
