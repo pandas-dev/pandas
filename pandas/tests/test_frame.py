@@ -7265,6 +7265,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
 
+    def test_update_dtypes(self):
+
+        # gh 3016
+        df = DataFrame([[1.,2.,False, True],[4.,5.,True,False]],
+                       columns=['A','B','bool1','bool2'])
+
+        other = DataFrame([[45,45]],index=[0],columns=['A','B'])
+        df.update(other)
+
+        expected = DataFrame([[45.,45.,False, True],[4.,5.,True,False]],
+                             columns=['A','B','bool1','bool2'])
+        assert_frame_equal(df, expected)
+
     def test_update_nooverwrite(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],
