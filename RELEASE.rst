@@ -22,6 +22,42 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.12.0
+=============
+
+**Release date:** 2013-??-??
+
+**New features**
+
+**Improvements to existing features**
+
+**API Changes**
+
+  - Refactor of frame.py/panel.py to move common code to generic.py
+    all axis creation code is common (including Series), most common
+    code is moved to generic.py
+
+    - added _setup_axes to created generic NDFrame structures
+    - moved methods
+
+      - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
+      - __str__,__bytes__,__repr__
+      - __iter__,keys,__contains__,__len__,__neg__,__invert__
+      - convert_objects,as_blocks,as_matrix,values
+      - __getstate__,__setstate__ (though compat remains in frame/panel)
+      - __getattr__,__setattr__
+      - _indexed_same,reindex_like,reindex,align,where,mask
+      - filter (also added axis argument to selectively filter on a different axis)
+      - reindex,reindex_axis (which was the biggest change to make generic)
+      - truncate (moved to become part of PandasObject)
+
+    These are API changes which make Panel more consistent with DataFrame
+    - swapaxes on a Panel with the same axes specified now return a copy 
+    - support attribute access for setting
+    - filter supports same api as original DataFrame filter
+
+  - Reindex called with no arguments will now return a copy of the input object
+
 pandas 0.11.0
 =============
 
@@ -130,30 +166,6 @@ pandas 0.11.0
 
   - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
     (GH2747_)
-  - Refactor of frame.py/panel.py to move common code to generic.py
-    all axis creation code is common (including Series), most common
-    code is moved to generic.py
-
-    - added _setup_axes to created generic NDFrame structures
-    - moved methods
-
-      - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
-      - __str__,__bytes__,__repr__
-      - __iter__,keys,__contains__,__len__,__neg__,__invert__
-      - convert_objects,as_blocks,as_matrix,values
-      - __getstate__,__setstate__ (though compat remains in frame/panel)
-      - __getattr__,__setattr__
-      - _indexed_same,reindex_like,reindex,align,where,mask
-      - filter (also added axis argument to selectively filter on a different axis)
-      - reindex,reindex_axis (which was the biggest change to make generic)
-      - truncate (moved to become part of PandasObject)
-
-    These are API changes which make Panel more consistent with DataFrame
-    - swapaxes on a Panel with the same axes specified now return a copy 
-    - support attribute access for setting
-    - filter supports same api as original DataFrame filter
-
-  - Reindex called with no arguments will now return a copy of the input object
 
 **Bug Fixes**
 
