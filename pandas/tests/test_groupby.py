@@ -218,6 +218,14 @@ class TestGroupBy(unittest.TestCase):
         assert_series_equal(result, result2)
         assert_series_equal(result, expected2)
 
+    def test_groupby_bounds_check(self):
+        import pandas as pd
+        # groupby_X is code-generated, so if one variant
+        # does, the rest probably do to
+        a = np.array([1,2],dtype='object')
+        b = np.array([1,2,3],dtype='object')
+        self.assertRaises(AssertionError, pd.algos.groupby_object,a, b)
+
     def test_groupby_nonobject_dtype(self):
         key = self.mframe.index.labels[0]
         grouped = self.mframe.groupby(key)
