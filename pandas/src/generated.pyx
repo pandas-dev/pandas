@@ -1967,6 +1967,9 @@ def groupby_float64(ndarray[float64_t] index, ndarray labels):
 
     length = len(index)
 
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
@@ -1991,6 +1994,9 @@ def groupby_float32(ndarray[float32_t] index, ndarray labels):
     cdef object idx, key
 
     length = len(index)
+
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     for i in range(length):
         key = util.get_value_1d(labels, i)
@@ -2017,6 +2023,9 @@ def groupby_object(ndarray[object] index, ndarray labels):
 
     length = len(index)
 
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
@@ -2041,6 +2050,9 @@ def groupby_int32(ndarray[int32_t] index, ndarray labels):
     cdef object idx, key
 
     length = len(index)
+
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     for i in range(length):
         key = util.get_value_1d(labels, i)
@@ -2067,6 +2079,9 @@ def groupby_int64(ndarray[int64_t] index, ndarray labels):
 
     length = len(index)
 
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
@@ -2091,6 +2106,9 @@ def groupby_bool(ndarray[uint8_t] index, ndarray labels):
     cdef object idx, key
 
     length = len(index)
+
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     for i in range(length):
         key = util.get_value_1d(labels, i)

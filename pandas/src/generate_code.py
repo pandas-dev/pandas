@@ -593,6 +593,9 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
 
     length = len(index)
 
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
