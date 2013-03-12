@@ -1715,9 +1715,9 @@ engine. You can use a temporary SQLite database where data are stored in
                                    Col_2 float,
                                    Col_3 bool);""")
    cu.executemany('INSERT INTO data VALUES (?,?,?,?,?)',
-                  [(26, datetime(2010,10,18), 'X', 27.5, True),
-                   (42, datetime(2010,10,19), 'Y', -12.5, False),
-                   (63, datetime(2010,10,20), 'Z', 5.73, True)])
+                  [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
+                   (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
+                   (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)])
 
 
 Let ``data`` be the name of your SQL table. With a query and your database
