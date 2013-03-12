@@ -8602,12 +8602,43 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df.columns.tolist() == filled.columns.tolist())
 
     def test_take(self):
+
         # homogeneous
         #----------------------------------------
+        order  = [3, 1, 2, 0]
+        for df in [self.frame]:
+
+            result = df.take(order, axis=0)
+            expected = df.reindex(df.index.take(order))
+            assert_frame_equal(result, expected)
+
+            # axis = 1
+            result = df.take(order, axis=1)
+            expected = df.ix[:, ['D', 'B', 'C', 'A']]
+            assert_frame_equal(result, expected, check_names=False)
+
+        # neg indicies
+        order = [2,1,-1]
+        for df in [self.frame]:
+
+            result = df.take(order, axis=0)
+            expected = df.reindex(df.index.take(order))
+            assert_frame_equal(result, expected)
+
+            # axis = 1
+            result = df.take(order, axis=1)
+            expected = df.ix[:, ['C', 'B', 'D']]
+            assert_frame_equal(result, expected, check_names=False)
+
+        # illegal indices
+        self.assertRaises(IndexError, df.take, [3,1,2,30], axis=0)
+        self.assertRaises(IndexError, df.take, [3,1,2,-31], axis=0)
+        self.assertRaises(IndexError, df.take, [3,1,2,5], axis=1)
+        self.assertRaises(IndexError, df.take, [3,1,2,-5], axis=1)
 
         # mixed-dtype
         #----------------------------------------
-        order = [4, 1, 2, 0, 3]
+        order  = [4, 1, 2, 0, 3]
         for df in [self.mixed_frame]:
 
             result = df.take(order, axis=0)
@@ -8617,6 +8648,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             # axis = 1
             result = df.take(order, axis=1)
             expected = df.ix[:, ['foo', 'B', 'C', 'A', 'D']]
+            assert_frame_equal(result, expected)
+
+        # neg indicies 
+        order = [4,1,-2]
+        for df in [self.mixed_frame]:
+
+            result = df.take(order, axis=0)
+            expected = df.reindex(df.index.take(order))
+            assert_frame_equal(result, expected)
+
+            # axis = 1
+            result = df.take(order, axis=1)
+            expected = df.ix[:, ['foo', 'B', 'D']]
             assert_frame_equal(result, expected)
 
         # by dtype

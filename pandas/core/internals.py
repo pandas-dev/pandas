@@ -5,7 +5,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
-from pandas.core.indexing import _check_slice_bounds
+from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -1517,13 +1517,16 @@ class BlockManager(object):
         na_block = make_block(block_values, items, ref_items)
         return na_block
 
-    def take(self, indexer, axis=1):
+    def take(self, indexer, axis=1, verify=True):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
         indexer = com._ensure_platform_int(indexer)
-
         n = len(self.axes[axis])
+
+        if verify:
+           indexer = _maybe_convert_indices(indexer, n) 
+
         if ((indexer == -1) | (indexer >= n)).any():
             raise Exception('Indices must be nonzero and less than '
                             'the axis length')
