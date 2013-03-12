@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas.core.index import MultiIndex
 import pandas.core.indexing as indexing
+from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
 import pandas.lib as lib
@@ -943,12 +944,16 @@ class NDFrame(PandasObject):
         -------
         taken : type of caller
         """
+
+        # check/convert indicies here
+        indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+
         if axis == 0:
             labels = self._get_axis(axis)
             new_items = labels.take(indices)
             new_data = self._data.reindex_axis(new_items, axis=0)
         else:
-            new_data = self._data.take(indices, axis=axis)
+            new_data = self._data.take(indices, axis=axis, verify=False)
         return self._constructor(new_data)
 
     def tz_convert(self, tz, axis=0, copy=True):

@@ -913,6 +913,20 @@ def _is_series(obj):
     return isinstance(obj, Series)
 
 
+def _maybe_convert_indices(indices, n):
+    """ if we have negative indicies, translate to postive here
+        if have indicies that are out-of-bounds, raise an IndexError """
+    if isinstance(indices, list):
+        indices = np.array(indices)
+
+    mask = indices<0
+    if mask.any():
+        indices[mask] += n
+    mask = (indices>=n) | (indices<0)
+    if mask.any():
+        raise IndexError("indices are out-of-bounds")
+    return indices
+
 def _maybe_convert_ix(*args):
     """
     We likely want to take the cross-product
