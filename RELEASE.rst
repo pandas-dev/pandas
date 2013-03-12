@@ -143,6 +143,7 @@ pandas 0.11.0
   - Bug in ``icol`` with negative indicies was incorrect producing incorrect return values (see GH2922_)
   - Bug in DataFrame column insertion when the column creation fails, existing frame is left in
     an irrecoverable state (GH3010_)
+  - Bug in DataFrame update where non-specified values could cause dtype changes (GH3016_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797

@@ -3843,8 +3843,13 @@ class DataFrame(NDFrame):
 
                 if overwrite:
                     mask = isnull(that)
+
+                    # don't overwrite columns unecessarily
+                    if mask.all():
+                        continue
                 else:
                     mask = notnull(this)
+
             self[col] = np.where(mask, this, that)
 
     #----------------------------------------------------------------------
