@@ -351,12 +351,13 @@ class TestIndex(unittest.TestCase):
         # 2845
         index = Index([1, 2.0+3.0j, np.nan])
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), str(index[2])]
+        expected = [str(index[0]), str(index[1]), u'NaN']
         self.assertEquals(formatted, expected)
 
+        # is this really allowed?
         index = Index([1, 2.0+3.0j, None])
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), '']
+        expected = [str(index[0]), str(index[1]), u'NaN']
         self.assertEquals(formatted, expected)
 
         self.strIndex[:0].format()
