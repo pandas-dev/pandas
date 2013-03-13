@@ -274,12 +274,14 @@ Enhancements
   - added option `display.chop_threshold` to control display of small numerical
     values. (GH2739_)
 
+  - added access to rows/columns via attributes, supporting tab-completion
+    in IPython, under x.r.<row label> x.c.<col label>. Originally GH1904_.
+
   - added option `display.max_info_rows` to prevent verbose_info from being
     calculated for frames above 1M rows (configurable). (GH2807_, GH2918_)
 
   - value_counts() now accepts a "normalize" argument, for normalized
     histograms. (GH2710_).
-
 
 Bug Fixes
 ~~~~~~~~~
@@ -327,6 +329,7 @@ on GitHub for a complete list.
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2978: https://github.com/pydata/pandas/issues/2978
 .. _GH2739: https://github.com/pydata/pandas/issues/2739
+.. _GH1904: https://github.com/pydata/pandas/issues/1904
 .. _GH2710: https://github.com/pydata/pandas/issues/2710
 .. _GH2806: https://github.com/pydata/pandas/issues/2806
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
