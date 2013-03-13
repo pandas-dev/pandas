@@ -1200,6 +1200,13 @@ class Grouping(object):
             # no level passed
             if not isinstance(self.grouper, np.ndarray):
                 self.grouper = self.index.map(self.grouper)
+                if not (hasattr(self.grouper,"__len__") and \
+                   len(self.grouper) == len(self.index)):
+                    errmsg = "Grouper result violates len(labels) == len(data)\n"
+                    errmsg += "result: %s" % com.pprint_thing(self.grouper)
+                    self.grouper = None # Try for sanity
+                    raise AssertionError(errmsg)
+
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name
