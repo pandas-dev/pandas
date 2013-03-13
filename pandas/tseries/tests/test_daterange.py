@@ -15,9 +15,17 @@ import pandas.tseries.tools as tools
 import pandas.core.datetools as datetools
 
 
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
+
+
 def eq_gen_range(kwargs, expected):
     rng = generate_range(**kwargs)
     assert(np.array_equal(list(rng), expected))
+
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -246,11 +254,11 @@ class TestDateRange(unittest.TestCase):
     def test_summary(self):
         self.rng.summary()
         self.rng[2:2].summary()
-        try:
-            import pytz
-            bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
-        except Exception:
-            pass
+
+    def test_summary_pytz(self):
+        _skip_if_no_pytz()
+        import pytz
+        bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
@@ -297,6 +305,29 @@ class TestDateRange(unittest.TestCase):
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
         self.assert_(np.array_equal(result, DatetimeIndex(exp_values)))
+
+    def test_range_tz(self):
+        # GH 2906
+        _skip_if_no_pytz()
+        from pytz import timezone as tz
+
+        start = datetime(2011, 1, 1, tzinfo=tz('US/Eastern'))
+        end = datetime(2011, 1, 3, tzinfo=tz('US/Eastern'))
+
+        dr = date_range(start=start, periods=3)
+        self.assert_(dr.tz == tz('US/Eastern'))
+        self.assert_(dr[0] == start)
+        self.assert_(dr[2] == end)
+
+        dr = date_range(end=end, periods=3)
+        self.assert_(dr.tz == tz('US/Eastern'))
+        self.assert_(dr[0] == start)
+        self.assert_(dr[2] == end)
+
+        dr = date_range(start=start, end=end)
+        self.assert_(dr.tz == tz('US/Eastern'))
+        self.assert_(dr[0] == start)
+        self.assert_(dr[2] == end)
 
 
 if __name__ == '__main__':
