@@ -145,6 +145,8 @@ pandas 0.11.0
   - Bug in DataFrame column insertion when the column creation fails, existing frame is left in
     an irrecoverable state (GH3010_)
   - Bug in DataFrame update where non-specified values could cause dtype changes (GH3016_)
+  - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from 
+    other values), (GH2850_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -161,6 +163,7 @@ pandas 0.11.0
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2849: https://github.com/pydata/pandas/issues/2849
+.. _GH2850: https://github.com/pydata/pandas/issues/2850
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2892: https://github.com/pydata/pandas/issues/2892
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
