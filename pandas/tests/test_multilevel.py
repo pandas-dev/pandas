@@ -1346,7 +1346,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # test roundtrip
         stacked = result.stack()
-        assert_series_equal(s.astype(np.float64),
+        assert_series_equal(s,
                             stacked.reindex(s.index))
 
         # put it at beginning

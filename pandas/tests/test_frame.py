@@ -8242,6 +8242,41 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             data = data.unstack()
         assert_frame_equal(old_data, data)
 
+    def test_unstack_dtypes(self):
+
+        # GH 2929
+        rows = [[1, 1, 3, 4],
+                [1, 2, 3, 4],
+                [2, 1, 3, 4],
+                [2, 2, 3, 4]]
+        
+        df = DataFrame(rows, columns=list('ABCD'))
+        result = df.get_dtype_counts()
+        expected = Series({'int64' : 4})
+        assert_series_equal(result, expected)
+
+        # single dtype
+        df2 = df.set_index(['A','B'])
+        df3 = df2.unstack('B')
+        result = df3.get_dtype_counts()
+        expected = Series({'int64' : 4})
+        assert_series_equal(result, expected)
+
+        # mixed
+        df2 = df.set_index(['A','B'])
+        df2['C'] = 3.
+        df3 = df2.unstack('B')
+        result = df3.get_dtype_counts()
+        expected = Series({'int64' : 2, 'float64' : 2})
+        assert_series_equal(result, expected)
+
+        df2['D'] = 'foo'
+        df3 = df2.unstack('B')
+        result = df3.get_dtype_counts()
+        expected = Series({'float64' : 2, 'object' : 2})
+        assert_series_equal(result, expected)
+
+
     def test_reset_index(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo': stacked, 'bar': stacked})
