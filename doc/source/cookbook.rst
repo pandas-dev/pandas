@@ -24,15 +24,26 @@ We encourage users to add to this documentation. This is a great *First Pull Req
 
 Selection
 ---------
+`Boolean Rows Indexing
+<http://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
 
 `Extending a panel along the minor axis
 <http://stackoverflow.com/questions/15364050/extending-a-pandas-panel-frame-along-the-minor-axis>`__
+
+`Prepending a level to a multiindex
+<http://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
 
 Grouping
 --------
 
 `Basic grouping with apply
 <http://stackoverflow.com/questions/15322632/python-pandas-df-groupy-agg-column-reference-in-agg>`__
+
+`Apply to different items in a group
+<http://stackoverflow.com/questions/15262134/apply-different-functions-to-different-items-in-group-object-python-pandas>`__
+
+`Replacing values with groupby means
+<http://stackoverflow.com/questions/14760757/replacing-values-with-groupby-means>`__
 
 `TimeGrouping of values grouped across time
 <http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
@@ -46,6 +57,12 @@ Join
 `Joining a DataFrame to itself
 <https://github.com/pydata/pandas/issues/2996>`__
 
+Timeseries
+----------
+
+`Resample intraday frame without adding new days
+<http://stackoverflow.com/questions/14898574/resample-intrday-pandas-dataframe-without-add-new-days>`__
+
 Data In/Out
 -----------
 
@@ -55,5 +72,14 @@ CSV
 HDF5
 ~~~~
 
-Managing heteregenous data using a linked multiple table hierarchy. 
-See `here <https://github.com/pydata/pandas/issues/3032>`__.
+`Managing heteregenous data using a linked multiple table hierarchy
+<https://github.com/pydata/pandas/issues/3032>`__
+
+`Simple Queries with a Timestamp Index
+<http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
+
+Miscellaneous
+-------------
+
+`Multi-index sorting
+<http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
