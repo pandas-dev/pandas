@@ -38,7 +38,7 @@ pandas 0.11.0
   - Add ``squeeze`` function to reduce dimensionality of 1-len objects
   - Support slicing with time objects (GH2681_)
   - Added ``.iloc`` attribute, to support strict integer based indexing, analagous to ``.ix`` (GH2922_)
-  - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix``
+  - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix`` (GH3053_)
   - Added ``.iat``  attribute, to support fast scalar access via integers (replaces ``iget_value/iset_value``)
   - Added ``.at``   attribute, to support fast scalar access via labels (replaces ``get_value/set_value``)
   - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer 
@@ -183,6 +183,7 @@ pandas 0.11.0
 .. _GH3012: https://github.com/pydata/pandas/issues/3012
 .. _GH3029: https://github.com/pydata/pandas/issues/3029
 .. _GH3041: https://github.com/pydata/pandas/issues/3041
+.. _GH3053: https://github.com/pydata/pandas/issues/3053
 
 
 pandas 0.10.1
