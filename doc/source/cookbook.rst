@@ -30,8 +30,23 @@ Selection
 `Extending a panel along the minor axis
 <http://stackoverflow.com/questions/15364050/extending-a-pandas-panel-frame-along-the-minor-axis>`__
 
+`Using loc and iloc in selections
+<https://github.com/pydata/pandas/issues/2904>`__
+
+MultiIndexing
+-------------
+
 `Prepending a level to a multiindex
 <http://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
+
+`Slicing a multi-index with xs
+<http://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__
+
+`Multi-index sorting
+<http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
+
+`Partial Selection, the need for sortedness
+<https://github.com/pydata/pandas/issues/2995>`__
 
 Grouping
 --------
@@ -81,5 +96,3 @@ HDF5
 Miscellaneous
 -------------
 
-`Multi-index sorting
-<http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
