@@ -307,7 +307,7 @@ Bug Fixes
         td - timedelta(minutes=5,seconds=5,microseconds=5)
 
   - Fix pretty-printing of infinite data structures (closes GH2978_)
-
+  - str.contains ignored na argument (GH2806_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -319,3 +319,4 @@ on GitHub for a complete list.
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2978: https://github.com/pydata/pandas/issues/2978
 .. _GH2739: https://github.com/pydata/pandas/issues/2739
+.. _GH2806: https://github.com/pydata/pandas/issues/2806
