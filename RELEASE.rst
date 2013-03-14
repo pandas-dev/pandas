@@ -148,6 +148,7 @@ pandas 0.11.0
   - Bug in DataFrame update where non-specified values could cause dtype changes (GH3016_)
   - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from 
     other values), (GH2850_)
+  - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -169,6 +170,7 @@ pandas 0.11.0
 .. _GH2892: https://github.com/pydata/pandas/issues/2892
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 .. _GH2922: https://github.com/pydata/pandas/issues/2922
+.. _GH2929: https://github.com/pydata/pandas/issues/2929
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
 .. _GH2967: https://github.com/pydata/pandas/issues/2967
