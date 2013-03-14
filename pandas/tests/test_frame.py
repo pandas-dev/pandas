@@ -7248,6 +7248,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         combined = frame1.combine_first(frame2)
         self.assertEqual(len(combined.columns), 5)
 
+        # gh 3016 (same as in update)
+        df = DataFrame([[1.,2.,False, True],[4.,5.,True,False]],
+                       columns=['A','B','bool1','bool2'])
+
+        other = DataFrame([[45,45]],index=[0],columns=['A','B'])
+        result = df.combine_first(other)
+        assert_frame_equal(result, df)
+        
+        df.ix[0,'A'] = np.nan
+        result = df.combine_first(other)
+        df.ix[0,'A'] = 45
+        assert_frame_equal(result, df)
+
+        # doc example
+        df1 = DataFrame({'A' : [1., np.nan, 3., 5., np.nan],
+                         'B' : [np.nan, 2., 3., np.nan, 6.]})
+   
+        df2 = DataFrame({'A' : [5., 2., 4., np.nan, 3., 7.],
+                         'B' : [np.nan, np.nan, 3., 4., 6., 8.]})
+   
+        result = df1.combine_first(df2)
+        expected = DataFrame({ 'A' : [1,2,3,5,3,7.], 'B' : [np.nan,2,3,4,6,8] })
+        assert_frame_equal(result,expected)
+
     def test_update(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],
