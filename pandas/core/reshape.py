@@ -159,7 +159,7 @@ class _Unstacker(object):
             dtype, fill_value = _maybe_promote(values.dtype)
             new_values = np.empty(result_shape, dtype=dtype)
             new_values.fill(fill_value)
-
+ 
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # is there a simpler / faster way of doing this?

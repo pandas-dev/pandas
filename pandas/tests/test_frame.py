@@ -8660,6 +8660,33 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df1[df1 > 2.0 * df2] = -1
         assert_frame_equal(df1, expected)
 
+    def test_boolean_indexing_mixed(self):
+        df = DataFrame(
+            {0L: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+             1L: {35: np.nan,
+                  40: 0.32632316859446198,
+                  43: np.nan,
+                  49: 0.32632316859446198,
+                  50: 0.39114724480578139},
+             2L: {35: np.nan, 40: np.nan, 43: 0.29012581014105987, 49: np.nan, 50: np.nan},
+             3L: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+             4L: {35: 0.34215328467153283, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+             'y': {35: 0, 40: 0, 43: 0, 49: 0, 50: 1}})
+        
+        # mixed int/float ok
+        df2 = df.copy()
+        df2[df2>0.3] = 1
+        expected = df.copy()
+        expected.loc[40,1] = 1
+        expected.loc[49,1] = 1
+        expected.loc[50,1] = 1
+        expected.loc[35,4] = 1
+        assert_frame_equal(df2,expected)
+
+        # add object, should this raise?
+        df['foo'] = 'test'
+        self.assertRaises(ValueError, df.__setitem__, df>0.3, 1)
+
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
         bools = isnull(df)

@@ -62,6 +62,7 @@ pandas 0.11.0
     strings that can be parsed with datetime.strptime
   - Add ``axes`` property to ``Series`` for compatibility 
   - Add ``xs`` function to ``Series`` for compatibility 
+  - Allow setitem in a frame where only mixed numerics are present (e.g. int and float), (GH3037_)
 
 **API Changes**
 
@@ -182,6 +183,7 @@ pandas 0.11.0
 .. _GH3010: https://github.com/pydata/pandas/issues/3010
 .. _GH3012: https://github.com/pydata/pandas/issues/3012
 .. _GH3029: https://github.com/pydata/pandas/issues/3029
+.. _GH3037: https://github.com/pydata/pandas/issues/3037
 .. _GH3041: https://github.com/pydata/pandas/issues/3041
 
 

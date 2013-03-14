@@ -980,6 +980,16 @@ class BlockManager(object):
         self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
 
+    @property
+    def is_mixed_type(self):
+        self._consolidate_inplace()
+        return len(self.blocks) > 1
+
+    @property
+    def is_numeric_mixed_type(self):
+        self._consolidate_inplace()
+        return all([ block.is_numeric for block in self.blocks ])
+
     def get_numeric_data(self, copy=False, type_list=None, as_blocks = False):
         """
         Parameters
@@ -1227,9 +1237,10 @@ class BlockManager(object):
         return BlockManager(new_blocks, self.axes)
 
     def _consolidate_inplace(self):
-        self.blocks = _consolidate(self.blocks, self.items)
-        self._is_consolidated = True
-        self._known_consolidated = True
+        if not self.is_consolidated():
+            self.blocks = _consolidate(self.blocks, self.items)
+            self._is_consolidated = True
+            self._known_consolidated = True
 
     def get(self, item):
         _, block = self._find_block(item)
