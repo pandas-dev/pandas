@@ -3723,7 +3723,7 @@ class DataFrame(NDFrame):
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns, copy=False)
 
-    def combine(self, other, func, fill_value=None):
+    def combine(self, other, func, fill_value=None, overwrite=True):
         """
         Add two DataFrame objects and do not propagate NaN values, so if for a
         (column, time) one frame is missing a value, it will default to the
@@ -3734,6 +3734,8 @@ class DataFrame(NDFrame):
         other : DataFrame
         func : function
         fill_value : scalar value
+        overwrite : boolean, default True
+            If True then overwrite values for common keys in the calling frame
 
         Returns
         -------
@@ -3760,9 +3762,16 @@ class DataFrame(NDFrame):
             series = this[col].values
             otherSeries = other[col].values
 
+            this_mask = isnull(series)
+            other_mask = isnull(otherSeries)
+
+            # don't overwrite columns unecessarily
+            # DO propogate if this column is not in the intersection
+            if not overwrite and other_mask.all():
+                result[col] = this[col].copy()
+                continue
+
             if do_fill:
-                this_mask = isnull(series)
-                other_mask = isnull(otherSeries)
                 series = series.copy()
                 otherSeries = otherSeries.copy()
                 series[this_mask] = fill_value
@@ -3798,7 +3807,7 @@ class DataFrame(NDFrame):
         combined : DataFrame
         """
         combiner = lambda x, y: np.where(isnull(x), y, x)
-        return self.combine(other, combiner)
+        return self.combine(other, combiner, overwrite=False)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
                raise_conflict=False):
