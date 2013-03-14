@@ -145,8 +145,9 @@ pandas 0.11.0
     values (see GH2922_, GH2892_), also check for out-of-bounds indices (GH3029_)
   - Bug in DataFrame column insertion when the column creation fails, existing frame is left in
     an irrecoverable state (GH3010_)
-  - Bug in DataFrame update where non-specified values could cause dtype changes (GH3016_)
-  - Bug in DataFrame combine_first where non-specified values could cause dtype changes (GH3041_)
+  - Bug in DataFrame update, combine_first where non-specified values could cause 
+    dtype changes (GH3016_, GH3041_)
+  - Bug in groupby with first/last where dtypes could change (GH3041_)
   - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from 
     other values), (GH2850_)
   - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
