@@ -19,8 +19,11 @@
 Cookbook
 ********
 
-This is a respository for *short and sweet* example and links for useful pandas recipes.
-We encourage users to add to this documentation. This is a great *First Pull Request*.
+This is a respository for *short and sweet* examples and links for useful pandas recipes.
+We encourage users to add to this documentation. 
+
+This is a great *First Pull Request* (to add interesting links and/or put short code inline
+for existing links)
 
 Selection
 ---------
@@ -102,6 +105,9 @@ Timeseries
 `Between times
 <http://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__
 
+`Vectorized Lookup
+<http://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
+
 Resampling
 ~~~~~~~~~~
 
@@ -138,6 +144,9 @@ Plotting
 `Make Matplotlib look like R
 <http://stackoverflow.com/questions/14349055/making-matplotlib-graphs-look-like-r-by-default>`__
 
+`Setting x-axis major and minor labels
+<http://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
+
 Data In/Out
 -----------
 
@@ -149,6 +158,12 @@ CSV
 
 `Reading the first few lines of a frame
 <http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
+
+SQL
+~~~
+
+`Reading from databases with SQL
+<http://stackoverflow.com/questions/10065051/python-pandas-and-databases-like-mysql>`__
 
 HDF5
 ~~~~
@@ -164,6 +179,24 @@ HDF5
 
 `Large Data work flows
 <http://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
+
+Storing Attributes to a group node
+
+.. ipython:: python
+
+    df = DataFrame(np.random.randn(8,3))
+    store = HDFStore('test.h5')
+    store.put('df',df)
+
+    # you can store an arbitrary python object via pickle
+    store.get_storer('df').attrs.my_attribute = dict(A = 10)
+    store.get_storer('df').attrs.my_attribute
+
+.. ipython:: python
+   :suppress:
+
+    store.close()
+    os.remove('test.h5')
 
 Miscellaneous
 -------------
