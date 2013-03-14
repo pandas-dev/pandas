@@ -274,6 +274,9 @@ Enhancements
   - added option `display.chop_threshold` to control display of small numerical
     values. (GH2739_)
 
+  - added option `display.max_info_rows` to prevent verbose_info from being
+    calculated for frames above 1M rows (configurable). (GH2807_, GH2918_)
+
   - value_counts() now accepts a "normalize" argument, for normalized
     histograms. (GH2710_).
 
@@ -309,6 +312,8 @@ Bug Fixes
         # some timedelta numeric operations are supported
         td - timedelta(minutes=5,seconds=5,microseconds=5)
 
+  - Fixed slow printing of large Dataframes, due to inefficient dtype
+    reporting (GH2807_)
   - Fix pretty-printing of infinite data structures (closes GH2978_)
   - str.contains ignored na argument (GH2806_)
 
@@ -324,3 +329,5 @@ on GitHub for a complete list.
 .. _GH2739: https://github.com/pydata/pandas/issues/2739
 .. _GH2710: https://github.com/pydata/pandas/issues/2710
 .. _GH2806: https://github.com/pydata/pandas/issues/2806
+.. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2918: https://github.com/pydata/pandas/issues/2918
