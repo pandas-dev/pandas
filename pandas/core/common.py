@@ -777,6 +777,26 @@ def _possibly_cast_item(obj, item, dtype):
             raise ValueError("Unexpected dtype encountered: %s" % dtype)
 
 
+def _possibly_downcast_to_dtype(result, dtype):
+    """ try to cast to the specified dtype (e.g. convert back to bool/int
+        or could be an astype of float64->float32 """
+
+    if not isinstance(result, np.ndarray):
+        return result
+
+    try:
+        if dtype == np.float_:
+            return result.astype(dtype)
+        elif dtype == np.bool_ or dtype == np.int_:
+            if issubclass(result.dtype.type, np.number) and notnull(result).all():
+                new_result = result.astype(dtype)
+                if (new_result == result).all():
+                    return new_result
+    except:
+        pass
+
+    return result
+
 def _interp_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, mask, limit=None):
         view = arr.view(wrap_dtype)
@@ -936,7 +956,9 @@ def _possibly_convert_platform(values):
     return values
 
 def _possibly_cast_to_timedelta(value, coerce=True):
-    """ try to cast to timedelta64 w/o coercion """
+    """ try to cast to timedelta64, if already a timedeltalike, then make
+        sure that we are [ns] (as numpy 1.6.2 is very buggy in this regards,
+        don't force the conversion unless coerce is True """
 
     # deal with numpy not being able to handle certain timedelta operations
     if isinstance(value,np.ndarray) and value.dtype.kind == 'm':

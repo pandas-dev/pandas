@@ -1594,6 +1594,10 @@ class NDFrameGroupBy(GroupBy):
                 values = com.ensure_float(values)
 
             result, _ = self.grouper.aggregate(values, how, axis=agg_axis)
+
+            # see if we can cast the block back to the original dtype
+            result = block._try_cast_result(result)
+
             newb = make_block(result, block.items, block.ref_items)
             new_blocks.append(newb)
 
