@@ -647,6 +647,19 @@ class _LocationIndexer(_NDFrameIndexer):
                 return self.obj.take(inds, axis=axis)
             except (Exception), detail:
                 raise self._exception(detail)
+    def _get_slice_axis(self, slice_obj, axis=0):
+        """ this is pretty simple as we just have to deal with labels """
+        obj = self.obj
+        if not _need_slice(slice_obj):
+            return obj
+
+        labels = obj._get_axis(axis)
+        indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop, slice_obj.step)
+
+        if isinstance(indexer, slice):
+            return self._slice(indexer, axis=axis)
+        else:
+            return self.obj.take(indexer, axis=axis)
 
 class _LocIndexer(_LocationIndexer):
     """ purely label based location based indexing """
@@ -667,11 +680,8 @@ class _LocIndexer(_LocationIndexer):
                 if key.start not in ax:
                     raise KeyError("start bound [%s] is not the [%s]" % (key.start,self.obj._get_axis_name(axis)))
             if key.stop is not None:
-                stop = key.stop
-                if com.is_integer(stop):
-                    stop -= 1
-                if stop not in ax:
-                    raise KeyError("stop bound [%s] is not in the [%s]" % (stop,self.obj._get_axis_name(axis)))
+                if key.stop not in ax:
+                    raise KeyError("stop bound [%s] is not in the [%s]" % (key.stop,self.obj._get_axis_name(axis)))
 
         elif com._is_bool_indexer(key):
                 return True
@@ -700,9 +710,6 @@ class _LocIndexer(_LocationIndexer):
         labels = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
-            ltype = labels.inferred_type
-            if ltype == 'mixed-integer-float' or ltype == 'mixed-integer':
-                raise ValueError('cannot slice with a non-single type label array')
             return self._get_slice_axis(key, axis=axis)
         elif com._is_bool_indexer(key):
             return self._getbool_axis(key, axis=axis)

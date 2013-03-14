@@ -450,12 +450,38 @@ class TestIndexing(unittest.TestCase):
     def test_loc_getitem_int_slice(self):
 
         # int slices in int 
-        self.check_result('int slice1', 'loc', slice(1,3), 'ix', { 0 : [2,4], 1: [3,6], 2: [4,8] }, typs = ['ints'], fails=KeyError)
+        self.check_result('int slice1', 'loc', slice(2,4), 'ix', { 0 : [2,4], 1: [3,6], 2: [4,8] }, typs = ['ints'], fails=KeyError)
 
         # ok 
-        self.check_result('int slice2', 'loc', slice(2,5), 'ix', [2,4], typs = ['ints'], axes = 0)
-        self.check_result('int slice2', 'loc', slice(3,7), 'ix', [3,6], typs = ['ints'], axes = 1)
-        self.check_result('int slice2', 'loc', slice(4,9), 'ix', [4,8], typs = ['ints'], axes = 2)
+        self.check_result('int slice2', 'loc', slice(2,4), 'ix', [2,4], typs = ['ints'], axes = 0)
+        self.check_result('int slice2', 'loc', slice(3,6), 'ix', [3,6], typs = ['ints'], axes = 1)
+        self.check_result('int slice2', 'loc', slice(4,8), 'ix', [4,8], typs = ['ints'], axes = 2)
+
+        # GH 3053
+        # loc should treat integer slices like label slices
+        from itertools import product
+
+        index = MultiIndex.from_tuples([t for t in product([6,7,8], ['a', 'b'])])
+        df = DataFrame(np.random.randn(6, 6), index, index)
+        result = df.loc[6:8,:]
+        expected = df.ix[6:8,:]
+        assert_frame_equal(result,expected)
+
+        index = MultiIndex.from_tuples([t for t in product([10, 20, 30], ['a', 'b'])])
+        df = DataFrame(np.random.randn(6, 6), index, index)
+        result = df.loc[20:30,:]
+        expected = df.ix[20:30,:]
+        assert_frame_equal(result,expected)
+
+        # doc examples
+        result = df.loc[10,:]
+        expected = df.ix[10,:]
+        assert_frame_equal(result,expected)
+
+        result = df.loc[:,10]
+        #expected = df.ix[:,10] (this fails)
+        expected = df[10]
+        assert_frame_equal(result,expected)
 
     def test_loc_getitem_label_slice(self):
 
@@ -475,8 +501,7 @@ class TestIndexing(unittest.TestCase):
         self.check_result('mixed slice', 'loc', slice(2,8), 'ix', slice(2,8), typs = ['mixed'], axes=1, fails=KeyError)
         self.check_result('mixed slice', 'loc', slice(2,8), 'ix', slice(2,8), typs = ['mixed'], axes=2, fails=KeyError)
 
-        # you would think this would work, but we don't have an ordering, so fail
-        self.check_result('mixed slice', 'loc', slice(2,5,2), 'ix', slice(2,4,2), typs = ['mixed'], axes=0, fails=ValueError)
+        self.check_result('mixed slice', 'loc', slice(2,4,2), 'ix', slice(2,4,2), typs = ['mixed'], axes=0)
 
     def test_loc_general(self):
 
