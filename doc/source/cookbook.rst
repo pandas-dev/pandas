@@ -27,20 +27,35 @@ Selection
 `Boolean Rows Indexing
 <http://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
 
+`Using loc and iloc in selections
+<https://github.com/pydata/pandas/issues/2904>`__
+
 `Extending a panel along the minor axis
 <http://stackoverflow.com/questions/15364050/extending-a-pandas-panel-frame-along-the-minor-axis>`__
 
-`Using loc and iloc in selections
-<https://github.com/pydata/pandas/issues/2904>`__
+`Boolean masking in a panel
+<http://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
+
+`Selecting via the complement
+<http://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
 
 MultiIndexing
 -------------
 
-`Prepending a level to a multiindex
-<http://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
+`Creating a multi-index from a labeled frame
+<http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
+
+Slicing
+~~~~~~~
 
 `Slicing a multi-index with xs
 <http://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__
+
+`Slicing a multi-index with xs #2
+<http://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
+
+Sorting
+~~~~~~~
 
 `Multi-index sorting
 <http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
@@ -48,35 +63,80 @@ MultiIndexing
 `Partial Selection, the need for sortedness
 <https://github.com/pydata/pandas/issues/2995>`__
 
+Levels
+~~~~~~
+
+`Prepending a level to a multiindex
+<http://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
+
+`Flatten Hierarchical columns
+<http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
+
 Grouping
 --------
 
 `Basic grouping with apply
 <http://stackoverflow.com/questions/15322632/python-pandas-df-groupy-agg-column-reference-in-agg>`__
 
+`Using get_group
+<http://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
+
 `Apply to different items in a group
 <http://stackoverflow.com/questions/15262134/apply-different-functions-to-different-items-in-group-object-python-pandas>`__
+
+`Expanding Apply
+<http://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__
 
 `Replacing values with groupby means
 <http://stackoverflow.com/questions/14760757/replacing-values-with-groupby-means>`__
 
-`TimeGrouping of values grouped across time
-<http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
+`Sort by group with aggregation
+<http://stackoverflow.com/questions/14941366/pandas-sort-by-group-aggregate-and-column>`__
 
-Merge
------
-
-Join
-~~~~
-
-`Joining a DataFrame to itself
-<https://github.com/pydata/pandas/issues/2996>`__
+`Create multiple aggregated columns
+<http://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
 
 Timeseries
 ----------
 
+`Between times
+<http://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__
+
+Resampling
+~~~~~~~~~~
+
+`TimeGrouping of values grouped across time
+<http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
+
+`TimeGrouping #2
+<http://stackoverflow.com/questions/14569223/timegrouper-pandas>`__
+
+`Resampling with custom periods
+<http://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
+
 `Resample intraday frame without adding new days
 <http://stackoverflow.com/questions/14898574/resample-intrday-pandas-dataframe-without-add-new-days>`__
+
+`Resample minute data
+<http://stackoverflow.com/questions/14861023/resampling-minute-data>`__
+
+Merge
+-----
+
+`emulate R rbind
+<http://stackoverflow.com/questions/14988480/pandas-version-of-rbind>`__
+
+`Self Join
+<https://github.com/pydata/pandas/issues/2996>`__
+
+`How to set the index and join
+<http://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__
+
+Plotting
+--------
+
+`Make Matplotlib look like R
+<http://stackoverflow.com/questions/14349055/making-matplotlib-graphs-look-like-r-by-default>`__
 
 Data In/Out
 -----------
@@ -84,15 +144,29 @@ Data In/Out
 CSV
 ~~~
 
+`Reading a csv chunk-by-chunk
+<http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
+
+`Reading the first few lines of a frame
+<http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
+
 HDF5
 ~~~~
-
-`Managing heteregenous data using a linked multiple table hierarchy
-<https://github.com/pydata/pandas/issues/3032>`__
 
 `Simple Queries with a Timestamp Index
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
+`Managing heteregenous data using a linked multiple table hierarchy
+<https://github.com/pydata/pandas/issues/3032>`__
+
+`Merging on-disk tables with millions of rows
+<http://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
+
+`Large Data work flows
+<http://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
+
 Miscellaneous
 -------------
 
+`Operating with timedeltas
+<https://github.com/pydata/pandas/pull/2899>`__
