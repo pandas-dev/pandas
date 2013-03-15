@@ -786,6 +786,7 @@ def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, obje
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+
 def write_csv_rows(dict series, list data_index, int nlevels, list cols, object writer):
 
     cdef int N, j, i
