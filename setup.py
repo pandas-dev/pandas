@@ -552,14 +552,14 @@ cmdclass = {'clean': CleanCommand,
 
 if cython:
     suffix = '.pyx'
-    cmdclass['build_ext'] = build_ext
+    cmdclass['build_ext'] = CheckingBuildExt
     if BUILD_CACHE_DIR:  # use the cache
         cmdclass['build_ext'] = CachingBuildExt
     cmdclass['cython'] = CythonCommand
 else:
     suffix = '.c'
     cmdclass['build_src'] = DummyBuildSrc
-    cmdclass['build_ext'] = build_ext
+    cmdclass['build_ext'] = CheckingBuildExt
 
 lib_depends = ['reduce', 'inference', 'properties']
 
