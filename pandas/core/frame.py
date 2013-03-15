@@ -1345,15 +1345,33 @@ class DataFrame(NDFrame):
             data_index = self.index.to_timestamp()
 
         nlevels = getattr(data_index, 'nlevels', 1)
+
+        spaces = [None] *  len(cols)
+        if index:
+            if nlevels == 1:
+                row_fields_f = lambda x: [x] + spaces
+            else:  # handle MultiIndex
+                row_fields_f = lambda x: list(x) + spaces
+        else:
+            nlevels = 0
+            row_fields_f = lambda x: [None] *  len(cols)
+
+        # In crude testing, N>100 yields little marginal improvement
+        N=100
+        rows = [None]*N
+
+        all_cols = False
+        if len(cols) < 10000:
+            all_cols = list(enumerate(cols))
+
+        j = None
         for j, idx in enumerate(data_index):
-            row_fields = []
-            if index:
-                if nlevels == 1:
-                    row_fields = [idx]
-                else:  # handle MultiIndex
-                    row_fields = list(idx)
-            for i, col in enumerate(cols):
+            row_fields = row_fields_f(idx)
+
+            for i, col in (all_cols or enumerate(cols)):
                 val = series[col][j]
+
+
                 if lib.checknull(val):
                     val = na_rep
 
@@ -1362,9 +1380,17 @@ class DataFrame(NDFrame):
                 elif isinstance(val, np.datetime64):
                     val = lib.Timestamp(val)._repr_base
 
-                row_fields.append(val)
+                row_fields[i+nlevels] = val
 
-            writer.writerow(row_fields)
+            rows[ j % N ] = map(lambda val: np.asscalar(val) if isinstance(val,np.number) else val
+                                ,row_fields)
+
+            if j >= N-1 and j % N == N-1:
+                writer.writerows(rows)
+
+        if  j is not None and (j < N-1 or (j % N) != N-1 ):
+            writer.writerows(rows[:((j+1) % N)])
+
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
