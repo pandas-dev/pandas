@@ -4562,6 +4562,37 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_csv_mixed(self):
+        filename = '__tmp_to_csv_mixed__.csv'
+        def create_cols(name):
+            return [ "%s%03d" % (name,i) for i in xrange(5) ]
+
+        df_float  = DataFrame(np.random.randn(100, 5),dtype='float64',columns=create_cols('float'))
+        df_int    = DataFrame(np.random.randn(100, 5),dtype='int64',columns=create_cols('int'))
+        df_bool   = DataFrame(True,index=df_float.index,columns=create_cols('bool'))
+        df_object = DataFrame('foo',index=df_float.index,columns=create_cols('object'))
+        df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=create_cols('date'))
+
+        # add in some nans
+        df_float.ix[30:50,1:3] = np.nan
+
+        #### this is a bug in read_csv right now ####
+        #df_dt.ix[30:50,1:3] = np.nan
+
+        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+
+        # dtype
+        dtypes = dict()
+        for n,dtype in [('float',np.float64),('int',np.int64),('bool',np.bool),('object',np.object)]:
+            for c in create_cols(n):
+                dtypes[c] = dtype
+
+        df.to_csv(filename)
+
+        rs = pan.read_csv(filename, index_col=0, dtype=dtypes, parse_dates=create_cols('date'))
+        assert_frame_equal(rs, df)
+        os.remove(filename)
+
     def test_to_csv_bug(self):
         path = '__tmp_to_csv_bug__.csv'
         f1 = StringIO('a,1.0\nb,2.0')

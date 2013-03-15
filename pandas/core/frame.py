@@ -1297,8 +1297,25 @@ class DataFrame(NDFrame):
 
         series = {}
         for k, v in self._series.iteritems():
-            series[k] = v.values
+            mask = isnull(v)
+            imask = -mask
+            if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
+                values = np.empty(len(v),dtype=object)
+                values[mask] = 'NaT'
 
+                if v.dtype == 'datetime64[ns]':
+                    values[imask] = np.array([ val._repr_base for val in v[imask] ],dtype=object)
+                elif v.dtype == 'timedelta64[ns]':
+                    values[imask] = np.array([ lib.repr_timedelta64(val) for val in v[imask] ],dtype=object)
+            else:
+                values = np.array(v.values,dtype=object)
+                values[mask] = na_rep
+                if issubclass(v.dtype.type,np.floating):
+                    if float_format:
+                        values[imask] = np.array([ float_format % val for val in v[imask] ])
+
+            series[k] = values
+ 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or header:
             if index:
@@ -1369,18 +1386,7 @@ class DataFrame(NDFrame):
             row_fields = row_fields_f(idx)
 
             for i, col in (all_cols or enumerate(cols)):
-                val = series[col][j]
-
-
-                if lib.checknull(val):
-                    val = na_rep
-
-                if float_format is not None and com.is_float(val):
-                    val = float_format % val
-                elif isinstance(val, np.datetime64):
-                    val = lib.Timestamp(val)._repr_base
-
-                row_fields[i+nlevels] = val
+                row_fields[i+nlevels] = series[col][j]
 
             rows[ j % N ] = map(lambda val: np.asscalar(val) if isinstance(val,np.number) else val
                                 ,row_fields)
