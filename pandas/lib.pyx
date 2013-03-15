@@ -786,6 +786,51 @@ def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, obje
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def write_csv_rows(dict series, list data_index, object index, int nlevels, list cols, object writer):
+    
+    cdef int N, j, i, ncols, ndata_index
+    cdef list rows, row_fields, spaces
+    cdef object v
+
+    ncols = len(cols)
+    spaces = [None] *  len(cols)
+    if index:
+        if nlevels == 1:
+            row_fields_f = lambda x: [x] + spaces
+        else:  # handle MultiIndex
+            row_fields_f = lambda x: list(x) + spaces
+    else:
+        nlevels = 0
+        row_fields_f = lambda x: [None] *  len(cols)
+
+    # In crude testing, N>100 yields little marginal improvement
+    N=100
+    rows = [None]*N
+
+    ndata_index = len(data_index)
+    for j in range(ndata_index):
+       row_fields = row_fields_f(data_index[j])
+
+       for i in range(len(row_fields)):
+           v = row_fields[i]
+           if isinstance(v,np.number):
+              row_fields[i] = np.asscalar(v)
+       for i in range(ncols):
+           v = series[cols[i]][j]
+           if isinstance(v,np.number):
+              v = np.asscalar(v)
+           row_fields[i+nlevels] = v
+
+       rows[ j % N ] = row_fields
+
+       if j >= N-1 and j % N == N-1:
+            writer.writerows(rows)
+
+    if ndata_index and (j < N-1 or (j % N) != N-1 ):
+            writer.writerows(rows[:((j+1) % N)])
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def create_hdf_rows_2d(ndarray indexer0, 
                        ndarray[np.uint8_t, ndim=1] mask,
                        ndarray[np.uint8_t, ndim=1] searchable,	 

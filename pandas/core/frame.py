@@ -1362,53 +1362,7 @@ class DataFrame(NDFrame):
             data_index = self.index.to_timestamp()
 
         nlevels = getattr(data_index, 'nlevels', 1)
-        if not index:
-            nlevels = 0
-
-        # In crude testing, N>100 yields little marginal improvement
-        N=100
-
-        # pre-allocate  rows
-        rows = [[None]*(nlevels+len(cols)) for x in range(N)]
-
-        all_cols = False
-        if len(cols) < 10000: # 10000 as in "usually"
-            all_cols = list(enumerate(cols))
-
-        j = None
-        if nlevels == 1:
-            for j, idx in enumerate(data_index):
-                row = rows[j % N]
-                row[0] = idx
-                for i, col in (all_cols or enumerate(cols)):
-                    val = series[col][j]
-                    row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
-
-                if j >= N-1 and j % N == N-1:
-                    writer.writerows(rows)
-        elif nlevels > 1:
-            for j, idx in enumerate(data_index):
-                row = rows[j % N]
-                row[:nlevels] = list(idx)
-                for i, col in (all_cols or enumerate(cols)):
-                    val = series[col][j]
-                    row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
-
-                if j >= N-1 and j % N == N-1:
-                    writer.writerows(rows)
-        else:
-            for j, idx in enumerate(data_index):
-                row = rows[j % N]
-                for i, col in (all_cols or enumerate(cols)):
-                    val = series[col][j]
-                    row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
-
-                if j >= N-1 and j % N == N-1:
-                    writer.writerows(rows)
-
-        if  j is not None and (j < N-1 or (j % N) != N-1 ):
-            writer.writerows(rows[:((j+1) % N)])
-
+        lib.write_csv_rows(series, list(data_index), index, nlevels, list(cols), writer)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
