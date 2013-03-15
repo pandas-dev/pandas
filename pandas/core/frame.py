@@ -2121,7 +2121,8 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
 
         if self._is_mixed_type:
-            raise ValueError('Cannot do boolean setting on mixed-type frame')
+            if not self._is_numeric_mixed_type:
+                raise ValueError('Cannot do boolean setting on mixed-type frame')
 
         self.where(-key, value, inplace=True)
 

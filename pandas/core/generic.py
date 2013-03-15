@@ -671,8 +671,11 @@ class NDFrame(PandasObject):
 
     @property
     def _is_mixed_type(self):
-        self._consolidate_inplace()
-        return len(self._data.blocks) > 1
+        return self._data.is_mixed_type
+
+    @property
+    def _is_numeric_mixed_type(self):
+        return self._data.is_numeric_mixed_type
 
     def _reindex_axis(self, new_index, fill_method, axis, copy):
         new_data = self._data.reindex_axis(new_index, axis=axis,
