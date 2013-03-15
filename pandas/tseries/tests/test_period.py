@@ -77,6 +77,12 @@ class TestPeriodProperties(TestCase):
                 expected = Period(daystr, freq='D').asfreq(freq)
                 self.assertEquals(result, expected)
 
+    def test_timestamp_tz_arg(self):
+        import pytz
+        p = Period('1/1/2005', freq='M').to_timestamp(tz='Europe/Brussels')
+        self.assertEqual(p.tz,
+                         pytz.timezone('Europe/Brussels').normalize(p).tzinfo)
+
     def test_period_constructor(self):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')
