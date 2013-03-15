@@ -1206,6 +1206,92 @@ def _long_prod(vals):
     return result
 
 
+class PropertyLookupHelper(object):
+    """Util class for attribute access (and tab-completion) to pandas data objs
+
+    list_func:  f(parent, limit,axis) -> list of keys, no longer then limit if it's int
+    get_func:  f(parent,key,axis) -> data associated with key on given axis
+    set_func:  f(parent,key, val,axis) -> data associated with key on given axis
+    parent: an object. In pandas this will be series/frame
+
+    Example use (from Series class):
+
+    class Series(object):
+    ...
+        @property
+        def r(self):
+            return com.PropertyLookupHelper(self,
+                                        lambda parent: list(parent.index),
+                                        lambda parent,k: parent.xs(k,0) )
+
+    >>> s = Series(range(3),index=['a','b','c']
+    >>> s.r.<tab>
+    ['a','b','c']
+    >>> s.r.a
+    0
+
+    """
+    def __init__(self,parent, list_func=None, get_func=None,
+                 set_func=None, axis=None, limit=None):
+
+        def __list_func(parent, limit, axis):
+            base = parent.axes[axis]
+            try: # MultiIndex
+                base = base.levels [0]
+            except AttributeError: # no `levels`
+                pass
+
+            if limit:
+                base = base[:limit]
+
+            return list(base)
+
+        def __get_func(parent, k,axis):
+            s=tuple([slice(None)]*(axis)+[k])
+            s = s[0] if len(s) == 1 else s
+            return parent.ix[s]
+
+        def __set_func(parent,k,v,axis):
+            # convert single row dataframe to ndarray
+            # for df row multindex, df.a = df.a to do what you'd expect
+            try:
+                v = v.values
+            except:
+                pass
+
+            s=tuple([slice(None)]*(axis)+[k])
+            s = s[0] if len(s) == 1 else s
+            parent.ix[s] = v
+
+        if axis is None and \
+          (list_func is None or get_func is None or set_func is None):
+          raise AssertionError("When using default list/get/set, you must specify axis")
+
+        super(PropertyLookupHelper,self).__setattr__('axis',axis)
+        super(PropertyLookupHelper,self).__setattr__('parent',parent)
+        super(PropertyLookupHelper,self).__setattr__('list_func',list_func or __list_func)
+        super(PropertyLookupHelper,self).__setattr__('get_func',get_func or __get_func)
+        super(PropertyLookupHelper,self).__setattr__('set_func',set_func or __set_func)
+        super(PropertyLookupHelper,self).__setattr__('limit',limit)
+
+    def __getattr__(self,k):
+        get_func = super(PropertyLookupHelper,self).__getattribute__('get_func')
+        axis = super(PropertyLookupHelper,self).__getattribute__('axis')
+        return get_func(self.parent,k,axis)
+
+    def __setattr__(self,k,val):
+        self.set_func(self.parent, k, val, self.axis)
+
+    def __dir__(self):
+        import tokenize, keyword, re
+        axis = super(PropertyLookupHelper,self).__getattribute__('axis')
+        return [x for x in self.list_func(self.parent,self.limit,axis)
+                if isinstance(x,basestring) and
+                bool(re.match('^' + tokenize.Name + '$', x)) and
+                not keyword.iskeyword(x) and
+                not x == 'print' ] # PY3
+
+
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.

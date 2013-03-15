@@ -559,6 +559,10 @@ class Series(pa.Array, generic.PandasObject):
 
         return self._ix
 
+    @property
+    def r(self):
+        return com.PropertyLookupHelper(self,axis=0,limit=1000000)
+
     def _xs(self, key, axis=0, level=None, copy=True):
         return self.__getitem__(key)
 

@@ -1893,6 +1893,14 @@ class DataFrame(NDFrame):
 
             return result.set_value(index, col, value)
 
+    @property
+    def r(self):
+        return com.PropertyLookupHelper(self, axis=0,limit=1000000)
+
+    @property
+    def c(self):
+        return com.PropertyLookupHelper(self, axis=1,limit=1000000)
+
     def irow(self, i, copy=False):
         return self._ixs(i,axis=0)
 

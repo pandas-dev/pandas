@@ -26,7 +26,8 @@ from pandas.io.parsers import read_csv
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal,
+                                 makeCustomDataframe as mkdf)
 from pandas.util import py3compat
 from pandas.util.compat import OrderedDict
 
@@ -1556,6 +1557,73 @@ class CheckIndexing(object):
                 result = self.frame.iget_value(i, j)
                 expected = self.frame.get_value(row, col)
                 assert_almost_equal(result, expected)
+
+    def test_attrib_data_access(self):
+        df = mkdf(10,5)
+        self.assertEqual(len(dir(df.r)), 10)
+        r = df.r.R_l0_g4
+        assert_series_equal(r, df.irow(4))
+
+        c = df.c.C_l0_g2
+        self.assertEqual(len(dir(df.c)), 5)
+        assert_series_equal(c, df.icol(2))
+
+        # exclude keywords and illegal identifiers
+        df = DataFrame([[1,2,3],[3,4,5],[6,7,8],[9,10,11]],
+                        index=['a','print','a,b','foo bar'],
+                        columns=['yield','b','c,d'])
+        self.assertEqual(len(dir(df.r)), 1)
+        self.assertEqual(len(dir(df.c)), 1)
+        self.assertTrue('print' not in dir(df.r))
+        self.assertTrue('a,b' not in dir(df.r))
+        self.assertTrue('yield' not in dir(df.c))
+        self.assertTrue('c,d' not in dir(df.c))
+
+        # recursive access
+        df=mkdf(4,2,c_idx_nlevels=2,r_idx_nlevels=2)
+        assert_array_equal(df.r.R_l0_g0.r.R_l1_g0.values,
+                           df.ix['R_l0_g0', 'R_l1_g0'].values)
+        assert_array_equal(df.c.C_l0_g0.c.C_l1_g0.values,
+                           df.xs(('C_l0_g0','C_l1_g0'),1).values)
+
+        # test setting rows
+        df=mkdf(10,5,r_idx_nlevels=1)
+        df.r.R_l0_g0 =df.r.R_l0_g1
+        assert_series_equal(df.ix['R_l0_g0'],df.ix['R_l0_g1'])
+
+        df=mkdf(10,5,r_idx_nlevels=2)
+        df.r.R_l0_g0 =df.r.R_l0_g1
+        assert_array_equal(df.ix['R_l0_g0'].values,df.ix['R_l0_g1'].values)
+
+        df=mkdf(10,5,r_idx_nlevels=3)
+        df.r.R_l0_g0 =df.r.R_l0_g1
+        assert_array_equal(df.ix['R_l0_g0'].values,df.ix['R_l0_g1'].values)
+
+        df=mkdf(10,5,r_idx_nlevels=2)
+        df.r.R_l0_g0.r.R_l1_g0 = df.r.R_l0_g1.r.R_l1_g1
+        assert_array_equal(df.ix['R_l0_g0'].values,df.ix['R_l0_g1'].values)
+
+        df=mkdf(10,5,r_idx_nlevels=3)
+        df.r.R_l0_g0.r.R_l1_g0 = df.r.R_l0_g1.r.R_l1_g1
+        assert_array_equal(df.ix['R_l0_g0'].values,df.ix['R_l0_g1'].values)
+
+        # test setting cols
+        df=mkdf(10,5,r_idx_nlevels=1)
+        df.c.C_l0_g0 = df.c.C_l0_g1
+        assert_series_equal(df['C_l0_g0'],df['C_l0_g1'])
+
+        df=mkdf(10,5,r_idx_nlevels=2,c_idx_nlevels=2)
+        df.c.C_l0_g0 = df.c.C_l0_g1
+        assert_array_equal(df['C_l0_g0'].values,df['C_l0_g1'].values)
+
+        df=mkdf(10,5,r_idx_nlevels=2,c_idx_nlevels=2)
+        df.c.C_l0_g0.c.C_l1_g0 = df.c.C_l0_g1.c.C_l1_g1
+        assert_array_equal(df['C_l0_g0'].values,df['C_l0_g1'].values)
+
+        df=mkdf(10,5,r_idx_nlevels=2,c_idx_nlevels=3)
+        df.c.C_l0_g0.c.C_l1_g0 = df.c.C_l0_g1.c.C_l1_g1
+        assert_array_equal(df['C_l0_g0'].values,df['C_l0_g1'].values)
+
 
     def test_nested_exception(self):
         # Ignore the strange way of triggering the problem

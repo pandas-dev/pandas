@@ -1000,6 +1000,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, s.__setitem__, inds_notfound, 0)
         self.assertRaises(Exception, s.__setitem__, arr_inds_notfound, 0)
 
+    def test_attrib_data_access(self):
+        s= Series(range(3),index=['a','b','c'])
+        self.assertEqual(len(dir(s.r)), 3)
+        self.assertEqual(s.r.b, 1)
+
+        s= Series(range(3),index=['a','b','print'])
+        self.assertEqual(len(dir(s.r)), 2)
+        self.assertEqual(s.r.b, 1)
+        self.assertTrue('print' not in dir(s.r))
+
+        # test setting
+        s= Series(range(3),index=['a','b','c'])
+        s.r.a = s.r.b
+        self.assertEqual(s.ix['a'],s.ix['b'])
+
+
     def test_ix_getitem(self):
         inds = self.series.index[[3, 4, 7]]
         assert_series_equal(self.series.ix[inds], self.series.reindex(inds))
