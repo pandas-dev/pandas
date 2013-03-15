@@ -280,6 +280,10 @@ Enhancements
   - value_counts() now accepts a "normalize" argument, for normalized
     histograms. (GH2710_).
 
+  - DataFrame.from_records now accepts not only dicts but any instance of
+    the collections.Mapping ABC.
+
+
 
 Bug Fixes
 ~~~~~~~~~
