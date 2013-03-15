@@ -425,6 +425,29 @@ Enhancements
     the file if the data has correctly separated and properly aligned columns
     using the delimiter provided to the function (:issue:`4488`). 
 
+  - support for nanosecond times in periods
+
+    .. warning::
+
+       These operations require ``numpy >= 1.7``
+
+    Period conversions in the range of seconds and below were reworked and extended
+    up to nanoseconds. Periods in the nanosecond range are now available.
+
+      .. ipython:: python
+        date_range('2013-01-01', periods=5, freq='5N')
+
+    or with frequency as offset
+
+      .. ipython:: python
+        date_range('2013-01-01', periods=5, freq=pd.offsets.Nano(5))
+
+    Timestamps can be modified in the nanosecond range
+
+      .. ipython:: python
+        t = Timestamp('20130101 09:01:02')
+        t + pd.datetools.Nano(123)
+
 .. _whatsnew_0130.experimental:
 
 Experimental

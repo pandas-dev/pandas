@@ -19,10 +19,12 @@ cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
     int PySlice_Check(object)
 
+# this is our datetime.pxd
+from datetime cimport *
+from util cimport is_integer_object, is_datetime64_object, is_timedelta64_object
 
 from libc.stdlib cimport free
 
-from util cimport is_integer_object, is_datetime64_object
 cimport util
 
 from datetime cimport *
@@ -332,6 +334,9 @@ class NaTType(_NaT):
     def __repr__(self):
         return 'NaT'
 
+    def __hash__(self):
+        return iNaT
+    
     def weekday(self):
         return -1
 
@@ -568,23 +573,27 @@ cdef class _Timestamp(datetime):
                         dts.us, ts.tzinfo)
 
     def __add__(self, other):
+        if is_timedelta64_object(other):
+            return Timestamp(self.value + other.astype('timedelta64[ns]').item(), tz=self.tzinfo)
+        
         if is_integer_object(other):
             if self.offset is None:
+                return Timestamp(self.value + other, tz=self.tzinfo)
                 msg = ("Cannot add integral value to Timestamp "
                        "without offset.")
                 raise ValueError(msg)
             else:
                 return Timestamp((self.offset.__mul__(other)).apply(self))
-        else:
-            if isinstance(other, timedelta) or hasattr(other, 'delta'):
-                nanos = _delta_to_nanoseconds(other)
-                return Timestamp(self.value + nanos, tz=self.tzinfo)
-            else:
-                result = datetime.__add__(self, other)
-                if isinstance(result, datetime):
-                    result = Timestamp(result)
-                    result.nanosecond = self.nanosecond
-                return result
+            
+        if isinstance(other, timedelta) or hasattr(other, 'delta'):
+            nanos = _delta_to_nanoseconds(other)
+            return Timestamp(self.value + nanos, tz=self.tzinfo)
+            
+        result = datetime.__add__(self, other)
+        if isinstance(result, datetime):
+            result = Timestamp(result)
+            result.nanosecond = self.nanosecond
+        return result
 
     def __sub__(self, other):
         if is_integer_object(other):
@@ -636,10 +645,12 @@ cdef class _NaT(_Timestamp):
 
 
 def _delta_to_nanoseconds(delta):
-    try:
+    if hasattr(delta, 'delta'):
         delta = delta.delta
-    except:
-        pass
+    if is_timedelta64_object(delta):
+        return delta.astype("timedelta64[ns]").item()
+    if is_integer_object(delta):
+        return delta
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
             + delta.microseconds) * 1000
@@ -2140,7 +2151,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 continue
             pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                           dts.hour, dts.min, dts.sec, freq)
+                                           dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
 
     elif _is_tzlocal(tz):
         for i in range(n):
@@ -2155,7 +2166,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
             pandas_datetime_to_datetimestruct(stamps[i] + delta,
                                               PANDAS_FR_ns, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                           dts.hour, dts.min, dts.sec, freq)
+                                           dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans = _get_transitions(tz)
@@ -2174,7 +2185,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 pandas_datetime_to_datetimestruct(stamps[i] + deltas[0],
                                                   PANDAS_FR_ns, &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                               dts.hour, dts.min, dts.sec, freq)
+                                               dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
         else:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
@@ -2183,7 +2194,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 pandas_datetime_to_datetimestruct(stamps[i] + deltas[pos[i]],
                                                   PANDAS_FR_ns, &dts)
                 result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                               dts.hour, dts.min, dts.sec, freq)
+                                               dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
 
     return result
 
@@ -2220,7 +2231,7 @@ cdef extern from "period.h":
     void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
 
     int64_t get_period_ordinal(int year, int month, int day,
-                          int hour, int minute, int second,
+                          int hour, int minute, int second, int microseconds, int picoseconds,
                           int freq) except INT32_MIN
 
     int64_t get_python_ordinal(int64_t period_ordinal, int freq) except INT32_MIN
@@ -2284,7 +2295,7 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
         for i in range(l):
             pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
             out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                        dts.hour, dts.min, dts.sec, freq)
+                                        dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
     else:
         out = localize_dt64arr_to_period(dtarr, freq, tz)
     return out
@@ -2318,7 +2329,7 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     """
     cdef:
         int64_t retval
-
+   
     if end:
         retval = asfreq(period_ordinal, freq1, freq2, END)
     else:
@@ -2361,17 +2372,18 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
 
     return result
 
-def period_ordinal(int y, int m, int d, int h, int min, int s, int freq):
+def period_ordinal(int y, int m, int d, int h, int min, int s, int us, int ps, int freq):
     cdef:
         int64_t ordinal
 
-    return get_period_ordinal(y, m, d, h, min, s, freq)
+    return get_period_ordinal(y, m, d, h, min, s, us, ps, freq)
 
 
 cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     cdef:
         pandas_datetimestruct dts
         date_info dinfo
+        float subsecond_fraction
 
     get_date_info(ordinal, freq, &dinfo)
 
@@ -2381,7 +2393,9 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     dts.hour = dinfo.hour
     dts.min = dinfo.minute
     dts.sec = int(dinfo.second)
-    dts.us = dts.ps = 0
+    subsecond_fraction = dinfo.second - dts.sec
+    dts.us = int((subsecond_fraction) * 1e6)
+    dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
 
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 
@@ -2411,6 +2425,12 @@ def period_format(int64_t value, int freq, object fmt=None):
             fmt = b'%Y-%m-%d %H:%M'
         elif freq_group == 9000: # SEC
             fmt = b'%Y-%m-%d %H:%M:%S'
+        elif freq_group == 10000: # MILLISEC
+            fmt = b'%Y-%m-%d %H:%M:%S.%l'
+        elif freq_group == 11000: # MICROSEC
+            fmt = b'%Y-%m-%d %H:%M:%S.%u'
+        elif freq_group == 12000: # NANOSEC
+            fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
             raise ValueError('Unknown freq: %d' % freq)
 
@@ -2419,9 +2439,12 @@ def period_format(int64_t value, int freq, object fmt=None):
 
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%f", b"^`CD`^"),
-                        (b"%F", b"^`EF`^")]
+                        (b"%F", b"^`EF`^"),
+                        (b"%l", b"^`GH`^"),
+                        (b"%u", b"^`IJ`^"),
+                        (b"%n", b"^`KL`^")]
 
-cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^"]
+cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^", "^`GH`^", "^`IJ`^", "^`KL`^"]
 
 cdef _period_strftime(int64_t value, int freq, object fmt):
     import sys
@@ -2460,6 +2483,12 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
                 repl = '%.2d' % (year % 100)
             elif i == 2:
                 repl = '%d' % year
+            elif i == 3:
+                repl = '%03d' % (value % 1000)
+            elif i == 4:
+                repl = '%06d' % (value % 1000000)
+            elif i == 5:
+                repl = '%09d' % (value % 1000000000)
 
             result = result.replace(str_extra_fmts[i], repl)
 

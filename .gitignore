@@ -30,15 +30,11 @@ pandas/io/*.dat
 pandas/io/*.json
 *.log
 .noseids
-
-.idea/libraries/sass_stdlib.xml
-
-.idea/pandas.iml
 .build_cache_dir
 .vagrant
 *.whl
 **/wheelhouse/*
-
 .project
 .pydevproject
 .settings
+.idea

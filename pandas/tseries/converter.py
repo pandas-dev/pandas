@@ -458,7 +458,13 @@ def _daily_finder(vmin, vmax, freq):
     periodsperday = -1
 
     if freq >= FreqGroup.FR_HR:
-        if freq == FreqGroup.FR_SEC:
+        if freq == FreqGroup.FR_NS:
+            periodsperday = 24 * 60 * 60 * 1000000000
+        elif freq == FreqGroup.FR_US:
+            periodsperday = 24 * 60 * 60 * 1000000
+        elif freq == FreqGroup.FR_MS:
+            periodsperday = 24 * 60 * 60 * 1000
+        elif freq == FreqGroup.FR_SEC:
             periodsperday = 24 * 60 * 60
         elif freq == FreqGroup.FR_MIN:
             periodsperday = 24 * 60

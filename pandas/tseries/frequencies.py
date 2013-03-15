@@ -12,6 +12,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
+from pandas import _np_version_under1p7
 
 
 class FreqGroup(object):
@@ -24,6 +25,9 @@ class FreqGroup(object):
     FR_HR = 7000
     FR_MIN = 8000
     FR_SEC = 9000
+    FR_MS = 10000
+    FR_US = 11000
+    FR_NS = 12000
 
 
 class Resolution(object):
@@ -116,7 +120,7 @@ def _get_freq_str(base, mult=1):
 # Offset names ("time rules") and related functions
 
 
-from pandas.tseries.offsets import (Micro, Milli, Second, Minute, Hour,
+from pandas.tseries.offsets import (Nano, Micro, Milli, Second, Minute, Hour,
                                     Day, BDay, CDay, Week, MonthBegin,
                                     MonthEnd, BMonthBegin, BMonthEnd,
                                     QuarterBegin, QuarterEnd, BQuarterBegin,
@@ -275,6 +279,9 @@ _offset_map = {
 
 }
 
+if not _np_version_under1p7:
+    _offset_map['N'] = Nano()
+
 _offset_to_period_map = {
     'WEEKDAY': 'D',
     'EOM': 'M',
@@ -291,6 +298,9 @@ _offset_to_period_map = {
     'B': 'B',
     'T': 'T',
     'S': 'S',
+    'L': 'L',
+    'U': 'U',
+    'N': 'N',
     'H': 'H',
     'Q': 'Q',
     'A': 'A',
@@ -609,6 +619,9 @@ _period_code_map = {
     "H": 7000,        # Hourly
     "T": 8000,        # Minutely
     "S": 9000,        # Secondly
+    "L": 10000,       # Millisecondly
+    "U": 11000,       # Microsecondly
+    "N": 12000,       # Nanosecondly
 }
 
 _reverse_period_code_map = {}
@@ -636,7 +649,10 @@ def _period_alias_dictionary():
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
     S_aliases = ["S", "SEC", "SECOND", "SECONDLY"]
-
+    L_aliases = ["L", "MS", "MILLISECOND", "MILLISECONDLY"]
+    U_aliases = ["U", "US", "MICROSECOND", "MICROSECONDLY"]
+    N_aliases = ["N", "NS", "NANOSECOND", "NANOSECONDLY"]
+    
     for k in M_aliases:
         alias_dict[k] = 'M'
 
@@ -655,6 +671,15 @@ def _period_alias_dictionary():
     for k in S_aliases:
         alias_dict[k] = 'S'
 
+    for k in L_aliases:
+        alias_dict[k] = 'L'
+
+    for k in U_aliases:
+        alias_dict[k] = 'U'
+
+    for k in N_aliases:
+        alias_dict[k] = 'N'
+        
     A_prefixes = ["A", "Y", "ANN", "ANNUAL", "ANNUALLY", "YR", "YEAR",
                   "YEARLY"]
 
@@ -722,6 +747,9 @@ _reso_period_map = {
     "hour": "H",
     "minute": "T",
     "second": "S",
+    "millisecond": "L",
+    "microsecond": "U",
+    "nanosecond": "N",
 }
 
 

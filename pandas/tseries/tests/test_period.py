@@ -195,7 +195,7 @@ class TestPeriodProperties(TestCase):
 
         self.assertRaises(ValueError, Period, ordinal=200701)
 
-        self.assertRaises(KeyError, Period, '2007-1-1', freq='U')
+        self.assertRaises(KeyError, Period, '2007-1-1', freq='X')
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
@@ -207,6 +207,16 @@ class TestPeriodProperties(TestCase):
 
         p = Period('2000-12-15')
         self.assert_('2000-12-15' in repr(p))
+
+    def test_millisecond_repr(self):
+        p = Period('2000-01-01 12:15:02.123')
+
+        self.assertEquals("Period('2000-01-01 12:15:02.123', 'L')", repr(p))
+
+    def test_microsecond_repr(self):
+        p = Period('2000-01-01 12:15:02.123567')
+
+        self.assertEquals("Period('2000-01-01 12:15:02.123567', 'U')", repr(p))
 
     def test_strftime(self):
         p = Period('2000-1-1 12:34:12', freq='S')
@@ -466,7 +476,14 @@ class TestPeriodProperties(TestCase):
         p = Period('2007-01-01 07:10:15')
         self.assert_(p.freq == 'S')
 
-        self.assertRaises(ValueError, Period, '2007-01-01 07:10:15.123456')
+        p = Period('2007-01-01 07:10:15.123')
+        self.assert_(p.freq == 'L')
+
+        p = Period('2007-01-01 07:10:15.123000')
+        self.assert_(p.freq == 'L')
+
+        p = Period('2007-01-01 07:10:15.123400')
+        self.assert_(p.freq == 'U')
 
 
 def noWrap(item):
@@ -1115,9 +1132,9 @@ class TestPeriodIndex(TestCase):
         self.assert_(idx.equals(exp))
 
     def test_constructor_U(self):
-        # U was used as undefined period
+        # X was used as undefined period
         self.assertRaises(KeyError, period_range, '2007-1-1', periods=500,
-                          freq='U')
+                          freq='X')
 
     def test_constructor_arrays_negative_year(self):
         years = np.arange(1960, 2000).repeat(4)
@@ -2168,6 +2185,15 @@ class TestPeriodRepresentation(unittest.TestCase):
 
     def test_secondly(self):
         self._check_freq('S', '1970-01-01')
+        
+    def test_millisecondly(self):
+        self._check_freq('L', '1970-01-01')
+
+    def test_microsecondly(self):
+        self._check_freq('U', '1970-01-01')
+        
+    def test_nanosecondly(self):
+        self._check_freq('N', '1970-01-01')        
 
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)

@@ -13,7 +13,7 @@ import numpy as np
 randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame,
-                    isnull, date_range, Timestamp, DatetimeIndex,
+                    isnull, date_range, Timestamp, Period, DatetimeIndex,
                     Int64Index, to_datetime, bdate_range)
 
 from pandas.core.daterange import DateRange
@@ -43,6 +43,7 @@ import pandas.compat as compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 from pandas import concat
+from pandas import _np_version_under1p7
 
 from numpy.testing.decorators import slow
 
@@ -663,7 +664,7 @@ class TestTimeSeries(unittest.TestCase):
     def test_index_astype_datetime64(self):
         idx = Index([datetime(2012, 1, 1)], dtype=object)
 
-        if np.__version__ >= LooseVersion('1.7'):
+        if not _np_version_under1p7:
             raise nose.SkipTest("test only valid in numpy < 1.7")
 
         casted = idx.astype(np.dtype('M8[D]'))
@@ -1332,6 +1333,28 @@ class TestTimeSeries(unittest.TestCase):
         pts = ts.to_period('M')
         self.assert_(pts.index.equals(exp.index.asfreq('M')))
 
+    def create_dt64_based_index(self):
+        data = [Timestamp('2007-01-01 10:11:12.123456Z'),
+                Timestamp('2007-01-01 10:11:13.789123Z')]
+        index = DatetimeIndex(data)
+        return index
+
+    def test_to_period_millisecond(self):
+        index = self.create_dt64_based_index()
+
+        period = index.to_period(freq='L')
+        self.assertEqual(2, len(period))
+        self.assertEqual(period[0], Period('2007-01-01 10:11:12.123Z', 'L'))
+        self.assertEqual(period[1], Period('2007-01-01 10:11:13.789Z', 'L'))
+
+    def test_to_period_microsecond(self):
+        index = self.create_dt64_based_index()
+
+        period = index.to_period(freq='U')
+        self.assertEqual(2, len(period))
+        self.assertEqual(period[0], Period('2007-01-01 10:11:12.123456Z', 'U'))
+        self.assertEqual(period[1], Period('2007-01-01 10:11:13.789123Z', 'U'))
+
     def test_to_period_tz(self):
         _skip_if_no_pytz()
         from dateutil.tz import tzlocal
@@ -1598,7 +1621,7 @@ class TestTimeSeries(unittest.TestCase):
                         (3, np.datetime64('2012-07-04'))],
                        columns=['a', 'date'])
         result = df.groupby('a').first()
-        self.assertEqual(result['date'][3], datetime(2012,7,3))
+        self.assertEqual(result['date'][3], Timestamp('2012-07-03'))
 
     def test_series_interpolate_intraday(self):
         # #1698
@@ -2019,6 +2042,27 @@ class TestDatetimeIndex(unittest.TestCase):
         for kind in kinds:
             joined = index.join(index, how=kind)
             self.assert_(index is joined)
+
+    def assert_index_parameters(self, index):
+        assert index.freq == '40960N'
+        assert index.inferred_freq == '40960N'
+
+    def test_ns_index(self):
+
+        if _np_version_under1p7:
+            raise nose.SkipTest
+
+        nsamples = 400
+        ns = int(1e9 / 24414)
+        dtstart = np.datetime64('2012-09-20T00:00:00')
+
+        dt = dtstart + np.arange(nsamples) * np.timedelta64(ns, 'ns')
+        freq = ns * pd.datetools.Nano()
+        index = pd.DatetimeIndex(dt, freq=freq, name='time')
+        self.assert_index_parameters(index)
+
+        new_index = pd.DatetimeIndex(start=index[0], end=index[-1], freq=index.freq)
+        self.assert_index_parameters(new_index)
 
 
 class TestDatetime64(unittest.TestCase):

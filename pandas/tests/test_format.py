@@ -1664,7 +1664,7 @@ class TestSeriesFormatting(unittest.TestCase):
         from pandas import date_range
         from datetime import datetime, timedelta
 
-        Series(np.array([1100, 20], dtype='timedelta64[s]')).to_string()
+        Series(np.array([1100, 20], dtype='timedelta64[ns]')).to_string()
 
         s = Series(date_range('2012-1-1', periods=3, freq='D'))
 
