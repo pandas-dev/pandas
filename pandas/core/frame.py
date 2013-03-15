@@ -544,6 +544,13 @@ class DataFrame(NDFrame):
         block = make_block(values.T, columns, columns)
         return BlockManager([block], [columns, index])
 
+    @property
+    def _verbose_info(self):
+        import warnings
+        warnings.warn('The _verbose_info property will be removed in version '
+                      '0.12', FutureWarning)
+        return get_option('display.max_info_rows') is None
+
     @_verbose_info.setter
     def _verbose_info(self, value):
         import warnings
