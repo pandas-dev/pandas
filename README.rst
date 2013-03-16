@@ -94,9 +94,19 @@ Optional dependencies
 Installation from sources
 =========================
 
-In the ``pandas`` directory (same one where you found this file), execute::
+To install pandas from source you need ``cython`` in addition to the normal dependencies above,
+which can be installed from the Cheese Shop::
+
+    pip install cython
+
+In the ``pandas`` directory (same one where you found this file after cloning the git repo), execute::
 
     python setup.py install
+
+Or if you want all the dependencies pulled in automatically (the optional ``-e`` option is for
+installing it in `development mode <http://www.pip-installer.org/en/latest/usage.html>`__)::
+
+    pip install -e .
 
 On Windows, you will need to install MinGW and execute::
 
