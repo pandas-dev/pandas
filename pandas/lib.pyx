@@ -788,40 +788,48 @@ def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, obje
 @cython.wraparound(False)
 def write_csv_rows(dict series, list data_index, object index, int nlevels, list cols, object writer):
     
-    cdef int N, j, i, ncols, ndata_index
-    cdef list rows, row_fields, spaces
-    cdef object v
+    cdef int N, j, i, l, ncols, ndata_index
+    cdef list rows, spaces
+    cdef object v, val
+    cdef ndarray row_fields
 
     ncols = len(cols)
-    spaces = [None] *  len(cols)
-    if index:
-        if nlevels == 1:
-            row_fields_f = lambda x: [x] + spaces
-        else:  # handle MultiIndex
-            row_fields_f = lambda x: list(x) + spaces
-    else:
-        nlevels = 0
-        row_fields_f = lambda x: [None] *  len(cols)
 
     # In crude testing, N>100 yields little marginal improvement
     N=100
     rows = [None]*N
 
     ndata_index = len(data_index)
-    for j in range(ndata_index):
-       row_fields = row_fields_f(data_index[j])
 
-       for i in range(len(row_fields)):
-           v = row_fields[i]
-           if isinstance(v,np.number):
-              row_fields[i] = np.asscalar(v)
+    if index:
+       row_fields = np.empty(ncols+nlevels,dtype=object)
+    else:
+       nlevels    = 0
+       row_fields = np.empty(ncols,dtype=object)
+
+    for j in range(ndata_index):
+
+       if index:
+           if nlevels == 1:
+              v = data_index[j]
+              if isinstance(v,np.number):
+                  v = np.asscalar(v)
+              row_fields[0] = v
+           else:
+              val = data_index[j]
+              for l in range(nlevels):
+                  v = val[l]
+                  if isinstance(v,np.number):
+                      v = np.asscalar(v)
+                  row_fields[l] = v
+
        for i in range(ncols):
            v = series[cols[i]][j]
            if isinstance(v,np.number):
               v = np.asscalar(v)
            row_fields[i+nlevels] = v
 
-       rows[ j % N ] = row_fields
+       rows[ j % N ] = row_fields.copy()
 
        if j >= N-1 and j % N == N-1:
             writer.writerows(rows)
