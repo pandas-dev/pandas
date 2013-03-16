@@ -221,6 +221,13 @@ def mask_missing(arr, values_to_mask):
     for x in nonna:
         if mask is None:
             mask = arr == x
+
+            # if x is a string and mask is not, then we get a scalar
+            # return value, which is not good
+            if not isinstance(mask,np.ndarray):
+                m = mask
+                mask = np.empty(arr.shape,dtype=np.bool)
+                mask.fill(m)
         else:
             mask = mask | (arr == x)
 
@@ -730,6 +737,11 @@ def _maybe_promote(dtype, fill_value=np.nan):
             dtype = np.complex128
     else:
         dtype = np.object_
+
+    # in case we have a string that looked like a number
+    if issubclass(np.dtype(dtype).type, basestring):
+        dtype = np.object_
+
     return dtype, fill_value
 
 

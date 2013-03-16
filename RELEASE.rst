@@ -79,7 +79,7 @@ pandas 0.11.0
     doesn't have nans, then an int will be returned)
   - backfill/pad/take/diff/ohlc will now support ``float32/int16/int8``
     operations
-  - Integer block types will upcast as needed in where operations (GH2793_)
+  - Block types will upcast as needed in where/masking operations (GH2793_)
   - Series now automatically will try to set the correct dtype based on passed
     datetimelike objects (datetime/Timestamp)
 

@@ -4,7 +4,7 @@ from datetime import datetime
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import _possibly_downcast_to_dtype
+from pandas.core.common import _possibly_downcast_to_dtype, isnull
 from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
@@ -260,32 +260,14 @@ class Block(object):
         return result
 
     def replace(self, to_replace, value, inplace=False):
-        new_values = self.values if inplace else self.values.copy()
-        if self._can_hold_element(value):
-            value = self._try_cast(value)
-
-        if not isinstance(to_replace, (list, np.ndarray)):
-            if self._can_hold_element(to_replace):
-                to_replace = self._try_cast(to_replace)
-                msk = com.mask_missing(new_values, to_replace)
-                np.putmask(new_values, msk, value)
-        else:
-            try:
-                to_replace = np.array(to_replace, dtype=self.dtype)
-                msk = com.mask_missing(new_values, to_replace)
-                np.putmask(new_values, msk, value)
-            except Exception:
-                to_replace = np.array(to_replace, dtype=object)
-                for r in to_replace:
-                    if self._can_hold_element(r):
-                        r = self._try_cast(r)
-                msk = com.mask_missing(new_values, to_replace)
-                np.putmask(new_values, msk, value)
-
-        if inplace:
-            return self
-        else:
-            return make_block(new_values, self.items, self.ref_items)
+        """ replace the to_replace value with value, possible to create new blocks here
+            this is just a call to putmask """
+        mask = com.mask_missing(self.values, to_replace)
+        if not mask.any():
+            if inplace:
+                return [ self ]
+            return [ self.copy() ]
+        return self.putmask(mask, value, inplace=inplace)
 
     def putmask(self, mask, new, inplace=False):
         """ putmask the data to the block; it is possible that we may create a new dtype of block
@@ -309,19 +291,34 @@ class Block(object):
 
         # maybe upcast me
         elif mask.any():
-            # type of the new block
-            if ((isinstance(new, np.ndarray) and issubclass(new.dtype, np.number)) or
-                    isinstance(new, float)):
-                typ = np.float64
-            else:
-                typ = np.object_
 
-            # we need to exiplicty astype here to make a copy
-            new_values = new_values.astype(typ)
+            # need to go column by column
+            new_blocks = []
+            for i, item in enumerate(self.items):
 
-            # we create a new block type
-            np.putmask(new_values, mask, new)
-            return [ make_block(new_values, self.items, self.ref_items) ]
+                m = mask[i]
+
+                # need a new block
+                if m.any():
+
+                    n = new[i] if isinstance(new, np.ndarray) else new
+
+                    # type of the new block
+                    dtype, _ = com._maybe_promote(np.array(n).dtype)
+
+                    # we need to exiplicty astype here to make a copy
+                    nv = new_values[i].astype(dtype)
+
+                    # we create a new block type
+                    np.putmask(nv, m, n)
+
+                else:
+                    nv = new_values[i] if inplace else new_values[i].copy()
+
+                nv = _block_shape(nv)
+                new_blocks.append(make_block(nv, [ item ], self.ref_items))
+
+            return new_blocks
 
         if inplace:
             return [ self ]
@@ -350,7 +347,7 @@ class Block(object):
         if missing is None:
             mask = None
         else:  # todo create faster fill func without masking
-            mask = _mask_missing(transf(values), missing)
+            mask = com.mask_missing(transf(values), missing)
 
         if method == 'pad':
             com.pad_2d(transf(values), limit=limit, mask=mask)
@@ -532,30 +529,13 @@ class Block(object):
                 if len(result) == 1:
                     result = np.repeat(result,self.shape[1:])
 
-                result = result.reshape(((1,) + self.shape[1:]))
+                result = _block_shape(result,ndim=self.ndim,shape=self.shape[1:])
                 result_blocks.append(create_block(result, item, transpose = False))
 
             return result_blocks
         else:
             result = func(cond,values,other)
             return create_block(result, self.items)
-
-def _mask_missing(array, missing_values):
-    if not isinstance(missing_values, (list, np.ndarray)):
-        missing_values = [missing_values]
-
-    mask = None
-    missing_values = np.array(missing_values, dtype=object)
-    if com.isnull(missing_values).any():
-        mask = com.isnull(array)
-        missing_values = missing_values[com.notnull(missing_values)]
-
-    for v in missing_values:
-        if mask is None:
-            mask = array == missing_values
-        else:
-            mask |= array == missing_values
-    return mask
 
 class NumericBlock(Block):
     is_numeric = True
@@ -659,7 +639,7 @@ class ObjectBlock(Block):
             values = self.get(c)
 
             values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
-            values = values.reshape(((1,) + values.shape))
+            values = _block_shape(values)
             items = self.items.take([i])
             newb = make_block(values, items, self.ref_items)
             blocks.append(newb)
@@ -949,23 +929,37 @@ class BlockManager(object):
 
     def replace_list(self, src_lst, dest_lst, inplace=False):
         """ do a list replace """
-        if not inplace:
-            self = self.copy()
 
-        sset = set(src_lst)
-        if any([k in sset for k in dest_lst]):
-            masks = {}
-            for s in src_lst:
-                masks[s] = [b.values == s for b in self.blocks]
+        # figure out our mask a-priori to avoid repeated replacements
+        values = self.as_matrix()
+        def comp(s):
+            if isnull(s):
+                return isnull(values)
+            return values == s
+        masks = [ comp(s) for i, s in enumerate(src_lst) ]
 
-            for s, d in zip(src_lst, dest_lst):
-                [b.putmask(masks[s][i], d, inplace=True) for i, b in
-                 enumerate(self.blocks)]
-        else:
-            for s, d in zip(src_lst, dest_lst):
-                self.replace(s, d, inplace=True)
+        result_blocks = []
+        for blk in self.blocks:
 
-        return self
+            # its possible to get multiple result blocks here
+            # replace ALWAYS will return a list
+            rb = [ blk if inplace else blk.copy() ]
+            for i, d in enumerate(dest_lst):
+                new_rb = []
+                for b in rb:
+                    # get our mask for this element, sized to this 
+                    # particular block
+                    m = masks[i][b.ref_locs]
+                    if m.any():
+                        new_rb.extend(b.putmask(m, d, inplace=True))
+                    else:
+                        new_rb.append(b)
+                rb = new_rb
+            result_blocks.extend(rb)
+
+        bm = self.__class__(result_blocks, self.axes)
+        bm._consolidate_inplace()
+        return bm
 
     def is_consolidated(self):
         """
@@ -1302,8 +1296,7 @@ class BlockManager(object):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-        if value.ndim == self.ndim - 1:
-            value = value.reshape((1,) + value.shape)
+        value = _block_shape(value,self.ndim-1)
         if value.shape[1:] != self.shape[1:]:
             raise AssertionError('Shape of new values must be compatible '
                                  'with manager shape')
@@ -1872,6 +1865,14 @@ def _merge_blocks(blocks, items):
     new_block = make_block(new_values, new_items, items)
     return new_block.reindex_items_from(items)
 
+
+def _block_shape(values, ndim=1, shape=None):
+    """ guarantee the shape of the values to be at least 1 d """
+    if values.ndim == ndim:
+        if shape is None:
+            shape = values.shape
+        values = values.reshape(tuple((1,) + shape))
+    return values
 
 def _vstack(to_stack):
     if all(x.dtype == _NS_DTYPE for x in to_stack):
