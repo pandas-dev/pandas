@@ -135,7 +135,6 @@ keyword:
    ax.right_ax.set_ylabel('AB scale')
 
 
-
 Note that the columns plotted on the secondary y-axis is automatically marked
 with "(right)" in the legend. To turn off the automatic marking, use the
 ``mark_right=False`` keyword:
