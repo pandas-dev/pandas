@@ -1671,6 +1671,16 @@ class TestConcatenate(unittest.TestCase):
 
         self.assertEqual(len(left), len(right))
 
+    def test_concat_bug_2972(self):
+        ts0 = Series(np.zeros(5))
+        ts1 = Series(np.ones(5))
+        ts0.name = ts1.name = 'same name'
+        result = concat([ts0, ts1], axis=1)
+
+        expected = DataFrame({0: ts0, 1: ts1})
+        expected.columns=['same name', 'same name']
+        assert_frame_equal(result, expected)
+
 
 class TestOrderedMerge(unittest.TestCase):
 
