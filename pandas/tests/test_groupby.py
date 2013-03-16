@@ -2237,6 +2237,15 @@ class TestGroupBy(unittest.TestCase):
         got_dt = result.dtype
         self.assert_(issubclass(got_dt.type, np.datetime64))
 
+    def test_groupby_categorical_unequal_len(self):
+        import pandas as pd
+        #GH3011
+        series = Series([np.nan, np.nan, 1, 1, 2, 2, 3, 3, 4, 4])
+        bins =  pd.cut(series.dropna(), 4)
+
+        # len(bins) != len(series) here
+        self.assertRaises(AssertionError,lambda : series.groupby(bins).mean())
+
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())
 

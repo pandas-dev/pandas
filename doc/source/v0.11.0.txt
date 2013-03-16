@@ -321,6 +321,9 @@ Bug Fixes
   - Fix pretty-printing of infinite data structures (closes GH2978_)
   - Fixed exception when plotting timeseries bearing a timezone (closes GH2877_)
   - str.contains ignored na argument (GH2806_)
+  - Substitute warning for segfault when grouping with categorical grouper
+    of mismatched length (GH3011_)
+
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -337,3 +340,4 @@ on GitHub for a complete list.
 .. _GH2806: https://github.com/pydata/pandas/issues/2806
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
+.. _GH3011: https://github.com/pydata/pandas/issues/3011
