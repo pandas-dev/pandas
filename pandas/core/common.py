@@ -745,17 +745,36 @@ def _maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _maybe_upcast_putmask(result, mask, other, dtype=None):
+def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
     """ a safe version of put mask that (potentially upcasts the result
-        return the result and a changed flag """
-    try:
-        np.putmask(result, mask, other)
-    except:
-        # our type is wrong here, need to upcast
-        if (-mask).any():
-            result, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
+        return the result
+        if change is not None, then MUTATE the change (and change the dtype)
+        return a changed flag
+        """
+
+    if mask.any():
+
+        def changeit():
+            # our type is wrong here, need to upcast
+            if (-mask).any():
+                r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
+                np.putmask(r, mask, other)
+                
+                # we need to actually change the dtype here
+                if change is not None:
+                    change.dtype = r.dtype
+                    change[:] = r
+
+                return r, True
+
+        new_dtype, fill_value = _maybe_promote(result.dtype,other)
+        if new_dtype != result.dtype:
+            return changeit()
+
+        try:
             np.putmask(result, mask, other)
-            return result, True
+        except:
+            return changeit()
 
     return result, False
 
