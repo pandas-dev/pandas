@@ -3427,8 +3427,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        value : scalar or dict, default None
-            Value to use to fill holes (e.g. 0), alternately a dict of values
+        value : scalar or dict or Series, default None
+            Value to use to fill holes (e.g. 0), alternately a dict/Series of values
             specifying which value to use for each column (columns not in the
             dict will not be filled)
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
@@ -3468,8 +3468,8 @@ class DataFrame(NDFrame):
                 return self
 
             new_data = self._data
-            if isinstance(to_replace, dict):
-                if isinstance(value, dict):  # {'A' : NA} -> {'A' : 0}
+            if isinstance(to_replace, (dict,Series)):
+                if isinstance(value, (dict,Series)):  # {'A' : NA} -> {'A' : 0}
                     new_data = self._data
                     for c, src in to_replace.iteritems():
                         if c in value and c in self:
@@ -3501,7 +3501,7 @@ class DataFrame(NDFrame):
             else:
 
                 # dest iterable dict-like
-                if isinstance(value, dict):  # NA -> {'A' : 0, 'B' : -1}
+                if isinstance(value, (dict,Series)):  # NA -> {'A' : 0, 'B' : -1}
 
                     new_data = self._data
                     for k, v in value.iteritems():
