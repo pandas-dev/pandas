@@ -5596,6 +5596,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
         assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
 
+        # int block upcasting
+        df = DataFrame({ 'A' : Series([1.0,2.0],dtype='float64'), 'B' : Series([0,1],dtype='int64') })
+        expected = DataFrame({ 'A' : Series([1.0,2.0],dtype='float64'), 'B' : Series([0.5,1],dtype='float64') })
+        result = df.replace(0, 0.5)
+        assert_frame_equal(result,expected)
+
+        df.replace(0, 0.5, inplace=True) 
+        assert_frame_equal(df,expected)
+
+        # int block splitting
+        df = DataFrame({ 'A' : Series([1.0,2.0],dtype='float64'), 'B' : Series([0,1],dtype='int64'), 'C' : Series([1,2],dtype='int64') })
+        expected = DataFrame({ 'A' : Series([1.0,2.0],dtype='float64'), 'B' : Series([0.5,1],dtype='float64'), 'C' : Series([1,2],dtype='int64') })
+        result = df.replace(0, 0.5)
+        assert_frame_equal(result,expected)
+
+        # to object block upcasting
+        df = DataFrame({ 'A' : Series([1.0,2.0],dtype='float64'), 'B' : Series([0,1],dtype='int64') })
+        expected = DataFrame({ 'A' : Series([1,'foo'],dtype='object'), 'B' : Series([0,1],dtype='int64') })
+        result = df.replace(2, 'foo')
+        assert_frame_equal(result,expected)
+
+        expected = DataFrame({ 'A' : Series(['foo','bar'],dtype='object'), 'B' : Series([0,'foo'],dtype='object') })
+        result = df.replace([1,2], ['foo','bar'])
+        assert_frame_equal(result,expected)
+
     def test_replace_interpolate(self):
         padded = self.tsframe.replace(nan, method='pad')
         assert_frame_equal(padded, self.tsframe.fillna(method='pad'))
