@@ -157,46 +157,54 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
             ax.xaxis.set_visible(False)
             ax.yaxis.set_visible(False)
 
-            # setup labels
+            # setup x axis labels
             if i == 0 and j % 2 == 1:
-                ax.set_xlabel(b, visible=True)
-                ax.xaxis.set_visible(True)
-                ax.set_xlabel(b)
-                ax.xaxis.set_ticks_position('top')
-                ax.xaxis.set_label_position('top')
-                setp(ax.get_xticklabels(), rotation=90)
+                # first row, odd column
+                _label_axis(ax, kind='x', label=b, position='top', rotate=True)
             elif i == n - 1 and j % 2 == 0:
-                ax.set_xlabel(b, visible=True)
-                ax.xaxis.set_visible(True)
-                ax.set_xlabel(b)
-                ax.xaxis.set_ticks_position('bottom')
-                ax.xaxis.set_label_position('bottom')
-                setp(ax.get_xticklabels(), rotation=90)
-            elif j == 0 and i % 2 == 0:
-                ax.set_ylabel(a, visible=True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel(a)
-                ax.yaxis.set_ticks_position('left')
-                ax.yaxis.set_label_position('left')
+                # last row, even column
+                _label_axis(ax, kind='x', label=b, position='bottom', rotate=True)
+
+            # setup y axis labels
+            if j == 0 and i % 2 == 0:
+                # first column, even row
+                _label_axis(ax, kind='y', label=a, position='left')
             elif j == n - 1 and i % 2 == 1:
-                ax.set_ylabel(a, visible=True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel(a)
-                ax.yaxis.set_ticks_position('right')
-                ax.yaxis.set_label_position('right')
+                # last column, odd row
+                _label_axis(ax, kind='y', label=a, position='right')            
 
             # ax.grid(b=grid)
 
-    axes[0, 0].yaxis.set_visible(False)
-    axes[n - 1, n - 1].xaxis.set_visible(False)
-    axes[n - 1, n - 1].yaxis.set_visible(False)
-    axes[0, n - 1].yaxis.tick_right()
+    # axes[0, 0].yaxis.set_visible(False)
+    # axes[0, n - 1].yaxis.tick_right()
 
     for ax in axes.flat:
         setp(ax.get_xticklabels(), fontsize=8)
         setp(ax.get_yticklabels(), fontsize=8)
 
     return axes
+
+def _label_axis(ax, kind='x', label='', position='top',
+    ticks=True, rotate=False):
+    
+    from matplotlib.artist import setp
+    if kind == 'x':
+        ax.set_xlabel(label, visible=True)
+        ax.xaxis.set_visible(True)
+        ax.xaxis.set_ticks_position(position)
+        ax.xaxis.set_label_position(position)
+        if rotate:
+            setp(ax.get_xticklabels(), rotation=90)
+    elif kind == 'y':
+        ax.yaxis.set_visible(True)
+        ax.set_ylabel(label, visible=True)        
+        # ax.set_ylabel(a)
+        ax.yaxis.set_ticks_position(position)
+        ax.yaxis.set_label_position(position)
+    return        
+    
+        
+    
 
 
 def _gca():
