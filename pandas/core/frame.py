@@ -1352,6 +1352,8 @@ class DataFrame(NDFrame):
             chunksize = 100000
         chunks = int(rows / chunksize)+1
 
+        cols = list(cols)
+
         for i in xrange(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, rows)
@@ -1383,7 +1385,7 @@ class DataFrame(NDFrame):
 
                 series[k] = values.tolist()
 
-            lib.write_csv_rows(series, list(data_index[start_i:end_i]), nlevels, list(cols), writer)
+            lib.write_csv_rows(series, list(data_index[start_i:end_i]), nlevels, cols, writer)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
