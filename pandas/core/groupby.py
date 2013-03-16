@@ -1310,6 +1310,11 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             exclusions.append(gpr)
             name = gpr
             gpr = obj[gpr]
+
+        if (isinstance(gpr,Categorical) and len(gpr) != len(obj)):
+            errmsg = "Categorical grouper must have len(grouper) == len(data)"
+            raise AssertionError(errmsg)
+
         ping = Grouping(group_axis, gpr, name=name, level=level, sort=sort)
         groupings.append(ping)
 
