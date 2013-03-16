@@ -1345,20 +1345,20 @@ class DataFrame(NDFrame):
         if not index:
             nlevels = 0
 
-        rows = len(data_index)
+        nrows = len(data_index)
 
         # write in chunksize bites
         if chunksize is None:
             chunksize = 100000
-        chunks = int(rows / chunksize)+1
+        chunks = int(nrows / chunksize)+1
 
         cols = list(cols)
 
         for i in xrange(chunks):
             start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, rows)
-            if start_i == end_i:
-                continue
+            end_i = min((i + 1) * chunksize, nrows)
+            if start_i >= end_i:
+                break
 
             # create the data for a chunk
             chunk = self.iloc[start_i:end_i]
