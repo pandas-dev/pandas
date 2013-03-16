@@ -1298,7 +1298,24 @@ class DataFrame(NDFrame):
 
         series = {}
         for k, v in self._series.iteritems():
-            series[k] = v.values
+            mask = isnull(v)
+            imask = -mask
+            if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
+                values = np.empty(len(v),dtype=object)
+                values[mask] = 'NaT'
+
+                if v.dtype == 'datetime64[ns]':
+                    values[imask] = np.array([ val._repr_base for val in v[imask] ],dtype=object)
+                elif v.dtype == 'timedelta64[ns]':
+                    values[imask] = np.array([ lib.repr_timedelta64(val) for val in v[imask] ],dtype=object)
+            else:
+                values = np.array(v.values,dtype=object)
+                values[mask] = na_rep
+                if issubclass(v.dtype.type,np.floating):
+                    if float_format:
+                        values[imask] = np.array([ float_format % val for val in v[imask] ])
+
+            series[k] = values
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or header:
@@ -1346,26 +1363,10 @@ class DataFrame(NDFrame):
             data_index = self.index.to_timestamp()
 
         nlevels = getattr(data_index, 'nlevels', 1)
-        for j, idx in enumerate(data_index):
-            row_fields = []
-            if index:
-                if nlevels == 1:
-                    row_fields = [idx]
-                else:  # handle MultiIndex
-                    row_fields = list(idx)
-            for i, col in enumerate(cols):
-                val = series[col][j]
-                if lib.checknull(val):
-                    val = na_rep
+        if not index:
+            nlevels = 0
 
-                if float_format is not None and com.is_float(val):
-                    val = float_format % val
-                elif isinstance(val, np.datetime64):
-                    val = lib.Timestamp(val)._repr_base
-
-                row_fields.append(val)
-
-            writer.writerow(row_fields)
+        lib.write_csv_rows(series, list(data_index), nlevels, list(cols), writer)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
