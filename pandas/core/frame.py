@@ -1315,7 +1315,7 @@ class DataFrame(NDFrame):
                         values[imask] = np.array([ float_format % val for val in v[imask] ])
 
             series[k] = values
- 
+
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or header:
             if index:
@@ -1362,7 +1362,10 @@ class DataFrame(NDFrame):
             data_index = self.index.to_timestamp()
 
         nlevels = getattr(data_index, 'nlevels', 1)
-        lib.write_csv_rows(series, list(data_index), index, nlevels, list(cols), writer)
+        if not index:
+            nlevels = 0
+
+        lib.write_csv_rows(series, list(data_index), nlevels, list(cols), writer)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,

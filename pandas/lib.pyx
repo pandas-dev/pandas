@@ -786,56 +786,56 @@ def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, obje
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def write_csv_rows(dict series, list data_index, object index, int nlevels, list cols, object writer):
-    
-    cdef int N, j, i, l, ncols, ndata_index
-    cdef list rows, spaces
-    cdef object v, val
-    cdef ndarray row_fields
+def write_csv_rows(dict series, list data_index, int nlevels, list cols, object writer):
 
-    ncols = len(cols)
+    cdef int N, j, i
+    cdef list rows, all_cols
+    cdef object val
 
     # In crude testing, N>100 yields little marginal improvement
     N=100
-    rows = [None]*N
 
-    ndata_index = len(data_index)
+    # pre-allocate  rows
+    rows = [[None]*(nlevels+len(cols)) for x in range(N)]
 
-    if index:
-       row_fields = np.empty(ncols+nlevels,dtype=object)
+    all_cols = []
+    if len(cols) < 10000: # 10000 as in "usually"
+        all_cols = list(enumerate(cols))
+
+    j = -1
+    if nlevels == 1:
+        for j, idx in enumerate(data_index):
+            row = rows[j % N]
+            row[0] = idx
+            for i, col in (all_cols or enumerate(cols)):
+                val = series[col][j]
+                row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
+
+            if j >= N-1 and j % N == N-1:
+                writer.writerows(rows)
+    elif nlevels > 1:
+        for j, idx in enumerate(data_index):
+            row = rows[j % N]
+            row[:nlevels] = list(idx)
+            for i, col in (all_cols or enumerate(cols)):
+                val = series[col][j]
+                row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
+
+            if j >= N-1 and j % N == N-1:
+                writer.writerows(rows)
     else:
-       nlevels    = 0
-       row_fields = np.empty(ncols,dtype=object)
+        for j, idx in enumerate(data_index):
+            row = rows[j % N]
+            for i, col in (all_cols or enumerate(cols)):
+                val = series[col][j]
+                row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
 
-    for j in range(ndata_index):
+            if j >= N-1 and j % N == N-1:
+                writer.writerows(rows)
 
-       if index:
-           if nlevels == 1:
-              v = data_index[j]
-              if isinstance(v,np.number):
-                  v = np.asscalar(v)
-              row_fields[0] = v
-           else:
-              val = data_index[j]
-              for l in range(nlevels):
-                  v = val[l]
-                  if isinstance(v,np.number):
-                      v = np.asscalar(v)
-                  row_fields[l] = v
+    if  j >= 0 and (j < N-1 or (j % N) != N-1 ):
+        writer.writerows(rows[:((j+1) % N)])
 
-       for i in range(ncols):
-           v = series[cols[i]][j]
-           if isinstance(v,np.number):
-              v = np.asscalar(v)
-           row_fields[i+nlevels] = v
-
-       rows[ j % N ] = row_fields.copy()
-
-       if j >= N-1 and j % N == N-1:
-            writer.writerows(rows)
-
-    if ndata_index and (j < N-1 or (j % N) != N-1 ):
-            writer.writerows(rows[:((j+1) % N)])
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
