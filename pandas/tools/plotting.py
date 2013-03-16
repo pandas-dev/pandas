@@ -178,7 +178,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 ax.set_ylabel(a)
                 ax.yaxis.set_ticks_position('left')
                 ax.yaxis.set_label_position('left')
-            elif j == n - 1 and i % 2 == 1:
+            elif j == n - 1 and i % 2 == 1 and i < n - 1:
                 ax.set_ylabel(a, visible=True)
                 ax.yaxis.set_visible(True)
                 ax.set_ylabel(a)
@@ -188,8 +188,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
             # ax.grid(b=grid)
 
     axes[0, 0].yaxis.set_visible(False)
-    axes[n - 1, n - 1].xaxis.set_visible(False)
-    axes[n - 1, n - 1].yaxis.set_visible(False)
     axes[0, n - 1].yaxis.tick_right()
 
     for ax in axes.flat:
