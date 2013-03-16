@@ -173,10 +173,6 @@ parameter:
   - ``max`` : highest rank in the group
   - ``first`` : ranks assigned in the order they appear in the array
 
-.. note::
-
-    These methods are significantly faster (around 10-20x) than
-    ``scipy.stats.rankdata``.
 
 .. currentmodule:: pandas
 

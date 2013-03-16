@@ -154,7 +154,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan):
         If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
-    na : bool, default NaN
+    na : default NaN, fill value for missing values.
 
     Returns
     -------
@@ -688,7 +688,7 @@ class StringMethods(object):
     @copy(str_contains)
     def contains(self, pat, case=True, flags=0, na=np.nan):
         result = str_contains(self.series, pat, case=case, flags=flags,
-                              na=np.nan)
+                              na=na)
         return self._wrap_result(result)
 
     @copy(str_replace)

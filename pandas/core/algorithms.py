@@ -147,7 +147,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     return labels, uniques
 
 
-def value_counts(values, sort=True, ascending=False):
+def value_counts(values, sort=True, ascending=False, normalize=False):
     """
     Compute a histogram of the counts of non-null values
 
@@ -158,6 +158,8 @@ def value_counts(values, sort=True, ascending=False):
         Sort by values
     ascending : boolean, default False
         Sort in ascending order
+    normalize: boolean, default False
+        If True then compute a relative histogram
 
     Returns
     -------
@@ -189,6 +191,9 @@ def value_counts(values, sort=True, ascending=False):
         result.sort()
         if not ascending:
             result = result[::-1]
+
+    if normalize:
+        result = result / float(values.size)
 
     return result
 

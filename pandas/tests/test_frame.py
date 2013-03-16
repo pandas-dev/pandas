@@ -1968,6 +1968,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         foo = DataFrame({'a': ['a', 'b', 'c']}, dtype=np.float64)
         self.assert_(foo['a'].dtype == object)
 
+        # GH 3010, constructing with odd arrays
+        df = DataFrame(np.ones((4,2)))
+   
+        # this is ok
+        df['foo'] = np.ones((4,2)).tolist()
+
+        # this is not ok
+        self.assertRaises(AssertionError, df.__setitem__, tuple(['test']), np.ones((4,2)))
+
+        # this is ok
+        df['foo2'] = np.ones((4,2)).tolist()
+
+
     def test_constructor_dtype_nocast_view(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
@@ -3232,6 +3245,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         rs = df.to_records(convert_datetime64=False)
         self.assert_(rs['index'][0] == df.index.values[0])
+
+    def test_to_records_with_Mapping_type(self):
+        import email
+        from email.parser import Parser
+        import collections
+
+        collections.Mapping.register(email.message.Message)
+
+        headers = Parser().parsestr('From: <user@example.com>\n'
+                'To: <someone_else@example.com>\n'
+                'Subject: Test message\n'
+                '\n'
+                'Body would go here\n')
+
+        frame = DataFrame.from_records([headers])
+        all( x in frame for x in ['Type','Subject','From'])
 
     def test_from_records_to_records(self):
         # from numpy documentation
@@ -7235,6 +7264,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         combined = frame1.combine_first(frame2)
         self.assertEqual(len(combined.columns), 5)
 
+        # gh 3016 (same as in update)
+        df = DataFrame([[1.,2.,False, True],[4.,5.,True,False]],
+                       columns=['A','B','bool1','bool2'])
+
+        other = DataFrame([[45,45]],index=[0],columns=['A','B'])
+        result = df.combine_first(other)
+        assert_frame_equal(result, df)
+        
+        df.ix[0,'A'] = np.nan
+        result = df.combine_first(other)
+        df.ix[0,'A'] = 45
+        assert_frame_equal(result, df)
+
+        # doc example
+        df1 = DataFrame({'A' : [1., np.nan, 3., 5., np.nan],
+                         'B' : [np.nan, 2., 3., np.nan, 6.]})
+   
+        df2 = DataFrame({'A' : [5., 2., 4., np.nan, 3., 7.],
+                         'B' : [np.nan, np.nan, 3., 4., 6., 8.]})
+   
+        result = df1.combine_first(df2)
+        expected = DataFrame({ 'A' : [1,2,3,5,3,7.], 'B' : [np.nan,2,3,4,6,8] })
+        assert_frame_equal(result,expected)
+
     def test_update(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],
@@ -7250,6 +7303,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               [3.6, 2, 3],
                               [1.5, nan, 3],
                               [1.5, nan, 7.]])
+        assert_frame_equal(df, expected)
+
+    def test_update_dtypes(self):
+
+        # gh 3016
+        df = DataFrame([[1.,2.,False, True],[4.,5.,True,False]],
+                       columns=['A','B','bool1','bool2'])
+
+        other = DataFrame([[45,45]],index=[0],columns=['A','B'])
+        df.update(other)
+
+        expected = DataFrame([[45.,45.,False, True],[4.,5.,True,False]],
+                             columns=['A','B','bool1','bool2'])
         assert_frame_equal(df, expected)
 
     def test_update_nooverwrite(self):
@@ -8216,6 +8282,41 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             data = data.unstack()
         assert_frame_equal(old_data, data)
 
+    def test_unstack_dtypes(self):
+
+        # GH 2929
+        rows = [[1, 1, 3, 4],
+                [1, 2, 3, 4],
+                [2, 1, 3, 4],
+                [2, 2, 3, 4]]
+        
+        df = DataFrame(rows, columns=list('ABCD'))
+        result = df.get_dtype_counts()
+        expected = Series({'int64' : 4})
+        assert_series_equal(result, expected)
+
+        # single dtype
+        df2 = df.set_index(['A','B'])
+        df3 = df2.unstack('B')
+        result = df3.get_dtype_counts()
+        expected = Series({'int64' : 4})
+        assert_series_equal(result, expected)
+
+        # mixed
+        df2 = df.set_index(['A','B'])
+        df2['C'] = 3.
+        df3 = df2.unstack('B')
+        result = df3.get_dtype_counts()
+        expected = Series({'int64' : 2, 'float64' : 2})
+        assert_series_equal(result, expected)
+
+        df2['D'] = 'foo'
+        df3 = df2.unstack('B')
+        result = df3.get_dtype_counts()
+        expected = Series({'float64' : 2, 'object' : 2})
+        assert_series_equal(result, expected)
+
+
     def test_reset_index(self):
         stacked = self.frame.stack()[::2]
         stacked = DataFrame({'foo': stacked, 'bar': stacked})
@@ -8575,6 +8676,33 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df1[df1 > 2.0 * df2] = -1
         assert_frame_equal(df1, expected)
 
+    def test_boolean_indexing_mixed(self):
+        df = DataFrame(
+            {0L: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+             1L: {35: np.nan,
+                  40: 0.32632316859446198,
+                  43: np.nan,
+                  49: 0.32632316859446198,
+                  50: 0.39114724480578139},
+             2L: {35: np.nan, 40: np.nan, 43: 0.29012581014105987, 49: np.nan, 50: np.nan},
+             3L: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+             4L: {35: 0.34215328467153283, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},
+             'y': {35: 0, 40: 0, 43: 0, 49: 0, 50: 1}})
+        
+        # mixed int/float ok
+        df2 = df.copy()
+        df2[df2>0.3] = 1
+        expected = df.copy()
+        expected.loc[40,1] = 1
+        expected.loc[49,1] = 1
+        expected.loc[50,1] = 1
+        expected.loc[35,4] = 1
+        assert_frame_equal(df2,expected)
+
+        # add object, should this raise?
+        df['foo'] = 'test'
+        self.assertRaises(ValueError, df.__setitem__, df>0.3, 1)
+
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
         bools = isnull(df)
@@ -8589,12 +8717,43 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df.columns.tolist() == filled.columns.tolist())
 
     def test_take(self):
+
         # homogeneous
         #----------------------------------------
+        order  = [3, 1, 2, 0]
+        for df in [self.frame]:
+
+            result = df.take(order, axis=0)
+            expected = df.reindex(df.index.take(order))
+            assert_frame_equal(result, expected)
+
+            # axis = 1
+            result = df.take(order, axis=1)
+            expected = df.ix[:, ['D', 'B', 'C', 'A']]
+            assert_frame_equal(result, expected, check_names=False)
+
+        # neg indicies
+        order = [2,1,-1]
+        for df in [self.frame]:
+
+            result = df.take(order, axis=0)
+            expected = df.reindex(df.index.take(order))
+            assert_frame_equal(result, expected)
+
+            # axis = 1
+            result = df.take(order, axis=1)
+            expected = df.ix[:, ['C', 'B', 'D']]
+            assert_frame_equal(result, expected, check_names=False)
+
+        # illegal indices
+        self.assertRaises(IndexError, df.take, [3,1,2,30], axis=0)
+        self.assertRaises(IndexError, df.take, [3,1,2,-31], axis=0)
+        self.assertRaises(IndexError, df.take, [3,1,2,5], axis=1)
+        self.assertRaises(IndexError, df.take, [3,1,2,-5], axis=1)
 
         # mixed-dtype
         #----------------------------------------
-        order = [4, 1, 2, 0, 3]
+        order  = [4, 1, 2, 0, 3]
         for df in [self.mixed_frame]:
 
             result = df.take(order, axis=0)
@@ -8604,6 +8763,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             # axis = 1
             result = df.take(order, axis=1)
             expected = df.ix[:, ['foo', 'B', 'C', 'A', 'D']]
+            assert_frame_equal(result, expected)
+
+        # neg indicies 
+        order = [4,1,-2]
+        for df in [self.mixed_frame]:
+
+            result = df.take(order, axis=0)
+            expected = df.reindex(df.index.take(order))
+            assert_frame_equal(result, expected)
+
+            # axis = 1
+            result = df.take(order, axis=1)
+            expected = df.ix[:, ['foo', 'B', 'D']]
             assert_frame_equal(result, expected)
 
         # by dtype

@@ -4,8 +4,9 @@ from datetime import datetime
 from numpy import nan
 import numpy as np
 
+from pandas.core.common import _possibly_downcast_to_dtype
 from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
-from pandas.core.indexing import _check_slice_bounds
+from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -560,6 +561,9 @@ class NumericBlock(Block):
     is_numeric = True
     _can_hold_na = True
 
+    def _try_cast_result(self, result):
+        return _possibly_downcast_to_dtype(result, self.dtype)
+
 class FloatBlock(NumericBlock):
 
     def _can_hold_element(self, element):
@@ -608,20 +612,6 @@ class IntBlock(NumericBlock):
         except:  # pragma: no cover
             return element
 
-    def _try_cast_result(self, result):
-        # this is quite restrictive to convert
-        try:
-            if (isinstance(result, np.ndarray) and
-                    issubclass(result.dtype.type, np.floating)):
-                if com.notnull(result).all():
-                    new_result = result.astype(self.dtype)
-                    if (new_result == result).all():
-                        return new_result
-        except:
-            pass
-
-        return result
-
     def should_store(self, value):
         return com.is_integer_dtype(value) and value.dtype == self.dtype
 
@@ -638,6 +628,9 @@ class BoolBlock(Block):
             return bool(element)
         except:  # pragma: no cover
             return element
+
+    def _try_cast_result(self, result):
+        return _possibly_downcast_to_dtype(result, self.dtype)
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
@@ -987,6 +980,16 @@ class BlockManager(object):
         self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
 
+    @property
+    def is_mixed_type(self):
+        self._consolidate_inplace()
+        return len(self.blocks) > 1
+
+    @property
+    def is_numeric_mixed_type(self):
+        self._consolidate_inplace()
+        return all([ block.is_numeric for block in self.blocks ])
+
     def get_numeric_data(self, copy=False, type_list=None, as_blocks = False):
         """
         Parameters
@@ -1234,9 +1237,10 @@ class BlockManager(object):
         return BlockManager(new_blocks, self.axes)
 
     def _consolidate_inplace(self):
-        self.blocks = _consolidate(self.blocks, self.items)
-        self._is_consolidated = True
-        self._known_consolidated = True
+        if not self.is_consolidated():
+            self.blocks = _consolidate(self.blocks, self.items)
+            self._is_consolidated = True
+            self._known_consolidated = True
 
     def get(self, item):
         _, block = self._find_block(item)
@@ -1334,11 +1338,22 @@ class BlockManager(object):
         if item in self.items:
             raise Exception('cannot insert %s, already exists' % item)
 
-        new_items = self.items.insert(loc, item)
-        self.set_items_norename(new_items)
+        try:
+            new_items = self.items.insert(loc, item)
+            self.set_items_norename(new_items)
 
-        # new block
-        self._add_new_block(item, value, loc=loc)
+            # new block
+            self._add_new_block(item, value, loc=loc)
+
+        except:
+
+            # so our insertion operation failed, so back out of the new items
+            # GH 3010
+            new_items = self.items.delete(loc)
+            self.set_items_norename(new_items)
+            
+            # re-raise
+            raise
 
         if len(self.blocks) > 100:
             self._consolidate_inplace()
@@ -1506,13 +1521,16 @@ class BlockManager(object):
         na_block = make_block(block_values, items, ref_items)
         return na_block
 
-    def take(self, indexer, axis=1):
+    def take(self, indexer, axis=1, verify=True):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
         indexer = com._ensure_platform_int(indexer)
-
         n = len(self.axes[axis])
+
+        if verify:
+           indexer = _maybe_convert_indices(indexer, n) 
+
         if ((indexer == -1) | (indexer >= n)).any():
             raise Exception('Indices must be nonzero and less than '
                             'the axis length')

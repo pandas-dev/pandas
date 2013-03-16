@@ -479,6 +479,44 @@ class TestDataFrameFormatting(unittest.TestCase):
         repr(df.T)
         fmt.set_printoptions(max_rows=200)
 
+    def test_large_frame_repr(self):
+        def wrap_rows_options(f):
+            def _f(*args, **kwargs):
+                old_max_rows = pd.get_option('display.max_rows')
+                old_max_info_rows = pd.get_option('display.max_info_rows')
+                o = f(*args, **kwargs)
+                pd.set_option('display.max_rows', old_max_rows)
+                pd.set_option('display.max_info_rows', old_max_info_rows)
+                return o
+            return _f
+
+        @wrap_rows_options
+        def test_setting(value, nrows=3, ncols=2):
+            if value is None:
+                expected_difference = 0
+            elif isinstance(value, int):
+                expected_difference = ncols
+            else:
+                raise ValueError("'value' must be int or None")
+
+            pd.set_option('display.max_rows', nrows - 1)
+            pd.set_option('display.max_info_rows', value)
+
+            smallx = DataFrame(np.random.rand(nrows, ncols))
+            repr_small = repr(smallx)
+
+            bigx = DataFrame(np.random.rand(nrows + 1, ncols))
+            repr_big = repr(bigx)
+
+            diff = len(repr_small.splitlines()) - len(repr_big.splitlines())
+
+            # the difference in line count is the number of columns
+            self.assertEqual(diff, expected_difference)
+
+        test_setting(None)
+        test_setting(3)
+        self.assertRaises(ValueError, test_setting, 'string')
+
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
@@ -603,6 +641,31 @@ class TestDataFrameFormatting(unittest.TestCase):
         nmatches = len(re.findall('dtype',str_rep))
         self.assert_(nmatches == 1)
 
+    def test_index_with_nan(self):
+        #  GH 2850
+        df = DataFrame({'id1': {0: '1a3', 1: '9h4'}, 'id2': {0: np.nan, 1: 'd67'},
+                        'id3': {0: '78d', 1: '79d'}, 'value': {0: 123, 1: 64}})
+
+        # multi-index
+        y = df.set_index(['id1', 'id2', 'id3'])
+        result = y.to_string()
+        expected = u'             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64'
+        self.assert_(result == expected)
+
+        # index
+        y = df.set_index('id2')
+        result = y.to_string()
+        expected = u'     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nd67  9h4  79d     64'
+        self.assert_(result == expected)
+
+        # all-nan in mi
+        df2 = df.copy()
+        df2.ix[:,'id2'] = np.nan
+        y = df2.set_index('id2')
+        result = y.to_string()
+        expected = u'     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nNaN  9h4  79d     64'
+        self.assert_(result == expected)
+        
     def test_to_string(self):
         from pandas import read_table
         import re
@@ -1234,8 +1297,14 @@ class TestSeriesFormatting(unittest.TestCase):
         result = s.to_string()
         self.assertTrue('2013-01-02' in result)
 
-        s = Series(2, index=[ Timestamp('20130111'), NaT ]).append(s)
+        # nat in index
+        s2 = Series(2, index=[ Timestamp('20130111'), NaT ])
+        s = s2.append(s)
         result = s.to_string()
+        self.assertTrue('NaT' in result)
+
+        # nat in summary
+        result = str(s2.index)
         self.assertTrue('NaT' in result)
 
     def test_timedelta64(self):

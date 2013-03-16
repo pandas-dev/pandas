@@ -30,6 +30,7 @@ pandas 0.11.0
 **New features**
 
   - New documentation section, ``10 Minutes to Pandas``
+  - New documentation section, ``Cookbook``
   - Allow mixed dtypes (e.g ``float32/float64/int32/int16/int8``) to coexist in
     DataFrames and propogate in operations
   - Add function to pandas.io.data for retrieving stock index components from
@@ -37,7 +38,7 @@ pandas 0.11.0
   - Add ``squeeze`` function to reduce dimensionality of 1-len objects
   - Support slicing with time objects (GH2681_)
   - Added ``.iloc`` attribute, to support strict integer based indexing, analagous to ``.ix`` (GH2922_)
-  - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix``
+  - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix`` (GH3053_)
   - Added ``.iat``  attribute, to support fast scalar access via integers (replaces ``iget_value/iset_value``)
   - Added ``.at``   attribute, to support fast scalar access via labels (replaces ``get_value/set_value``)
   - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer 
@@ -61,6 +62,7 @@ pandas 0.11.0
     strings that can be parsed with datetime.strptime
   - Add ``axes`` property to ``Series`` for compatibility 
   - Add ``xs`` function to ``Series`` for compatibility 
+  - Allow setitem in a frame where only mixed numerics are present (e.g. int and float), (GH3037_)
 
 **API Changes**
 
@@ -140,7 +142,16 @@ pandas 0.11.0
   - Bug in value_counts of ``datetime64[ns]`` Series (GH3002_)
   - Fixed printing of ``NaT` in an index
   - Bug in idxmin/idxmax of ``datetime64[ns]`` Series with ``NaT`` (GH2982__)
-  - Bug in ``icol`` with negative indicies was incorrect producing incorrect return values (see GH2922_)
+  - Bug in ``icol, take`` with negative indicies was producing incorrect return 
+    values (see GH2922_, GH2892_), also check for out-of-bounds indices (GH3029_)
+  - Bug in DataFrame column insertion when the column creation fails, existing frame is left in
+    an irrecoverable state (GH3010_)
+  - Bug in DataFrame update, combine_first where non-specified values could cause 
+    dtype changes (GH3016_, GH3041_)
+  - Bug in groupby with first/last where dtypes could change (GH3041_)
+  - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from 
+    other values), (GH2850_)
+  - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -157,16 +168,24 @@ pandas 0.11.0
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2849: https://github.com/pydata/pandas/issues/2849
+.. _GH2850: https://github.com/pydata/pandas/issues/2850
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
+.. _GH2892: https://github.com/pydata/pandas/issues/2892
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 .. _GH2922: https://github.com/pydata/pandas/issues/2922
+.. _GH2929: https://github.com/pydata/pandas/issues/2929
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
 .. _GH2967: https://github.com/pydata/pandas/issues/2967
 .. _GH2982: https://github.com/pydata/pandas/issues/2982
 .. _GH2989: https://github.com/pydata/pandas/issues/2989
 .. _GH3002: https://github.com/pydata/pandas/issues/3002
+.. _GH3010: https://github.com/pydata/pandas/issues/3010
 .. _GH3012: https://github.com/pydata/pandas/issues/3012
+.. _GH3029: https://github.com/pydata/pandas/issues/3029
+.. _GH3037: https://github.com/pydata/pandas/issues/3037
+.. _GH3041: https://github.com/pydata/pandas/issues/3041
+.. _GH3053: https://github.com/pydata/pandas/issues/3053
 
 
 pandas 0.10.1

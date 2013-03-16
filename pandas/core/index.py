@@ -173,9 +173,9 @@ class Index(np.ndarray):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
         """
         if len(self) > 6 and len(self) > np.get_printoptions()['threshold']:
-            data = self[:3].tolist() + ["..."] + self[-3:].tolist()
+            data = self[:3].format() + ["..."] + self[-3:].format()
         else:
-            data = self
+            data = self.format()
 
         prepr = com.pprint_thing(data, escape_chars=('\t', '\r', '\n'))
         return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
@@ -247,8 +247,14 @@ class Index(np.ndarray):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
-                                            com.pprint_thing(self[-1]))
+            head = self[0]
+            if hasattr(head,'format'):
+                head = head.format()
+            tail = self[-1]
+            if hasattr(tail,'format'):
+                tail = tail.format()
+            index_summary = ', %s to %s' % (com.pprint_thing(head),
+                                            com.pprint_thing(tail))
         else:
             index_summary = ''
 
@@ -419,7 +425,7 @@ class Index(np.ndarray):
         taken = self.view(np.ndarray).take(indexer)
         return self._constructor(taken, name=self.name)
 
-    def format(self, name=False, formatter=None):
+    def format(self, name=False, formatter=None, na_rep='NaN'):
         """
         Render a string representation of the Index
         """
@@ -454,6 +460,14 @@ class Index(np.ndarray):
         if values.dtype == np.object_:
             result = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
                       for x in values]
+
+            # could have nans
+            mask = isnull(values)
+            if mask.any():
+                result = np.array(result)
+                result[mask] = na_rep
+                result = result.tolist()
+
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
@@ -1446,10 +1460,9 @@ class MultiIndex(Index):
         np.set_printoptions(threshold=50)
 
         if len(self) > 100:
-            values = np.concatenate([self[:50].values,
-                                     self[-50:].values])
+            values = self[:50].format() + self[-50:].format()
         else:
-            values = self.values
+            values = self.format()
 
         summary = com.pprint_thing(values, escape_chars=('\t', '\r', '\n'))
 
@@ -1618,7 +1631,16 @@ class MultiIndex(Index):
         stringified_levels = []
         for lev, lab in zip(self.levels, self.labels):
             if len(lev) > 0:
+
                 formatted = lev.take(lab).format(formatter=formatter)
+
+                # we have some NA
+                mask = lab==-1
+                if mask.any():
+                    formatted = np.array(formatted)
+                    formatted[mask] = na_rep
+                    formatted = formatted.tolist()
+
             else:
                 # weird all NA case
                 formatted = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))

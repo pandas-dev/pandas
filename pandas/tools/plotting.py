@@ -1043,7 +1043,7 @@ class LinePlot(MPLPlot):
             if (base <= freqmod.FreqGroup.FR_DAY):
                 return x[:1].is_normalized
 
-            return Period(x[0], freq).to_timestamp() == x[0]
+            return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
         return True
 
     def _use_dynamic_x(self):

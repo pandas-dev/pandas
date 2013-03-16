@@ -1138,11 +1138,14 @@ defaults to `nan`.
 
 .. ipython:: python
 
-    df_mixed             = df.copy()
-    df_mixed['string']   = 'string'
-    df_mixed['int']      = 1
-    df_mixed['bool']     = True
-    df_mixed['datetime64'] = Timestamp('20010102')
+    df_mixed = DataFrame({ 'A' : randn(8),
+                           'B' : randn(8),
+                           'C' : np.array(randn(8),dtype='float32'),
+                           'string' :'string',
+                           'int' : 1,
+                           'bool' : True,
+                           'datetime64' : Timestamp('20010102')},
+                         index=range(8))
     df_mixed.ix[3:5,['A', 'B', 'string', 'datetime64']] = np.nan
 
     store.append('df_mixed', df_mixed, min_itemsize = {'values': 50})
@@ -1445,8 +1448,7 @@ may not be installed (by Python) by default.
 
 Compression for all objects within the file
 
-   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9,
-                                    complib='blosc')``
+   - ``store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')``
 
 Or on-the-fly compression (this only applies to tables). You can turn
 off file compression for a specific table by passing ``complevel=0``
@@ -1713,9 +1715,9 @@ engine. You can use a temporary SQLite database where data are stored in
                                    Col_2 float,
                                    Col_3 bool);""")
    cu.executemany('INSERT INTO data VALUES (?,?,?,?,?)',
-                  [(26, datetime(2010,10,18), 'X', 27.5, True),
-                   (42, datetime(2010,10,19), 'Y', -12.5, False),
-                   (63, datetime(2010,10,20), 'Z', 5.73, True)])
+                  [(26, datetime.datetime(2010,10,18), 'X', 27.5, True),
+                   (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
+                   (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)])
 
 
 Let ``data`` be the name of your SQL table. With a query and your database

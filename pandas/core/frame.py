@@ -17,6 +17,7 @@ from StringIO import StringIO
 import csv
 import operator
 import sys
+import collections
 
 from numpy import nan as NA
 import numpy as np
@@ -28,7 +29,8 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
-                                  _is_index_slice, _check_bool_indexer)
+                                  _is_index_slice, _check_bool_indexer,
+                                  _maybe_convert_indices)
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
@@ -52,7 +54,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.algos as _algos
 
-from pandas.core.config import get_option
+from pandas.core.config import get_option, set_option
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -331,7 +333,6 @@ def _comp_method(func, name, str_rep):
 
 class DataFrame(NDFrame):
     _auto_consolidate = True
-    _verbose_info = True
     _het_axis = 1
     _info_axis = 'columns'
     _col_klass = Series
@@ -413,7 +414,7 @@ class DataFrame(NDFrame):
                 if index is None and isinstance(data[0], Series):
                     index = _get_names_from_index(data)
 
-                if isinstance(data[0], (list, tuple, dict, Series)):
+                if isinstance(data[0], (list, tuple, collections.Mapping, Series)):
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
@@ -561,6 +562,22 @@ class DataFrame(NDFrame):
         return self._constructor(arr, index=index, columns=columns, copy=copy)
 
     @property
+    def _verbose_info(self):
+        import warnings
+        warnings.warn('The _verbose_info property will be removed in version '
+                      '0.12', FutureWarning)
+        return get_option('display.max_info_rows') is None
+
+    @_verbose_info.setter
+    def _verbose_info(self, value):
+        import warnings
+        warnings.warn('The _verbose_info property will be removed in version '
+                      '0.12', FutureWarning)
+
+        value = None if value else 1000000
+        set_option('display.max_info_rows', value)
+
+    @property
     def axes(self):
         return [self.index, self.columns]
 
@@ -652,7 +669,9 @@ class DataFrame(NDFrame):
         """
         buf = StringIO(u"")
         if self._need_info_repr_():
-            self.info(buf=buf, verbose=self._verbose_info)
+            max_info_rows = get_option('display.max_info_rows')
+            verbose = max_info_rows is None or self.shape[0] <= max_info_rows
+            self.info(buf=buf, verbose=verbose)
         else:
             is_wide = self._need_wide_repr()
             line_width = None
@@ -1928,11 +1947,6 @@ class DataFrame(NDFrame):
                 label = self.columns[i]
                 if isinstance(label, Index):
 
-                    # if we have negative indicies, translate to postive here 
-                    # (take doesen't deal properly with these)
-                    l = len(self.columns)
-                    i = [ v if v >= 0 else l+v for v in i ]
-                    
                     return self.take(i, axis=1)
 
                 values = self._data.iget(i)
@@ -2108,7 +2122,8 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
 
         if self._is_mixed_type:
-            raise ValueError('Cannot do boolean setting on mixed-type frame')
+            if not self._is_numeric_mixed_type:
+                raise ValueError('Cannot do boolean setting on mixed-type frame')
 
         self.where(-key, value, inplace=True)
 
@@ -2911,11 +2926,13 @@ class DataFrame(NDFrame):
         -------
         taken : DataFrame
         """
-        if isinstance(indices, list):
-            indices = np.array(indices)
+
+        # check/convert indicies here
+        indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+
         if self._is_mixed_type:
             if axis == 0:
-                new_data = self._data.take(indices, axis=1)
+                new_data = self._data.take(indices, axis=1, verify=False)
                 return DataFrame(new_data)
             else:
                 new_columns = self.columns.take(indices)
@@ -3725,7 +3742,7 @@ class DataFrame(NDFrame):
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns, copy=False)
 
-    def combine(self, other, func, fill_value=None):
+    def combine(self, other, func, fill_value=None, overwrite=True):
         """
         Add two DataFrame objects and do not propagate NaN values, so if for a
         (column, time) one frame is missing a value, it will default to the
@@ -3736,6 +3753,8 @@ class DataFrame(NDFrame):
         other : DataFrame
         func : function
         fill_value : scalar value
+        overwrite : boolean, default True
+            If True then overwrite values for common keys in the calling frame
 
         Returns
         -------
@@ -3762,9 +3781,16 @@ class DataFrame(NDFrame):
             series = this[col].values
             otherSeries = other[col].values
 
+            this_mask = isnull(series)
+            other_mask = isnull(otherSeries)
+
+            # don't overwrite columns unecessarily
+            # DO propogate if this column is not in the intersection
+            if not overwrite and other_mask.all():
+                result[col] = this[col].copy()
+                continue
+
             if do_fill:
-                this_mask = isnull(series)
-                other_mask = isnull(otherSeries)
                 series = series.copy()
                 otherSeries = otherSeries.copy()
                 series[this_mask] = fill_value
@@ -3800,7 +3826,7 @@ class DataFrame(NDFrame):
         combined : DataFrame
         """
         combiner = lambda x, y: np.where(isnull(x), y, x)
-        return self.combine(other, combiner)
+        return self.combine(other, combiner, overwrite=False)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
                raise_conflict=False):
@@ -3843,8 +3869,13 @@ class DataFrame(NDFrame):
 
                 if overwrite:
                     mask = isnull(that)
+
+                    # don't overwrite columns unecessarily
+                    if mask.all():
+                        continue
                 else:
                     mask = notnull(this)
+
             self[col] = np.where(mask, this, that)
 
     #----------------------------------------------------------------------
@@ -5498,7 +5529,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], dict):
+    elif isinstance(data[0], collections.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float,
                                        dtype=dtype)

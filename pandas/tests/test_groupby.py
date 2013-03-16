@@ -163,21 +163,25 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(com.isnull(grouped['B'].nth(0)['foo']))
 
     def test_first_last_nth_dtypes(self):
-        # tests for first / last / nth
 
-        grouped = self.df_mixed_floats.groupby('A')
+        df = self.df_mixed_floats.copy()
+        df['E'] = True
+        df['F'] = 1
+
+        # tests for first / last / nth
+        grouped = df.groupby('A')
         first = grouped.first()
-        expected = self.df_mixed_floats.ix[[1, 0], ['B', 'C', 'D']]
+        expected = df.ix[[1, 0], ['B', 'C', 'D', 'E', 'F']]
         expected.index = ['bar', 'foo']
         assert_frame_equal(first, expected, check_names=False)
 
         last = grouped.last()
-        expected = self.df_mixed_floats.ix[[5, 7], ['B', 'C', 'D']]
+        expected = df.ix[[5, 7], ['B', 'C', 'D', 'E', 'F']]
         expected.index = ['bar', 'foo']
         assert_frame_equal(last, expected, check_names=False)
 
         nth = grouped.nth(1)
-        expected = self.df_mixed_floats.ix[[3, 2], ['B', 'C', 'D']]
+        expected = df.ix[[3, 2], ['B', 'C', 'D', 'E', 'F']]
         expected.index = ['bar', 'foo']
         assert_frame_equal(nth, expected, check_names=False)
 
