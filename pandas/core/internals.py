@@ -880,10 +880,23 @@ class BlockManager(object):
                                  'block items')
 
     def apply(self, f, *args, **kwargs):
-        """ iterate over the blocks, collect and create a new block manager """
+        """ iterate over the blocks, collect and create a new block manager
+        
+        Parameters
+        ----------
+        f : the callable or function name to operate on at the block level
+        axes : optional (if not supplied, use self.axes)
+        filter : callable, if supplied, only call the block if the filter is True
+        """
+
         axes = kwargs.pop('axes',None)
+        filter = kwargs.pop('filter',None)
         result_blocks = []
         for blk in self.blocks:
+            if filter is not None:
+                if not blk.items.isin(filter).any():
+                    result_blocks.append(blk)
+                    continue
             if callable(f):
                 applied = f(blk, *args, **kwargs)
             else:

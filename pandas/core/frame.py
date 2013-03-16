@@ -3467,14 +3467,21 @@ class DataFrame(NDFrame):
             if len(self.columns) == 0:
                 return self
 
+            new_data = self._data
             if isinstance(to_replace, dict):
                 if isinstance(value, dict):  # {'A' : NA} -> {'A' : 0}
-                    return self._replace_both_dict(to_replace, value, inplace)
+                    new_data = self._data
+                    for c, src in to_replace.iteritems():
+                        if c in value and c in self:
+                            new_data = new_data.replace(src, value[c], filter = [ c ], inplace=inplace)
 
                 elif not isinstance(value, (list, np.ndarray)):
-                    return self._replace_src_dict(to_replace, value, inplace)
-
-                raise ValueError('Fill value must be scalar or dict')
+                    new_data = self._data
+                    for k, src in to_replace.iteritems():
+                        if k in self:
+                            new_data = new_data.replace(src, value, filter = [ k ], inplace=inplace)
+                else:
+                    raise ValueError('Fill value must be scalar or dict')
 
             elif isinstance(to_replace, (list, np.ndarray)):
                 # [NA, ''] -> [0, 'missing']
@@ -3491,25 +3498,29 @@ class DataFrame(NDFrame):
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace)
 
-                if inplace:
-                    self._data = new_data
-                    return self
-                else:
-                    return self._constructor(new_data)
             else:
+
+                # dest iterable dict-like
                 if isinstance(value, dict):  # NA -> {'A' : 0, 'B' : -1}
-                    return self._replace_dest_dict(to_replace, value, inplace)
+
+                    new_data = self._data
+                    for k, v in value.iteritems():
+                        if k in self:
+                            new_data = new_data.replace(to_replace, v, filter = [ k ], inplace=inplace)
+
                 elif not isinstance(value, (list, np.ndarray)):  # NA -> 0
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace)
-                    if inplace:
-                        self._data = new_data
-                        return self
-                    else:
-                        return self._constructor(new_data)
+                else:
+                    raise ValueError('Invalid to_replace type: %s' %
+                                     type(to_replace))  # pragma: no cover
 
-            raise ValueError('Invalid to_replace type: %s' %
-                             type(to_replace))  # pragma: no cover
+
+        if inplace:
+            self._data = new_data
+            return self
+        else:
+            return self._constructor(new_data)
 
     def _interpolate(self, to_replace, method, axis, inplace, limit):
         if self._is_mixed_type and axis == 1:
@@ -3542,27 +3553,6 @@ class DataFrame(NDFrame):
                 self._data = new_data
             else:
                 return self._constructor(new_data)
-
-    def _replace_dest_dict(self, to_replace, value, inplace):
-        rs = self if inplace else self.copy()
-        for k, v in value.iteritems():
-            if k in rs:
-                rs[k].replace(to_replace, v, inplace=True)
-        return rs if not inplace else None
-
-    def _replace_src_dict(self, to_replace, value, inplace):
-        rs = self if inplace else self.copy()
-        for k, src in to_replace.iteritems():
-            if k in rs:
-                rs[k].replace(src, value, inplace=True)
-        return rs if not inplace else None
-
-    def _replace_both_dict(self, to_replace, value, inplace):
-        rs = self if inplace else self.copy()
-        for c, src in to_replace.iteritems():
-            if c in value and c in rs:
-                rs[c].replace(src, value[c], inplace=True)
-        return rs if not inplace else None
 
     #----------------------------------------------------------------------
     # Rename

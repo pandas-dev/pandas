@@ -5621,6 +5621,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.replace([1,2], ['foo','bar'])
         assert_frame_equal(result,expected)
 
+        # test case from 
+        from pandas.util.testing import makeCustomDataframe as mkdf
+        df = DataFrame({'A' : Series([3,0],dtype='int64'), 'B' : Series([0,3],dtype='int64') })
+        result = df.replace(3, df.mean().to_dict())
+        expected = df.copy().astype('float64')
+        m = df.mean()
+        expected.iloc[0,0] = m[0]
+        expected.iloc[1,1] = m[1]
+        assert_frame_equal(result,expected)
+
     def test_replace_interpolate(self):
         padded = self.tsframe.replace(nan, method='pad')
         assert_frame_equal(padded, self.tsframe.fillna(method='pad'))
