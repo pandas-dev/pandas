@@ -54,6 +54,7 @@ cpdef ensure_platform_int(object arr):
 
 
 take_1d_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
                               ndarray[int64_t] indexer,
                               out, fill_value=np.nan):
@@ -63,12 +64,15 @@ def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
         %(c_type_out)s fv
 
     n = len(indexer)
+    m = len(values)
 
     fv = fill_value
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
             outbuf[i] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             outbuf[i] = %(preval)svalues[idx]%(postval)s
 
@@ -85,6 +89,7 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         %(c_type_out)s fv
 
     n = len(indexer)
+    m = values.shape[0]
     k = values.shape[1]
 
     fv = fill_value
@@ -99,6 +104,8 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                 if idx == -1:
                     for j from 0 <= j < k:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= m:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[idx, 0]
                     o = &outbuf[i, 0]
@@ -110,6 +117,8 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         if idx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
                 outbuf[i, j] = %(preval)svalues[idx, j]%(postval)s
@@ -128,6 +137,7 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
+    l = values.shape[1]
     
     fv = fill_value
 
@@ -141,6 +151,8 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                 if idx == -1:
                     for i from 0 <= i < n:
                         outbuf[i, j] = fv
+                elif idx < 0 or idx >= l:
+                    raise IndexError('Index out of range')
                 else:
                     v = &values[0, idx]
                     o = &outbuf[0, j]
@@ -152,6 +164,8 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         if idx == -1:
             for i from 0 <= i < n:
                 outbuf[i, j] = fv
+        elif idx < 0 or idx >= l:
+            raise IndexError('Index out of range')
         else:
             for i from 0 <= i < n:
                 outbuf[i, j] = %(preval)svalues[i, idx]%(postval)s
@@ -164,27 +178,35 @@ def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                                     indexer,
                                     out, fill_value=np.nan):
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, ridx, cidx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
         ndarray[%(c_type_out)s, ndim=2] outbuf = out
         %(c_type_out)s fv
 
     n = len(idx0)
+    m = values.shape[0]
     k = len(idx1)
+    l = values.shape[1]
 
     fv = fill_value
+
     for i from 0 <= i < n:
-        idx = idx0[i]
-        if idx == -1:
+        ridx = idx0[i]
+        if ridx == -1:
             for j from 0 <= j < k:
                 outbuf[i, j] = fv
+        elif ridx < 0 or ridx >= m:
+            raise IndexError('Index out of range')
         else:
             for j from 0 <= j < k:
-                if idx1[j] == -1:
+                cidx = idx1[j]
+                if cidx == -1:
                     outbuf[i, j] = fv
+                elif i == 0 and (cidx < 0 or cidx >= l):
+                    raise IndexError('Index out of range')
                 else:
-                    outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
+                    outbuf[i, j] = %(preval)svalues[ridx, cidx]%(postval)s
 
 """
 
