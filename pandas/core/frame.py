@@ -1314,7 +1314,7 @@ class DataFrame(NDFrame):
                     if float_format:
                         values[imask] = np.array([ float_format % val for val in v[imask] ])
 
-            series[k] = values
+            series[k] = values.tolist()
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or header:

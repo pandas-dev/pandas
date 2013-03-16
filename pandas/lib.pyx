@@ -789,47 +789,41 @@ def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, obje
 
 def write_csv_rows(dict series, list data_index, int nlevels, list cols, object writer):
 
-    cdef int N, j, i
-    cdef list rows, all_cols
+    cdef int N, j, i, ncols
+    cdef list rows
     cdef object val
 
     # In crude testing, N>100 yields little marginal improvement
     N=100
 
     # pre-allocate  rows
-    rows = [[None]*(nlevels+len(cols)) for x in range(N)]
-
-    all_cols = []
-    if len(cols) < 10000: # 10000 as in "usually"
-        all_cols = list(enumerate(cols))
+    ncols = len(cols)
+    rows = [[None]*(nlevels+ncols) for x in range(N)]
 
     j = -1
     if nlevels == 1:
-        for j, idx in enumerate(data_index):
+        for j in range(len(data_index)):
             row = rows[j % N]
-            row[0] = idx
-            for i, col in (all_cols or enumerate(cols)):
-                val = series[col][j]
-                row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
+            row[0] = data_index[j]
+            for i in range(ncols):
+                row[nlevels+i] = series[cols[i]][j]
 
             if j >= N-1 and j % N == N-1:
                 writer.writerows(rows)
     elif nlevels > 1:
-        for j, idx in enumerate(data_index):
+        for j in range(len(data_index)):
             row = rows[j % N]
-            row[:nlevels] = list(idx)
-            for i, col in (all_cols or enumerate(cols)):
-                val = series[col][j]
-                row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
+            row[:nlevels] = list(data_index[j])
+            for i in range(ncols):
+                row[nlevels+i] = series[cols[i]][j]
 
             if j >= N-1 and j % N == N-1:
                 writer.writerows(rows)
     else:
-        for j, idx in enumerate(data_index):
+        for j in range(len(data_index)):
             row = rows[j % N]
-            for i, col in (all_cols or enumerate(cols)):
-                val = series[col][j]
-                row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
+            for i in range(ncols):
+                row[nlevels+i] = series[cols[i]][j]
 
             if j >= N-1 and j % N == N-1:
                 writer.writerows(rows)
