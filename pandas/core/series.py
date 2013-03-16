@@ -732,13 +732,8 @@ class Series(pa.Array, generic.PandasObject):
         if len(other) != len(ser):
             raise ValueError('Length of replacements must equal series length')
 
-        result, changed = com._maybe_upcast_putmask(ser,~cond,other)
-        if changed:
-
-            # need to actually change ser here
-            if inplace:
-                ser.dtype = result.dtype
-                ser[:] = result
+        change = ser if inplace else None
+        result, changed = com._maybe_upcast_putmask(ser,~cond,other,change=change)
 
         return None if inplace else ser
 
@@ -2680,11 +2675,17 @@ class Series(pa.Array, generic.PandasObject):
         -------
         replaced : Series
         """
-        result = self.copy() if not inplace else self
+
+        if inplace:
+            result = self
+            change = self
+        else:
+            result = self.copy()
+            change = None
 
         def _rep_one(s, to_rep, v):  # replace single value
             mask = com.mask_missing(s.values, to_rep)
-            np.putmask(s.values, mask, v)
+            com._maybe_upcast_putmask(s.values,mask,v,change=change)
 
         def _rep_dict(rs, to_rep):  # replace {[src] -> dest}
 
@@ -2701,7 +2702,7 @@ class Series(pa.Array, generic.PandasObject):
                     masks[d] = com.mask_missing(rs.values, sset)
 
                 for d, m in masks.iteritems():
-                    np.putmask(rs.values, m, d)
+                    com._maybe_upcast_putmask(rs.values,m,d,change=change)
             else:  # if no risk of clobbering then simple
                 for d, sset in dd.iteritems():
                     _rep_one(rs, sset, d)
