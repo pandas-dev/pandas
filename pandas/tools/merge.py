@@ -947,9 +947,10 @@ class _Concatenator(object):
             name = com._consensus_name_attr(self.objs)
             return Series(new_data, index=self.new_axes[0], name=name)
         elif self._is_series:
-            data = dict(zip(self.new_axes[1], self.objs))
-            return DataFrame(data, index=self.new_axes[0],
-                             columns=self.new_axes[1])
+            data = dict(itertools.izip(xrange(len(self.objs)), self.objs))
+            tmpdf = DataFrame(data, index=self.new_axes[0])
+            tmpdf.columns = self.new_axes[1]
+            return tmpdf
         else:
             new_data = self._get_concatenated_data()
             return self.objs[0]._from_axes(new_data, self.new_axes)
