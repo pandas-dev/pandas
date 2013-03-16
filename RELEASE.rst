@@ -62,6 +62,8 @@ pandas 0.11.0
     strings that can be parsed with datetime.strptime
   - Add ``axes`` property to ``Series`` for compatibility 
   - Add ``xs`` function to ``Series`` for compatibility 
+  - Add ``chunksize`` parameter to ``to_csv`` to allow writing in chunks
+    to enable constant memory usage
 
 **API Changes**
 

@@ -1291,30 +1291,10 @@ class DataFrame(NDFrame):
 
     def _helper_csv(self, writer, na_rep=None, cols=None,
                     header=True, index=True,
-                    index_label=None, float_format=None):
+                    index_label=None, float_format=None,
+                    chunksize=None):
         if cols is None:
             cols = self.columns
-
-        series = {}
-        for k, v in self._series.iteritems():
-            mask = isnull(v)
-            imask = -mask
-            if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
-                values = np.empty(len(v),dtype=object)
-                values[mask] = 'NaT'
-
-                if v.dtype == 'datetime64[ns]':
-                    values[imask] = np.array([ val._repr_base for val in v[imask] ],dtype=object)
-                elif v.dtype == 'timedelta64[ns]':
-                    values[imask] = np.array([ lib.repr_timedelta64(val) for val in v[imask] ],dtype=object)
-            else:
-                values = np.array(v.values,dtype=object)
-                values[mask] = na_rep
-                if issubclass(v.dtype.type,np.floating):
-                    if float_format:
-                        values[imask] = np.array([ float_format % val for val in v[imask] ])
-
-            series[k] = values.tolist()
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or header:
@@ -1365,12 +1345,50 @@ class DataFrame(NDFrame):
         if not index:
             nlevels = 0
 
-        lib.write_csv_rows(series, list(data_index), nlevels, list(cols), writer)
+        rows = len(data_index)
+
+        # write in chunksize bites
+        if chunksize is None:
+            chunksize = 100000
+        chunks = int(rows / chunksize)+1
+
+        for i in xrange(chunks):
+            start_i = i * chunksize
+            end_i = min((i + 1) * chunksize, rows)
+            if start_i == end_i:
+                continue
+
+            # create the data for a chunk
+            chunk = self.iloc[start_i:end_i]
+
+            series = {}
+            for k, v in chunk.iteritems():
+                mask = isnull(v)
+                imask = -mask
+
+                if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
+                    values = np.empty(len(v),dtype=object)
+                    values[mask] = 'NaT'
+
+                    if v.dtype == 'datetime64[ns]':
+                        values[imask] = np.array([ val._repr_base for val in v[imask] ],dtype=object)
+                    elif v.dtype == 'timedelta64[ns]':
+                        values[imask] = np.array([ lib.repr_timedelta64(val) for val in v[imask] ],dtype=object)
+                else:
+                    values = np.array(v.values,dtype=object)
+                    values[mask] = na_rep
+                    if issubclass(v.dtype.type,np.floating):
+                        if float_format:
+                            values[imask] = np.array([ float_format % val for val in v[imask] ])
+
+                series[k] = values.tolist()
+
+            lib.write_csv_rows(series, list(data_index[start_i:end_i]), nlevels, list(cols), writer)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n'):
+               line_terminator='\n', chunksize=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1407,6 +1425,7 @@ class DataFrame(NDFrame):
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
+        chunksize : rows to write at a time
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1435,7 +1454,8 @@ class DataFrame(NDFrame):
             self._helper_csv(csvout, na_rep=na_rep,
                              float_format=float_format, cols=cols,
                              header=header, index=index,
-                             index_label=index_label)
+                             index_label=index_label,
+                             chunksize=chunksize)
 
         finally:
             if close:

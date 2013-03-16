@@ -4593,6 +4593,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(rs, df)
         os.remove(filename)
 
+    def test_to_csv_chunking(self):
+        filename = '__tmp_to_csv_chunking__.csv'
+
+        aa=DataFrame({'A':range(100000)})
+
+        aa['B'] = aa.A + 1.0
+        aa['C'] = aa.A + 2.0
+        aa['D'] = aa.A + 3.0
+
+        for chunksize in [10000,50000,100000]:
+            aa.to_csv(filename,chunksize=chunksize)
+            rs = pan.read_csv(filename,index_col=0)
+            assert_frame_equal(rs, aa)
+
+        os.remove(filename)
+
     def test_to_csv_bug(self):
         path = '__tmp_to_csv_bug__.csv'
         f1 = StringIO('a,1.0\nb,2.0')
