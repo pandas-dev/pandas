@@ -101,6 +101,27 @@ def _isnull_old(obj):
 
 _isnull = _isnull_new
 
+# float format is a bit of out of place here,
+# but we'd like to reuse the mask.
+def _ndarray_to_native_types(v,na_rep='',float_format=None):
+    mask = isnull(v)
+    imask = -mask
+
+    if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
+        values = np.empty(len(v),dtype=object)
+        values[mask] = 'NaT'
+
+        if v.dtype == 'datetime64[ns]':
+            values[imask] = np.array([ val._repr_base for val in v[imask] ],dtype=object)
+        elif v.dtype == 'timedelta64[ns]':
+            values[imask] = np.array([ lib.repr_timedelta64(val) for val in v[imask] ],dtype=object)
+    else:
+        values = np.array(v.values,dtype=object)
+        values[mask] = na_rep
+        if issubclass(v.dtype.type,np.floating):
+            if float_format:
+                values[imask] = np.array([ float_format % val for val in v[imask] ])
+    return values.tolist()
 
 def _use_inf_as_null(key):
     '''Option change callback for null/inf behaviour
