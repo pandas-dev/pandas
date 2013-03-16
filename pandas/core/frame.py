@@ -1362,37 +1362,49 @@ class DataFrame(NDFrame):
             data_index = self.index.to_timestamp()
 
         nlevels = getattr(data_index, 'nlevels', 1)
-
-        spaces = [None] *  len(cols)
-        if index:
-            if nlevels == 1:
-                row_fields_f = lambda x: [x] + spaces
-            else:  # handle MultiIndex
-                row_fields_f = lambda x: list(x) + spaces
-        else:
+        if not index:
             nlevels = 0
-            row_fields_f = lambda x: [None] *  len(cols)
 
         # In crude testing, N>100 yields little marginal improvement
         N=100
-        rows = [None]*N
+
+        # pre-allocate  rows
+        rows = [[None]*(nlevels+len(cols)) for x in range(N)]
 
         all_cols = False
-        if len(cols) < 10000:
+        if len(cols) < 10000: # 10000 as in "usually"
             all_cols = list(enumerate(cols))
 
         j = None
-        for j, idx in enumerate(data_index):
-            row_fields = row_fields_f(idx)
+        if nlevels == 1:
+            for j, idx in enumerate(data_index):
+                row = rows[j % N]
+                row[0] = idx
+                for i, col in (all_cols or enumerate(cols)):
+                    val = series[col][j]
+                    row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
 
-            for i, col in (all_cols or enumerate(cols)):
-                row_fields[i+nlevels] = series[col][j]
+                if j >= N-1 and j % N == N-1:
+                    writer.writerows(rows)
+        elif nlevels > 1:
+            for j, idx in enumerate(data_index):
+                row = rows[j % N]
+                row[:nlevels] = list(idx)
+                for i, col in (all_cols or enumerate(cols)):
+                    val = series[col][j]
+                    row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
 
-            rows[ j % N ] = map(lambda val: np.asscalar(val) if isinstance(val,np.number) else val
-                                ,row_fields)
+                if j >= N-1 and j % N == N-1:
+                    writer.writerows(rows)
+        else:
+            for j, idx in enumerate(data_index):
+                row = rows[j % N]
+                for i, col in (all_cols or enumerate(cols)):
+                    val = series[col][j]
+                    row[nlevels+i] = np.asscalar(val) if isinstance(val,np.number) else val
 
-            if j >= N-1 and j % N == N-1:
-                writer.writerows(rows)
+                if j >= N-1 and j % N == N-1:
+                    writer.writerows(rows)
 
         if  j is not None and (j < N-1 or (j % N) != N-1 ):
             writer.writerows(rows[:((j+1) % N)])
