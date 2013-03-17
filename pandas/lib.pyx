@@ -787,7 +787,7 @@ def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, obje
 @cython.boundscheck(False)
 @cython.wraparound(False)
 
-def write_csv_rows(dict series, list data_index, int nlevels, list cols, object writer):
+def write_csv_rows(list data, list data_index, int nlevels, list cols, object writer):
 
     cdef int N, j, i, ncols
     cdef list rows
@@ -806,7 +806,7 @@ def write_csv_rows(dict series, list data_index, int nlevels, list cols, object 
             row = rows[j % N]
             row[0] = data_index[j]
             for i in range(ncols):
-                row[nlevels+i] = series[cols[i]][j]
+                row[nlevels+i] = data[i][j]
 
             if j >= N-1 and j % N == N-1:
                 writer.writerows(rows)
@@ -815,7 +815,7 @@ def write_csv_rows(dict series, list data_index, int nlevels, list cols, object 
             row = rows[j % N]
             row[:nlevels] = list(data_index[j])
             for i in range(ncols):
-                row[nlevels+i] = series[cols[i]][j]
+                row[nlevels+i] = data[i][j]
 
             if j >= N-1 and j % N == N-1:
                 writer.writerows(rows)
@@ -823,7 +823,7 @@ def write_csv_rows(dict series, list data_index, int nlevels, list cols, object 
         for j in range(len(data_index)):
             row = rows[j % N]
             for i in range(ncols):
-                row[nlevels+i] = series[cols[i]][j]
+                row[i] = data[i][j]
 
             if j >= N-1 and j % N == N-1:
                 writer.writerows(rows)

@@ -1366,14 +1366,12 @@ class DataFrame(NDFrame):
             # create the data for a chunk
             chunk = self.iloc[start_i:end_i]
 
-            series = {}
-            for k, v in chunk.iteritems():
-                series[k] = _ndarray_to_native_types(v,na_rep,float_format)
-
+            data = [ _ndarray_to_native_types(v,na_rep,float_format
+                                              ) for k, v in chunk.iteritems() ]
             ix = _ndarray_to_native_types(data_index[start_i:end_i],
                                           na_rep,float_format)
 
-            lib.write_csv_rows(series, ix, nlevels, cols, writer)
+            lib.write_csv_rows(data, ix, nlevels, cols, writer)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
