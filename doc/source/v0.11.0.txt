@@ -318,6 +318,7 @@ Bug Fixes
 
   - Fixed slow printing of large Dataframes, due to inefficient dtype
     reporting (GH2807_)
+  - Fixed a segfault when using a function as grouper in groupby (GH3035_)
   - Fix pretty-printing of infinite data structures (closes GH2978_)
   - Fixed exception when plotting timeseries bearing a timezone (closes GH2877_)
   - str.contains ignored na argument (GH2806_)
@@ -333,6 +334,7 @@ on GitHub for a complete list.
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
+.. _GH3035: https://github.com/pydata/pandas/issues/3035
 .. _GH2978: https://github.com/pydata/pandas/issues/2978
 .. _GH2877: https://github.com/pydata/pandas/issues/2877
 .. _GH2739: https://github.com/pydata/pandas/issues/2739
