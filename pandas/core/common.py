@@ -110,13 +110,14 @@ def _ndarray_to_native_types(v,na_rep='',float_format=None):
     if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
         values = np.empty(len(v),dtype=object)
         values[mask] = 'NaT'
-
         if v.dtype == 'datetime64[ns]':
             values[imask] = np.array([ val._repr_base for val in v[imask] ],dtype=object)
         elif v.dtype == 'timedelta64[ns]':
             values[imask] = np.array([ lib.repr_timedelta64(val) for val in v[imask] ],dtype=object)
     else:
-        values = np.array(v.values,dtype=object)
+        if hasattr(v,"values"):
+            v= v.values
+        values = np.array(v,dtype=object)
         values[mask] = na_rep
         if issubclass(v.dtype.type,np.floating):
             if float_format:

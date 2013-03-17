@@ -1296,6 +1296,11 @@ class DataFrame(NDFrame):
         if cols is None:
             cols = self.columns
 
+        if isinstance(cols,np.ndarray):
+            cols = _ndarray_to_native_types(cols,na_rep,float_format)
+        else:
+            cols=list(cols)
+
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or header:
             if index:
@@ -1352,11 +1357,6 @@ class DataFrame(NDFrame):
             chunksize = (100000/ (len(cols) or 1)) or 1
         chunks = int(nrows / chunksize)+1
 
-        if isinstance(cols,np.ndarray):
-            cols = _ndarray_to_native_types(cols,na_rep,float_format)
-        else:
-            cols=list(cols)
-
         for i in xrange(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, nrows)
@@ -1364,10 +1364,22 @@ class DataFrame(NDFrame):
                 break
 
             # create the data for a chunk
-            chunk = self.iloc[start_i:end_i]
 
-            data = [ _ndarray_to_native_types(v,na_rep,float_format
-                                              ) for k, v in chunk.iteritems() ]
+            blocks = self._data.blocks
+            data =[None] * sum(len(b.items) for b in blocks)
+            for i in range(len(blocks)):
+                b = blocks[i]
+                v = b.values
+                colname_map = dict((k,i) for i,k in  enumerate(self.columns))
+                if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
+                    d = blocks[i].values[:,start_i:end_i]
+                    for j, k in enumerate(b.items):
+                        data[colname_map[k]] = d[j]
+                else:
+                    d = _ndarray_to_native_types(b.values[:,start_i:end_i],  na_rep,float_format)
+                    for j, k in enumerate(b.items):
+                        data[colname_map[k]] = d[j]
+
             ix = _ndarray_to_native_types(data_index[start_i:end_i],
                                           na_rep,float_format)
 
