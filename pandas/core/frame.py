@@ -3468,8 +3468,8 @@ class DataFrame(NDFrame):
                 return self
 
             new_data = self._data
-            if isinstance(to_replace, dict):
-                if isinstance(value, dict):  # {'A' : NA} -> {'A' : 0}
+            if isinstance(to_replace, (dict, Series)):
+                if isinstance(value, (dict, Series)):  # {'A' : NA} -> {'A' : 0}
                     new_data = self._data
                     for c, src in to_replace.iteritems():
                         if c in value and c in self:
@@ -3481,7 +3481,7 @@ class DataFrame(NDFrame):
                         if k in self:
                             new_data = new_data.replace(src, value, filter = [ k ], inplace=inplace)
                 else:
-                    raise ValueError('Fill value must be scalar or dict')
+                    raise ValueError('Fill value must be scalar or dict or Series')
 
             elif isinstance(to_replace, (list, np.ndarray)):
                 # [NA, ''] -> [0, 'missing']
@@ -3501,7 +3501,7 @@ class DataFrame(NDFrame):
             else:
 
                 # dest iterable dict-like
-                if isinstance(value, dict):  # NA -> {'A' : 0, 'B' : -1}
+                if isinstance(value, (dict, Series)):  # NA -> {'A' : 0, 'B' : -1}
 
                     new_data = self._data
                     for k, v in value.iteritems():
@@ -3528,7 +3528,7 @@ class DataFrame(NDFrame):
 
         method = com._clean_fill_method(method)
 
-        if isinstance(to_replace, dict):
+        if isinstance(to_replace, (dict, Series)):
             if axis == 1:
                 return self.T.replace(to_replace, method=method,
                                       limit=limit).T
