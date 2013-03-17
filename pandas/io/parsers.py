@@ -1553,7 +1553,10 @@ def _make_date_converter(date_parser=None, dayfirst=False):
                 return lib.try_parse_dates(strs, dayfirst=dayfirst)
         else:
             try:
-                return date_parser(*date_cols)
+                result = date_parser(*date_cols)
+                if isinstance(result, datetime.datetime):
+                    raise Exception('scalar parser')
+                return result
             except Exception:
                 try:
                     return generic_parser(date_parser, *date_cols)

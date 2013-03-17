@@ -152,6 +152,7 @@ pandas 0.11.0
   - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from 
     other values), (GH2850_)
   - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
+  - Fix scalar datetime.datetime parsing bug in read_csv (GH3071_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797

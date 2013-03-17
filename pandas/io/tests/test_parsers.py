@@ -365,6 +365,21 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(rs, xp)
         self.assert_(rs.index.name == xp.index.name)
 
+    def test_date_parser_int_bug(self):
+        # #3071
+        log_file = StringIO(
+            'posix_timestamp,elapsed,sys,user,queries,query_time,rows,'
+                'accountid,userid,contactid,level,silo,method\n'
+            '1343103150,0.062353,0,4,6,0.01690,3,'
+                '12345,1,-1,3,invoice_InvoiceResource,search\n'
+        )
+
+        def f(posix_string):
+            return datetime.utcfromtimestamp(int(posix_string))
+
+        # it works!
+        read_csv(log_file, index_col=0, parse_dates=0, date_parser=f)
+
     def test_multiple_skts_example(self):
         data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
         pass
