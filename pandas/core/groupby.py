@@ -57,6 +57,8 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
     def f(self):
         try:
             return self._cython_agg_general(alias, numeric_only=numeric_only)
+        except AssertionError as e:
+            raise SpecificationError(str(e))
         except Exception:
             result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
             if _convert:
@@ -348,7 +350,7 @@ class GroupBy(object):
         """
         try:
             return self._cython_agg_general('mean')
-        except DataError:
+        except GroupByError:
             raise
         except Exception:  # pragma: no cover
             f = lambda x: x.mean(axis=self.axis)
@@ -362,7 +364,7 @@ class GroupBy(object):
         """
         try:
             return self._cython_agg_general('median')
-        except DataError:
+        except GroupByError:
             raise
         except Exception:  # pragma: no cover
             f = lambda x: x.median(axis=self.axis)
@@ -462,7 +464,10 @@ class GroupBy(object):
             if numeric_only and not is_numeric:
                 continue
 
-            result, names = self.grouper.aggregate(obj.values, how)
+            try:
+                result, names = self.grouper.aggregate(obj.values, how)
+            except AssertionError as e:
+                raise GroupByError(str(e))
             output[name] = result
 
         if len(output) == 0:
@@ -1200,6 +1205,13 @@ class Grouping(object):
             # no level passed
             if not isinstance(self.grouper, np.ndarray):
                 self.grouper = self.index.map(self.grouper)
+                if not (hasattr(self.grouper,"__len__") and \
+                   len(self.grouper) == len(self.index)):
+                    errmsg = "Grouper result violates len(labels) == len(data)\n"
+                    errmsg += "result: %s" % com.pprint_thing(self.grouper)
+                    self.grouper = None # Try for sanity
+                    raise AssertionError(errmsg)
+
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name
@@ -1723,9 +1735,10 @@ class NDFrameGroupBy(GroupBy):
                                      grouper=self.grouper)
                 results.append(colg.aggregate(arg))
                 keys.append(col)
-            except (TypeError, DataError):
+            except (TypeError, DataError) :
                 pass
-
+            except SpecificationError:
+                raise
         result = concat(results, keys=keys, axis=1)
 
         return result

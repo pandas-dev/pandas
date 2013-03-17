@@ -593,6 +593,9 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
 
     length = len(index)
 
+    if not length == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     for i in range(length):
         key = util.get_value_1d(labels, i)
 
@@ -624,6 +627,9 @@ def group_last_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty_like(out)
@@ -760,6 +766,9 @@ def group_nth_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         ndarray[%(dest_type2)s, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty_like(out)
 
@@ -801,6 +810,9 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] sumx, nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
@@ -915,6 +927,9 @@ def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] prodx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
     prodx = np.ones_like(out)
 
@@ -1024,6 +1039,9 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         %(dest_type2)s val, ct
         ndarray[%(dest_type2)s, ndim=2] nobs, sumx, sumxx
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
@@ -1220,6 +1238,9 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] maxx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
 
     maxx = np.empty_like(out)
@@ -1342,6 +1363,9 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] minx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
 
     minx = np.empty_like(out)
@@ -1398,6 +1422,9 @@ def group_mean_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] sumx, nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
