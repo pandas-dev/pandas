@@ -259,10 +259,15 @@ class Block(object):
         we may have roundtripped thru object in the mean-time """
         return result
 
-    def replace(self, to_replace, value, inplace=False):
+    def replace(self, to_replace, value, inplace=False, filter=None):
         """ replace the to_replace value with value, possible to create new blocks here
             this is just a call to putmask """
         mask = com.mask_missing(self.values, to_replace)
+        if filter is not None:
+            for i, item in enumerate(self.items):
+                if item not in filter:
+                    mask[i] = False
+
         if not mask.any():
             if inplace:
                 return [ self ]
@@ -886,14 +891,15 @@ class BlockManager(object):
         ----------
         f : the callable or function name to operate on at the block level
         axes : optional (if not supplied, use self.axes)
-        filter : callable, if supplied, only call the block if the filter is True
+        filter : list, if supplied, only call the block if the filter is in the block
         """
 
         axes = kwargs.pop('axes',None)
-        filter = kwargs.pop('filter',None)
+        filter = kwargs.get('filter')
         result_blocks = []
         for blk in self.blocks:
             if filter is not None:
+                kwargs['filter'] = set(kwargs['filter'])
                 if not blk.items.isin(filter).any():
                     result_blocks.append(blk)
                     continue
