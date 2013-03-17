@@ -31,9 +31,9 @@ import os
 import argparse
 import tempfile
 import time
+import re
 
 DEFAULT_MIN_DURATION = 0.01
-BASELINE_COMMIT = '2149c50'  # 0.9.1 + regression fix + vb fixes # TODO: detect upstream/master
 
 parser = argparse.ArgumentParser(description='Use vbench to generate a report comparing performance between two commits.')
 parser.add_argument('-a', '--auto',
@@ -41,7 +41,7 @@ parser.add_argument('-a', '--auto',
                     action='store_true',
                     default=False)
 parser.add_argument('-b', '--base-commit',
-                    help='The commit serving as performance baseline (default: %s).' % BASELINE_COMMIT,
+                    help='The commit serving as performance baseline ',
                     type=str)
 parser.add_argument('-t', '--target-commit',
                     help='The commit to compare against the baseline (default: HEAD).',
@@ -54,14 +54,18 @@ parser.add_argument('-o', '--output',
                     metavar="<file>",
                     dest='log_file',
                     help='path of file in which to save the report (default: vb_suite.log).')
-
+parser.add_argument('-r', '--regex',
+                    metavar="REGEX",
+                    dest='regex',
+                    default="",
+                    help='regex pat, only tests whose name matches the regext will be run.')
 
 def get_results_df(db, rev):
     from pandas import DataFrame
     """Takes a git commit hash and returns a Dataframe of benchmark results
     """
     bench = DataFrame(db.get_benchmarks())
-    results = DataFrame(db.get_rev_results(rev).values())
+    results = DataFrame(map(list,db.get_rev_results(rev).values()))
 
     # Sinch vbench.db._reg_rev_results returns an unlabeled dict,
     # we have to break encapsulation a bit.
@@ -80,9 +84,6 @@ def main():
     from vbench.db import BenchmarkDB
     from suite import REPO_PATH, BUILD, DB_PATH, PREPARE, dependencies, benchmarks
 
-    if not args.base_commit:
-        args.base_commit = BASELINE_COMMIT
-
     # GitRepo wants exactly 7 character hash?
     args.base_commit = args.base_commit[:7]
     if args.target_commit:
@@ -95,6 +96,8 @@ def main():
     TMP_DIR = tempfile.mkdtemp()
     prprint("TMP_DIR = %s" % TMP_DIR)
     prprint("LOG_FILE = %s\n" % args.log_file)
+
+    benchmarks = [x for x in benchmarks if re.search(args.regex,x.name)]
 
     try:
         logfile = open(args.log_file, 'w')
@@ -218,7 +221,7 @@ def _parse_commit_log(repo_path):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    if not args.auto and not args.base_commit and not args.target_commit:
+    if not args.auto and (not args.base_commit and not args.target_commit):
         parser.print_help()
     else:
         main()
