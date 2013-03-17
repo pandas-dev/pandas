@@ -806,7 +806,7 @@ def write_csv_rows(list data, list data_index, int nlevels, list cols, object wr
             row = rows[j % N]
             row[0] = data_index[j]
             for i in range(ncols):
-                row[nlevels+i] = data[i][j]
+                row[1+i] = data[i][j]
 
             if j >= N-1 and j % N == N-1:
                 writer.writerows(rows)
