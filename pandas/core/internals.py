@@ -4,13 +4,14 @@ from datetime import datetime
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import _possibly_downcast_to_dtype
+from pandas.core.common import isnull, _possibly_downcast_to_dtype
 from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
 
+from pandas.tslib import Timestamp
 from pandas.util import py3compat
 
 
@@ -258,6 +259,17 @@ class Block(object):
         """ try to cast the result to our original type,
         we may have roundtripped thru object in the mean-time """
         return result
+
+    def to_native_types(self, slicer=None, na_rep='', **kwargs):
+        """ convert to our native types format, slicing if desired """
+
+        values = self.values
+        if slicer is not None:
+            values = values[:,slicer]
+        values = np.array(values,dtype=object)
+        mask = isnull(values)
+        values[mask] = na_rep
+        return values.tolist()
 
     def replace(self, to_replace, value, inplace=False):
         new_values = self.values if inplace else self.values.copy()
@@ -577,6 +589,20 @@ class FloatBlock(NumericBlock):
         except:  # pragma: no cover
             return element
 
+    def to_native_types(self, slicer=None, na_rep='', float_format=None, **kwargs):
+        """ convert to our native types format, slicing if desired """
+
+        values = self.values
+        if slicer is not None:
+            values = values[:,slicer]
+        values = np.array(values,dtype=object)
+        mask = isnull(values)
+        values[mask] = na_rep
+        if float_format:
+            imask = (-mask).ravel()
+            values.flat[imask] = np.array([ float_format % val for val in values.ravel()[imask] ])
+        return values.tolist()
+
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
         # unnecessarily
@@ -700,6 +726,25 @@ class DatetimeBlock(Block):
             return int(element)
         except:
             return element
+
+    def to_native_types(self, slicer=None, na_rep=None, **kwargs):
+        """ convert to our native types format, slicing if desired """
+
+        values = self.values
+        if slicer is not None:
+            values = values[:,slicer]
+        mask = isnull(values)
+
+        rvalues = np.empty(self.shape,dtype=object)
+        if na_rep is None:
+            na_rep = 'NaT'
+        rvalues[mask] = na_rep
+        imask = (-mask).ravel()
+        if self.dtype == 'datetime64[ns]':
+            rvalues.flat[imask] = np.array([ Timestamp(val)._repr_base for val in values.ravel()[imask] ],dtype=object)
+        elif self.dtype == 'timedelta64[ns]':
+            rvalues.flat[imask] = np.array([ lib.repr_timedelta64(val) for val in values.ravel()[imask] ],dtype=object)
+        return rvalues.tolist()
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)

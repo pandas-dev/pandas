@@ -9,7 +9,7 @@ except:
     from io import StringIO
 
 from pandas.core.common import adjoin, isnull, notnull
-from pandas.core.index import MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.util import py3compat
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
@@ -18,6 +18,7 @@ import pandas.lib as lib
 import numpy as np
 
 import itertools
+import csv
 
 from pandas.tseries.period import PeriodIndex
 
@@ -762,6 +763,164 @@ def _get_level_lengths(levels):
 
     return result
 
+
+class CSVFormatter(object):
+
+    def __init__(self, obj, path_or_buf, sep=",", na_rep='', float_format=None,
+               cols=None, header=True, index=True, index_label=None,
+               mode='w', nanRep=None, encoding=None, quoting=None,
+               line_terminator='\n', chunksize=None):
+
+        self.obj = obj
+        self.path_or_buf = path_or_buf
+        self.sep = sep
+        self.na_rep = na_rep
+        self.float_format = float_format
+
+        self.header = header
+        self.index = index
+        self.index_label = index_label
+        self.mode = mode
+        self.encoding = encoding
+
+        if quoting is None:
+            quoting = csv.QUOTE_MINIMAL
+        self.quoting = quoting
+
+        self.line_terminator = line_terminator
+
+        if cols is None:
+            cols = obj.columns
+
+        if isinstance(cols,Index):
+            cols = cols.to_native_types(na_rep=na_rep,float_format=float_format)
+        else:
+            cols=list(cols)
+        self.cols = cols
+        self.colname_map = dict((k,i) for i,k in  enumerate(obj.columns))
+
+        if chunksize is None:
+            chunksize = (100000/ (len(self.cols) or 1)) or 1
+        self.chunksize = chunksize
+
+        self.data_index = obj.index
+        if isinstance(obj.index, PeriodIndex):
+            self.data_index = obj.index.to_timestamp()
+
+        self.nlevels = getattr(self.data_index, 'nlevels', 1)
+        if not index:
+            self.nlevels = 0
+
+    def save(self):
+
+        # create the writer & save
+        if hasattr(self.path_or_buf, 'read'):
+            f = self.path_or_buf
+            close = False
+        else:
+            f = com._get_handle(self.path_or_buf, self.mode, encoding=self.encoding)
+            close = True
+
+        try:
+            if self.encoding is not None:
+                self.writer = com.UnicodeWriter(f, lineterminator=self.line_terminator,
+                                                delimiter=self.sep, encoding=self.encoding,
+                                                quoting=self.quoting)
+            else:
+                self.writer = csv.writer(f, lineterminator=self.line_terminator,
+                                         delimiter=self.sep, quoting=self.quoting)
+                
+            self._save()
+
+        finally:
+            if close:
+                f.close()
+
+    def _save_header(self):
+
+        writer = self.writer
+        obj = self.obj
+        index_label = self.index_label
+        cols = self.cols
+        header = self.header
+
+        has_aliases = isinstance(header, (tuple, list, np.ndarray))
+        if has_aliases or self.header:
+            if self.index:
+                # should write something for index label
+                if index_label is not False:
+                    if index_label is None:
+                        if isinstance(obj.index, MultiIndex):
+                            index_label = []
+                            for i, name in enumerate(obj.index.names):
+                                if name is None:
+                                    name = ''
+                                index_label.append(name)
+                        else:
+                            index_label = obj.index.name
+                            if index_label is None:
+                                index_label = ['']
+                            else:
+                                index_label = [index_label]
+                    elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                        # given a string for a DF with Index
+                        index_label = [index_label]
+
+                    encoded_labels = list(index_label)
+                else:
+                    encoded_labels = []
+
+                if has_aliases:
+                    if len(header) != len(cols):
+                        raise ValueError(('Writing %d cols but got %d aliases'
+                                          % (len(cols), len(header))))
+                    else:
+                        write_cols = header
+                else:
+                    write_cols = cols
+                encoded_cols = list(write_cols)
+
+                writer.writerow(encoded_labels + encoded_cols)
+            else:
+                encoded_cols = list(cols)
+                writer.writerow(encoded_cols)
+
+    def _save(self):
+
+        self._save_header()
+
+        nrows = len(self.data_index)
+
+        # write in chunksize bites
+        chunksize = self.chunksize
+        chunks = int(nrows / chunksize)+1
+
+        for i in xrange(chunks):
+            start_i = i * chunksize
+            end_i = min((i + 1) * chunksize, nrows)
+            if start_i >= end_i:
+                break
+
+            self._save_chunk(start_i, end_i)
+
+    def _save_chunk(self, start_i, end_i):
+
+        colname_map = self.colname_map
+        data_index  = self.data_index
+
+        # create the data for a chunk
+        blocks = self.obj._data.blocks
+        data =[None] * sum(len(b.items) for b in blocks)
+        slicer = slice(start_i,end_i)
+        for i in range(len(blocks)):
+            b = blocks[i]
+            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
+            for j, k in enumerate(b.items):
+                data[colname_map[k]] = d[j]
+
+        ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
+
+        lib.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
 
 # from collections import namedtuple
 # ExcelCell = namedtuple("ExcelCell",

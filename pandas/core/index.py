@@ -441,16 +441,7 @@ class Index(np.ndarray):
             return header + list(self.map(formatter))
 
         if self.is_all_dates:
-            zero_time = time(0, 0)
-            result = []
-            for dt in self:
-                if isnull(dt):
-                    result.append(u'NaT')
-                else:
-                    if dt.time() != zero_time or dt.tzinfo is not None:
-                        return header + [u'%s' % x for x in self]
-                    result.append(u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
-            return header + result
+            return header + _date_formatter(self)
 
         values = self.values
 
@@ -471,6 +462,20 @@ class Index(np.ndarray):
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
+
+    def to_native_types(self, slicer=None, na_rep='', float_format=None):
+        values = self
+        if slicer is not None:
+            values = values[slicer]
+        mask = isnull(values)
+        values = np.array(values,dtype=object)
+
+        if self.is_all_dates:
+            return _date_formatter(self)
+        else:
+            values[mask] = na_rep
+
+        return values.tolist()
 
     def equals(self, other):
         """
@@ -1480,6 +1485,9 @@ class MultiIndex(Index):
 
     def __len__(self):
         return len(self.labels[0])
+
+    def to_native_types(self, slicer=None, na_rep='', float_format=None):
+        return self.tolist()
 
     @property
     def _constructor(self):
@@ -2578,6 +2586,22 @@ class MultiIndex(Index):
 
 # For utility purposes
 
+def _date_formatter(obj, na_rep=u'NaT'):
+    data = list(obj)
+
+    # tz formatter or time formatter
+    zero_time = time(0, 0)
+    for d in data:
+        if d.time() != zero_time or d.tzinfo is not None:
+            return [u'%s' % x for x in data ]
+
+    values = np.array(data,dtype=object)
+    mask = isnull(obj.values)
+    values[mask] = na_rep
+
+    imask = -mask
+    values[imask] = np.array([ u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day) for dt in values[imask] ])
+    return values.tolist()
 
 def _sparsify(label_list, start=0):
     pivoted = zip(*label_list)

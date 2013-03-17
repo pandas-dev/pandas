@@ -14,7 +14,6 @@ labeling information
 
 from itertools import izip
 from StringIO import StringIO
-import csv
 import operator
 import sys
 
@@ -24,7 +23,7 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, _is_sequence,
-                                _infer_dtype_from_scalar, _ndarray_to_native_types)
+                                _infer_dtype_from_scalar)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
@@ -1289,101 +1288,6 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csv(self, writer, na_rep=None, cols=None,
-                    header=True, index=True,
-                    index_label=None, float_format=None,
-                    chunksize=None):
-        if cols is None:
-            cols = self.columns
-
-        if isinstance(cols,np.ndarray):
-            cols = _ndarray_to_native_types(cols,na_rep,float_format)
-        else:
-            cols=list(cols)
-
-        has_aliases = isinstance(header, (tuple, list, np.ndarray))
-        if has_aliases or header:
-            if index:
-                # should write something for index label
-                if index_label is not False:
-                    if index_label is None:
-                        if isinstance(self.index, MultiIndex):
-                            index_label = []
-                            for i, name in enumerate(self.index.names):
-                                if name is None:
-                                    name = ''
-                                index_label.append(name)
-                        else:
-                            index_label = self.index.name
-                            if index_label is None:
-                                index_label = ['']
-                            else:
-                                index_label = [index_label]
-                    elif not isinstance(index_label, (list, tuple, np.ndarray)):
-                        # given a string for a DF with Index
-                        index_label = [index_label]
-
-                    encoded_labels = list(index_label)
-                else:
-                    encoded_labels = []
-
-                if has_aliases:
-                    if len(header) != len(cols):
-                        raise ValueError(('Writing %d cols but got %d aliases'
-                                          % (len(cols), len(header))))
-                    else:
-                        write_cols = header
-                else:
-                    write_cols = cols
-                encoded_cols = list(write_cols)
-
-                writer.writerow(encoded_labels + encoded_cols)
-            else:
-                encoded_cols = list(cols)
-                writer.writerow(encoded_cols)
-
-        data_index = self.index
-        if isinstance(self.index, PeriodIndex):
-            data_index = self.index.to_timestamp()
-
-        nlevels = getattr(data_index, 'nlevels', 1)
-        if not index:
-            nlevels = 0
-
-        nrows = len(data_index)
-
-        # write in chunksize bites
-        if chunksize is None:
-            chunksize = (100000/ (len(cols) or 1)) or 1
-        chunks = int(nrows / chunksize)+1
-
-        for i in xrange(chunks):
-            start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, nrows)
-            if start_i >= end_i:
-                break
-
-            # create the data for a chunk
-            blocks = self._data.blocks
-            data =[None] * sum(len(b.items) for b in blocks)
-            for i in range(len(blocks)):
-                b = blocks[i]
-                v = b.values
-                colname_map = dict((k,i) for i,k in  enumerate(self.columns))
-                if v.dtype == 'datetime64[ns]' or v.dtype == 'timedelta64[ns]':
-                    d = blocks[i].values[:,start_i:end_i]
-                    for j, k in enumerate(b.items):
-                        data[colname_map[k]] = d[j]
-                else:
-                    d = _ndarray_to_native_types(b.values[:,start_i:end_i],  na_rep,float_format)
-                    for j, k in enumerate(b.items):
-                        data[colname_map[k]] = d[j]
-
-            ix = _ndarray_to_native_types(data_index[start_i:end_i],
-                                          na_rep,float_format)
-
-            lib.write_csv_rows(data, ix, nlevels, cols, writer)
-
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
@@ -1432,33 +1336,15 @@ class DataFrame(NDFrame):
                           FutureWarning)
             na_rep = nanRep
 
-        if hasattr(path_or_buf, 'read'):
-            f = path_or_buf
-            close = False
-        else:
-            f = com._get_handle(path_or_buf, mode, encoding=encoding)
-            close = True
-
-        if quoting is None:
-            quoting = csv.QUOTE_MINIMAL
-
-        try:
-            if encoding is not None:
-                csvout = com.UnicodeWriter(f, lineterminator=line_terminator,
-                                           delimiter=sep, encoding=encoding,
-                                           quoting=quoting)
-            else:
-                csvout = csv.writer(f, lineterminator=line_terminator,
-                                    delimiter=sep, quoting=quoting)
-            self._helper_csv(csvout, na_rep=na_rep,
-                             float_format=float_format, cols=cols,
-                             header=header, index=index,
-                             index_label=index_label,
-                             chunksize=chunksize)
-
-        finally:
-            if close:
-                f.close()
+        formatter = fmt.CSVFormatter(self, path_or_buf, 
+                                     line_terminator=line_terminator,
+                                     sep=sep, encoding=encoding,
+                                     quoting=quoting,na_rep=na_rep,
+                                     float_format=float_format, cols=cols,
+                                     header=header, index=index,
+                                     index_label=index_label,
+                                     chunksize=chunksize)
+        formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
