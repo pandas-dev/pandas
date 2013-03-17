@@ -4593,6 +4593,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(rs, df)
         os.remove(filename)
 
+    def test_to_csv_mixed_dups_cols(self):
+        filename = '__tmp_to_csv_mixed_dup_cols__.csv'
+
+        df_float  = DataFrame(np.random.randn(1000, 30),dtype='float64')
+        df_int    = DataFrame(np.random.randn(1000, 30),dtype='int64')
+        df_bool   = DataFrame(True,index=df_float.index,columns=df_float.columns)
+        df_object = DataFrame('foo',index=df_float.index,columns=df_float.columns)
+        df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
+        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+
+        #### this raises because we have duplicate column names across dtypes ####
+        self.assertRaises(Exception, df.to_csv, filename)
+
     def test_to_csv_chunking(self):
         filename = '__tmp_to_csv_chunking__.csv'
 
