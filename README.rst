@@ -95,7 +95,7 @@ Installation from sources
 =========================
 
 To install pandas from source you need ``cython`` in addition to the normal dependencies above,
-which can be installed from the Cheese Shop::
+which can be installed from pypi::
 
     pip install cython
 
@@ -103,8 +103,13 @@ In the ``pandas`` directory (same one where you found this file after cloning th
 
     python setup.py install
 
-Or if you want all the dependencies pulled in automatically (the optional ``-e`` option is for
-installing it in `development mode <http://www.pip-installer.org/en/latest/usage.html>`__)::
+or for installing in `development mode <http://www.pip-installer.org/en/latest/usage.html>`__::
+
+    python setup.py develop
+
+Alternatively, you can use `pip` if you want all the dependencies pulled in automatically
+(the optional ``-e`` option is for installing it in
+`development mode <http://www.pip-installer.org/en/latest/usage.html>`__)::
 
     pip install -e .
 
