@@ -63,6 +63,15 @@ class TestSeriesPlots(unittest.TestCase):
 
         Series(np.random.randn(10)).plot(kind='bar', color='black')
 
+        # figsize and title
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ax = self.series.plot(title='Test', figsize=(16, 8))
+
+        self.assert_(ax.title.get_text() == 'Test')
+        self.assert_((np.round(ax.figure.get_size_inches())
+                      == np.array((16., 8.))).all())
+
     @slow
     def test_bar_colors(self):
         import matplotlib.pyplot as plt
