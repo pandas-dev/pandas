@@ -1349,7 +1349,7 @@ class DataFrame(NDFrame):
 
         # write in chunksize bites
         if chunksize is None:
-            chunksize = 100000
+            chunksize = (100000/ (len(cols) or 1)) or 1
         chunks = int(nrows / chunksize)+1
 
         if isinstance(cols,np.ndarray):
