@@ -3352,7 +3352,7 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF True:
@@ -3392,7 +3392,7 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3432,7 +3432,7 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF True:
@@ -3472,7 +3472,7 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3512,7 +3512,7 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3552,7 +3552,7 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3592,7 +3592,7 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF True:
@@ -3632,7 +3632,7 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3672,7 +3672,7 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3712,7 +3712,7 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3752,7 +3752,7 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF True:
@@ -3792,7 +3792,7 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3832,7 +3832,7 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3872,7 +3872,7 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF True:
@@ -3912,7 +3912,7 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -3952,7 +3952,7 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF True:
@@ -3992,7 +3992,7 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -4032,7 +4032,7 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF True:
@@ -4072,7 +4072,7 @@ def take_2d_axis1_object_object(ndarray[object, ndim=2] values,
 
     n = len(values)
     k = len(indexer)
-    
+
     fv = fill_value
 
     IF False:
@@ -4908,6 +4908,9 @@ def group_last_float64(ndarray[float64_t, ndim=2] out,
         ndarray[float64_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty_like(out)
 
@@ -4947,6 +4950,9 @@ def group_last_float32(ndarray[float32_t, ndim=2] out,
         float32_t val, count
         ndarray[float32_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty_like(out)
@@ -5078,6 +5084,9 @@ def group_nth_float64(ndarray[float64_t, ndim=2] out,
         ndarray[float64_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty_like(out)
 
@@ -5118,6 +5127,9 @@ def group_nth_float32(ndarray[float32_t, ndim=2] out,
         float32_t val, count
         ndarray[float32_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty_like(out)
@@ -5251,6 +5263,9 @@ def group_add_float64(ndarray[float64_t, ndim=2] out,
         float64_t val, count
         ndarray[float64_t, ndim=2] sumx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
@@ -5303,6 +5318,9 @@ def group_add_float32(ndarray[float32_t, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         float32_t val, count
         ndarray[float32_t, ndim=2] sumx, nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
@@ -5471,6 +5489,9 @@ def group_prod_float64(ndarray[float64_t, ndim=2] out,
         float64_t val, count
         ndarray[float64_t, ndim=2] prodx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
     prodx = np.ones_like(out)
 
@@ -5523,6 +5544,9 @@ def group_prod_float32(ndarray[float32_t, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         float32_t val, count
         ndarray[float32_t, ndim=2] prodx, nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     prodx = np.ones_like(out)
@@ -5688,6 +5712,9 @@ def group_var_float64(ndarray[float64_t, ndim=2] out,
         float64_t val, ct
         ndarray[float64_t, ndim=2] nobs, sumx, sumxx
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
     sumxx = np.zeros_like(out)
@@ -5745,6 +5772,9 @@ def group_var_float32(ndarray[float32_t, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         float32_t val, ct
         ndarray[float32_t, ndim=2] nobs, sumx, sumxx
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
@@ -5928,6 +5958,9 @@ def group_mean_float64(ndarray[float64_t, ndim=2] out,
         float64_t val, count
         ndarray[float64_t, ndim=2] sumx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
@@ -5976,6 +6009,9 @@ def group_mean_float32(ndarray[float32_t, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         float32_t val, count
         ndarray[float32_t, ndim=2] sumx, nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
@@ -6137,6 +6173,9 @@ def group_min_float64(ndarray[float64_t, ndim=2] out,
         float64_t val, count
         ndarray[float64_t, ndim=2] minx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
 
     minx = np.empty_like(out)
@@ -6193,6 +6232,9 @@ def group_min_float32(ndarray[float32_t, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         float32_t val, count
         ndarray[float32_t, ndim=2] minx, nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
 
@@ -6375,6 +6417,9 @@ def group_max_float64(ndarray[float64_t, ndim=2] out,
         float64_t val, count
         ndarray[float64_t, ndim=2] maxx, nobs
 
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
+
     nobs = np.zeros_like(out)
 
     maxx = np.empty_like(out)
@@ -6431,6 +6476,9 @@ def group_max_float32(ndarray[float32_t, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         float32_t val, count
         ndarray[float32_t, ndim=2] maxx, nobs
+
+    if not len(values) == len(labels):
+       raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros_like(out)
 
