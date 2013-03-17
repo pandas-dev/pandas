@@ -1364,7 +1364,6 @@ class DataFrame(NDFrame):
                 break
 
             # create the data for a chunk
-
             blocks = self._data.blocks
             data =[None] * sum(len(b.items) for b in blocks)
             for i in range(len(blocks)):
