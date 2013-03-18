@@ -1370,7 +1370,7 @@ class DataFrame(NDFrame):
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n'):
+               line_terminator='\n', compression=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1407,6 +1407,10 @@ class DataFrame(NDFrame):
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
+        compression : string, optional
+            a string representing the compression to use in the output file, 
+            currently only supports gzip and bz2 (see core.common._get_handle), 
+            only used when the first argument is a filename
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1418,7 +1422,7 @@ class DataFrame(NDFrame):
             f = path_or_buf
             close = False
         else:
-            f = com._get_handle(path_or_buf, mode, encoding=encoding)
+            f = com._get_handle(path_or_buf, mode, encoding=encoding, compression=compression)
             close = True
 
         if quoting is None:
