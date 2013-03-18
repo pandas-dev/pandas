@@ -4593,8 +4593,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(rs, df)
         os.remove(filename)
 
-    def test_to_csv_mixed_dups_cols(self):
-        filename = '__tmp_to_csv_mixed_dup_cols__.csv'
+    def test_to_csv_dups_cols(self):
+        filename = '__tmp_to_csv_dup_cols__.csv'
+
+        df        = DataFrame(np.random.randn(1000, 30),columns=range(15)+range(15),dtype='float64')
+        self.assertRaises(Exception, df.to_csv, filename)
 
         df_float  = DataFrame(np.random.randn(1000, 30),dtype='float64')
         df_int    = DataFrame(np.random.randn(1000, 30),dtype='int64')

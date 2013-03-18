@@ -770,7 +770,6 @@ class CSVFormatter(object):
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
                line_terminator='\n', chunksize=None,legacy=False):
-
         self.legacy=legacy # remove for 0.12
         self.obj = obj
         self.path_or_buf = path_or_buf
@@ -798,6 +797,11 @@ class CSVFormatter(object):
         else:
             cols=list(cols)
         self.cols = cols
+
+        # fail early if we have duplicate columns
+        if len(set(self.cols)) != len(self.cols):
+            raise Exception("duplicate columns are not permitted in to_csv")
+
         self.colname_map = dict((k,i) for i,k in  enumerate(obj.columns))
 
         if chunksize is None:
@@ -909,7 +913,6 @@ class CSVFormatter(object):
                 self.writer = csv.writer(f, lineterminator=self.line_terminator,
                                          delimiter=self.sep, quoting=self.quoting)
 
-
             if self.legacy:
             # to be removed in 0.12
                 self._helper_csv(self.writer, na_rep=self.na_rep,
@@ -919,6 +922,7 @@ class CSVFormatter(object):
 
             else:
                 self._save()
+
 
         finally:
             if close:
