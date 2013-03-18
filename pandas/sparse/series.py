@@ -378,7 +378,8 @@ to sparse
 
     @property
     def density(self):
-        return float(len(self.sp_index)) / len(self.index)
+        r = float(self.sp_index.npoints) / float(self.sp_index.length)
+        return r
 
     def astype(self, dtype=None):
         """

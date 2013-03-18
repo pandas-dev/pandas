@@ -156,6 +156,14 @@ class TestSparseSeries(TestCase,
         # it works!
         df = DataFrame({'col': self.bseries})
 
+    def test_series_density(self):
+        # GH2803
+        ts = Series(np.random.randn(10))
+        ts[2:-2] = nan
+        sts = ts.to_sparse()
+        density =  sts.density # don't die
+        self.assertEqual(density,4/10.0)
+
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
         series = self.bseries.to_dense()
