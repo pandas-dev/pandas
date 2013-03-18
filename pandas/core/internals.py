@@ -795,14 +795,6 @@ class BlockManager(object):
     def ndim(self):
         return len(self.axes)
 
-    def is_mixed_dtype(self):
-        counts = set()
-        for block in self.blocks:
-            counts.add(block.dtype)
-            if len(counts) > 1:
-                return True
-        return False
-
     def set_axis(self, axis, value):
         cur_axis = self.axes[axis]
         value = _ensure_index(value)

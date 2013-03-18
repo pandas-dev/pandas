@@ -238,10 +238,10 @@ class TestBlockManager(unittest.TestCase):
         self.assertEquals(len(self.mgr), len(self.mgr.items))
 
     def test_is_mixed_dtype(self):
-        self.assert_(self.mgr.is_mixed_dtype())
+        self.assert_(self.mgr.is_mixed_type)
 
         mgr = create_blockmanager([get_bool_ex(['a']), get_bool_ex(['b'])])
-        self.assert_(not mgr.is_mixed_dtype())
+        self.assert_(not mgr.is_mixed_type)
 
     def test_is_indexed_like(self):
         self.assert_(self.mgr._is_indexed_like(self.mgr))
