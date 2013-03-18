@@ -195,6 +195,7 @@ pandas 0.11.0
     of mismatched length (GH3011_)
   - Fix exception in SparseSeries.density (GH2083_)
   - Fix upsampling bug with closed='left' and daily to daily data (GH3020_)
+  - Fixed missing tick bars on scatter_matrix plot (GH3063_)
 
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
@@ -246,6 +247,7 @@ pandas 0.11.0
 .. _GH3041: https://github.com/pydata/pandas/issues/3041
 .. _GH3053: https://github.com/pydata/pandas/issues/3053
 .. _GH3076: https://github.com/pydata/pandas/issues/3076
+.. _GH3063: https://github.com/pydata/pandas/issues/3063
 
 
 pandas 0.10.1
