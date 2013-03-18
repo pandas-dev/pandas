@@ -285,6 +285,34 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     rs = return_hook(result)
     if center:
         rs = _center_window(rs, window, axis)
+        # GH2953, fixup edges
+        if window > 2:
+            if values.ndim > 1:
+                # TODO: handle mi vectorized case
+                pass
+            else:
+                # there's an ambiguity on what constitutes
+                # the "center" when window is even
+                # we Just close ranks with numpy , see test case
+                if window % 2 == 0 :
+                    nahead = (window-1)//2 or 1
+                else:
+                    nahead = (window)//2
+
+                # fixup the head
+                tip =  np.append(np.zeros(nahead+1),values[:(2*nahead+1)])
+                rs[:nahead+1] =  calc(tip)[-(nahead+1):][:nahead+1]
+
+                # fixup the tail
+                tip =  np.append(values[-(2*nahead+1):],np.zeros(nahead))
+                rs[-(nahead):] =  calc(tip)[-(nahead):]
+
+                if minp > 0:
+                    d = minp - nahead-1
+                    if d > 0:
+                        rs[:d] = NaN
+                        rs[-(d):] = NaN
+
     return rs
 
 
