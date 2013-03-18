@@ -99,6 +99,12 @@ Grouping
 `Create multiple aggregated columns
 <http://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
 
+Splitting
+~~~~~~~~~
+
+`Splitting a frame
+<http://stackoverflow.com/questions/13353233/best-way-to-split-a-dataframe-given-an-edge/15449992#15449992>`__
+
 Timeseries
 ----------
 
