@@ -238,6 +238,9 @@ Enhancements
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
     (e.g. ``store.df == store['df']``)
 
+  - In ``HDFStore``, new keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
+    provided to support iteration on ``select`` and ``select_as_multiple`` (GH3076_)
+
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
     .. ipython:: python
@@ -300,6 +303,7 @@ on GitHub for a complete list.
 .. _GH2806: https://github.com/pydata/pandas/issues/2806
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
-.. _GH3011: https://github.com/pydata/pandas/issues/3011
-.. _GH2979: https://github.com/pydata/pandas/issues/2979
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
+.. _GH2979: https://github.com/pydata/pandas/issues/2979
+.. _GH3011: https://github.com/pydata/pandas/issues/3011
+.. _GH3076: https://github.com/pydata/pandas/issues/3076

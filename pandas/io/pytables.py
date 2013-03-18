@@ -347,7 +347,7 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group)
 
-    def select(self, key, where=None, start=None, stop=None, columns=None, **kwargs):
+    def select(self, key, where=None, start=None, stop=None, columns=None, iterator=False, chunksize=None, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -362,16 +362,30 @@ class HDFStore(object):
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
         columns : a list of columns that if not None, will limit the return columns
+        iterator : boolean, return an iterator, default False
+        chunksize : nrows to include in iteration, return an iterator
 
         """
         group = self.get_node(key)
         if group is None:
             raise KeyError('No object named %s in the file' % key)
-        return self._read_group(group, where=where, start=start, stop=stop, columns=columns, **kwargs)
 
-    def select_as_coordinates(self, key, where=None, **kwargs):
+        # create the storer and axes
+        s = self._create_storer(group)
+        s.infer_axes()
+
+        # what we are actually going to do for a chunk
+        def func(_start, _stop):
+            return s.read(where=where, start=_start, stop=_stop, columns=columns, **kwargs)
+
+        if iterator or chunksize is not None:
+            return TableIterator(func, nrows=s.nrows, start=start, stop=stop, chunksize=chunksize)
+
+        return TableIterator(func, nrows=s.nrows, start=start, stop=stop).get_values()
+
+    def select_as_coordinates(self, key, where=None, start=None, stop=None, **kwargs):
         """
-        return the selection as a Coordinates. Note that start/stop/columns parematers are inapplicable here.
+        return the selection as a Coordinates.
 
         Parameters
         ----------
@@ -380,8 +394,10 @@ class HDFStore(object):
         Optional Parameters
         -------------------
         where : list of Term (or convertable) objects, optional
+        start : integer (defaults to None), row number to start selection
+        stop  : integer (defaults to None), row number to stop selection
         """
-        return self.get_storer(key).read_coordinates(where = where, **kwargs)
+        return self.get_storer(key).read_coordinates(where=where, start=start, stop=stop, **kwargs)
 
     def unique(self, key, column, **kwargs):
         """
@@ -400,7 +416,7 @@ class HDFStore(object):
         """
         return self.get_storer(key).read_column(column = column, **kwargs)
 
-    def select_as_multiple(self, keys, where=None, selector=None, columns=None, **kwargs):
+    def select_as_multiple(self, keys, where=None, selector=None, columns=None, start=None, stop=None, iterator=False, chunksize=None, **kwargs):
         """ Retrieve pandas objects from multiple tables
 
         Parameters
@@ -408,6 +424,10 @@ class HDFStore(object):
         keys : a list of the tables
         selector : the table to apply the where criteria (defaults to keys[0] if not supplied)
         columns : the columns I want back
+        start : integer (defaults to None), row number to start selection
+        stop  : integer (defaults to None), row number to stop selection
+        iterator : boolean, return an iterator, default False
+        chunksize : nrows to include in iteration, return an iterator
 
         Exceptions
         ----------
@@ -418,7 +438,7 @@ class HDFStore(object):
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
         if isinstance(keys, basestring):
-            return self.select(key=keys, where=where, columns=columns, **kwargs)
+            return self.select(key=keys, where=where, columns=columns, start=start, stop=stop, iterator=iterator, chunksize=chunksize, **kwargs)
 
         if not isinstance(keys, (list, tuple)):
             raise Exception("keys must be a list/tuple")
@@ -433,6 +453,8 @@ class HDFStore(object):
         tbls = [ self.get_storer(k) for k in keys ]
 
         # validate rows
+        if tbls[0] is None:
+            raise Exception("no valid tables to select as multiple")
         nrows = tbls[0].nrows
         for t in tbls:
             if t.nrows != nrows:
@@ -441,16 +463,25 @@ class HDFStore(object):
                 raise Exception("object [%s] is not a table, and cannot be used in all select as multiple" % t.pathname)
 
         # select coordinates from the selector table
-        c = self.select_as_coordinates(selector, where)
+        c = self.select_as_coordinates(selector, where, start=start, stop=stop)
+        nrows = len(c)
 
-        # collect the returns objs
-        objs = [t.read(where=c, columns=columns) for t in tbls]
+        def func(_start, _stop):
 
-        # axis is the concentation axes
-        axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
+            # collect the returns objs
+            objs = [t.read(where=c[_start:_stop], columns=columns) for t in tbls]
 
-        # concat and return
-        return concat(objs, axis=axis, verify_integrity=True)
+            # axis is the concentation axes
+            axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
+
+            # concat and return
+            return concat(objs, axis=axis, verify_integrity=True)
+
+        if iterator or chunksize is not None:
+            return TableIterator(func, nrows=nrows, start=start, stop=stop, chunksize=chunksize)
+
+        return TableIterator(func, nrows=nrows, start=start, stop=stop).get_values()
+
 
     def put(self, key, value, table=None, append=False, **kwargs):
         """
@@ -807,6 +838,49 @@ class HDFStore(object):
         s.infer_axes()
         return s.read(**kwargs)
 
+class TableIterator(object):
+    """ define the iteration interface on a table
+        
+        Parameters
+        ----------
+
+        func   : the function to get results
+        nrows : the rows to iterate on
+        start : the passed start value (default is None)
+        stop : the passed stop value (default is None)
+        chunksize : the passed chunking valeu (default is 50000)
+        kwargs : the passed kwargs
+        """
+
+    def __init__(self, func, nrows, start=None, stop=None, chunksize=None):
+        self.func   = func
+        self.nrows = nrows
+        self.start = start or 0
+
+        if stop is None:
+            stop = self.nrows
+        self.stop  = min(self.nrows,stop)
+
+        if chunksize is None:
+            chunksize = 50000
+
+        self.chunksize = chunksize
+
+    def __iter__(self):
+        current = self.start
+        while current < self.stop:
+            stop = current + self.chunksize
+            v = self.func(current, stop)
+            current = stop
+
+            if v is None:
+                continue
+
+            yield v
+
+    def get_values(self):
+        return self.func(self.start, self.stop)
+        
 
 class IndexCol(object):
     """ an index column description class
@@ -2351,7 +2425,7 @@ class Table(Storer):
 
         return d
 
-    def read_coordinates(self, where=None, **kwargs):
+    def read_coordinates(self, where=None, start=None, stop=None, **kwargs):
         """ select coordinates (row numbers) from a table; return the coordinates object """
 
         # validate the version
@@ -2362,7 +2436,7 @@ class Table(Storer):
             return False
 
         # create the selection
-        self.selection = Selection(self, where=where, **kwargs)
+        self.selection = Selection(self, where=where, start=start, stop=stop, **kwargs)
         return Coordinates(self.selection.select_coords(), group=self.group, where=where)
 
     def read_column(self, column, **kwargs):
@@ -3132,6 +3206,12 @@ class Coordinates(object):
         self.group = group
         self.where = where
 
+    def __len__(self):
+        return len(self.values)
+
+    def __getitem__(self, key):
+        """ return a new coordinates object, sliced by the key """
+        return Coordinates(self.values[key], self.group, self.where)
 
 class Selection(object):
     """

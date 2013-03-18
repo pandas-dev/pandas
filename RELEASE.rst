@@ -63,6 +63,12 @@ pandas 0.11.0
   - Add ``axes`` property to ``Series`` for compatibility
   - Add ``xs`` function to ``Series`` for compatibility
   - Allow setitem in a frame where only mixed numerics are present (e.g. int and float), (GH3037_)
+  - ``HDFStore``
+
+    - Provide dotted attribute access to ``get`` from stores
+      (e.g. store.df == store['df'])
+    - New keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
+      provided to support iteration on ``select`` and ``select_as_multiple`` (GH3076_)
 
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
     (e.g. ``store.df == store['df']``)
@@ -140,8 +146,6 @@ pandas 0.11.0
     - Fix weird PyTables error when using too many selectors in a where
       also correctly filter on any number of values in a Term expression
       (so not using numexpr filtering, but isin filtering)
-    - Provide dotted attribute access to ``get`` from stores
-      (e.g. store.df == store['df'])
     - Internally, change all variables to be private-like (now have leading
       underscore)
     - fixes for query parsing to correctly interpret boolean and != (GH2849_, GH2973_)
@@ -218,6 +222,7 @@ pandas 0.11.0
 .. _GH2819: https://github.com/pydata/pandas/issues/2819
 .. _GH2845: https://github.com/pydata/pandas/issues/2845
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
+.. _GH2803: https://github.com/pydata/pandas/issues/2803
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2849: https://github.com/pydata/pandas/issues/2849
 .. _GH2850: https://github.com/pydata/pandas/issues/2850
@@ -238,7 +243,7 @@ pandas 0.11.0
 .. _GH3037: https://github.com/pydata/pandas/issues/3037
 .. _GH3041: https://github.com/pydata/pandas/issues/3041
 .. _GH3053: https://github.com/pydata/pandas/issues/3053
-.. _GH2803: https://github.com/pydata/pandas/issues/2803
+.. _GH3076: https://github.com/pydata/pandas/issues/3076
 
 
 pandas 0.10.1
