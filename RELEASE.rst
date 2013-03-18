@@ -44,6 +44,7 @@ pandas 0.11.1
     - will warn with a FrequencyWarning if you are attempting to append
       an index with a different frequency than the existing
     - support datelike columns with a timezone as data_columns (GH2852_)
+    - table writing performance improvements.
 
 **API Changes**
 
