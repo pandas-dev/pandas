@@ -154,29 +154,14 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
             ax.set_xlabel('')
             ax.set_ylabel('')
 
-            ax.xaxis.set_visible(False)
-            ax.yaxis.set_visible(False)
+            _label_axis(ax, kind='x', label=b, position='bottom', rotate=True)
 
-            # setup x axis labels
-            if i == 0 and j % 2 == 1:
-                # first row, odd column
-                _label_axis(ax, kind='x', label=b, position='top', rotate=True)
-            elif i == n - 1 and j % 2 == 0:
-                # last row, even column
-                _label_axis(ax, kind='x', label=b, position='bottom', rotate=True)
+            _label_axis(ax, kind='y', label=a, position='left')
 
-            # setup y axis labels
-            if j == 0 and i % 2 == 0:
-                # first column, even row
-                _label_axis(ax, kind='y', label=a, position='left')
-            elif j == n - 1 and i % 2 == 1:
-                # last column, odd row
-                _label_axis(ax, kind='y', label=a, position='right')            
-
-            # ax.grid(b=grid)
-
-    # axes[0, 0].yaxis.set_visible(False)
-    # axes[0, n - 1].yaxis.tick_right()
+            if j!= 0:
+                ax.yaxis.set_visible(False)
+            if i != n-1:
+                ax.xaxis.set_visible(False)
 
     for ax in axes.flat:
         setp(ax.get_xticklabels(), fontsize=8)
