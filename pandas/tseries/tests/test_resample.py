@@ -559,11 +559,11 @@ class TestResample(unittest.TestCase):
             result = df.resample("T", how=lambda x: x.mean())
             exp = df.asfreq('T')
             tm.assert_frame_equal(result, exp)
-            
+
             result = df.resample("T", how="median")
             exp = df.asfreq('T')
             tm.assert_frame_equal(result, exp)
-            
+
     def test_how_lambda_functions(self):
         ts = _simple_ts('1/1/2000', '4/1/2000')
 
@@ -983,6 +983,14 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = s.resample("A", how='mean')
         tm.assert_almost_equal(result[0], s.mean())
 
+    def test_resample_doesnt_truncate(self):
+        """Test for issue #3020"""
+        import pandas as pd
+        dates = pd.date_range('01-Jan-2014','05-Jan-2014', freq='D')
+        series = Series(1, index=dates)
+
+        result = series.resample('D')
+        self.assertEquals(result.index[0], dates[0])
 
 class TestTimeGrouper(unittest.TestCase):
 

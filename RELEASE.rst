@@ -194,6 +194,7 @@ pandas 0.11.0
   - Substitute warning for segfault when grouping with categorical grouper
     of mismatched length (GH3011_)
   - Fix exception in SparseSeries.density (GH2083_)
+  - Fix upsampling bug with closed='left' and daily to daily data (GH3020_)
 
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
@@ -201,6 +202,7 @@ pandas 0.11.0
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH3035: https://github.com/pydata/pandas/issues/3035
+.. _GH3020: https://github.com/pydata/pandas/issues/3020
 .. _GH2978: https://github.com/pydata/pandas/issues/2978
 .. _GH2877: https://github.com/pydata/pandas/issues/2877
 .. _GH2739: https://github.com/pydata/pandas/issues/2739

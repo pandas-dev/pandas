@@ -209,7 +209,13 @@ class TimeGrouper(CustomGrouper):
             else:
                 # upsampling shortcut
                 assert(self.axis == 0)
-                result = obj.reindex(binner[1:], method=self.fill_method,
+
+                if self.closed == 'right':
+                    res_index = binner[1:]
+                else:
+                    res_index = binner[:-1]
+
+                result = obj.reindex(res_index, method=self.fill_method,
                                      limit=self.limit)
         else:
             # Irregular data, have to use groupby
