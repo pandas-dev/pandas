@@ -1307,6 +1307,23 @@ you cannot change data columns (nor indexables) after the first
 append/put operation (Of course you can simply read in the data and
 create a new table!)
 
+Iterator
+~~~~~~~~
+
+Starting in 0.11, you can pass, ``iterator=True`` or ``chunksize=number_in_a_chunk``
+to ``select`` and ``select_as_multiple`` to return an iterator on the results.
+The default is 50,000 rows returned in a chunk.
+
+.. ipython:: python
+
+   for df in store.select('df', chunksize=3):
+      print df
+
+Note, that the chunksize keyword applies to the **returned** rows. So if you
+are doing a query, then that set will be subdivided and returned in the
+iterator. Keep in mind that if you do not pass a ``where`` selection criteria
+then the ``nrows`` of the table are considered.
+
 Advanced Queries
 ~~~~~~~~~~~~~~~~
 
