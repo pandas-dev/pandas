@@ -1829,6 +1829,66 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_frame_equal(expected, result)
             self.assert_(len(result) == 100)
 
+    def test_select_iterator(self):
+ 
+        # single table
+        with ensure_clean(self.path) as store:
+
+            df = tm.makeTimeDataFrame(500)
+            store.remove('df')
+            store.append('df', df)
+
+            expected = store.select('df')
+
+            results = []
+            for s in store.select('df',iterator=True):
+                results.append(s)
+            result = concat(results)
+            tm.assert_frame_equal(expected, result)
+            results = []
+            for s in store.select('df',chunksize=100):
+                results.append(s)
+            result = concat(results)
+            tm.assert_frame_equal(expected, result)
+
+            results = []
+            for s in store.select('df',chunksize=150):
+                results.append(s)
+            result = concat(results)
+            tm.assert_frame_equal(expected, result)
+
+        # multiple
+
+        with ensure_clean(self.path) as store:
+
+            df1 = tm.makeTimeDataFrame(500)
+            store.append('df1',df1,data_columns=True)
+            df2 = tm.makeTimeDataFrame(500).rename(columns=lambda x: "%s_2" % x)
+            df2['foo'] = 'bar'
+            store.append('df2',df2)
+
+            df = concat([df1, df2], axis=1)
+
+            # full selection
+            expected = store.select_as_multiple(
+                ['df1', 'df2'], selector='df1')
+            results = []
+            for s in store.select_as_multiple(
+                ['df1', 'df2'], selector='df1', chunksize=150):
+                results.append(s)
+            result = concat(results)
+            tm.assert_frame_equal(expected, result)
+            
+            # where selection
+            expected = store.select_as_multiple(
+                ['df1', 'df2'], where= Term('A>0'), selector='df1')
+            results = []
+            for s in store.select_as_multiple(
+                ['df1', 'df2'], where= Term('A>0'), selector='df1', chunksize=25):
+                results.append(s)
+            result = concat(results)
+            tm.assert_frame_equal(expected, result)
+
     def test_panel_select(self):
 
         wp = tm.makePanel()
@@ -2042,6 +2102,11 @@ class TestHDFStore(unittest.TestCase):
         df2['foo'] = 'bar'
 
         with ensure_clean(self.path) as store:
+
+            # no tables stored
+            self.assertRaises(Exception, store.select_as_multiple,
+                              None, where=['A>0', 'B>0'], selector='df1')
+
             store.append('df1', df1, data_columns=['A', 'B'])
             store.append('df2', df2)
 
