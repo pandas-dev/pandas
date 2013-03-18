@@ -60,9 +60,36 @@ pandas 0.11.0
   - ``describe_option()`` now reports the default and current value of options.
   - Add ``format`` option to ``pandas.to_datetime`` with faster conversion of
     strings that can be parsed with datetime.strptime
-  - Add ``axes`` property to ``Series`` for compatibility 
-  - Add ``xs`` function to ``Series`` for compatibility 
+  - Add ``axes`` property to ``Series`` for compatibility
+  - Add ``xs`` function to ``Series`` for compatibility
   - Allow setitem in a frame where only mixed numerics are present (e.g. int and float), (GH3037_)
+
+  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
+    (e.g. ``store.df == store['df']``)
+
+  - ``Squeeze`` to possibly remove length 1 dimensions from an object.
+
+    .. ipython:: python
+
+       p = Panel(randn(3,4,4),items=['ItemA','ItemB','ItemC'],
+                          major_axis=date_range('20010102',periods=4),
+                          minor_axis=['A','B','C','D'])
+       p
+       p.reindex(items=['ItemA']).squeeze()
+       p.reindex(items=['ItemA'],minor=['B']).squeeze()
+
+  - Improvement to Yahoo API access in ``pd.io.data.Options`` (GH2758_)
+  - added option `display.max_seq_items` to control the number of
+    elements printed per sequence pprinting it. (GH2979_)
+  - added option `display.chop_threshold` to control display of small numerical
+    values. (GH2739_)
+  - added option `display.max_info_rows` to prevent verbose_info from being
+    calculated for frames above 1M rows (configurable). (GH2807_, GH2918_)
+  - value_counts() now accepts a "normalize" argument, for normalized
+    histograms. (GH2710_).
+  - DataFrame.from_records now accepts not only dicts but any instance of
+    the collections.Mapping ABC.
+
 
 **API Changes**
 
@@ -107,7 +134,6 @@ pandas 0.11.0
     (GH2776_)
   - Fix issues with DataFrame and Series constructor with integers that
     overflow ``int64`` and some mixed typed type lists (GH2845_)
-  - Fix issue with slow printing of wide frames resulting (GH2807_)
 
   - ``HDFStore``
 
@@ -137,7 +163,8 @@ pandas 0.11.0
     - Support min/max ops in a Dataframe (abs not working, nor do we error on non-supported ops)
     - Support idxmin/idxmax/abs/max/min in a Series (GH2989_, GH2982_)
 
-  - Bug on in-place putmasking on an ``integer`` series that needs to be converted to ``float`` (GH2746_)
+  - Bug on in-place putmasking on an ``integer`` series that needs to be converted to
+    ``float`` (GH2746_)
   - Bug in argsort of ``datetime64[ns]`` Series with ``NaT`` (GH2967_)
   - Bug in value_counts of ``datetime64[ns]`` Series (GH3002_)
   - Fixed printing of ``NaT` in an index
@@ -153,7 +180,31 @@ pandas 0.11.0
     other values), (GH2850_)
   - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
   - Fix scalar datetime.datetime parsing bug in read_csv (GH3071_)
+  - Timedeltas are now fully operational (closes GH2898_)
+  - Fixed slow printing of large Dataframes, due to inefficient dtype
+    reporting (GH2807_)
+  - Fixed a segfault when using a function as grouper in groupby (GH3035_)
+  - Fix pretty-printing of infinite data structures (closes GH2978_)
+  - Fixed exception when plotting timeseries bearing a timezone (closes GH2877_)
+  - str.contains ignored na argument (GH2806_)
+  - Substitute warning for segfault when grouping with categorical grouper
+    of mismatched length (GH3011_)
+  - Fix exception in SparseSeries.density (GH2083_)
 
+.. _GH2758: https://github.com/pydata/pandas/issues/2758
+.. _GH2809: https://github.com/pydata/pandas/issues/2809
+.. _GH2810: https://github.com/pydata/pandas/issues/2810
+.. _GH2837: https://github.com/pydata/pandas/issues/2837
+.. _GH2898: https://github.com/pydata/pandas/issues/2898
+.. _GH3035: https://github.com/pydata/pandas/issues/3035
+.. _GH2978: https://github.com/pydata/pandas/issues/2978
+.. _GH2877: https://github.com/pydata/pandas/issues/2877
+.. _GH2739: https://github.com/pydata/pandas/issues/2739
+.. _GH2710: https://github.com/pydata/pandas/issues/2710
+.. _GH2806: https://github.com/pydata/pandas/issues/2806
+.. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2918: https://github.com/pydata/pandas/issues/2918
+.. _GH3011: https://github.com/pydata/pandas/issues/3011
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
@@ -187,6 +238,7 @@ pandas 0.11.0
 .. _GH3037: https://github.com/pydata/pandas/issues/3037
 .. _GH3041: https://github.com/pydata/pandas/issues/3041
 .. _GH3053: https://github.com/pydata/pandas/issues/3053
+.. _GH2803: https://github.com/pydata/pandas/issues/2803
 
 
 pandas 0.10.1
