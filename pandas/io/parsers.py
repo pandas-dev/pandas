@@ -1555,7 +1555,9 @@ def _make_date_converter(date_parser=None, dayfirst=False):
             try:
                 result = date_parser(*date_cols)
                 if isinstance(result, datetime.datetime):
-                    raise Exception('scalar parser')
+                    result = np.array([result])
+                elif not isinstance(result, np.ndarray):
+                    raise Exception("Invalid fast date parsing result")
                 return result
             except Exception:
                 try:
