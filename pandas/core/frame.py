@@ -1651,7 +1651,7 @@ class DataFrame(NDFrame):
             max_cols = get_option('display.max_info_columns')
 
         if verbose and len(self.columns) <= max_cols:
-            lines.append('Data columns:')
+            lines.append('Data columns (total %d columns):' % len(self.columns))
             space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
             counts = self.count()
             if len(cols) != len(counts):
