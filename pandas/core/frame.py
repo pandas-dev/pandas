@@ -1291,7 +1291,7 @@ class DataFrame(NDFrame):
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n', chunksize=None):
+               line_terminator='\n', chunksize=None,**kwds):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1336,15 +1336,17 @@ class DataFrame(NDFrame):
                           FutureWarning)
             na_rep = nanRep
 
-        formatter = fmt.CSVFormatter(self, path_or_buf, 
-                                     line_terminator=line_terminator,
-                                     sep=sep, encoding=encoding,
-                                     quoting=quoting,na_rep=na_rep,
-                                     float_format=float_format, cols=cols,
-                                     header=header, index=index,
-                                     index_label=index_label,
-                                     chunksize=chunksize)
-        formatter.save()
+
+        else:
+            formatter = fmt.CSVFormatter(self, path_or_buf,
+                                         line_terminator=line_terminator,
+                                         sep=sep, encoding=encoding,
+                                         quoting=quoting,na_rep=na_rep,
+                                         float_format=float_format, cols=cols,
+                                         header=header, index=index,
+                                         index_label=index_label,
+                                         chunksize=chunksize,legacy=kwds.get("legacy",False) )
+            formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
