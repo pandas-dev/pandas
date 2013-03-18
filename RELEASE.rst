@@ -41,7 +41,7 @@ pandas 0.11.0
   - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix`` (GH3053_)
   - Added ``.iat``  attribute, to support fast scalar access via integers (replaces ``iget_value/iset_value``)
   - Added ``.at``   attribute, to support fast scalar access via labels (replaces ``get_value/set_value``)
-  - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer 
+  - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer
     (via ``_ixs`` methods in each object)
   - Added support for expression evaluation using the ``numexpr`` library
 
@@ -154,7 +154,7 @@ pandas 0.11.0
   - TimeDeltas
 
     - Series ops with a Timestamp on the rhs was throwing an exception (GH2898_)
-      added tests for Series ops with datetimes,timedeltas,Timestamps, and datelike 
+      added tests for Series ops with datetimes,timedeltas,Timestamps, and datelike
       Series on both lhs and rhs
     - Fixed subtle timedelta64 inference issue on py3
     - Fixed some formatting issues on timedelta when negative
@@ -169,14 +169,14 @@ pandas 0.11.0
   - Bug in value_counts of ``datetime64[ns]`` Series (GH3002_)
   - Fixed printing of ``NaT` in an index
   - Bug in idxmin/idxmax of ``datetime64[ns]`` Series with ``NaT`` (GH2982__)
-  - Bug in ``icol, take`` with negative indicies was producing incorrect return 
+  - Bug in ``icol, take`` with negative indicies was producing incorrect return
     values (see GH2922_, GH2892_), also check for out-of-bounds indices (GH3029_)
   - Bug in DataFrame column insertion when the column creation fails, existing frame is left in
     an irrecoverable state (GH3010_)
-  - Bug in DataFrame update, combine_first where non-specified values could cause 
+  - Bug in DataFrame update, combine_first where non-specified values could cause
     dtype changes (GH3016_, GH3041_)
   - Bug in groupby with first/last where dtypes could change (GH3041_)
-  - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from 
+  - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from
     other values), (GH2850_)
   - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
   - Fix scalar datetime.datetime parsing bug in read_csv (GH3071_)

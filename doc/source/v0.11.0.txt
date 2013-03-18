@@ -6,7 +6,7 @@ v0.11.0 (March ??, 2013)
 This is a major release from 0.10.1 and includes many new features and
 enhancements along with a large number of bug fixes. The methods of Selecting
 Data have had quite a number of additions, and Dtype support is now full-fledged.
-There are also a number of important API changes that long-time pandas users should 
+There are also a number of important API changes that long-time pandas users should
 pay close attention to.
 
 There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
@@ -38,7 +38,7 @@ three types of multi-axis indexing.
 
     See more at :ref:`Selection by Label <indexing.label>`
 
-  - ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will 
+  - ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will
     raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
 
     - An integer e.g. ``5``
@@ -46,17 +46,17 @@ three types of multi-axis indexing.
     - A slice object with ints ``1:7``
     - A boolean array
 
-    See more at :ref:`Selection by Position <indexing.integer>` 
+    See more at :ref:`Selection by Position <indexing.integer>`
 
   - ``.ix`` supports mixed integer and label based access. It is primarily label based, but
-    will fallback to integer positional access. ``.ix`` is the most general and will support 
+    will fallback to integer positional access. ``.ix`` is the most general and will support
     any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes.
 
-    As using integer slices with ``.ix`` have different behavior depending on whether the slice 
-    is interpreted as integer location based or label position based, it's usually better to be 
+    As using integer slices with ``.ix`` have different behavior depending on whether the slice
+    is interpreted as integer location based or label position based, it's usually better to be
     explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
 
-    ``.ix`` is especially usefull when dealing with mixed positional/label based hierarchial indexes. 
+    ``.ix`` is especially usefull when dealing with mixed positional/label based hierarchial indexes.
 
     See more at :ref:`Advanced Indexing <indexing.advanced>` and :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>`
 
@@ -92,8 +92,8 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
    df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
    df1
    df1.dtypes
-   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), 
-                         B = Series(randn(8)), 
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
+                         B = Series(randn(8)),
                          C = Series(randn(8),dtype='uint8') ))
    df2
    df2.dtypes
@@ -266,10 +266,10 @@ Enhancements
       ``above_below``. This allows the user to specify if they would like to
       only return forward looking data for options near the current stock
       price. This just obtains the data from Options.get_near_stock_price
-      instead of Options.get_xxx_data().
+      instead of Options.get_xxx_data().  (GH2758_)
 
   - added option `display.max_seq_items` to control the number of
-    elements printed per sequence pprinting it.
+    elements printed per sequence pprinting it.  (GH2979_)
 
   - added option `display.chop_threshold` to control display of small numerical
     values. (GH2739_)
@@ -282,48 +282,6 @@ Enhancements
 
   - DataFrame.from_records now accepts not only dicts but any instance of
     the collections.Mapping ABC.
-
-
-
-Bug Fixes
-~~~~~~~~~
-
-  - Timedeltas are now fully operational (closes GH2898_)
-
-    .. ipython:: python
-
-        from datetime import datetime, timedelta
-        s  = Series(date_range('2012-1-1', periods=3, freq='D'))
-        td = Series([ timedelta(days=i) for i in range(3) ])
-        df = DataFrame(dict(A = s, B = td))
-        df
-        s - s.max()
-        df['C'] = df['A'] + df['B']
-        df
-        df.dtypes
-
-        # timedelta are representas as ``NaT``
-        y = s - s.shift()
-	y
-
-	# can be set via ``np.nan``
-	y[1] = np.nan
-	y
-
-        # works on lhs too
-   	s.max() - s
-
-        # some timedelta numeric operations are supported
-        td - timedelta(minutes=5,seconds=5,microseconds=5)
-
-  - Fixed slow printing of large Dataframes, due to inefficient dtype
-    reporting (GH2807_)
-  - Fixed a segfault when using a function as grouper in groupby (GH3035_)
-  - Fix pretty-printing of infinite data structures (closes GH2978_)
-  - Fixed exception when plotting timeseries bearing a timezone (closes GH2877_)
-  - str.contains ignored na argument (GH2806_)
-  - Substitute warning for segfault when grouping with categorical grouper
-    of mismatched length (GH3011_)
 
 
 See the `full release notes
@@ -343,3 +301,5 @@ on GitHub for a complete list.
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
+.. _GH2979: https://github.com/pydata/pandas/issues/2979
+.. _GH2758: https://github.com/pydata/pandas/issues/2758
