@@ -1487,7 +1487,10 @@ class MultiIndex(Index):
         return len(self.labels[0])
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None):
-        return self.tolist()
+        ix = self
+        if slicer:
+            ix = self[slicer]
+        return ix.tolist()
 
     @property
     def _constructor(self):
