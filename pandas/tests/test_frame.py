@@ -4466,6 +4466,116 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    @slow
+    def test_to_csv_moar(self):
+        from pandas.util.testing import makeCustomDataframe as mkdf
+        path = '__tmp_to_csv_dupe_cols__'
+        def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None):
+               try:
+                    df.to_csv(path,encoding='utf8')
+                    recons = DataFrame.from_csv(path)
+               except:
+                    os.remove(path)
+                    raise
+               else:
+                    def _to_uni(x):
+                        if not isinstance(x,unicode):
+                            return x.decode('utf8')
+                        return x
+                    if rnlvl:
+                        delta_lvl = [recons.icol(i).values for i in range(rnlvl-1)]
+                        ix=MultiIndex.from_arrays([list(recons.index)]+delta_lvl)
+                        recons.index = ix
+                        recons = recons.iloc[:,rnlvl-1:]
+
+                    if cnlvl:
+                        def stuple_to_tuple(x):
+                            import re
+                            x = x.split(",")
+                            x = map(lambda x: re.sub("[\'\"\s\(\)]","",x),x)
+                            return x
+
+                        cols=MultiIndex.from_tuples(map(stuple_to_tuple,recons.columns))
+                        recons.columns = cols
+
+                    type_map = dict(i='i',f='f',s='O',u='O',dt='O')
+                    if r_dtype:
+                         if r_dtype == 'u': # unicode
+                             r_dtype='O'
+                             recons.index = np.array(map(_to_uni,recons.index),
+                                                     dtype=r_dtype )
+                             df.index = np.array(map(_to_uni,df.index),dtype=r_dtype )
+                         if r_dtype == 'dt': # unicode
+                             r_dtype='O'
+                             recons.index = np.array(map(Timestamp,recons.index),
+                                                     dtype=r_dtype )
+                             df.index = np.array(map(Timestamp,df.index),dtype=r_dtype )
+                         else:
+                             r_dtype= type_map.get(r_dtype)
+                             recons.index = np.array(recons.index,dtype=r_dtype )
+                             df.index = np.array(df.index,dtype=r_dtype )
+                    if c_dtype:
+                         if c_dtype == 'u':
+                             c_dtype='O'
+                             recons.columns = np.array(map(_to_uni,recons.columns),
+                                                     dtype=c_dtype )
+                             df.Columns = np.array(map(_to_uni,df.columns),dtype=c_dtype )
+                         elif c_dtype == 'dt':
+                             c_dtype='O'
+                             recons.columns = np.array(map(Timestamp,recons.columns),
+                                                     dtype=c_dtype )
+                             df.Columns = np.array(map(Timestamp,df.columns),dtype=c_dtype )
+                         else:
+                             c_dtype= type_map.get(c_dtype)
+                             recons.columns = np.array(recons.columns,dtype=c_dtype )
+                             df.columns = np.array(df.columns,dtype=c_dtype )
+
+                    assert_frame_equal(df, recons,check_names=False)
+
+        N = 100
+
+        for ncols in [1,10,30]:
+            base = int((100000/ ncols or 1) or 1)
+            for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
+                      base-1,base,base+1]:
+                print( nrows,ncols)
+                _do_test(mkdf(nrows, ncols),path)
+
+        for nrows in [10,N-2,N-1,N,N+1,N+2]:
+            df = mkdf(nrows, 10)
+            cols = list(df.columns)
+            cols[:1] = ["dupe","dupe"]
+            cols[-1:] = ["dupe","dupe"]
+            ix = list(df.index)
+            ix[:2] = ["rdupe","rdupe"]
+            ix[-2:] = ["rdupe","rdupe"]
+            print( nrows)
+
+            df.index=ix
+            _do_test(df,path)
+
+        for r_idx_type in ['i', 'f','s','u','dt']:
+            for c_idx_type in ['i', 'f','s','u','dt']:
+                print(r_idx_type,c_idx_type)
+                _do_test(mkdf(100, 1,r_idx_type=r_idx_type,
+                              c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
+                _do_test(mkdf(100, 2,r_idx_type=r_idx_type,
+                               c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
+
+        _do_test(DataFrame(index=range(10)),path)
+        _do_test(mkdf(50001, 2,r_idx_nlevels=2),path,rnlvl=2)
+        for ncols in [2,10,30]:
+            base = int(100000/ncols)
+            for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
+                      base-1,base,base+1]:
+                print(nrows, ncols)
+                _do_test(mkdf(nrows, ncols,r_idx_nlevels=2),path,rnlvl=2)
+                _do_test(mkdf(nrows, ncols,c_idx_nlevels=2),path,cnlvl=2)
+                _do_test(mkdf(nrows, ncols,r_idx_nlevels=2,c_idx_nlevels=2),
+                         path,rnlvl=2,cnlvl=2)
+
+
+
     def test_to_csv_from_csv_w_some_infs(self):
         path = '__%s__' % tm.rands(10)
 
@@ -4577,6 +4687,69 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df2, df)
 
         os.remove(path)
+
+    def test_to_csv_mixed(self):
+        filename = '__tmp_to_csv_mixed__.csv'
+        def create_cols(name):
+            return [ "%s%03d" % (name,i) for i in xrange(5) ]
+
+        df_float  = DataFrame(np.random.randn(100, 5),dtype='float64',columns=create_cols('float'))
+        df_int    = DataFrame(np.random.randn(100, 5),dtype='int64',columns=create_cols('int'))
+        df_bool   = DataFrame(True,index=df_float.index,columns=create_cols('bool'))
+        df_object = DataFrame('foo',index=df_float.index,columns=create_cols('object'))
+        df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=create_cols('date'))
+
+        # add in some nans
+        df_float.ix[30:50,1:3] = np.nan
+
+        #### this is a bug in read_csv right now ####
+        #df_dt.ix[30:50,1:3] = np.nan
+
+        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+
+        # dtype
+        dtypes = dict()
+        for n,dtype in [('float',np.float64),('int',np.int64),('bool',np.bool),('object',np.object)]:
+            for c in create_cols(n):
+                dtypes[c] = dtype
+
+        df.to_csv(filename)
+
+        rs = pan.read_csv(filename, index_col=0, dtype=dtypes, parse_dates=create_cols('date'))
+        assert_frame_equal(rs, df)
+        os.remove(filename)
+
+    def test_to_csv_dups_cols(self):
+        filename = '__tmp_to_csv_dup_cols__.csv'
+
+        df        = DataFrame(np.random.randn(1000, 30),columns=range(15)+range(15),dtype='float64')
+        self.assertRaises(Exception, df.to_csv, filename)
+
+        df_float  = DataFrame(np.random.randn(1000, 30),dtype='float64')
+        df_int    = DataFrame(np.random.randn(1000, 30),dtype='int64')
+        df_bool   = DataFrame(True,index=df_float.index,columns=df_float.columns)
+        df_object = DataFrame('foo',index=df_float.index,columns=df_float.columns)
+        df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
+        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+
+        #### this raises because we have duplicate column names across dtypes ####
+        self.assertRaises(Exception, df.to_csv, filename)
+
+    def test_to_csv_chunking(self):
+        filename = '__tmp_to_csv_chunking__.csv'
+
+        aa=DataFrame({'A':range(100000)})
+
+        aa['B'] = aa.A + 1.0
+        aa['C'] = aa.A + 2.0
+        aa['D'] = aa.A + 3.0
+
+        for chunksize in [10000,50000,100000]:
+            aa.to_csv(filename,chunksize=chunksize)
+            rs = pan.read_csv(filename,index_col=0)
+            assert_frame_equal(rs, aa)
+
+        os.remove(filename)
 
     def test_to_csv_bug(self):
         path = '__tmp_to_csv_bug__.csv'

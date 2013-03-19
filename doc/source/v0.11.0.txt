@@ -229,6 +229,8 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
+  - Improved performance of dv.to_csv() by up to 10x in some cases. (GH3059_)
+
   - Numexpr is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
     types of numerical and boolean operations
 
@@ -307,3 +309,4 @@ on GitHub for a complete list.
 .. _GH2979: https://github.com/pydata/pandas/issues/2979
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
 .. _GH3076: https://github.com/pydata/pandas/issues/3076
+.. _GH3059: https://github.com/pydata/pandas/issues/3059

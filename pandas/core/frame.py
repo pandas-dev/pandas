@@ -14,7 +14,6 @@ labeling information
 
 from itertools import izip
 from StringIO import StringIO
-import csv
 import operator
 import sys
 import collections
@@ -1290,87 +1289,10 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csv(self, writer, na_rep=None, cols=None,
-                    header=True, index=True,
-                    index_label=None, float_format=None):
-        if cols is None:
-            cols = self.columns
-
-        series = {}
-        for k, v in self._series.iteritems():
-            series[k] = v.values
-
-        has_aliases = isinstance(header, (tuple, list, np.ndarray))
-        if has_aliases or header:
-            if index:
-                # should write something for index label
-                if index_label is not False:
-                    if index_label is None:
-                        if isinstance(self.index, MultiIndex):
-                            index_label = []
-                            for i, name in enumerate(self.index.names):
-                                if name is None:
-                                    name = ''
-                                index_label.append(name)
-                        else:
-                            index_label = self.index.name
-                            if index_label is None:
-                                index_label = ['']
-                            else:
-                                index_label = [index_label]
-                    elif not isinstance(index_label, (list, tuple, np.ndarray)):
-                        # given a string for a DF with Index
-                        index_label = [index_label]
-
-                    encoded_labels = list(index_label)
-                else:
-                    encoded_labels = []
-
-                if has_aliases:
-                    if len(header) != len(cols):
-                        raise ValueError(('Writing %d cols but got %d aliases'
-                                          % (len(cols), len(header))))
-                    else:
-                        write_cols = header
-                else:
-                    write_cols = cols
-                encoded_cols = list(write_cols)
-
-                writer.writerow(encoded_labels + encoded_cols)
-            else:
-                encoded_cols = list(cols)
-                writer.writerow(encoded_cols)
-
-        data_index = self.index
-        if isinstance(self.index, PeriodIndex):
-            data_index = self.index.to_timestamp()
-
-        nlevels = getattr(data_index, 'nlevels', 1)
-        for j, idx in enumerate(data_index):
-            row_fields = []
-            if index:
-                if nlevels == 1:
-                    row_fields = [idx]
-                else:  # handle MultiIndex
-                    row_fields = list(idx)
-            for i, col in enumerate(cols):
-                val = series[col][j]
-                if lib.checknull(val):
-                    val = na_rep
-
-                if float_format is not None and com.is_float(val):
-                    val = float_format % val
-                elif isinstance(val, np.datetime64):
-                    val = lib.Timestamp(val)._repr_base
-
-                row_fields.append(val)
-
-            writer.writerow(row_fields)
-
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n'):
+               line_terminator='\n', chunksize=None,**kwds):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1407,6 +1329,7 @@ class DataFrame(NDFrame):
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
+        chunksize : rows to write at a time
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1414,32 +1337,17 @@ class DataFrame(NDFrame):
                           FutureWarning)
             na_rep = nanRep
 
-        if hasattr(path_or_buf, 'read'):
-            f = path_or_buf
-            close = False
+
         else:
-            f = com._get_handle(path_or_buf, mode, encoding=encoding)
-            close = True
-
-        if quoting is None:
-            quoting = csv.QUOTE_MINIMAL
-
-        try:
-            if encoding is not None:
-                csvout = com.UnicodeWriter(f, lineterminator=line_terminator,
-                                           delimiter=sep, encoding=encoding,
-                                           quoting=quoting)
-            else:
-                csvout = csv.writer(f, lineterminator=line_terminator,
-                                    delimiter=sep, quoting=quoting)
-            self._helper_csv(csvout, na_rep=na_rep,
-                             float_format=float_format, cols=cols,
-                             header=header, index=index,
-                             index_label=index_label)
-
-        finally:
-            if close:
-                f.close()
+            formatter = fmt.CSVFormatter(self, path_or_buf,
+                                         line_terminator=line_terminator,
+                                         sep=sep, encoding=encoding,
+                                         quoting=quoting,na_rep=na_rep,
+                                         float_format=float_format, cols=cols,
+                                         header=header, index=index,
+                                         index_label=index_label,
+                                         chunksize=chunksize,legacy=kwds.get("legacy",False) )
+            formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
