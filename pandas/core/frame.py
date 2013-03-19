@@ -1854,8 +1854,7 @@ class DataFrame(NDFrame):
             else:
                 label = self.columns[i]
                 if isinstance(label, Index):
-
-                    return self.take(i, axis=1)
+                    return self.take(i, axis=1, convert=True)
 
                 values = self._data.iget(i)
                 return self._col_klass.from_array(values, index=self.index,
@@ -1907,10 +1906,10 @@ class DataFrame(NDFrame):
             # be reindexed to match DataFrame rows
             key = _check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            return self.take(indexer, axis=0)
+            return self.take(indexer, axis=0, convert=False)
         else:
             indexer = self.ix._convert_to_indexer(key, axis=1)
-            return self.take(indexer, axis=1)
+            return self.take(indexer, axis=1, convert=True)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -2242,9 +2241,9 @@ class DataFrame(NDFrame):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    return self.take(inds, axis=axis)
+                    return self.take(inds, axis=axis, convert=False)
                 else:
-                    return self.take(loc, axis=axis)
+                    return self.take(loc, axis=axis, convert=True)
 
             if not np.isscalar(loc):
                 new_index = self.index[loc]
@@ -2820,7 +2819,7 @@ class DataFrame(NDFrame):
 
     delevel = deprecate('delevel', reset_index)
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, convert=True):
         """
         Analogous to ndarray.take, return DataFrame corresponding to requested
         indices along an axis
@@ -2829,6 +2828,8 @@ class DataFrame(NDFrame):
         ----------
         indices : list / array of ints
         axis : {0, 1}
+        convert : convert indices for negative values, check bounds, default True
+                  mainly useful for an user routine calling
 
         Returns
         -------
@@ -2836,7 +2837,8 @@ class DataFrame(NDFrame):
         """
 
         # check/convert indicies here
-        indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+        if convert:
+            indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         if self._is_mixed_type:
             if axis == 0:
@@ -2950,7 +2952,7 @@ class DataFrame(NDFrame):
             else:
                 raise ValueError('must specify how or thresh')
 
-        return self.take(mask.nonzero()[0], axis=axis)
+        return self.take(mask.nonzero()[0], axis=axis, convert=False)
 
     def drop_duplicates(self, cols=None, take_last=False, inplace=False):
         """
@@ -3141,7 +3143,7 @@ class DataFrame(NDFrame):
                           " from pandas 0.11 onward", FutureWarning)
             return self
         else:
-            return self.take(indexer, axis=axis)
+            return self.take(indexer, axis=axis, convert=False)
 
     def sortlevel(self, level=0, axis=0, ascending=True, inplace=False):
         """
@@ -3187,7 +3189,7 @@ class DataFrame(NDFrame):
                           " from pandas 0.11 onward", FutureWarning)
             return self
         else:
-            return self.take(indexer, axis=axis)
+            return self.take(indexer, axis=axis, convert=False)
 
     def swaplevel(self, i, j, axis=0):
         """
