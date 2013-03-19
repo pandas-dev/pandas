@@ -229,7 +229,7 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
-  - Improved performance of dv.to_csv() by up to 10x in some cases. (GH3059_)
+  - Improved performance of df.to_csv() by up to 10x in some cases. (GH3059_)
 
   - Numexpr is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
     types of numerical and boolean operations
