@@ -1002,6 +1002,44 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df1')
             tm.assert_frame_equal(result, df)
 
+    def test_append_raise(self):
+
+        with ensure_clean(self.path) as store:
+
+            # test append with invalid input to get good error messages
+
+            # list in column
+            df = tm.makeDataFrame()
+            df['invalid'] = [['a']] * len(df)
+            self.assert_(df.dtypes['invalid'] == np.object_)
+            self.assertRaises(NotImplementedError, store.append,'df',df)
+
+            # multiple invalid columns
+            df['invalid2'] = [['a']] * len(df)
+            df['invalid3'] = [['a']] * len(df)
+            self.assertRaises(NotImplementedError, store.append,'df',df)
+            
+            # datetime with embedded nans as object
+            df = tm.makeDataFrame()
+            s = Series(datetime.datetime(2001,1,2),index=df.index,dtype=object)
+            s[0:5] = np.nan
+            df['invalid'] = s
+            self.assert_(df.dtypes['invalid'] == np.object_)
+            self.assertRaises(NotImplementedError, store.append,'df', df)
+
+            # directy ndarray
+            self.assertRaises(NotImplementedError, store.append,'df',np.arange(10))
+
+            # series directly
+            self.assertRaises(NotImplementedError, store.append,'df',Series(np.arange(10)))
+
+            # appending an incompatbile table
+            df = tm.makeDataFrame()
+            store.append('df',df)
+            
+            df['foo'] = 'foo'
+            self.assertRaises(Exception, store.append,'df',df)
+    
     def test_table_index_incompatible_dtypes(self):
         df1 = DataFrame({'a': [1, 2, 3]})
         df2 = DataFrame({'a': [4, 5, 6]},

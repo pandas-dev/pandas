@@ -18,7 +18,7 @@ from pandas import (
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
-from pandas.core.common import adjoin
+from pandas.core.common import adjoin, isnull
 from pandas.core.algorithms import match, unique, factorize
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
@@ -727,8 +727,8 @@ class HDFStore(object):
         """ return a suitable Storer class to operate """
 
         def error(t):
-            raise Exception("cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
-                            (t,group,type(value),table,append,kwargs))
+            raise NotImplementedError("cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
+                                      (t,group,type(value),table,append,kwargs))
         
         pt = getattr(group._v_attrs,'pandas_type',None)
         tt = getattr(group._v_attrs,'table_type',None)
@@ -768,7 +768,12 @@ class HDFStore(object):
             if value is not None:
 
                 if pt == 'frame_table':
-                    tt = 'appendable_frame' if value.index.nlevels == 1 else 'appendable_multiframe'
+                    index = getattr(value,'index',None)
+                    if index is not None:
+                        if index.nlevels == 1:
+                            tt = 'appendable_frame'
+                        elif index.nlevels > 1:
+                            tt = 'appendable_multiframe'
                 elif pt == 'wide_table':
                     tt  = 'appendable_panel'
                 elif pt == 'ndim_table':
@@ -1187,7 +1192,23 @@ class DataCol(IndexCol):
 
     def set_atom_string(self, block, existing_col, min_itemsize, nan_rep):
         # fill nan items with myself
-        data = block.fillna(nan_rep).values
+        block = block.fillna(nan_rep)
+        data  = block.values
+
+        # see if we have a valid string type
+        inferred_type = lib.infer_dtype(data.ravel())
+        if inferred_type != 'string':
+
+            # we cannot serialize this data, so report an exception on a column by column basis
+            for item in block.items:
+
+                col = block.get(item)
+                inferred_type = lib.infer_dtype(col.ravel())
+                if inferred_type != 'string':
+                    raise NotImplementedError("cannot serialize the column [%s] because "
+                                              "its data contents are [%s] object dtype" % 
+                                              (item,inferred_type))
+
 
         # itemsize is the maximum length of a string (along any dimension)
         itemsize = lib.max_len_string_array(data.ravel())
@@ -2234,7 +2255,11 @@ class Table(Storer):
 
         # set the default axes if needed
         if axes is None:
-            axes = _AXES_MAP[type(obj)]
+            try:
+                axes = _AXES_MAP[type(obj)]
+            except:
+                raise NotImplementedError("cannot properly create the storer for: [group->%s,value->%s]" % 
+                                          (self.group._v_name,type(obj)))
 
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
@@ -2251,7 +2276,7 @@ class Table(Storer):
 
         # currently support on ndim-1 axes
         if len(axes) != self.ndim - 1:
-            raise Exception("currenctly only support ndim-1 indexers in an AppendableTable")
+            raise Exception("currently only support ndim-1 indexers in an AppendableTable")
 
         # create according to the new data
         self.non_index_axes = []
@@ -2335,10 +2360,18 @@ class Table(Storer):
                 name = b.items[0]
                 self.data_columns.append(name)
 
-            try:
-                existing_col = existing_table.values_axes[
-                    i] if existing_table is not None and validate else None
+            # make sure that we match up the existing columns 
+            # if we have an existing table
+            if existing_table is not None and validate:
+                try:
+                    existing_col = existing_table.values_axes[i]
+                except:
+                    raise Exception("Incompatible appended table [%s] with existing table [%s]" %
+                                    (blocks,existing_table.values_axes))
+            else:
+                existing_col = None
 
+            try:
                 col = klass.create_for_block(
                     i=i, name=name, version=self.version)
                 col.set_atom(block=b,
