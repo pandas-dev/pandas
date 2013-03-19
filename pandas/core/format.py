@@ -798,6 +798,11 @@ class CSVFormatter(object):
             cols=list(cols)
         self.cols = cols
 
+        # preallocate data 2d list
+        self.blocks = self.obj._data.blocks
+        ncols = sum(len(b.items) for b in self.blocks)
+        self.data =[None] * ncols
+
         # fail early if we have duplicate columns
         if len(set(self.cols)) != len(self.cols):
             raise Exception("duplicate columns are not permitted in to_csv")
@@ -1001,18 +1006,17 @@ class CSVFormatter(object):
         data_index  = self.data_index
 
         # create the data for a chunk
-        blocks = self.obj._data.blocks
-        data =[None] * sum(len(b.items) for b in blocks)
         slicer = slice(start_i,end_i)
-        for i in range(len(blocks)):
-            b = blocks[i]
+        for i in range(len(self.blocks)):
+            b = self.blocks[i]
             d = b.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
             for j, k in enumerate(b.items):
-                data[colname_map[k]] = d[j]
+                # self.data is a preallocated list
+                self.data[colname_map[k]] = d[j]
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
 
-        lib.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
+        lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
 
 # from collections import namedtuple
 # ExcelCell = namedtuple("ExcelCell",
