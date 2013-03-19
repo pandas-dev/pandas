@@ -4544,14 +4544,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for nrows in [10,N-2,N-1,N,N+1,N+2]:
             df = mkdf(nrows, 10)
             cols = list(df.columns)
-            cols[:1] = ["dupe","dupe"]
-            cols[-1:] = ["dupe","dupe"]
+            cols[:2] = ["dupe","dupe"]
+            cols[-2:] = ["dupe","dupe"]
             ix = list(df.index)
             ix[:2] = ["rdupe","rdupe"]
             ix[-2:] = ["rdupe","rdupe"]
-            print( nrows)
-
             df.index=ix
+            df.columns=cols
             _do_test(df,path)
 
         for r_idx_type in ['i', 'f','s','u','dt']:
