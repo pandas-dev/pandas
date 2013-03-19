@@ -803,11 +803,20 @@ class CSVFormatter(object):
         ncols = sum(len(b.items) for b in self.blocks)
         self.data =[None] * ncols
 
-        # fail early if we have duplicate columns
-        if len(set(self.cols)) != len(self.cols):
-            raise Exception("duplicate columns are not permitted in to_csv")
+        if self.obj.columns.is_unique:
+            self.colname_map = dict((k,i) for i,k in  enumerate(obj.columns))
+        else:
+            ks = [set(x.items) for x in self.blocks]
+            u = len(reduce(lambda a,x: a.union(x),ks,set()))
+            t = sum(map(len,ks))
+            if u != t:
+                if len(set(self.cols)) != len(self.cols):
+                    raise NotImplementedError("duplicate columns with differing dtypes are unsupported")
+            else:
+                # if columns are not unique and we acces this,
+                # we're doing it wrong
+                pass
 
-        self.colname_map = dict((k,i) for i,k in  enumerate(obj.columns))
 
         if chunksize is None:
             chunksize = (100000/ (len(self.cols) or 1)) or 1
@@ -1002,17 +1011,20 @@ class CSVFormatter(object):
 
     def _save_chunk(self, start_i, end_i):
 
-        colname_map = self.colname_map
         data_index  = self.data_index
 
         # create the data for a chunk
         slicer = slice(start_i,end_i)
-        for i in range(len(self.blocks)):
-            b = self.blocks[i]
-            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
-            for j, k in enumerate(b.items):
-                # self.data is a preallocated list
-                self.data[colname_map[k]] = d[j]
+        if self.obj.columns.is_unique:
+            for i in range(len(self.blocks)):
+                b = self.blocks[i]
+                d = b.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
+                for j, k in enumerate(b.items):
+                    # self.data is a preallocated list
+                    self.data[self.colname_map[k]] = d[j]
+        else:
+            for i in range(len(self.cols)):
+                self.data[i] = self.obj.icol(i).values[slicer].tolist()
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
 
