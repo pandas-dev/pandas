@@ -47,6 +47,7 @@ pandas 0.11.0
 
 **Improvements to existing features**
 
+  - Improved performance of dv.to_csv() by up to 10x in some cases. (GH3059_)
   - added ``blocks`` attribute to DataFrames, to return a dict of dtypes to
     homogeneously dtyped DataFrames
   - added keyword ``convert_numeric`` to ``convert_objects()`` to try to
@@ -185,6 +186,7 @@ pandas 0.11.0
 .. _GH3012: https://github.com/pydata/pandas/issues/3012
 .. _GH3029: https://github.com/pydata/pandas/issues/3029
 .. _GH3041: https://github.com/pydata/pandas/issues/3041
+.. _GH3059: https://github.com/pydata/pandas/issues/3039
 
 
 pandas 0.10.1
