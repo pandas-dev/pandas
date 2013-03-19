@@ -4450,6 +4450,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    @slow
     def test_to_csv_moar(self):
         from pandas.util.testing import makeCustomDataframe as mkdf
         path = '__tmp_to_csv_dupe_cols__'
