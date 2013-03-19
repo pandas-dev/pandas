@@ -326,8 +326,14 @@ class TestBlockManager(unittest.TestCase):
     def test_copy(self):
         shallow = self.mgr.copy(deep=False)
 
-        for cp_blk, blk in zip(shallow.blocks, self.mgr.blocks):
-            self.assert_(cp_blk.values is blk.values)
+        # we don't guaranteee block ordering
+        for blk in self.mgr.blocks:
+            found = False
+            for cp_blk in shallow.blocks:
+                if cp_blk.values is blk.values:
+                    found = True
+                    break
+            self.assert_(found == True)
 
     def test_as_matrix_float(self):
 

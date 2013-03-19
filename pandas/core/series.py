@@ -381,11 +381,6 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
 
 
 class Series(pa.Array, generic.PandasObject):
-    _AXIS_NUMBERS = {
-        'index': 0
-    }
-
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
@@ -2526,30 +2521,6 @@ class Series(pa.Array, generic.PandasObject):
             raise ValueError("cannot reindex series on non-zero axis!")
         return self.reindex(index=labels,**kwargs)
 
-    def reindex_like(self, other, method=None, limit=None, fill_value=pa.NA):
-        """
-        Reindex Series to match index of another Series, optionally with
-        filling logic
-
-        Parameters
-        ----------
-        other : Series
-        method : string or None
-            See Series.reindex docstring
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Notes
-        -----
-        Like calling s.reindex(other.index, method=...)
-
-        Returns
-        -------
-        reindexed : Series
-        """
-        return self.reindex(other.index, method=method, limit=limit,
-                            fill_value=fill_value)
-
     def take(self, indices, axis=0, convert=True):
         """
         Analogous to ndarray.take, return Series corresponding to requested
@@ -2569,7 +2540,7 @@ class Series(pa.Array, generic.PandasObject):
         new_values = self.values.take(indices)
         return Series(new_values, index=new_index, name=self.name)
 
-    truncate = generic.truncate
+    truncate = generic.PandasObject.truncate
 
     def fillna(self, value=None, method=None, inplace=False,
                limit=None):
@@ -3163,6 +3134,7 @@ class Series(pa.Array, generic.PandasObject):
         from pandas.core.strings import StringMethods
         return StringMethods(self)
 
+Series._setup_axes(['index'], build_axes = False)
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #------------------------------------------------------------------------------

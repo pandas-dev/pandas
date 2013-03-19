@@ -108,11 +108,13 @@ class Block(object):
     def dtype(self):
         return self.values.dtype
 
-    def copy(self, deep=True):
+    def copy(self, deep=True, ref_items=None):
         values = self.values
         if deep:
             values = values.copy()
-        return make_block(values, self.items, self.ref_items)
+        if ref_items is None:
+            ref_items = self.ref_items
+        return make_block(values, self.items, ref_items)
 
     def merge(self, other):
         if not self.ref_items.equals(other.ref_items):
@@ -294,12 +296,12 @@ class Block(object):
 
         # may need to align the new
         if hasattr(new, 'reindex_axis'):
-            axis = getattr(new, '_het_axis', 0)
+            axis = getattr(new, '_info_axis_number', 0)
             new = new.reindex_axis(self.items, axis=axis, copy=False).values.T
 
         # may need to align the mask
         if hasattr(mask, 'reindex_axis'):
-            axis = getattr(mask, '_het_axis', 0)
+            axis = getattr(mask, '_info_axis_number', 0)
             mask = mask.reindex_axis(self.items, axis=axis, copy=False).values.T
 
         if self._can_hold_element(new):
@@ -420,7 +422,7 @@ class Block(object):
 
         # see if we can align other
         if hasattr(other, 'reindex_axis'):
-            axis = getattr(other, '_het_axis', 0)
+            axis = getattr(other, '_info_axis_number', 0)
             other = other.reindex_axis(self.items, axis=axis, copy=True).values
 
         # make sure that we can broadcast
@@ -475,7 +477,7 @@ class Block(object):
 
         # see if we can align other
         if hasattr(other,'reindex_axis'):
-            axis = getattr(other,'_het_axis',0)
+            axis = getattr(other,'_info_axis_number',0)
             other = other.reindex_axis(self.items, axis=axis, copy=True).values
 
         # make sure that we can broadcast
@@ -489,7 +491,7 @@ class Block(object):
         if not hasattr(cond,'shape'):
             raise ValueError("where must have a condition that is ndarray like")
         if hasattr(cond,'reindex_axis'):
-            axis = getattr(cond,'_het_axis',0)
+            axis = getattr(cond,'_info_axis_number',0)
             cond = cond.reindex_axis(self.items, axis=axis, copy=True).values
         else:
             cond = cond.values
@@ -933,6 +935,8 @@ class BlockManager(object):
 
         axes = kwargs.pop('axes',None)
         filter = kwargs.get('filter')
+        do_integrity_check = kwargs.pop('do_integrity_check',False)
+
         result_blocks = []
         for blk in self.blocks:
             if filter is not None:
@@ -949,7 +953,7 @@ class BlockManager(object):
                 result_blocks.extend(applied)
             else:
                 result_blocks.append(applied)
-        bm = self.__class__(result_blocks, axes or self.axes)
+        bm = self.__class__(result_blocks, axes or self.axes, do_integrity_check=do_integrity_check)
         bm._consolidate_inplace()
         return bm
 
@@ -1155,10 +1159,8 @@ class BlockManager(object):
         -------
         copy : BlockManager
         """
-        copy_blocks = [block.copy(deep=deep) for block in self.blocks]
-        # copy_axes = [ax.copy() for ax in self.axes]
-        copy_axes = list(self.axes)
-        return BlockManager(copy_blocks, copy_axes, do_integrity_check=False)
+        new_axes = list(self.axes)
+        return self.apply('copy', axes=new_axes, deep=deep, do_integrity_check=False)
 
     def as_matrix(self, items=None):
         if len(self.blocks) == 0:
@@ -1444,7 +1446,7 @@ class BlockManager(object):
         if item not in self.items:
             raise KeyError('no item named %s' % com.pprint_thing(item))
 
-    def reindex_axis(self, new_axis, method=None, axis=0, copy=True):
+    def reindex_axis(self, new_axis, method=None, axis=0, fill_value=np.nan, copy=True):
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 
@@ -1466,10 +1468,10 @@ class BlockManager(object):
             if method is not None:
                 raise AssertionError('method argument not supported for '
                                      'axis == 0')
-            return self.reindex_items(new_axis)
+            return self.reindex_items(new_axis, copy=copy, fill_value=fill_value)
 
         new_axis, indexer = cur_axis.reindex(new_axis, method)
-        return self.reindex_indexer(new_axis, indexer, axis=axis)
+        return self.reindex_indexer(new_axis, indexer, axis=axis, fill_value=fill_value)
 
     def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=np.nan):
         """
@@ -1518,7 +1520,7 @@ class BlockManager(object):
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
-        return BlockManager(new_blocks, [new_items] + self.axes[1:])
+        return BlockManager(new_blocks, [new_items] + list(self.axes[1:]))
 
     def reindex_items(self, new_items, copy=True, fill_value=np.nan):
         """
@@ -1528,7 +1530,7 @@ class BlockManager(object):
         data = self
         if not data.is_consolidated():
             data = data.consolidate()
-            return data.reindex_items(new_items)
+            return data.reindex_items(new_items, copy=copy, fill_value=fill_value)
 
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)

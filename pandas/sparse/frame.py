@@ -69,11 +69,13 @@ class SparseDataFrame(DataFrame):
     _columns = None
     _series = None
     _is_mixed_type = False
-    _col_klass = SparseSeries
     ndim = 2
 
+    _constructor_sliced = SparseSeries
+
     def __init__(self, data=None, index=None, columns=None,
-                 default_kind='block', default_fill_value=None):
+                 default_kind='block', default_fill_value=None,
+                 copy=False):
         if default_fill_value is None:
             default_fill_value = np.nan
 
@@ -383,7 +385,7 @@ class SparseDataFrame(DataFrame):
 
             return self[label]
             # values = self._data.iget(i)
-            # return self._col_klass.from_array(
+            # return self._constructor_sliced.from_array(
             #     values, index=self.index, name=label,
             #     fill_value= self.default_fill_value)
 
@@ -600,8 +602,11 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(sdict, index=self.index, columns=columns,
                                default_fill_value=self.default_fill_value)
 
-    def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
-                               copy, fill_value):
+    def _reindex_with_indexers(self, reindexers, method=None, copy=False, fill_value=np.nan):
+
+        index,   row_indexer = reindexers.get(0,(None,None))
+        columns, col_indexer = reindexers.get(1,(None, None))
+
         if columns is None:
             columns = self.columns
 

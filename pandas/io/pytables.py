@@ -630,7 +630,7 @@ class HDFStore(object):
             dc = data_columns if k == selector else None
 
             # compute the val
-            val = value.reindex_axis(v, axis=axis, copy=False)
+            val = value.reindex_axis(v, axis=axis)
 
             self.append(k, val, data_columns=dc, **kwargs)
 
@@ -2323,7 +2323,9 @@ class Table(Storer):
 
         # reindex by our non_index_axes & compute data_columns
         for a in self.non_index_axes:
-            obj = obj.reindex_axis(a[1], axis=a[0], copy=False)
+            labels = _ensure_index(a[1])
+            if not labels.equals(obj._get_axis(a[0])):
+                obj = obj.reindex_axis(labels, axis=a[0])
 
         # get out blocks
         block_obj = self.get_object(obj)
@@ -2338,10 +2340,10 @@ class Table(Storer):
             data_columns = [c for c in data_columns if c in axis_labels]
             if len(data_columns):
                 blocks = block_obj.reindex_axis(Index(axis_labels) - Index(
-                    data_columns), axis=axis, copy=False)._data.blocks
+                    data_columns), axis=axis)._data.blocks
                 for c in data_columns:
                     blocks.extend(block_obj.reindex_axis(
-                        [c], axis=axis, copy=False)._data.blocks)
+                        [c], axis=axis)._data.blocks)
 
         if blocks is None:
             blocks = block_obj._data.blocks
@@ -2399,7 +2401,9 @@ class Table(Storer):
         for axis, labels in self.non_index_axes:
             if columns is not None:
                 labels = Index(labels) & Index(columns)
-            obj = obj.reindex_axis(labels, axis=axis, copy=False)
+            labels = _ensure_index(labels)
+            if not labels.equals(obj._get_axis(axis)):
+                obj = obj.reindex_axis(labels, axis=axis)
 
         # apply the selection filters (but keep in the same order)
         if self.selection.filter:

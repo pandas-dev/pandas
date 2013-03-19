@@ -1,14 +1,18 @@
 # pylint: disable=W0231,E1101
 
+import operator
 import numpy as np
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
-import pandas.core.common as com
+from pandas.core.internals import BlockManager
+from pandas.core.indexing import _NDFrameIndexer
 import pandas.lib as lib
-
+from pandas.util import py3compat
+import pandas.core.common as com
+from pandas.core.common import (isnull, notnull, _infer_dtype_from_scalar)
 
 class PandasError(Exception):
     pass
@@ -16,50 +20,177 @@ class PandasError(Exception):
 
 class PandasObject(object):
 
-    _AXIS_NUMBERS = {
-        'index': 0,
-        'columns': 1
-    }
+    #----------------------------------------------------------------------
+    # Construction
 
-    _AXIS_ALIASES = {}
-    _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+    @property
+    def _constructor(self):
+        raise NotImplementedError
 
-    def save(self, path):
-        com.save(self, path)
-
-    @classmethod
-    def load(cls, path):
-        return com.load(path)
+    @property
+    def _constructor_sliced(self):
+        raise NotImplementedError
 
     #----------------------------------------------------------------------
-    # Axis name business
+    # Axis
+
+    @classmethod
+    def _setup_axes(cls, axes, info_axis = None, stat_axis = None, aliases = None, slicers = None,
+                    axes_are_reversed = False, build_axes = True):
+        """ provide axes setup for the major PandasObjects
+
+            axes : the names of the axes in order (lowest to highest)
+            info_axis_num : the axis of the selector dimension (int)
+            stat_axis_num : the number of axis for the default stats (int)
+            aliases : other names for a single axis (dict)
+            slicers : how axes slice to others (dict)
+            axes_are_reversed : boolean whether to treat passed axes as reversed (DataFrame)
+            build_axes : setup the axis properties (default True)
+            """
+
+        cls._AXIS_ORDERS  = axes
+        cls._AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(axes) ])
+        cls._AXIS_LEN     = len(axes)
+        cls._AXIS_ALIASES = aliases or dict()
+        cls._AXIS_IALIASES = dict([ (v,k) for k, v in cls._AXIS_ALIASES.items() ])
+        cls._AXIS_NAMES    = dict([(i, a) for i, a in enumerate(axes) ])
+        cls._AXIS_SLICEMAP = slicers or None
+        cls._AXIS_REVERSED = axes_are_reversed
+
+        # indexing support
+        cls._ix = None
+
+        if info_axis is not None:
+            cls._info_axis_number = info_axis
+            cls._info_axis_name   = axes[info_axis]
+
+        if stat_axis is not None:
+            cls._stat_axis_number = stat_axis
+            cls._stat_axis_name   = axes[stat_axis]
+
+        # setup the actual axis
+        if build_axes:
+
+            def set_axis(a, i):
+                setattr(cls,a,lib.AxisProperty(i))
+
+            if axes_are_reversed:
+                m = cls._AXIS_LEN-1
+                for i, a in cls._AXIS_NAMES.items():
+                    set_axis(a,m-i)
+            else:
+                for i, a in cls._AXIS_NAMES.items():
+                    set_axis(a,i)
+
+    def _construct_axes_dict(self, axes=None, **kwargs):
+        """ return an axes dictionary for myself """
+        d = dict([(a, self._get_axis(a)) for a in (axes or self._AXIS_ORDERS)])
+        d.update(kwargs)
+        return d
+
+    @staticmethod
+    def _construct_axes_dict_from(self, axes, **kwargs):
+        """ return an axes dictionary for the passed axes """
+        d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
+        d.update(kwargs)
+        return d
+
+    def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
+        """ return an axes dictionary for myself """
+        d = dict([(self._AXIS_SLICEMAP[a], self._get_axis(a))
+                 for a in (axes or self._AXIS_ORDERS)])
+        d.update(kwargs)
+        return d
+
+    def _construct_axes_from_arguments(self, args, kwargs, require_all=False):
+        """ construct and returns axes if supplied in args/kwargs
+            if require_all, raise if all axis arguments are not supplied
+            return a tuple of (axes, kwargs) """
+
+        # construct the args
+        args = list(args)
+        for a in self._AXIS_ORDERS:
+
+            # if we have an alias for this axis
+            alias = self._AXIS_IALIASES.get(a)
+            if alias is not None:
+                if a in kwargs:
+                    if alias in kwargs:
+                        raise Exception("arguments are multually exclusive for [%s,%s]" % (a,alias))
+                    continue
+                if alias in kwargs:
+                    kwargs[a] = kwargs.pop(alias)
+                    continue
+
+            # look for a argument by position
+            if a not in kwargs:
+                try:
+                    kwargs[a] = args.pop(0)
+                except (IndexError):
+                    if require_all:
+                        raise ValueError(
+                            "not enough arguments specified!")
+
+        axes = dict([ (a,kwargs.get(a)) for a in self._AXIS_ORDERS])
+        return axes, kwargs
+
+    @classmethod
+    def _from_axes(cls, data, axes):
+        # for construction from BlockManager
+        if isinstance(data, BlockManager):
+            return cls(data)
+        else:
+            if cls._AXIS_REVERSED:
+                axes = axes[::-1]
+            d = cls._construct_axes_dict_from(cls, axes, copy=False)
+            return cls(data, **d)
 
     @classmethod
     def _get_axis_number(cls, axis):
         axis = cls._AXIS_ALIASES.get(axis, axis)
-
-        if com.is_integer(axis):
-            if axis in cls._AXIS_NAMES:
-                return axis
-            else:
-                raise Exception('No %d axis' % axis)
-        else:
+        try:
+            if com.is_integer(axis):
+                if axis in cls._AXIS_NAMES:
+                    return axis
             return cls._AXIS_NUMBERS[axis]
+        except:
+            pass
+
+        raise ValueError('No %d axis' % axis)
 
     @classmethod
     def _get_axis_name(cls, axis):
         axis = cls._AXIS_ALIASES.get(axis, axis)
-        if isinstance(axis, basestring):
-            if axis in cls._AXIS_NUMBERS:
-                return axis
-            else:
-                raise Exception('No axis named %s' % axis)
-        else:
+        try:
+            if isinstance(axis, basestring):
+                if axis in cls._AXIS_NUMBERS:
+                    return axis                
             return cls._AXIS_NAMES[axis]
+        except:
+            pass
+
+        raise ValueError('No axis named %s' % axis)
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
         return getattr(self, name)
+
+    def _get_block_manager_axis(self, axis):
+        """ map the axis to the block_manager axis """
+        if axis not in self._AXIS_NAMES:
+            raise Exception("this object does not support an axis of [%s]" % axis)
+        if self._AXIS_REVERSED:
+            m = self._AXIS_LEN-1
+            return m-axis
+        return axis
+
+    @property
+    def _info_axis(self):
+        return getattr(self, self._info_axis_name)
+
+    @property
+    def _stat_axis(self):
+        return getattr(self, self._stat_axis_name)
 
     #----------------------------------------------------------------------
     # Indexers
@@ -75,6 +206,105 @@ class PandasObject(object):
             return getattr(self,iname)
 
         setattr(cls,name,property(_indexer))
+
+    #----------------------------------------------------------------------
+    # Reconstruction
+
+    def save(self, path):
+        com.save(self, path)
+
+    @classmethod
+    def load(cls, path):
+        return com.load(path)
+
+    #----------------------------------------------------------------------
+    # Comparisons
+
+    def _indexed_same(self, other):
+        return all([ self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS])
+
+    def reindex(self, *args, **kwds):
+        raise NotImplementedError
+
+    def __neg__(self):
+        arr = operator.neg(self.values)
+        return self._wrap_array(arr, self.axes, copy=False)
+
+    def __invert__(self):
+        arr = operator.inv(self.values)
+        return self._wrap_array(arr, self.axes, copy=False)
+
+    #----------------------------------------------------------------------
+    # Iteration
+
+    def __iter__(self):
+        """
+        Iterate over infor axis
+        """
+        return iter(self._info_axis)
+
+    def keys(self):
+        """ return the info axis names """
+        return self._info_axis
+
+    def iteritems(self):
+        for h in self._info_axis:
+            yield h, self[h]
+
+    # Name that won't get automatically converted to items by 2to3. items is
+    # already in use for the first axis.
+    iterkv = iteritems
+
+    def __len__(self):
+        """Returns length of info axis """
+        return len(self._info_axis)
+
+    def __contains__(self, key):
+        """True if the key is in the info axis """
+        return key in self._info_axis
+
+    @property
+    def empty(self):
+        return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
+
+    #----------------------------------------------------------------------
+    # Formatting
+
+    def __unicode__(self):
+        raise NotImplementedError
+
+    def __str__(self):
+        """
+        Return a string representation for a particular Object
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular Object
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        encoding = com.get_option("display.encoding")
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular Object
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
+
+    #----------------------------------------------------------------------
+    # Methods
 
     def abs(self):
         """
@@ -331,15 +561,39 @@ class PandasObject(object):
         -------
         selection : type of caller
         """
-        axis_name = self._get_axis_name(axis)
-        axis = self._get_axis(axis)
+        axis        = self._get_axis_number(axis)       
+        axis_name   = self._get_axis_name(axis)
+        axis_values = self._get_axis(axis)
 
-        if len(axis) > 0:
-            new_axis = axis[np.asarray([bool(crit(label)) for label in axis])]
+        if len(axis_values) > 0:
+            new_axis = axis_values[np.asarray([bool(crit(label)) for label in axis_values])]
         else:
-            new_axis = axis
+            new_axis = axis_values
 
         return self.reindex(**{axis_name: new_axis})
+
+    def reindex_like(self, other, method=None, copy=True, limit=None):
+        """ return an object with matching indicies to myself
+
+        Parameters
+        ----------
+        other : Object
+        method : string or None
+        copy : boolean, default True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        Notes
+        -----
+        Like calling s.reindex(index=other.index, columns=other.columns,
+                               method=...)
+
+        Returns
+        -------
+        reindexed : same as input
+        """
+        d = other._construct_axes_dict(method=method)
+        return self.reindex(**d)
 
     def drop(self, labels, axis=0, level=None):
         """
@@ -413,9 +667,6 @@ class PandasObject(object):
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
 
-    def reindex(self, *args, **kwds):
-        raise NotImplementedError
-
     def tshift(self, periods=1, freq=None, **kwds):
         """
         Shift the time index, using the index's frequency if available
@@ -448,6 +699,40 @@ class PandasObject(object):
             raise ValueError(msg)
 
         return self.shift(periods, freq, **kwds)
+
+    def truncate(self, before=None, after=None, copy=True):
+        """Function truncate a sorted DataFrame / Series before and/or after
+        some particular dates.
+
+        Parameters
+        ----------
+        before : date
+        Truncate before date
+        after : date
+        Truncate after date
+
+        Returns
+        -------
+        truncated : type of caller
+        """
+        from pandas.tseries.tools import to_datetime
+        before = to_datetime(before)
+        after = to_datetime(after)
+        
+        if before is not None and after is not None:
+            if before > after:
+                raise AssertionError('Truncate: %s must be after %s' %
+                                     (before, after))
+
+        result = self.ix[before:after]
+
+        if isinstance(self.index, MultiIndex):
+            result.index = self.index.truncate(before, after)
+
+        if copy:
+            result = result.copy()
+
+        return result
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    **kwds):
@@ -494,8 +779,6 @@ class NDFrame(PandasObject):
     axes : list
     copy : boolean, default False
     """
-    # kludge
-    _default_stat_axis = 0
 
     def __init__(self, data, axes=None, copy=False, dtype=None):
         if dtype is not None:
@@ -510,46 +793,208 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
-    def astype(self, dtype, copy = True, raise_on_error = True):
-        """
-        Cast object to input numpy.dtype
-        Return a copy when copy = True (be really careful with this!)
-
-        Parameters
-        ----------
-        dtype : numpy.dtype or Python type
-        raise_on_error : raise on invalid input
-
-        Returns
-        -------
-        casted : type of caller
-        """
-
-        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
-        return self._constructor(mgr)
+    #----------------------------------------------------------------------
+    # Axes
 
     @property
-    def _constructor(self):
-        return NDFrame
+    def shape(self):
+        return tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
 
     @property
     def axes(self):
-        return self._data.axes
-
-    def __repr__(self):
-        return 'NDFrame'
-
-    @property
-    def values(self):
-        return self._data.as_matrix()
+        """ we do it this way because if we have reversed axes, then 
+        the block manager shows then reversed """
+        return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
     @property
     def ndim(self):
         return self._data.ndim
 
+    def _expand_axes(self, key):
+        new_axes = []
+        for k, ax in zip(key, self.axes):
+            if k not in ax:
+                if type(k) != ax.dtype.type:
+                    ax = ax.astype('O')
+                new_axes.append(ax.insert(len(ax), k))
+            else:
+                new_axes.append(ax)
+
+        return new_axes
+
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
+
+    def transpose(self, *args, **kwargs):
+        """
+        Permute the dimensions of the Object
+
+        Parameters
+        ----------
+        axes : int or name (or alias)
+        copy : boolean, default False
+            Make a copy of the underlying data. Mixed-dtype data will
+            always result in a copy
+
+        Examples
+        --------
+        >>> p.transpose(2, 0, 1)
+        >>> p.transpose(2, 0, 1, copy=True)
+
+        Returns
+        -------
+        y : same as input
+        """
+
+        # construct the args
+        axes, kwargs = self._construct_axes_from_arguments(args, kwargs, require_all=True)
+        axes_names   = tuple([ self._get_axis_name(  axes[a]) for a in self._AXIS_ORDERS ])
+        axes_numbers = tuple([ self._get_axis_number(axes[a]) for a in self._AXIS_ORDERS ])
+
+        # we must have unique axes
+        if len(axes) != len(set(axes)):
+            raise ValueError('Must specify %s unique axes' % self._AXIS_LEN)
+
+        new_axes = self._construct_axes_dict_from(
+            self, [self._get_axis(x) for x in axes_names])
+        new_values = self.values.transpose(axes_numbers)
+        if kwargs.get('copy') or (len(args) and args[-1]):
+            new_values = new_values.copy()
+        return self._constructor(new_values, **new_axes)
+
+    def swapaxes(self, axis1, axis2, copy=True):
+        """
+        Interchange axes and swap values axes appropriately
+
+        Returns
+        -------
+        y : same as input
+        """
+        i = self._get_axis_number(axis1)
+        j = self._get_axis_number(axis2)
+
+        if i == j:
+            if copy:
+                return self.copy()
+            return self
+
+        mapping = {i: j, j: i}
+
+        new_axes = (self._get_axis(mapping.get(k, k))
+                    for k in range(self._AXIS_LEN))
+        new_values = self.values.swapaxes(i, j)
+        if copy:
+            new_values = new_values.copy()
+
+        return self._constructor(new_values, *new_axes)
+
+    def pop(self, item):
+        """
+        Return item and drop from frame. Raise KeyError if not found.
+        """
+        result = self[item]
+        del self[item]
+        return result
+
+    def squeeze(self):
+        """ squeeze length 1 dimensions """
+        try:
+            return self.ix[tuple([ slice(None) if len(a) > 1 else a[0] for a in self.axes ])]
+        except:
+            return self
+
+    def swaplevel(self, i, j, axis=0):
+        """
+        Swap levels i and j in a MultiIndex on a particular axis
+
+        Parameters
+        ----------
+        i, j : int, string (can be mixed)
+            Level of index to be swapped. Can pass level name as string.
+
+        Returns
+        -------
+        swapped : type of caller (new object)
+        """
+        axis = self._get_axis_number(axis)
+        result = self.copy()
+        labels = result._data.axes[axis]
+        result._data.set_axis(axis, labels.swaplevel(i, j))
+        return result
+
+    def rename_axis(self, mapper, axis=0, copy=True):
+        """
+        Alter index and / or columns using input function or functions.
+        Function / dict values must be unique (1-to-1). Labels not contained in
+        a dict / Series will be left as-is.
+
+        Parameters
+        ----------
+        mapper : dict-like or function, optional
+        axis : int, default 0
+        copy : boolean, default True
+            Also copy underlying data
+
+        See also
+        --------
+        DataFrame.rename
+
+        Returns
+        -------
+        renamed : type of caller
+        """
+        # should move this at some point
+        from pandas.core.series import _get_rename_function
+
+        mapper_f = _get_rename_function(mapper)
+
+        if axis == 0:
+            new_data = self._data.rename_items(mapper_f, copydata=copy)
+        else:
+            new_data = self._data.rename_axis(mapper_f, axis=axis)
+            if copy:
+                new_data = new_data.copy()
+
+        return self._constructor(new_data)
+
+    #----------------------------------------------------------------------
+    # Array Interface
+
+    def _wrap_array(self, arr, axes, copy=False):
+        d = self._construct_axes_dict_from(self, axes, copy=copy)
+        return self._constructor(arr, **d)
+
+    def __array__(self, dtype=None):
+        return self.values
+
+    def __array_wrap__(self, result):
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        return self._constructor(result, **d)
+
+    #----------------------------------------------------------------------
+    # Picklability
+
+    def __getstate__(self):
+        return self._data
+
+    def __setstate__(self, state):
+
+        if isinstance(state, BlockManager):
+            self._data = state
+        elif isinstance(state[0], dict):
+            self._unpickle_frame_compat(state)
+        elif len(state) == 4:
+            self._unpickle_panel_compat(state)
+        else:  # pragma: no cover
+            # old pickling format, for compatibility
+            self._unpickle_matrix_compat(state)
+
+        # ordinarily created in NDFrame
+        self._item_cache = {}
+
+    #----------------------------------------------------------------------
+    # Fancy Indexing
 
     def __getitem__(self, item):
         return self._get_item_cache(item)
@@ -612,32 +1057,244 @@ class NDFrame(PandasObject):
         from pandas import Series
         return Series(self._data.get_dtype_counts())
 
-    def pop(self, item):
-        """
-        Return item and drop from frame. Raise KeyError if not found.
-        """
-        result = self[item]
-        del self[item]
-        return result
+    def reindex(self, *args, **kwargs):
+        """Conform DataFrame to new index with optional filling logic, placing
+        NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        copy=False
 
-    def squeeze(self):
-        """ squeeze length 1 dimensions """
-        try:
-            return self.ix[tuple([ slice(None) if len(a) > 1 else a[0] for a in self.axes ])]
-        except:
+        Parameters
+        ----------
+        axes : array-like, optional (can be specified in order, or as keywords)
+            New labels / index to conform to. Preferably an Index object to
+            avoid duplicating data
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed DataFrame
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        Examples
+        --------
+        >>> df.reindex(index=[date1, date2, date3], columns=['A', 'B', 'C'])
+
+        Returns
+        -------
+        reindexed : same type as calling instance
+        """
+
+        # construct the args
+        axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
+        method     = kwargs.get('method')
+        level      = kwargs.get('level')
+        copy       = kwargs.get('copy',True)
+        limit      = kwargs.get('limit')
+        fill_value = kwargs.get('fill_value',np.nan)
+
+        self._consolidate_inplace()
+
+        # check if we are a multi reindex
+        if self._needs_reindex_multi(axes, method, level):
+            try:
+                return self._reindex_multi(axes, copy, fill_value)
+            except:
+                pass
+
+        # perform the reindex on the axes
+        if copy and not com._count_not_none(*axes.values()):
+            return self.copy()
+
+        return self._reindex_axes(axes, level, limit, method, fill_value, copy)
+            
+    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
+        """ perform the reinxed for all the axes """
+        obj = self
+        for a in self._AXIS_ORDERS:
+            labels = axes[a]
+            if labels is None: continue
+                    
+            # convert to an index if we are not a multi-selection
+            if level is None:
+                labels = _ensure_index(labels)
+
+            axis   = self._get_axis_number(a)
+            new_index, indexer = self._get_axis(a).reindex(labels, level=level, limit=limit)
+            obj    = obj._reindex_with_indexers({ axis : [ labels, indexer ] }, method, fill_value, copy)
+
+        return obj
+            
+    def _needs_reindex_multi(self, axes, method, level):
+        """ check if we do need a multi reindex """
+        return (com._count_not_none(*axes.values()) == self._AXIS_LEN) and method is None and level is None and not self._is_mixed_type
+
+    def _reindex_multi(self, axes, copy, fill_value):
+        return NotImplemented
+
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
+                     limit=None, fill_value=np.nan):
+        """Conform input object to new index with optional filling logic, placing
+        NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        copy=False
+
+        Parameters
+        ----------
+        index : array-like, optional
+            New labels / index to conform to. Preferably an Index object to
+            avoid duplicating data
+        axis : allowed axis for the input
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed DataFrame
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        Examples
+        --------
+        >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
+
+        See also
+        --------
+        DataFrame.reindex, DataFrame.reindex_like
+
+        Returns
+        -------
+        reindexed : same type as calling instance
+        """
+        self._consolidate_inplace()
+
+        axis_name   = self._get_axis_name(axis)
+        axis_values = self._get_axis(axis_name)
+        new_index, indexer = axis_values.reindex(labels, method, level,
+                                                 limit=limit)
+        return self._reindex_with_indexers({ axis : [ new_index, indexer ] }, method, fill_value, copy)
+
+    def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, copy=False):
+
+        # reindex doing multiple operations on different axes if indiciated
+        new_data = self._data
+        for axis in sorted(reindexers.keys()):
+            index, indexer = reindexers[axis]
+            baxis = self._get_block_manager_axis(axis)
+
+            # reindex the axis
+            if method is not None:
+                new_data = new_data.reindex_axis(index, method=method, axis=baxis,
+                                                 fill_value=fill_value, copy=copy)
+
+            elif indexer is not None:
+                # TODO: speed up on homogeneous DataFrame objects
+                indexer = com._ensure_int64(indexer)
+                new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
+                                                    fill_value=fill_value)
+
+            elif baxis == 0 and index is not None and index is not new_data.axes[baxis]:
+                new_data = new_data.reindex_items(index, copy=copy,
+                                                  fill_value=fill_value)
+
+            elif baxis > 0 and index is not None and index is not new_data.axes[baxis]:
+                new_data = new_data.copy(deep=copy)
+                new_data.set_axis(baxis,index)
+
+        if copy and new_data is self._data:
+            new_data = new_data.copy()
+
+        return self._constructor(new_data)
+
+    def _reindex_axis(self, new_index, fill_method, axis, copy):
+        new_data = self._data.reindex_axis(new_index, axis=axis,
+                                           method=fill_method, copy=copy)
+
+        if new_data is self._data and not copy:
             return self
+        else:
+            return self._constructor(new_data)
 
-    def _expand_axes(self, key):
-        new_axes = []
-        for k, ax in zip(key, self.axes):
-            if k not in ax:
-                if type(k) != ax.dtype.type:
-                    ax = ax.astype('O')
-                new_axes.append(ax.insert(len(ax), k))
-            else:
-                new_axes.append(ax)
+    def filter(self, items=None, like=None, regex=None, axis=None):
+        """
+        Restrict the info axis to set of items or wildcard
 
-        return new_axes
+        Parameters
+        ----------
+        items : list-like
+            List of info axis to restrict to (must not all be present)
+        like : string
+            Keep info axis where "arg in col == True"
+        regex : string (regular expression)
+            Keep info axis with re.search(regex, col) == True
+
+        Notes
+        -----
+        Arguments are mutually exclusive, but this is not checked for
+
+        Returns
+        -------
+        same type as input object with filtered info axis
+        """
+        import re
+
+        if axis is None:
+            axis = self._info_axis_name
+        axis_name   = self._get_axis_name(axis)
+        axis_values = self._get_axis(axis_name)
+
+        if items is not None:
+            return self.reindex(**{ axis_name : [r for r in items if r in axis_values ] })
+        elif like:
+            matchf = lambda x: (like in x if isinstance(x, basestring)
+                                else like in str(x))
+            return self.select(matchf, axis=axis_name)
+        elif regex:
+            matcher = re.compile(regex)
+            return self.select(lambda x: matcher.search(x) is not None, axis=axis_name)
+        else:
+            raise ValueError('items was None!')
+
+    #----------------------------------------------------------------------
+    # Attribute access
+
+    def __getattr__(self, name):
+        """After regular attribute access, try looking up the name of a the info
+        This allows simpler access to columns for interactive use."""
+        if name in self._info_axis:
+            return self[name]
+        raise AttributeError("'%s' object has no attribute '%s'" %
+                             (type(self).__name__, name))
+
+    def __setattr__(self, name, value):
+        """After regular attribute access, try looking up the name of the info
+        This allows simpler access to columns for interactive use."""
+        if name == '_data':
+            object.__setattr__(self, name, value)
+        else:
+            try:
+                existing = getattr(self, name)
+                if isinstance(existing, Index):
+                    object.__setattr__(self, name, value)
+                elif name in self._info_axis:
+                    self[name] = value
+                else:
+                    object.__setattr__(self, name, value)
+            except (AttributeError, TypeError):
+                object.__setattr__(self, name, value)
+
+    #----------------------------------------------------------------------
+    # Getting and setting elements
 
     #----------------------------------------------------------------------
     # Consolidation of internals
@@ -677,14 +1334,312 @@ class NDFrame(PandasObject):
     def _is_numeric_mixed_type(self):
         return self._data.is_numeric_mixed_type
 
-    def _reindex_axis(self, new_index, fill_method, axis, copy):
-        new_data = self._data.reindex_axis(new_index, axis=axis,
-                                           method=fill_method, copy=copy)
+    #----------------------------------------------------------------------
+    # Methods
 
-        if new_data is self._data and not copy:
-            return self
+    def as_matrix(self, columns=None):
+        """
+        Convert the frame to its Numpy-array matrix representation. Columns
+        are presented in sorted order unless a specific list of columns is
+        provided.
+
+        NOTE: the dtype will be a lower-common-denominator dtype (implicit upcasting)
+              that is to say if the dtypes (even of numeric types) are mixed, the one that accomodates all will be chosen
+              use this with care if you are not dealing with the blocks
+
+              e.g. if the dtypes are float16,float32         -> float32
+                                     float16,float32,float64 -> float64
+                                     int32,uint8             -> int32
+
+        Parameters
+        ----------
+        columns : array-like
+            Specific column order
+
+        Returns
+        -------
+        values : ndarray
+            If the DataFrame is heterogeneous and contains booleans or objects,
+            the result will be of dtype=object
+        """
+        self._consolidate_inplace()
+        if self._AXIS_REVERSED:
+            return self._data.as_matrix(columns).T
+        return self._data.as_matrix(columns)
+
+    @property
+    def values(self):
+        return self.as_matrix()
+
+    @property
+    def _get_values(self):
+        # compat
+        return self.values
+
+    def as_blocks(self, columns=None):
+        """
+        Convert the frame to a dict of dtype -> Constructor Types that each has a homogeneous dtype.
+        are presented in sorted order unless a specific list of columns is
+        provided.
+
+        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in as_matrix)
+
+        Parameters
+        ----------
+        columns : array-like
+            Specific column order
+
+        Returns
+        -------
+        values : a list of Object
+        """
+        self._consolidate_inplace()
+
+        bd = dict()
+        for b in self._data.blocks:
+            b = b.reindex_items_from(columns or b.items)
+            bd[str(b.dtype)] = self._constructor(BlockManager([ b ], [ b.items, self.index ]))
+        return bd
+
+    @property
+    def blocks(self):
+        return self.as_blocks()
+
+    def astype(self, dtype, copy = True, raise_on_error = True):
+        """
+        Cast object to input numpy.dtype
+        Return a copy when copy = True (be really careful with this!)
+
+        Parameters
+        ----------
+        dtype : numpy.dtype or Python type
+        raise_on_error : raise on invalid input
+
+        Returns
+        -------
+        casted : type of caller
+        """
+
+        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
+        return self._constructor(mgr)
+
+    def convert_objects(self, convert_dates=True, convert_numeric=False):
+        """
+        Attempt to infer better dtype for object columns
+        Always returns a copy (even if no object columns)
+
+        Parameters
+        ----------
+        convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
+        convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
+
+        Returns
+        -------
+        converted : asm as input object
+        """
+        return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
+
+    def align(self, other, join='outer', axis=None, level=None, copy=True,
+              fill_value=np.nan, method=None, limit=None, fill_axis=0):
+        """
+        Align two object on their axes with the
+        specified join method for each axis Index
+
+        Parameters
+        ----------
+        other : DataFrame or Series
+        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+        axis : allowed axis of the other object, default None
+            Align on index (0), columns (1), or both (None)
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+        copy : boolean, default True
+            Always returns new objects. If copy=False and no reindexing is
+            required then original objects are returned.
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
+        method : str, default None
+        limit : int, default None
+        fill_axis : {0, 1}, default 0
+            Filling axis, method and limit
+
+        Returns
+        -------
+        (left, right) : (type of input, type of other)
+            Aligned objects
+        """
+        from pandas import DataFrame,Series
+
+        if isinstance(other, DataFrame):
+            return self._align_frame(other, join=join, axis=axis, level=level,
+                                     copy=copy, fill_value=fill_value,
+                                     method=method, limit=limit,
+                                     fill_axis=fill_axis)
+        elif isinstance(other, Series):
+            return self._align_series(other, join=join, axis=axis, level=level,
+                                      copy=copy, fill_value=fill_value,
+                                      method=method, limit=limit,
+                                      fill_axis=fill_axis)
+        else:  # pragma: no cover
+            raise TypeError('unsupported type: %s' % type(other))
+
+    def _align_frame(self, other, join='outer', axis=None, level=None,
+                     copy=True, fill_value=np.nan, method=None, limit=None,
+                     fill_axis=0):
+        # defaults
+        join_index, join_columns = None, None
+        ilidx, iridx = None, None
+        clidx, cridx = None, None
+
+        if axis is None or axis == 0:
+            if not self.index.equals(other.index):
+                join_index, ilidx, iridx = \
+                    self.index.join(other.index, how=join, level=level,
+                                    return_indexers=True)
+
+        if axis is None or axis == 1:
+            if not self.columns.equals(other.columns):
+                join_columns, clidx, cridx = \
+                    self.columns.join(other.columns, how=join, level=level,
+                                      return_indexers=True)
+
+        left  = self._reindex_with_indexers({ 0 : [ join_index,   ilidx ],
+                                              1 : [ join_columns, clidx ] },
+                                            copy=copy, fill_value=fill_value)
+        right = other._reindex_with_indexers({ 0 : [ join_index,   iridx ],
+                                               1 : [ join_columns, cridx ] }, 
+                                             copy=copy, fill_value=fill_value)
+            
+
+        if method is not None:
+            left = left.fillna(axis=fill_axis, method=method, limit=limit)
+            right = right.fillna(axis=fill_axis, method=method, limit=limit)
+
+        return left, right
+
+    def _align_series(self, other, join='outer', axis=None, level=None,
+                      copy=True, fill_value=None, method=None, limit=None,
+                      fill_axis=0):
+        from pandas import DataFrame
+
+        fdata = self._data
+        if axis == 0:
+            join_index = self.index
+            lidx, ridx = None, None
+            if not self.index.equals(other.index):
+                join_index, lidx, ridx = self.index.join(other.index, how=join,
+                                                         return_indexers=True)
+
+            if lidx is not None:
+                fdata = fdata.reindex_indexer(join_index, lidx, axis=1)
+        elif axis == 1:
+            join_index = self.columns
+            lidx, ridx = None, None
+            if not self.columns.equals(other.index):
+                join_index, lidx, ridx = \
+                    self.columns.join(other.index, how=join,
+                                      return_indexers=True)
+
+            if lidx is not None:
+                fdata = fdata.reindex_indexer(join_index, lidx, axis=0)
         else:
+            raise ValueError('Must specify axis=0 or 1')
+
+        if copy and fdata is self._data:
+            fdata = fdata.copy()
+
+        left_result = DataFrame(fdata)
+        right_result = other if ridx is None else other.reindex(join_index)
+
+        fill_na = notnull(fill_value) or (method is not None)
+        if fill_na:
+            return (left_result.fillna(fill_value, method=method, limit=limit,
+                                       axis=fill_axis),
+                    right_result.fillna(fill_value, method=method,
+                                        limit=limit))
+        else:
+            return left_result, right_result
+
+    def where(self, cond, other=np.nan, inplace=False, try_cast=False, raise_on_error=True):
+        """
+        Return an object of same shape as self and whose corresponding
+        entries are from self where cond is True and otherwise are from other.
+
+        Parameters
+        ----------
+        cond : boolean DataFrame or array
+        other : scalar or DataFrame
+        inplace : boolean, default False
+            Whether to perform the operation in place on the data
+        try_cast : boolean, default False
+            try to cast the result back to the input type (if possible),
+        raise_on_error : boolean, default True
+            Whether to raise on invalid data types (e.g. trying to where on
+            strings)
+
+        Returns
+        -------
+        wh : DataFrame
+        """
+        if isinstance(cond, NDFrame):
+            cond = cond.reindex(**self._construct_axes_dict())
+        else:
+            if not hasattr(cond, 'shape'):
+                raise ValueError('where requires an ndarray like object for its '
+                                 'condition')
+            if cond.shape != self.shape:
+                raise ValueError('Array conditional must be same shape as self')
+            cond = self._constructor(cond, index=self.index,
+                                     columns=self.columns)
+
+        if inplace:
+            cond = -(cond.fillna(True).astype(bool))
+        else:
+            cond = cond.fillna(False).astype(bool)
+
+        # try to align
+        if hasattr(other, 'align'):
+
+            # align with me
+            if other.ndim <= self.ndim:
+
+                _, other = self.align(other, join='left', fill_value=np.nan)
+
+            # slice me out of the other
+            else:
+                raise NotImplemented
+            
+        elif isinstance(other,np.ndarray):
+            if other.shape != self.shape:
+                raise ValueError('other must be the same shape as self '
+                                 'when an ndarray')
+            other = self._constructor(other, **self._construct_axes_dict())
+
+        if inplace:
+            # we may have different type blocks come out of putmask, so reconstruct the block manager
+            self._data = self._data.putmask(cond,other,inplace=True)
+
+        else:
+            new_data = self._data.where(other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+
             return self._constructor(new_data)
+
+    def mask(self, cond):
+        """
+        Returns copy of self whose values are replaced with nan if the
+        inverted condition is True
+
+        Parameters
+        ----------
+        cond: boolean object or array
+
+        Returns
+        -------
+        wh: same as input
+        """
+        return self.where(~cond, np.nan)
 
     def cumsum(self, axis=None, skipna=True):
         """
@@ -703,7 +1658,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -722,9 +1677,6 @@ class NDFrame(PandasObject):
             result = y.cumsum(axis)
         return self._wrap_array(result, self.axes, copy=False)
 
-    def _wrap_array(self, array, axes, copy=False):
-        raise NotImplementedError
-
     def cumprod(self, axis=None, skipna=True):
         """
         Return cumulative product over requested axis as DataFrame
@@ -742,7 +1694,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -777,7 +1729,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -813,7 +1765,7 @@ class NDFrame(PandasObject):
         y : DataFrame
         """
         if axis is None:
-            axis = self._default_stat_axis
+            axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
 
@@ -850,25 +1802,6 @@ class NDFrame(PandasObject):
             data = data.copy()
         return self._constructor(data)
 
-    def swaplevel(self, i, j, axis=0):
-        """
-        Swap levels i and j in a MultiIndex on a particular axis
-
-        Parameters
-        ----------
-        i, j : int, string (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
-
-        Returns
-        -------
-        swapped : type of caller (new object)
-        """
-        axis = self._get_axis_number(axis)
-        result = self.copy()
-        labels = result._data.axes[axis]
-        result._data.set_axis(axis, labels.swaplevel(i, j))
-        return result
-
     def add_prefix(self, prefix):
         """
         Concatenate prefix string with panel items names.
@@ -897,41 +1830,6 @@ class NDFrame(PandasObject):
         with_suffix : type of caller
         """
         new_data = self._data.add_suffix(suffix)
-        return self._constructor(new_data)
-
-    def rename_axis(self, mapper, axis=0, copy=True):
-        """
-        Alter index and / or columns using input function or functions.
-        Function / dict values must be unique (1-to-1). Labels not contained in
-        a dict / Series will be left as-is.
-
-        Parameters
-        ----------
-        mapper : dict-like or function, optional
-        axis : int, default 0
-        copy : boolean, default True
-            Also copy underlying data
-
-        See also
-        --------
-        DataFrame.rename
-
-        Returns
-        -------
-        renamed : type of caller
-        """
-        # should move this at some point
-        from pandas.core.series import _get_rename_function
-
-        mapper_f = _get_rename_function(mapper)
-
-        if axis == 0:
-            new_data = self._data.rename_items(mapper_f, copydata=copy)
-        else:
-            new_data = self._data.rename_axis(mapper_f, axis=axis)
-            if copy:
-                new_data = new_data.copy()
-
         return self._constructor(new_data)
 
     def take(self, indices, axis=0, convert=True):
@@ -1034,39 +1932,3 @@ class NDFrame(PandasObject):
 
         return new_obj
 
-# Good for either Series or DataFrame
-
-
-def truncate(self, before=None, after=None, copy=True):
-    """Function truncate a sorted DataFrame / Series before and/or after
-    some particular dates.
-
-    Parameters
-    ----------
-    before : date
-        Truncate before date
-    after : date
-        Truncate after date
-
-    Returns
-    -------
-    truncated : type of caller
-    """
-    from pandas.tseries.tools import to_datetime
-    before = to_datetime(before)
-    after = to_datetime(after)
-
-    if before is not None and after is not None:
-        if before > after:
-            raise AssertionError('Truncate: %s must be after %s' %
-                                 (before, after))
-
-    result = self.ix[before:after]
-
-    if isinstance(self.index, MultiIndex):
-        result.index = self.index.truncate(before, after)
-
-    if copy:
-        result = result.copy()
-
-    return result

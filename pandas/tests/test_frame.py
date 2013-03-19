@@ -6242,6 +6242,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
 
+        # copy with no axes
+        result = self.frame.reindex()
+        assert_frame_equal(result,self.frame)
+        self.assert_((result is self.frame) == False)
+
     def test_reindex_name_remains(self):
         s = Series(random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
@@ -6329,6 +6334,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_align(self):
+
         af, bf = self.frame.align(self.frame)
         self.assert_(af._data is not self.frame._data)
 
@@ -7166,10 +7172,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_filter(self):
         # items
-
         filtered = self.frame.filter(['A', 'B', 'E'])
         self.assertEqual(len(filtered.columns), 2)
         self.assert_('E' not in filtered)
+
+        filtered = self.frame.filter(['A', 'B', 'E'], axis='columns')
+        self.assertEqual(len(filtered.columns), 2)
+        self.assert_('E' not in filtered)
+
+        # other axis
+        idx = self.frame.index[0:4]
+        filtered = self.frame.filter(idx, axis='index')
+        expected = self.frame.reindex(index=idx)
+        assert_frame_equal(filtered,expected)
 
         # like
         fcopy = self.frame.copy()
