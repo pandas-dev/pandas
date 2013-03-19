@@ -99,6 +99,12 @@ Grouping
 `Create multiple aggregated columns
 <http://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
 
+Expanding Data
+~~~~~~~~~~~~~~
+
+`Alignment and to-date
+<http://stackoverflow.com/questions/15489011/python-time-series-alignment-and-to-date-functions>`__
+
 Splitting
 ~~~~~~~~~
 
@@ -171,8 +177,8 @@ SQL
 `Reading from databases with SQL
 <http://stackoverflow.com/questions/10065051/python-pandas-and-databases-like-mysql>`__
 
-HDF5
-~~~~
+HDFStore
+~~~~~~~~
 
 `Simple Queries with a Timestamp Index
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
@@ -185,6 +191,9 @@ HDF5
 
 `Large Data work flows
 <http://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
+
+`Troubleshoot HDFStore exceptions
+<http://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__
 
 Storing Attributes to a group node
 
