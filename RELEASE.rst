@@ -44,6 +44,8 @@ pandas 0.11.0
   - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer
     (via ``_ixs`` methods in each object)
   - Added support for expression evaluation using the ``numexpr`` library
+  - Added ``convert=boolean`` to ``take`` routines to translate negative indices to positive,
+    defaults to True
 
 **Improvements to existing features**
 

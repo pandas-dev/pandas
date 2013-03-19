@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas.core.common import _pickle_array, _unpickle_array, _try_sort
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import _check_slice_bounds
+from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
@@ -634,7 +634,7 @@ class SparseDataFrame(DataFrame):
         self.columns = new_columns
         self._series = new_series
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, convert=True):
         """
         Analogous to ndarray.take, return SparseDataFrame corresponding to
         requested indices along an axis
@@ -643,12 +643,20 @@ class SparseDataFrame(DataFrame):
         ----------
         indices : list / array of ints
         axis : {0, 1}
+        convert : convert indices for negative values, check bounds, default True
+                  mainly useful for an user routine calling
 
         Returns
         -------
         taken : SparseDataFrame
         """
+
         indices = com._ensure_platform_int(indices)
+
+        # check/convert indicies here
+        if convert:
+            indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+
         new_values = self.values.take(indices, axis=axis)
         if axis == 0:
             new_columns = self.columns

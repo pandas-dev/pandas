@@ -391,7 +391,7 @@ class _NDFrameIndexer(object):
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
             inds, = key.nonzero()
-            return self.obj.take(inds, axis=axis)
+            return self.obj.take(inds, axis=axis, convert=False)
         else:
             if isinstance(key, Index):
                 # want Index objects to pass through untouched
@@ -408,7 +408,7 @@ class _NDFrameIndexer(object):
                 if labels.inferred_type == 'mixed-integer':
                     indexer = labels.get_indexer(keyarr)
                     if (indexer >= 0).all():
-                        self.obj.take(indexer, axis=axis)
+                        self.obj.take(indexer, axis=axis, convert=True)
                     else:
                         return self.obj.take(keyarr, axis=axis)
                 elif not labels.inferred_type == 'integer':
@@ -426,7 +426,7 @@ class _NDFrameIndexer(object):
                 return _reindex(keyarr, level=level)
             else:
                 mask = labels.isin(keyarr)
-                return self.obj.take(mask.nonzero()[0], axis=axis)
+                return self.obj.take(mask.nonzero()[0], axis=axis, convert=False)
 
     def _convert_to_indexer(self, obj, axis=0):
         """
@@ -644,7 +644,7 @@ class _LocationIndexer(_NDFrameIndexer):
             key = _check_bool_indexer(labels, key)
             inds, = key.nonzero()
             try:
-                return self.obj.take(inds, axis=axis)
+                return self.obj.take(inds, axis=axis, convert=False)
             except (Exception), detail:
                 raise self._exception(detail)
     def _get_slice_axis(self, slice_obj, axis=0):

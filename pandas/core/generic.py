@@ -189,7 +189,7 @@ class PandasObject(object):
         """
         try:
             indexer = self.index.indexer_at_time(time, asof=asof)
-            return self.take(indexer)
+            return self.take(indexer, convert=False)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -213,7 +213,7 @@ class PandasObject(object):
             indexer = self.index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self.take(indexer)
+            return self.take(indexer, convert=False)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -934,7 +934,7 @@ class NDFrame(PandasObject):
 
         return self._constructor(new_data)
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, convert=True):
         """
         Analogous to ndarray.take
 
@@ -942,6 +942,7 @@ class NDFrame(PandasObject):
         ----------
         indices : list / array of ints
         axis : int, default 0
+        convert : translate neg to pos indices (default)
 
         Returns
         -------
@@ -949,7 +950,8 @@ class NDFrame(PandasObject):
         """
 
         # check/convert indicies here
-        indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+        if convert:
+            indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         if axis == 0:
             labels = self._get_axis(axis)

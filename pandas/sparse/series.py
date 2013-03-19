@@ -468,7 +468,7 @@ to sparse
         else:
             return result
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, convert=True):
         """
         Sparse-compatible version of ndarray.take
 

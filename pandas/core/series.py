@@ -2550,7 +2550,7 @@ class Series(pa.Array, generic.PandasObject):
         return self.reindex(other.index, method=method, limit=limit,
                             fill_value=fill_value)
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, convert=True):
         """
         Analogous to ndarray.take, return Series corresponding to requested
         indices
@@ -2558,6 +2558,7 @@ class Series(pa.Array, generic.PandasObject):
         Parameters
         ----------
         indices : list / array of ints
+        convert : translate negative to positive indices (default)
 
         Returns
         -------
