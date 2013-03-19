@@ -5,7 +5,12 @@ from numpy cimport (int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
-from cpython cimport *
+from cpython cimport (
+    PyTypeObject,
+    PyFloat_Check,
+    PyObject_RichCompareBool,
+    PyString_Check
+)
 
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
@@ -909,12 +914,12 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
                  val = _delta_to_nanoseconds(np.timedelta64(val).item())
 
              result[i] = val
-        
+
         elif util._checknull(val) or val == iNaT or val is NaT:
              result[i] = iNaT
 
         else:
-             
+
              # just return, don't convert
              if not coerce:
                  return values.copy()
@@ -925,7 +930,7 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
 
 def repr_timedelta64(object value):
    """ provide repr for timedelta64 """
-   
+
    ivalue = value.view('i8')
 
    # put frac in seconds
@@ -1009,9 +1014,9 @@ def array_strptime(ndarray[object] values, object fmt):
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
-    
+
     dts.us = dts.ps = dts.as = 0
-    
+
     cdef dict _parse_code_table = {
         'y': 0,
         'Y': 1,
