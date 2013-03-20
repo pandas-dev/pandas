@@ -19,7 +19,9 @@ import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal, network)
+                                 assert_series_equal, 
+                                 network,
+                                 ensure_clean)
 import pandas.util.testing as tm
 import pandas as pd
 
@@ -1372,29 +1374,25 @@ A,B,C
 
         path = '__%s__.csv' % tm.rands(10)
 
-        for sep, dat in [('\t', data), (',', data2)]:
-            for enc in ['utf-16', 'utf-16le', 'utf-16be']:
-                bytes = dat.encode(enc)
-                with open(path, 'wb') as f:
-                    f.write(bytes)
+        with ensure_clean(path) as path:
+            for sep, dat in [('\t', data), (',', data2)]:
+                for enc in ['utf-16', 'utf-16le', 'utf-16be']:
+                    bytes = dat.encode(enc)
+                    with open(path, 'wb') as f:
+                        f.write(bytes)
+                        
+                    s = BytesIO(dat.encode('utf-8'))
+                    if py3compat.PY3:
+                        # somewhat False since the code never sees bytes
+                        from io import TextIOWrapper
+                        s = TextIOWrapper(s, encoding='utf-8')
 
-                s = BytesIO(dat.encode('utf-8'))
-                if py3compat.PY3:
-                    # somewhat False since the code never sees bytes
-                    from io import TextIOWrapper
-                    s = TextIOWrapper(s, encoding='utf-8')
+                    result = self.read_csv(path, encoding=enc, skiprows=2,
+                                           sep=sep)
+                    expected = self.read_csv(s, encoding='utf-8', skiprows=2,
+                                             sep=sep)
 
-                result = self.read_csv(path, encoding=enc, skiprows=2,
-                                       sep=sep)
-                expected = self.read_csv(s, encoding='utf-8', skiprows=2,
-                                         sep=sep)
-
-                tm.assert_frame_equal(result, expected)
-
-        try:
-            os.remove(path)
-        except os.error:
-            pass
+                    tm.assert_frame_equal(result, expected)
 
     def test_utf16_example(self):
         path = os.path.join(self.dirpath, 'utf16_ex.txt')
@@ -1722,32 +1720,27 @@ eight,1,2,3"""
         if PY3:
             raise nose.SkipTest
 
-        with open('__foo__.txt', 'wb') as f:
-            f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
+        with ensure_clean() as path:
+            with open(path, 'wb') as f:
+                f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
 
-        with open('__foo__.txt', 'rb') as f:
-            for line in f:
-                if 'CCC' in line:
-                    break
+            with open(path, 'rb') as f:
+                for line in f:
+                    if 'CCC' in line:
+                        break
 
-            try:
-                read_table(f, squeeze=True, header=None, engine='c')
-            except Exception:
-                pass
-            else:
-                raise ValueError('this should not happen')
+                try:
+                    read_table(f, squeeze=True, header=None, engine='c')
+                except Exception:
+                    pass
+                else:
+                    raise ValueError('this should not happen')
 
-            result = read_table(f, squeeze=True, header=None,
-                                engine='python')
+                result = read_table(f, squeeze=True, header=None,
+                                    engine='python')
 
-            expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
-            tm.assert_series_equal(result, expected)
-
-        try:
-            os.remove('__foo__.txt')
-        except os.error:
-            pass
-
+                expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
+                tm.assert_series_equal(result, expected)
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
@@ -1924,41 +1917,30 @@ a,b,c
         data = open(self.csv1, 'rb').read()
         expected = self.read_csv(self.csv1)
 
-        try:
-            tmp = gzip.GzipFile('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = gzip.GzipFile(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', compression='gzip')
+            result = self.read_csv(path, compression='gzip')
             tm.assert_frame_equal(result, expected)
 
-            result = self.read_csv(open('__tmp__', 'rb'), compression='gzip')
+            result = self.read_csv(open(path, 'rb'), compression='gzip')
             tm.assert_frame_equal(result, expected)
-        finally:
-            # try:
-            #     os.remove('__tmp__')
-            # except:
-            #     pass
-            pass
 
-        try:
-            tmp = bz2.BZ2File('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = bz2.BZ2File(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', compression='bz2')
+            result = self.read_csv(path, compression='bz2')
             tm.assert_frame_equal(result, expected)
 
-            # result = self.read_csv(open('__tmp__', 'rb'), compression='bz2')
+            # result = self.read_csv(open(path, 'rb'), compression='bz2')
             # tm.assert_frame_equal(result, expected)
 
             self.assertRaises(ValueError, self.read_csv,
-                              '__tmp__', compression='bz3')
-        finally:
-            try:
-                os.remove('__tmp__')
-            except:
-                pass
+                              path, compression='bz3')
 
     def test_decompression_regex_sep(self):
         try:
@@ -1971,35 +1953,24 @@ a,b,c
         data = data.replace(b',', b'::')
         expected = self.read_csv(self.csv1)
 
-        try:
-            tmp = gzip.GzipFile('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = gzip.GzipFile(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', sep='::', compression='gzip')
+            result = self.read_csv(path, sep='::', compression='gzip')
             tm.assert_frame_equal(result, expected)
-        finally:
-            # try:
-            #     os.remove('__tmp__')
-            # except:
-            #     pass
-            pass
 
-        try:
-            tmp = bz2.BZ2File('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = bz2.BZ2File(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', sep='::', compression='bz2')
+            result = self.read_csv(path, sep='::', compression='bz2')
             tm.assert_frame_equal(result, expected)
 
             self.assertRaises(ValueError, self.read_csv,
-                              '__tmp__', compression='bz3')
-        finally:
-            try:
-                os.remove('__tmp__')
-            except:
-                pass
+                              path, compression='bz3')
 
     def test_memory_map(self):
         # it works!
