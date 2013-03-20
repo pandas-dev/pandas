@@ -12,7 +12,7 @@ import shutil
 import warnings
 
 try:
-    BUILD_CACHE_DIR = None
+    BUILD_CACHE_DIR = os.environ.get('BUILD_CACHE_DIR')
 
     # uncomment to activate the build cache
     # BUILD_CACHE_DIR="/tmp/.pandas_build_cache/"
