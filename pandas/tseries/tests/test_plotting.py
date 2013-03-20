@@ -15,7 +15,7 @@ from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
 
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, ensure_clean
 import pandas.util.testing as tm
 
 
@@ -933,9 +933,6 @@ class TestTSPlot(unittest.TestCase):
         assert_array_equal(np.array([x.toordinal() for x in dates]),
                            line2.get_xydata()[:, 0])
 
-PNG_PATH = 'tmp.png'
-
-
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
 
@@ -966,8 +963,9 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         assert(ret is not None)  # do something more intelligent
     except Exception:
         pass
-    plt.savefig(PNG_PATH)
-    os.remove(PNG_PATH)
+
+    with ensure_path() as path:
+        plt.savefig(path)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

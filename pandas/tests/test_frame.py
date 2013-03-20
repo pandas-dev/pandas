@@ -26,7 +26,8 @@ from pandas.io.parsers import read_csv
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal,
+                                 ensure_clean)
 from pandas.util import py3compat
 from pandas.util.compat import OrderedDict
 
@@ -4405,66 +4406,67 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(TypeError, df.__eq__, None)
 
     def test_to_csv_from_csv(self):
-        path = '__tmp_to_csv_from_csv__'
 
-        self.frame['A'][:5] = nan
+        pname = '__tmp_to_csv_from_csv__'
+        with ensure_clean(pname) as path:
 
-        self.frame.to_csv(path)
-        self.frame.to_csv(path, cols=['A', 'B'])
-        self.frame.to_csv(path, header=False)
-        self.frame.to_csv(path, index=False)
+             self.frame['A'][:5] = nan
 
-        # test roundtrip
+             self.frame.to_csv(path)
+             self.frame.to_csv(path, cols=['A', 'B'])
+             self.frame.to_csv(path, header=False)
+             self.frame.to_csv(path, index=False)
 
-        self.tsframe.to_csv(path)
-        recons = DataFrame.from_csv(path)
+             # test roundtrip
+             self.tsframe.to_csv(path)
+             recons = DataFrame.from_csv(path)
 
-        assert_frame_equal(self.tsframe, recons)
+             assert_frame_equal(self.tsframe, recons)
 
-        self.tsframe.to_csv(path, index_label='index')
-        recons = DataFrame.from_csv(path, index_col=None)
-        assert(len(recons.columns) == len(self.tsframe.columns) + 1)
+             self.tsframe.to_csv(path, index_label='index')
+             recons = DataFrame.from_csv(path, index_col=None)
+             assert(len(recons.columns) == len(self.tsframe.columns) + 1)
 
-        # no index
-        self.tsframe.to_csv(path, index=False)
-        recons = DataFrame.from_csv(path, index_col=None)
-        assert_almost_equal(self.tsframe.values, recons.values)
+             # no index
+             self.tsframe.to_csv(path, index=False)
+             recons = DataFrame.from_csv(path, index_col=None)
+             assert_almost_equal(self.tsframe.values, recons.values)
 
-        # corner case
-        dm = DataFrame({'s1': Series(range(3), range(3)),
-                        's2': Series(range(2), range(2))})
-        dm.to_csv(path)
-        recons = DataFrame.from_csv(path)
-        assert_frame_equal(dm, recons)
+             # corner case
+             dm = DataFrame({'s1': Series(range(3), range(3)),
+                             's2': Series(range(2), range(2))})
+             dm.to_csv(path)
+             recons = DataFrame.from_csv(path)
+             assert_frame_equal(dm, recons)
 
-        # duplicate index
-        df = DataFrame(np.random.randn(3, 3), index=['a', 'a', 'b'],
-                       columns=['x', 'y', 'z'])
-        df.to_csv(path)
-        result = DataFrame.from_csv(path)
-        assert_frame_equal(result, df)
+        with ensure_clean(pname) as path:
 
-        midx = MultiIndex.from_tuples([('A', 1, 2), ('A', 1, 2), ('B', 1, 2)])
-        df = DataFrame(np.random.randn(3, 3), index=midx,
-                       columns=['x', 'y', 'z'])
-        df.to_csv(path)
-        result = DataFrame.from_csv(path, index_col=[0, 1, 2],
-                                    parse_dates=False)
-        assert_frame_equal(result, df, check_names=False)  # TODO from_csv names index ['Unnamed: 1', 'Unnamed: 2'] should it ?
+             # duplicate index
+             df = DataFrame(np.random.randn(3, 3), index=['a', 'a', 'b'],
+                            columns=['x', 'y', 'z'])
+             df.to_csv(path)
+             result = DataFrame.from_csv(path)
+             assert_frame_equal(result, df)
 
-        # column aliases
-        col_aliases = Index(['AA', 'X', 'Y', 'Z'])
-        self.frame2.to_csv(path, header=col_aliases)
-        rs = DataFrame.from_csv(path)
-        xp = self.frame2.copy()
-        xp.columns = col_aliases
+             midx = MultiIndex.from_tuples([('A', 1, 2), ('A', 1, 2), ('B', 1, 2)])
+             df = DataFrame(np.random.randn(3, 3), index=midx,
+                            columns=['x', 'y', 'z'])
+             df.to_csv(path)
+             result = DataFrame.from_csv(path, index_col=[0, 1, 2],
+                                         parse_dates=False)
+             assert_frame_equal(result, df, check_names=False)  # TODO from_csv names index ['Unnamed: 1', 'Unnamed: 2'] should it ?
 
-        assert_frame_equal(xp, rs)
+             # column aliases
+             col_aliases = Index(['AA', 'X', 'Y', 'Z'])
+             self.frame2.to_csv(path, header=col_aliases)
+             rs = DataFrame.from_csv(path)
+             xp = self.frame2.copy()
+             xp.columns = col_aliases
 
-        self.assertRaises(ValueError, self.frame2.to_csv, path,
-                          header=['AA', 'X'])
+             assert_frame_equal(xp, rs)
 
-        os.remove(path)
+             self.assertRaises(ValueError, self.frame2.to_csv, path,
+                               header=['AA', 'X'])
 
     @slow
     def test_to_csv_moar(self):
@@ -4472,14 +4474,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         path = '__tmp_to_csv_moar__'
         def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None,
                      dupe_col=False):
-               try:
+
+               with ensure_clean(path) as path:
                     df.to_csv(path,encoding='utf8')
                     recons = DataFrame.from_csv(path)
-               finally:
-                   try:
-                       os.remove(path)
-                   except:
-                       pass
 
                def _to_uni(x):
                    if not isinstance(x,unicode):
@@ -4584,119 +4582,107 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
 
     def test_to_csv_from_csv_w_some_infs(self):
-        path = '__%s__' % tm.rands(10)
 
         # test roundtrip with inf, -inf, nan, as full columns and mix
         self.frame['G'] = np.nan
         f = lambda x: [np.inf, np.nan][np.random.rand() < .5]
         self.frame['H'] = self.frame.index.map(f)
 
-        self.frame.to_csv(path)
-        recons = DataFrame.from_csv(path)
+        with ensure_clean() as path:
+             self.frame.to_csv(path)
+             recons = DataFrame.from_csv(path)
 
-        assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name
-        assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
-
-        try:
-            os.remove(path)
-        except os.error:
-            pass
+             assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name
+             assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
 
     def test_to_csv_from_csv_w_all_infs(self):
-        import tempfile
-        path = tempfile.mktemp()
-        path += '__tmp__'
 
         # test roundtrip with inf, -inf, nan, as full columns and mix
         self.frame['E'] = np.inf
         self.frame['F'] = -np.inf
 
-        self.frame.to_csv(path)
-        recons = DataFrame.from_csv(path)
+        with ensure_clean() as path:
+            self.frame.to_csv(path)
+            recons = DataFrame.from_csv(path)
 
-        assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name
-        assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
-
-        os.remove(path)
+            assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name
+            assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
 
     def test_to_csv_multiindex(self):
-        path = '__tmp_to_csv_multiindex__'
 
+        pname = '__tmp_to_csv_multiindex__'
         frame = self.frame
         old_index = frame.index
         arrays = np.arange(len(old_index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
         frame.index = new_index
-        frame.to_csv(path, header=False)
-        frame.to_csv(path, cols=['A', 'B'])
 
-        # round trip
-        frame.to_csv(path)
-        df = DataFrame.from_csv(path, index_col=[0, 1], parse_dates=False)
+        with ensure_clean(pname) as path:
+             frame.to_csv(path, header=False)
+             frame.to_csv(path, cols=['A', 'B'])
 
-        assert_frame_equal(frame, df, check_names=False)  # TODO to_csv drops column name
-        self.assertEqual(frame.index.names, df.index.names)
-        self.frame.index = old_index  # needed if setUP becomes a classmethod
+             # round trip
+             frame.to_csv(path)
+             df = DataFrame.from_csv(path, index_col=[0, 1], parse_dates=False)
 
-        # try multiindex with dates
-        tsframe = self.tsframe
-        old_index = tsframe.index
-        new_index = [old_index, np.arange(len(old_index))]
-        tsframe.index = MultiIndex.from_arrays(new_index)
+             assert_frame_equal(frame, df, check_names=False)  # TODO to_csv drops column name
+             self.assertEqual(frame.index.names, df.index.names)
+             self.frame.index = old_index  # needed if setUP becomes a classmethod
 
-        tsframe.to_csv(path, index_label=['time', 'foo'])
-        recons = DataFrame.from_csv(path, index_col=[0, 1])
-        assert_frame_equal(tsframe, recons, check_names=False)  # TODO to_csv drops column name
+              # try multiindex with dates
+             tsframe = self.tsframe
+             old_index = tsframe.index
+             new_index = [old_index, np.arange(len(old_index))]
+             tsframe.index = MultiIndex.from_arrays(new_index)
 
-        # do not load index
-        tsframe.to_csv(path)
-        recons = DataFrame.from_csv(path, index_col=None)
-        np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
+             tsframe.to_csv(path, index_label=['time', 'foo'])
+             recons = DataFrame.from_csv(path, index_col=[0, 1])
+             assert_frame_equal(tsframe, recons, check_names=False)  # TODO to_csv drops column name
 
-        # no index
-        tsframe.to_csv(path, index=False)
-        recons = DataFrame.from_csv(path, index_col=None)
-        assert_almost_equal(recons.values, self.tsframe.values)
-        self.tsframe.index = old_index  # needed if setUP becomes classmethod
+             # do not load index
+             tsframe.to_csv(path)
+             recons = DataFrame.from_csv(path, index_col=None)
+             np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
 
-        os.remove(path)
+             # no index
+             tsframe.to_csv(path, index=False)
+             recons = DataFrame.from_csv(path, index_col=None)
+             assert_almost_equal(recons.values, self.tsframe.values)
+             self.tsframe.index = old_index  # needed if setUP becomes classmethod
 
-        # empty
-        tsframe[:0].to_csv(path)
-        recons = DataFrame.from_csv(path)
-        exp = tsframe[:0]
-        exp.index = []
+        with ensure_clean(pname) as path:
+            # empty
+            tsframe[:0].to_csv(path)
+            recons = DataFrame.from_csv(path)
+            exp = tsframe[:0]
+            exp.index = []
 
-        self.assert_(recons.columns.equals(exp.columns))
-        self.assert_(len(recons) == 0)
-
-        os.remove(path)
+            self.assert_(recons.columns.equals(exp.columns))
+            self.assert_(len(recons) == 0)
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))
         df[1] = np.nan
 
-        pth = '__tmp_to_csv_float32_nanrep__.csv'
-        df.to_csv(pth, na_rep=999)
+        with ensure_clean('__tmp_to_csv_float32_nanrep__.csv') as path:
+            df.to_csv(path, na_rep=999)
 
-        lines = open(pth).readlines()
-        self.assert_(lines[1].split(',')[2] == '999')
-        os.remove(pth)
+            with open(path) as f:
+                 lines = f.readlines()
+                 self.assert_(lines[1].split(',')[2] == '999')
 
     def test_to_csv_withcommas(self):
 
-        path = '__tmp_to_csv_withcommas__'
         # Commas inside fields should be correctly escaped when saving as CSV.
-
         df = DataFrame({'A': [1, 2, 3], 'B': ['5,6', '7,8', '9,0']})
-        df.to_csv(path)
-        df2 = DataFrame.from_csv(path)
-        assert_frame_equal(df2, df)
 
-        os.remove(path)
+        with ensure_clean('__tmp_to_csv_withcommas__.csv') as path:
+            df.to_csv(path)
+            df2 = DataFrame.from_csv(path)
+            assert_frame_equal(df2, df)
 
     def test_to_csv_mixed(self):
-        filename = '__tmp_to_csv_mixed__.csv'
+
         def create_cols(name):
             return [ "%s%03d" % (name,i) for i in xrange(5) ]
 
@@ -4720,17 +4706,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             for c in create_cols(n):
                 dtypes[c] = dtype
 
-        df.to_csv(filename)
-
-        rs = pan.read_csv(filename, index_col=0, dtype=dtypes, parse_dates=create_cols('date'))
-        assert_frame_equal(rs, df)
-        os.remove(filename)
+        with ensure_clean() as filename:
+            df.to_csv(filename)
+            rs = pan.read_csv(filename, index_col=0, dtype=dtypes, parse_dates=create_cols('date'))
+            assert_frame_equal(rs, df)
 
     def test_to_csv_dups_cols(self):
-        filename = '__tmp_to_csv_dup_cols__.csv'
 
         df        = DataFrame(np.random.randn(1000, 30),columns=range(15)+range(15),dtype='float64')
-        df.to_csv(filename) # single dtype, fine
+
+        with ensure_clean() as filename:
+            df.to_csv(filename) # single dtype, fine
 
         df_float  = DataFrame(np.random.randn(1000, 30),dtype='float64')
         df_int    = DataFrame(np.random.randn(1000, 30),dtype='int64')
@@ -4740,48 +4726,45 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
 
         #### this raises because we have duplicate column names across dtypes ####
-        self.assertRaises(Exception, df.to_csv, filename)
+        with ensure_clean() as filename:
+            self.assertRaises(Exception, df.to_csv, filename)
 
     def test_to_csv_chunking(self):
-        filename = '__tmp_to_csv_chunking__.csv'
 
         aa=DataFrame({'A':range(100000)})
-
         aa['B'] = aa.A + 1.0
         aa['C'] = aa.A + 2.0
         aa['D'] = aa.A + 3.0
 
         for chunksize in [10000,50000,100000]:
-            aa.to_csv(filename,chunksize=chunksize)
-            rs = pan.read_csv(filename,index_col=0)
-            assert_frame_equal(rs, aa)
-
-        os.remove(filename)
+            with ensure_clean() as filename:
+                aa.to_csv(filename,chunksize=chunksize)
+                rs = pan.read_csv(filename,index_col=0)
+                assert_frame_equal(rs, aa)
 
     def test_to_csv_bug(self):
-        path = '__tmp_to_csv_bug__.csv'
         f1 = StringIO('a,1.0\nb,2.0')
         df = DataFrame.from_csv(f1, header=None)
         newdf = DataFrame({'t': df[df.columns[0]]})
-        newdf.to_csv(path)
 
-        recons = pan.read_csv(path, index_col=0)
-        assert_frame_equal(recons, newdf, check_names=False)  # don't check_names as t != 1
+        with ensure_clean() as path:
+            newdf.to_csv(path)
 
-        os.remove(path)
+            recons = pan.read_csv(path, index_col=0)
+            assert_frame_equal(recons, newdf, check_names=False)  # don't check_names as t != 1
 
     def test_to_csv_unicode(self):
-        path = '__tmp_to_csv_unicode__.csv'
+
         df = DataFrame({u'c/\u03c3': [1, 2, 3]})
-        df.to_csv(path, encoding='UTF-8')
-        df2 = pan.read_csv(path, index_col=0, encoding='UTF-8')
-        assert_frame_equal(df, df2)
+        with ensure_clean() as path:
+        
+            df.to_csv(path, encoding='UTF-8')
+            df2 = pan.read_csv(path, index_col=0, encoding='UTF-8')
+            assert_frame_equal(df, df2)
 
-        df.to_csv(path, encoding='UTF-8', index=False)
-        df2 = pan.read_csv(path, index_col=None, encoding='UTF-8')
-        assert_frame_equal(df, df2)
-
-        os.remove(path)
+            df.to_csv(path, encoding='UTF-8', index=False)
+            df2 = pan.read_csv(path, index_col=None, encoding='UTF-8')
+            assert_frame_equal(df, df2)
 
     def test_to_csv_unicode_index_col(self):
         buf = StringIO('')
@@ -4805,18 +4788,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(recons, self.frame, check_names=False)  # TODO to_csv drops column name
 
     def test_to_csv_float_format(self):
-        filename = '__tmp_to_csv_float_format__.csv'
+
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
                        index=['A', 'B'], columns=['X', 'Y', 'Z'])
-        df.to_csv(filename, float_format='%.2f')
 
-        rs = pan.read_csv(filename, index_col=0)
-        xp = DataFrame([[0.12, 0.23, 0.57],
-                        [12.32, 123123.20, 321321.20]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-        assert_frame_equal(rs, xp)
-        os.remove(filename)
+        with ensure_clean() as filename:
+
+            df.to_csv(filename, float_format='%.2f')
+
+            rs = pan.read_csv(filename, index_col=0)
+            xp = DataFrame([[0.12, 0.23, 0.57],
+                            [12.32, 123123.20, 321321.20]],
+                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            assert_frame_equal(rs, xp)
 
     def test_to_csv_quoting(self):
         import csv

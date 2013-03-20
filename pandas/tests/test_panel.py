@@ -18,7 +18,8 @@ from pandas.util import py3compat
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
-                                 assert_almost_equal)
+                                 assert_almost_equal,
+                                 ensure_clean)
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
@@ -1317,12 +1318,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         for ext in ['xls', 'xlsx']:
             path = '__tmp__.' + ext
-            self.panel.to_excel(path)
-            reader = ExcelFile(path)
-            for item, df in self.panel.iterkv():
-                recdf = reader.parse(str(item), index_col=0)
-                assert_frame_equal(df, recdf)
-            os.remove(path)
+            with ensure_clean(path) as path:
+                self.panel.to_excel(path)
+                reader = ExcelFile(path)
+                for item, df in self.panel.iterkv():
+                    recdf = reader.parse(str(item), index_col=0)
+                    assert_frame_equal(df, recdf)
 
     def test_dropna(self):
         p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
