@@ -24,7 +24,9 @@ import pandas.core.nanops as nanops
 
 from pandas.util.py3compat import StringIO
 from pandas.util import py3compat
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import (assert_series_equal, 
+                                 assert_almost_equal, 
+                                 ensure_clean)
 import pandas.util.testing as tm
 
 
@@ -178,10 +180,11 @@ class CheckNameIntegration(object):
         self.assertEquals(unpickled.name, self.ts.name)
 
     def _pickle_roundtrip_name(self, obj):
-        obj.save('__tmp_name__')
-        unpickled = Series.load('__tmp_name__')
-        os.remove('__tmp_name__')
-        return unpickled
+
+        with ensure_clean() as path:
+            obj.save(path)
+            unpickled = Series.load(path)
+            return unpickled
 
     def test_argsort_preserve_name(self):
         result = self.ts.argsort()
@@ -610,10 +613,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(unp_ts, self.ts)
 
     def _pickle_roundtrip(self, obj):
-        obj.save('__tmp_pickle_roundtrip__')
-        unpickled = Series.load('__tmp_pickle_roundtrip__')
-        os.remove('__tmp_pickle_roundtrip__')
-        return unpickled
+
+        with ensure_clean() as path:
+            obj.save(path)
+            unpickled = Series.load(path)
+            return unpickled
 
     def test_getitem_get(self):
         idx1 = self.series.index[5]
@@ -2557,43 +2561,42 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(iranks, exp)
 
     def test_from_csv(self):
-        path = '_foo_from_csv'
-        self.ts.to_csv(path)
-        ts = Series.from_csv(path)
-        assert_series_equal(self.ts, ts)
-        self.assertTrue(ts.index.name is None)
 
-        self.series.to_csv(path)
-        series = Series.from_csv(path)
-        self.assert_(series.name is None)
-        self.assert_(series.index.name is None)
-        assert_series_equal(self.series, series)
+        with ensure_clean() as path:
+            self.ts.to_csv(path)
+            ts = Series.from_csv(path)
+            assert_series_equal(self.ts, ts)
+            self.assertTrue(ts.index.name is None)
+            
+            self.series.to_csv(path)
+            series = Series.from_csv(path)
+            self.assert_(series.name is None)
+            self.assert_(series.index.name is None)
+            assert_series_equal(self.series, series)
 
-        outfile = open(path, 'w')
-        outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
-        outfile.close()
-        series = Series.from_csv(path, sep='|')
-        checkseries = Series(
-            {datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0})
-        assert_series_equal(checkseries, series)
+            outfile = open(path, 'w')
+            outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
+            outfile.close()
+            series = Series.from_csv(path, sep='|')
+            checkseries = Series(
+                 {datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0})
+            assert_series_equal(checkseries, series)
 
-        series = Series.from_csv(path, sep='|', parse_dates=False)
-        checkseries = Series({'1998-01-01': 1.0, '1999-01-01': 2.0})
-        assert_series_equal(checkseries, series)
-
-        os.remove(path)
+            series = Series.from_csv(path, sep='|', parse_dates=False)
+            checkseries = Series({'1998-01-01': 1.0, '1999-01-01': 2.0})
+            assert_series_equal(checkseries, series)
 
     def test_to_csv(self):
-        self.ts.to_csv('_foo')
 
-        lines = open('_foo', 'U').readlines()
-        assert(lines[1] != '\n')
+        with ensure_clean() as path:
+            self.ts.to_csv(path)
 
-        self.ts.to_csv('_foo', index=False)
-        arr = np.loadtxt('_foo')
-        assert_almost_equal(arr, self.ts.values)
+            lines = open(path, 'U').readlines()
+            assert(lines[1] != '\n')
 
-        os.remove('_foo')
+            self.ts.to_csv(path, index=False)
+            arr = np.loadtxt(path)
+            assert_almost_equal(arr, self.ts.values)
 
     def test_to_csv_unicode_index(self):
         buf = StringIO()
@@ -2620,14 +2623,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
 
     def test_to_csv_float_format(self):
-        filename = '__tmp__.csv'
-        ser = Series([0.123456, 0.234567, 0.567567])
-        ser.to_csv(filename, float_format='%.2f')
 
-        rs = Series.from_csv(filename)
-        xp = Series([0.12, 0.23, 0.57])
-        assert_series_equal(rs, xp)
-        os.remove(filename)
+        with ensure_clean() as filename:
+            ser = Series([0.123456, 0.234567, 0.567567])
+            ser.to_csv(filename, float_format='%.2f')
+
+            rs = Series.from_csv(filename)
+            xp = Series([0.12, 0.23, 0.57])
+            assert_series_equal(rs, xp)
 
     def test_to_csv_list_entries(self):
         s = Series(['jack and jill', 'jesse and frank'])

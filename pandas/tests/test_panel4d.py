@@ -1043,30 +1043,9 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
 
     def test_from_frame_level1_unsorted(self):
         raise nose.SkipTest
-    #    tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2),
-    #              ('AAPL', 1), ('MSFT', 1)]
-    #    midx = MultiIndex.from_tuples(tuples)
-    #    df = DataFrame(np.random.rand(5,4), index=midx)
-    #    p = df.to_panel()
-    #    assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
 
     def test_to_excel(self):
         raise nose.SkipTest
-    #    try:
-    #        import xlwt
-    #        import xlrd
-    #        import openpyxl
-    #    except ImportError:
-    #        raise nose.SkipTest
-
-    #    for ext in ['xls', 'xlsx']:
-    #        path = '__tmp__.' + ext
-    #        self.panel.to_excel(path)
-    #        reader = ExcelFile(path)
-    #        for item, df in self.panel.iteritems():
-    #            recdf = reader.parse(str(item),index_col=0)
-    #            assert_frame_equal(df, recdf)
-    #        os.remove(path)
 
 
 if __name__ == '__main__':

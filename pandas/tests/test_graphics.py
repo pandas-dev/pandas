@@ -7,6 +7,7 @@ from datetime import datetime, date
 
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
+from pandas.util.testing import ensure_clean
 
 import numpy as np
 
@@ -692,9 +693,6 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         for ax in axes.ravel():
             self.assert_(len(ax.patches) > 0)
 
-PNG_PATH = 'tmp.png'
-
-
 def _check_plot_works(f, *args, **kwargs):
     import matplotlib.pyplot as plt
 
@@ -711,9 +709,9 @@ def _check_plot_works(f, *args, **kwargs):
         assert(ret is not None)  # do something more intelligent
     except Exception:
         pass
-    plt.savefig(PNG_PATH)
-    os.remove(PNG_PATH)
 
+    with ensure_clean() as path:
+        plt.savefig(path)
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

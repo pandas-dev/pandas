@@ -6,6 +6,7 @@ from datetime import datetime
 import random
 import string
 import sys
+import tempfile
 
 from contextlib import contextmanager  # contextlib is available since 2.5
 
@@ -73,6 +74,24 @@ def set_trace():
     except:
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
+
+#------------------------------------------------------------------------------
+# contextmanager to ensure the file cleanup
+from contextlib import contextmanager
+@contextmanager
+def ensure_clean(filename = None):
+    # if we are not passed a filename, generate a temporary
+    if filename is None:
+        filename = tempfile.mkstemp()[1]
+
+    try:
+        yield filename
+    finally:
+        import os
+        try:
+            os.remove(filename)
+        except:
+            pass
 
 #------------------------------------------------------------------------------
 # Comparators
