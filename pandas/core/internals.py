@@ -689,6 +689,7 @@ class ObjectBlock(Block):
                                np.datetime64, np.bool_))
 
 _NS_DTYPE = np.dtype('M8[ns]')
+_TD_DTYPE = np.dtype('m8[ns]')
 
 
 class DatetimeBlock(Block):
@@ -1907,16 +1908,22 @@ def _consolidate(blocks, items):
 
     new_blocks = []
     for dtype, group_blocks in grouper:
-        new_block = _merge_blocks(list(group_blocks), items)
+        new_block = _merge_blocks(list(group_blocks), items, dtype)
         new_blocks.append(new_block)
 
     return new_blocks
 
 
-def _merge_blocks(blocks, items):
+def _merge_blocks(blocks, items, dtype=None):
     if len(blocks) == 1:
         return blocks[0]
-    new_values = _vstack([b.values for b in blocks])
+
+    if dtype is None:
+        if len(set([ b.dtype for b in blocks ])) != 1:
+            raise AssertionError("_merge_blocks are invalid!")
+        dtype = blocks[0].dtype
+
+    new_values = _vstack([ b.values for b in blocks ], dtype)
     new_items = blocks[0].items.append([b.items for b in blocks[1:]])
     new_block = make_block(new_values, new_items, items)
     return new_block.reindex_items_from(items)
@@ -1930,10 +1937,12 @@ def _block_shape(values, ndim=1, shape=None):
         values = values.reshape(tuple((1,) + shape))
     return values
 
-def _vstack(to_stack):
-    if all(x.dtype == _NS_DTYPE for x in to_stack):
-        # work around NumPy 1.6 bug
+def _vstack(to_stack, dtype):
+
+    # work around NumPy 1.6 bug
+    if dtype == _NS_DTYPE or dtype == _TD_DTYPE:
         new_values = np.vstack([x.view('i8') for x in to_stack])
-        return new_values.view(_NS_DTYPE)
+        return new_values.view(dtype)
+
     else:
         return np.vstack(to_stack)

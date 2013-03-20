@@ -2951,6 +2951,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # this is not
         result = mixed.min(axis=1)
 
+        # GH 3106
+        df = DataFrame({ 'time' : date_range('20130102',periods=5), 'time2' : date_range('20130105',periods=5) })
+        df['off1'] = df['time2']-df['time']
+        self.assert_(df['off1'].dtype == 'timedelta64[ns]')
+
+        df['off2'] = df['time']-df['time2']
+        df._consolidate_inplace()
+        self.assertTrue(df['off1'].dtype == 'timedelta64[ns]')
+        self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
+
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))
