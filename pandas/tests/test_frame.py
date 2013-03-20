@@ -7171,6 +7171,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.applymap(lambda x: x)
         self.assert_(result.dtypes[0] == object)
 
+        # GH2786
+
+        df = DataFrame(np.random.random((3,4)))
+        df.columns = Index(['a','a','a','a'])
+        res = df.applymap(str)
+        assert_series_equal(res.icol(0),Series(map(str,df.icol(0).values)))
+        assert_series_equal(res.icol(1),Series(map(str,df.icol(1).values)))
+        assert_series_equal(res.icol(2),Series(map(str,df.icol(2).values)))
+        assert_series_equal(res.icol(3),Series(map(str,df.icol(3).values)))
+
     def test_filter(self):
         # items
 
