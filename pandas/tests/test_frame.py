@@ -1766,19 +1766,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                 index=['a', 'b', 'c'])
 
     def test_get_axis(self):
-        self.assert_(DataFrame._get_axis_name(0) == 'index')
-        self.assert_(DataFrame._get_axis_name(1) == 'columns')
-        self.assert_(DataFrame._get_axis_name('index') == 'index')
-        self.assert_(DataFrame._get_axis_name('columns') == 'columns')
-        self.assertRaises(Exception, DataFrame._get_axis_name, 'foo')
-        self.assertRaises(Exception, DataFrame._get_axis_name, None)
+        f = self.frame
+        self.assert_(f._get_axis_name(0) == 'index')
+        self.assert_(f._get_axis_name(1) == 'columns')
+        self.assert_(f._get_axis_name('index') == 'index')
+        self.assert_(f._get_axis_name('columns') == 'columns')
+        self.assertRaises(Exception, f._get_axis_name, 'foo')
+        self.assertRaises(Exception, f._get_axis_name, None)
 
-        self.assert_(DataFrame._get_axis_number(0) == 0)
-        self.assert_(DataFrame._get_axis_number(1) == 1)
-        self.assert_(DataFrame._get_axis_number('index') == 0)
-        self.assert_(DataFrame._get_axis_number('columns') == 1)
-        self.assertRaises(Exception, DataFrame._get_axis_number, 2)
-        self.assertRaises(Exception, DataFrame._get_axis_number, None)
+        self.assert_(f._get_axis_number(0) == 0)
+        self.assert_(f._get_axis_number(1) == 1)
+        self.assert_(f._get_axis_number('index') == 0)
+        self.assert_(f._get_axis_number('columns') == 1)
+        self.assertRaises(Exception, f._get_axis_number, 2)
+        self.assertRaises(Exception, f._get_axis_number, None)
 
         self.assert_(self.frame._get_axis(0) is self.frame.index)
         self.assert_(self.frame._get_axis(1) is self.frame.columns)
@@ -8425,6 +8426,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(f._get_axis(0) is f.index)
         self.assert_(f._get_axis(1) is f.columns)
         self.assertRaises(Exception, f._get_axis_number, 2)
+
+    def test_axis_aliases(self):
+
+        f = self.frame
+
+        # reg name
+        expected = f.sum(axis=0)
+        result = f.sum(axis='index')
+        assert_series_equal(result, expected)
+
+        expected = f.sum(axis=1)
+        result = f.sum(axis='columns')
+        assert_series_equal(result, expected)
 
     def test_combine_first_mixed(self):
         a = Series(['a', 'b'], index=range(2))

@@ -35,7 +35,6 @@ pandas 0.11.0
     DataFrames and propogate in operations
   - Add function to pandas.io.data for retrieving stock index components from
     Yahoo! finance (GH2795_)
-  - Add ``squeeze`` function to reduce dimensionality of 1-len objects
   - Support slicing with time objects (GH2681_)
   - Added ``.iloc`` attribute, to support strict integer based indexing, analagous to ``.ix`` (GH2922_)
   - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix`` (GH3053_)
@@ -73,10 +72,7 @@ pandas 0.11.0
     - New keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
       provided to support iteration on ``select`` and ``select_as_multiple`` (GH3076_)
 
-  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
-    (e.g. ``store.df == store['df']``)
-
-  - ``Squeeze`` to possibly remove length 1 dimensions from an object.
+  - Add ``squeeze`` method to possibly remove length 1 dimensions from an object.
 
     .. ipython:: python
 
@@ -209,7 +205,6 @@ pandas 0.11.0
     other values), (GH2850_)
   - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
   - Fix scalar datetime.datetime parsing bug in read_csv (GH3071_)
-  - Timedeltas are now fully operational (closes GH2898_)
   - Fixed slow printing of large Dataframes, due to inefficient dtype
     reporting (GH2807_)
   - Fixed a segfault when using a function as grouper in groupby (GH3035_)
@@ -232,6 +227,7 @@ pandas 0.11.0
   - Fix issue with indexing a series with a boolean key and specifiying a 1-len list on the rhs (GH2745_)
   - Fixed bug in groupby apply when kernel generate list of arrays having unequal len (GH1738_)
   - fixed handling of rolling_corr with center=True which could produce corr>1 (GH3155_)
+  - Fixed issues where indices can be passed as 'index/column' in addition to 0/1 for the axis parameter
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
