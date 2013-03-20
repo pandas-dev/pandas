@@ -155,14 +155,15 @@ def main():
         ).sort("ratio").set_index('name')  # sort in ascending order
 
         s = "\n\nResults:\n"
+        s += "Test name                 | target[ms] | base[ms] | ratio\n\n"
         s += totals.to_string(
-            float_format=lambda x: "{:4.4f}".format(x).rjust(10))
+            float_format=lambda x: "{:5.4f}".format(x).rjust(10),index_names=False,header=False)
         s += "\n\n"
-        s += "Columns: test_name | target_duration [ms] | baseline_duration [ms] | ratio\n\n"
-        s += "- a Ratio of 1.30 means the target commit is 30% slower then the baseline.\n\n"
+        s += "Test name                 | target[ms] | base[ms] | ratio\n\n"
+        s += "Ratio < 1.0 means the target commit is faster then the baseline.\n\n"
 
         s += 'Target [%s] : %s\n' % (h_head, repo.messages.get(h_head, ""))
-        s += 'Baseline [%s] : %s\n\n' % (
+        s += 'Bas e  [%s] : %s\n\n' % (
             h_baseline, repo.messages.get(h_baseline, ""))
 
         logfile.write(s)
