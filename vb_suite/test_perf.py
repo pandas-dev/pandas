@@ -154,16 +154,19 @@ def main():
         totals = totals.dropna(
         ).sort("ratio").set_index('name')  # sort in ascending order
 
-        s = "\n\nResults:\n"
-        s += "Test name                 | target[ms] | base[ms] | ratio\n\n"
+        s = '\n-----------------------------------------------------------\n'
+        s += "Test name                 | target[ms] | base[ms] |   ratio\n"
+        s += '-----------------------------------------------------------\n\n'
         s += totals.to_string(
             float_format=lambda x: "{:5.4f}".format(x).rjust(10),index_names=False,header=False)
         s += "\n\n"
-        s += "Test name                 | target[ms] | base[ms] | ratio\n\n"
+        s += '-----------------------------------------------------------\n'
+        s += "Test name                 | target[ms] | base[ms] |   ratio\n"
+        s += '-----------------------------------------------------------\n\n'
         s += "Ratio < 1.0 means the target commit is faster then the baseline.\n\n"
 
         s += 'Target [%s] : %s\n' % (h_head, repo.messages.get(h_head, ""))
-        s += 'Bas e  [%s] : %s\n\n' % (
+        s += 'Base   [%s] : %s\n\n' % (
             h_baseline, repo.messages.get(h_baseline, ""))
 
         logfile.write(s)
