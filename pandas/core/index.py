@@ -274,6 +274,9 @@ class Index(np.ndarray):
     def is_monotonic(self):
         return self._engine.is_monotonic
 
+    def is_lexsorted_for_tuple(self, tup):
+        return True
+
     @cache_readonly
     def is_unique(self):
         return self._engine.is_unique
@@ -1691,6 +1694,12 @@ class MultiIndex(Index):
         Return True if the labels are lexicographically sorted
         """
         return self.lexsort_depth == self.nlevels
+
+    def is_lexsorted_for_tuple(self, tup):
+        """
+        Return True if we are correctly lexsorted given the passed tuple
+        """
+        return len(tup) <= self.lexsort_depth
 
     @cache_readonly
     def lexsort_depth(self):

@@ -311,6 +311,10 @@ class _NDFrameIndexer(object):
             except Exception, e1:
                 if isinstance(tup[0], (slice, Index)):
                     raise IndexingError
+
+                # raise the error if we are not sorted
+                if not ax0.is_lexsorted_for_tuple(tup):
+                    raise e1
                 try:
                     loc = ax0.get_loc(tup[0])
                 except KeyError:
