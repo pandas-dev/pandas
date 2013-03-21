@@ -964,7 +964,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     except Exception:
         pass
 
-    with ensure_path() as path:
+    with ensure_clean() as path:
         plt.savefig(path)
 
 if __name__ == '__main__':
