@@ -1,5 +1,5 @@
 # pylint: disable-msg=E1101,W0612
-from datetime import datetime, time, timedelta, tzinfo
+from datetime import datetime, time, timedelta, tzinfo, date
 import sys
 import os
 import unittest
@@ -79,6 +79,7 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         self.assert_(rng_eastern.tz == pytz.timezone('US/Eastern'))
 
+
     def test_localize_utc_conversion(self):
         # Localizing to time zone should:
         #  1) check for DST ambiguities
@@ -99,6 +100,15 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         result = stamp.tz_localize('US/Eastern')
         expected = Timestamp('3/11/2012 04:00', tz='US/Eastern')
+        self.assertEquals(result.hour, expected.hour)
+        self.assertEquals(result, expected)
+
+    def test_timestamp_constructed_by_date_and_tz(self):
+        """ Fix Issue 2993, Timestamp cannot be constructed by datetime.date and tz correctly """
+
+        result = Timestamp(date(2012, 3, 11), tz='US/Eastern')
+
+        expected = Timestamp('3/11/2012', tz='US/Eastern')
         self.assertEquals(result.hour, expected.hour)
         self.assertEquals(result, expected)
 

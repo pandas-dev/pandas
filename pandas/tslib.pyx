@@ -27,6 +27,7 @@ from khash cimport *
 cimport cython
 
 from datetime import timedelta, datetime
+from datetime import time as datetime_time
 from dateutil.parser import parse as parse_date
 
 cdef extern from "Python.h":
@@ -673,7 +674,9 @@ cdef convert_to_tsobject(object ts, object tz):
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
     elif PyDate_Check(ts):
-        obj.value  = _date_to_datetime64(ts, &obj.dts)
+        # Keep the converter same as PyDateTime's
+        ts = datetime.combine(ts, datetime_time())
+        return convert_to_tsobject(ts, tz)
     else:
         raise ValueError("Could not construct Timestamp from argument %s" %
                          type(ts))
