@@ -147,6 +147,8 @@ pandas 0.11.0
   - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
     (GH2747_)
   - util.testing.assert_frame_equal now checks the column and index names (GH2964_)
+  - Constructors will now return a more informative ValueError on failures
+    when invalid shapes are passed
 
 **Bug Fixes**
 
