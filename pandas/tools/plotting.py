@@ -1272,8 +1272,17 @@ class BarPlot(MPLPlot):
 
         return f
 
+    def _get_colors(self):
+        import matplotlib.pyplot as plt
+        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+        if isinstance(cycle, basestring):
+            cycle = list(cycle)
+        has_colors = 'color' in self.kwds
+        colors = self.kwds.get('color', cycle)
+        return colors
+
     def _make_plot(self):
-        colors = self.kwds.pop('color', 'brgyk')
+        colors = self._get_colors()
         rects = []
         labels = []
 
