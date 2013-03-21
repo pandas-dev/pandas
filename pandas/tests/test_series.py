@@ -932,6 +932,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         x = Series(np.random.random(201), name='x')
         self.assertRaises(TypeError, x.reshape, (len(x),))
 
+        # GH 2719
+        a = Series([1,2,3,4])
+        self.assertRaises(TypeError,a.reshape, 2, 2)
+
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
         result = x.reshape((-1, 1))

@@ -201,6 +201,7 @@ pandas 0.11.0
   - Fixed missing tick bars on scatter_matrix plot (GH3063_)
   - Fixed bug in Timestamp(d,tz=foo) when d is date() rather then datetime() (GH2993_)
   - series.plot(kind='bar') now respects pylab color schem (GH3115_)
+  - Fixed bug in reshape if not passed correct input, now raises TypeError (GH2719_)
 
  .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
@@ -220,6 +221,7 @@ pandas 0.11.0
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
+.. _GH2719: https://github.com/pydata/pandas/issues/2719
 .. _GH2746: https://github.com/pydata/pandas/issues/2746
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
