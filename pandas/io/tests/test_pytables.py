@@ -663,6 +663,7 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             df = tm.makeTimeDataFrame()
+            df.loc[:,'B'].iloc[0] = 1.
             store.remove('df')
             store.append('df', df[:2], data_columns=['B'])
             store.append('df', df[2:])
@@ -726,6 +727,8 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
             # multiple data columns
             df_new = df.copy()
+            df_new.loc[:,'A'].iloc[0] = 1.
+            df_new.loc[:,'B'].iloc[0] = -1.
             df_new['string'] = 'foo'
             df_new['string'][1:4] = np.nan
             df_new['string'][5:6] = 'bar'
@@ -743,9 +746,9 @@ class TestHDFStore(unittest.TestCase):
 
             # yield an empty frame
             result = store.select('df', [Term('string', '=', 'foo'), Term(
-                        'string2=bar'), Term('A>0'), Term('B<0')])
+                        'string2=cool')])
             expected = df_new[(df_new.string == 'foo') & (
-                    df_new.string2 == 'bar') & (df_new.A > 0) & (df_new.B < 0)]
+                    df_new.string2 == 'cool')]
             tm.assert_frame_equal(result, expected)
 
         with ensure_clean(self.path) as store:
