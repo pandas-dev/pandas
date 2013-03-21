@@ -1162,6 +1162,10 @@ class DataCol(IndexCol):
             elif self.dtype.startswith('bool'):
                 self.kind = 'bool'
 
+            # set my typ if we need
+            if self.typ is None:
+                self.typ = getattr(self.description,self.cname,None)
+
     def set_atom(self, block, existing_col, min_itemsize, nan_rep, **kwargs):
         """ create and setup my atom from the block b """
 
