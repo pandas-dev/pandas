@@ -219,8 +219,9 @@ pandas 0.11.0
   - Fix NameError issue on RESO_US (GH2787_)
   - Allow selection in an *unordered* timeseries to work similary 
     to an *ordered* timeseries (GH2437_).
+  - Fix implemented ``.xs`` when called with ``axes=1`` and a level parameter (GH2903_)
 
- .. _GH2758: https://github.com/pydata/pandas/issues/2758
+.. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
@@ -257,6 +258,7 @@ pandas 0.11.0
 .. _GH2850: https://github.com/pydata/pandas/issues/2850
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2892: https://github.com/pydata/pandas/issues/2892
+.. _GH2903: https://github.com/pydata/pandas/issues/2903
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 .. _GH2922: https://github.com/pydata/pandas/issues/2922
 .. _GH2929: https://github.com/pydata/pandas/issues/2929
