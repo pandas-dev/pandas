@@ -659,6 +659,15 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('df')
             tm.assert_frame_equal(result, df)
 
+        with ensure_clean(self.path) as store:
+
+            # infer the .typ on subsequent appends
+            df = DataFrame(dict(A = 'foo', B = 'bar'),index=range(10))
+            store.remove('df')
+            store.append('df', df[:5], min_itemsize=200)
+            store.append('df', df[5:], min_itemsize=200)
+            tm.assert_frame_equal(store['df'], df)
+
     def test_append_with_data_columns(self):
 
         with ensure_clean(self.path) as store:
