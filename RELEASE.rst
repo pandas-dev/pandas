@@ -200,6 +200,7 @@ pandas 0.11.0
   - Fix upsampling bug with closed='left' and daily to daily data (GH3020_)
   - Fixed missing tick bars on scatter_matrix plot (GH3063_)
   - Fixed bug in Timestamp(d,tz=foo) when d is date() rather then datetime() (GH2993_)
+  - series.plot(kind='bar') now respects pylab color schem (GH3115_)
 
  .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
@@ -254,6 +255,7 @@ pandas 0.11.0
 .. _GH3063: https://github.com/pydata/pandas/issues/3063
 .. _GH3059: https://github.com/pydata/pandas/issues/3059
 .. _GH2993: https://github.com/pydata/pandas/issues/2993
+.. _GH3115: https://github.com/pydata/pandas/issues/3115
 
 pandas 0.10.1
 =============
