@@ -729,11 +729,19 @@ class Series(pa.Array, generic.PandasObject):
 
         if isinstance(other, Series):
             other = other.reindex(ser.index)
+        elif isinstance(other, (tuple,list)):
+            other = np.array(other)
         if len(other) != len(ser):
-            raise ValueError('Length of replacements must equal series length')
+
+            # GH 2745
+            # treat like a scalar
+            if len(other) == 1:
+                other = np.array(other[0]*len(ser))
+            else:
+                raise ValueError('Length of replacements must equal series length')
 
         change = ser if inplace else None
-        result, changed = com._maybe_upcast_putmask(ser,~cond,other,change=change)
+        com._maybe_upcast_putmask(ser,~cond,other,change=change)
 
         return None if inplace else ser
 

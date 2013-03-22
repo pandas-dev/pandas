@@ -766,10 +766,6 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
                 return r, True
 
-        new_dtype, fill_value = _maybe_promote(result.dtype,other)
-        if new_dtype != result.dtype:
-            return changeit()
-
         try:
             np.putmask(result, mask, other)
         except:
