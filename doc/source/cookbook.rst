@@ -25,8 +25,13 @@ We encourage users to add to this documentation.
 This is a great *First Pull Request* (to add interesting links and/or put short code inline
 for existing links)
 
+.. _cookbook.selection:
+
 Selection
 ---------
+
+The :ref:`indexing <indexing>` docs.
+
 `Boolean Rows Indexing
 <http://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
 
@@ -42,8 +47,12 @@ Selection
 `Selecting via the complement
 <http://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
 
+.. _cookbook.multi_index:
+
 MultiIndexing
 -------------
+
+The :ref:`multindexing <indexing.hierarchical>` docs.
 
 `Creating a multi-index from a labeled frame
 <http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
@@ -75,8 +84,12 @@ Levels
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
 
+.. _cookbook.grouping:
+
 Grouping
 --------
+
+The :ref:`grouping <groupby>` docs.
 
 `Basic grouping with apply
 <http://stackoverflow.com/questions/15322632/python-pandas-df-groupy-agg-column-reference-in-agg>`__
@@ -123,8 +136,12 @@ Timeseries
 `Vectorized Lookup
 <http://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
+.. _cookbook.resample:
+
 Resampling
 ~~~~~~~~~~
+
+The :ref:`Resample <timeseries.resampling>` docs.
 
 `TimeGrouping of values grouped across time
 <http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
@@ -141,8 +158,12 @@ Resampling
 `Resample minute data
 <http://stackoverflow.com/questions/14861023/resampling-minute-data>`__
 
+.. _cookbook.merge:
+
 Merge
 -----
+
+The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` docs.
 
 `emulate R rbind
 <http://stackoverflow.com/questions/14988480/pandas-version-of-rbind>`__
@@ -153,8 +174,12 @@ Merge
 `How to set the index and join
 <http://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__
 
+.. _cookbook.plotting:
+
 Plotting
 --------
+
+The :ref:`Plotting <visualization>` docs.
 
 `Make Matplotlib look like R
 <http://stackoverflow.com/questions/14349055/making-matplotlib-graphs-look-like-r-by-default>`__
@@ -165,8 +190,12 @@ Plotting
 Data In/Out
 -----------
 
+.. _cookbook.csv:
+
 CSV
 ~~~
+
+The :ref:`CSV <io.read_csv_table>` docs
 
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
@@ -177,14 +206,22 @@ CSV
 `Inferring dtypes from a file
 <http://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
+.. _cookbook.sql:
+
 SQL
 ~~~
+
+The :ref:`SQL <io.sql>` docs
 
 `Reading from databases with SQL
 <http://stackoverflow.com/questions/10065051/python-pandas-and-databases-like-mysql>`__
 
+.. _cookbook.hdf:
+
 HDFStore
 ~~~~~~~~
+
+The :ref:`HDFStores <io.hdf5>` docs
 
 `Simple Queries with a Timestamp Index
 <http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
@@ -221,6 +258,8 @@ Storing Attributes to a group node
 
 Miscellaneous
 -------------
+
+The :ref:`Timedeltas <timeseries.timedeltas>` docs
 
 `Operating with timedeltas
 <https://github.com/pydata/pandas/pull/2899>`__
