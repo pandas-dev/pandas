@@ -56,10 +56,10 @@ cpdef ensure_platform_int(object arr):
 take_1d_template = """@cython.wraparound(False)
 def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
                               ndarray[int64_t] indexer,
-                              out, fill_value=np.nan):
+                              ndarray[%(c_type_out)s] out,
+                              fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
-        ndarray[%(c_type_out)s] outbuf = out
         %(c_type_out)s fv
 
     n = len(indexer)
@@ -68,9 +68,9 @@ def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
     for i from 0 <= i < n:
         idx = indexer[i]
         if idx == -1:
-            outbuf[i] = fv
+            out[i] = fv
         else:
-            outbuf[i] = %(preval)svalues[idx]%(postval)s
+            out[i] = %(preval)svalues[idx]%(postval)s
 
 """
 
@@ -78,10 +78,10 @@ take_2d_axis0_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                                     ndarray[int64_t] indexer,
-                                    out, fill_value=np.nan):
+                                    ndarray[%(c_type_out)s, ndim=2] out,
+                                    fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
-        ndarray[%(c_type_out)s, ndim=2] outbuf = out
         %(c_type_out)s fv
 
     n = len(indexer)
@@ -98,10 +98,10 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                 idx = indexer[i]
                 if idx == -1:
                     for j from 0 <= j < k:
-                        outbuf[i, j] = fv
+                        out[i, j] = fv
                 else:
                     v = &values[idx, 0]
-                    o = &outbuf[i, 0]
+                    o = &out[i, 0]
                     memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * k))
             return
 
@@ -109,10 +109,10 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         idx = indexer[i]
         if idx == -1:
             for j from 0 <= j < k:
-                outbuf[i, j] = fv
+                out[i, j] = fv
         else:
             for j from 0 <= j < k:
-                outbuf[i, j] = %(preval)svalues[idx, j]%(postval)s
+                out[i, j] = %(preval)svalues[idx, j]%(postval)s
 
 """
 
@@ -120,15 +120,18 @@ take_2d_axis1_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                                     ndarray[int64_t] indexer,
-                                    out, fill_value=np.nan):
+                                    ndarray[%(c_type_out)s, ndim=2] out,
+                                    fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
-        ndarray[%(c_type_out)s, ndim=2] outbuf = out
         %(c_type_out)s fv
 
     n = len(values)
     k = len(indexer)
-    
+
+    if n == 0 or k == 0:
+        return
+
     fv = fill_value
 
     IF %(can_copy)s:
@@ -140,10 +143,10 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                 idx = indexer[j]
                 if idx == -1:
                     for i from 0 <= i < n:
-                        outbuf[i, j] = fv
+                        out[i, j] = fv
                 else:
                     v = &values[0, idx]
-                    o = &outbuf[0, j]
+                    o = &out[0, j]
                     memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * n))
             return
 
@@ -151,10 +154,10 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         idx = indexer[j]
         if idx == -1:
             for i from 0 <= i < n:
-                outbuf[i, j] = fv
+                out[i, j] = fv
         else:
             for i from 0 <= i < n:
-                outbuf[i, j] = %(preval)svalues[i, idx]%(postval)s
+                out[i, j] = %(preval)svalues[i, idx]%(postval)s
 
 """
 
@@ -162,12 +165,12 @@ take_2d_multi_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                                     indexer,
-                                    out, fill_value=np.nan):
+                                    ndarray[%(c_type_out)s, ndim=2] out,
+                                    fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
         ndarray[int64_t] idx0 = indexer[0]
         ndarray[int64_t] idx1 = indexer[1]
-        ndarray[%(c_type_out)s, ndim=2] outbuf = out
         %(c_type_out)s fv
 
     n = len(idx0)
@@ -178,13 +181,13 @@ def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         idx = idx0[i]
         if idx == -1:
             for j from 0 <= j < k:
-                outbuf[i, j] = fv
+                out[i, j] = fv
         else:
             for j from 0 <= j < k:
                 if idx1[j] == -1:
-                    outbuf[i, j] = fv
+                    out[i, j] = fv
                 else:
-                    outbuf[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
+                    out[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
 
 """
 
@@ -2169,7 +2172,7 @@ def generate_put_template(template, use_ints = True, use_floats = True):
 
     output = StringIO()
     for name, c_type, dest_type, dest_dtype in function_list:
-        func = template % {'name' : name, 
+        func = template % {'name' : name,
                            'c_type' : c_type,
                            'dest_type' : dest_type.replace('_t', ''),
                            'dest_type2' : dest_type,
@@ -2203,7 +2206,7 @@ def generate_take_template(template, exclude=None):
     ]
 
     output = StringIO()
-    for (name, dest, c_type_in, c_type_out, 
+    for (name, dest, c_type_in, c_type_out,
          preval, postval, can_copy) in function_list:
         if exclude is not None and name in exclude:
             continue
