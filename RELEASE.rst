@@ -220,6 +220,7 @@ pandas 0.11.0
     to an *ordered* timeseries (GH2437_).
   - Fix implemented ``.xs`` when called with ``axes=1`` and a level parameter (GH2903_)
   - Timestamp now supports the class method fromordinal similar to datetimes (GH3042_)
+  - Fix issue with indexing a series with a boolean key and specifiying a 1-len list on the rhs (GH2745_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -240,6 +241,7 @@ pandas 0.11.0
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
 .. _GH2719: https://github.com/pydata/pandas/issues/2719
+.. _GH2745: https://github.com/pydata/pandas/issues/2745
 .. _GH2746: https://github.com/pydata/pandas/issues/2746
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
