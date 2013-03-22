@@ -3387,6 +3387,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         exp = DataFrame(data, index=['a', 'b', 'c'])
         assert_frame_equal(result, exp)
 
+
+        # GH 2623
+        rows = []
+        rows.append([datetime(2010, 1, 1), 1])
+        rows.append([datetime(2010, 1, 2), 'hi']) # test col upconverts to obj
+        df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
+        results = df2_obj.get_dtype_counts()
+        expected = Series({ 'datetime64[ns]' : 1, 'object' : 1 })
+
+        rows = []
+        rows.append([datetime(2010, 1, 1), 1])
+        rows.append([datetime(2010, 1, 2), 1])
+        df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
+        results = df2_obj.get_dtype_counts()
+        expected = Series({ 'datetime64[ns]' : 1, 'int64' : 1 })
+   
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10, 10))
         df.to_records()
