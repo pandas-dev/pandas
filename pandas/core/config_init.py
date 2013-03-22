@@ -1,6 +1,6 @@
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_float,
-                                is_instance_factory)
+                                is_instance_factory,is_one_of_factory)
 from pandas.core.format import detect_console_encoding
 
 """
