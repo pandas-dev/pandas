@@ -579,6 +579,8 @@ performing resampling operations during frequency conversion (e.g., converting
 secondly data into 5-minutely data). This is extremely common in, but not
 limited to, financial applications.
 
+See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
+
 .. ipython:: python
 
    rng = date_range('1/1/2012', periods=100, freq='S')

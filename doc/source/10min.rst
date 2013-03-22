@@ -600,6 +600,8 @@ the quarter end:
 Plotting
 --------
 
+:ref:`Plotting <visualization>` docs.
+
 .. ipython:: python
    :suppress:
 

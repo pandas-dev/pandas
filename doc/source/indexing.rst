@@ -32,6 +32,8 @@ attention in this area. Expect more work to be invested higher-dimensional data
 structures (including Panel) in the future, especially in label-based advanced
 indexing.
 
+See some :ref:`cookbook examples <cookbook.selection>` for some advanced strategies
+
 Choice
 ------
 
@@ -878,6 +880,8 @@ described above and in prior sections. Later, when discussing :ref:`group by
 <groupby>` and :ref:`pivoting and reshaping data <reshaping>`, we'll show
 non-trivial applications to illustrate how it aids in structuring data for
 analysis.
+
+See some :ref:`cookbook examples <cookbook.multi_index>` for some advanced strategies
 
 .. note::
 
