@@ -697,6 +697,23 @@ class TestIndexing(unittest.TestCase):
         xp = mi_int.ix[4]
         assert_frame_equal(rs,xp)
 
+    def test_ix_general(self):
+
+        # ix general issues
+
+        # GH 2817
+        data={'amount': {0: 700, 1: 600, 2: 222, 3: 333, 4: 444},
+              'col': {0: 3.5, 1: 3.5, 2: 4.0, 3: 4.0, 4: 4.0},
+              'year': {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012}}
+        df = DataFrame(data).set_index(keys=['col','year'])
+
+        # this should raise correct error
+        self.assertRaises(KeyError, df.ix.__getitem__, tuple([4.0,2012]))
+
+        # this is ok
+        df.sortlevel(inplace=True)
+        df.ix[(4.0,2012)]
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
