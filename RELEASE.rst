@@ -98,7 +98,7 @@ pandas 0.11.0
     histograms. (GH2710_).
   - DataFrame.from_records now accepts not only dicts but any instance of
     the collections.Mapping ABC.
-  - Allow selection semantics for via a string with a datelike index to work in both
+  - Allow selection semantics via a string with a datelike index to work in both
     Series and DataFrames (GH3070_)
 
     .. ipython:: python
