@@ -12,19 +12,15 @@ import shutil
 import warnings
 
 try:
-    BUILD_CACHE_DIR = os.environ.get('BUILD_CACHE_DIR')
-
-    # uncomment to activate the build cache
-    # BUILD_CACHE_DIR="/tmp/.pandas_build_cache/"
-
-    if os.isdir(BUILD_CACHE_DIR):
+    BUILD_CACHE_DIR = os.environ.get('BUILD_CACHE_DIR',"")
+    if os.path.isdir(BUILD_CACHE_DIR):
         print("--------------------------------------------------------")
         print("BUILD CACHE ACTIVATED. be careful, this is experimental.")
         print("--------------------------------------------------------")
     else:
         BUILD_CACHE_DIR = None
 except:
-    pass
+        BUILD_CACHE_DIR = None
 
 # may need to work around setuptools bug by providing a fake Pyrex
 try:
