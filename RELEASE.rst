@@ -98,6 +98,17 @@ pandas 0.11.0
     histograms. (GH2710_).
   - DataFrame.from_records now accepts not only dicts but any instance of
     the collections.Mapping ABC.
+  - Allow selection semantics via a string with a datelike index to work in both
+    Series and DataFrames (GH3070_)
+
+    .. ipython:: python
+
+        idx = date_range("2001-10-1", periods=5, freq='M')
+        ts = Series(np.random.rand(len(idx)),index=idx)
+        ts['2001']
+
+        df = DataFrame(dict(A = ts))
+        df['2001']
 
 
 **API Changes**
@@ -202,6 +213,8 @@ pandas 0.11.0
   - Fixed bug in Timestamp(d,tz=foo) when d is date() rather then datetime() (GH2993_)
   - series.plot(kind='bar') now respects pylab color schem (GH3115_)
   - Fixed bug in reshape if not passed correct input, now raises TypeError (GH2719_)
+  - Allow selection in an *unordered* timeseries to work similary 
+    to an *ordered* timeseries (GH2437_). Fix NameError issue on RESO_US (GH2787_)
 
  .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
@@ -227,6 +240,8 @@ pandas 0.11.0
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
 .. _GH2776: https://github.com/pydata/pandas/issues/2776
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
+.. _GH2437: https://github.com/pydata/pandas/issues/2437
+.. _GH2787: https://github.com/pydata/pandas/issues/2787
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
 .. _GH2795: https://github.com/pydata/pandas/issues/2795
 .. _GH2819: https://github.com/pydata/pandas/issues/2819
@@ -258,6 +273,7 @@ pandas 0.11.0
 .. _GH3059: https://github.com/pydata/pandas/issues/3059
 .. _GH2993: https://github.com/pydata/pandas/issues/2993
 .. _GH3115: https://github.com/pydata/pandas/issues/3115
+.. _GH3070: https://github.com/pydata/pandas/issues/3070
 
 pandas 0.10.1
 =============
