@@ -164,7 +164,7 @@ def mpl_style_cb(key):
     val = cf.get_option(key)
 
     if 'matplotlib' not in sys.modules.keys():
-        if not(key): # starting up, we get reset to None
+        if not(val): # starting up, we get reset to None
             return val
         raise Exception("matplotlib has not been imported. aborting")
 

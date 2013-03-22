@@ -70,7 +70,7 @@ class TestSeriesPlots(unittest.TestCase):
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
 
-        default_colors = 'brgyk'
+        default_colors = plt.rcParams.get('axes.color_cycle')
         custom_colors = 'rgcby'
 
         plt.close('all')
