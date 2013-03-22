@@ -1042,9 +1042,6 @@ class DatetimeIndex(Int64Index):
             return self._view_like(left_chunk)
 
     def _partial_date_slice(self, reso, parsed):
-        if not self.is_monotonic:
-            raise TimeSeriesError('Partial indexing only valid for ordered '
-                                  'time series.')
 
         if reso == 'year':
             t1 = Timestamp(datetime(parsed.year, 1, 1), tz=self.tz)
@@ -1079,11 +1076,19 @@ class DatetimeIndex(Int64Index):
                                      tz=self.tz).value - 1)
         else:
             raise KeyError
+        
 
         stamps = self.asi8
-        left = stamps.searchsorted(t1.value, side='left')
-        right = stamps.searchsorted(t2.value, side='right')
-        return slice(left, right)
+
+        if self.is_monotonic:
+
+            # a monotonic (sorted) series can be sliced
+            left = stamps.searchsorted(t1.value, side='left')
+            right = stamps.searchsorted(t2.value, side='right')
+            return slice(left, right)
+
+        # try to find a the dates
+        return ((stamps>=t1.value) & (stamps<=t2.value)).nonzero()[0]
 
     def _possibly_promote(self, other):
         if other.inferred_type == 'date':

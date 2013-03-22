@@ -18,6 +18,7 @@ from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.frequencies as fmod
+from pandas.tseries.index import TimeSeriesError
 import pandas as pd
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -168,6 +169,32 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         finally:
             _index._SIZE_CUTOFF = old_cutoff
 
+    def test_indexing_unordered(self):
+
+        # GH 2437
+        from pandas import concat
+        rng = date_range(start='2011-01-01', end='2011-01-15')
+        ts  = Series(randn(len(rng)), index=rng)
+        ts2 = concat([ts[0:4],ts[-4:],ts[4:-4]])
+
+        for t in ts.index:
+            s = str(t)
+            expected = ts[t]
+            result = ts2[t]
+            self.assertTrue(expected == result)
+
+        result = ts2['2011'].sort_index()
+        expected = ts['2011']
+        assert_series_equal(result,expected)
+
+        # diff freq
+        rng = date_range(datetime(2005, 1, 1), periods=20, freq='M')
+        ts = Series(np.arange(len(rng)), index=rng)
+        ts = ts.take(np.random.permutation(20))
+
+        result = ts['2005']
+        for t in result.index:
+            self.assertTrue(t.year == 2005)
 
 def assert_range_equal(left, right):
     assert(left.equals(right))
@@ -2016,13 +2043,6 @@ class TestLegacySupport(unittest.TestCase):
 
         self.assert_(s['2005-1-1 23:59:00'] == s.ix[0])
         self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:00:00')
-
-    def test_partial_not_monotonic(self):
-        rng = date_range(datetime(2005, 1, 1), periods=20, freq='M')
-        ts = Series(np.arange(len(rng)), index=rng)
-        ts = ts.take(np.random.permutation(20))
-
-        self.assertRaises(Exception, ts.__getitem__, '2005')
 
     def test_date_range_normalize(self):
         snap = datetime.today()
