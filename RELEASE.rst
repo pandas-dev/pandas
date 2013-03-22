@@ -98,6 +98,17 @@ pandas 0.11.0
     histograms. (GH2710_).
   - DataFrame.from_records now accepts not only dicts but any instance of
     the collections.Mapping ABC.
+  - Allow selection semantics for via a string with a datelike index to work in both
+    Series and DataFrames (GH3070_)
+
+    .. ipython:: python
+
+        idx = date_range("2001-10-1", periods=5, freq='M')
+        ts = Series(np.random.rand(len(idx)),index=idx)
+        ts['2001']
+
+        df = DataFrame(dict(A = ts))
+        df['2001']
 
 
 **API Changes**
@@ -263,6 +274,7 @@ pandas 0.11.0
 .. _GH3059: https://github.com/pydata/pandas/issues/3059
 .. _GH2993: https://github.com/pydata/pandas/issues/2993
 .. _GH3115: https://github.com/pydata/pandas/issues/3115
+.. _GH3070: https://github.com/pydata/pandas/issues/3070
 
 pandas 0.10.1
 =============
