@@ -2211,7 +2211,11 @@ class DataFrame(NDFrame):
                 if labels.levels[lev_num].inferred_type == 'integer':
                     indexer = self.index[loc]
 
-            result = self.ix[indexer]
+            # select on the correct axis
+            if axis == 1:
+                result = self.ix[:, indexer]
+            else:
+                result = self.ix[indexer]
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 

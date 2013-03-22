@@ -714,6 +714,16 @@ class TestIndexing(unittest.TestCase):
         df.sortlevel(inplace=True)
         df.ix[(4.0,2012)]
 
+    def test_xs_multiindex(self):
+
+        # GH2903
+        columns = MultiIndex.from_tuples([('a', 'foo'), ('a', 'bar'), ('b', 'hello'), ('b', 'world')], names=['lvl0', 'lvl1'])
+        df = DataFrame(np.random.randn(4, 4), columns=columns)
+        df.sortlevel(axis=1,inplace=True)
+        result = df.xs('a', level='lvl0', axis=1)
+        expected = df.iloc[:,0:2].loc[:,'a']
+        assert_frame_equal(result,expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
