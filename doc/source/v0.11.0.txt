@@ -245,7 +245,7 @@ Enhancements
 
   - You can now select timestamps from an *unordered* timeseries similarly to an *ordered* timeseries (GH2437_)
 
-  - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (GH3070_
+  - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (GH3070_)
 
     .. ipython:: python
 

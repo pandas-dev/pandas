@@ -1088,7 +1088,7 @@ class DatetimeIndex(Int64Index):
             return slice(left, right)
 
         # try to find a the dates
-        return np.where((stamps>=t1.value) & (stamps<=t2.value))[0]
+        return ((stamps>=t1.value) & (stamps<=t2.value)).nonzero()[0]
 
     def _possibly_promote(self, other):
         if other.inferred_type == 'date':
