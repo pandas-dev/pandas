@@ -68,5 +68,8 @@ fi;
 
 # make sure the desired locale is generated
 if [ x"$LOCALE_OVERRIDE" != x"" ]; then
+    # piggyback this build for plotting tests. oh boy.
+    pip install $PIP_ARGS --use-mirrors  matplotlib;
+
     sudo locale-gen "$LOCALE_OVERRIDE"
 fi
