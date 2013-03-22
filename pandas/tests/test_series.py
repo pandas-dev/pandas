@@ -1087,6 +1087,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, s.where, cond[:3].values, -s)
         self.assertRaises(ValueError, s.where, cond, s[:3].values)
 
+        # GH 2745
+        s = Series([1,2])
+        s[[True, False]] = [0,1]
+        expected = Series([0,2])
+        assert_series_equal(s,expected)
+
+        s = Series([1,2])
+        s[[True, False]] = [0]
+        expected = Series([0,2])
+        assert_series_equal(s,expected)
+
+        # failures
+        self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]), [0,2,3])
+        self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]), [])
+
     def test_where_inplace(self):
         s = Series(np.random.randn(5))
         cond = s > 0
