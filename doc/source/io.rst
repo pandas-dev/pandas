@@ -37,6 +37,9 @@ The two workhorse functions for reading text files (a.k.a. flat files) are
 They both use the same parsing code to intelligently convert tabular
 data into a DataFrame object. They can take a number of arguments:
 
+See some :ref:`cookbook examples <cookbook.csv>` for some advanced strategies
+See some :ref:`cookbook examples <cookbook.csv>` for some advanced strategies
+
   - ``filepath_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
@@ -981,6 +984,8 @@ HDF5 (PyTables)
 the high performance HDF5 format using the excellent `PyTables
 <http://www.pytables.org/>`__ library.
 
+See some :ref:`cookbook examples <cookbook.hdf>` for some advanced strategies
+
 .. ipython:: python
    :suppress:
    :okexcept:
@@ -1689,6 +1694,8 @@ The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. There
 wrappers only support the Python database adapters which respect the `Python
 DB-API <http://www.python.org/dev/peps/pep-0249/>`_.
+
+See some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies
 
 Suppose you want to query some data with different types from a table such as:
 
