@@ -1262,6 +1262,19 @@ class TestTimeSeries(unittest.TestCase):
         result = repr(stamp)
         self.assert_(iso8601 in result)
 
+    def test_timestamp_from_ordinal(self):
+
+        # GH 3042
+        dt = datetime(2011, 4, 16, 0, 0)
+        ts = Timestamp.fromordinal(dt.toordinal())
+        self.assert_(ts.to_pydatetime() == dt)
+
+        # with a tzinfo
+        stamp = Timestamp('2011-4-16', tz='US/Eastern')
+        dt_tz = stamp.to_pydatetime()
+        ts = Timestamp.fromordinal(dt_tz.toordinal(),tz='US/Eastern')
+        self.assert_(ts.to_pydatetime() == dt_tz)
+
     def test_datetimeindex_integers_shift(self):
         rng = date_range('1/1/2000', periods=20)
 

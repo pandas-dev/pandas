@@ -113,7 +113,6 @@ pandas 0.11.0
         df = DataFrame(dict(A = ts))
         df['2001']
 
-
 **API Changes**
 
   - Do not automatically upcast numeric specified dtypes to ``int64`` or
@@ -220,7 +219,10 @@ pandas 0.11.0
   - Allow selection in an *unordered* timeseries to work similary 
     to an *ordered* timeseries (GH2437_).
   - Fix implemented ``.xs`` when called with ``axes=1`` and a level parameter (GH2903_)
+  - Timestamp now supports the class method fromordinal similar to datetimes (GH3042_)
 
+.. _GH622: https://github.com/pydata/pandas/issues/622
+.. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
@@ -236,8 +238,6 @@ pandas 0.11.0
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
-.. _GH622: https://github.com/pydata/pandas/issues/622
-.. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
 .. _GH2719: https://github.com/pydata/pandas/issues/2719
 .. _GH2746: https://github.com/pydata/pandas/issues/2746
@@ -267,19 +267,20 @@ pandas 0.11.0
 .. _GH2967: https://github.com/pydata/pandas/issues/2967
 .. _GH2982: https://github.com/pydata/pandas/issues/2982
 .. _GH2989: https://github.com/pydata/pandas/issues/2989
+.. _GH2993: https://github.com/pydata/pandas/issues/2993
 .. _GH3002: https://github.com/pydata/pandas/issues/3002
 .. _GH3010: https://github.com/pydata/pandas/issues/3010
 .. _GH3012: https://github.com/pydata/pandas/issues/3012
 .. _GH3029: https://github.com/pydata/pandas/issues/3029
 .. _GH3037: https://github.com/pydata/pandas/issues/3037
 .. _GH3041: https://github.com/pydata/pandas/issues/3041
+.. _GH3042: https://github.com/pydata/pandas/issues/3042
 .. _GH3053: https://github.com/pydata/pandas/issues/3053
+.. _GH3070: https://github.com/pydata/pandas/issues/3070
 .. _GH3076: https://github.com/pydata/pandas/issues/3076
 .. _GH3063: https://github.com/pydata/pandas/issues/3063
 .. _GH3059: https://github.com/pydata/pandas/issues/3059
-.. _GH2993: https://github.com/pydata/pandas/issues/2993
 .. _GH3115: https://github.com/pydata/pandas/issues/3115
-.. _GH3070: https://github.com/pydata/pandas/issues/3070
 .. _GH3130: https://github.com/pydata/pandas/issues/3130
 
 pandas 0.10.1
