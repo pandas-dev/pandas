@@ -827,6 +827,30 @@ class _iAtIndexer(_ScalarAccessIndexer):
 _eps = np.finfo('f4').eps
 
 
+def _convert_to_index_sliceable(obj, key):
+    """ if we are index sliceable, then return my slicer, otherwise return None """
+    idx = obj.index
+    if isinstance(key, slice):
+        idx_type = idx.inferred_type
+        if idx_type == 'floating':
+            indexer = obj.ix._convert_to_indexer(key, axis=0)
+        elif idx_type == 'integer' or _is_index_slice(key):
+            indexer = key
+        else:
+            indexer = obj.ix._convert_to_indexer(key, axis=0)
+        return indexer
+
+    elif isinstance(key, basestring):
+
+        # we need a timelike key here
+        if idx.is_all_dates:
+            try:
+                return idx._get_string_slice(key)
+            except:
+                return None
+
+    return None
+
 def _is_index_slice(obj):
     def _is_valid_index(x):
         return (com.is_integer(x) or com.is_float(x)

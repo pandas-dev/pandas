@@ -245,6 +245,17 @@ Enhancements
 
   - You can now select timestamps from an *unordered* timeseries similarly to an *ordered* timeseries (GH2437_)
 
+  - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (GH3070_)
+
+    .. ipython:: python
+
+        idx = date_range("2001-10-1", periods=5, freq='M')
+        ts = Series(np.random.rand(len(idx)),index=idx)
+        ts['2001']
+
+        df = DataFrame(dict(A = ts))
+        df['2001']
+
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
     .. ipython:: python
@@ -313,3 +324,4 @@ on GitHub for a complete list.
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
 .. _GH3076: https://github.com/pydata/pandas/issues/3076
 .. _GH3059: https://github.com/pydata/pandas/issues/3059
+.. _GH3070: https://github.com/pydata/pandas/issues/3070

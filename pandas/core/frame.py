@@ -28,7 +28,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
-                                  _is_index_slice, _check_bool_indexer,
+                                  _convert_to_index_sliceable, _check_bool_indexer,
                                   _maybe_convert_indices)
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
@@ -1864,10 +1864,13 @@ class DataFrame(NDFrame):
         return self.iat[i,j]
 
     def __getitem__(self, key):
-        if isinstance(key, slice):
-            # slice rows
-            return self._getitem_slice(key)
-        elif isinstance(key, (np.ndarray, list)):
+
+        # see if we can slice the rows
+        indexer = _convert_to_index_sliceable(self, key)
+        if indexer is not None:
+            return self._getitem_slice(indexer)
+
+        if isinstance(key, (np.ndarray, list)):
             # either boolean or fancy integer index
             return self._getitem_array(key)
         elif isinstance(key, DataFrame):
@@ -1879,14 +1882,7 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _getitem_slice(self, key):
-        idx_type = self.index.inferred_type
-        if idx_type == 'floating':
-            indexer = self.ix._convert_to_indexer(key, axis=0)
-        elif idx_type == 'integer' or _is_index_slice(key):
-            indexer = key
-        else:
-            indexer = self.ix._convert_to_indexer(key, axis=0)
-        return self._slice(indexer, axis=0)
+        return self._slice(key, axis=0)
 
     def _getitem_array(self, key):
         # also raises Exception if object array with NA values
@@ -1982,10 +1978,12 @@ class DataFrame(NDFrame):
                 object.__setattr__(self, name, value)
 
     def __setitem__(self, key, value):
-        if isinstance(key, slice):
-            # slice rows
-            self._setitem_slice(key, value)
-        elif isinstance(key, (np.ndarray, list)):
+        # see if we can slice the rows
+        indexer = _convert_to_index_sliceable(self, key)
+        if indexer is not None:
+            return self._setitem_slice(indexer, value)
+
+        if isinstance(key, (np.ndarray, list)):
             self._setitem_array(key, value)
         elif isinstance(key, DataFrame):
             self._setitem_frame(key, value)
@@ -1994,14 +1992,7 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
-        idx_type = self.index.inferred_type
-        if idx_type == 'floating':
-            indexer = self.ix._convert_to_indexer(key, axis=0)
-        elif idx_type == 'integer' or _is_index_slice(key):
-            indexer = key
-        else:
-            indexer = self.ix._convert_to_indexer(key, axis=0)
-        self.ix._setitem_with_indexer(indexer, value)
+        self.ix._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
