@@ -202,6 +202,7 @@ pandas 0.11.0
   - Fixed bug in Timestamp(d,tz=foo) when d is date() rather then datetime() (GH2993_)
   - series.plot(kind='bar') now respects pylab color schem (GH3115_)
   - Fixed bug in reshape if not passed correct input, now raises TypeError (GH2719_)
+  - Fix NameError issue on RESO_US (GH2787_)
 
  .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
@@ -227,6 +228,7 @@ pandas 0.11.0
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
 .. _GH2776: https://github.com/pydata/pandas/issues/2776
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
+.. _GH2787: https://github.com/pydata/pandas/issues/2787
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
 .. _GH2795: https://github.com/pydata/pandas/issues/2795
 .. _GH2819: https://github.com/pydata/pandas/issues/2819
