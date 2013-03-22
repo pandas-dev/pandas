@@ -100,6 +100,9 @@ pandas 0.11.0
     the collections.Mapping ABC.
   - Allow selection semantics via a string with a datelike index to work in both
     Series and DataFrames (GH3070_)
+  - Improved performance across several core functions by taking memory
+    ordering of arrays into account. Courtesy of @stephenwlin (GH3130_)
+
 
     .. ipython:: python
 
@@ -275,6 +278,7 @@ pandas 0.11.0
 .. _GH2993: https://github.com/pydata/pandas/issues/2993
 .. _GH3115: https://github.com/pydata/pandas/issues/3115
 .. _GH3070: https://github.com/pydata/pandas/issues/3070
+.. _GH3130: https://github.com/pydata/pandas/issues/3130
 
 pandas 0.10.1
 =============
