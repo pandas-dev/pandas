@@ -120,6 +120,12 @@ def _is_fixed_offset(tz):
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
 
+    @classmethod
+    def fromordinal(cls, ordinal, offset=None, tz=None):
+        """ passed an ordinal, translate and convert to a ts
+            note: by definition there cannot be any tz info on the ordinal itself """
+        return cls(datetime.fromordinal(ordinal),offset=offset,tz=tz)
+
     def __new__(cls, object ts_input, object offset=None, tz=None):
         cdef _TSObject ts
         cdef _Timestamp ts_base
