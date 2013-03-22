@@ -243,6 +243,8 @@ Enhancements
   - In ``HDFStore``, new keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
     provided to support iteration on ``select`` and ``select_as_multiple`` (GH3076_)
 
+  - You can now select timestamps from an *unordered* timeseries similarly to an *ordered* timeseries (GH2437_)
+
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
     .. ipython:: python
@@ -293,6 +295,7 @@ See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
+.. _GH2437: https://github.com/pydata/pandas/issues/2437
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837

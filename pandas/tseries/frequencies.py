@@ -34,11 +34,11 @@ class Resolution(object):
 
     @classmethod
     def get_str(cls, reso):
-        return {RESO_US: 'microsecond',
-                RESO_SEC: 'second',
-                RESO_MIN: 'minute',
-                RESO_HR: 'hour',
-                RESO_DAY: 'day'}.get(reso, 'day')
+        return {cls.RESO_US: 'microsecond',
+                cls.RESO_SEC: 'second',
+                cls.RESO_MIN: 'minute',
+                cls.RESO_HR: 'hour',
+                cls.RESO_DAY: 'day'}.get(reso, 'day')
 
 
 def get_reso_string(reso):
