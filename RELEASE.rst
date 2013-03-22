@@ -112,6 +112,9 @@ pandas 0.11.0
 
         df = DataFrame(dict(A = ts))
         df['2001']
+  - added option `display.mpl_style` providing a sleeker visual style
+    for plots. Based on https://gist.github.com/huyng/816622 (GH3075_).
+
 
 **API Changes**
 
@@ -239,9 +242,11 @@ pandas 0.11.0
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
+.. _GH2745: https://github.com/pydata/pandas/issues/2745
+.. _GH622: https://github.com/pydata/pandas/issues/622
+.. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2681: https://github.com/pydata/pandas/issues/2681
 .. _GH2719: https://github.com/pydata/pandas/issues/2719
-.. _GH2745: https://github.com/pydata/pandas/issues/2745
 .. _GH2746: https://github.com/pydata/pandas/issues/2746
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
@@ -282,7 +287,10 @@ pandas 0.11.0
 .. _GH3076: https://github.com/pydata/pandas/issues/3076
 .. _GH3063: https://github.com/pydata/pandas/issues/3063
 .. _GH3059: https://github.com/pydata/pandas/issues/3059
+.. _GH2993: https://github.com/pydata/pandas/issues/2993
 .. _GH3115: https://github.com/pydata/pandas/issues/3115
+.. _GH3070: https://github.com/pydata/pandas/issues/3070
+.. _GH3075: https://github.com/pydata/pandas/issues/3075
 .. _GH3130: https://github.com/pydata/pandas/issues/3130
 
 pandas 0.10.1

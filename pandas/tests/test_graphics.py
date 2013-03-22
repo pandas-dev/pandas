@@ -8,6 +8,7 @@ from datetime import datetime, date
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
+from pandas.core.config import set_option,get_option,config_prefix
 
 import numpy as np
 
@@ -692,6 +693,21 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
 
         for ax in axes.ravel():
             self.assert_(len(ax.patches) > 0)
+
+    def test_option_mpl_style(self):
+        # just a sanity check
+        try:
+            import matplotlib
+        except:
+            raise nose.SkipTest
+
+        set_option('display.mpl_style', 'default')
+        set_option('display.mpl_style', None)
+        set_option('display.mpl_style', False)
+        try:
+            set_option('display.mpl_style', 'default2')
+        except ValueError:
+            pass
 
 def _check_plot_works(f, *args, **kwargs):
     import matplotlib.pyplot as plt
