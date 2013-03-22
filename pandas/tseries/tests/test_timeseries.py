@@ -171,7 +171,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
     def test_indexing_unordered(self):
 
-        # GH 2437
+        # GH 2437 (series)
         from pandas import concat
         rng = date_range(start='2011-01-01', end='2011-01-15')
         ts  = Series(randn(len(rng)), index=rng)
@@ -196,11 +196,35 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         for t in result.index:
             self.assertTrue(t.year == 2005)
 
+    def test_indexing(self):
+
+        idx = date_range("2001-1-1", periods=20, freq='M')
+        ts = Series(np.random.rand(len(idx)),index=idx)
+
+        # getting
+
+        # GH 3070, make sure semantics work on Series/Frame
+        expected = ts['2001']
+        
+        df = DataFrame(dict(A = ts))
+        result = df['2001']['A']
+        assert_series_equal(expected,result)
+
+        # setting
+        ts['2001'] = 1
+        expected = ts['2001']
+
+        df.loc['2001','A'] = 1
+
+        result = df['2001']['A']
+        assert_series_equal(expected,result)
+
+
+
 def assert_range_equal(left, right):
     assert(left.equals(right))
     assert(left.freq == right.freq)
     assert(left.tz == right.tz)
-
 
 class TestTimeSeries(unittest.TestCase):
     _multiprocess_can_split_ = True
