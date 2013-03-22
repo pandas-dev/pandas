@@ -677,7 +677,8 @@ Advanced Indexing with ``.ix``
    explicit about indexing choices. ``.ix`` allows a great flexibility to specify
    indexing locations by *label* and/or *integer position*. Pandas will attempt
    to use any passed *integer* as *label* locations first (like what ``.loc``
-   would do, then to fall back on *positional* indexing, like what ``.iloc`` would do).
+   would do, then to fall back on *positional* indexing, like what ``.iloc`` 
+   would do). See :ref:`Fallback Indexing <indexing.fallback>` for an example.
 
 The syntax of using ``.ix`` is identical to ``.loc``, in :ref:`Selection by Label <indexing.label>`,
 and ``.iloc`` in :ref:`Selection by Position <indexing.integer>`.
@@ -801,6 +802,44 @@ values, though setting arbitrary vectors is not yet supported:
    df2.ix[2] = np.nan
    print df2
    print df2.dtypes
+
+
+Fallback indexing
+~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.fallback:
+
+Float indexes should be used only with caution. If you have a float indexed 
+``DataFrame`` and try to select using an integer, the row that Pandas returns
+might not be what you expect. Pandas first attempts to use the *integer* 
+as a *label* location, but fails to find a match (because the types 
+are not equal). Pandas then falls back to back to positional indexing.
+
+.. ipython:: python
+
+    df = pd.DataFrame(np.random.randn(4,4), 
+        columns=list('ABCD'), index=[1.0, 2.0, 3.0, 4.0])
+    df
+    df.ix[1]
+
+To select the row you do expect, instead use a float label or
+use ``iloc``. 
+
+.. ipython:: python
+
+    df.ix[1.0]
+    df.iloc[0]
+    
+Instead of using a float index, it is often better to
+convert to an integer index:
+
+.. ipython:: python
+
+    df_new = df.reset_index()
+    df_new[df_new.index == 1.0]
+    # now you can also do "float selection"
+    df_new[(df_new.index >= 1.0) & (df_new.index < 2)]
+
 
 .. _indexing.class:
 
