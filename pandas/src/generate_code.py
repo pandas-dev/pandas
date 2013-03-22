@@ -93,7 +93,11 @@ def take_2d_axis0_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         cdef:
             %(c_type_out)s *v, *o
 
-        if values.flags.c_contiguous and out.flags.c_contiguous:
+        #GH3130
+        if (values.strides[1] == out.strides[1] and
+            values.strides[1] == sizeof(%(c_type_out)s) and
+            sizeof(%(c_type_out)s) * n >= 256):
+
             for i from 0 <= i < n:
                 idx = indexer[i]
                 if idx == -1:
@@ -138,7 +142,11 @@ def take_2d_axis1_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
         cdef:
             %(c_type_out)s *v, *o
 
-        if values.flags.f_contiguous and out.flags.f_contiguous:
+        #GH3130
+        if (values.strides[0] == out.strides[0] and
+            values.strides[0] == sizeof(%(c_type_out)s) and
+            sizeof(%(c_type_out)s) * n >= 256):
+
             for j from 0 <= j < k:
                 idx = indexer[j]
                 if idx == -1:
