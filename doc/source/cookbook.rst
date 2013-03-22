@@ -105,6 +105,9 @@ Expanding Data
 `Alignment and to-date
 <http://stackoverflow.com/questions/15489011/python-time-series-alignment-and-to-date-functions>`__
 
+`Rolling Computation window based on values instead of counts
+<http://stackoverflow.com/questions/14300768/pandas-rolling-computation-with-window-based-on-values-instead-of-counts>`__
+
 Splitting
 ~~~~~~~~~
 
@@ -170,6 +173,9 @@ CSV
 
 `Reading the first few lines of a frame
 <http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
+
+`Inferring dtypes from a file
+<http://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
 SQL
 ~~~
