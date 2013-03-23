@@ -174,6 +174,12 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
 `How to set the index and join
 <http://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__
 
+`KDB like asof join
+<http://stackoverflow.com/questions/12322289/kdb-like-asof-join-for-timeseries-data-in-pandas/12336039#12336039>`__
+
+`Join with a criteria based on the values
+<http://stackoverflow.com/questions/15581829/how-to-perform-an-inner-or-outer-join-of-dataframes-with-pandas-on-non-simplisti>`__
+
 .. _cookbook.plotting:
 
 Plotting
