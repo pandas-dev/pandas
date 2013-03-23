@@ -754,17 +754,36 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
     if mask.any():
 
         def changeit():
-            # our type is wrong here, need to upcast
-            if (-mask).any():
-                r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
-                np.putmask(r, mask, other)
-                
-                # we need to actually change the dtype here
-                if change is not None:
-                    change.dtype = r.dtype
-                    change[:] = r
 
-                return r, True
+            # our type is wrong here, need to upcast
+            r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
+            np.putmask(r, mask, other)
+                
+            # we need to actually change the dtype here
+            if change is not None:
+                change.dtype = r.dtype
+                change[:] = r
+                
+            return r, True
+
+        # we want to decide whether putmask will work
+        # if we have nans in the False portion of our mask then we need to upcast (possibily)
+        # otherwise we DON't want to upcast (e.g. if we are have values, say integers in
+        # the success portion then its ok to not upcast)
+        new_dtype, fill_value = _maybe_promote(result.dtype,other)
+        if new_dtype != result.dtype:
+
+            # we have a scalar or len 0 ndarray 
+            # and its nan and we are changing some values
+            if np.isscalar(other) or (isinstance(other,np.ndarray) and other.ndim < 1):
+                if isnull(other):
+                    return changeit()
+
+            # we have an ndarray and the masking has nans in it
+            else:
+
+                if isnull(other[mask]).any():
+                    return changeit()
 
         try:
             np.putmask(result, mask, other)
@@ -811,9 +830,9 @@ def _possibly_downcast_to_dtype(result, dtype):
         return result
 
     try:
-        if dtype == np.float_:
+        if issubclass(dtype.type,np.floating):
             return result.astype(dtype)
-        elif dtype == np.bool_ or dtype == np.int_:
+        elif dtype == np.bool_ or issubclass(dtype.type,np.integer):
             if issubclass(result.dtype.type, np.number) and notnull(result).all():
                 new_result = result.astype(dtype)
                 if (new_result == result).all():
