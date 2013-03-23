@@ -265,7 +265,7 @@ Storing Attributes to a group node
 Miscellaneous
 -------------
 
-The :ref:`Timedeltas <timeseries.timedeltas>` docs
+The :ref:`Timedeltas <timeseries.timedeltas>` docs.
 
 `Operating with timedeltas
 <https://github.com/pydata/pandas/pull/2899>`__
