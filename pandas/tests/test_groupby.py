@@ -543,7 +543,7 @@ class TestGroupBy(unittest.TestCase):
             grouped = values.groupby(labels)
             agged = grouped.agg(len)
             expected = Series([4, 2], index=['bar', 'foo'])
-            
+
             assert_series_equal(agged, expected, check_dtype=False)
             #self.assert_(issubclass(agged.dtype.type, np.integer))
 
@@ -553,7 +553,7 @@ class TestGroupBy(unittest.TestCase):
 
             agged = grouped.agg(f)
             expected = Series([4, 2], index=['bar', 'foo'])
-            
+
             assert_series_equal(agged, expected, check_dtype=False)
             self.assert_(issubclass(agged.dtype.type, np.dtype(dtype).type))
 
@@ -2269,6 +2269,29 @@ class TestGroupBy(unittest.TestCase):
 
         # len(bins) != len(series) here
         self.assertRaises(AssertionError,lambda : series.groupby(bins).mean())
+
+    def test_gb_apply_list_of_unequal_len_arrays(self):
+
+        # GH1738
+        df = DataFrame({'group1': ['a','a','a','b','b','b','a','a','a','b','b','b'],
+                               'group2': ['c','c','d','d','d','e','c','c','d','d','d','e'],
+                               'weight': [1.1,2,3,4,5,6,2,4,6,8,1,2],
+                               'value': [7.1,8,9,10,11,12,8,7,6,5,4,3]
+        })
+        df = df.set_index(['group1', 'group2'])
+        df_grouped = df.groupby(level=['group1','group2'], sort=True)
+
+        def noddy(value, weight):
+            out = np.array( value * weight ).repeat(3)
+            return out
+
+        # the kernel function returns arrays of unequal length
+        # pandas sniffs the first one, sees it's an array and not
+        # a list, and assumed the rest are of equal length
+        # and so tries a vstack
+
+        # don't die
+        no_toes = df_grouped.apply(lambda x: noddy(x.value, x.weight ))
 
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())
