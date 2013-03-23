@@ -253,6 +253,26 @@ def test_ensure_int32():
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
 
+def test_ensure_platform_int():
+
+    # verify that when we create certain types of indices
+    # they remain the correct type under platform conversions
+    from pandas.core.index import Int64Index
+
+    # int64
+    x = Int64Index([1, 2, 3], dtype='int64')
+    assert(x.dtype == np.int64)
+
+    pi = com._ensure_platform_int(x)
+    assert(pi.dtype == np.int_)
+
+    # int32
+    x = Int64Index([1, 2, 3], dtype='int32')
+    assert(x.dtype == np.int32)
+
+    pi = com._ensure_platform_int(x)
+    assert(pi.dtype == np.int_)
+
 # TODO: fix this broken test
 
 # def test_console_encode():
