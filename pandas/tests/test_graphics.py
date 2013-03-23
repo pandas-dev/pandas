@@ -81,7 +81,7 @@ class TestSeriesPlots(unittest.TestCase):
 
         conv = colors.colorConverter
         for i, rect in enumerate(rects[::5]):
-            xp = conv.to_rgba(default_colors[i])
+            xp = conv.to_rgba(default_colors[i % len(default_colors)])
             rs = rect.get_facecolor()
             self.assert_(xp == rs)
 
