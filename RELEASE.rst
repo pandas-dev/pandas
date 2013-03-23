@@ -179,7 +179,7 @@ pandas 0.11.0
     - Series ops with a Timestamp on the rhs was throwing an exception (GH2898_)
       added tests for Series ops with datetimes,timedeltas,Timestamps, and datelike
       Series on both lhs and rhs
-    - Fixed subtle timedelta64 inference issue on py3
+    - Fixed subtle timedelta64 inference issue on py3 & numpy 1.7.0 (GH3094_)
     - Fixed some formatting issues on timedelta when negative
     - Support null checking on timedelta64, representing (and formatting) with NaT
     - Support setitem with np.nan value, converts to NaT
@@ -293,6 +293,7 @@ pandas 0.11.0
 .. _GH3115: https://github.com/pydata/pandas/issues/3115
 .. _GH3070: https://github.com/pydata/pandas/issues/3070
 .. _GH3075: https://github.com/pydata/pandas/issues/3075
+.. _GH3094: https://github.com/pydata/pandas/issues/3094
 .. _GH3130: https://github.com/pydata/pandas/issues/3130
 
 pandas 0.10.1
