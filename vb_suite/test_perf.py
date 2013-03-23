@@ -33,6 +33,9 @@ import tempfile
 import time
 import re
 
+import random
+import numpy as np
+
 DEFAULT_MIN_DURATION = 0.01
 
 parser = argparse.ArgumentParser(description='Use vbench to generate a report comparing performance between two commits.')
@@ -59,6 +62,13 @@ parser.add_argument('-r', '--regex',
                     dest='regex',
                     default="",
                     help='regex pat, only tests whose name matches the regext will be run.')
+parser.add_argument('-s', '--seed',
+                    metavar="SEED",
+                    dest='seed',
+                    default=1234,
+                    type=int,
+                    help='integer value to seed PRNG with')
+
 
 def get_results_df(db, rev):
     from pandas import DataFrame
@@ -92,6 +102,9 @@ def main():
     if not args.log_file:
         args.log_file = os.path.abspath(
             os.path.join(REPO_PATH, 'vb_suite.log'))
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
     TMP_DIR = tempfile.mkdtemp()
     prprint("TMP_DIR = %s" % TMP_DIR)
@@ -154,16 +167,17 @@ def main():
         totals = totals.dropna(
         ).sort("ratio").set_index('name')  # sort in ascending order
 
-        s = '\n-----------------------------------------------------------\n'
-        s += "Test name                 | target[ms] | base[ms] |   ratio\n"
-        s += '-----------------------------------------------------------\n\n'
+        s = '\n----------------------------------------------------------------\n'
+        s += "Test name                      | target[ms] | base[ms] |   ratio\n"
+        s += '----------------------------------------------------------------\n\n'
         s += totals.to_string(
             float_format=lambda x: "{:5.4f}".format(x).rjust(10),index_names=False,header=False)
         s += "\n\n"
-        s += '-----------------------------------------------------------\n'
-        s += "Test name                 | target[ms] | base[ms] |   ratio\n"
-        s += '-----------------------------------------------------------\n\n'
-        s += "Ratio < 1.0 means the target commit is faster then the baseline.\n\n"
+        s += '----------------------------------------------------------------\n'
+        s += "Test name                      | target[ms] | base[ms] |   ratio\n"
+        s += '----------------------------------------------------------------\n\n'
+        s += "Ratio < 1.0 means the target commit is faster then the baseline.\n"
+        s += "Seed used: %d\n\n" % args.seed
 
         s += 'Target [%s] : %s\n' % (h_head, repo.messages.get(h_head, ""))
         s += 'Base   [%s] : %s\n\n' % (
