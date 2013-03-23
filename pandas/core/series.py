@@ -104,6 +104,11 @@ def _arith_method(op, name):
                         pass
                     else:
                         values = com._possibly_cast_to_timedelta(values)
+                elif inferred_type in set(['integer']):
+                    if values.dtype == 'timedelta64[ns]':
+                        pass
+                    elif values.dtype.kind == 'm':
+                        values = values.astype('timedelta64[ns]')
                 else:
                     values = pa.array(values)
                 return values
