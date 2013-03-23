@@ -13,6 +13,7 @@ from pandas.util.decorators import cache_readonly, Appender
 from pandas.util.compat import OrderedDict
 import pandas.core.algorithms as algos
 import pandas.core.common as com
+from pandas.core.common import _possibly_downcast_to_dtype
 
 import pandas.lib as lib
 import pandas.algos as _algos
@@ -440,14 +441,7 @@ class GroupBy(object):
                 
                 # need to respect a non-number here (e.g. Decimal)
                 if len(result) and issubclass(type(result[0]),(np.number,float,int)):
-                    if issubclass(dtype.type, (np.integer, np.bool_)):
-
-                        # castable back to an int/bool as we don't have nans
-                        if com.notnull(result).all():
-                            result = result.astype(dtype)
-                    else:
-
-                        result = result.astype(dtype)
+                    result = _possibly_downcast_to_dtype(result, dtype)
 
             elif issubclass(dtype.type, np.datetime64):
                 if is_datetime64_dtype(obj.dtype):
@@ -468,7 +462,7 @@ class GroupBy(object):
                 result, names = self.grouper.aggregate(obj.values, how)
             except AssertionError as e:
                 raise GroupByError(str(e))
-            output[name] = result
+            output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
             raise DataError('No numeric types to aggregate')
