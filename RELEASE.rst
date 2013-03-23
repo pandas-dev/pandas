@@ -100,9 +100,6 @@ pandas 0.11.0
     the collections.Mapping ABC.
   - Allow selection semantics via a string with a datelike index to work in both
     Series and DataFrames (GH3070_)
-  - Improved performance across several core functions by taking memory
-    ordering of arrays into account. Courtesy of @stephenwlin (GH3130_)
-
 
     .. ipython:: python
 
@@ -115,6 +112,10 @@ pandas 0.11.0
   - added option `display.mpl_style` providing a sleeker visual style
     for plots. Based on https://gist.github.com/huyng/816622 (GH3075_).
 
+
+  - Improved performance across several core functions by taking memory
+    ordering of arrays into account. Courtesy of @stephenwlin (GH3130_)
+  - Improved performance of groupby transform method (GH2121_)
 
 **API Changes**
 
@@ -234,6 +235,7 @@ pandas 0.11.0
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
+.. _GH2121: https://github.com/pydata/pandas/issues/2121
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837

@@ -273,3 +273,41 @@ df = DataFrame({'ii':range(N),'bb':[True for x in range(N)]})
 """
 
 groupby_sum_booleans = Benchmark("df.groupby('ii').sum()", setup)
+
+#----------------------------------------------------------------------
+# Transform testing
+
+setup = common_setup + """
+n_dates = 1000
+n_securities = 500
+n_columns = 3
+share_na = 0.1
+
+dates = date_range('1997-12-31', periods=n_dates, freq='B')
+dates = Index(map(lambda x: x.year * 10000 + x.month * 100 + x.day, dates))
+
+secid_min = int('10000000', 16)
+secid_max = int('F0000000', 16)
+step = (secid_max - secid_min) // (n_securities - 1)
+security_ids = map(lambda x: hex(x)[2:10].upper(), range(secid_min, secid_max + 1, step))
+
+data_index = MultiIndex(levels=[dates.values, security_ids],
+    labels=[[i for i in xrange(n_dates) for _ in xrange(n_securities)], range(n_securities) * n_dates],
+    names=['date', 'security_id'])
+n_data = len(data_index)
+
+columns = Index(['factor{}'.format(i) for i in xrange(1, n_columns + 1)])
+
+data = DataFrame(np.random.randn(n_data, n_columns), index=data_index, columns=columns)
+
+step = int(n_data * share_na)
+for column_index in xrange(n_columns):
+    index = column_index
+    while index < n_data:
+        data.set_value(data_index[index], columns[column_index], np.nan)
+        index += step
+
+f_fillna = lambda x: x.fillna(method='pad')
+"""
+
+groupby_transform = Benchmark("data.groupby(level='security_id').transform(f_fillna)", setup)
