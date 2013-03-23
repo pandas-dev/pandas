@@ -107,7 +107,7 @@ class Index(np.ndarray):
                 return PeriodIndex(data, copy=copy, name=name)
 
             if issubclass(data.dtype.type, np.integer):
-                return Int64Index(data, copy=copy, name=name)
+                return Int64Index(data, copy=copy, dtype=dtype, name=name)
 
             subarr = com._ensure_object(data)
         elif np.isscalar(data):
@@ -1296,7 +1296,12 @@ class Int64Index(Index):
             raise TypeError('String dtype not supported, you may need '
                             'to explicitly cast to int')
         elif issubclass(data.dtype.type, np.integer):
-            subarr = np.array(data, dtype=np.int64, copy=copy)
+            # don't force the upcast as we may be dealing
+            # with a platform int
+            if dtype is None or not issubclass(np.dtype(dtype).type, np.integer):
+                dtype = np.int64
+
+            subarr = np.array(data, dtype=dtype, copy=copy)
         else:
             subarr = np.array(data, dtype=np.int64, copy=copy)
             if len(data) > 0:
@@ -1315,10 +1320,6 @@ class Int64Index(Index):
     @property
     def _constructor(self):
         return Int64Index
-
-    @cache_readonly
-    def dtype(self):
-        return np.dtype('int64')
 
     @property
     def is_all_dates(self):
