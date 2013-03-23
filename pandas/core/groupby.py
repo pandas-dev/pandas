@@ -1845,18 +1845,28 @@ class NDFrameGroupBy(GroupBy):
                     return self._concat_objects(keys, values,
                                                 not_indexed_same=not_indexed_same)
 
-                if self.axis == 0:
-                    stacked_values = np.vstack([np.asarray(x)
-                                                for x in values])
-                    columns = values[0].index
-                    index = key_index
-                else:
-                    stacked_values = np.vstack([np.asarray(x)
+                try:
+                    if self.axis == 0:
+
+                        stacked_values = np.vstack([np.asarray(x)
+                                                    for x in values])
+                        columns = values[0].index
+                        index = key_index
+                    else:
+                        stacked_values = np.vstack([np.asarray(x)
                                                 for x in values]).T
-                    index = values[0].index
-                    columns = key_index
+
+                        index = values[0].index
+                        columns = key_index
+
+                except ValueError:
+                    #GH1738,, values is list of arrays of unequal lengths
+                    # fall through to the outer else caluse
+                    return Series(values, index=key_index)
+
                 return DataFrame(stacked_values, index=index,
                                  columns=columns)
+
             else:
                 return Series(values, index=key_index)
         else:
