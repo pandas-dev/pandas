@@ -34,8 +34,15 @@ your contribution or address the issue you're having.
     This can create all sorts of problems. Use "git rebase" instead. This ensures
     no merge conflicts occur when you're code is merged by the core team.
   - An informal commit message format is in effect for the project, please try
-    and adhere to it. Use a "ENH: ", "TST:", "BUG:", "DOC:", etc' prefix in
-    your commit title. Check the output of "git log" for examples.
+    and adhere to it. View "git log" for examples. Here are some common prefixes
+    along with general guidelines for when to use them:
+      - ENH: Enhancement, new functionality
+      - BUG: Bug fix
+      - DOC: Additions/updates to documentation
+      - TST: Additions/updates to tests
+      - BLD: Updates to the build process/scripts
+      - PERF: Performance improvement
+      - CLN: Code cleanup
   - RELEASE.rst and doc/source/vx.y.z.txt contain an on-going changelog for each
     release as it is worked on. Add entries to these files as needed in
     a separate commit in your PR, documenting the fix, enhancement or (unavoidable)
