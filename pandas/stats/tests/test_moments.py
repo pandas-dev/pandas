@@ -768,6 +768,21 @@ class TestMoments(unittest.TestCase):
                                       preserve_nan=preserve_nan)
         self._check_expanding_structures(func)
 
+    def test_rolling_mean_edges(self):
+        # GH2803
+        # actually, covers edge handling more generally
+        def movingaverage(interval, window_size):
+            window = np.ones(int(window_size))/float(window_size)
+            return np.convolve(interval, window, 'same')
+
+        nitems = 25
+        for win in range(1,nitems,1):
+            ser = Series(range(nitems))
+            df = DataFrame(index=range(len(ser)))
+            df['rm'] = mom.rolling_mean(ser, win, center=True, min_periods=1)
+            df['ma'] = movingaverage(ser, win)
+            tm.assert_almost_equal(df['rm'] , df['ma'])
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
