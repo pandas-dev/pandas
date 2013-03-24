@@ -91,48 +91,51 @@ class TestGroupBy(unittest.TestCase):
                                       'F': np.random.randn(11)})
 
     def test_basic(self):
-        data = Series(np.arange(9) // 3, index=np.arange(9))
 
-        index = np.arange(9)
-        np.random.shuffle(index)
-        data = data.reindex(index)
+        def checkit(dtype):
+            data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
 
-        grouped = data.groupby(lambda x: x // 3)
+            index = np.arange(9)
+            np.random.shuffle(index)
+            data = data.reindex(index)
 
-        for k, v in grouped:
-            self.assertEqual(len(v), 3)
+            grouped = data.groupby(lambda x: x // 3)
 
-        agged = grouped.aggregate(np.mean)
-        self.assertEqual(agged[1], 1)
+            for k, v in grouped:
+                self.assertEqual(len(v), 3)
 
-        assert_series_equal(agged, grouped.agg(np.mean))  # shorthand
-        assert_series_equal(agged, grouped.mean())
+            agged = grouped.aggregate(np.mean)
+            self.assertEqual(agged[1], 1)
 
-        # Cython only returning floating point for now...
-        assert_series_equal(grouped.agg(np.sum).astype(float),
-                            grouped.sum())
+            assert_series_equal(agged, grouped.agg(np.mean))  # shorthand
+            assert_series_equal(agged, grouped.mean())
+            assert_series_equal(grouped.agg(np.sum),grouped.sum())
 
-        transformed = grouped.transform(lambda x: x * x.sum())
-        self.assertEqual(transformed[7], 12)
+            transformed = grouped.transform(lambda x: x * x.sum())
+            self.assertEqual(transformed[7], 12)
 
-        value_grouped = data.groupby(data)
-        assert_series_equal(value_grouped.aggregate(np.mean), agged)
+            value_grouped = data.groupby(data)
+            assert_series_equal(value_grouped.aggregate(np.mean), agged)
 
-        # complex agg
-        agged = grouped.aggregate([np.mean, np.std])
-        agged = grouped.aggregate({'one': np.mean,
-                                   'two': np.std})
+            # complex agg
+            agged = grouped.aggregate([np.mean, np.std])
+            agged = grouped.aggregate({'one': np.mean,
+                                       'two': np.std})
+            
+            group_constants = {
+                0: 10,
+                1: 20,
+                2: 30
+                }
+            agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
+            self.assertEqual(agged[1], 21)
 
-        group_constants = {
-            0: 10,
-            1: 20,
-            2: 30
-        }
-        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
-        self.assertEqual(agged[1], 21)
+            # corner cases
+            self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
-        # corner cases
-        self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
+
+        for dtype in ['int64','int32','float64','float32']:
+            checkit(dtype)
 
     def test_first_last_nth(self):
         # tests for first / last / nth
@@ -184,6 +187,14 @@ class TestGroupBy(unittest.TestCase):
         expected = df.ix[[3, 2], ['B', 'C', 'D', 'E', 'F']]
         expected.index = ['bar', 'foo']
         assert_frame_equal(nth, expected, check_names=False)
+
+        # GH 2763, first/last shifting dtypes
+        idx = range(10)
+        idx.append(9)
+        s = Series(data=range(11), index=idx, name='IntCol')
+        self.assert_(s.dtype == 'int64')
+        f = s.groupby(level=0).first()
+        self.assert_(f.dtype == 'int64')
 
     def test_grouper_iter(self):
         self.assertEqual(sorted(self.df.groupby('A').grouper), ['bar', 'foo'])

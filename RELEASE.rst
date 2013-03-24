@@ -198,7 +198,7 @@ pandas 0.11.0
     an irrecoverable state (GH3010_)
   - Bug in DataFrame update, combine_first where non-specified values could cause
     dtype changes (GH3016_, GH3041_)
-  - Bug in groupby with first/last where dtypes could change (GH3041_)
+  - Bug in groupby with first/last where dtypes could change (GH3041_, GH2763_)
   - Formatting of an index that has ``nan`` was inconsistent or wrong (would fill from
     other values), (GH2850_)
   - Unstack of a frame with no nans would always cause dtype upcasting (GH2929_)
@@ -251,6 +251,7 @@ pandas 0.11.0
 .. _GH2746: https://github.com/pydata/pandas/issues/2746
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
 .. _GH2751: https://github.com/pydata/pandas/issues/2751
+.. _GH2763: https://github.com/pydata/pandas/issues/2763
 .. _GH2776: https://github.com/pydata/pandas/issues/2776
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
 .. _GH2787: https://github.com/pydata/pandas/issues/2787
