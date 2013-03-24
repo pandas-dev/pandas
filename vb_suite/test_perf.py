@@ -92,6 +92,7 @@ def main():
     from pandas import DataFrame
     from vbench.api import BenchmarkRunner
     from vbench.db import BenchmarkDB
+    from vbench.git import GitRepo
     from suite import REPO_PATH, BUILD, DB_PATH, PREPARE, dependencies, benchmarks
 
     # GitRepo wants exactly 7 character hash?
@@ -119,6 +120,10 @@ def main():
         db = BenchmarkDB(DB_PATH)
 
         prprint("Initializing Runner...")
+
+        # all in a good cause...
+        GitRepo._parse_commit_log = _parse_wrapper(args.base_commit)
+
         runner = BenchmarkRunner(
             benchmarks, REPO_PATH, REPO_PATH, BUILD, DB_PATH,
             TMP_DIR, PREPARE, always_clean=True,
@@ -131,7 +136,8 @@ def main():
         # then overwrite the previous parse results
         # prprint ("Slaughtering kittens..." )
         (repo.shas, repo.messages,
-         repo.timestamps, repo.authors) = _parse_commit_log(REPO_PATH)
+         repo.timestamps, repo.authors) = _parse_commit_log(None,REPO_PATH,
+                                                                args.base_commit)
 
         h_head = args.target_commit or repo.shas[-1]
         h_baseline = args.base_commit
@@ -204,12 +210,15 @@ Test name                      | target[ms] |  base[ms]  |   ratio    |
 # hack , vbench.git ignores some commits, but we
 # need to be able to reference any commit.
 # modified from vbench.git
-def _parse_commit_log(repo_path):
+
+def _parse_commit_log(this,repo_path,base_commit=None):
     from vbench.git import parser, _convert_timezones
     from pandas import Series
     git_cmd = 'git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path)
-    githist = git_cmd + ('log --graph --pretty=format:'
-                         '\"::%h::%cd::%s::%an\" > githist.txt')
+    githist = git_cmd + ('log --graph --pretty=format:'+
+                         '\"::%h::%cd::%s::%an\"'+
+                         ('%s..' % base_commit)+
+                         '> githist.txt')
     os.system(githist)
     githist = open('githist.txt').read()
     os.remove('githist.txt')
@@ -241,6 +250,11 @@ def _parse_commit_log(repo_path):
     authors = Series(authors, shas)
     return shas[::-1], messages[::-1], timestamps[::-1], authors[::-1]
 
+# even worse, monkey patch vbench
+def _parse_wrapper(base_commit):
+    def inner(repo_path):
+        return _parse_commit_log(repo_path,base_commit)
+    return inner
 
 if __name__ == '__main__':
     args = parser.parse_args()
