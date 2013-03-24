@@ -42,6 +42,8 @@ min_periods : int
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
     time_rule is a legacy alias for freq
+pad_val: Value to use for parts of the window which fall outside the array
+    bounds. (applies only for center=True, currently)
 
 Returns
 -------
@@ -251,7 +253,7 @@ def rolling_corr_pairwise(df, window, min_periods=None):
 
 
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
-                    center=False, time_rule=None, **kwargs):
+                    center=False, time_rule=None, pad_val=np.NaN, **kwargs):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -300,18 +302,25 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
                     nahead = (window)//2
 
                 # fixup the head
-                tip =  np.append(np.zeros(nahead+1),values[:(2*nahead+1)])
+                pad = np.empty(nahead+1)
+                pad[:] = pad_val
+                tip =  np.append(pad,values[:(2*nahead+1)])
                 rs[:nahead+1] =  calc(tip)[-(nahead+1):][:nahead+1]
 
                 # fixup the tail
-                tip =  np.append(values[-(2*nahead+1):],np.zeros(nahead))
+                pad = np.empty(nahead)
+                pad[:] = pad_val
+                tip =  np.append(values[-(2*nahead+1):], pad)
                 rs[-(nahead):] =  calc(tip)[-(nahead):]
 
                 if minp > 0:
-                    d = minp - nahead-1
-                    if d > 0:
-                        rs[:d] = NaN
-                        rs[-(d):] = NaN
+                    ld = minp - nahead-1
+                    rd = ld-1 if window % 2 == 0 else ld
+                    rd = rd if rd>=0 else 0
+                    if ld > 0:
+                        rs[:ld] = NaN
+                    if rd > 0:
+                        rs[-(rd):] = NaN
 
     return rs
 
@@ -527,11 +536,11 @@ def _rolling_func(func, desc, check_minp=_use_window):
     @wraps(func)
 
     def f(arg, window, min_periods=None, freq=None, center=False,
-          time_rule=None, **kwargs):
+          time_rule=None, pad_val=np.NaN, **kwargs):
         min_periods = check_minp(min_periods, window)
         return _rolling_moment(arg, window, func, min_periods,
                                freq=freq, center=center,
-                               time_rule=time_rule, **kwargs)
+                               time_rule=time_rule,pad_val=pad_val, **kwargs)
 
     return f
 

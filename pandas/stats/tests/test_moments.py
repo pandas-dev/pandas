@@ -823,7 +823,7 @@ class TestMoments(unittest.TestCase):
         for win in range(1,nitems,1):
             ser = Series(range(nitems))
             df = DataFrame(index=range(len(ser)))
-            df['rm'] = mom.rolling_mean(ser, win, center=True, min_periods=1)
+            df['rm'] = mom.rolling_mean(ser, win, center=True, min_periods=1,pad_val=0)
             df['ma'] = movingaverage(ser, win)
             tm.assert_almost_equal(df['rm'] , df['ma'])
 
