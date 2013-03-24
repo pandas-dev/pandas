@@ -33,7 +33,7 @@ We use the standard convention for referencing the matplotlib API:
 Basic plotting: ``plot``
 ------------------------
 
-See some :ref:`cookbook examples <cookbook.plotting>` for some advanced strategies
+See the :ref:`cookbook<cookbook.plotting>` for some advanced strategies
 
 The ``plot`` method on Series and DataFrame is just a simple wrapper around
 ``plt.plot``:
