@@ -167,15 +167,20 @@ def main():
         totals = totals.dropna(
         ).sort("ratio").set_index('name')  # sort in ascending order
 
-        s = '\n----------------------------------------------------------------\n'
-        s += "Test name                      | target[ms] | base[ms] |   ratio\n"
-        s += '----------------------------------------------------------------\n\n'
-        s += totals.to_string(
-            float_format=lambda x: "{:5.4f}".format(x).rjust(10),index_names=False,header=False)
-        s += "\n\n"
-        s += '----------------------------------------------------------------\n'
-        s += "Test name                      | target[ms] | base[ms] |   ratio\n"
-        s += '----------------------------------------------------------------\n\n'
+
+        hdr = ftr = """
+-----------------------------------------------------------------------
+Test name                      | target[ms] |  base[ms]  |   ratio    |
+-----------------------------------------------------------------------
+""".strip() +"\n"
+
+        s = "\n"
+        s += hdr
+        for i in range(len(totals)):
+            t,b,r = totals.irow(i).values
+            s += "{0:30s} {1: 12.4f} {2: 12.4f} {3: 12.4f}\n".format(totals.index[i],t,b,r)
+        s+= ftr + "\n"
+
         s += "Ratio < 1.0 means the target commit is faster then the baseline.\n"
         s += "Seed used: %d\n\n" % args.seed
 
