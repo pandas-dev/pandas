@@ -127,6 +127,12 @@ Splitting
 `Splitting a frame
 <http://stackoverflow.com/questions/13353233/best-way-to-split-a-dataframe-given-an-edge/15449992#15449992>`__
 
+Pivot
+~~~~~
+
+`Partial sums and subtotals
+<http://stackoverflow.com/questions/15570099/pandas-pivot-tables-row-subtotals/15574875#15574875>`__
+
 Timeseries
 ----------
 
@@ -203,6 +209,9 @@ CSV
 
 The :ref:`CSV <io.read_csv_table>` docs
 
+`read_csv in action
+<http://wesmckinney.com/blog/?p=635>`__
+
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
@@ -211,6 +220,9 @@ The :ref:`CSV <io.read_csv_table>` docs
 
 `Inferring dtypes from a file
 <http://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
+
+`Dealing with bad lines
+<https://github.com/pydata/pandas/issues/2886>`__
 
 .. _cookbook.sql:
 
@@ -221,6 +233,16 @@ The :ref:`SQL <io.sql>` docs
 
 `Reading from databases with SQL
 <http://stackoverflow.com/questions/10065051/python-pandas-and-databases-like-mysql>`__
+
+.. _cookbook.excel:
+
+Excel
+~~~~~
+
+The :ref:`Excel <io.excel>` docs
+
+`Reading from a filelike handle
+<http://stackoverflow.com/questions/15588713/sheets-of-excel-workbook-from-a-url-into-a-pandas-dataframe>`__
 
 .. _cookbook.hdf:
 

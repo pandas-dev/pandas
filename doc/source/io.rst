@@ -919,6 +919,8 @@ The ``ExcelFile`` class can read an Excel 2003 file using the ``xlrd`` Python
 module and use the same parsing code as the above to convert tabular data into
 a DataFrame. To use it, create the ``ExcelFile`` object:
 
+See some :ref:`cookbook examples <cookbook.excel>` for some advanced strategies
+
 .. code-block:: python
 
    xls = ExcelFile('path_to_file.xls')
