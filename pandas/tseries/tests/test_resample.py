@@ -71,9 +71,9 @@ class TestResample(unittest.TestCase):
         idx = idx.append(dti[-1:])
         expect = Series(arr, index=idx)
 
-        # cython returns float for now
+        # GH2763 - return in put dtype if we can
         result = g.agg(np.sum)
-        assert_series_equal(result, expect.astype(float))
+        assert_series_equal(result, expect)
 
         data = np.random.rand(len(dti), 10)
         df = DataFrame(data, index=dti)
