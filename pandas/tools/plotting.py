@@ -1703,7 +1703,7 @@ def format_date_labels(ax, rot):
         pass
 
 
-def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwargs):
     """
 
     Returns
@@ -1715,7 +1715,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
     def plot_group(group, ax):
         xvals = group[x].values
         yvals = group[y].values
-        ax.scatter(xvals, yvals)
+        ax.scatter(xvals, yvals, **kwargs)
         ax.grid(grid)
 
     if by is not None:
