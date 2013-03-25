@@ -764,6 +764,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series([])
         self.assertRaises(IndexError, s.__getitem__, -1)
 
+        # GH #
+        self.assertRaises(IndexError, s.__getitem__, - len(self.ts) - 1)
+
     def test_getitem_setitem_integers(self):
         # caused bug without test
         s = Series([1, 2, 3], ['a', 'b', 'c'])
