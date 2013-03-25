@@ -127,11 +127,17 @@ Splitting
 `Splitting a frame
 <http://stackoverflow.com/questions/13353233/best-way-to-split-a-dataframe-given-an-edge/15449992#15449992>`__
 
+.. _cookbook.pivot:
+
 Pivot
 ~~~~~
+The :ref:`Pivot <reshaping.pivot>` docs.
 
 `Partial sums and subtotals
 <http://stackoverflow.com/questions/15570099/pandas-pivot-tables-row-subtotals/15574875#15574875>`__
+
+`Frequency table like plyr in R
+<http://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
 
 Timeseries
 ----------
