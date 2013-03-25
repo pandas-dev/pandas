@@ -136,8 +136,8 @@ def assert_almost_equal(a, b, check_less_precise = False):
 
         # deal with differing dtypes
         if check_less_precise:
-            dtype_a = np.dtype(a)
-            dtype_b = np.dtype(b)
+            dtype_a = np.dtype(type(a))
+            dtype_b = np.dtype(type(b))
             if dtype_a.kind == 'i' and dtype_b == 'i':
                 pass
             if dtype_a.kind == 'f' and dtype_b == 'f':
