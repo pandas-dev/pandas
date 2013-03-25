@@ -231,9 +231,9 @@ class PandasObject(object):
               downsampling
         axis : int, optional, default 0
         fill_method : string, fill_method for upsampling, default None
-        closed : {'right', 'left'}, default None
+        closed : {'right', 'left'}
             Which side of bin interval is closed
-        label : {'right', 'left'}, default None
+        label : {'right', 'left'}
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
         kind: "period"/"timestamp"
