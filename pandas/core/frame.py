@@ -3721,7 +3721,8 @@ class DataFrame(NDFrame):
         -------
         combined : DataFrame
         """
-        combiner = lambda x, y: np.where(isnull(x), y, x)
+        def combiner(x, y):
+            return expressions.where(isnull(x), y, x, raise_on_error=True)
         return self.combine(other, combiner, overwrite=False)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
@@ -3772,7 +3773,7 @@ class DataFrame(NDFrame):
                 else:
                     mask = notnull(this)
 
-            self[col] = np.where(mask, this, that)
+            self[col] = expressions.where(mask, this, that, raise_on_error=True)
 
     #----------------------------------------------------------------------
     # Misc methods
