@@ -6758,6 +6758,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         renamed = self.frame.T.rename(index={'C': 'foo', 'D': 'bar'})
         self.assert_(np.array_equal(renamed.index, ['A', 'B', 'foo', 'bar']))
 
+        # index with name
+        index = Index(['foo', 'bar'], name='name')
+        renamer = DataFrame(data, index=index)
+        renamed = renamer.rename(index={'foo': 'bar', 'bar': 'foo'})
+        self.assert_(np.array_equal(renamed.index, ['bar', 'foo']))
+        self.assertEquals(renamed.index.name, renamer.index.name)
+
+        # MultiIndex
+        index = MultiIndex.from_tuples([('foo1', 'bar1'), ('foo2', 'bar2')], names=['foo', 'bar'])
+        renamer = DataFrame(data, index=index)
+        renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'})
+        self.assert_(np.array_equal(renamed.index, MultiIndex.from_tuples([('foo3', 'bar1'), ('foo2', 'bar3')])))
+        self.assertEquals(renamed.index.names, renamer.index.names)
+
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
         renamed['foo'] = 1.

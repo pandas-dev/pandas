@@ -3576,6 +3576,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         renamed = s.rename({'b': 'foo', 'd': 'bar'})
         self.assert_(np.array_equal(renamed.index, ['a', 'foo', 'c', 'bar']))
 
+        # index with name
+        renamer = Series(np.arange(4), index=Index(['a', 'b', 'c', 'd'], name='name'))
+        renamed = renamer.rename({})
+        self.assertEqual(renamed.index.name, renamer.index.name)
+
     def test_rename_inplace(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         expected = renamer(self.ts.index[0])
