@@ -44,8 +44,7 @@ class TestResample(unittest.TestCase):
         dti = DatetimeIndex(freq='Min', start=datetime(2005, 1, 1),
                             end=datetime(2005, 1, 10))
 
-        data = np.array([1] * len(dti))
-        s = Series(data, index=dti)
+        s = Series(np.array([1] * len(dti)), index=dti, dtype='int64')
 
         b = TimeGrouper(Minute(5))
         g = s.groupby(b)
@@ -75,8 +74,7 @@ class TestResample(unittest.TestCase):
         result = g.agg(np.sum)
         assert_series_equal(result, expect)
 
-        data = np.random.rand(len(dti), 10)
-        df = DataFrame(data, index=dti)
+        df = DataFrame(np.random.rand(len(dti), 10), index=dti, dtype='float64')
         r = df.groupby(b).agg(np.sum)
 
         self.assertEquals(len(r.columns), 10)
