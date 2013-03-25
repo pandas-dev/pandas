@@ -166,18 +166,11 @@ def rolling_cov(arg1, arg2, window, min_periods=None, freq=None,
     window = min(window, len(arg1), len(arg2))
 
     def _get_cov(X, Y):
-        mean = lambda x: rolling_mean(x, window, min_periods)
-        count = rolling_count(X + Y, window)
+        mean = lambda x: rolling_mean(x, window, min_periods,center=center)
+        count = rolling_count(X + Y, window,center=center)
         bias_adj = count / (count - 1)
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
     rs = _flex_binary_moment(arg1, arg2, _get_cov)
-    if center:
-        if isinstance(rs, (Series, DataFrame, Panel)):
-            rs = rs.shift(-int((window + 1) / 2.))
-        else:
-            offset = int((window + 1) / 2.)
-            rs[:-offset] = rs[offset:]
-            rs[-offset:] = np.nan
     return rs
 
 
