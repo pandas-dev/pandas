@@ -56,7 +56,12 @@ parser.add_argument('-m', '--min-duration',
 parser.add_argument('-o', '--output',
                     metavar="<file>",
                     dest='log_file',
-                    help='path of file in which to save the report (default: vb_suite.log).')
+                    help='path of file in which to save the textual report (default: vb_suite.log).')
+parser.add_argument('-d', '--outdf',
+                    metavar="FNAME",
+                    dest='outdf',
+                    default=None,
+                    help='Name of file to df.save() the result table into. Will overwrite')
 parser.add_argument('-r', '--regex',
                     metavar="REGEX",
                     dest='regex',
@@ -198,7 +203,7 @@ Test name                      | target[ms] |  base[ms]  |   ratio    |
         logfile.close()
 
         prprint(s)
-        prprint("Results were also written to the logfile at '%s'\n" %
+        prprint("Results were also written to the logfile at '%s'" %
                 args.log_file)
 
     finally:
@@ -206,6 +211,11 @@ Test name                      | target[ms] |  base[ms]  |   ratio    |
         shutil.rmtree(TMP_DIR)
         logfile.close()
 
+    if args.outdf:
+
+        opath = os.path.abspath(os.path.join(os.curdir,args.outdf))
+        prprint("The results DataFrame was written to '%s'\n" %  opath)
+        totals.save(opath)
 
 # hack , vbench.git ignores some commits, but we
 # need to be able to reference any commit.
