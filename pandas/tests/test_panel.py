@@ -939,9 +939,25 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assert_(panel['foo'].values.dtype == np.object_)
         self.assert_(panel['A'].values.dtype == np.float64)
 
-    def test_values(self):
-        self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
-                          range(5), range(5), range(4))
+    def test_constructor_error_msgs(self):
+
+        try:
+            Panel(np.random.randn(3,4,5), range(4), range(5), range(5))
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (4, 5, 5)"))
+
+        try:
+            Panel(np.random.randn(3,4,5), range(5), range(4), range(5))
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (5, 4, 5)"))
+
+        try:
+            Panel(np.random.randn(3,4,5), range(5), range(5), range(4))
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (5, 5, 4)"))
 
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])

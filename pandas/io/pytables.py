@@ -22,7 +22,7 @@ from pandas.core.common import adjoin, isnull
 from pandas.core.algorithms import match, unique, factorize
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
-from pandas.core.internals import BlockManager, make_block, form_blocks
+from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_blocknd, factor_indexer
 from pandas.core.index import Int64Index, _ensure_index
 import pandas.core.common as com
