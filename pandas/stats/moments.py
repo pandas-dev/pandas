@@ -279,48 +279,58 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     calc = lambda x: func(x, window, minp=minp, **kwargs)
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
-    if values.ndim > 1:
-        result = np.apply_along_axis(calc, axis, values)
-    else:
-        result = calc(values)
+    def calc(x):
+        _calc = lambda x: func(x, window, minp=minp, **kwargs)
+        if x.ndim > 1:
+            return np.apply_along_axis(_calc, axis, x)
+        else:
+            return _calc(x)
 
+    result = calc(values)
     rs = return_hook(result)
+
     if center:
         rs = _center_window(rs, window, axis)
         # GH2953, fixup edges
         if window > 2:
-            if values.ndim > 1:
-                # TODO: handle mi vectorized case
-                pass
+            # there's an ambiguity on what constitutes
+            # the "center" when window is even
+            # we Just close ranks with numpy , see test case
+            if window % 2 == 0 :
+                nahead = (window-1)//2 or 1
             else:
-                # there's an ambiguity on what constitutes
-                # the "center" when window is even
-                # we Just close ranks with numpy , see test case
-                if window % 2 == 0 :
-                    nahead = (window-1)//2 or 1
-                else:
-                    nahead = (window)//2
+                nahead = (window)//2
 
-                # fixup the head
-                pad = np.empty(nahead+1)
+            # fixup the head
+            shape = list(values.shape)
+            shape[0] = nahead+1
+            pad = np.empty(tuple(shape))
+            if len(shape)>1:
+                pad[:,:] = pad_val
+            else:
                 pad[:] = pad_val
-                tip =  np.append(pad,values[:(2*nahead+1)])
-                rs[:nahead+1] =  calc(tip)[-(nahead+1):][:nahead+1]
+            tip =  np.append(pad,values[:(2*nahead+1)])
+            rs[:nahead+1] =  calc(tip)[-(nahead+1):][:nahead+1]
 
-                # fixup the tail
-                pad = np.empty(nahead)
+            # fixup the tail
+            shape = list(values.shape)
+            shape[0] = nahead
+            pad = np.empty(tuple(shape))
+            if len(shape)>1:
+                pad[:,:] = pad_val
+            else:
                 pad[:] = pad_val
-                tip =  np.append(values[-(2*nahead+1):], pad)
-                rs[-(nahead):] =  calc(tip)[-(nahead):]
+            tip =  np.append(values[-(2*nahead+1):], pad)
+            rs[-(nahead):] =  calc(tip)[-(nahead):]
 
-                if minp > 0:
-                    ld = minp - nahead-1
-                    rd = ld-1 if window % 2 == 0 else ld
-                    rd = rd if rd>=0 else 0
-                    if ld > 0:
-                        rs[:ld] = NaN
-                    if rd > 0:
-                        rs[-(rd):] = NaN
+            if minp > 0:
+                ld = minp - nahead-1
+                rd = ld-1 if window % 2 == 0 else ld
+                rd = rd if rd>=0 else 0
+                if ld > 0:
+                    rs[:ld] = NaN
+                if rd > 0:
+                    rs[-(rd):] = NaN
 
     return rs
 
