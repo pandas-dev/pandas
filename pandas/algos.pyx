@@ -1104,8 +1104,11 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
 
             R = sqrt(B)
 
-            output[i] = ((sqrt(nobs * (nobs - 1.)) * C) /
-                         ((nobs-2) * R * R * R))
+            if R != 0 and nobs > 2:
+                output[i] = ((sqrt(nobs * (nobs - 1.)) * C) /
+                             ((nobs-2) * R *  R * R))
+            else:
+                output[i] = NaN
         else:
             output[i] = NaN
 
@@ -1173,10 +1176,12 @@ def roll_kurt(ndarray[double_t] input,
             R = R * A
             D = xxxx / nobs - R - 6*B*A*A - 4*C*A
 
-            K = (nobs * nobs - 1.)*D/(B*B) - 3*((nobs-1.)**2)
-            K = K / ((nobs - 2.)*(nobs-3.))
-
-            output[i] = K
+            if B != 0 and nobs > 3:
+                K = (nobs * nobs - 1.)*D/(B*B) - 3*((nobs-1.)**2)
+                K = K / ((nobs - 2.)*(nobs-3.))
+                output[i] = K
+            else:
+                output[i] = NaN
         else:
             output[i] = NaN
 
