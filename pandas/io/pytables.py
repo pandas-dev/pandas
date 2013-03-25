@@ -458,9 +458,9 @@ class HDFStore(object):
         nrows = tbls[0].nrows
         for t in tbls:
             if t.nrows != nrows:
-                raise Exception("all tables must have exactly the same nrows!")
+                raise ValueError("all tables must have exactly the same nrows!")
             if not t.is_table:
-                raise Exception("object [%s] is not a table, and cannot be used in all select as multiple" % t.pathname)
+                raise TypeError("object [%s] is not a table, and cannot be used in all select as multiple" % t.pathname)
 
         # select coordinates from the selector table
         c = self.select_as_coordinates(selector, where, start=start, stop=stop)
@@ -526,7 +526,7 @@ class HDFStore(object):
         except:
 
             if where is not None:
-                raise Exception("trying to remove a node with a non-None where clause!")
+                raise ValueError("trying to remove a node with a non-None where clause!")
 
             # we are actually trying to remove a node (with children)
             s = self.get_node(key)
@@ -544,7 +544,7 @@ class HDFStore(object):
         # delete from the table
         else:
             if not s.is_table:
-                raise Exception('can only remove with where on objects written as tables')
+                raise ValueError('can only remove with where on objects written as tables')
             return s.delete(where = where, start=start, stop=stop)
 
     def append(self, key, value, columns=None, **kwargs):
@@ -597,10 +597,10 @@ class HDFStore(object):
             raise Exception("axes is currently not accepted as a paremter to append_to_multiple; you can create the tables indepdently instead")
 
         if not isinstance(d, dict):
-            raise Exception("append_to_multiple must have a dictionary specified as the way to split the value")
+            raise ValueError("append_to_multiple must have a dictionary specified as the way to split the value")
 
         if selector not in d:
-            raise Exception("append_to_multiple requires a selector that is in passed dict")
+            raise ValueError("append_to_multiple requires a selector that is in passed dict")
 
         # figure out the splitting axis (the non_index_axis)
         axis = list(set(range(value.ndim)) - set(_AXES_MAP[type(value)]))[0]
@@ -611,7 +611,7 @@ class HDFStore(object):
         for k, v in d.items():
             if v is None:
                 if remain_key is not None:
-                    raise Exception("append_to_multiple can only have one value in d that is None")
+                    raise ValueError("append_to_multiple can only have one value in d that is None")
                 remain_key = k
             else:
                 remain_values.extend(v)
@@ -655,7 +655,7 @@ class HDFStore(object):
         if s is None: return
 
         if not s.is_table:
-            raise Exception("cannot create table index on a non-table")
+            raise TypeError("cannot create table index on a non-table")
         s.create_index(**kwargs)
 
     def groups(self):
@@ -727,8 +727,8 @@ class HDFStore(object):
         """ return a suitable Storer class to operate """
 
         def error(t):
-            raise NotImplementedError("cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
-                                      (t,group,type(value),table,append,kwargs))
+            raise TypeError("cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
+                            (t,group,type(value),table,append,kwargs))
         
         pt = getattr(group._v_attrs,'pandas_type',None)
         tt = getattr(group._v_attrs,'table_type',None)
@@ -742,7 +742,7 @@ class HDFStore(object):
                     pt = 'frame_table'
                     tt = 'generic_table'
                 else:
-                    raise Exception("cannot create a storer if the object is not existing nor a value are passed")
+                    raise TypeError("cannot create a storer if the object is not existing nor a value are passed")
             else:
 
                 try:
@@ -1044,8 +1044,10 @@ class IndexCol(object):
                 if itemsize is None:
                     itemsize = self.itemsize
                 if c.itemsize < itemsize:
-                    raise Exception("[%s] column has a min_itemsize of [%s] but itemsize [%s] is required!"
-                                    % (self.cname, itemsize, c.itemsize))
+                    raise ValueError("Trying to store a string with len [%s] in [%s] column but\n"
+                                     "this column has a limit of [%s]!\n"
+                                     "Consider using min_itemsize to preset the sizes on these columns"
+                                     % (itemsize,self.cname, c.itemsize))
                 return c.itemsize
 
         return None
@@ -1176,11 +1178,11 @@ class DataCol(IndexCol):
         if inferred_type == 'datetime64':
             self.set_atom_datetime64(block)
         elif inferred_type == 'date':
-            raise NotImplementedError(
-                "date is not implemented as a table column")
+            raise TypeError(
+                "[date] is not implemented as a table column")
         elif inferred_type == 'unicode':
-            raise NotImplementedError(
-                "unicode is not implemented as a table column")
+            raise TypeError(
+                "[unicode] is not implemented as a table column")
 
         # this is basically a catchall; if say a datetime64 has nans then will
         # end up here ###
@@ -1209,9 +1211,9 @@ class DataCol(IndexCol):
                 col = block.get(item)
                 inferred_type = lib.infer_dtype(col.ravel())
                 if inferred_type != 'string':
-                    raise NotImplementedError("cannot serialize the column [%s] because "
-                                              "its data contents are [%s] object dtype" % 
-                                              (item,inferred_type))
+                    raise TypeError("Cannot serialize the column [%s] because\n"
+                                    "its data contents are [%s] object dtype" % 
+                                    (item,inferred_type))
 
 
         # itemsize is the maximum length of a string (along any dimension)
@@ -1268,13 +1270,13 @@ class DataCol(IndexCol):
             existing_fields = getattr(self.attrs, self.kind_attr, None)
             if (existing_fields is not None and
                     existing_fields != list(self.values)):
-                raise Exception("appended items do not match existing items"
+                raise ValueError("appended items do not match existing items"
                                 " in table!")
 
             existing_dtype = getattr(self.attrs, self.dtype_attr, None)
             if (existing_dtype is not None and
                     existing_dtype != self.dtype):
-                raise Exception("appended items dtype do not match existing items dtype"
+                raise ValueError("appended items dtype do not match existing items dtype"
                                 " in table!")
 
     def convert(self, values, nan_rep):
@@ -1497,7 +1499,7 @@ class Storer(object):
             self._handle.removeNode(self.group, recursive=True)
             return None
 
-        raise NotImplementedError("cannot delete on an abstract storer")
+        raise TypeError("cannot delete on an abstract storer")
 
 class GenericStorer(Storer):
     """ a generified storer version """
@@ -2045,7 +2047,7 @@ class Table(Storer):
 
         for c in ['index_axes','non_index_axes','values_axes']:
             if getattr(self,c,None) != getattr(other,c,None):
-                raise Exception("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,getattr(self,c,None),getattr(other,c,None)))
+                raise ValueError("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,getattr(self,c,None),getattr(other,c,None)))
 
     @property
     def nrows_expected(self):
@@ -2131,6 +2133,21 @@ class Table(Storer):
             if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
                 ws = incompatibility_doc % '.'.join([ str(x) for x in self.version ])
                 warnings.warn(ws, IncompatibilityWarning)
+
+    def validate_min_itemsize(self, min_itemsize):
+        """ validate the min_itemisze doesn't contain items that are not in the axes
+            this needs data_columns to be defined """
+        if min_itemsize is None: return
+        if not isinstance(min_itemsize, dict): return
+
+        q = self.queryables()
+        for k, v in min_itemsize.items():
+
+            # ok, apply generally
+            if k == 'values':
+                continue
+            if k not in q:
+                raise ValueError("min_itemsize has [%s] which is not an axis or data_column" % k)
 
     @property
     def indexables(self):
@@ -2262,8 +2279,8 @@ class Table(Storer):
             try:
                 axes = _AXES_MAP[type(obj)]
             except:
-                raise NotImplementedError("cannot properly create the storer for: [group->%s,value->%s]" % 
-                                          (self.group._v_name,type(obj)))
+                raise TypeError("cannot properly create the storer for: [group->%s,value->%s]" % 
+                                (self.group._v_name,type(obj)))
 
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
@@ -2280,7 +2297,7 @@ class Table(Storer):
 
         # currently support on ndim-1 axes
         if len(axes) != self.ndim - 1:
-            raise Exception("currently only support ndim-1 indexers in an AppendableTable")
+            raise ValueError("currently only support ndim-1 indexers in an AppendableTable")
 
         # create according to the new data
         self.non_index_axes = []
@@ -2370,7 +2387,7 @@ class Table(Storer):
                 try:
                     existing_col = existing_table.values_axes[i]
                 except:
-                    raise Exception("Incompatible appended table [%s] with existing table [%s]" %
+                    raise ValueError("Incompatible appended table [%s] with existing table [%s]" %
                                     (blocks,existing_table.values_axes))
             else:
                 existing_col = None
@@ -2386,11 +2403,14 @@ class Table(Storer):
                 col.set_pos(j)
 
                 self.values_axes.append(col)
-            except (NotImplementedError):
-                raise
+            except (NotImplementedError, ValueError, TypeError), e:
+                raise e
             except (Exception), detail:
                 raise Exception("cannot find the correct atom type -> [dtype->%s,items->%s] %s" % (b.dtype.name, b.items, str(detail)))
             j += 1
+
+        # validate our min_itemsize
+        self.validate_min_itemsize(min_itemsize)
 
         # validate the axes if we have an existing table
         if validate:
@@ -2433,7 +2453,7 @@ class Table(Storer):
                             takers = op(values,filt)
                             return obj.ix._getitem_axis(takers,axis=axis_number)
 
-                    raise Exception("cannot find the field [%s] for filtering!" % field)
+                    raise ValueError("cannot find the field [%s] for filtering!" % field)
   
                 obj = process_filter(field, filt)
 
@@ -3111,12 +3131,12 @@ class Term(object):
                     self.value = op
 
         else:
-            raise Exception(
+            raise ValueError(
                 "Term does not understand the supplied field [%s]" % field)
 
         # we have valid fields
         if self.field is None or self.op is None or self.value is None:
-            raise Exception("Could not create this term [%s]" % str(self))
+            raise ValueError("Could not create this term [%s]" % str(self))
 
         # = vs ==
         if self.op == '=':
@@ -3125,7 +3145,7 @@ class Term(object):
         # we have valid conditions
         if self.op in ['>', '>=', '<', '<=']:
             if hasattr(self.value, '__iter__') and len(self.value) > 1:
-                raise Exception("an inequality condition cannot have multiple values [%s]" % str(self))
+                raise ValueError("an inequality condition cannot have multiple values [%s]" % str(self))
 
         if not hasattr(self.value, '__iter__'):
             self.value = [self.value]
@@ -3157,7 +3177,7 @@ class Term(object):
         """ set the numexpr expression for this term """
 
         if not self.is_valid:
-            raise Exception("query term is not valid [%s]" % str(self))
+            raise ValueError("query term is not valid [%s]" % str(self))
 
         # convert values if we are in the table
         if self.is_in_table:
@@ -3199,7 +3219,7 @@ class Term(object):
 
             else:
 
-                raise Exception("passing a filterable condition to a non-table indexer [%s]" % str(self))
+                raise TypeError("passing a filterable condition to a non-table indexer [%s]" % str(self))
 
     def convert_value(self, v):
         """ convert the expression that is in the term to something that is accepted by pytables """

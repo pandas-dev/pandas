@@ -758,13 +758,16 @@ def max_len_string_array(ndarray[object, ndim=1] arr):
     cdef:
         int i, m, l
         length = arr.shape[0]
+        object v
 
     m = 0
     for i from 0 <= i < length:
-        l = len(arr[i])
+        v = arr[i]
+        if PyString_Check(v):
+            l = len(v)
 
-        if l > m:
-            m = l
+            if l > m:
+                m = l
 
     return m
 
