@@ -5,7 +5,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.common import _possibly_downcast_to_dtype, isnull
-from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
+from pandas.core.index import Index, MultiIndex, _ensure_index, _handle_legacy_indexes
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
 import pandas.lib as lib
@@ -1646,7 +1646,13 @@ class BlockManager(object):
         return True
 
     def rename_axis(self, mapper, axis=1):
-        new_axis = Index([mapper(x) for x in self.axes[axis]])
+
+        index = self.axes[axis]
+        if isinstance(index, MultiIndex):
+            new_axis = MultiIndex.from_tuples([tuple(mapper(y) for y in x) for x in index], names=index.names)
+        else:
+            new_axis = Index([mapper(x) for x in index], name=index.name)
+
         if not new_axis.is_unique:
             raise AssertionError('New axis must be unique to rename')
 

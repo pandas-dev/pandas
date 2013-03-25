@@ -3108,7 +3108,7 @@ class Series(pa.Array, generic.PandasObject):
         """
         mapper_f = _get_rename_function(mapper)
         result = self if inplace else self.copy()
-        result.index = [mapper_f(x) for x in self.index]
+        result.index = Index([mapper_f(x) for x in self.index], name=self.index.name)
 
         if inplace:
             import warnings
