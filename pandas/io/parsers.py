@@ -1803,64 +1803,32 @@ class FixedWidthFieldParser(PythonParser):
 #----------------------------------------------------------------------
 # ExcelFile class
 
-_openpyxl_msg = ("\nFor parsing .xlsx files 'openpyxl' is required.\n"
-                 "You can install it via 'easy_install openpyxl' or "
-                 "'pip install openpyxl'.\nAlternatively, you could save"
-                 " the .xlsx file as a .xls file.\n")
-
-
 class ExcelFile(object):
     """
     Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd for parsing .xls files or openpyxl for .xlsx files.
-    See ExcelFile.parse for more documentation
+    Uses xlrd. See ExcelFile.parse for more documentation
 
     Parameters
     ----------
     path : string or file-like object
         Path to xls or xlsx file
-    kind : {'xls', 'xlsx', None}, default None
     """
-    def __init__(self, path_or_buf, kind=None):
+    def __init__(self, path_or_buf, kind=None, **kwds):
         self.kind = kind
-        self.use_xlsx = kind == 'xls'
+
+        import xlrd # throw an ImportError if we need to
+        ver = tuple(map(int,xlrd.__VERSION__.split(".")[:2]))
+        if ver < (0, 9):
+            raise ImportError("pandas requires xlrd >= 0.9.0 for excel support")
 
         self.path_or_buf = path_or_buf
         self.tmpfile = None
 
         if isinstance(path_or_buf, basestring):
-            if kind == 'xls' or (kind is None and
-                                 path_or_buf.endswith('.xls')):
-                self.use_xlsx = False
-                import xlrd
-                self.book = xlrd.open_workbook(path_or_buf)
-            else:
-                self.use_xlsx = True
-                try:
-                    from openpyxl.reader.excel import load_workbook
-                    self.book = load_workbook(path_or_buf, use_iterators=True)
-                except ImportError:  # pragma: no cover
-                    raise ImportError(_openpyxl_msg)
+            self.book = xlrd.open_workbook(path_or_buf)
         else:
             data = path_or_buf.read()
-
-            if self.kind == 'xls':
-                import xlrd
-                self.book = xlrd.open_workbook(file_contents=data)
-            elif self.kind == 'xlsx':
-                from openpyxl.reader.excel import load_workbook
-                buf = py3compat.BytesIO(data)
-                self.book = load_workbook(buf, use_iterators=True)
-            else:
-                try:
-                    import xlrd
-                    self.book = xlrd.open_workbook(file_contents=data)
-                    self.use_xlsx = False
-                except Exception:
-                    self.use_xlsx = True
-                    from openpyxl.reader.excel import load_workbook
-                    buf = py3compat.BytesIO(data)
-                    self.book = load_workbook(buf, use_iterators=True)
+            self.book = xlrd.open_workbook(file_contents=data)
 
     def __repr__(self):
         return object.__repr__(self)
@@ -1908,9 +1876,7 @@ class ExcelFile(object):
         if skipfooter is not None:
             skip_footer = skipfooter
 
-        choose = {True: self._parse_xlsx,
-                  False: self._parse_xls}
-        return choose[self.use_xlsx](sheetname, header=header,
+        return  self._parse_excel(sheetname, header=header,
                                      skiprows=skiprows, index_col=index_col,
                                      has_index_names=has_index_names,
                                      parse_cols=parse_cols,
@@ -1953,47 +1919,12 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_xlsx(self, sheetname, header=0, skiprows=None,
-                    skip_footer=0, index_col=None, has_index_names=False,
-                    parse_cols=None, parse_dates=False, date_parser=None,
-                    na_values=None, thousands=None, chunksize=None):
-        sheet = self.book.get_sheet_by_name(name=sheetname)
-        data = []
-
-        # it brings a new method: iter_rows()
-        should_parse = {}
-
-        for row in sheet.iter_rows():
-            row_data = []
-            for j, cell in enumerate(row):
-
-                if parse_cols is not None and j not in should_parse:
-                    should_parse[j] = self._should_parse(j, parse_cols)
-
-                if parse_cols is None or should_parse[j]:
-                    row_data.append(cell.internal_value)
-            data.append(row_data)
-
-        if header is not None:
-            data[header] = _trim_excel_header(data[header])
-
-        parser = TextParser(data, header=header, index_col=index_col,
-                            has_index_names=has_index_names,
-                            na_values=na_values,
-                            thousands=thousands,
-                            parse_dates=parse_dates,
-                            date_parser=date_parser,
-                            skiprows=skiprows,
-                            skip_footer=skip_footer,
-                            chunksize=chunksize)
-
-        return parser.read()
-
-    def _parse_xls(self, sheetname, header=0, skiprows=None,
+    def _parse_excel(self, sheetname, header=0, skiprows=None,
                    skip_footer=0, index_col=None, has_index_names=None,
                    parse_cols=None, parse_dates=False, date_parser=None,
                    na_values=None, thousands=None, chunksize=None):
-        from xlrd import xldate_as_tuple, XL_CELL_DATE, XL_CELL_ERROR
+        from xlrd import (xldate_as_tuple, XL_CELL_DATE,
+                          XL_CELL_ERROR, XL_CELL_BOOLEAN)
 
         datemode = self.book.datemode
         sheet = self.book.sheet_by_name(sheetname)
@@ -2015,9 +1946,12 @@ class ExcelFile(object):
                             value = datetime.time(*dt[3:])
                         else:
                             value = datetime.datetime(*dt)
-                    if typ == XL_CELL_ERROR:
+                    elif typ == XL_CELL_ERROR:
                         value = np.nan
+                    elif typ == XL_CELL_BOOLEAN:
+                        value = bool(value)
                     row.append(value)
+
             data.append(row)
 
         if header is not None:
@@ -2037,9 +1971,6 @@ class ExcelFile(object):
 
     @property
     def sheet_names(self):
-        if self.use_xlsx:
-            return self.book.get_sheet_names()
-        else:
             return self.book.sheet_names()
 
 
