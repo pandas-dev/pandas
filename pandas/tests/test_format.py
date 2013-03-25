@@ -19,6 +19,7 @@ from pandas import DataFrame, Series, Index
 from pandas.util.py3compat import lzip
 import pandas.core.format as fmt
 import pandas.util.testing as tm
+from pandas.util.terminal import get_terminal_size
 import pandas
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
@@ -143,6 +144,53 @@ class TestDataFrameFormatting(unittest.TestCase):
         with option_context('mode.sim_interactive', True):
             df = DataFrame(np.random.randn(10, 4))
             self.assertTrue('\\' not in repr(df))
+
+    def test_repr_max_columns_max_rows(self):
+        import pandas.core.common as com
+        original_in_interactive_session = com.in_interactive_session
+        com.in_interactive_session = lambda: True
+
+        term_width, term_height = get_terminal_size()
+        if term_width < 10 or term_height < 10:
+            raise nose.SkipTest
+
+        def repr_is_info_view(n):
+            index = ['%05d' % i for i in range(n)]
+            df = DataFrame(0, index, index)
+            r = repr(df)
+            nlines = len(r.split('\n'))
+            return nlines > n + 2
+
+        with option_context('display.line_width', term_width * 2):
+            with option_context('display.max_rows', 5,
+                                'display.max_columns', 5):
+                self.assertFalse(repr_is_info_view(4))
+                self.assertFalse(repr_is_info_view(5))
+                self.assertTrue(repr_is_info_view(6))
+
+            with option_context('display.max_rows', 10,
+                                'display.max_columns', 5):
+                self.assertFalse(repr_is_info_view(5))
+                self.assertTrue(repr_is_info_view(6))
+
+            with option_context('display.max_rows', 5,
+                                'display.max_columns', 10):
+                self.assertFalse(repr_is_info_view(5))
+                self.assertTrue(repr_is_info_view(6))
+
+            with option_context('display.max_rows', 0,
+                                'display.max_columns', term_height):
+                self.assertFalse(repr_is_info_view(term_height - 2))
+                self.assertTrue(repr_is_info_view(term_height + 1))
+
+            with option_context('display.max_rows', term_height * 2,
+                                'display.max_columns', 0):
+                self.assertTrue(com.in_interactive_session())
+                n = (term_width + 2) // 7
+                self.assertFalse(repr_is_info_view(n - 1))
+                self.assertTrue(repr_is_info_view(n + 1))
+
+        com.in_interactive_session = original_in_interactive_session
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
