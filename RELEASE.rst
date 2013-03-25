@@ -167,9 +167,11 @@ pandas 0.11.0
       (so not using numexpr filtering, but isin filtering)
     - Internally, change all variables to be private-like (now have leading
       underscore)
-    - fixes for query parsing to correctly interpret boolean and != (GH2849_, GH2973_)
-    - fixes for pathological case on SparseSeries with 0-len array and compression (GH2931_)
-    - fixes bug with writing rows if part of a block was all-nan (GH3012_)
+    - Fixes for query parsing to correctly interpret boolean and != (GH2849_, GH2973_)
+    - Fixes for pathological case on SparseSeries with 0-len array and compression (GH2931_)
+    - Fixes bug with writing rows if part of a block was all-nan (GH3012_)
+    - Exceptions are now ValueError or TypeError as needed
+    - A table will now raise if min_itemsize contains fields which are not queryables
 
   - Bug showing up in applymap where some object type columns are converted (GH2909_)
     had an incorrect default in convert_objects
