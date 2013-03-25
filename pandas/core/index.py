@@ -470,12 +470,11 @@ class Index(np.ndarray):
         values = self
         if slicer is not None:
             values = values[slicer]
-        mask = isnull(values)
-        values = np.array(values,dtype=object)
-
         if self.is_all_dates:
-            return _date_formatter(self)
+            return _date_formatter(values)
         else:
+            mask = isnull(values)
+            values = np.array(values,dtype=object)
             values[mask] = na_rep
 
         return values.tolist()
