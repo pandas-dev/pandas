@@ -35,10 +35,10 @@ CSV & Text files
 The two workhorse functions for reading text files (a.k.a. flat files) are
 :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
 They both use the same parsing code to intelligently convert tabular
-data into a DataFrame object. They can take a number of arguments:
+data into a DataFrame object. See the :ref:`cookbook<cookbook.csv>` 
+for some advanced strategies
 
-See some :ref:`cookbook examples <cookbook.csv>` for some advanced strategies
-See some :ref:`cookbook examples <cookbook.csv>` for some advanced strategies
+They can take a number of arguments:
 
   - ``filepath_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
@@ -917,9 +917,10 @@ Excel files
 
 The ``ExcelFile`` class can read an Excel 2003 file using the ``xlrd`` Python
 module and use the same parsing code as the above to convert tabular data into
-a DataFrame. To use it, create the ``ExcelFile`` object:
+a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some 
+advanced strategies
 
-See some :ref:`cookbook examples <cookbook.excel>` for some advanced strategies
+To use it, create the ``ExcelFile`` object:
 
 .. code-block:: python
 
@@ -985,9 +986,8 @@ HDF5 (PyTables)
 
 ``HDFStore`` is a dict-like object which reads and writes pandas using
 the high performance HDF5 format using the excellent `PyTables
-<http://www.pytables.org/>`__ library.
-
-See some :ref:`cookbook examples <cookbook.hdf>` for some advanced strategies
+<http://www.pytables.org/>`__ library. See the :ref:`cookbook<cookbook.hdf>`
+for some advanced strategies
 
 .. ipython:: python
    :suppress:
@@ -1696,9 +1696,8 @@ SQL Queries
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. There
 wrappers only support the Python database adapters which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`_.
-
-See some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies
+DB-API <http://www.python.org/dev/peps/pep-0249/>`_. See some 
+:ref:`cookbook examples <cookbook.sql>` for some advanced strategies
 
 Suppose you want to query some data with different types from a table such as:
 

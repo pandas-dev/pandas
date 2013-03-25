@@ -239,7 +239,9 @@ Pivot tables and cross-tabulations
 .. _reshaping.pivot:
 
 The function ``pandas.pivot_table`` can be used to create spreadsheet-style pivot
-tables. It takes a number of arguments
+tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced strategies
+
+It takes a number of arguments
 
 - ``data``: A DataFrame object
 - ``values``: a column or a list of columns to aggregate
