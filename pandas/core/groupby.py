@@ -13,7 +13,7 @@ from pandas.util.decorators import cache_readonly, Appender
 from pandas.util.compat import OrderedDict
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas.core.common import _possibly_downcast_to_dtype
+from pandas.core.common import _possibly_downcast_to_dtype, notnull
 
 import pandas.lib as lib
 import pandas.algos as _algos
@@ -75,7 +75,7 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
 def _first_compat(x, axis=0):
     def _first(x):
         x = np.asarray(x)
-        x = x[com.notnull(x)]
+        x = x[notnull(x)]
         if len(x) == 0:
             return np.nan
         return x[0]
@@ -89,7 +89,7 @@ def _first_compat(x, axis=0):
 def _last_compat(x, axis=0):
     def _last(x):
         x = np.asarray(x)
-        x = x[com.notnull(x)]
+        x = x[notnull(x)]
         if len(x) == 0:
             return np.nan
         return x[-1]
@@ -421,7 +421,7 @@ class GroupBy(object):
 
     def nth(self, n):
         def picker(arr):
-            arr = arr[com.notnull(arr)]
+            arr = arr[notnull(arr)]
             if len(arr) >= n + 1:
                 return arr.iget(n)
             else:
@@ -1897,19 +1897,46 @@ class NDFrameGroupBy(GroupBy):
         gen = self.grouper.get_iterator(obj, axis=self.axis)
 
         if isinstance(func, basestring):
-            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
+            fast_path = lambda group: getattr(group, func)(*args, **kwargs)
+            slow_path = lambda group: group.apply(lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis)
         else:
-            wrapper = lambda x: func(x, *args, **kwargs)
+            fast_path = lambda group: func(group, *args, **kwargs)
+            slow_path = lambda group: group.apply(lambda x: func(x, *args, **kwargs), axis=self.axis)
 
+        path = None
         for name, group in gen:
             object.__setattr__(group, 'name', name)
 
-            try:
-                res = group.apply(wrapper, axis=self.axis)
-            except TypeError:
-                return self._transform_item_by_item(obj, wrapper)
-            except Exception:  # pragma: no cover
-                res = wrapper(group)
+            # decide on a fast path
+            if path is None:
+
+                path = slow_path
+                try:
+                    res  = slow_path(group)
+
+                    # if we make it here, test if we can use the fast path
+                    try:
+                        res_fast = fast_path(group)
+                    
+                        # compare that we get the same results
+                        if res.shape == res_fast.shape:
+                            res_r = res.values.ravel()
+                            res_fast_r = res_fast.values.ravel()
+                            mask = notnull(res_r)
+                            if (res_r[mask] == res_fast_r[mask]).all():
+                                path = fast_path
+                
+                    except:
+                        pass
+                except TypeError:
+                    return self._transform_item_by_item(obj, fast_path)
+                except Exception:  # pragma: no cover
+                    res  = fast_path(group)
+                    path = fast_path
+
+            else:
+
+                res = path(group)
 
             # broadcasting
             if isinstance(res, Series):
@@ -1925,7 +1952,8 @@ class NDFrameGroupBy(GroupBy):
         concat_index = obj.columns if self.axis == 0 else obj.index
         concatenated = concat(applied, join_axes=[concat_index],
                               axis=self.axis, verify_integrity=False)
-        return concatenated.reindex_like(obj)
+        concatenated.sort_index(inplace=True)
+        return concatenated
 
     def _transform_item_by_item(self, obj, wrapper):
         # iterate through columns
