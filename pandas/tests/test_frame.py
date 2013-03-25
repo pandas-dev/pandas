@@ -3402,7 +3402,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
         results = df2_obj.get_dtype_counts()
         expected = Series({ 'datetime64[ns]' : 1, 'int64' : 1 })
-   
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10, 10))
         df.to_records()
@@ -4498,12 +4498,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_to_csv_moar(self):
         from pandas.util.testing import makeCustomDataframe as mkdf
         path = '__tmp_to_csv_moar__'
+        chunksize=1000
+
         def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None,
                      dupe_col=False):
 
                with ensure_clean(path) as path:
-                    df.to_csv(path,encoding='utf8')
-                    recons = DataFrame.from_csv(path)
+                    df.to_csv(path,encoding='utf8',chunksize=chunksize)
+                    recons = DataFrame.from_csv(path,parse_dates=False)
 
                def _to_uni(x):
                    if not isinstance(x,unicode):
@@ -4561,13 +4563,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         recons.columns = np.array(recons.columns,dtype=c_dtype )
                         df.columns = np.array(df.columns,dtype=c_dtype )
 
-               assert_frame_equal(df, recons,check_names=False)
+               assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
 
 
         N = 100
 
+        for ncols in [128]:
+            base = int((chunksize// ncols or 1) or 1)
+            for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
+                  base-1,base,base+1]:
+                _do_test(mkdf(nrows, ncols,r_idx_type='dt',
+                              c_idx_type='s'),path, 'dt','s')
+
+        # pending GH3173
+        # for r_idx_type in ['i', 'f','s','u']:
+        #     for c_idx_type in ['i', 'f','s','u','dt']:
+
+        for r_idx_type in ['i','s','u']:
+            for c_idx_type in ['i', 's','u','dt']:
+                for ncols in [1,2,128]:
+                    base = int((chunksize// ncols or 1) or 1)
+                    for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
+                          base-1,base,base+1]:
+                        _do_test(mkdf(nrows, ncols,r_idx_type=r_idx_type,
+                                      c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
+
+
         for ncols in [1,10,30]:
-            base = int((100000/ ncols or 1) or 1)
+            base = int((chunksize// ncols or 1) or 1)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
                 print( nrows,ncols)
@@ -4585,18 +4608,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             df.columns=cols
             _do_test(df,path,dupe_col=True)
 
-        for r_idx_type in ['i', 'f','s','u','dt']:
-            for c_idx_type in ['i', 'f','s','u','dt']:
-                print(r_idx_type,c_idx_type)
-                _do_test(mkdf(100, 1,r_idx_type=r_idx_type,
-                              c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
-                _do_test(mkdf(100, 2,r_idx_type=r_idx_type,
-                               c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
 
         _do_test(DataFrame(index=range(10)),path)
-        _do_test(mkdf(50001, 2,r_idx_nlevels=2),path,rnlvl=2)
+        _do_test(mkdf(chunksize//2+1, 2,r_idx_nlevels=2),path,rnlvl=2)
         for ncols in [2,10,30]:
-            base = int(100000/ncols)
+            base = int(chunksize//ncols)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
                 print(nrows, ncols)
@@ -4709,7 +4725,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(rs, df)
 
             df = makeTimeDataFrame(25001)
-            df.to_csv(path) 
+            df.to_csv(path)
             rs = pan.read_csv(path, index_col=0, parse_dates=True)
             assert_frame_equal(rs, df)
 
@@ -4799,7 +4815,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df = DataFrame({u'c/\u03c3': [1, 2, 3]})
         with ensure_clean() as path:
-        
+
             df.to_csv(path, encoding='UTF-8')
             df2 = pan.read_csv(path, index_col=0, encoding='UTF-8')
             assert_frame_equal(df, df2)
