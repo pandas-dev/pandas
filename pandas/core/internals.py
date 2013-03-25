@@ -33,11 +33,11 @@ class Block(object):
             values = np.array(values, dtype=object)
 
         if values.ndim != ndim:
-            raise AssertionError('Wrong number of dimensions')
+            raise ValueError('Wrong number of dimensions')
 
         if len(items) != len(values):
-            raise AssertionError('Wrong number of items passed (%d vs %d)'
-                                 % (len(items), len(values)))
+            raise ValueError('Wrong number of items passed %d, indices imply %d'
+                             % (len(items), len(values)))
 
         self._ref_locs = None
         self.values = values
@@ -911,13 +911,14 @@ class BlockManager(object):
 
     def _verify_integrity(self):
         mgr_shape = self.shape
+        tot_items = sum(len(x.items) for x in self.blocks)
         for block in self.blocks:
             if block.ref_items is not self.items:
                 raise AssertionError("Block ref_items must be BlockManager "
                                      "items")
             if block.values.shape[1:] != mgr_shape[1:]:
-                raise AssertionError('Block shape incompatible with manager')
-        tot_items = sum(len(x.items) for x in self.blocks)
+                construction_error(tot_items,block.values.shape[1:],self.axes)
+
         if len(self.items) != tot_items:
             raise AssertionError('Number of manager items must equal union of '
                                  'block items')
@@ -1710,7 +1711,39 @@ class BlockManager(object):
         return result
 
 
+def construction_error(tot_items, block_shape, axes):
+    """ raise a helpful message about our construction """
+    raise ValueError("Shape of passed values is %s, indices imply %s" % (
+            tuple([tot_items] + list(block_shape)),tuple(len(ax) for ax in axes)))
+
+
+def create_block_manager_from_blocks(blocks, axes):
+    try:
+
+        # if we are passed values, make the blocks
+        if len(blocks) == 1 and not isinstance(blocks[0], Block):
+            blocks = [ make_block(blocks[0], axes[0], axes[0]) ]
+
+        mgr = BlockManager(blocks, axes)
+        mgr._consolidate_inplace()
+        return mgr
+
+    except (ValueError):
+        blocks = [ getattr(b,'values',b) for b in blocks ]
+        tot_items = sum(b.shape[0] for b in blocks)
+        construction_error(tot_items,blocks[0].shape[1:],axes)
+
+def create_block_manager_from_arrays(arrays, names, axes):
+    try:
+        blocks = form_blocks(arrays, names, axes)
+        mgr = BlockManager(blocks, axes)
+        mgr._consolidate_inplace()
+        return mgr
+    except (ValueError):
+        construction_error(len(arrays),arrays[0].shape[1:],axes)
+
 def form_blocks(arrays, names, axes):
+
     # pre-filter out items if we passed it
     items = axes[0]
 

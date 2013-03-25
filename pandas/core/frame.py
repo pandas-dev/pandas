@@ -30,7 +30,9 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
                                   _convert_to_index_sliceable, _check_bool_indexer,
                                   _maybe_convert_indices)
-from pandas.core.internals import BlockManager, make_block, form_blocks
+from pandas.core.internals import (BlockManager,
+                                   create_block_manager_from_arrays,
+                                   create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -553,9 +555,8 @@ class DataFrame(NDFrame):
         else:
             columns = _ensure_index(columns)
 
-        block = make_block(values.T, columns, columns)
-        return BlockManager([block], [columns, index])
-
+        return create_block_manager_from_blocks([ values.T ], [ columns, index ])
+        
     def _wrap_array(self, arr, axes, copy=False):
         index, columns = axes
         return self._constructor(arr, index=index, columns=columns, copy=copy)
@@ -1283,7 +1284,7 @@ class DataFrame(NDFrame):
         minor_axis.name = self.index.names[1]
 
         new_axes = [selfsorted.columns, major_axis, minor_axis]
-        new_mgr = BlockManager(new_blocks, new_axes)
+        new_mgr = create_block_manager_from_blocks(new_blocks, new_axes)
 
         return Panel(new_mgr)
 
@@ -5300,13 +5301,7 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     # from BlockManager perspective
     axes = [_ensure_index(columns), _ensure_index(index)]
 
-    # segregates dtypes and forms blocks matching to columns
-    blocks = form_blocks(arrays, arr_names, axes)
-
-    # consolidate for now
-    mgr = BlockManager(blocks, axes)
-    return mgr.consolidate()
-
+    return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 def extract_index(data):
     from pandas.core.index import _union_indexes
@@ -5384,7 +5379,7 @@ def _prep_ndarray(values, copy=True):
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
     elif values.ndim != 2:
-        raise Exception('Must pass 2-d input')
+        raise ValueError('Must pass 2-d input')
 
     return values
 

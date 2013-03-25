@@ -13,7 +13,9 @@ from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
 from pandas.core.indexing import _maybe_droplevels, _is_list_like
-from pandas.core.internals import BlockManager, make_block, form_blocks
+from pandas.core.internals import (BlockManager, 
+                                   create_block_manager_from_arrays,
+                                   create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -310,10 +312,7 @@ class Panel(NDFrame):
         return self._init_arrays(arrays, haxis, [haxis] + raxes)
 
     def _init_arrays(self, arrays, arr_names, axes):
-        # segregates dtypes and forms blocks matching to columns
-        blocks = form_blocks(arrays, arr_names, axes)
-        mgr = BlockManager(blocks, axes).consolidate()
-        return mgr
+        return create_block_manager_from_arrays(arrays, arr_names, axes)
 
     @property
     def shape(self):
@@ -398,9 +397,7 @@ class Panel(NDFrame):
                 ax = _ensure_index(ax)
             fixed_axes.append(ax)
 
-        items = fixed_axes[0]
-        block = make_block(values, items, items)
-        return BlockManager([block], fixed_axes)
+        return create_block_manager_from_blocks([ values ], fixed_axes)
 
     #----------------------------------------------------------------------
     # Array interface

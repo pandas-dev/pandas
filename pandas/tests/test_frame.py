@@ -1976,7 +1976,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df['foo'] = np.ones((4,2)).tolist()
 
         # this is not ok
-        self.assertRaises(AssertionError, df.__setitem__, tuple(['test']), np.ones((4,2)))
+        self.assertRaises(ValueError, df.__setitem__, tuple(['test']), np.ones((4,2)))
 
         # this is ok
         df['foo2'] = np.ones((4,2)).tolist()
@@ -2134,6 +2134,51 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # with dict of empty list and Series
         frame = DataFrame({'A': [], 'B': []}, columns=['A', 'B'])
         self.assert_(frame.index.equals(Index([])))
+
+    def test_constructor_error_msgs(self):
+
+        # mix dict and array, wrong size
+        try:
+            DataFrame({'A': {'a': 'a', 'b': 'b'},
+                       'B': ['a', 'b', 'c']})
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_("Mixing dicts with non-Series may lead to ambiguous ordering." in str(detail))
+
+        # wrong size ndarray, GH 3105
+        from pandas import date_range
+        try:
+            DataFrame(np.arange(12).reshape((4, 3)), columns=['foo', 'bar', 'baz'],
+                      index=date_range('2000-01-01', periods=3))
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 4), indices imply (3, 3)"))
+
+        # higher dim raise exception
+        try:
+            DataFrame(np.zeros((3, 3, 3)), columns=['A', 'B', 'C'], index=[1])
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_("Must pass 2-d input" in str(detail))
+
+        # wrong size axis labels
+        try:
+            DataFrame(np.random.rand(2,3), columns=['A', 'B', 'C'], index=[1])
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 2), indices imply (3, 1)"))
+
+        try:
+            DataFrame(np.random.rand(2,3), columns=['A', 'B'], index=[1, 2])
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 2), indices imply (2, 2)"))
+
+        try:
+            DataFrame({'a': False, 'b': True})
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_("If use all scalar values, must pass index" in str(detail))
 
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
@@ -3545,7 +3590,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert(df1.index.equals(Index(df.C)))
 
         # should fail
-        self.assertRaises(Exception, DataFrame.from_records, df, index=[2])
+        self.assertRaises(ValueError, DataFrame.from_records, df, index=[2])
         self.assertRaises(KeyError, DataFrame.from_records, df, index=2)
 
     def test_from_records_non_tuple(self):
