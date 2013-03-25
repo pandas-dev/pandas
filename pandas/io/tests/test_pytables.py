@@ -511,7 +511,7 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_frame_equal(expected, result)
             
             # this isn't supported
-            self.assertRaises(Exception, store.select, 'df1', (
+            self.assertRaises(TypeError, store.select, 'df1', (
                     'columns=A', Term('index', '>', df.index[4])))
 
             # selection on the non-indexable
@@ -551,7 +551,7 @@ class TestHDFStore(unittest.TestCase):
 
             # pass incorrect number of axes
             store.remove('p4d')
-            self.assertRaises(Exception, store.append, 'p4d', p4d.ix[
+            self.assertRaises(ValueError, store.append, 'p4d', p4d.ix[
                     :, :, :10, :], axes=['major_axis', 'minor_axis'])
 
             # different than default indexables #1
@@ -615,11 +615,11 @@ class TestHDFStore(unittest.TestCase):
             
             # apply the wrong field (similar to #1)
             store.append('s3', wp, min_itemsize={'major_axis': 20})
-            self.assertRaises(Exception, store.append, 's3')
+            self.assertRaises(ValueError, store.append, 's3', wp2)
             
             # test truncation of bigger strings
             store.append('s4', wp)
-            self.assertRaises(Exception, store.append, 's4', wp2)
+            self.assertRaises(ValueError, store.append, 's4', wp2)
 
             # avoid truncation on elements
             df = DataFrame([[123, 'asdqwerty'], [345, 'dggnhebbsdfbdfb']])
@@ -644,7 +644,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('df_new', df)
             df_new = DataFrame(
                 [[124, 'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
-            self.assertRaises(Exception, store.append, 'df_new', df_new)
+            self.assertRaises(ValueError, store.append, 'df_new', df_new)
 
             # with nans
             store.remove('df')
@@ -667,6 +667,18 @@ class TestHDFStore(unittest.TestCase):
             store.append('df', df[:5], min_itemsize=200)
             store.append('df', df[5:], min_itemsize=200)
             tm.assert_frame_equal(store['df'], df)
+
+            # invalid min_itemsize keys
+
+            df = DataFrame(['foo','foo','foo','barh','barh','barh'],columns=['A'])
+
+            store.remove('df')
+            self.assertRaises(ValueError, store.append, 'df', df, min_itemsize={'foo' : 20, 'foobar' : 20})
+
+            # invalid sizes
+            store.remove('df')
+            store.append('df', df[:3], min_itemsize=3)
+            self.assertRaises(ValueError, store.append, 'df', df[3:])
 
     def test_append_with_data_columns(self):
 
@@ -842,7 +854,7 @@ class TestHDFStore(unittest.TestCase):
             # try to index a non-table
             store.remove('f2')
             store.put('f2', df)
-            self.assertRaises(Exception, store.create_table_index, 'f2')
+            self.assertRaises(TypeError, store.create_table_index, 'f2')
             
             # try to change the version supports flag
             from pandas.io import pytables
@@ -970,7 +982,7 @@ class TestHDFStore(unittest.TestCase):
             
         with ensure_clean(self.path) as store:
             store.put('panel', wp1, table=True)
-            self.assertRaises(Exception, store.put, 'panel', wp2,
+            self.assertRaises(ValueError, store.put, 'panel', wp2,
                               append=True)
 
     def test_append_hierarchical(self):
@@ -993,17 +1005,17 @@ class TestHDFStore(unittest.TestCase):
 
             # unsuported data types for non-tables
             p4d = tm.makePanel4D()
-            self.assertRaises(Exception, store.put,'p4d',p4d)
+            self.assertRaises(TypeError, store.put,'p4d',p4d)
 
             # unsupported data type for table
             s = tm.makeStringSeries()
-            self.assertRaises(Exception, store.append,'s',s)
+            self.assertRaises(TypeError, store.append,'s',s)
 
             # unsuported data types
-            self.assertRaises(Exception, store.put,'abc',None)
-            self.assertRaises(Exception, store.put,'abc','123')
-            self.assertRaises(Exception, store.put,'abc',123)
-            self.assertRaises(Exception, store.put,'abc',np.arange(5))
+            self.assertRaises(TypeError, store.put,'abc',None)
+            self.assertRaises(TypeError, store.put,'abc','123')
+            self.assertRaises(TypeError, store.put,'abc',123)
+            self.assertRaises(TypeError, store.put,'abc',np.arange(5))
 
             df = tm.makeDataFrame()
             store.append('df', df, chunksize=1)
@@ -1024,12 +1036,12 @@ class TestHDFStore(unittest.TestCase):
             df = tm.makeDataFrame()
             df['invalid'] = [['a']] * len(df)
             self.assert_(df.dtypes['invalid'] == np.object_)
-            self.assertRaises(NotImplementedError, store.append,'df',df)
+            self.assertRaises(TypeError, store.append,'df',df)
 
             # multiple invalid columns
             df['invalid2'] = [['a']] * len(df)
             df['invalid3'] = [['a']] * len(df)
-            self.assertRaises(NotImplementedError, store.append,'df',df)
+            self.assertRaises(TypeError, store.append,'df',df)
             
             # datetime with embedded nans as object
             df = tm.makeDataFrame()
@@ -1037,20 +1049,20 @@ class TestHDFStore(unittest.TestCase):
             s[0:5] = np.nan
             df['invalid'] = s
             self.assert_(df.dtypes['invalid'] == np.object_)
-            self.assertRaises(NotImplementedError, store.append,'df', df)
+            self.assertRaises(TypeError, store.append,'df', df)
 
             # directy ndarray
-            self.assertRaises(NotImplementedError, store.append,'df',np.arange(10))
+            self.assertRaises(TypeError, store.append,'df',np.arange(10))
 
             # series directly
-            self.assertRaises(NotImplementedError, store.append,'df',Series(np.arange(10)))
+            self.assertRaises(TypeError, store.append,'df',Series(np.arange(10)))
 
             # appending an incompatbile table
             df = tm.makeDataFrame()
             store.append('df',df)
             
             df['foo'] = 'foo'
-            self.assertRaises(Exception, store.append,'df',df)
+            self.assertRaises(ValueError, store.append,'df',df)
     
     def test_table_index_incompatible_dtypes(self):
         df1 = DataFrame({'a': [1, 2, 3]})
@@ -1059,7 +1071,7 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             store.put('frame', df1, table=True)
-            self.assertRaises(Exception, store.put, 'frame', df2,
+            self.assertRaises(TypeError, store.put, 'frame', df2,
                               table=True, append=True)
 
     def test_table_values_dtypes_roundtrip(self):
@@ -1074,7 +1086,7 @@ class TestHDFStore(unittest.TestCase):
             assert df2.dtypes == store['df_i8'].dtypes
             
             # incompatible dtype
-            self.assertRaises(Exception, store.append, 'df_i8', df1)
+            self.assertRaises(ValueError, store.append, 'df_i8', df1)
 
             # check creation/storage/retrieval of float32 (a bit hacky to actually create them thought)
             df1 = DataFrame(np.array([[1],[2],[3]],dtype='f4'),columns = ['A'])
@@ -1157,7 +1169,7 @@ class TestHDFStore(unittest.TestCase):
                 df = tm.makeDataFrame()
                 df[n] = f
                 self.assertRaises(
-                    NotImplementedError, store.append, 'df1_%s' % n, df)
+                    TypeError, store.append, 'df1_%s' % n, df)
 
         # frame
         df = tm.makeDataFrame()
@@ -1168,7 +1180,7 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
             # this fails because we have a date in the object block......
-            self.assertRaises(Exception, store.append, 'df_unimplemented', df)
+            self.assertRaises(TypeError, store.append, 'df_unimplemented', df)
 
     def test_remove(self):
 
@@ -1232,12 +1244,12 @@ class TestHDFStore(unittest.TestCase):
             # non - empty where
             store.remove('wp')
             store.put('wp', wp, table=True)
-            self.assertRaises(Exception, store.remove,
+            self.assertRaises(ValueError, store.remove,
                               'wp', ['foo'])
 
             # selectin non-table with a where
             # store.put('wp2', wp, table=False)
-            # self.assertRaises(Exception, store.remove,
+            # self.assertRaises(ValueError, store.remove,
             #                  'wp2', [('column', ['A', 'D'])])
 
     def test_remove_crit(self):
@@ -1753,7 +1765,7 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_panel_equal(expected, result)
             
             # selectin non-table with a where
-            # self.assertRaises(Exception, store.select,
+            # self.assertRaises(ValueError, store.select,
             #                  'wp2', ('column', ['A', 'D']))
             
             # select with columns=
@@ -1983,11 +1995,11 @@ class TestHDFStore(unittest.TestCase):
             df = tm.makeTimeDataFrame()
             store.append('df_time', df)
             self.assertRaises(
-                Exception, store.select, 'df_time', [Term("index>0")])
+                ValueError, store.select, 'df_time', [Term("index>0")])
             
             # can't select if not written as table
             # store['frame'] = df
-            # self.assertRaises(Exception, store.select,
+            # self.assertRaises(ValueError, store.select,
             #                  'frame', [crit1, crit2])
             
     def test_string_select(self):
@@ -2130,12 +2142,12 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
 
             # exceptions
-            self.assertRaises(Exception, store.append_to_multiple, 
+            self.assertRaises(ValueError, store.append_to_multiple, 
                               {'df1': ['A', 'B'], 'df2': None}, df, selector='df3')
-            self.assertRaises(Exception, store.append_to_multiple,
+            self.assertRaises(ValueError, store.append_to_multiple,
                               {'df1': None, 'df2': None}, df, selector='df3')
             self.assertRaises(
-                Exception, store.append_to_multiple, 'df1', df, 'df1')
+                ValueError, store.append_to_multiple, 'df1', df, 'df1')
             
             # regular operation
             store.append_to_multiple(
@@ -2191,7 +2203,7 @@ class TestHDFStore(unittest.TestCase):
             
             # test excpection for diff rows
             store.append('df3', tm.makeTimeDataFrame(nper=50))
-            self.assertRaises(Exception, store.select_as_multiple, 
+            self.assertRaises(ValueError, store.select_as_multiple, 
                               ['df1','df3'], where=['A>0', 'B>0'], selector='df1')
 
     def test_start_stop(self):
