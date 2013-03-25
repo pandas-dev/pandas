@@ -137,7 +137,7 @@ pandas 0.11.0
 
     - timedelta64 are returned in appropriate cases (e.g. Series - Series,
       when both are datetime64)
-    - mixed datetimes and objects (GH2751_) in a constructor witll be casted
+    - mixed datetimes and objects (GH2751_) in a constructor will be cast
       correctly
     - astype on datetimes to object are now handled (as well as NaT
       conversions to np.nan)
@@ -146,6 +146,7 @@ pandas 0.11.0
 
   - arguments to DataFrame.clip were inconsistent to numpy and Series clipping
     (GH2747_)
+  - util.testing.assert_frame_equal now checks the column and index names (GH2964_)
 
 **Bug Fixes**
 
