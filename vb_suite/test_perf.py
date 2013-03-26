@@ -28,6 +28,7 @@ everything and calculate a ration for the timing information.
 
 import shutil
 import os
+import sys
 import argparse
 import tempfile
 import time
@@ -92,7 +93,6 @@ def get_results_df(db, rev):
 def prprint(s):
     print("*** %s" % s)
 
-
 def main():
     from pandas import DataFrame
     from vbench.api import BenchmarkRunner
@@ -109,6 +109,16 @@ def main():
         args.log_file = os.path.abspath(
             os.path.join(REPO_PATH, 'vb_suite.log'))
 
+    if args.outdf:
+        # not bullet-proof but enough for us
+        if os.path.sep not in args.outdf:
+            args.outdf = os.path.join(os.curdir, args.outdf)
+
+    if args.log_file:
+        # not bullet-proof but enough for us
+        if os.path.sep not in args.log_file:
+            args.log_file = os.path.join(os.curdir, args.log_file)
+
     random.seed(args.seed)
     np.random.seed(args.seed)
 
@@ -116,11 +126,14 @@ def main():
     prprint("TMP_DIR = %s" % TMP_DIR)
     prprint("LOG_FILE = %s\n" % args.log_file)
 
+    saved_dir = os.path.curdir
+    # move away from the pandas root dit, to avoid possible import
+    # surprises
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     benchmarks = [x for x in benchmarks if re.search(args.regex,x.name)]
 
     try:
-        logfile = open(args.log_file, 'w')
-
         prprint("Opening DB at '%s'...\n" % DB_PATH)
         db = BenchmarkDB(DB_PATH)
 
@@ -136,6 +149,8 @@ def main():
             module_dependencies=dependencies)
 
         repo = runner.repo  # (steal the parsed git repo used by runner)
+        h_head = args.target_commit or repo.shas[-1]
+        h_baseline = args.base_commit
 
         # ARGH. reparse the repo, without discarding any commits,
         # then overwrite the previous parse results
@@ -143,9 +158,6 @@ def main():
         (repo.shas, repo.messages,
          repo.timestamps, repo.authors) = _parse_commit_log(None,REPO_PATH,
                                                                 args.base_commit)
-
-        h_head = args.target_commit or repo.shas[-1]
-        h_baseline = args.base_commit
 
         prprint('Target [%s] : %s\n' % (h_head, repo.messages.get(h_head, "")))
         prprint('Baseline [%s] : %s\n' % (h_baseline,
@@ -178,7 +190,6 @@ def main():
         totals = totals.dropna(
         ).sort("ratio").set_index('name')  # sort in ascending order
 
-
         hdr = ftr = """
 -----------------------------------------------------------------------
 Test name                      | target[ms] |  base[ms]  |   ratio    |
@@ -199,6 +210,7 @@ Test name                      | target[ms] |  base[ms]  |   ratio    |
         s += 'Base   [%s] : %s\n\n' % (
             h_baseline, repo.messages.get(h_baseline, ""))
 
+        logfile = open(args.log_file, 'w')
         logfile.write(s)
         logfile.close()
 
@@ -206,21 +218,20 @@ Test name                      | target[ms] |  base[ms]  |   ratio    |
         prprint("Results were also written to the logfile at '%s'" %
                 args.log_file)
 
+        if args.outdf:
+            prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
+            totals.save(args.outdf)
+
     finally:
         #        print("Disposing of TMP_DIR: %s" % TMP_DIR)
         shutil.rmtree(TMP_DIR)
-        logfile.close()
+        os.chdir(saved_dir)
 
-    if args.outdf:
 
-        opath = os.path.abspath(os.path.join(os.curdir,args.outdf))
-        prprint("The results DataFrame was written to '%s'\n" %  opath)
-        totals.save(opath)
 
 # hack , vbench.git ignores some commits, but we
 # need to be able to reference any commit.
 # modified from vbench.git
-
 def _parse_commit_log(this,repo_path,base_commit=None):
     from vbench.git import parser, _convert_timezones
     from pandas import Series
