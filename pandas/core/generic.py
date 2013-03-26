@@ -34,28 +34,29 @@ class PandasObject(object):
     #----------------------------------------------------------------------
     # Axis name business
 
-    @classmethod
-    def _get_axis_number(cls, axis):
-        axis = cls._AXIS_ALIASES.get(axis, axis)
-
+    def _get_axis_number(self, axis):
+        axis = self._AXIS_ALIASES.get(axis, axis)
         if com.is_integer(axis):
-            if axis in cls._AXIS_NAMES:
+            if axis in self._AXIS_NAMES:
                 return axis
-            else:
-                raise Exception('No %d axis' % axis)
         else:
-            return cls._AXIS_NUMBERS[axis]
+            try:
+                return self._AXIS_NUMBERS[axis]
+            except:
+                pass
+        raise ValueError('No axis named %s' % axis)
 
-    @classmethod
-    def _get_axis_name(cls, axis):
-        axis = cls._AXIS_ALIASES.get(axis, axis)
+    def _get_axis_name(self, axis):
+        axis = self._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, basestring):
-            if axis in cls._AXIS_NUMBERS:
+            if axis in self._AXIS_NUMBERS:
                 return axis
-            else:
-                raise Exception('No axis named %s' % axis)
         else:
-            return cls._AXIS_NAMES[axis]
+            try:
+                return self._AXIS_NAMES[axis]
+            except:
+                pass
+        raise ValueError('No axis named %s' % axis)
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
@@ -147,6 +148,7 @@ class PandasObject(object):
         GroupBy object
         """
         from pandas.core.groupby import groupby
+        axis = self._get_axis_number(axis)
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
@@ -247,6 +249,7 @@ class PandasObject(object):
             range from 0 through 4. Defaults to 0
         """
         from pandas.tseries.resample import TimeGrouper
+        axis = self._get_axis_number(axis)
         sampler = TimeGrouper(rule, label=label, closed=closed, how=how,
                               axis=axis, kind=kind, loffset=loffset,
                               fill_method=fill_method, convention=convention,
@@ -925,6 +928,7 @@ class NDFrame(PandasObject):
 
         mapper_f = _get_rename_function(mapper)
 
+        axis = self._get_axis_number(axis)
         if axis == 0:
             new_data = self._data.rename_items(mapper_f, copydata=copy)
         else:
@@ -951,6 +955,7 @@ class NDFrame(PandasObject):
 
         # check/convert indicies here
         if convert:
+            axis = self._get_axis_number(axis)
             indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         if axis == 0:
