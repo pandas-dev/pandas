@@ -1051,6 +1051,7 @@ class Panel(NDFrame):
         -------
         y : ndim(self)-1
         """
+        axis = self._get_axis_number(axis)
         if axis == 0:
             data = self[key]
             if copy:
@@ -1320,10 +1321,11 @@ class Panel(NDFrame):
             vslicer = slice(-lags, None)
             islicer = slice(None, lags)
 
-        if axis == 'major':
+        axis = self._get_axis_name(axis)
+        if axis == 'major_axis':
             values = values[:, vslicer, :]
             major_axis = major_axis[islicer]
-        elif axis == 'minor':
+        elif axis == 'minor_axis':
             values = values[:, :, vslicer]
             minor_axis = minor_axis[islicer]
         else:

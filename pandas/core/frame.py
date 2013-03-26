@@ -2194,6 +2194,7 @@ class DataFrame(NDFrame):
         -------
         xs : Series or DataFrame
         """
+        axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
         if level is not None:
             loc, new_ax = labels.get_loc_level(key, level=level)
@@ -2340,6 +2341,8 @@ class DataFrame(NDFrame):
         (left, right) : (DataFrame, type of other)
             Aligned objects
         """
+        if axis is not None:
+            axis = self._get_axis_number(axis)
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
                                      copy=copy, fill_value=fill_value,
@@ -2522,6 +2525,7 @@ class DataFrame(NDFrame):
         reindexed : same type as calling instance
         """
         self._consolidate_inplace()
+        axis = self._get_axis_number(axis)
         if axis == 0:
             return self._reindex_index(labels, method, copy, level,
                                        fill_value=fill_value,
@@ -2834,6 +2838,7 @@ class DataFrame(NDFrame):
 
         # check/convert indicies here
         if convert:
+            axis = self._get_axis_number(axis)
             indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         if self._is_mixed_type:
@@ -2922,6 +2927,7 @@ class DataFrame(NDFrame):
                                        subset=subset, axis=ax)
             return result
 
+        axis = self._get_axis_number(axis)
         if axis == 0:
             agg_axis = 1
         elif axis == 1:
@@ -3089,6 +3095,7 @@ class DataFrame(NDFrame):
         """
         from pandas.core.groupby import _lexsort_indexer
 
+        axis = self._get_axis_number(axis)
         if axis not in [0, 1]:
             raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
 
@@ -3159,6 +3166,7 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
+        axis = self._get_axis_number(axis)
         the_axis = self._get_axis(axis)
         if not isinstance(the_axis, MultiIndex):
             raise Exception('can only sort by level with a hierarchical index')
@@ -3202,6 +3210,7 @@ class DataFrame(NDFrame):
         """
         result = self.copy()
 
+        axis = self._get_axis_number(axis)
         if axis == 0:
             result.index = result.index.swaplevel(i, j)
         else:
@@ -3223,6 +3232,7 @@ class DataFrame(NDFrame):
         -------
         type of caller (new object)
         """
+        axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis),
                           MultiIndex):  # pragma: no cover
             raise Exception('Can only reorder levels on a hierarchical axis.')
@@ -3274,6 +3284,7 @@ class DataFrame(NDFrame):
         """
         self._consolidate_inplace()
 
+        axis = self._get_axis_number(axis)
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
@@ -3362,6 +3373,7 @@ class DataFrame(NDFrame):
         """
         self._consolidate_inplace()
 
+        axis = self._get_axis_number(axis)
         if inplace:
             import warnings
             warnings.warn("replace with inplace=True  will return None"
@@ -4057,6 +4069,7 @@ class DataFrame(NDFrame):
         if len(self.columns) == 0 and len(self.index) == 0:
             return self
 
+        axis = self._get_axis_number(axis)
         if kwds or args and not isinstance(func, np.ufunc):
             f = lambda x: func(x, *args, **kwds)
         else:
@@ -4478,6 +4491,7 @@ class DataFrame(NDFrame):
         -------
         correls : Series
         """
+        axis = self._get_axis_number(axis)
         if isinstance(other, Series):
             return self.apply(other.corr, axis=axis)
 
@@ -4580,6 +4594,7 @@ class DataFrame(NDFrame):
         -------
         count : Series (or DataFrame if level specified)
         """
+        axis = self._get_axis_number(axis)
         if level is not None:
             return self._count_level(level, axis=axis,
                                      numeric_only=numeric_only)
@@ -4756,6 +4771,7 @@ class DataFrame(NDFrame):
 
         frame = self._get_numeric_data()
 
+        axis = self._get_axis_number(axis)
         if axis == 0:
             demeaned = frame - frame.mean(axis=0)
         else:
@@ -4811,12 +4827,14 @@ class DataFrame(NDFrame):
         grouped = self.groupby(level=level, axis=axis)
         if hasattr(grouped, name) and skipna:
             return getattr(grouped, name)(**kwds)
+        axis = self._get_axis_number(axis)
         method = getattr(type(self), name)
         applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
     def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
+        axis = self._get_axis_number(axis)
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
@@ -4875,6 +4893,7 @@ class DataFrame(NDFrame):
         -------
         idxmin : Series
         """
+        axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else NA for i in indices]
@@ -4897,6 +4916,7 @@ class DataFrame(NDFrame):
         -------
         idxmax : Series
         """
+        axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else NA for i in indices]
@@ -5030,6 +5050,7 @@ class DataFrame(NDFrame):
         -------
         ranks : DataFrame
         """
+        axis = self._get_axis_number(axis)
         if numeric_only is None:
             try:
                 ranks = algos.rank(self.values, axis=axis, method=method,
@@ -5070,6 +5091,7 @@ class DataFrame(NDFrame):
         if copy:
             new_data = new_data.copy()
 
+        axis = self._get_axis_number(axis)
         if axis == 0:
             new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
         elif axis == 1:
@@ -5100,6 +5122,7 @@ class DataFrame(NDFrame):
         if copy:
             new_data = new_data.copy()
 
+        axis = self._get_axis_number(axis)
         if axis == 0:
             if freq is None:
                 freq = self.index.freqstr or self.index.inferred_freq
