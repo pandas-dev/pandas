@@ -197,6 +197,10 @@ def rolling_corr(arg1, arg2, window, min_periods=None, freq=None,
 
 
 def _flex_binary_moment(arg1, arg2, f):
+    if not (isinstance(arg1,(np.ndarray, DataFrame)) and
+            isinstance(arg1,(np.ndarray, DataFrame))):
+        raise ValueError("arguments to moment function must be of type ndarray/DataFrame")
+
     if isinstance(arg1, np.ndarray) and isinstance(arg2, np.ndarray):
         X, Y = _prep_binary(arg1, arg2)
         return f(X, Y)
