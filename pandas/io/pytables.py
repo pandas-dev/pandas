@@ -147,7 +147,7 @@ def get_store(path, mode='a', complevel=None, complib=None,
             store.close()
 
 
-class HDFStore(object):
+class HDFStore(com.ReprMixin,object):
     """
     dict-like IO interface for storing pandas objects in PyTables
     format.
@@ -242,7 +242,9 @@ class HDFStore(object):
     def __len__(self):
         return len(self.groups())
 
-    def __repr__(self):
+    # ReprMixin->HDFStore
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         output = '%s\nFile path: %s\n' % (type(self), self._path)
 
         if len(self.keys()):
@@ -885,9 +887,9 @@ class TableIterator(object):
 
     def get_values(self):
         return self.func(self.start, self.stop)
-        
 
-class IndexCol(object):
+
+class IndexCol(com.ReprMixin,object):
     """ an index column description class
 
         Parameters
@@ -948,10 +950,10 @@ class IndexCol(object):
         self.table = table
         return self
 
-    def __repr__(self):
+    # ReprMixin->HDFStore
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         return "name->%s,cname->%s,axis->%s,pos->%s,kind->%s" % (self.name, self.cname, self.axis, self.pos, self.kind)
-
-    __str__ = __repr__
 
     def __eq__(self, other):
         """ compare 2 col items """
@@ -1128,7 +1130,9 @@ class DataCol(IndexCol):
         self.dtype_attr = "%s_dtype" % self.name
         self.set_data(data)
 
-    def __repr__(self):
+    # ReprMixin->IndexCol->this
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         return "name->%s,cname->%s,dtype->%s,shape->%s" % (self.name, self.cname, self.dtype, self.shape)
 
     def __eq__(self, other):
@@ -1349,7 +1353,7 @@ class GenericDataIndexableCol(DataIndexableCol):
     def get_attr(self):
         pass
 
-class Storer(object):
+class Storer(com.ReprMixin,object):
     """ represent an object in my store
           facilitate read/write of various types of objects
           this is an abstract base class
@@ -1388,7 +1392,9 @@ class Storer(object):
     def pandas_type(self):
         return getattr(self.group._v_attrs, 'pandas_type', None)
 
-    def __repr__(self):
+    # ReprMixin->thisPandasObject->NDFrame->DataFrame
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
         s = self.shape
@@ -1397,9 +1403,6 @@ class Storer(object):
                 s = "[%s]" % ','.join([ str(x) for x in s ])
             return "%-12.12s (shape->%s)" % (self.pandas_type,s)
         return self.pandas_type
-    
-    def __str__(self):
-        return self.__repr__()
 
     def set_info(self):
         """ set my pandas type & version """
@@ -1972,12 +1975,12 @@ class PanelStorer(BlockManagerStorer):
     pandas_kind = 'wide'
     obj_type    = Panel
     is_shape_reversed = True
-    
+
     def write(self, obj, **kwargs):
         obj._consolidate_inplace()
         return super(PanelStorer, self).write(obj, **kwargs)
 
-class Table(Storer):
+class Table(com.ReprMixin,Storer):
     """ represent a table:
           facilitate read/write of various types of tables
 
@@ -2013,7 +2016,9 @@ class Table(Storer):
     def table_type_short(self):
         return self.table_type.split('_')[0]
 
-    def __repr__(self):
+    # ReprMixin->this
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
         dc = ",dc->[%s]" % ','.join(self.data_columns) if len(self.data_columns) else ''
@@ -3049,7 +3054,7 @@ def _need_convert(kind):
         return True
     return False
 
-class Term(object):
+class Term(com.ReprMixin,object):
     """ create a term object that holds a field, op, and value
 
         Parameters
@@ -3153,10 +3158,10 @@ class Term(object):
         if len(self.q):
             self.eval()
 
-    def __str__(self):
+    # ReprMixin->this
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         return "field->%s,op->%s,value->%s" % (self.field, self.op, self.value)
-
-    __repr__ = __str__
 
     @property
     def is_valid(self):

@@ -638,28 +638,8 @@ class DataFrame(NDFrame):
                 else:
                     return False
 
-    def __str__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
+    # ReprMixin->PandasObject->NDFrame->DataFrame
+    # just define unicode, and str,bytes,repr work on py2/py3
     def __unicode__(self):
         """
         Return a string representation for a particular DataFrame
@@ -687,14 +667,6 @@ class DataFrame(NDFrame):
     def _need_wide_repr(self):
         return (get_option("display.expand_frame_repr")
                 and com.in_interactive_session())
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
 
     def _repr_html_(self):
         """

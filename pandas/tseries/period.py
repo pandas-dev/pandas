@@ -38,7 +38,7 @@ def _field_accessor(name, alias):
     return property(f)
 
 
-class Period(object):
+class Period(com.ReprMixin, object):
 
     __slots__ = ['freq', 'ordinal']
 
@@ -236,16 +236,11 @@ class Period(object):
     def now(cls, freq=None):
         return Period(datetime.now(), freq=freq)
 
-    def __repr__(self):
+    def __unicode__(self):
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
         return "Period('%s', '%s')" % (formatted, freqstr)
-
-    def __str__(self):
-        base, mult = _gfc(self.freq)
-        formatted = tslib.period_format(self.ordinal, base)
-        return ("%s" % formatted)
 
     def strftime(self, fmt):
         """
@@ -1013,7 +1008,9 @@ class PeriodIndex(Int64Index):
 
         self.freq = getattr(obj, 'freq', None)
 
-    def __repr__(self):
+    #ReprMixin->Index->Int64Index->PeriodIndex
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         output = str(self.__class__) + '\n'
         output += 'freq: ''%s''\n' % self.freq
         if len(self) > 0:

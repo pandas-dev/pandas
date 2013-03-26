@@ -6,6 +6,7 @@ from pandas.tseries.tools import to_datetime
 from dateutil.relativedelta import relativedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
+import pandas.core.common as com
 
 __all__ = ['Day', 'BusinessDay', 'BDay',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
@@ -23,7 +24,7 @@ class CacheableOffset(object):
     _cacheable = True
 
 
-class DateOffset(object):
+class DateOffset(com.ReprMixin, object):
     """
     Standard kind of date increment used for a date range.
 
@@ -107,7 +108,9 @@ class DateOffset(object):
         params = tuple([str(self.__class__)] + attrs)
         return params
 
-    def __repr__(self):
+    # ReprMixin->DateOffset
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         if hasattr(self, 'name') and len(self.name):
             return self.name
 
@@ -230,7 +233,7 @@ class DateOffset(object):
         return fstr
 
 
-class BusinessDay(CacheableOffset, DateOffset):
+class BusinessDay(com.ReprMixin,CacheableOffset, DateOffset):
     """
     DateOffset subclass representing possibly n business days
     """
@@ -244,7 +247,7 @@ class BusinessDay(CacheableOffset, DateOffset):
     def rule_code(self):
         return 'B'
 
-    def __repr__(self):
+    def __unicode__(self):
         if hasattr(self, 'name') and len(self.name):
             return self.name
 

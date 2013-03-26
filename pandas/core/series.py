@@ -1067,28 +1067,8 @@ class Series(pa.Array, generic.PandasObject):
 
             return df.reset_index(level=level, drop=drop)
 
-    def __str__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
+    # ReprMixin->PandasObject->Series->DataFrame
+    # just define unicode, and str,bytes,repr work on py2/py3
     def __unicode__(self):
         """
         Return a string representation for a particular DataFrame
@@ -1111,14 +1091,6 @@ class Series(pa.Array, generic.PandasObject):
 
         assert type(result) == unicode
         return result
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular Series
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
 
     def _tidy_repr(self, max_vals=20):
         """
