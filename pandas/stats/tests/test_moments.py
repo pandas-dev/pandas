@@ -583,6 +583,28 @@ class TestMoments(unittest.TestCase):
         # don't blow the stack
         self.assertRaises(ValueError, mom._flex_binary_moment,5,6,None)
 
+    def test_corr_sanity(self):
+        #GH 3155
+        df = DataFrame(
+            np.array(
+                    [[ 0.87024726,  0.18505595],
+                      [ 0.64355431,  0.3091617 ],
+                      [ 0.92372966,  0.50552513],
+                      [ 0.00203756,  0.04520709],
+                      [ 0.84780328,  0.33394331],
+                      [ 0.78369152,  0.63919667]])
+            )
+
+        res = mom.rolling_corr(df[0],df[1],5,center=True)
+        self.assertTrue(all([np.abs(np.nan_to_num(x)) <=1 for x in res]))
+
+        # and some fuzzing
+        for i in range(10):
+            df = DataFrame(np.random.rand(30,2))
+            res = mom.rolling_corr(df[0],df[1],5,center=True)
+            print( res)
+            self.assertTrue(all([np.abs(np.nan_to_num(x)) <=1 for x in res]))
+
     def test_flex_binary_frame(self):
         def _check(method):
             series = self.frame[1]
