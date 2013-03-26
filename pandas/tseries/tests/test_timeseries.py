@@ -1808,6 +1808,12 @@ class TestDatetimeIndex(unittest.TestCase):
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
 
+    def test_time(self):
+        rng = pd.date_range('1/1/2000', freq='12min', periods=10)
+        result = pd.Index(rng).time
+        expected = [t.time() for t in rng]
+        self.assert_((result == expected).all())
+
 
 class TestLegacySupport(unittest.TestCase):
     _multiprocess_can_split_ = True

@@ -1289,6 +1289,13 @@ class DatetimeIndex(Int64Index):
     dayofyear = _field_accessor('dayofyear', 'doy')
     quarter = _field_accessor('quarter', 'q')
 
+    @property
+    def time(self):
+        """
+        Returns array of datetime.time. The time of the day
+        """
+        return self.map(lambda t: t.time())
+
     def normalize(self):
         """
         Return DatetimeIndex with times to midnight. Length is unaltered
