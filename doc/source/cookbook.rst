@@ -297,3 +297,26 @@ The :ref:`Timedeltas <timeseries.timedeltas>` docs.
 
 `Operating with timedeltas
 <https://github.com/pydata/pandas/pull/2899>`__
+
+Aliasing Axis Names
+-------------------
+
+To globally provide aliases for axis names, one can define these 2 functions:
+
+.. ipython:: python
+
+   def set_axis_alias(cls, axis, alias):
+        if axis not in cls._AXIS_NUMBERS:
+            raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
+        cls._AXIS_ALIASES[alias] = axis
+
+   def clear_axis_alias(cls, axis, alias):
+        if axis not in cls._AXIS_NUMBERS:
+            raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
+        cls._AXIS_ALIASES.pop(alias,None)
+
+
+   set_axis_alias(DataFrame,'columns', 'myaxis2')
+   df2 = DataFrame(randn(3,2),columns=['c1','c2'],index=['i1','i2','i3'])
+   df2.sum(axis='myaxis2') 
+   clear_axis_alias(DataFrame,'columns', 'myaxis2')
