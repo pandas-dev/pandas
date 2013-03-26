@@ -578,6 +578,11 @@ class TestMoments(unittest.TestCase):
                                10, min_periods=5)
         tm.assert_series_equal(correl, exp)
 
+    def test_flex_binary_moment(self):
+        # GH3155
+        # don't blow the stack
+        self.assertRaises(ValueError, mom._flex_binary_moment,5,6,None)
+
     def test_flex_binary_frame(self):
         def _check(method):
             series = self.frame[1]
