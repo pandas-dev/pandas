@@ -509,8 +509,8 @@ cdef class TextReader:
 
             if ptr == NULL:
                 if not os.path.exists(source):
-                    raise Exception('File %s does not exist' % source)
-                raise Exception('Initializing from file failed')
+                    raise IOError('File %s does not exist' % source)
+                raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
 
@@ -519,15 +519,15 @@ cdef class TextReader:
 
             ptr = new_rd_source(source)
             if ptr == NULL:
-                raise Exception('Initializing parser from file-like '
-                                'object failed')
+                raise IOError('Initializing parser from file-like '
+                              'object failed')
 
             self.parser.source = ptr
             self.parser.cb_io = &buffer_rd_bytes
             self.parser.cb_cleanup = &del_rd_source
         else:
-            raise Exception('Expected file path name or file-like object,'
-                            ' got %s type' % type(source))
+            raise IOError('Expected file path name or file-like object,'
+                          ' got %s type' % type(source))
 
     cdef _get_header(self):
         cdef:
