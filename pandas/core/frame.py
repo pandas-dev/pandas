@@ -1347,7 +1347,7 @@ class DataFrame(NDFrame):
                                          float_format=float_format, cols=cols,
                                          header=header, index=index,
                                          index_label=index_label,
-                                         chunksize=chunksize,legacy=kwds.get("legacy",False) )
+                                         chunksize=chunksize,engine=kwds.get("engine") )
             formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',

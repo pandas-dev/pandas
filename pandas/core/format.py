@@ -769,8 +769,9 @@ class CSVFormatter(object):
     def __init__(self, obj, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n', chunksize=None,legacy=False):
-        self.legacy=legacy # remove for 0.12
+               line_terminator='\n', chunksize=None, engine=None):
+
+        self.engine = engine  # remove for 0.12
         self.obj = obj
         self.path_or_buf = path_or_buf
         self.sep = sep
@@ -927,7 +928,7 @@ class CSVFormatter(object):
                 self.writer = csv.writer(f, lineterminator=self.line_terminator,
                                          delimiter=self.sep, quoting=self.quoting)
 
-            if self.legacy:
+            if self.engine == 'python':
             # to be removed in 0.12
                 self._helper_csv(self.writer, na_rep=self.na_rep,
                                  float_format=self.float_format, cols=self.cols,
