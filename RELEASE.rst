@@ -231,6 +231,7 @@ pandas 0.11.0
   - Timestamp now supports the class method fromordinal similar to datetimes (GH3042_)
   - Fix issue with indexing a series with a boolean key and specifiying a 1-len list on the rhs (GH2745_)
   - Fixed bug in groupby apply when kernel generate list of arrays having unequal len (GH1738_)
+  - fixed handling of rolling_corr with center=True which could produce corr>1 (GH3155_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -285,6 +286,7 @@ pandas 0.11.0
 .. _GH2989: https://github.com/pydata/pandas/issues/2989
 .. _GH2993: https://github.com/pydata/pandas/issues/2993
 .. _GH3002: https://github.com/pydata/pandas/issues/3002
+.. _GH3155: https://github.com/pydata/pandas/issues/3155
 .. _GH3010: https://github.com/pydata/pandas/issues/3010
 .. _GH1738: https://github.com/pydata/pandas/issues/1738
 .. _GH3012: https://github.com/pydata/pandas/issues/3012
