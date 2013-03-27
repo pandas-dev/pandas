@@ -230,6 +230,7 @@ pandas 0.11.0
   - Fixed issues where indices can be passed as 'index/column' in addition to 0/1 for the axis parameter
   - PeriodIndex.tolist now boxes to Period (GH3178_)
   - PeriodIndex.get_loc KeyError now reports Period instead of ordinal (GH3179_)
+  - df.to_records bug when handling MultiIndex (GH3189)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -305,6 +306,7 @@ pandas 0.11.0
 .. _GH3130: https://github.com/pydata/pandas/issues/3130
 .. _GH3178: https://github.com/pydata/pandas/issues/3178
 .. _GH3179: https://github.com/pydata/pandas/issues/3179
+.. _GH3189: https://github.com/pydata/pandas/issues/3189
 
 pandas 0.10.1
 =============
