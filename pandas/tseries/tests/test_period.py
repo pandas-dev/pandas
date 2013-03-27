@@ -1926,6 +1926,14 @@ class TestPeriodIndex(TestCase):
         result = index.to_datetime()
         self.assertEquals(result[0], Timestamp('1/1/2012'))
 
+    def test_get_loc_msg(self):
+        idx = period_range('2000-1-1', freq='A', periods=10)
+        bad_period = Period('2012', 'A')
+        try:
+            idx.get_loc(bad_period)
+        except KeyError as inst:
+            self.assert_(inst.message == repr(bad_period))
+
     def test_append_concat(self):
         # #1815
         d1 = date_range('12/31/1990', '12/31/1999', freq='A-DEC')

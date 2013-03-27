@@ -229,6 +229,7 @@ pandas 0.11.0
   - fixed handling of rolling_corr with center=True which could produce corr>1 (GH3155_)
   - Fixed issues where indices can be passed as 'index/column' in addition to 0/1 for the axis parameter
   - PeriodIndex.tolist now boxes to Period (GH3178_)
+  - PeriodIndex.get_loc KeyError now reports Period instead of ordinal (GH3179_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -303,6 +304,7 @@ pandas 0.11.0
 .. _GH3094: https://github.com/pydata/pandas/issues/3094
 .. _GH3130: https://github.com/pydata/pandas/issues/3130
 .. _GH3178: https://github.com/pydata/pandas/issues/3178
+.. _GH3179: https://github.com/pydata/pandas/issues/3179
 
 pandas 0.10.1
 =============

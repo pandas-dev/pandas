@@ -887,8 +887,11 @@ class PeriodIndex(Int64Index):
             except TypeError:
                 pass
 
-            key = Period(key, self.freq).ordinal
-            return self._engine.get_loc(key)
+            key = Period(key, self.freq)
+            try:
+                return self._engine.get_loc(key.ordinal)
+            except KeyError as inst:
+                raise KeyError(repr(key))
 
     def slice_locs(self, start=None, end=None):
         """
