@@ -1932,7 +1932,7 @@ class TestPeriodIndex(TestCase):
         try:
             idx.get_loc(bad_period)
         except KeyError as inst:
-            self.assert_(inst.message == repr(bad_period))
+            self.assert_(inst.message == bad_period)
 
     def test_append_concat(self):
         # #1815

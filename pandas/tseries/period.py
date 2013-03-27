@@ -891,7 +891,7 @@ class PeriodIndex(Int64Index):
             try:
                 return self._engine.get_loc(key.ordinal)
             except KeyError as inst:
-                raise KeyError(repr(key))
+                raise KeyError(key)
 
     def slice_locs(self, start=None, end=None):
         """
