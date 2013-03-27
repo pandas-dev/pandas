@@ -4621,12 +4621,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 _do_test(mkdf(nrows, ncols,r_idx_type='dt',
                               c_idx_type='s'),path, 'dt','s')
 
-        # pending GH3173
-        # for r_idx_type in ['i', 'f','s','u']:
-        #     for c_idx_type in ['i', 'f','s','u','dt']:
-
-        for r_idx_type in ['i','s','u']:
-            for c_idx_type in ['i', 's','u','dt']:
+        for r_idx_type in ['i', 'f','s','u']:
+            for c_idx_type in ['i', 'f','s','u','dt']:
                 for ncols in [1,2,128]:
                     base = int((chunksize// ncols or 1) or 1)
                     for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
