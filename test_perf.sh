@@ -9,7 +9,7 @@ echo "Setting the BUILD_CACHE_DIR env var to a temp directory will"
 echo "potentially speed up subsequent runs.\n"
 
 
-cd "$BASEDIR/vb_suite/"
-python test_perf.py $@
+#cd "$BASEDIR/vb_suite/"
+python "$BASEDIR"/vb_suite/test_perf.py $@
 
-cd "$CURDIR"
+#cd "$CURDIR"

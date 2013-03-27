@@ -232,22 +232,23 @@ def main():
         args.log_file = os.path.abspath(
             os.path.join(REPO_PATH, 'vb_suite.log'))
 
+    saved_dir =  os.path.abspath(os.curdir)
     if args.outdf:
         # not bullet-proof but enough for us
         if os.path.sep not in args.outdf:
-            args.outdf = os.path.join(os.curdir, args.outdf)
+            args.outdf = os.path.join(saved_dir, args.outdf)
 
     if args.log_file:
         # not bullet-proof but enough for us
         if os.path.sep not in args.log_file:
-            args.log_file = os.path.join(os.curdir, args.log_file)
+            args.log_file = os.path.join(saved_dir, args.log_file)
 
     random.seed(args.seed)
     np.random.seed(args.seed)
 
     prprint("LOG_FILE = %s\n" % args.log_file)
 
-    saved_dir = os.path.curdir
+
     # move away from the pandas root dit, to avoid possible import
     # surprises
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
