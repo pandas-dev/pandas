@@ -1929,10 +1929,12 @@ class TestPeriodIndex(TestCase):
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)
         bad_period = Period('2012', 'A')
+        self.assertRaises(KeyError, idx.get_loc, bad_period)
+
         try:
             idx.get_loc(bad_period)
         except KeyError as inst:
-            self.assert_(inst.message == bad_period)
+            self.assert_(inst.args[0] == bad_period)
 
     def test_append_concat(self):
         # #1815
