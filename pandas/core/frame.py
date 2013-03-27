@@ -1100,8 +1100,13 @@ class DataFrame(NDFrame):
             if com.is_datetime64_dtype(self.index) and convert_datetime64:
                 ix_vals = [self.index.to_pydatetime()]
             else:
-                ix_vals = [self.index.values]
-            arrays = ix_vals + [self[c].values for c in self.columns]
+                if isinstance(self.index, MultiIndex):
+                    # array of tuples to numpy cols. copy copy copy
+                    ix_vals = map(np.array,zip(*self.index.values))
+                else:
+                    ix_vals = [self.index.values]
+
+            arrays = ix_vals+ [self[c].values for c in self.columns]
 
             count = 0
             index_names = self.index.names
