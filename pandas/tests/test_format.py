@@ -145,6 +145,53 @@ class TestDataFrameFormatting(unittest.TestCase):
             df = DataFrame(np.random.randn(10, 4))
             self.assertTrue('\\' not in repr(df))
 
+    def test_expand_frame_repr(self):
+        import pandas.core.common as com
+        original_in_interactive_session = com.in_interactive_session
+        com.in_interactive_session = lambda: True
+        line_width = 50
+
+        df_small = DataFrame('hello', [0], [0])
+        df_wide = DataFrame('hello', [0], range(8))
+
+        def has_info_repr(df):
+            r = repr(df)
+            return r.split('\n')[0].startswith("<class")
+
+        def has_wide_repr(df):
+            r = repr(df)
+            for line in r.split('\n'):
+                if line.endswith('\\'):
+                    return True
+            return False
+
+        with option_context('display.line_width', line_width):
+            with option_context('display.expand_frame_repr', True):
+                self.assertFalse(has_info_repr(df_small))
+                self.assertFalse(has_wide_repr(df_small))
+                self.assertFalse(has_info_repr(df_wide))
+                self.assertTrue(has_wide_repr(df_wide))
+                with option_context('display.max_columns', 7):
+                    self.assertFalse(has_info_repr(df_small))
+                    self.assertFalse(has_wide_repr(df_small))
+                    self.assertTrue(has_info_repr(df_wide))
+                    self.assertFalse(has_wide_repr(df_wide))
+
+            with option_context('display.expand_frame_repr', False):
+                self.assertFalse(has_info_repr(df_small))
+                self.assertFalse(has_wide_repr(df_small))
+                self.assertTrue(has_info_repr(df_wide))
+                self.assertFalse(has_wide_repr(df_wide))
+
+        with option_context('display.line_width', None):
+            with option_context('display.expand_frame_repr', True):
+                self.assertFalse(has_info_repr(df_small))
+                self.assertFalse(has_wide_repr(df_small))
+                self.assertFalse(has_info_repr(df_wide))
+                self.assertFalse(has_wide_repr(df_wide))
+
+        com.in_interactive_session = original_in_interactive_session
+
     def test_repr_max_columns_max_rows(self):
         import pandas.core.common as com
         original_in_interactive_session = com.in_interactive_session
