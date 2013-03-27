@@ -3303,6 +3303,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         rs = df.to_records(convert_datetime64=False)
         self.assert_(rs['index'][0] == df.index.values[0])
 
+    def test_to_records_with_multindex(self):
+        # GH3189
+        index = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                 ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        data = np.zeros((8, 4))
+        df = DataFrame(data, index=index)
+        r = df.to_records(index=True)['level_0']
+        self.assertTrue('bar' in r)
+        self.assertTrue('one' not in r)
+
     def test_to_records_with_Mapping_type(self):
         import email
         from email.parser import Parser
