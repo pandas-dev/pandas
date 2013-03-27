@@ -42,7 +42,8 @@ from pandas import DataFrame
 from suite import REPO_PATH
 
 DEFAULT_MIN_DURATION = 0.01
-HEAD_COL="t_head"
+HEAD_COL="head[ms]"
+BASE_COL="base[ms]"
 
 parser = argparse.ArgumentParser(description='Use vbench to generate a report comparing performance between two commits.')
 parser.add_argument('-H', '--head',
@@ -86,6 +87,14 @@ parser.add_argument('-n', '--repeats',
                     default=3,
                     type=int,
                     help='number of times to run each vbench, result value is the average')
+parser.add_argument('-N', '--hrepeats',
+                    metavar="N",
+                    dest='hrepeats',
+                    default=1,
+                    type=int,
+                    help='implies -H, number of times to run the vbench suite on the head\n'
+                    'each iteration will yield another column in the output'
+    )
 
 
 def get_results_df(db, rev):
@@ -161,34 +170,88 @@ def profile_comparative(benchmarks):
         head_res = get_results_df(db, h_head)
         baseline_res = get_results_df(db, h_baseline)
         ratio = head_res['timing'] / baseline_res['timing']
-        totals = DataFrame(dict(t_head=head_res['timing'],
-                                t_baseline=baseline_res['timing'],
-                                ratio=ratio,
-                                name=baseline_res.name), columns=[HEAD_COL, "t_baseline", "ratio", "name"])
-        totals = totals.ix[totals.t_head > args.min_duration]
+        totals = DataFrame({HEAD_COL:head_res['timing'],
+                                BASE_COL:baseline_res['timing'],
+                                'ratio':ratio,
+                                'name':baseline_res.name},
+                                columns=[HEAD_COL, BASE_COL, "ratio", "name"])
+        totals = totals.ix[totals[HEAD_COL] > args.min_duration]
             # ignore below threshold
         totals = totals.dropna(
         ).sort("ratio").set_index('name')  # sort in ascending order
 
-        hdr = ftr = """
------------------------------------------------------------------------
-Test name                      | target[ms] |  base[ms]  |   ratio    |
------------------------------------------------------------------------
-""".strip() +"\n"
+        h_msg =   repo.messages.get(h_head, "")
+        b_msg =   repo.messages.get(h_baseline, "")
 
+        print_report(totals,h_head=h_head,h_msg=h_msg,
+                     h_baseline=h_baseline,b_msg=b_msg)
+
+        if args.outdf:
+            prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
+            totals.save(args.outdf)
+    finally:
+        #        print("Disposing of TMP_DIR: %s" % TMP_DIR)
+        shutil.rmtree(TMP_DIR)
+
+
+def profile_head_single(benchmarks):
+    results = []
+
+    print( "Running %d benchmarks" % len(benchmarks))
+    for b in benchmarks:
+        d = b.run()
+        d.update(dict(name=b.name))
+        results.append(dict(name=d['name'],timing=d['timing']))
+
+    df = DataFrame(results)
+    df.columns = ["name",HEAD_COL]
+    return df.set_index("name")[HEAD_COL]
+
+def profile_head(benchmarks):
+    print( "profile_head")
+    ss= [profile_head_single(benchmarks) for i in range(args.hrepeats)]
+
+    results = DataFrame(ss)
+    results.index = ["#%d" % i for i in range(len(ss))]
+    results = results.T
+
+    shas, messages, _,_  = _parse_commit_log(None,REPO_PATH,base_commit="HEAD^")
+    print_report(results,h_head=shas[-1],h_msg=messages[-1])
+
+    if args.outdf:
+        prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
+        DataFrame(results).save(args.outdf)
+
+def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
+
+        name_width=32
+        col_width = 12
+        hdr = ("{:%s}" % name_width).format("Test name")
+        hdr += ("|{:^%d}"  % col_width)* len(df.columns)
+        hdr += "|"
+        hdr = hdr.format(*df.columns)
+        hdr = "-"*len(hdr) + "\n" + hdr + "\n" + "-"*len(hdr) + "\n"
+        ftr=hdr
         s = "\n"
         s += hdr
-        for i in range(len(totals)):
-            t,b,r = totals.irow(i).values
-            s += "{0:30s} {1: 12.4f} {2: 12.4f} {3: 12.4f}\n".format(totals.index[i],t,b,r)
+        # import ipdb
+        # ipdb.set_trace()
+        for i in range(len(df)):
+            lfmt = ("{:%s}" % name_width)
+            lfmt += ("| {:%d.4f} " % (col_width-2))* len(df.columns)
+            lfmt += "|\n"
+            s += lfmt.format(df.index[i],*list(df.irow(i).values))
+
         s+= ftr + "\n"
 
         s += "Ratio < 1.0 means the target commit is faster then the baseline.\n"
         s += "Seed used: %d\n\n" % args.seed
 
-        s += 'Target [%s] : %s\n' % (h_head, repo.messages.get(h_head, ""))
-        s += 'Base   [%s] : %s\n\n' % (
-            h_baseline, repo.messages.get(h_baseline, ""))
+        if  h_head:
+            s += 'Target [%s] : %s\n' % (h_head, h_msg)
+        if  h_baseline:
+            s += 'Base   [%s] : %s\n\n' % (
+                h_baseline, b_msg)
 
         logfile = open(args.log_file, 'w')
         logfile.write(s)
@@ -198,33 +261,7 @@ Test name                      | target[ms] |  base[ms]  |   ratio    |
         prprint("Results were also written to the logfile at '%s'" %
                 args.log_file)
 
-        if args.outdf:
-            prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
-            totals.save(args.outdf)
 
-    finally:
-        #        print("Disposing of TMP_DIR: %s" % TMP_DIR)
-        shutil.rmtree(TMP_DIR)
-
-def profile_head(benchmarks):
-    results = []
-    s= ""
-    for b in benchmarks:
-        d = b.run()
-        d.update(dict(name=b.name))
-        results.append(dict(name=d['name'],timing=d['timing']))
-        msg = "{name:<40}: {timing:> 10.4f} [ms]"
-        line = msg.format(name=results[-1]['name'], timing=results[-1]['timing'])
-        print(line)
-        s += line+"\n"
-
-        logfile = open(args.log_file, 'w')
-        logfile.write(s)
-        logfile.close()
-
-        if args.outdf:
-            prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
-            DataFrame(results,columns=["name",HEAD_COL]).save(args.outdf)
 
 def main():
     from suite import benchmarks
