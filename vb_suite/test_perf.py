@@ -37,11 +37,17 @@ import re
 import random
 import numpy as np
 
+from pandas import DataFrame
+
+from suite import REPO_PATH
+
 DEFAULT_MIN_DURATION = 0.01
+HEAD_COL="t_head"
 
 parser = argparse.ArgumentParser(description='Use vbench to generate a report comparing performance between two commits.')
-parser.add_argument('-a', '--auto',
-                    help='Execute a run using the defaults for the base and target commits.',
+parser.add_argument('-H', '--head',
+                    help='Execute vbenches using the currently checked out copy.',
+                    dest='head',
                     action='store_true',
                     default=False)
 parser.add_argument('-b', '--base-commit',
@@ -77,7 +83,6 @@ parser.add_argument('-s', '--seed',
 
 
 def get_results_df(db, rev):
-    from pandas import DataFrame
     """Takes a git commit hash and returns a Dataframe of benchmark results
     """
     bench = DataFrame(db.get_benchmarks())
@@ -93,47 +98,16 @@ def get_results_df(db, rev):
 def prprint(s):
     print("*** %s" % s)
 
-def main():
-    from pandas import DataFrame
+def profile_comparative(benchmarks):
+
     from vbench.api import BenchmarkRunner
     from vbench.db import BenchmarkDB
     from vbench.git import GitRepo
-    from suite import REPO_PATH, BUILD, DB_PATH, PREPARE, dependencies, benchmarks
-
-    # GitRepo wants exactly 7 character hash?
-    args.base_commit = args.base_commit[:7]
-    if args.target_commit:
-        args.target_commit = args.target_commit[:7]
-
-    if not args.log_file:
-        args.log_file = os.path.abspath(
-            os.path.join(REPO_PATH, 'vb_suite.log'))
-
-    if args.outdf:
-        # not bullet-proof but enough for us
-        if os.path.sep not in args.outdf:
-            args.outdf = os.path.join(os.curdir, args.outdf)
-
-    if args.log_file:
-        # not bullet-proof but enough for us
-        if os.path.sep not in args.log_file:
-            args.log_file = os.path.join(os.curdir, args.log_file)
-
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-
+    from suite import BUILD, DB_PATH, PREPARE, dependencies
     TMP_DIR = tempfile.mkdtemp()
-    prprint("TMP_DIR = %s" % TMP_DIR)
-    prprint("LOG_FILE = %s\n" % args.log_file)
-
-    saved_dir = os.path.curdir
-    # move away from the pandas root dit, to avoid possible import
-    # surprises
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-    benchmarks = [x for x in benchmarks if re.search(args.regex,x.name)]
 
     try:
+
         prprint("Opening DB at '%s'...\n" % DB_PATH)
         db = BenchmarkDB(DB_PATH)
 
@@ -184,7 +158,7 @@ def main():
         totals = DataFrame(dict(t_head=head_res['timing'],
                                 t_baseline=baseline_res['timing'],
                                 ratio=ratio,
-                                name=baseline_res.name), columns=["t_head", "t_baseline", "ratio", "name"])
+                                name=baseline_res.name), columns=[HEAD_COL, "t_baseline", "ratio", "name"])
         totals = totals.ix[totals.t_head > args.min_duration]
             # ignore below threshold
         totals = totals.dropna(
@@ -225,9 +199,67 @@ Test name                      | target[ms] |  base[ms]  |   ratio    |
     finally:
         #        print("Disposing of TMP_DIR: %s" % TMP_DIR)
         shutil.rmtree(TMP_DIR)
-        os.chdir(saved_dir)
 
+def profile_head(benchmarks):
+    results = []
+    s= ""
+    for b in benchmarks:
+        d = b.run()
+        d.update(dict(name=b.name))
+        results.append(dict(name=d['name'],timing=d['timing']))
+        msg = "{name:<40}: {timing:> 10.4f} [ms]"
+        line = msg.format(name=results[-1]['name'], timing=results[-1]['timing'])
+        print(line)
+        s += line+"\n"
 
+        logfile = open(args.log_file, 'w')
+        logfile.write(s)
+        logfile.close()
+
+        if args.outdf:
+            prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
+            DataFrame(results,columns=["name",HEAD_COL]).save(args.outdf)
+
+def main():
+    from suite import benchmarks
+    # GitRepo wants exactly 7 character hash?
+    if args.base_commit:
+        args.base_commit = args.base_commit[:7]
+    if args.target_commit:
+        args.target_commit = args.target_commit[:7]
+
+    if not args.log_file:
+        args.log_file = os.path.abspath(
+            os.path.join(REPO_PATH, 'vb_suite.log'))
+
+    if args.outdf:
+        # not bullet-proof but enough for us
+        if os.path.sep not in args.outdf:
+            args.outdf = os.path.join(os.curdir, args.outdf)
+
+    if args.log_file:
+        # not bullet-proof but enough for us
+        if os.path.sep not in args.log_file:
+            args.log_file = os.path.join(os.curdir, args.log_file)
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+
+    prprint("LOG_FILE = %s\n" % args.log_file)
+
+    saved_dir = os.path.curdir
+    # move away from the pandas root dit, to avoid possible import
+    # surprises
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+    benchmarks = [x for x in benchmarks if re.search(args.regex,x.name)]
+
+    if args.head:
+        profile_head(benchmarks)
+    else:
+        profile_comparative(benchmarks)
+
+    os.chdir(saved_dir)
 
 # hack , vbench.git ignores some commits, but we
 # need to be able to reference any commit.
@@ -279,7 +311,7 @@ def _parse_wrapper(base_commit):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    if not args.auto and (not args.base_commit and not args.target_commit):
+    if not args.head and (not args.base_commit and not args.target_commit):
         parser.print_help()
     else:
         main()
