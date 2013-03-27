@@ -183,7 +183,10 @@ def assert_series_equal(left, right, check_dtype=True,
     assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
         assert(left.dtype == right.dtype)
-    assert(left.index.equals(right.index))
+    if check_less_precise:
+        assert_almost_equal(left.index.values, right.index.values, check_less_precise)
+    else:
+        assert(left.index.equals(right.index))
     if check_index_type:
         assert(type(left.index) == type(right.index))
         assert(left.index.dtype == right.index.dtype)
@@ -193,7 +196,7 @@ def assert_series_equal(left, right, check_dtype=True,
                getattr(right, 'freqstr', None))
 
 
-def assert_frame_equal(left, right, check_dtype=True, 
+def assert_frame_equal(left, right, check_dtype=True,
                        check_index_type=False,
                        check_column_type=False,
                        check_frame_type=False,
@@ -204,14 +207,18 @@ def assert_frame_equal(left, right, check_dtype=True,
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
 
-    assert(left.columns.equals(right.columns))
-    assert(left.index.equals(right.index))
+    if check_less_precise:
+        assert_almost_equal(left.columns,right.columns)
+        assert_almost_equal(left.index,right.index)
+    else:
+        assert(left.columns.equals(right.columns))
+        assert(left.index.equals(right.index))
 
     for i, col in enumerate(left.columns):
         assert(col in right)
         lcol = left.icol(i)
         rcol = right.icol(i)
-        assert_series_equal(lcol, rcol, 
+        assert_series_equal(lcol, rcol,
                             check_dtype=check_dtype,
                             check_index_type=check_index_type,
                             check_less_precise=check_less_precise)
