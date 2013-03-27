@@ -33,3 +33,4 @@ pandas/io/*.json
 .idea/libraries/sass_stdlib.xml
 
 .idea/pandas.iml
+.build_cache_dir

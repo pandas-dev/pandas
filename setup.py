@@ -12,7 +12,13 @@ import shutil
 import warnings
 
 try:
-    BUILD_CACHE_DIR = os.environ.get('BUILD_CACHE_DIR',"")
+    basedir = os.path.dirname(__file__)
+    dotfile = os.path.join(basedir,".build_cache_dir")
+    BUILD_CACHE_DIR = ""
+    if os.path.exists(dotfile):
+        BUILD_CACHE_DIR = open(dotfile).readline().strip()
+    BUILD_CACHE_DIR = os.environ.get('BUILD_CACHE_DIR',BUILD_CACHE_DIR)
+
     if os.path.isdir(BUILD_CACHE_DIR):
         print("--------------------------------------------------------")
         print("BUILD CACHE ACTIVATED. be careful, this is experimental.")
