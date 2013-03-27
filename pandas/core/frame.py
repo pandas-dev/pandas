@@ -599,14 +599,17 @@ class DataFrame(NDFrame):
     def __nonzero__(self):
         raise ValueError("Cannot call bool() on DataFrame.")
 
+    def _to_string_max_line_width(self):
+        buf = StringIO()
+        self.to_string(buf=buf)
+        value = buf.getvalue()
+        return max([len(l) for l in value.split('\n')])
+
     def _need_info_repr_(self):
         """
         Check if it is needed to use info/summary view to represent a
         particular DataFrame.
         """
-        if not get_option("display.expand_frame_repr"):
-            return True
-
         if com.in_qtconsole():
             terminal_width, terminal_height = 100, 100
         else:
@@ -614,13 +617,21 @@ class DataFrame(NDFrame):
         max_rows = (terminal_height if get_option("display.max_rows") == 0
                     else get_option("display.max_rows"))
         max_columns = get_option("display.max_columns")
+        expand_repr = get_option("display.expand_frame_repr")
+        line_width = get_option('display.line_width')
 
         if max_columns > 0:
-            if (len(self.index) <= max_rows and
-                    (len(self.columns) <= max_columns)):
-                return False
-            else:
+            if ((len(self.index) > max_rows) or
+                    (len(self.columns) > max_columns)):
                 return True
+            else:
+                if expand_repr or (line_width is None):
+                    return False
+                else:
+                    if len(self.columns) > (line_width // 2):
+                        return True
+                    else:
+                        return self._to_string_max_line_width() > line_width
         else:
             # save us
             if (len(self.index) > max_rows or
@@ -628,10 +639,7 @@ class DataFrame(NDFrame):
                  len(self.columns) > terminal_width // 2)):
                 return True
             else:
-                buf = StringIO()
-                self.to_string(buf=buf)
-                value = buf.getvalue()
-                if (max([len(l) for l in value.split('\n')]) > terminal_width
+                if (self._to_string_max_line_width() > terminal_width
                     and com.in_interactive_session()):
                     return True
                 else:
