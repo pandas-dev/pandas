@@ -1226,6 +1226,14 @@ class TestPeriodIndex(TestCase):
         self.assertRaises(
             ValueError, period_range, '2011-1-1', '2012-1-1', 'B')
 
+    def test_tolist(self):
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        rs = index.tolist()
+        [self.assert_(isinstance(x, Period)) for x in rs]
+
+        recon = PeriodIndex(rs)
+        self.assert_(index.equals(recon))
+
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')

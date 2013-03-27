@@ -768,6 +768,12 @@ class PeriodIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return self._get_object_array()
 
+    def tolist(self):
+        """
+        Return a list of Period objects
+        """
+        return self._get_object_array().tolist()
+
     def to_timestamp(self, freq=None, how='start'):
         """
         Cast to DatetimeIndex
