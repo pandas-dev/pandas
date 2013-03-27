@@ -1253,9 +1253,8 @@ namespace, and they are:
 
 **Note:** developers can check out pandas/core/config.py for more info.
 
-
-but all of the functions above accept a regexp pattern (``re.search`` style) as argument,
-so passing in a substring will work - as long as it is unambiguous :
+All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
+and so passing in a substring will work - as long as it is unambiguous :
 
 .. ipython:: python
 
@@ -1266,7 +1265,7 @@ so passing in a substring will work - as long as it is unambiguous :
    get_option("display.max_rows")
 
 
-However, the following will **not work** because it matches multiple option names, e.g.``display.max_colwidth``, ``display.max_rows``, ``display.max_columns``:
+The following will **not work** because it matches multiple option names, e.g.``display.max_colwidth``, ``display.max_rows``, ``display.max_columns``:
 
 .. ipython:: python
    :okexcept:
@@ -1280,9 +1279,8 @@ However, the following will **not work** because it matches multiple option name
 **Note:** Using this form of convenient shorthand may make your code break if new options with similar names are added in future versions.
 
 
-The docstrings of all the functions document the available options, but you can also get a
-list of available options and their descriptions with ``describe_option``. When called
-with no argument ``describe_option`` will print out descriptions for all available options.
+You can get a list of available options and their descriptions with ``describe_option``. When called
+with no argument ``describe_option`` will print out the descriptions for all available options.
 
 .. ipython:: python
 
@@ -1313,7 +1311,7 @@ All options also have a default value, and you can use the ``reset_option`` to d
    get_option("display.max_rows")
 
 
-and you also set multiple options at once:
+It's also possible to reset multiple options at once:
 
 .. ipython:: python
 
