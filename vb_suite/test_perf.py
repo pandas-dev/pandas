@@ -80,6 +80,12 @@ parser.add_argument('-s', '--seed',
                     default=1234,
                     type=int,
                     help='integer value to seed PRNG with')
+parser.add_argument('-n', '--repeats',
+                    metavar="N",
+                    dest='repeats',
+                    default=3,
+                    type=int,
+                    help='number of times to run each vbench, result value is the average')
 
 
 def get_results_df(db, rev):
@@ -254,6 +260,9 @@ def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     benchmarks = [x for x in benchmarks if re.search(args.regex,x.name)]
+
+    for b in benchmarks:
+        b.repeat = args.repeats
 
     if args.head:
         profile_head(benchmarks)
