@@ -568,6 +568,26 @@ class DatetimeIndex(Int64Index):
         except (KeyError, TypeError):
             return False
 
+    def _format_with_header(self, header, **kwargs):
+        return header + self._format_native_types(**kwargs)
+
+    def _format_native_types(self, na_rep=u'NaT', **kwargs):
+        data = list(self)
+
+        # tz formatter or time formatter
+        zero_time = time(0, 0)
+        for d in data:
+            if d.time() != zero_time or d.tzinfo is not None:
+                return [u'%s' % x for x in data ]
+            
+        values = np.array(data,dtype=object)
+        mask = isnull(self.values)
+        values[mask] = na_rep
+        
+        imask = -mask
+        values[imask] = np.array([ u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day) for dt in values[imask] ])
+        return values.tolist()
+
     def isin(self, values):
         """
         Compute boolean array of whether each index value is found in the
@@ -626,11 +646,6 @@ class DatetimeIndex(Int64Index):
             return self.asi8.copy()
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
-
-    @property
-    def asi8(self):
-        # do not cache or you'll create a memory leak
-        return self.values.view('i8')
 
     def _get_time_micros(self):
         utc = _utc()

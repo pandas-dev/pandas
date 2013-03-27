@@ -12,6 +12,7 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
+from pandas.core.common import isnull
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -792,6 +793,15 @@ class PeriodIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return self._get_object_array()
 
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        return np.array_equal(self.asi8, other.asi8)
+
     def tolist(self):
         """
         Return a list of Period objects
@@ -1029,16 +1039,18 @@ class PeriodIndex(Int64Index):
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 
-    def format(self, name=False, formatter=None):
-        """
-        Render a string representation of the Index
-        """
-        header = []
+    def _format_with_header(self, header, **kwargs):
+        return header + self._format_native_types(**kwargs)
 
-        if name:
-            header.append(str(self.name) if self.name is not None else '')
+    def _format_native_types(self, na_rep=u'NaT', **kwargs):
 
-        return header + ['%s' % Period(x, freq=self.freq) for x in self]
+        values = np.array(list(self),dtype=object)
+        mask = isnull(self.values)
+        values[mask] = na_rep
+        
+        imask = -mask
+        values[imask] = np.array([ u'%s' % dt for dt in values[imask] ])
+        return values.tolist()
 
     def __array_finalize__(self, obj):
         if self.ndim == 0:  # pragma: no cover
