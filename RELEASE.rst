@@ -231,6 +231,7 @@ pandas 0.11.0
   - PeriodIndex.tolist now boxes to Period (GH3178_)
   - PeriodIndex.get_loc KeyError now reports Period instead of ordinal (GH3179_)
   - df.to_records bug when handling MultiIndex (GH3189)
+  - Bug in integer out-of-bounds indexing in Series causing segfault (GH3168_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -304,9 +305,13 @@ pandas 0.11.0
 .. _GH3075: https://github.com/pydata/pandas/issues/3075
 .. _GH3094: https://github.com/pydata/pandas/issues/3094
 .. _GH3130: https://github.com/pydata/pandas/issues/3130
+<<<<<<< HEAD
 .. _GH3178: https://github.com/pydata/pandas/issues/3178
 .. _GH3179: https://github.com/pydata/pandas/issues/3179
 .. _GH3189: https://github.com/pydata/pandas/issues/3189
+=======
+.. _GH3168: https://github.com/pydata/pandas/issues/3168
+>>>>>>> BUG: GH3168 bug in integer out-of-bounds indexing in Series causing segfault (GH3168_)
 
 pandas 0.10.1
 =============
