@@ -556,7 +556,7 @@ class DataFrame(NDFrame):
             columns = _ensure_index(columns)
 
         return create_block_manager_from_blocks([ values.T ], [ columns, index ])
-        
+
     def _wrap_array(self, arr, axes, copy=False):
         index, columns = axes
         return self._constructor(arr, index=index, columns=columns, copy=copy)
@@ -583,7 +583,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor(self):
-        return DataFrame
+        return self.__class__
 
     @property
     def shape(self):
@@ -865,15 +865,15 @@ class DataFrame(NDFrame):
                                 (lvals.shape, rvals.shape))
 
         if isinstance(other, DataFrame):
-            return DataFrame(np.dot(lvals, rvals),
-                             index=left.index,
-                             columns=other.columns)
+            return self._constructor(np.dot(lvals, rvals),
+                                     index=left.index,
+                                     columns=other.columns)
         elif isinstance(other, Series):
             return Series(np.dot(lvals, rvals), index=left.index)
         elif isinstance(rvals, np.ndarray):
             result = np.dot(lvals, rvals)
             if result.ndim == 2:
-                return DataFrame(result, index=left.index)
+                return self._constructor(result, index=left.index)
             else:
                 return Series(result, index=left.index)
         else:  # pragma: no cover
@@ -912,7 +912,7 @@ class DataFrame(NDFrame):
         elif orient != 'columns':  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
-        return DataFrame(data, index=index, columns=columns, dtype=dtype)
+        return cls(data, index=index, columns=columns, dtype=dtype)
 
     def to_dict(self, outtype='dict'):
         """
@@ -979,7 +979,7 @@ class DataFrame(NDFrame):
 
         if com.is_iterator(data):
             if nrows == 0:
-                return DataFrame()
+                return cls()
 
             try:
                 if py3compat.PY3:
@@ -987,7 +987,7 @@ class DataFrame(NDFrame):
                 else:
                     first_row = data.next()
             except StopIteration:
-                return DataFrame(index=index, columns=columns)
+                return cls(index=index, columns=columns)
 
             dtype = None
             if hasattr(first_row, 'dtype') and first_row.dtype.names:
@@ -1077,7 +1077,7 @@ class DataFrame(NDFrame):
         mgr = _arrays_to_mgr(arrays, arr_columns, result_index,
                              columns)
 
-        return DataFrame(mgr)
+        return cls(mgr)
 
     def to_records(self, index=True, convert_datetime64=True):
         """
@@ -1815,7 +1815,7 @@ class DataFrame(NDFrame):
         return self._ixs(i,axis=1)
 
     def _ixs(self, i, axis=0, copy=False):
-        """ 
+        """
         i : int, slice, or sequence of integers
         axis : int
         """
@@ -1846,7 +1846,7 @@ class DataFrame(NDFrame):
         # icol
         else:
 
-            """ 
+            """
             Notes
             -----
             If slice passed, the resulting data will be a view
@@ -1954,7 +1954,7 @@ class DataFrame(NDFrame):
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
         if values.ndim == 2:
-            return DataFrame(values.T, columns=items, index=self.index)
+            return self._constructor(values.T, columns=items, index=self.index)
         else:
             return Series.from_array(values, index=self.index, name=items)
 
@@ -2125,7 +2125,7 @@ class DataFrame(NDFrame):
         column : Series
         """
         return NDFrame.pop(self, item)
-        
+
     # to support old APIs
     @property
     def _series(self):
@@ -2550,7 +2550,8 @@ class DataFrame(NDFrame):
             indexer = row_indexer, col_indexer
             new_values = com.take_2d_multi(self.values, indexer,
                                            fill_value=fill_value)
-            return DataFrame(new_values, index=new_index, columns=new_columns)
+            return self._constructor(new_values, index=new_index,
+                                     columns=new_columns)
         elif row_indexer is not None:
             return self._reindex_with_indexers(new_index, row_indexer,
                                                None, None, copy, fill_value)
@@ -5060,7 +5061,8 @@ class DataFrame(NDFrame):
             try:
                 ranks = algos.rank(self.values, axis=axis, method=method,
                                    ascending=ascending, na_option=na_option)
-                return DataFrame(ranks, index=self.index, columns=self.columns)
+                return self._constructor(ranks, index=self.index,
+                                         columns=self.columns)
             except TypeError:
                 numeric_only = True
 
@@ -5070,7 +5072,7 @@ class DataFrame(NDFrame):
             data = self
         ranks = algos.rank(data.values, axis=axis, method=method,
                            ascending=ascending, na_option=na_option)
-        return DataFrame(ranks, index=data.index, columns=data.columns)
+        return self._constructor(ranks, index=data.index, columns=data.columns)
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
         """
@@ -5104,7 +5106,7 @@ class DataFrame(NDFrame):
         else:
             raise ValueError('Axis must be 0 or 1. Got %s' % str(axis))
 
-        return DataFrame(new_data)
+        return self._constructor(new_data)
 
     def to_period(self, freq=None, axis=0, copy=True):
         """
@@ -5139,7 +5141,7 @@ class DataFrame(NDFrame):
         else:
             raise ValueError('Axis must be 0 or 1. Got %s' % str(axis))
 
-        return DataFrame(new_data)
+        return self._constructor(new_data)
 
     #----------------------------------------------------------------------
     # Deprecated stuff
@@ -5221,14 +5223,17 @@ class DataFrame(NDFrame):
             if other.shape != self.shape:
                 raise ValueError('other must be the same shape as self '
                                  'when an ndarray')
-            other = DataFrame(other, self.index, self.columns)
+            other = self._constructor(other, self.index, self.columns)
 
         if inplace:
-            # we may have different type blocks come out of putmask, so reconstruct the block manager
+            # we may have different type blocks come out of putmask, so
+            # reconstruct the block manager
             self._data = self._data.putmask(cond,other,inplace=True)
 
         else:
-            new_data = self._data.where(other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+            new_data = self._data.where(other, cond,
+                                        raise_on_error=raise_on_error,
+                                        try_cast=try_cast)
 
             return self._constructor(new_data)
 
