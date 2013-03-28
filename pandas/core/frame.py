@@ -4162,7 +4162,7 @@ class DataFrame(NDFrame):
                     successes.append(i)
                 except Exception:
                     pass
-            # so will work with MultiIndex, need test
+            # so will work with MultiIndex
             if len(successes) < len(res_index):
                 res_index = res_index.take(successes)
         else:
@@ -4181,6 +4181,7 @@ class DataFrame(NDFrame):
                     pass
                 raise e
 
+
         if len(results) > 0 and _is_sequence(results[0]):
             if not isinstance(results[0], Series):
                 index = res_columns
@@ -4188,8 +4189,7 @@ class DataFrame(NDFrame):
                 index = None
 
             result = self._constructor(data=results, index=index)
-            result.rename(columns=dict(zip(range(len(res_index)), res_index)),
-                          inplace=True)
+            result.columns = res_index
 
             if axis == 1:
                 result = result.T
@@ -4199,6 +4199,7 @@ class DataFrame(NDFrame):
         else:
             s = Series(results)
             s.index = res_index
+
             return s
 
     def _apply_broadcast(self, func, axis):
