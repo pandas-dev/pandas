@@ -240,6 +240,7 @@ pandas 0.11.0
   - PeriodIndex.get_loc KeyError now reports Period instead of ordinal (GH3179_)
   - df.to_records bug when handling MultiIndex (GH3189)
   - Fix Series.__getitem__ segfault when index less than -length (GH3168_)
+  - Fix bug when using Timestamp as a date parser (GH2932_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -289,6 +290,7 @@ pandas 0.11.0
 .. _GH2922: https://github.com/pydata/pandas/issues/2922
 .. _GH2929: https://github.com/pydata/pandas/issues/2929
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
+.. _GH2932: https://github.com/pydata/pandas/issues/2932
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
 .. _GH2967: https://github.com/pydata/pandas/issues/2967
 .. _GH2982: https://github.com/pydata/pandas/issues/2982

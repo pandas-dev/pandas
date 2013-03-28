@@ -1559,11 +1559,11 @@ def _make_date_converter(date_parser=None, dayfirst=False):
                 return result
             except Exception:
                 try:
-                    return generic_parser(date_parser, *date_cols)
-                except Exception:
                     return lib.try_parse_dates(_concat_date_cols(date_cols),
                                                parser=date_parser,
                                                dayfirst=dayfirst)
+                except Exception:
+                    return generic_parser(date_parser, *date_cols)
 
     return converter
 

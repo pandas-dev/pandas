@@ -19,7 +19,7 @@ import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal, 
+                                 assert_series_equal,
                                  network,
                                  ensure_clean)
 import pandas.util.testing as tm
@@ -265,6 +265,15 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         df = self.read_csv(StringIO(data), header=None, parse_dates=date_spec,
                            date_parser=conv.parse_date_time)
         self.assert_('nominal' in df)
+
+    def test_multiple_date_col_timestamp_parse(self):
+        data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
+05/31/2012,15:30:00.029,1306.25,8,E,0,,1306.25"""
+        result = self.read_csv(StringIO(data), sep=',', header=None,
+                               parse_dates=[[0,1]], date_parser=Timestamp)
+
+        ex_val = Timestamp('05/31/2012 15:30:00.029')
+        self.assertEqual(result['0_1'][0], ex_val)
 
     def test_single_line(self):
         # sniff separator
@@ -1380,7 +1389,7 @@ A,B,C
                     bytes = dat.encode(enc)
                     with open(path, 'wb') as f:
                         f.write(bytes)
-                        
+
                     s = BytesIO(dat.encode('utf-8'))
                     if py3compat.PY3:
                         # somewhat False since the code never sees bytes
