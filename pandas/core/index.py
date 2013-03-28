@@ -1654,13 +1654,13 @@ class MultiIndex(Index):
                 # we have some NA
                 mask = lab==-1
                 if mask.any():
-                    formatted = np.array(formatted)
+                    formatted = np.array(formatted,dtype=object)
                     formatted[mask] = na_rep
                     formatted = formatted.tolist()
 
             else:
                 # weird all NA case
-                formatted = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
+                formatted = [com.pprint_thing(na_rep if isnull(x) else x, escape_chars=('\t', '\r', '\n'))
                              for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
 
@@ -1671,6 +1671,7 @@ class MultiIndex(Index):
             if names:
                 level.append(com.pprint_thing(name, escape_chars=('\t', '\r', '\n'))
                              if name is not None else '')
+
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)

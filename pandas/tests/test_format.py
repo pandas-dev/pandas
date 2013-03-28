@@ -666,6 +666,22 @@ class TestDataFrameFormatting(unittest.TestCase):
         expected = u'     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nNaN  9h4  79d     64'
         self.assert_(result == expected)
         
+        # partial nan in mi
+        df2 = df.copy()
+        df2.ix[:,'id2'] = np.nan
+        y = df2.set_index(['id2','id3'])
+        result = y.to_string()
+        expected = u'         id1  value\nid2 id3            \nNaN 78d  1a3    123\n    79d  9h4     64'
+        self.assert_(result == expected)
+
+        df = DataFrame({'id1': {0: np.nan, 1: '9h4'}, 'id2': {0: np.nan, 1: 'd67'},
+                        'id3': {0: np.nan, 1: '79d'}, 'value': {0: 123, 1: 64}})
+
+        y = df.set_index(['id1','id2','id3'])
+        result = y.to_string()
+        expected = u'             value\nid1 id2 id3       \nNaN NaN NaN    123\n9h4 d67 79d     64'
+        self.assert_(result == expected)
+
     def test_to_string(self):
         from pandas import read_table
         import re
