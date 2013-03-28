@@ -1541,29 +1541,51 @@ class PythonParser(ParserBase):
         lines = self._check_comments(lines)
         return self._check_thousands(lines)
 
+def _fallback(try_func_lst, exc_lst=None):
+    exc_lst = [Exception] * len(try_func_lst)
+    for func, exc in zip(try_func_lst, exc_lst):
+        try:
+            return func()
+        except exc:
+            pass
+    raise
 
 def _make_date_converter(date_parser=None, dayfirst=False):
     def converter(*date_cols):
         if date_parser is None:
             strs = _concat_date_cols(date_cols)
-            try:
+
+            def fast():
                 return tslib.array_to_datetime(com._ensure_object(strs),
                                                utc=None, dayfirst=dayfirst)
-            except:
+            def slow():
                 return lib.try_parse_dates(strs, dayfirst=dayfirst)
+
+            flst = [fast, slow]
+
         else:
-            try:
+            # try if there's a fast path first
+            def maybe_fast():
                 result = date_parser(*date_cols)
                 if isinstance(result, datetime.datetime):
-                    raise Exception('scalar parser')
+                    result = np.array([result])
+                elif not isinstance(result, np.ndarray):
+                    raise Exception("Invalid fast date parsing result")
                 return result
-            except Exception:
-                try:
-                    return generic_parser(date_parser, *date_cols)
-                except Exception:
-                    return lib.try_parse_dates(_concat_date_cols(date_cols),
-                                               parser=date_parser,
-                                               dayfirst=dayfirst)
+
+            # try in python loop in two ways
+
+            def slow1():
+                return generic_parser(date_parser, *date_cols)
+
+            def slow2():
+                return lib.try_parse_dates(_concat_date_cols(date_cols),
+                                           parser=date_parser,
+                                           dayfirst=dayfirst)
+
+            flst = [maybe_fast, slow1, slow2]
+
+        return _fallback(flst)
 
     return converter
 
