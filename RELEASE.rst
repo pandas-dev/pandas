@@ -292,6 +292,7 @@ pandas 0.11.0
 .. _GH2850: https://github.com/pydata/pandas/issues/2850
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2892: https://github.com/pydata/pandas/issues/2892
+.. _GH2902: https://github.com/pydata/pandas/issues/2902
 .. _GH2903: https://github.com/pydata/pandas/issues/2903
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 .. _GH2922: https://github.com/pydata/pandas/issues/2922
