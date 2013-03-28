@@ -307,6 +307,9 @@ class DatetimeIndex(Int64Index):
         inferred_tz = tools._maybe_get_tz(inferred_tz)
         tz = tools._maybe_get_tz(tz)
 
+        inferred_tz = tools._maybe_get_tz(inferred_tz)
+        tz = tools._maybe_get_tz(tz)
+
         if tz is not None and inferred_tz is not None:
             assert(inferred_tz == tz)
         elif inferred_tz is not None:
