@@ -136,6 +136,9 @@ class Period(object):
             raise TypeError(other)
         return False
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash((self.ordinal, self.freq))
 
