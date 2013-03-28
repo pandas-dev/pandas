@@ -948,8 +948,10 @@ class _Concatenator(object):
             return Series(new_data, index=self.new_axes[0], name=name)
         elif self._is_series:
             data = dict(itertools.izip(xrange(len(self.objs)), self.objs))
-            tmpdf = DataFrame(data, index=self.new_axes[0])
-            tmpdf.columns = self.new_axes[1]
+            index, columns = self.new_axes
+            tmpdf = DataFrame(data, index=index)
+            if columns is not None:
+                tmpdf.columns = columns
             return tmpdf
         else:
             new_data = self._get_concatenated_data()

@@ -244,6 +244,8 @@ pandas 0.11.0
   - Fix bug creating date range from Timestamp with time zone and passing same
     time zone (GH2926_)
   - Add comparison operators to Period object (GH2781_)
+  - Fix bug when concatenating two Series into a DataFrame when they have the
+    same name (GH2797_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -280,6 +282,7 @@ pandas 0.11.0
 .. _GH2437: https://github.com/pydata/pandas/issues/2437
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
 .. _GH2795: https://github.com/pydata/pandas/issues/2795
+.. _GH2797: https://github.com/pydata/pandas/issues/2797
 .. _GH2819: https://github.com/pydata/pandas/issues/2819
 .. _GH2845: https://github.com/pydata/pandas/issues/2845
 .. _GH2867: https://github.com/pydata/pandas/issues/2867

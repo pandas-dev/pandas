@@ -869,12 +869,12 @@ class TestMergeMulti(unittest.TestCase):
             left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
                               'k2': ['foo', 'bar'] * 12,
                               'v': np.array(np.arange(24),dtype=np.int64) })
-            
+
             index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
             right = DataFrame({'v2': np.array([5, 7], dtype=dtype2)}, index=index)
-            
+
             result = left.join(right, on=['k1', 'k2'])
-            
+
             expected = left.copy()
 
             if dtype2.kind == 'i':
@@ -882,7 +882,7 @@ class TestMergeMulti(unittest.TestCase):
             expected['v2'] = np.array(np.nan,dtype=dtype2)
             expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
             expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
-            
+
             tm.assert_frame_equal(result, expected)
 
         for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
@@ -1681,6 +1681,13 @@ class TestConcatenate(unittest.TestCase):
         expected.columns=['same name', 'same name']
         assert_frame_equal(result, expected)
 
+    def test_concat_series_axis1_same_names_ignore_index(self):
+        dates = date_range('01-Jan-2013', '01-Jan-2014', freq='MS')[0:-1]
+        s1 = Series(randn(len(dates)), index=dates, name='value')
+        s2 = Series(randn(len(dates)), index=dates, name='value')
+
+        result = concat([s1, s2], axis=1, ignore_index=True)
+        self.assertTrue(np.array_equal(result.columns, [0, 1]))
 
 class TestOrderedMerge(unittest.TestCase):
 
