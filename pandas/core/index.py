@@ -428,12 +428,10 @@ class Index(np.ndarray):
         taken = self.view(np.ndarray).take(indexer)
         return self._constructor(taken, name=self.name)
 
-    def format(self, name=False, formatter=None, na_rep='NaN'):
+    def format(self, name=False, formatter=None, **kwargs):
         """
         Render a string representation of the Index
         """
-        from pandas.core.format import format_array
-
         header = []
         if name:
             header.append(com.pprint_thing(self.name,
@@ -443,10 +441,12 @@ class Index(np.ndarray):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        if self.is_all_dates:
-            return header + _date_formatter(self)
+        return self._format_with_header(header, **kwargs)
 
+    def _format_with_header(self, header, na_rep='NaN', **kwargs):
         values = self.values
+
+        from pandas.core.format import format_array
 
         if values.dtype == np.object_:
             values = lib.maybe_convert_objects(values, safe=1)
@@ -466,17 +466,18 @@ class Index(np.ndarray):
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
 
-    def to_native_types(self, slicer=None, na_rep='', float_format=None):
+    def to_native_types(self, slicer=None, **kwargs):
+        """ slice and dice then format """
         values = self
         if slicer is not None:
             values = values[slicer]
-        if self.is_all_dates:
-            return _date_formatter(values)
-        else:
-            mask = isnull(values)
-            values = np.array(values,dtype=object)
-            values[mask] = na_rep
+        return values._format_native_types(**kwargs)
 
+    def _format_native_types(self, na_rep='', **kwargs):
+        """ actually format my specific types """
+        mask = isnull(self)
+        values = np.array(self,dtype=object,copy=True)
+        values[mask] = na_rep
         return values.tolist()
 
     def equals(self, other):
@@ -1321,6 +1322,11 @@ class Int64Index(Index):
         return Int64Index
 
     @property
+    def asi8(self):
+        # do not cache or you'll create a memory leak
+        return self.values.view('i8')
+
+    @property
     def is_all_dates(self):
         """
         Checks that all the labels are datetime objects
@@ -1489,11 +1495,8 @@ class MultiIndex(Index):
     def __len__(self):
         return len(self.labels[0])
 
-    def to_native_types(self, slicer=None, na_rep='', float_format=None):
-        ix = self
-        if slicer:
-            ix = self[slicer]
-        return ix.tolist()
+    def _format_native_types(self, **kwargs):
+        return self.tolist()
 
     @property
     def _constructor(self):
@@ -1651,13 +1654,13 @@ class MultiIndex(Index):
                 # we have some NA
                 mask = lab==-1
                 if mask.any():
-                    formatted = np.array(formatted)
+                    formatted = np.array(formatted,dtype=object)
                     formatted[mask] = na_rep
                     formatted = formatted.tolist()
 
             else:
                 # weird all NA case
-                formatted = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
+                formatted = [com.pprint_thing(na_rep if isnull(x) else x, escape_chars=('\t', '\r', '\n'))
                              for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
 
@@ -1668,6 +1671,7 @@ class MultiIndex(Index):
             if names:
                 level.append(com.pprint_thing(name, escape_chars=('\t', '\r', '\n'))
                              if name is not None else '')
+
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
@@ -2597,23 +2601,6 @@ class MultiIndex(Index):
 
 
 # For utility purposes
-
-def _date_formatter(obj, na_rep=u'NaT'):
-    data = list(obj)
-
-    # tz formatter or time formatter
-    zero_time = time(0, 0)
-    for d in data:
-        if d.time() != zero_time or d.tzinfo is not None:
-            return [u'%s' % x for x in data ]
-
-    values = np.array(data,dtype=object)
-    mask = isnull(obj.values)
-    values[mask] = na_rep
-
-    imask = -mask
-    values[imask] = np.array([ u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day) for dt in values[imask] ])
-    return values.tolist()
 
 def _sparsify(label_list, start=0):
     pivoted = zip(*label_list)

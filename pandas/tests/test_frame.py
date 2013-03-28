@@ -21,7 +21,7 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Timestamp)
+                             MultiIndex, DatetimeIndex, Timestamp, Period)
 from pandas.io.parsers import read_csv
 
 from pandas.util.testing import (assert_almost_equal,
@@ -4587,7 +4587,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                    cols=MultiIndex.from_tuples(map(stuple_to_tuple,recons.columns))
                    recons.columns = cols
 
-               type_map = dict(i='i',f='f',s='O',u='O',dt='O')
+               type_map = dict(i='i',f='f',s='O',u='O',dt='O',p='O')
                if r_dtype:
                     if r_dtype == 'u': # unicode
                         r_dtype='O'
@@ -4599,6 +4599,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         recons.index = np.array(map(Timestamp,recons.index),
                                                 dtype=r_dtype )
                         df.index = np.array(map(Timestamp,df.index),dtype=r_dtype )
+                    elif r_dtype == 'p':
+                        r_dtype='O'
+                        recons.index = np.array(map(Timestamp,recons.index.to_datetime()),
+                                                dtype=r_dtype )
+                        df.index = np.array(map(Timestamp,df.index.to_datetime()),dtype=r_dtype )
                     else:
                         r_dtype= type_map.get(r_dtype)
                         recons.index = np.array(recons.index,dtype=r_dtype )
@@ -4608,12 +4613,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         c_dtype='O'
                         recons.columns = np.array(map(_to_uni,recons.columns),
                                                 dtype=c_dtype )
-                        df.Columns = np.array(map(_to_uni,df.columns),dtype=c_dtype )
+                        df.columns = np.array(map(_to_uni,df.columns),dtype=c_dtype )
                     elif c_dtype == 'dt':
                         c_dtype='O'
                         recons.columns = np.array(map(Timestamp,recons.columns),
                                                 dtype=c_dtype )
-                        df.Columns = np.array(map(Timestamp,df.columns),dtype=c_dtype )
+                        df.columns = np.array(map(Timestamp,df.columns),dtype=c_dtype )
+                    elif c_dtype == 'p':
+                        c_dtype='O'
+                        recons.columns = np.array(map(Timestamp,recons.columns.to_datetime()),
+                                                dtype=c_dtype )
+                        df.columns = np.array(map(Timestamp,df.columns.to_datetime()),dtype=c_dtype )
                     else:
                         c_dtype= type_map.get(c_dtype)
                         recons.columns = np.array(recons.columns,dtype=c_dtype )
@@ -4631,8 +4641,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 _do_test(mkdf(nrows, ncols,r_idx_type='dt',
                               c_idx_type='s'),path, 'dt','s')
 
-        for r_idx_type in ['i', 'f','s','u']:
-            for c_idx_type in ['i', 'f','s','u','dt']:
+        for r_idx_type in ['i','s','u','p']:
+            for c_idx_type in ['i', 's','u','dt','p']:
                 for ncols in [1,2,128]:
                     base = int((chunksize// ncols or 1) or 1)
                     for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
