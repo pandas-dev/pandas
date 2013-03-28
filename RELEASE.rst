@@ -241,6 +241,8 @@ pandas 0.11.0
   - df.to_records bug when handling MultiIndex (GH3189)
   - Fix Series.__getitem__ segfault when index less than -length (GH3168_)
   - Fix bug when using Timestamp as a date parser (GH2932_)
+  - Fix bug creating date range from Timestamp with time zone and passing same
+    time zone (GH2926_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -288,6 +290,7 @@ pandas 0.11.0
 .. _GH2903: https://github.com/pydata/pandas/issues/2903
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
 .. _GH2922: https://github.com/pydata/pandas/issues/2922
+.. _GH2926: https://github.com/pydata/pandas/issues/2926
 .. _GH2929: https://github.com/pydata/pandas/issues/2929
 .. _GH2931: https://github.com/pydata/pandas/issues/2931
 .. _GH2932: https://github.com/pydata/pandas/issues/2932
