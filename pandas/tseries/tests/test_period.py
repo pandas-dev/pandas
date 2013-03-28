@@ -2039,7 +2039,7 @@ class TestComparisons(unittest.TestCase):
         self.assertNotEqual(self.january1, self.february)
 
     def test_greater(self):
-        self.assertGreater(self.february, self.january1)
+        self.assert_(self.february > self.january1)
 
     def test_greater_Raises_Value(self):
         self.assertRaises(ValueError, self.january1.__gt__, self.day)
@@ -2048,7 +2048,7 @@ class TestComparisons(unittest.TestCase):
         self.assertRaises(TypeError, self.january1.__gt__, 1)
 
     def test_greaterEqual(self):
-        self.assertGreaterEqual(self.january1, self.january2)
+        self.assert_(self.january1 >= self.january2)
 
     def test_greaterEqual_Raises_Value(self):
         self.assertRaises(ValueError, self.january1.__ge__, self.day)
@@ -2057,7 +2057,7 @@ class TestComparisons(unittest.TestCase):
         self.assertRaises(TypeError, self.january1.__ge__, 1)
 
     def test_smallerEqual(self):
-        self.assertLessEqual(self.january1, self.january2)
+        self.assert_(self.january1 <= self.january2)
 
     def test_smallerEqual_Raises_Value(self):
         self.assertRaises(ValueError, self.january1.__le__, self.day)
@@ -2066,7 +2066,7 @@ class TestComparisons(unittest.TestCase):
         self.assertRaises(TypeError, self.january1.__le__, 1)
 
     def test_smaller(self):
-        self.assertLess(self.january1, self.february)
+        self.assert_(self.january1 < self.february)
 
     def test_smaller_Raises_Value(self):
         self.assertRaises(ValueError, self.january1.__lt__, self.day)
@@ -2077,7 +2077,7 @@ class TestComparisons(unittest.TestCase):
     def test_sort(self):
         periods = [self.march, self.january1, self.february]
         correctPeriods = [self.january1, self.february, self.march]
-        self.assertListEqual(sorted(periods), correctPeriods)
+        self.assertEqual(sorted(periods), correctPeriods)
 
 if __name__ == '__main__':
     import nose
