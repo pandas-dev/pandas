@@ -369,7 +369,8 @@ cpdef object get_value_box(ndarray arr, object loc):
 
     if i < 0 and sz > 0:
         i += sz
-    elif i >= sz or sz == 0:
+
+    if i >= sz or sz == 0 or i < 0:
         raise IndexError('index out of bounds')
 
     if arr.descr.type_num == NPY_DATETIME:

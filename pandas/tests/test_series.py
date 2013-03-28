@@ -24,8 +24,8 @@ import pandas.core.nanops as nanops
 
 from pandas.util.py3compat import StringIO
 from pandas.util import py3compat
-from pandas.util.testing import (assert_series_equal, 
-                                 assert_almost_equal, 
+from pandas.util.testing import (assert_series_equal,
+                                 assert_almost_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
 
@@ -125,6 +125,13 @@ class CheckNameIntegration(object):
 
         s[...] = 5
         self.assert_((result == 5).all())
+
+    def test_getitem_negative_out_of_bounds(self):
+        s = Series([tm.rands(5) for _ in xrange(10)],
+                   index=[tm.rands(10) for _ in xrange(10)])
+
+        self.assertRaises(IndexError, s.__getitem__, -11)
+        self.assertRaises(IndexError, s.__setitem__, -11, 'foo')
 
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -1781,7 +1788,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([timedelta(days=4017+i) for i in range(3)])
         assert_series_equal(result,expected)
         self.assert_(result.dtype=='m8[ns]')
-        
+
         result = df['A'] + datetime(2001,1,1)
         expected = Series([timedelta(days=26663+i) for i in range(3)])
         assert_series_equal(result,expected)
@@ -1790,7 +1797,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = datetime(2001,1,1,3,4)
         resulta = df['A'] - d
         self.assert_(resulta.dtype=='m8[ns]')
-        
+
         resultb = df['A'] + d
         self.assert_(resultb.dtype=='m8[ns]')
 
@@ -1840,7 +1847,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(result == 2)
 
         # GH 2982
-        # with NaT 
+        # with NaT
         td[0] = np.nan
 
         result = td.idxmin()
@@ -1870,13 +1877,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([timedelta(1)],dtype='timedelta64[ns]')
         assert_series_equal(result,expected)
 
-    def test_sub_of_datetime_from_TimeSeries(self): 
+    def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core import common as com
-        from datetime import datetime 
-        a = Timestamp(datetime(1993,01,07,13,30,00)) 
-        b = datetime(1993, 6, 22, 13, 30) 
+        from datetime import datetime
+        a = Timestamp(datetime(1993,01,07,13,30,00))
+        b = datetime(1993, 6, 22, 13, 30)
         a = Series([a])
-        result = com._possibly_cast_to_timedelta(np.abs(a - b)) 
+        result = com._possibly_cast_to_timedelta(np.abs(a - b))
         self.assert_(result.dtype == 'timedelta64[ns]')
 
     def test_timedelta64_nan(self):
@@ -2586,7 +2593,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             ts = Series.from_csv(path)
             assert_series_equal(self.ts, ts)
             self.assertTrue(ts.index.name is None)
-            
+
             self.series.to_csv(path)
             series = Series.from_csv(path)
             self.assert_(series.name is None)
