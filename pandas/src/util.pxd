@@ -36,6 +36,8 @@ cdef inline object get_value_at(ndarray arr, object loc):
 
     if i < 0 and sz > 0:
         i += sz
+        if i > sz or i < 0:
+           raise IndexError('index out of bounds')
     elif i >= sz or sz == 0:
         raise IndexError('index out of bounds')
 
@@ -53,7 +55,9 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
 
     if i < 0:
         i += sz
-    elif i >= sz:
+        if i > sz or i < 0:
+           raise IndexError('index out of bounds')
+    elif i >= sz or i < 0:
         raise IndexError('index out of bounds')
 
     assign_value_1d(arr, i, value)

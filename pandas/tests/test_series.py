@@ -3988,6 +3988,31 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assertRaises(KeyError, s.__getitem__, 'c')
         self.assertRaises(KeyError, s.__setitem__, 'c', 0)
 
+    def test_neg_indices_indexing(self):
+
+        from pandas.util.testing import makeCustomDataframe as mkdf
+        s = mkdf(10,5,r_idx_type='dt').C_l0_g0
+
+        # GH 3168 getting
+        self.assert_(s[0] == 'R0C0')
+        self.assert_(s[-1] == 'R9C0')
+
+        self.assertRaises(KeyError, s.__getitem__, tuple([-11]))
+
+        # GH 3168 setting
+        s[0] = 'foo'
+        self.assert_(s[0] == 'foo')
+        s[-1] = 'foo'
+        self.assert_(s[-1] == 'foo')
+
+        self.assertRaises(KeyError, s.__setitem__, tuple([-11]), 'foo')
+
+        # 0-len
+        s = Series([])
+        for l in [0,1,-1]:
+            self.assertRaises(KeyError, s.__getitem__, tuple([l]))
+            self.assertRaises(KeyError, s.__setitem__, tuple([l]), 'foo')
+
     def test_datetime_indexing(self):
         from pandas import date_range
 
