@@ -128,8 +128,12 @@ class Period(object):
 
     def __eq__(self, other):
         if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
             return (self.ordinal == other.ordinal
                     and _gfc(self.freq) == _gfc(other.freq))
+        else:
+            raise TypeError(other)
         return False
 
     def __hash__(self):
@@ -151,6 +155,23 @@ class Period(object):
             return self.ordinal - other.ordinal
         else:  # pragma: no cover
             raise TypeError(other)
+
+    def _comp_method(func, name):
+        def f(self, other):
+            if isinstance(other, Period):
+                if other.freq != self.freq:
+                    raise ValueError("Cannot compare non-conforming periods")
+                return func(self.ordinal, other.ordinal)
+            else:
+                raise TypeError(other)
+
+        f.__name__ = name
+        return f
+
+    __lt__ = _comp_method(operator.lt, '__lt__')
+    __le__ = _comp_method(operator.le, '__le__')
+    __gt__ = _comp_method(operator.gt, '__gt__')
+    __ge__ = _comp_method(operator.ge, '__ge__')
 
     def asfreq(self, freq, how='E'):
         """
