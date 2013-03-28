@@ -243,6 +243,7 @@ pandas 0.11.0
   - Fix bug when using Timestamp as a date parser (GH2932_)
   - Fix bug creating date range from Timestamp with time zone and passing same
     time zone (GH2926_)
+  - Add comparison operators to Period object (GH2781_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -274,6 +275,7 @@ pandas 0.11.0
 .. _GH2763: https://github.com/pydata/pandas/issues/2763
 .. _GH2776: https://github.com/pydata/pandas/issues/2776
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
+.. _GH2781: https://github.com/pydata/pandas/issues/2781
 .. _GH2787: https://github.com/pydata/pandas/issues/2787
 .. _GH2437: https://github.com/pydata/pandas/issues/2437
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
