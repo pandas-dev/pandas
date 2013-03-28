@@ -329,7 +329,23 @@ class SparseDataFrame(DataFrame):
         if len(cols) != len(self._series):
             raise Exception('Columns length %d did not match data %d!' %
                             (len(cols), len(self._series)))
-        self._columns = _ensure_index(cols)
+
+        cols = _ensure_index(cols)
+
+        # rename the _series if needed
+        existing = getattr(self,'_columns',None)
+        if existing is not None and len(existing) == len(cols):
+
+            new_series = {}
+            for i, col in enumerate(existing):
+                new_col = cols[i]
+                if new_col in new_series:  # pragma: no cover
+                    raise Exception('Non-unique mapping!')
+                new_series[new_col] = self._series.get(col)
+
+            self._series = new_series
+
+        self._columns = cols
 
     index = property(fget=_get_index, fset=_set_index)
     columns = property(fget=_get_columns, fset=_set_columns)
@@ -619,7 +635,7 @@ class SparseDataFrame(DataFrame):
 
     def _rename_index_inplace(self, mapper):
         self.index = [mapper(x) for x in self.index]
-
+ 
     def _rename_columns_inplace(self, mapper):
         new_series = {}
         new_columns = []
