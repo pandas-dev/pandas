@@ -7262,6 +7262,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              columns=self.frame.columns)
         assert_frame_equal(result, expected)
 
+    def test_apply_multi_index(self):
+        s = DataFrame([[1,2], [3,4], [5,6]])
+        s.index = MultiIndex.from_arrays([['a','a','b'], ['c','d','d']])
+        s.columns = ['col1','col2']
+        res = s.apply(lambda x: Series({'min': min(x), 'max': max(x)}), 1)
+        self.assert_(isinstance(res.index, MultiIndex))
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
