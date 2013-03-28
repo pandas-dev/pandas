@@ -246,6 +246,8 @@ pandas 0.11.0
   - Add comparison operators to Period object (GH2781_)
   - Fix bug when concatenating two Series into a DataFrame when they have the
     same name (GH2797_)
+  - fix automatic color cycling when plotting consecutive timeseries
+    without color arguments (GH2816_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -329,6 +331,9 @@ pandas 0.11.0
 .. _GH3178: https://github.com/pydata/pandas/issues/3178
 .. _GH3179: https://github.com/pydata/pandas/issues/3179
 .. _GH3189: https://github.com/pydata/pandas/issues/3189
+.. _GH2751: https://github.com/pydata/pandas/issues/2751
+.. _GH2747: https://github.com/pydata/pandas/issues/2747
+.. _GH2816: https://github.com/pydata/pandas/issues/2816
 
 pandas 0.10.1
 =============

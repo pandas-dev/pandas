@@ -679,6 +679,18 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         self.assert_(line.get_color() == 'green')
 
     @slow
+    def test_time_series_plot_color_with_empty_kwargs(self):
+        import matplotlib.pyplot as plt
+
+        plt.close('all')
+        for i in range(3):
+            ax = Series(np.arange(12) + 1, index=date_range(
+            '1/1/2000', periods=12)).plot()
+
+        line_colors = [ l.get_color() for l in ax.get_lines() ]
+        self.assert_(line_colors == ['b', 'g', 'r'])
+
+    @slow
     def test_grouped_hist(self):
         import matplotlib.pyplot as plt
         df = DataFrame(np.random.randn(500, 2), columns=['A', 'B'])

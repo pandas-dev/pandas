@@ -807,6 +807,8 @@ class MPLPlot(object):
 
         if (sec_true or has_sec) and not hasattr(ax, 'right_ax'):
             orig_ax, new_ax = ax, ax.twinx()
+            new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
+
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
 
             if len(orig_ax.get_lines()) == 0:  # no data on left y
@@ -1122,13 +1124,12 @@ class LinePlot(MPLPlot):
         cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
         if isinstance(cycle, basestring):
             cycle = list(cycle)
-        has_colors = 'color' in self.kwds
         colors = self.kwds.get('color', cycle)
         return colors
 
     def _maybe_add_color(self, colors, kwds, style, i):
-        kwds.pop('color', None)
-        if style is None or re.match('[a-z]+', style) is None:
+        has_color = 'color' in kwds
+        if has_color and (style is None or re.match('[a-z]+', style) is None):
             kwds['color'] = colors[i % len(colors)]
 
     def _make_plot(self):
@@ -2147,6 +2148,8 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     if on_right(0):
         orig_ax = ax0
         ax0 = ax0.twinx()
+        ax0._get_lines.color_cycle = orig_ax._get_lines.color_cycle
+
         orig_ax.get_yaxis().set_visible(False)
         orig_ax.right_ax = ax0
         ax0.left_ax = orig_ax
@@ -2164,6 +2167,8 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         if on_right(i):
             orig_ax = ax
             ax = ax.twinx()
+            ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
+
             orig_ax.get_yaxis().set_visible(False)
         axarr[i] = ax
 
