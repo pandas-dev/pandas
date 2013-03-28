@@ -36,15 +36,19 @@ pandas 0.11.0
   - Add function to pandas.io.data for retrieving stock index components from
     Yahoo! finance (GH2795_)
   - Support slicing with time objects (GH2681_)
-  - Added ``.iloc`` attribute, to support strict integer based indexing, analagous to ``.ix`` (GH2922_)
-  - Added ``.loc``  attribute, to support strict label based indexing, analagous to ``.ix`` (GH3053_)
-  - Added ``.iat``  attribute, to support fast scalar access via integers (replaces ``iget_value/iset_value``)
-  - Added ``.at``   attribute, to support fast scalar access via labels (replaces ``get_value/set_value``)
+  - Added ``.iloc`` attribute, to support strict integer based indexing,
+    analogous to ``.ix`` (GH2922_)
+  - Added ``.loc`` attribute, to support strict label based indexing, analagous
+    to ``.ix`` (GH3053_)
+  - Added ``.iat`` attribute, to support fast scalar access via integers
+    (replaces ``iget_value/iset_value``)
+  - Added ``.at`` attribute, to support fast scalar access via labels (replaces
+    ``get_value/set_value``)
   - Moved functionaility from ``irow,icol,iget_value/iset_value`` to ``.iloc`` indexer
     (via ``_ixs`` methods in each object)
   - Added support for expression evaluation using the ``numexpr`` library
-  - Added ``convert=boolean`` to ``take`` routines to translate negative indices to positive,
-    defaults to True
+  - Added ``convert=boolean`` to ``take`` routines to translate negative
+    indices to positive, defaults to True
 
 **Improvements to existing features**
 
@@ -64,15 +68,18 @@ pandas 0.11.0
     strings that can be parsed with datetime.strptime
   - Add ``axes`` property to ``Series`` for compatibility
   - Add ``xs`` function to ``Series`` for compatibility
-  - Allow setitem in a frame where only mixed numerics are present (e.g. int and float), (GH3037_)
+  - Allow setitem in a frame where only mixed numerics are present (e.g. int
+    and float), (GH3037_)
   - ``HDFStore``
 
     - Provide dotted attribute access to ``get`` from stores
       (e.g. store.df == store['df'])
-    - New keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
-      provided to support iteration on ``select`` and ``select_as_multiple`` (GH3076_)
+    - New keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk``
+      are provided to support iteration on ``select`` and
+      ``select_as_multiple`` (GH3076_)
 
-  - Add ``squeeze`` method to possibly remove length 1 dimensions from an object.
+  - Add ``squeeze`` method to possibly remove length 1 dimensions from an
+    object.
 
     .. ipython:: python
 
@@ -168,7 +175,8 @@ pandas 0.11.0
     - Internally, change all variables to be private-like (now have leading
       underscore)
     - Fixes for query parsing to correctly interpret boolean and != (GH2849_, GH2973_)
-    - Fixes for pathological case on SparseSeries with 0-len array and compression (GH2931_)
+    - Fixes for pathological case on SparseSeries with 0-len array and
+      compression (GH2931_)
     - Fixes bug with writing rows if part of a block was all-nan (GH3012_)
     - Exceptions are now ValueError or TypeError as needed
     - A table will now raise if min_itemsize contains fields which are not queryables
@@ -231,6 +239,7 @@ pandas 0.11.0
   - PeriodIndex.tolist now boxes to Period (GH3178_)
   - PeriodIndex.get_loc KeyError now reports Period instead of ordinal (GH3179_)
   - df.to_records bug when handling MultiIndex (GH3189)
+  - Fix Series.__getitem__ segfault when index less than -length (GH3168_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -304,6 +313,7 @@ pandas 0.11.0
 .. _GH3075: https://github.com/pydata/pandas/issues/3075
 .. _GH3094: https://github.com/pydata/pandas/issues/3094
 .. _GH3130: https://github.com/pydata/pandas/issues/3130
+.. _GH3168: https://github.com/pydata/pandas/issues/3168
 .. _GH3178: https://github.com/pydata/pandas/issues/3178
 .. _GH3179: https://github.com/pydata/pandas/issues/3179
 .. _GH3189: https://github.com/pydata/pandas/issues/3189
