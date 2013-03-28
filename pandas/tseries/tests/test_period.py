@@ -99,7 +99,7 @@ class TestPeriodProperties(TestCase):
         i4 = Period('2005', freq='M')
         i5 = Period('2005', freq='m')
 
-        self.assert_(i1 != i4)
+        self.assertRaises(ValueError, i1.__ne__, i4)
         self.assertEquals(i4, i5)
 
         i1 = Period.now('Q')
