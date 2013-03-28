@@ -406,7 +406,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
        label will repeated at the corresponding level, you can specify just
        the first few, the rest will use the default ndupe_l of 1.
        len(ndupe_l) <= nlevels.
-    idx_type - "i"/"f"/"s"/"u"/"dt".
+    idx_type - "i"/"f"/"s"/"u"/"dt/"p".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,
        "s"/"u" creates a string/unicode index
@@ -422,7 +422,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     assert (names is None or names is False
             or names is True or len(names) is nlevels)
     assert idx_type is None or \
-        (idx_type in ('i', 'f', 's', 'u', 'dt') and nlevels == 1)
+        (idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and nlevels == 1)
 
     if names is True:
         # build default names
@@ -437,7 +437,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     # specific 1D index type requested?
     idx_func = dict(i=makeIntIndex, f=makeFloatIndex, s=makeStringIndex,
-                    u=makeUnicodeIndex, dt=makeDateIndex).get(idx_type)
+                    u=makeUnicodeIndex, dt=makeDateIndex, p=makePeriodIndex).get(idx_type)
     if idx_func:
         idx = idx_func(nentries)
         # but we need to fill in the name
@@ -446,7 +446,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         return idx
     elif idx_type is not None:
         raise ValueError('"%s" is not a legal value for `idx_type`, use  '
-                         '"i"/"f"/"s"/"u"/"dt".' % idx_type)
+                         '"i"/"f"/"s"/"u"/"dt/"p".' % idx_type)
 
     if len(ndupe_l) < nlevels:
         ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
@@ -540,9 +540,9 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or \
-        (r_idx_type in ('i', 'f', 's', 'u', 'dt') and r_idx_nlevels == 1)
+        (r_idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and r_idx_nlevels == 1)
     assert c_idx_type is None or \
-        (c_idx_type in ('i', 'f', 's', 'u', 'dt') and c_idx_nlevels == 1)
+        (c_idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and c_idx_nlevels == 1)
 
     columns = makeCustomIndex(ncols, nlevels=c_idx_nlevels, prefix='C',
                               names=c_idx_names, ndupe_l=c_ndupe_l,
