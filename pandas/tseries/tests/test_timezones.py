@@ -104,7 +104,10 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(result, expected)
 
     def test_timestamp_constructed_by_date_and_tz(self):
-        """ Fix Issue 2993, Timestamp cannot be constructed by datetime.date and tz correctly """
+        """
+        Fix Issue 2993, Timestamp cannot be constructed by datetime.date
+        and tz correctly
+        """
 
         result = Timestamp(date(2012, 3, 11), tz='US/Eastern')
 
@@ -510,7 +513,9 @@ class TestTimeZoneSupport(unittest.TestCase):
         # GH 2810 (with timezones)
         datetimes_naive   = [ ts.to_pydatetime() for ts in dr ]
         datetimes_with_tz = [ ts.to_pydatetime() for ts in dr_tz ]
-        df = DataFrame({'dr' : dr, 'dr_tz' : dr_tz, 'datetimes_naive': datetimes_naive, 'datetimes_with_tz' : datetimes_with_tz })
+        df = DataFrame({'dr' : dr, 'dr_tz' : dr_tz,
+                        'datetimes_naive': datetimes_naive,
+                        'datetimes_with_tz' : datetimes_with_tz })
         result = df.get_dtype_counts()
         expected = Series({ 'datetime64[ns]' : 3, 'object' : 1 })
         assert_series_equal(result, expected)
@@ -903,6 +908,11 @@ class TestTimeZones(unittest.TestCase):
 
         self.assert_(result.is_normalized)
         self.assert_(not rng.is_normalized)
+
+    def test_tzaware_offset(self):
+        dates = date_range('2012-11-01', periods=3, tz='US/Pacific')
+        offset = dates + offsets.Hour(5)
+        self.assertEqual(dates[0] + offsets.Hour(5), offset[0])
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
