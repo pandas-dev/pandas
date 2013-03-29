@@ -540,7 +540,7 @@ class CachingBuildExt(build_ext, CompilationCacheExtMixin):
             build_ext.cython_sources(self, [s], extension)
             self._put_to_cache(hash, target)
 
-        sources = [x for x in sources if x.startswith("pandas")]
+        sources = [x for x in sources if x.startswith("pandas") or "lib." in x]
 
         return sources
 
