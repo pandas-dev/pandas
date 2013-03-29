@@ -105,9 +105,9 @@ except ImportError:
 setuptools_kwargs = {}
 if sys.version_info[0] >= 3:
 
-    min_numpy_ver = 1.6
+    min_numpy_ver = "1.6.2"
     if sys.version_info[1] >= 3:  # 3.3 needs numpy 1.7+
-        min_numpy_ver = "1.7.0b2"
+        min_numpy_ver = "1.7.0"
 
     setuptools_kwargs = {'use_2to3': True if BUILD_CACHE_DIR is None else False,
                      'zip_safe': False,
