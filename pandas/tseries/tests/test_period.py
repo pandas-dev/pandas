@@ -312,6 +312,14 @@ class TestPeriodProperties(TestCase):
         xp = _ex(2012, 1, 2)
         self.assertEquals(Period('2012', freq='W').end_time, xp)
 
+    def test_anchor_week_end_time(self):
+        def _ex(*args):
+            return Timestamp(Timestamp(datetime(*args)).value - 1)
+
+        p = Period('2013-1-1', 'W-SAT')
+        xp = _ex(2013, 1, 6)
+        self.assertEquals(p.end_time, xp)
+
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
         a_date = Period(freq='A', year=2007)
