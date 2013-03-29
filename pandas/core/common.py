@@ -694,6 +694,11 @@ def _maybe_promote(dtype, fill_value=np.nan):
         if issubclass(fill_value.dtype.type, (np.datetime64,np.timedelta64)):
             fill_value = tslib.iNaT
         else:
+
+            # we need to change to object type as our
+            # fill_value is of object type
+            if fill_value.dtype == np.object_:
+                dtype = np.dtype(np.object_)
             fill_value = np.nan
 
     # returns tuple of (dtype, fill_value)
@@ -763,7 +768,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
             if change is not None:
                 change.dtype = r.dtype
                 change[:] = r
-                
+
             return r, True
 
         # we want to decide whether putmask will work
@@ -789,6 +794,34 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
             np.putmask(result, mask, other)
         except:
             return changeit()
+
+    return result, False
+
+def _maybe_upcast_indexer(result, indexer, other, dtype=None):
+    """ a safe version of setitem that (potentially upcasts the result
+        return the result and a changed flag
+        """
+
+    def changeit():
+        # our type is wrong here, need to upcast
+        r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
+        try:
+            r[indexer] = other
+        except:
+
+            # if we hit this then we still have an incompatible type
+            r[indexer] = fill_value
+
+        return r, True
+
+    new_dtype, fill_value = _maybe_promote(result.dtype,other)
+    if new_dtype != result.dtype:
+        return changeit()
+
+    try:
+        result[indexer] = other
+    except:
+        return changeit()
 
     return result, False
 

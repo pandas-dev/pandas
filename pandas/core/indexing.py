@@ -119,24 +119,54 @@ class _NDFrameIndexer(object):
             plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
             item_labels = self.obj._get_axis(het_axis)
 
-            if isinstance(value, (np.ndarray, DataFrame)) and value.ndim > 1:
-                raise ValueError('Setting mixed-type DataFrames with '
-                                 'array/DataFrame pieces not yet supported')
+            def setter(item, v):
+                data = self.obj[item]
+                values = data.values
+                if np.prod(values.shape):
+                    result, changed = com._maybe_upcast_indexer(values,plane_indexer,v,dtype=getattr(data,'dtype',None))
+                    if changed:
+                        self.obj[item] = result
 
-            try:
-                for item in item_labels[het_idx]:
-                    data = self.obj[item]
-                    values = data.values
-                    if np.prod(values.shape):
-                        value = com._possibly_cast_to_datetime(
-                            value, getattr(data, 'dtype', None))
-                        values[plane_indexer] = value
-            except ValueError:
-                for item, v in zip(item_labels[het_idx], value):
-                    data = self.obj[item]
-                    values = data.values
-                    if np.prod(values.shape):
-                        values[plane_indexer] = v
+            labels = item_labels[het_idx]
+
+            if _is_list_like(value):
+
+                # we have an equal len Frame
+                if isinstance(value, DataFrame) and value.ndim > 1:
+
+                    for item in labels:
+
+                        # align to
+                        if item in value:
+                            v = value[item]
+                            v = v.reindex(self.obj[item].reindex(v.index).dropna().index)
+                            setter(item, v.values)
+                        else:
+                            setter(item, np.nan)
+
+                # we have an equal len ndarray
+                elif isinstance(value, np.ndarray) and value.ndim > 1:
+                    if len(labels) != len(value):
+                        raise ValueError('Must have equal len keys and value when'
+                                         ' setting with an ndarray')
+
+                    for i, item in enumerate(labels):
+                        setter(item, value[:,i])
+
+                # we have an equal len list/ndarray
+                elif len(labels) == 1 and len(self.obj[labels[0]]) == len(value):
+                    setter(labels[0], value)
+
+                # per label values
+                else:
+
+                    for item, v in zip(labels, value):
+                        setter(item, v)
+            else:
+
+                # scalar
+                for item in labels:
+                    setter(item, value)
 
         else:
             if isinstance(indexer, tuple):

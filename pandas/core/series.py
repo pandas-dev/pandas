@@ -2065,7 +2065,7 @@ class Series(pa.Array, generic.PandasObject):
         """
         other = other.reindex_like(self)
         mask = notnull(other)
-        np.putmask(self.values, mask, other.values)
+        com._maybe_upcast_putmask(self.values,mask,other,change=self.values)
 
     #----------------------------------------------------------------------
     # Reindexing, sorting
