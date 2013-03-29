@@ -836,9 +836,9 @@ convert to an integer index:
 .. ipython:: python
 
     df_new = df.reset_index()
-    df_new[df_new.index == 1.0]
+    df_new[df_new['index'] == 1.0]
     # now you can also do "float selection"
-    df_new[(df_new.index >= 1.0) & (df_new.index < 2)]
+    df_new[(df_new['index'] >= 1.0) & (df_new['index'] < 2)]
 
 
 .. _indexing.class:

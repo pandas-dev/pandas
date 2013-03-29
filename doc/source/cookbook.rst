@@ -298,6 +298,9 @@ The :ref:`Timedeltas <timeseries.timedeltas>` docs.
 `Operating with timedeltas
 <https://github.com/pydata/pandas/pull/2899>`__
 
+`Create timedeltas with date differences
+<http://stackoverflow.com/questions/15683588/iterating-through-a-pandas-dataframe>`__
+
 Aliasing Axis Names
 -------------------
 
