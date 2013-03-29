@@ -942,8 +942,9 @@ Thur,Lunch,Yes,51.51,17"""
         unst = multi.unstack('ID')
         down = unst.resample('W-THU')
 
-        rs = down.stack('ID') # It works!
-
+        rs = down.stack('ID')
+        xp = unst.ix[:, ['VAR1']].resample('W-THU').stack('ID')
+        assert_frame_equal(rs, xp)
 
     def test_unstack_multiple_hierarchical(self):
         df = DataFrame(index=[[0, 0, 0, 0, 1, 1, 1, 1],
