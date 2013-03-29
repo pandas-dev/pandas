@@ -1548,6 +1548,26 @@ A,B,C
 
         tm.assert_frame_equal(result, expected)
 
+    def test_parse_ragged_csv(self):
+        data = """1,2,3
+1,2,3,4
+1,2,3,4,5
+1,2
+1,2,3,4"""
+
+        nice_data = """1,2,3,,
+1,2,3,4,
+1,2,3,4,5
+1,2,,,
+1,2,3,4,"""
+        result = self.read_csv(StringIO(data), header=None,
+                               names=['a', 'b', 'c', 'd', 'e'])
+
+        expected = self.read_csv(StringIO(nice_data), header=None,
+                                 names=['a', 'b', 'c', 'd', 'e'])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 

@@ -119,6 +119,9 @@ pandas 0.11.0
   - Improved performance across several core functions by taking memory
     ordering of arrays into account. Courtesy of @stephenwlin (GH3130_)
   - Improved performance of groupby transform method (GH2121_)
+  - Handle "ragged" CSV files missing trailing delimiters in rows with missing
+    fields when also providing explicit list of column names (so the parser
+    knows how many columns to expect in the result) (GH2981_)
 
 **API Changes**
 
@@ -304,6 +307,7 @@ pandas 0.11.0
 .. _GH2932: https://github.com/pydata/pandas/issues/2932
 .. _GH2973: https://github.com/pydata/pandas/issues/2973
 .. _GH2967: https://github.com/pydata/pandas/issues/2967
+.. _GH2981: https://github.com/pydata/pandas/issues/2981
 .. _GH2982: https://github.com/pydata/pandas/issues/2982
 .. _GH2989: https://github.com/pydata/pandas/issues/2989
 .. _GH2993: https://github.com/pydata/pandas/issues/2993

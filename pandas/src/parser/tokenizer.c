@@ -148,6 +148,7 @@ void parser_set_default_options(parser_t *self) {
     self->allow_embedded_newline = 1;
     self->strict = 0;
 
+    self->expected_fields = -1;
     self->error_bad_lines = 0;
     self->warn_bad_lines = 0;
 
@@ -428,16 +429,19 @@ static void append_warning(parser_t *self, const char *msg) {
 static int end_line(parser_t *self) {
     int fields;
     khiter_t k;  /* for hash set detection */
-    int ex_fields = -1;
+    int ex_fields = self->expected_fields;
     char *msg;
 
     fields = self->line_fields[self->lines];
 
     TRACE(("Line end, nfields: %d\n", fields));
 
-
     if (self->lines > 0) {
-        ex_fields = self->line_fields[self->lines - 1];
+        if (self->expected_fields >= 0) {
+            ex_fields = self->expected_fields;
+        } else {
+            ex_fields = self->line_fields[self->lines - 1];
+        }
     }
 
     if (self->skipset != NULL) {
@@ -457,7 +461,10 @@ static int end_line(parser_t *self) {
         }
     }
 
-    if (!(self->lines <= self->header + 1) && fields > ex_fields) {
+    /* printf("Line: %d, Fields: %d, Ex-fields: %d\n", self->lines, fields, ex_fields); */
+
+    if (!(self->lines <= self->header + 1)
+        && (self->expected_fields < 0 && fields > ex_fields)) {
         // increment file line count
         self->file_lines++;
 
@@ -491,7 +498,7 @@ static int end_line(parser_t *self) {
     }
     else {
         /* missing trailing delimiters */
-        if (self->lines >= self->header + 1 && self->lines > 0) {
+        if (self->lines >= self->header + 1) {
             while (fields < ex_fields){
                 end_field(self);
                 /* printf("Prior word: %s\n", self->words[self->words_len - 2]); */
