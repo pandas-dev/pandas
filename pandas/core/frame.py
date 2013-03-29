@@ -565,14 +565,14 @@ class DataFrame(NDFrame):
     def _verbose_info(self):
         import warnings
         warnings.warn('The _verbose_info property will be removed in version '
-                      '0.12', FutureWarning)
+                      '0.12. please use "max_info_rows"', FutureWarning)
         return get_option('display.max_info_rows') is None
 
     @_verbose_info.setter
     def _verbose_info(self, value):
         import warnings
         warnings.warn('The _verbose_info property will be removed in version '
-                      '0.12', FutureWarning)
+                      '0.12. please use "max_info_rows"', FutureWarning)
 
         value = None if value else 1000000
         set_option('display.max_info_rows', value)
