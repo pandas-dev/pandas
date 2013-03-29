@@ -581,6 +581,8 @@ else:
     suffix = '.c'
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
+    if BUILD_CACHE_DIR:  # use the cache
+        cmdclass['build_ext'] = CachingBuildExt
 
 lib_depends = ['reduce', 'inference', 'properties']
 
