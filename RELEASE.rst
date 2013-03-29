@@ -153,6 +153,7 @@ pandas 0.11.0
   - util.testing.assert_frame_equal now checks the column and index names (GH2964_)
   - Constructors will now return a more informative ValueError on failures
     when invalid shapes are passed
+  - Methods return None when inplace=True (GH1893_)
 
 **Bug Fixes**
 
@@ -251,6 +252,7 @@ pandas 0.11.0
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
+.. _GH1893: https://github.com/pydata/pandas/issues/1893
 .. _GH1978: https://github.com/pydata/pandas/issues/1978
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2121: https://github.com/pydata/pandas/issues/2121

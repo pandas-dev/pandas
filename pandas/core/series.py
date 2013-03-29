@@ -122,7 +122,7 @@ def _arith_method(op, name):
 
             # 2 datetimes or 2 timedeltas
             if (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and is_datetime_rhs):
-                
+
                 dtype = 'timedelta64[ns]'
 
                 # we may have to convert to object unfortunately here
@@ -601,7 +601,7 @@ class Series(pa.Array, generic.PandasObject):
     def _slice(self, slobj, axis=0, raise_on_error=False):
         if raise_on_error:
             _check_slice_bounds(slobj, self.values)
-            
+
         return self._constructor(self.values[slobj], index=self.index[slobj])
 
     def __getitem__(self, key):
@@ -1047,11 +1047,6 @@ class Series(pa.Array, generic.PandasObject):
                 self.index = new_index
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
-                import warnings
-                warnings.warn("Series.reset_index with inplace=True will "
-                              "return None from pandas 0.11 onward",
-                              FutureWarning)
-                return self
             else:
                 return Series(self.values.copy(), index=new_index,
                               name=self.name)
@@ -2615,13 +2610,8 @@ class Series(pa.Array, generic.PandasObject):
         -------
         filled : Series
         """
-        if inplace:
-            import warnings
-            warnings.warn("Series.fillna with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-
         if not self._can_hold_na:
-            return self.copy() if not inplace else self
+            return self.copy() if not inplace else None
 
         if value is not None:
             if method is not None:
@@ -2647,9 +2637,7 @@ class Series(pa.Array, generic.PandasObject):
             else:
                 result = Series(values, index=self.index, name=self.name)
 
-        if inplace:
-            return self
-        else:
+        if not inplace:
             return result
 
     def ffill(self, inplace=False, limit=None):
@@ -2756,12 +2744,7 @@ class Series(pa.Array, generic.PandasObject):
             raise ValueError('Unrecognized to_replace type %s' %
                              type(to_replace))
 
-        if inplace:
-            import warnings
-            warnings.warn("Series.replace with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
-        else:
+        if not inplace:
             return result
 
     def isin(self, values):
@@ -3110,12 +3093,7 @@ class Series(pa.Array, generic.PandasObject):
         result = self if inplace else self.copy()
         result.index = Index([mapper_f(x) for x in self.index], name=self.index.name)
 
-        if inplace:
-            import warnings
-            warnings.warn("Series.rename with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
-        else:
+        if not inplace:
             return result
 
     @property
