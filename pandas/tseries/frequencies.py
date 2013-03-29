@@ -46,7 +46,7 @@ def get_reso_string(reso):
 
 
 def get_to_timestamp_base(base):
-    if base <= FreqGroup.FR_WK:
+    if base < FreqGroup.FR_BUS:
         return FreqGroup.FR_DAY
     if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
