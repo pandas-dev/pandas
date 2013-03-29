@@ -984,9 +984,10 @@ def repr_timedelta64(object value):
        sign_pretty = ""
 
    if days:
-       return "%s%d days, %02d:%02d:%s" % (sign_pretty,days,hours,minutes,seconds_pretty)
+       return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
+                                           seconds_pretty)
 
-   return "%s%02d:%02d:%s" % (sign_pretty,hours,minutes,seconds_pretty)
+   return "%s%02d:%02d:%s" % (sign_pretty, hours, minutes, seconds_pretty)
 
 def array_strptime(ndarray[object] values, object fmt):
     cdef:
@@ -1148,12 +1149,12 @@ def array_strptime(ndarray[object] values, object fmt):
                     # W starts week on Monday.
                     week_of_year_start = 0
             elif parse_code == 17:
-                # Since -1 is default value only need to worry about setting tz if
-                # it can be something other than -1.
+                # Since -1 is default value only need to worry about setting tz
+                # if it can be something other than -1.
                 found_zone = found_dict['Z'].lower()
                 for value, tz_values in enumerate(locale_time.timezone):
                     if found_zone in tz_values:
-                        # Deal with bad locale setup where timezone names are the
+                        # Deal w/ bad locale setup where timezone names are the
                         # same and yet time.daylight is true; too ambiguous to
                         # be able to tell what timezone has daylight savings
                         if (time.tzname[0] == time.tzname[1] and
@@ -1162,14 +1163,14 @@ def array_strptime(ndarray[object] values, object fmt):
                         else:
                             tz = value
                             break
-        # If we know the week of the year and what day of that week, we can figure
+        # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
         if julian == -1 and week_of_year != -1 and weekday != -1:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
                                                 week_starts_Mon)
         # Cannot pre-calculate datetime_date() since can change in Julian
-        # calculation and thus could have different value for the day of the week
+        # calculation and thus could have different value for the day of the wk
         # calculation.
         if julian == -1:
             # Need to add 1 to result since first day of the year is 1, not 0.
@@ -1177,7 +1178,8 @@ def array_strptime(ndarray[object] values, object fmt):
                       datetime_date(year, 1, 1).toordinal() + 1
         else:  # Assume that if they bothered to include Julian day it will
                # be accurate.
-            datetime_result = datetime_date.fromordinal((julian - 1) + datetime_date(year, 1, 1).toordinal())
+            datetime_result = datetime_date.fromordinal(
+                (julian - 1) + datetime_date(year, 1, 1).toordinal())
             year = datetime_result.year
             month = datetime_result.month
             day = datetime_result.day
@@ -1297,7 +1299,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                               dts.min, dts.sec, dts.us, tz1)
-                delta = int(total_seconds(_get_utcoffset(tz1, dt))) * 1000000000
+                delta = (int(total_seconds(_get_utcoffset(tz1, dt)))
+                         * 1000000000)
                 utc_dates[i] = v - delta
         else:
             deltas = _get_deltas(tz1)

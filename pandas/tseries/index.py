@@ -557,9 +557,15 @@ class DatetimeIndex(Int64Index):
         if isinstance(delta, (Tick, timedelta)):
             inc = offsets._delta_to_nanoseconds(delta)
             new_values = (self.asi8 + inc).view(_NS_DTYPE)
+            tz = 'UTC' if self.tz is not None else None
+            result = DatetimeIndex(new_values, tz=tz, freq='infer')
+            utc = _utc()
+            if self.tz is not None and self.tz is not utc:
+                result = result.tz_convert(self.tz)
         else:
             new_values = self.astype('O') + delta
-        return DatetimeIndex(new_values, tz=self.tz, freq='infer')
+            result = DatetimeIndex(new_values, tz=self.tz, freq='infer')
+        return result
 
     def __contains__(self, key):
         try:
@@ -579,11 +585,11 @@ class DatetimeIndex(Int64Index):
         for d in data:
             if d.time() != zero_time or d.tzinfo is not None:
                 return [u'%s' % x for x in data ]
-            
+
         values = np.array(data,dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
-        
+
         imask = -mask
         values[imask] = np.array([ u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day) for dt in values[imask] ])
         return values.tolist()
@@ -1093,7 +1099,7 @@ class DatetimeIndex(Int64Index):
                                      tz=self.tz).value - 1)
         else:
             raise KeyError
-        
+
 
         stamps = self.asi8
 
