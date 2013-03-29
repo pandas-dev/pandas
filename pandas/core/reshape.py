@@ -159,7 +159,7 @@ class _Unstacker(object):
             dtype, fill_value = _maybe_promote(values.dtype)
             new_values = np.empty(result_shape, dtype=dtype)
             new_values.fill(fill_value)
- 
+
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # is there a simpler / faster way of doing this?
@@ -508,9 +508,12 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     levsize = len(level_vals)
     for key in unique_groups:
         loc = this.columns.get_loc(key)
-
+        slice_len = loc.stop - loc.start
         # can make more efficient?
-        if loc.stop - loc.start != levsize:
+
+        if slice_len == 0:
+            continue
+        elif slice_len != levsize:
             chunk = this.ix[:, this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
             value_slice = chunk.reindex(columns=level_vals).values
