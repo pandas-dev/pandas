@@ -939,11 +939,13 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(dict(ID=id_col, NAME=name, DATE=date, VAR1=var1))
 
         multi = df.set_index(['DATE', 'ID'])
+        multi.columns.name = 'Params'
         unst = multi.unstack('ID')
         down = unst.resample('W-THU')
 
         rs = down.stack('ID')
         xp = unst.ix[:, ['VAR1']].resample('W-THU').stack('ID')
+        xp.columns.name = 'Params'
         assert_frame_equal(rs, xp)
 
     def test_unstack_multiple_hierarchical(self):
