@@ -23,10 +23,10 @@ your contribution or address the issue you're having.
      to see that the PR does indeed pass all the tests.
   - Back-compatiblitiy **really** matters. Pandas already has a large user-base and
     a lot of existing user code. Don't break old code if you can avoid it
-    Explain the need if there is one in the PR. 
-    Changes to method signatures should be made in a way which doesn't break existing 
-    code, for example you should beware of changes to ordering and naming of keyword 
-    arguments. Add deprecation warnings when needed.   
+    Explain the need if there is one in the PR.
+    Changes to method signatures should be made in a way which doesn't break existing
+    code, for example you should beware of changes to ordering and naming of keyword
+    arguments. Add deprecation warnings when needed.
   - Performance matters. You can use the included "test_perf.sh"
     script to make sure your PR does not introduce any performance regressions
     in the library.
@@ -43,6 +43,8 @@ your contribution or address the issue you're having.
       - BLD: Updates to the build process/scripts
       - PERF: Performance improvement
       - CLN: Code cleanup
+  - Commit messages should have subject line <80 chars, followed by one blank line,
+    and finally a commit message body if there's a need for one.
   - RELEASE.rst and doc/source/vx.y.z.txt contain an on-going changelog for each
     release as it is worked on. Add entries to these files as needed in
     a separate commit in your PR, documenting the fix, enhancement or (unavoidable)
