@@ -2,8 +2,6 @@ language: python
 
 python:
   - 2.6
-  - 2.7
-  - 3.2
   - 3.3
 
 env:
@@ -13,17 +11,9 @@ env:
 matrix:
   include:
     - python: 2.7
-      env: VBENCH=true
-    - python: 2.7
       env: LOCALE_OVERRIDE="zh_CN.GB18030"  # simplified chinese
     - python: 2.7
       env: FULL_DEPS=true
-    - python: 3.2
-      env: FULL_DEPS=true
-
-  allow_failures:
-    - python: 2.7
-      env: VBENCH=true
     - python: 3.2
       env: FULL_DEPS=true
 
