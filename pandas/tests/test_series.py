@@ -1324,6 +1324,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ts2 = ts.ix[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts).splitlines()[-1]
 
+    def test_timeseries_periodindex(self):
+        # GH2891
+        import pickle
+        from pandas import period_range
+        prng = period_range('1/1/2011', '1/1/2012', freq='M')
+        ts = Series(np.random.randn(len(prng)), prng)
+        new_ts = pickle.loads(pickle.dumps(ts))
+        self.assertEqual(new_ts.index.freq,'M')
+
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
