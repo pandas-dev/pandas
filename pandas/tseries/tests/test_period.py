@@ -1946,6 +1946,12 @@ class TestPeriodIndex(TestCase):
         self.assert_(isinstance(result.index, PeriodIndex))
         self.assertEquals(result.index[0], s1.index[0])
 
+    def test_pickle_freq(self):
+        # GH2891
+        import pickle
+        prng = period_range('1/1/2011', '1/1/2012', freq='M')
+        new_prng = pickle.loads(pickle.dumps(prng))
+        self.assertEqual(new_prng.freq,'M')
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
