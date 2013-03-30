@@ -505,18 +505,20 @@ class TestMoments(unittest.TestCase):
                     return "edge"
 
             series_xp = Series(( [get_v(self.series,func,i,win,minp) for i in range(len(self.series))] ))
-            # frame_xp = func(self.frame, win, min_periods=minp).shift(-(win//2))
+            frame_xp = func(self.frame, win, min_periods=minp).shift(-(win//2))
 
             if has_min_periods:
                 series_rs = func(self.series, win, min_periods=minp, center=True)
+                frame_rs = func(self.frame, win, min_periods=minp, center=True)
             else:
                 series_rs = func(self.series, win, center=True)
+                frame_rs = func(self.frame, win, center=True)
 
             if fill_value is not None:
                 series_xp = series_xp.fillna(fill_value)
-                # frame_xp = frame_xp.fillna(fill_value)
+                frame_xp = frame_xp.fillna(fill_value)
             np.array_equal(series_xp, series_rs)
-            # assert_frame_equal(frame_xp, frame_rs)
+            assert_frame_equal(frame_xp, frame_rs)
 
     def test_legacy_time_rule_arg(self):
         from StringIO import StringIO
