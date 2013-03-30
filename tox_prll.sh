@@ -12,6 +12,9 @@
 ENVS=$(cat tox.ini | grep envlist | tr  "," " " | cut -d " " -f 3-)
 TOX_INI_PAR="tox_prll.ini"
 
+echo "Setting the BUILD_CACHE_DIR env var to a temp directory will"
+echo "potentially speed up subsequent runs.\n"
+
 echo "[Creating distfile]"
 tox --sdistonly
 export DISTFILE="$(find .tox/dist -type f )"
