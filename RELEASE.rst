@@ -251,6 +251,7 @@ pandas 0.11.0
     same name (GH2797_)
   - fix automatic color cycling when plotting consecutive timeseries
     without color arguments (GH2816_)
+  - fixed bug in the pickling of PeriodIndex (GH2891_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -269,6 +270,7 @@ pandas 0.11.0
 .. _GH2710: https://github.com/pydata/pandas/issues/2710
 .. _GH2806: https://github.com/pydata/pandas/issues/2806
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2891: https://github.com/pydata/pandas/issues/2891
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
 .. _GH2745: https://github.com/pydata/pandas/issues/2745
