@@ -1115,6 +1115,25 @@ class PeriodIndex(Int64Index):
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
 
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = (self.name, self.freq)
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+        if len(state) == 2:
+            nd_state, own_state = state
+            np.ndarray.__setstate__(self, nd_state)
+            self.name = own_state[0]
+            try: # backcompat
+                self.freq = own_state[1]
+            except:
+                pass
+        else:  # pragma: no cover
+            np.ndarray.__setstate__(self, state)
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:
