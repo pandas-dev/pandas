@@ -4244,6 +4244,9 @@ class DataFrame(NDFrame):
             if com.is_datetime64_dtype(x):
                 x = lib.map_infer(x, lib.Timestamp)
             return lib.map_infer(x, func)
+        #GH2786
+        if not self.columns.is_unique:
+            raise ValueError("applymap does not support dataframes having duplicate column labels")
         return self.apply(infer)
 
     #----------------------------------------------------------------------
