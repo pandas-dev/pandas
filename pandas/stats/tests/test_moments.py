@@ -457,12 +457,8 @@ class TestMoments(unittest.TestCase):
             assert_almost_equal(frame_result.xs(last_date),
                                 trunc_frame.apply(static_comp))
 
-        if has_center:
-            # the code in _rolling_function tries avoids np.append
-            # because of the perf hit of copying, but we can do
-            # that for testing and simplfy things
-            minp = 10
-            win =25
+
+    def test_centered_rolling_moment(self):
 
             def participating(i,win):
                 return [x for x in range(i-win//2,i+(win+1)//2)]
@@ -473,13 +469,13 @@ class TestMoments(unittest.TestCase):
             self.assertEqual(participating(0,4),[-2,-1,0,1])
             self.assertEqual(participating(1,4),[-1,0,1,2])
 
-            def get_v(s,f,i,win=win,minp=minp):
+            def get_v(s,f,i,win,minp,pad_val=np.nan):
                 _is = np.array(participating(i,win))
                 in_range_mask =  np.array([ x>=0 and x< len(s) for x in _is ])
                 def f_(i,data):
                     # print( data)
                     vals = np.array( list(data) )
-                    if has_min_periods:
+                    if minp:
                         return f(vals,win,min_periods=minp)[-1]
                     else:
                         return f(vals,win)[-1]
@@ -495,30 +491,53 @@ class TestMoments(unittest.TestCase):
                     rpad = np.sum([_is>= len(s)])
 
                     _in_is = np.ma.array(_is, mask=~in_range_mask).compressed()
-                    vals = np.array([0] * lpad + list(s.take(_in_is)) + [0]* rpad)
-                    # print( i,lpad,rpad)
-                    # print "is",_is
-                    # print "in_is",_in_is
-                    # # print  "vs", vs
-                    # print  "vals", vals
+                    vals = np.array([pad_val] * lpad + list(s.take(_in_is)) + [pad_val]* rpad)
                     return f_(i,vals)
                     return "edge"
 
-            series_xp = Series(( [get_v(self.series,func,i,win,minp) for i in range(len(self.series))] ))
-            frame_xp = func(self.frame, win, min_periods=minp).shift(-(win//2))
+            def build_series(data,func,win,minp,pad_val=np.nan):
+                return  Series(( [get_v(data,func,i,win,minp,pad_val=pad_val) for i in range(len(data))] ))
 
-            if has_min_periods:
-                series_rs = func(self.series, win, min_periods=minp, center=True)
-                frame_rs = func(self.frame, win, min_periods=minp, center=True)
-            else:
-                series_rs = func(self.series, win, center=True)
-                frame_rs = func(self.frame, win, center=True)
+            N,K = 20,5
+            for win in range(3,N-1):
+                for minp in range(1,win+1):
+                    func = mom.rolling_mean
 
-            if fill_value is not None:
-                series_xp = series_xp.fillna(fill_value)
-                frame_xp = frame_xp.fillna(fill_value)
-            np.array_equal(series_xp, series_rs)
-            assert_frame_equal(frame_xp, frame_rs)
+                    # self.series = Series(np.ones(N))
+                    self.series = Series(randn(N))
+                    series_xp =build_series(self.series,func,win,minp,pad_val=0)
+
+                    # frame_xp = DataFrame(np.ones((N,K)), copy=True)
+                    self.frame= DataFrame(randn(N,K), copy=True)
+                    f = lambda i: func(self.frame.icol(i), win, min_periods=minp, pad_val=0, center=True)
+                    data =[f(i)  for i in range(len(self.frame.columns))]
+                    frame_xp = DataFrame(np.array(data).T)
+                    series_rs = func(self.series, win, min_periods=minp, pad_val=0, center=True)
+                    frame_rs = func(self.frame, win, min_periods=minp, pad_val=0,center=True)
+
+                    assert_series_equal(series_xp, series_rs)
+                    assert_frame_equal(frame_xp, frame_rs)
+
+            N,K = 20,5
+            minp=None
+            for win in range(3,N-1):
+                    func = mom.rolling_count
+                    # self.series = Series(np.ones(N))
+                    self.series = Series(randn(N))
+                    series_xp =build_series(self.series,func,win,minp)
+
+                    # frame_xp = DataFrame(np.ones((N,K)), copy=True)
+                    self.frame=  DataFrame(randn(N,K), copy=True)
+
+                    f = lambda i: func(self.frame.icol(i), win, center=True)
+                    data =[f(i)  for i in range(len(self.frame.columns))]
+                    frame_xp = DataFrame(np.array(data).T)
+
+                    series_rs = func(self.series, win,center=True)
+                    frame_rs = func(self.frame, win,center=True)
+
+                    assert_series_equal(series_xp, series_rs)
+                    assert_frame_equal(frame_xp, frame_rs)
 
     def test_legacy_time_rule_arg(self):
         from StringIO import StringIO
