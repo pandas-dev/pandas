@@ -667,14 +667,24 @@ class ObjectBlock(Block):
 
         # attempt to create new type blocks
         blocks = []
-        for i, c in enumerate(self.items):
-            values = self.get(c)
+        if self.items.is_unique:
+            for i,c in enumerate(self.items):
+                values = self.get(c)
 
-            values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
-            values = _block_shape(values)
-            items = self.items.take([i])
-            newb = make_block(values, items, self.ref_items)
-            blocks.append(newb)
+                values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
+                values = _block_shape(values)
+                items = self.items.take([i])
+                newb = make_block(values, items, self.ref_items)
+                blocks.append(newb)
+        else:
+            for i in  range(len(self.items)):
+                values = self.values[i]
+
+                values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
+                values = _block_shape(values)
+                items = self.items.take([i])
+                newb = make_block(values, items, self.ref_items)
+                blocks.append(newb)
 
         return blocks
 
