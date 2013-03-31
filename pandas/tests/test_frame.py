@@ -7338,6 +7338,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.applymap(lambda x: x)
         self.assert_(result.dtypes[0] == object)
 
+        # GH2786
+        df = DataFrame(np.random.random((3,4)))
+        df.columns = ['a','a','a','a']
+        try:
+            df.applymap(str)
+        except ValueError as e:
+            self.assertTrue("support" in str(e))
+
     def test_filter(self):
         # items
 
