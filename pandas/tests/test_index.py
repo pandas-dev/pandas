@@ -299,12 +299,27 @@ class TestIndex(unittest.TestCase):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
         answer = self.strIndex[10:20]
+        first.name = 'name'
+        # different names
         result = first - second
 
         self.assert_(tm.equalContents(result, answer))
+        self.assertEqual(result.name, None)
 
-        diff = first.diff(first)
-        self.assert_(len(diff) == 0)
+        # same names
+        second.name = 'name'
+        result = first - second
+        self.assertEqual(result.name, 'name')
+
+        # with empty
+        result = first.diff([])
+        self.assert_(tm.equalContents(result, first))
+        self.assertEqual(result.name, first.name)
+
+        # with everythin
+        result = first.diff(first)
+        self.assert_(len(result) == 0)
+        self.assertEqual(result.name, first.name)
 
         # non-iterable input
         self.assertRaises(Exception, first.diff, 0.5)
@@ -1510,6 +1525,18 @@ class TestMultiIndex(unittest.TestCase):
         # raise Exception called with non-MultiIndex
         result = first.diff(first._tuple_index)
         self.assertTrue(result.equals(first[:0]))
+
+        # name from empty array
+        result = first.diff([])
+        self.assert_(first.equals(result))
+        self.assertEqual(first.names, result.names)
+
+        # name from non-empty array 
+        result = first.diff([('foo', 'one')])
+        expected = pd.MultiIndex.from_tuples([('bar', 'one'), ('baz', 'two'), ('foo', 'two'),
+                                              ('qux', 'one'), ('qux', 'two')])
+        expected.names = first.names
+        self.assertEqual(first.names, result.names)
 
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])

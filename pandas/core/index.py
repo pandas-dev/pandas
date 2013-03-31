@@ -715,13 +715,16 @@ class Index(np.ndarray):
             raise Exception('Input must be iterable!')
 
         if self.equals(other):
-            return Index([])
+            return Index([], name=self.name)
 
         if not isinstance(other, Index):
             other = np.asarray(other)
+            result_name = self.name
+        else:
+            result_name = self.name if self.name == other.name else None
 
         theDiff = sorted(set(self) - set(other))
-        return Index(theDiff)
+        return Index(theDiff, name=result_name)
 
     def unique(self):
         """
@@ -2508,7 +2511,16 @@ class MultiIndex(Index):
         """
         self._assert_can_do_setop(other)
 
-        result_names = self.names if self.names == other.names else None
+        if not isinstance(other, MultiIndex):
+            if len(other) == 0:
+                return self
+            try:
+                other = MultiIndex.from_tuples(other)
+            except:
+                raise TypeError("other should be a MultiIndex or a list of tuples")
+            result_names = self.names
+        else:
+            result_names = self.names if self.names == other.names else None
 
         if self.equals(other):
             return MultiIndex(levels=[[]] * self.nlevels,
