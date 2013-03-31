@@ -15,6 +15,8 @@ from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
 from pandas import concat, Timestamp
 
+from numpy.testing.decorators import slow
+
 try:
     import tables
 except ImportError:
@@ -2177,6 +2179,12 @@ class TestHDFStore(unittest.TestCase):
                               None, where=['A>0', 'B>0'], selector='df1')
             self.assertRaises(Exception, store.select_as_multiple,
                               [None], where=['A>0', 'B>0'], selector='df1')
+            self.assertRaises(TypeError, store.select_as_multiple,
+                              ['df1','df3'], where=['A>0', 'B>0'], selector='df1')
+            self.assertRaises(KeyError, store.select_as_multiple,
+                              ['df3'], where=['A>0', 'B>0'], selector='df1')
+            self.assertRaises(ValueError, store.select_as_multiple,
+                              ['df1','df2'], where=['A>0', 'B>0'], selector='df4')
             
             # default select
             result = store.select('df1', ['A>0', 'B>0'])
@@ -2195,12 +2203,19 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_frame_equal(result, expected)
             
             # multiple (diff selector)
-            result = store.select_as_multiple(['df1', 'df2'], where=[Term(
-                        'index', '>', df2.index[4])], selector='df2')
-            expected = concat([df1, df2], axis=1)
-            expected = expected[5:]
-            tm.assert_frame_equal(result, expected)
-            
+            try:
+                result = store.select_as_multiple(['df1', 'df2'], where=[Term(
+                            'index', '>', df2.index[4])], selector='df2')
+                expected = concat([df1, df2], axis=1)
+                expected = expected[5:]
+                tm.assert_frame_equal(result, expected)
+            except (Exception), detail:
+                print "error in select_as_multiple %s" % str(detail)
+                print "store: ", store
+                print "df1: ", df1
+                print "df2: ", df2
+
+
             # test excpection for diff rows
             store.append('df3', tm.makeTimeDataFrame(nper=50))
             self.assertRaises(ValueError, store.select_as_multiple, 
