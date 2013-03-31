@@ -17,7 +17,7 @@ import pandas.core.common as com
 import pandas.algos as algos
 
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import MultiIndex, Index
 
 
 class ReshapeError(Exception):
@@ -159,7 +159,7 @@ class _Unstacker(object):
             dtype, fill_value = _maybe_promote(values.dtype)
             new_values = np.empty(result_shape, dtype=dtype)
             new_values.fill(fill_value)
- 
+
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # is there a simpler / faster way of doing this?
@@ -506,11 +506,16 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     new_data = {}
     level_vals = this.columns.levels[-1]
     levsize = len(level_vals)
+    drop_cols = []
     for key in unique_groups:
         loc = this.columns.get_loc(key)
-
+        slice_len = loc.stop - loc.start
         # can make more efficient?
-        if loc.stop - loc.start != levsize:
+
+        if slice_len == 0:
+            drop_cols.append(key)
+            continue
+        elif slice_len != levsize:
             chunk = this.ix[:, this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
             value_slice = chunk.reindex(columns=level_vals).values
@@ -521,6 +526,9 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
                 value_slice = this.values[:, loc]
 
         new_data[key] = value_slice.ravel()
+
+    if len(drop_cols) > 0:
+        new_columns = new_columns - drop_cols
 
     N = len(this)
 
