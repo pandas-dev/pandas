@@ -289,6 +289,9 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
 
 
 def _center_window(rs, window, axis):
+    if axis > rs.ndim-1:
+        raise ValueError("Requested axis is larger then no. of argument dimensions")
+
     offset = int((window - 1) / 2.)
     if isinstance(rs, (Series, DataFrame, Panel)):
         rs = rs.shift(-offset, axis=axis)
