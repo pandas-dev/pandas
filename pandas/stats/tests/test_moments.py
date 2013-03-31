@@ -38,6 +38,18 @@ class TestMoments(unittest.TestCase):
         self.frame = DataFrame(randn(N, K), index=self.rng,
                                columns=np.arange(K))
 
+    def test_centered_axis_validation(self):
+        # ok
+        mom.rolling_mean(Series(np.ones(10)),3,center=True ,axis=0)
+        # bad axis
+        self.assertRaises(ValueError, mom.rolling_mean,Series(np.ones(10)),3,center=True ,axis=1)
+
+        # ok ok
+        mom.rolling_mean(DataFrame(np.ones((10,10))),3,center=True ,axis=0)
+        mom.rolling_mean(DataFrame(np.ones((10,10))),3,center=True ,axis=1)
+        # bad axis
+        self.assertRaises(ValueError, mom.rolling_mean,DataFrame(np.ones((10,10))),3,center=True ,axis=2)
+
     def test_rolling_sum(self):
         self._check_moment_func(mom.rolling_sum, np.sum)
 
