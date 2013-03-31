@@ -487,7 +487,7 @@ class TestMoments(unittest.TestCase):
                 if all(in_range_mask): # middle
                     return f_(i,s.take(_is))
 
-                elif sum(in_range_mask) < minp:
+                elif minp and sum(in_range_mask) < minp:
                     return np.NaN
                     return "minp_nan"
                 else:

@@ -277,64 +277,105 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     """
     arg = _conv_timerule(arg, freq, time_rule)
     calc = lambda x: func(x, window, minp=minp, **kwargs)
+    # strips the pandas object into a callback and an ndarray
+    # the callback takes back an ndarray and reconstitutes the
+    # pandas object with the new data
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
-    def calc(x):
+    def calc(x,axis):
         _calc = lambda x: func(x, window, minp=minp, **kwargs)
         if x.ndim > 1:
             return np.apply_along_axis(_calc, axis, x)
         else:
             return _calc(x)
 
-    result = calc(values)
-    rs = return_hook(result)
+    def fwd(x):
+        """
+        reshapes a 1d/2d ndarray into a 2d array so the processing can
+        be done on a fixed case.
+        """
+        v = x.view()
+        if v.ndim > 1:
+            v = v if axis == 1 else v.T
+        else:
+            v = v.reshape((1,len(v)))
+        return v
 
+    def bkwd(x):
+        if arg.ndim > 1:
+            x = x if axis == 1 else x.T
+        else:
+            x = x[0]
+        return x
+
+    def pad(values,nahead,pos="head",window=window,axis=axis,pad_val=pad_val):
+            v = values
+
+            tip = np.empty((v.shape[0],2*nahead+1+nahead+1),dtype=v.dtype)
+            if pos == "head":
+                tip[:,:nahead+1] = pad_val
+                tip[:,nahead+1:] = v[:,:(2*nahead+1)]
+            elif pos == "tail":
+                tip[:,-(nahead+1):] = pad_val
+                tip[:,:-(nahead+1)] = v[:,-(2*nahead+1):]
+            else:
+                raise NotImplementedError()
+
+            return tip
+
+# window = 5 /4
+# print pad(mkdf(10,5).values,window=5)
+# print pad(mkdf(10,5).values,window=5,axis=1)
+# print pad(mkdf(10,5).irow(0).values,window=5)
+    result = calc(values,axis)
     if center:
-        rs = _center_window(rs, window, axis)
         # GH2953, fixup edges
         if window > 2:
-            # there's an ambiguity on what constitutes
+            result = _center_window(result, window, axis)
+            result = fwd(result)
+            values = fwd(values)
+            # with the data always in a consistent alignment
+            # we can always apply the func along the same axis=1
+            # and eliminate special cases
+
+            # there's an ambiguity in what constitutes
             # the "center" when window is even
-            # we Just close ranks with numpy , see test case
+            # we Just close ranks with numpy, so a window of len 4 [0..3]
+            # 2 is the "center" slot
+
             if window % 2 == 0 :
                 nahead = (window-1)//2 or 1
             else:
                 nahead = (window)//2
+            tip = pad(values,nahead,'head')
+            head =  calc(tip,axis=1)[:,-(nahead+1):][:,:nahead+1]
 
-            # fixup the head
-            shape = list(values.shape)
-            shape[0] = nahead+1
-            pad = np.empty(tuple(shape))
-            if len(shape)>1:
-                pad[:,:] = pad_val
-            else:
-                pad[:] = pad_val
-            tip =  np.append(pad,values[:(2*nahead+1)])
-            rs[:nahead+1] =  calc(tip)[-(nahead+1):][:nahead+1]
+            tip = pad(values,nahead,'tail')
+            tail =  calc(tip,axis=1)[:,-(nahead+1):][:,:nahead]
 
-            # fixup the tail
-            shape = list(values.shape)
-            shape[0] = nahead
-            pad = np.empty(tuple(shape))
-            if len(shape)>1:
-                pad[:,:] = pad_val
-            else:
-                pad[:] = pad_val
-            tip =  np.append(values[-(2*nahead+1):], pad)
-            rs[-(nahead):] =  calc(tip)[-(nahead):]
+            result[:,-(nahead):]  = tail
+            result[:,:nahead+1]  = head
 
             if minp > 0:
                 ld = minp - nahead-1
                 rd = ld-1 if window % 2 == 0 else ld
-                rd = rd if rd>=0 else 0
                 if ld > 0:
-                    rs[:ld] = NaN
-                if rd > 0:
-                    rs[-(rd):] = NaN
+                    result[:,:ld] = NaN
+                if rd >0:
+                    result[:,-(rd):] = NaN
 
-    return rs
+            result =bkwd(result)
 
-
+    # rebuild the correct pandas object using the new data
+    return  return_hook(result)
+# TODO: test window=2
+# from pandas.stats import moments as mom
+# print list(mom.rolling_mean(Series(np.ones(10)),3,min_periods=1,pad_val=0,center=True).values)
+# print list(mom.rolling_mean(Series(np.ones(10)),4,min_periods=1,pad_val=0,center=True).values)
+# print list(mom.rolling_mean(Series(np.ones(10)),5,min_periods=1,pad_val=0,center=True).values)
+# mom.rolling_mean(DataFrame(np.ones((3,10))),3,axis=0,min_periods=1,pad_val=0,center=True)
+# mom.rolling_mean(DataFrame(np.ones((3,10))),3,axis=1,min_periods=1,pad_val=0,center=True)
+# mom.rolling_mean(Series(range(25)),3,axis=0,min_periods=1,pad_val=0,center=True)
 def _center_window(rs, window, axis):
     if axis > rs.ndim-1:
         raise ValueError("Requested axis is larger then no. of argument dimensions")
