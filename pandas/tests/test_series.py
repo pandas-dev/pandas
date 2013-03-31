@@ -2314,6 +2314,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1.5, 3.5, 3., 5., np.nan])
         assert_series_equal(s, expected)
 
+        # GH 3217
+        df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
+        df['c'] = np.nan
+
+        # this will fail as long as series is a sub-class of ndarray
+        ##### df['c'].update(Series(['foo'],index=[0])) #####
+
     def test_corr(self):
         _skip_if_no_scipy()
 

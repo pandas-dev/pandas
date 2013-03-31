@@ -724,6 +724,18 @@ class TestIndexing(unittest.TestCase):
         expected = df.iloc[:,0:2].loc[:,'a']
         assert_frame_equal(result,expected)
 
+    def test_setitem_dtype_upcast(self):
+ 
+        # GH3216
+        df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
+        df['c'] = np.nan
+        self.assert_(df['c'].dtype == np.float64)
+
+        df.ix[0,'c'] = 'foo'
+        expected = DataFrame([{"a": 1, "c" : 'foo'}, {"a": 3, "b": 2, "c" : np.nan}])
+        assert_frame_equal(df,expected)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

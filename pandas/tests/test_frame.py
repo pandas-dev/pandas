@@ -1275,9 +1275,10 @@ class CheckIndexing(object):
         df.ix['d', :] = nan
         self.assert_(com.isnull(df.ix['c', :]).all() == False)
 
+        # as of GH 3216 this will now work!
         # try to set with a list like item
-        self.assertRaises(
-            Exception, df.ix.__setitem__, ('d', 'timestamp'), [nan])
+        #self.assertRaises(
+        #    Exception, df.ix.__setitem__, ('d', 'timestamp'), [nan])
 
     def test_setitem_frame(self):
         piece = self.frame.ix[:2, ['A', 'B']]
@@ -1285,10 +1286,50 @@ class CheckIndexing(object):
         assert_almost_equal(self.frame.ix[-2:, ['A', 'B']].values,
                             piece.values)
 
-        piece = self.mixed_frame.ix[:2, ['A', 'B']]
-        f = self.mixed_frame.ix.__setitem__
+        # GH 3216
+
+        # already aligned
+        f = self.mixed_frame.copy()
+        piece = DataFrame([[ 1, 2], [3, 4]], index=f.index[0:2],columns=['A', 'B'])
+        key = (slice(None,2), ['A', 'B'])
+        f.ix[key] = piece
+        assert_almost_equal(f.ix[0:2, ['A', 'B']].values,
+                            piece.values)
+
+        # rows unaligned
+        f = self.mixed_frame.copy()
+        piece = DataFrame([[ 1, 2 ], [3, 4], [5, 6], [7, 8]], index=list(f.index[0:2]) + ['foo','bar'],columns=['A', 'B'])
+        key = (slice(None,2), ['A', 'B'])
+        f.ix[key] = piece
+        assert_almost_equal(f.ix[0:2:, ['A', 'B']].values,
+                            piece.values[0:2])
+
+        # key is unaligned with values
+        f = self.mixed_frame.copy()
+        piece = f.ix[:2, ['A']]
         key = (slice(-2, None), ['A', 'B'])
-        self.assertRaises(ValueError, f, key, piece)
+        f.ix[key] = piece
+        piece['B'] = np.nan
+        assert_almost_equal(f.ix[-2:, ['A', 'B']].values,
+                            piece.values)
+
+        # ndarray
+        f = self.mixed_frame.copy()
+        piece = self.mixed_frame.ix[:2, ['A', 'B']]
+        key = (slice(-2, None), ['A', 'B'])
+        f.ix[key] = piece.values
+        assert_almost_equal(f.ix[-2:, ['A', 'B']].values,
+                            piece.values)
+
+
+        # needs upcasting
+        df = DataFrame([[1,2,'foo'],[3,4,'bar']],columns=['A','B','C'])
+        df2 = df.copy()
+        df2.ix[:,['A','B']] = df.ix[:,['A','B']]+0.5
+        expected = df.reindex(columns=['A','B'])
+        expected += 0.5
+        expected['C'] = df['C']
+        assert_frame_equal(df2, expected)
 
     def test_setitem_frame_align(self):
         piece = self.frame.ix[:2, ['A', 'B']]
