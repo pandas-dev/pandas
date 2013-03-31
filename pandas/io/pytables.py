@@ -453,18 +453,24 @@ class HDFStore(object):
         tbls = [ self.get_storer(k) for k in keys ]
 
         # validate rows
-        if tbls[0] is None:
-            raise Exception("no valid tables to select as multiple")
-        nrows = tbls[0].nrows
-        for t in tbls:
-            if t.nrows != nrows:
-                raise ValueError("all tables must have exactly the same nrows!")
+        nrows = None
+        for t, k in zip(tbls, keys):
+            if t is None:
+                raise TypeError("Invalid table [%s]" % k)
             if not t.is_table:
                 raise TypeError("object [%s] is not a table, and cannot be used in all select as multiple" % t.pathname)
 
+            if nrows is None:
+                nrows = t.nrows
+            elif t.nrows != nrows:
+                raise ValueError("all tables must have exactly the same nrows!")
+
         # select coordinates from the selector table
-        c = self.select_as_coordinates(selector, where, start=start, stop=stop)
-        nrows = len(c)
+        try:
+            c = self.select_as_coordinates(selector, where, start=start, stop=stop)
+            nrows = len(c)
+        except (Exception), detail:
+            raise ValueError("invalid selector [%s]" % selector)
 
         def func(_start, _stop):
 
