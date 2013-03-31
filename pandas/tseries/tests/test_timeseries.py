@@ -205,7 +205,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
         # GH 3070, make sure semantics work on Series/Frame
         expected = ts['2001']
-        
+
         df = DataFrame(dict(A = ts))
         result = df['2001']['A']
         assert_series_equal(expected,result)
@@ -1232,7 +1232,6 @@ class TestTimeSeries(unittest.TestCase):
 
     def test_timestamp_fields(self):
         # extra fields from DatetimeIndex like quarter and week
-        from pandas.lib import Timestamp
         idx = tm.makeDateIndex(100)
 
         fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter']
@@ -1243,6 +1242,33 @@ class TestTimeSeries(unittest.TestCase):
 
         self.assertEqual(idx.freq, Timestamp(idx[-1], idx.freq).freq)
         self.assertEqual(idx.freqstr, Timestamp(idx[-1], idx.freq).freqstr)
+
+    def test_woy_boundary(self):
+        # make sure weeks at year boundaries are correct
+        d = datetime(2013,12,31)
+        result = Timestamp(d).week
+        expected = 1 # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2008,12,28)
+        result = Timestamp(d).week
+        expected = 52 # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2009,12,31)
+        result = Timestamp(d).week
+        expected = 53 # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2010,1,1)
+        result = Timestamp(d).week
+        expected = 53 # ISO standard
+        self.assertEqual(result, expected)
+
+        d = datetime(2010,1,3)
+        result = Timestamp(d).week
+        expected = 53 # ISO standard
+        self.assertEqual(result, expected)
 
     def test_timestamp_date_out_of_range(self):
         self.assertRaises(ValueError, Timestamp, '1676-01-01')

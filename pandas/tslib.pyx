@@ -1668,6 +1668,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         ndarray[int32_t, ndim=2] _month_offset
         int isleap
         pandas_datetimestruct dts
+        int mo_off, doy, dow, woy
 
     _month_offset = np.array(
         [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
@@ -1761,9 +1762,28 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
             if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            ts = convert_to_tsobject(dtindex[i], None)
             isleap = is_leapyear(dts.year)
-            out[i] = _month_offset[isleap, dts.month - 1] + dts.day
-            out[i] = ((out[i] - 1) / 7) + 1
+            mo_off = _month_offset[isleap, dts.month - 1]
+            doy = mo_off + dts.day
+            dow = ts_dayofweek(ts)
+
+            #estimate
+            woy = (doy - 1) - dow + 3
+            if woy >= 0:
+                woy = woy / 7 + 1
+
+            # verify
+            if woy < 0:
+                if (woy > -2) or (woy == -2 and isleap):
+                    woy = 53
+                else:
+                    woy = 52
+            elif woy == 53:
+                if 31 - dts.day + dow < 3:
+                    woy = 1
+
+            out[i] = woy
         return out
 
     elif field == 'q':
