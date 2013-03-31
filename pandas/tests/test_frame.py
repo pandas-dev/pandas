@@ -9476,7 +9476,7 @@ starting,ending,measure
         self.assertTrue(first == second == 0)
 
     def test_inplace_return_self(self):
-        # re #1893, TODO: remove in 0.11
+        # re #1893
 
         data = DataFrame({'a': ['foo', 'bar', 'baz', 'qux'],
                           'b': [0, 0, 1, 1],
@@ -9484,7 +9484,7 @@ starting,ending,measure
 
         def _check_f(base, f):
             result = f(base)
-            self.assertTrue(result is base)
+            self.assertTrue(result is None)
 
         # -----DataFrame-----
 
