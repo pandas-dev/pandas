@@ -2708,15 +2708,8 @@ class DataFrame(NDFrame):
 
         frame.index = index
 
-        if inplace:
-            import warnings
-            warnings.warn("set_index with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
-        else:
+        if not inplace:
             return frame
-
-        return frame if not inplace else None
 
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):
@@ -2815,12 +2808,7 @@ class DataFrame(NDFrame):
             new_obj.insert(0, name, _maybe_cast(values))
 
         new_obj.index = new_index
-        if inplace:
-            import warnings
-            warnings.warn("reset_index with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
-        else:
+        if not inplace:
             return new_obj
 
     delevel = deprecate('delevel', reset_index)
@@ -2988,10 +2976,6 @@ class DataFrame(NDFrame):
             inds, = (-duplicated).nonzero()
             self._data = self._data.take(inds)
             self._clear_item_cache()
-            import warnings
-            warnings.warn("drop_duplicates with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
         else:
             return self[-duplicated]
 
@@ -3147,10 +3131,6 @@ class DataFrame(NDFrame):
                 self._data = self._data.take(indexer)
 
             self._clear_item_cache()
-            import warnings
-            warnings.warn("sort/sort_index with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
         else:
             return self.take(indexer, axis=axis, convert=False)
 
@@ -3194,10 +3174,6 @@ class DataFrame(NDFrame):
                 self._data = self._data.take(indexer)
 
             self._clear_item_cache()
-            import warnings
-            warnings.warn("sortlevel with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
         else:
             return self.take(indexer, axis=axis, convert=False)
 
@@ -3328,10 +3304,6 @@ class DataFrame(NDFrame):
 
         if inplace:
             self._data = new_data
-            import warnings
-            warnings.warn("fillna with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
         else:
             return self._constructor(new_data)
 
@@ -3380,10 +3352,6 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         axis = self._get_axis_number(axis)
-        if inplace:
-            import warnings
-            warnings.warn("replace with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
 
         if value is None:
             return self._interpolate(to_replace, method, axis, inplace, limit)
@@ -3397,13 +3365,17 @@ class DataFrame(NDFrame):
                     new_data = self._data
                     for c, src in to_replace.iteritems():
                         if c in value and c in self:
-                            new_data = new_data.replace(src, value[c], filter = [ c ], inplace=inplace)
+                            new_data = new_data.replace(src, value[c],
+                                                        filter=[ c ],
+                                                        inplace=inplace)
 
                 elif not isinstance(value, (list, np.ndarray)):
                     new_data = self._data
                     for k, src in to_replace.iteritems():
                         if k in self:
-                            new_data = new_data.replace(src, value, filter = [ k ], inplace=inplace)
+                            new_data = new_data.replace(src, value,
+                                                        filter = [ k ],
+                                                        inplace=inplace)
                 else:
                     raise ValueError('Fill value must be scalar or dict or Series')
 
@@ -3430,7 +3402,9 @@ class DataFrame(NDFrame):
                     new_data = self._data
                     for k, v in value.iteritems():
                         if k in self:
-                            new_data = new_data.replace(to_replace, v, filter = [ k ], inplace=inplace)
+                            new_data = new_data.replace(to_replace, v,
+                                                        filter=[ k ],
+                                                        inplace=inplace)
 
                 elif not isinstance(value, (list, np.ndarray)):  # NA -> 0
                     new_data = self._data.replace(to_replace, value,
@@ -3442,7 +3416,6 @@ class DataFrame(NDFrame):
 
         if inplace:
             self._data = new_data
-            return self
         else:
             return self._constructor(new_data)
 
@@ -3525,12 +3498,7 @@ class DataFrame(NDFrame):
         if columns is not None:
             result._rename_columns_inplace(columns_f)
 
-        if inplace:
-            import warnings
-            warnings.warn("rename with inplace=True  will return None"
-                          " from pandas 0.11 onward", FutureWarning)
-            return self
-        else:
+        if not inplace:
             return result
 
     def _rename_index_inplace(self, mapper):
