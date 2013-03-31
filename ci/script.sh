@@ -10,14 +10,13 @@ if [ x"$LOCALE_OVERRIDE" != x"" ]; then
     # also do slow tests here, especially plotting
     nosetests --exe -w /tmp -A "not network" pandas;
     exit
-fi
-
-if [ x"$VBENCH" != x"true" ]; then
+elif [ x"$VBENCH" != x"true" ]; then
+    # plain/FULL_DEPS
     nosetests --exe -w /tmp -A "not slow" pandas;
     exit
 fi
 
-if [ x"$VBENCH" == x"true" ]; then
-    python vb_suite/perf_HEAD.py;
-    exit
-fi
+# if [ x"$VBENCH" == x"true" ]; then
+#     python vb_suite/perf_HEAD.py;
+#     exit
+# fi

@@ -1,8 +1,9 @@
 language: python
 
+# travis insist on having at least one entry here, rather then
+# all in the matrix section
 python:
   - 2.6
-  - 3.3
 
 env:
   global:
@@ -16,6 +17,8 @@ matrix:
       env: FULL_DEPS=true
     - python: 3.2
       env: FULL_DEPS=true
+    - python: 3.3
+
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons
@@ -27,8 +30,8 @@ before_install:
   - echo "Waldo1"
   - echo $VIRTUAL_ENV
   - date
-  - export PIP_ARGS=-q # comment this this to debug travis install issues
-  - export APT_ARGS=-qq # comment this to debug travis install issues
+  # - export PIP_ARGS=-q # comment this this to debug travis install issues
+  # - export APT_ARGS=-qq # comment this to debug travis install issues
   # - set -x # enable this to see bash commands
   - source ci/before_install.sh # we need to source this to bring in the env
   - python -V
