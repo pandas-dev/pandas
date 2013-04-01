@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
+from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
@@ -933,6 +933,14 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         # it works!
         df.resample('W-MON', how='first', closed='left', label='left')
+
+    def test_resample_bms_2752(self):
+        # GH2753
+        foo = pd.Series(index=pd.bdate_range('20000101','20000201'))
+        res1 = foo.resample("BMS")
+        res2 = foo.resample("BMS").resample("B")
+        self.assertEqual(res1.index[0], Timestamp('20000103'))
+        self.assertEqual(res1.index[0], res2.index[0])
 
     # def test_monthly_convention_span(self):
     #     rng = period_range('2000-01', periods=3, freq='M')
