@@ -257,6 +257,7 @@ pandas 0.11.0
   - fixed bug in the pickling of PeriodIndex (GH2891_)
   - Upcast/split blocks when needed in a mixed DataFrame when setitem 
     with an indexer (GH3216_)
+  - Invoking df.applymap on a dataframe with dupe cols now raises a ValueError (GH2786_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -291,6 +292,7 @@ pandas 0.11.0
 .. _GH2776: https://github.com/pydata/pandas/issues/2776
 .. _GH2778: https://github.com/pydata/pandas/issues/2778
 .. _GH2781: https://github.com/pydata/pandas/issues/2781
+.. _GH2786: https://github.com/pydata/pandas/issues/2786
 .. _GH2787: https://github.com/pydata/pandas/issues/2787
 .. _GH2437: https://github.com/pydata/pandas/issues/2437
 .. _GH2753: https://github.com/pydata/pandas/issues/2753
