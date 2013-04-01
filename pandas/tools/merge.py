@@ -1221,6 +1221,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         if len(names) == len(levels):
             names = list(names)
         else:
+            # make sure that all of the passed indices have the same nlevels
+            if not len(set([ i.nlevels for i in indexes ])) == 1:
+                raise AssertionError("Cannot concat indices that do"
+                                     " not have the same number of levels")
+
             # also copies
             names = names + _get_consensus_names(indexes)
 

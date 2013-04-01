@@ -568,6 +568,71 @@ class TestGroupBy(unittest.TestCase):
             assert_series_equal(agged, expected, check_dtype=False)
             self.assert_(issubclass(agged.dtype.type, np.dtype(dtype).type))
 
+    def test_indices_concatenation_order(self):
+
+        # GH 2808
+
+        def f1(x):
+            y = x[(x.b % 2) == 1]**2
+            if y.empty:
+                multiindex = MultiIndex(
+                    levels = [[]]*2,
+                    labels = [[]]*2,
+                    names = ['b', 'c']
+                    )
+                res = DataFrame(None,
+                                   columns=['a'],
+                                   index=multiindex)
+                return res
+            else:
+                y = y.set_index(['b','c'])
+                return y
+
+        def f2(x):
+            y = x[(x.b % 2) == 1]**2
+            if y.empty:
+                return DataFrame()
+            else:
+                y = y.set_index(['b','c'])
+                return y
+
+        def f3(x):
+            y = x[(x.b % 2) == 1]**2
+            if y.empty:
+                multiindex = MultiIndex(
+                    levels = [[]]*2,
+                    labels = [[]]*2,
+                    names = ['foo', 'bar']
+                    )
+                res = DataFrame(None,
+                                columns=['a','b'],
+                                index=multiindex)
+                return res
+            else:
+                return y
+
+        df = DataFrame({'a':[1,2,2,2],
+                        'b':range(4),
+                        'c':range(5,9)})
+        
+        df2 = DataFrame({'a':[3,2,2,2],
+                         'b':range(4),
+                         'c':range(5,9)})
+
+
+        # correct result
+        result1 = df.groupby('a').apply(f1)
+        result2 = df2.groupby('a').apply(f1)
+        assert_frame_equal(result1, result2)
+        
+        # should fail (not the same number of levels)
+        self.assertRaises(AssertionError, df.groupby('a').apply, f2)
+        self.assertRaises(AssertionError, df2.groupby('a').apply, f2)
+
+        # should fail (incorrect shape)
+        self.assertRaises(AssertionError, df.groupby('a').apply, f3)
+        self.assertRaises(AssertionError, df2.groupby('a').apply, f3)
+
     def test_attr_wrapper(self):
         grouped = self.ts.groupby(lambda x: x.weekday())
 
