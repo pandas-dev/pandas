@@ -124,6 +124,8 @@ pandas 0.11.0
     knows how many columns to expect in the result) (GH2981_)
   - On a mixed DataFrame, allow setting with indexers with ndarray/DataFrame
     on rhs (GH3216_)
+  - Treat boolean values as integers (values 1 and 0) for numeric
+    operations. (GH2641_)
 
 **API Changes**
 
@@ -350,6 +352,7 @@ pandas 0.11.0
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
 .. _GH2816: https://github.com/pydata/pandas/issues/2816
 .. _GH3216: https://github.com/pydata/pandas/issues/3216
+.. _GH2641: https://github.com/pydata/pandas/issues/2641
 
 pandas 0.10.1
 =============

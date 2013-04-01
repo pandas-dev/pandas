@@ -497,7 +497,7 @@ class TestBlockManager(unittest.TestCase):
                         'bool': bool_ser, 'obj': obj_ser,
                         'dt': dt_ser})
         xp = DataFrame({'int': int_ser, 'float': float_ser,
-                        'complex': complex_ser})
+                        'complex': complex_ser, 'bool': bool_ser})
         rs = DataFrame(df._data.get_numeric_data())
         assert_frame_equal(xp, rs)
 

@@ -304,6 +304,9 @@ Enhancements
   - added option `display.with_wmp_style` providing a sleeker visual style
     for plots. Based on https://gist.github.com/huyng/816622 (GH3075_).
 
+  - Treat boolean values as integers (values 1 and 0) for numeric
+    operations. (GH2641_)
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
@@ -328,3 +331,4 @@ on GitHub for a complete list.
 .. _GH3059: https://github.com/pydata/pandas/issues/3059
 .. _GH3070: https://github.com/pydata/pandas/issues/3070
 .. _GH3075: https://github.com/pydata/pandas/issues/3075
+.. _GH2641: https://github.com/pydata/pandas/issues/2641
