@@ -45,6 +45,8 @@ your contribution or address the issue you're having.
       - CLN: Code cleanup
   - Commit messages should have subject line <80 chars, followed by one blank line,
     and finally a commit message body if there's a need for one.
+  - Please reference the GH issue number in your commit message using GH1234
+    or #1234, either style is fine.
   - RELEASE.rst and doc/source/vx.y.z.txt contain an on-going changelog for each
     release as it is worked on. Add entries to these files as needed in
     a separate commit in your PR, documenting the fix, enhancement or (unavoidable)
