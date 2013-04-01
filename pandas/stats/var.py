@@ -11,7 +11,7 @@ from pandas.stats.math import inv
 from pandas.stats.ols import _combine_rhs
 
 
-class VAR(object):
+class VAR(common.ReprMixin,object):
     """
     Estimates VAR(p) regression on multivariate time series data
     presented in pandas data structures.
@@ -477,7 +477,9 @@ BIC:                            %(bic).3f
 
         return np.dot(resid, resid.T) / (n - k)
 
-    def __repr__(self):
+    # ReprMixin->VAR
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         return self.summary
 
 

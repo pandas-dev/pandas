@@ -797,7 +797,7 @@ def make_block(values, items, ref_items):
 # TODO: flexible with index=None and/or items=None
 
 
-class BlockManager(object):
+class BlockManager(com.ReprMixin,object):
     """
     Core internal data structure to implement DataFrame
 
@@ -894,7 +894,9 @@ class BlockManager(object):
     def __len__(self):
         return len(self.items)
 
-    def __repr__(self):
+    # ReprMixin->BlockManager
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         output = 'BlockManager'
         for i, ax in enumerate(self.axes):
             if i == 0:

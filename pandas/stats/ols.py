@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Series, isnull
 from pandas.core.common import _ensure_float64
+import pandas.core.common as com
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly
@@ -22,7 +23,7 @@ import pandas.stats.moments as moments
 _FP_ERR = 1e-8
 
 
-class OLS(object):
+class OLS(com.ReprMixin,object):
     """
     Runs a full sample ordinary least squares regression.
 
@@ -574,7 +575,9 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
 
         return template % params
 
-    def __repr__(self):
+    # ReprMixin->OLS
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         return self.summary
 
     @cache_readonly

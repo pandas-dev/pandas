@@ -14,7 +14,7 @@ class PandasError(Exception):
     pass
 
 
-class PandasObject(object):
+class PandasObject(com.ReprMixin, object):
 
     _AXIS_NUMBERS = {
         'index': 0,
@@ -539,7 +539,9 @@ class NDFrame(PandasObject):
     def axes(self):
         return self._data.axes
 
-    def __repr__(self):
+    # ReprMixin->PandasObject->NDFrame
+    # just define unicode, and str,bytes,repr and everything works on py3/py3
+    def __unicode__(self):
         return 'NDFrame'
 
     @property

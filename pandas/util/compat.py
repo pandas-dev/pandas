@@ -386,7 +386,9 @@ class _Counter(dict):
         if elem in self:
             dict.__delitem__(self, elem)
 
-    def __repr__(self):
+    # ReprMixin->PandasObject->NDFrame->DataFrame
+    # just define unicode, and str,bytes,repr work on py2/py3
+    def __unicode__(self):
         if not self:
             return '%s()' % self.__class__.__name__
         items = ', '.join(map('%r: %r'.__mod__, self.most_common()))
