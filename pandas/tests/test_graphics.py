@@ -153,6 +153,15 @@ class TestSeriesPlots(unittest.TestCase):
         self.assert_(ax.get_yscale() == 'log')
 
     @slow
+    def test_kde_color(self):
+        _skip_if_no_scipy()
+        _check_plot_works(self.ts.plot, kind='kde')
+        _check_plot_works(self.ts.plot, kind='density')
+        ax = self.ts.plot(kind='kde', logy=True, color='r')
+        self.assert_(ax.get_lines()[0].get_color() == 'r')
+        self.assert_(ax.get_lines()[1].get_color() == 'r')
+
+    @slow
     def test_autocorrelation_plot(self):
         from pandas.tools.plotting import autocorrelation_plot
         _check_plot_works(autocorrelation_plot, self.ts)

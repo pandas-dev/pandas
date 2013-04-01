@@ -236,7 +236,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
 def _label_axis(ax, kind='x', label='', position='top',
     ticks=True, rotate=False):
-    
+
     from matplotlib.artist import setp
     if kind == 'x':
         ax.set_xlabel(label, visible=True)
@@ -247,14 +247,14 @@ def _label_axis(ax, kind='x', label='', position='top',
             setp(ax.get_xticklabels(), rotation=90)
     elif kind == 'y':
         ax.yaxis.set_visible(True)
-        ax.set_ylabel(label, visible=True)        
+        ax.set_ylabel(label, visible=True)
         # ax.set_ylabel(a)
         ax.yaxis.set_ticks_position(position)
         ax.yaxis.set_label_position(position)
-    return        
-    
-        
-    
+    return
+
+
+
 
 
 def _gca():
@@ -1026,6 +1026,19 @@ class MPLPlot(object):
 
         return style or None
 
+    def _get_colors(self):
+        import matplotlib.pyplot as plt
+        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+        if isinstance(cycle, basestring):
+            cycle = list(cycle)
+        colors = self.kwds.get('color', cycle)
+        return colors
+
+    def _maybe_add_color(self, colors, kwds, style, i):
+        has_color = 'color' in kwds
+        if has_color and (style is None or re.match('[a-z]+', style) is None):
+            kwds['color'] = colors[i % len(colors)]
+
 
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
@@ -1034,6 +1047,7 @@ class KdePlot(MPLPlot):
     def _make_plot(self):
         from scipy.stats import gaussian_kde
         plotf = self._get_plot_function()
+        colors = self._get_colors()
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
             style = self._get_style(i, label)
@@ -1049,6 +1063,7 @@ class KdePlot(MPLPlot):
             y = gkde.evaluate(ind)
             kwds = self.kwds.copy()
             kwds['label'] = label
+            self._maybe_add_color(colors, kwds, style, i)
             if style is None:
                 args = (ax, ind, y)
             else:
@@ -1118,19 +1133,6 @@ class LinePlot(MPLPlot):
                 return False
 
         return (freq is not None) and self._is_dynamic_freq(freq)
-
-    def _get_colors(self):
-        import matplotlib.pyplot as plt
-        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
-        if isinstance(cycle, basestring):
-            cycle = list(cycle)
-        colors = self.kwds.get('color', cycle)
-        return colors
-
-    def _maybe_add_color(self, colors, kwds, style, i):
-        has_color = 'color' in kwds
-        if has_color and (style is None or re.match('[a-z]+', style) is None):
-            kwds['color'] = colors[i % len(colors)]
 
     def _make_plot(self):
         import pandas.tseries.plotting as tsplot
