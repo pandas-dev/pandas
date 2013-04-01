@@ -1834,11 +1834,23 @@ class NDFrameGroupBy(GroupBy):
                     key_index = Index(keys, name=key_names[0])
 
             if isinstance(values[0], np.ndarray):
-                if (isinstance(values[0], Series) and
-                        not _all_indexes_same([x.index for x in values])):
-                    return self._concat_objects(keys, values,
-                                                not_indexed_same=not_indexed_same)
+                if isinstance(values[0], Series):
+                    applied_index    = self.obj._get_axis(self.axis)
+                    all_indexed_same = _all_indexes_same([x.index for x in values])
+                    singular_series  = len(values) == 1 and applied_index.nlevels == 1
 
+                    # assign the name to this series
+                    if singular_series:
+                        values[0].name = keys[0]
+
+                    # GH2893
+                    # we have series in the values array, we want to produce a series:
+                    # if any of the sub-series are not indexed the same
+                    # OR we don't have a multi-index and we have only a single values
+                    if singular_series or not all_indexed_same:
+                        return self._concat_objects(keys, values,
+                                                    not_indexed_same=not_indexed_same)
+                    
                 try:
                     if self.axis == 0:
 

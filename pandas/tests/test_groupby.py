@@ -261,6 +261,26 @@ class TestGroupBy(unittest.TestCase):
         expected = self.mframe.groupby(key.astype('O')).sum()
         assert_frame_equal(result, expected)
 
+    def test_groupby_return_type(self):
+
+        # GH2893
+        df1 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
+                         {"val1":2, "val2": 27}, {"val1":2, "val2": 12}])
+
+        def func(dataf):
+            return dataf["val2"]  - dataf["val2"].mean()
+
+        result = df1.groupby("val1").apply(func)
+        self.assert_(isinstance(result,Series))
+
+        df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
+                         {"val1":1, "val2": 27}, {"val1":1, "val2": 12}])
+        def func(dataf):
+            return dataf["val2"]  - dataf["val2"].mean()
+
+        result = df2.groupby("val1").apply(func)
+        self.assert_(isinstance(result,Series))
+
     def test_agg_regression1(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.agg(np.mean)
