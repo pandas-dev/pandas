@@ -87,6 +87,12 @@ parser.add_argument('-n', '--repeats',
                     default=3,
                     type=int,
                     help='number of times to run each vbench, result value is the average')
+parser.add_argument('-c', '--ncalls',
+                    metavar="N",
+                    dest='ncalls',
+                    default=3,
+                    type=int,
+                    help='number of calls to in each repetition of a vbench')
 parser.add_argument('-N', '--hrepeats',
                     metavar="N",
                     dest='hrepeats',
@@ -224,7 +230,6 @@ def profile_head_single(benchmarks):
 
 def profile_head(benchmarks):
 
-
     ss= [profile_head_single(benchmarks) for i in range(args.hrepeats)]
 
     results = DataFrame(ss)
@@ -320,6 +325,8 @@ def main():
 
     for b in benchmarks:
         b.repeat = args.repeats
+        if args.ncalls:
+            b.ncalls = args.ncalls
 
     if benchmarks:
         if args.head:
