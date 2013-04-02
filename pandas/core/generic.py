@@ -482,6 +482,11 @@ class PandasObject(object):
             np.putmask(rs.values, mask, np.nan)
         return rs
 
+    def to_hdf(self, path_or_buf, key, **kwargs):
+        """ activate the HDFStore """
+        from pandas.io import pytables
+        return pytables.to_hdf(path_or_buf, key, self, **kwargs)
+
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():
     PandasObject._create_indexer(_name,_indexer)
