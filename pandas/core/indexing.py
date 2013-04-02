@@ -215,9 +215,9 @@ class _NDFrameIndexer(object):
                 ax = self.obj.axes[i]
                 if com._is_sequence(ix) or isinstance(ix, slice):
                     if idx is None:
-                        idx = ax[ix]
+                        idx = ax[ix].ravel()
                     elif cols is None:
-                        cols = ax[ix]
+                        cols = ax[ix].ravel()
                     else:
                         break
 
