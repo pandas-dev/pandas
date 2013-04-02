@@ -735,6 +735,17 @@ class TestIndexing(unittest.TestCase):
         expected = DataFrame([{"a": 1, "c" : 'foo'}, {"a": 3, "b": 2, "c" : np.nan}])
         assert_frame_equal(df,expected)
 
+    def test_setitem_iloc(self):
+
+        
+        # setitem with an iloc list
+        df = DataFrame(np.arange(9).reshape((3, 3)), index=["A", "B", "C"], columns=["A", "B", "C"])
+        df.iloc[[0,1],[1,2]]
+        df.iloc[[0,1],[1,2]] += 100
+
+        expected = DataFrame(np.array([0,101,102,3,104,105,6,7,8]).reshape((3, 3)), index=["A", "B", "C"], columns=["A", "B", "C"])
+        assert_frame_equal(df,expected)
+
 
 if __name__ == '__main__':
     import nose
