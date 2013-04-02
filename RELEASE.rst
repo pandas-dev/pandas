@@ -77,6 +77,7 @@ pandas 0.11.0
     - New keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk``
       are provided to support iteration on ``select`` and
       ``select_as_multiple`` (GH3076_)
+    - support ``read_hdf/to_hdf`` API similar to ``read_csv/to_csv`` (GH3222_)
 
   - Add ``squeeze`` method to possibly remove length 1 dimensions from an
     object.
@@ -355,6 +356,7 @@ pandas 0.11.0
 .. _GH2747: https://github.com/pydata/pandas/issues/2747
 .. _GH2816: https://github.com/pydata/pandas/issues/2816
 .. _GH3216: https://github.com/pydata/pandas/issues/3216
+.. _GH3222: https://github.com/pydata/pandas/issues/3222
 .. _GH2641: https://github.com/pydata/pandas/issues/2641
 
 pandas 0.10.1

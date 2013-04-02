@@ -1043,10 +1043,10 @@ Deletion of the object specified by the key
    del store['wp']
 
    store
-Closing a Store
+
+Closing a Store, Context Manager
 
 .. ipython:: python
-
 
    # closing a store
    store.close()
@@ -1067,6 +1067,24 @@ Closing a Store
 These stores are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
 retrieved in their entirety.
+
+Read/Write API
+~~~~~~~~~~~~~~
+
+``HDFStore`` supports an top-level API using  ``read_hdf`` for reading and ``to_hdf`` for writing,
+similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
+
+.. ipython:: python
+
+   df_tl = DataFrame(dict(A=range(5), B=range(5)))
+   df_tl.to_hdf('store_tl.h5','table',append=True)
+   read_hdf('store_tl.h5', 'table', where = ['index>2'])
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('store_tl.h5')
 
 .. _io.hdf5-table:
 

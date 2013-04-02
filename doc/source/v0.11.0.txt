@@ -237,6 +237,20 @@ Enhancements
   - Bottleneck is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
     types of ``nan`` operations
 
+  - For ``HDFStore``, support ``read_hdf/to_hdf`` API similar to ``read_csv/to_csv``
+
+    .. ipython:: python
+
+       df = DataFrame(dict(A=range(5), B=range(5)))
+       df.to_hdf('store.h5','table',append=True)
+       read_hdf('store.h5', 'table', where = ['index>2'])
+
+    .. ipython:: python
+       :suppress:
+       :okexcept:
+
+       os.remove('store.h5')
+
   - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
     (e.g. ``store.df == store['df']``)
 
