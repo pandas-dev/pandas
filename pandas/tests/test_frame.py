@@ -7899,15 +7899,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_get_X_columns(self):
         # numeric and object columns
 
-        # Booleans get casted to float in DataFrame, so skip for now
         df = DataFrame({'a': [1, 2, 3],
-                        # 'b' : [True, False, True],
+                        'b' : [True, False, True],
                         'c': ['foo', 'bar', 'baz'],
                         'd': [None, None, None],
                         'e': [3.14, 0.577, 2.773]})
 
         self.assert_(np.array_equal(df._get_numeric_data().columns,
-                                    ['a', 'e']))
+                                    ['a', 'b', 'e']))
 
     def test_get_numeric_data(self):
         intname = np.dtype(np.int_).name
@@ -7938,6 +7937,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = only_obj._get_numeric_data()
         expected = df.ix[:, []]
         assert_frame_equal(result, expected)
+
+    def test_bool_describe_in_mixed_frame(self):
+        df = DataFrame({
+            'string_data': ['a', 'b', 'c', 'd', 'e'],
+            'bool_data': [True, True, False, False, False],
+            'int_data': [10, 20, 30, 40, 50],
+        })
+
+        # Boolean data and integer data is included in .describe() output, string data isn't
+        self.assert_(np.array_equal(df.describe().columns, ['bool_data', 'int_data']))
+
+        bool_describe = df.describe()['bool_data']
+
+        # Both the min and the max values should stay booleans
+        self.assert_(bool_describe['min'].dtype == np.bool_)
+        self.assert_(bool_describe['max'].dtype == np.bool_)
+
+        self.assert_(bool_describe['min'] == False)
+        self.assert_(bool_describe['max'] == True)
+
+        # For numeric operations, like mean or median, the values True/False are cast to
+        # the integer values 1 and 0
+        assert_almost_equal(bool_describe['mean'], 0.4)
+        assert_almost_equal(bool_describe['50%'], 0)
 
     def test_count(self):
         f = lambda s: notnull(s).sum()
