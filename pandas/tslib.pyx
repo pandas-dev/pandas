@@ -1666,7 +1666,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
         ndarray[int32_t, ndim=2] _month_offset
-        int isleap
+        int isleap, isleap_prev
         pandas_datetimestruct dts
         int mo_off, doy, dow, woy
 
@@ -1764,6 +1764,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             ts = convert_to_tsobject(dtindex[i], None)
             isleap = is_leapyear(dts.year)
+            isleap_prev = is_leapyear(dts.year - 1)
             mo_off = _month_offset[isleap, dts.month - 1]
             doy = mo_off + dts.day
             dow = ts_dayofweek(ts)
@@ -1775,7 +1776,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
             # verify
             if woy < 0:
-                if (woy > -2) or (woy == -2 and isleap):
+                if (woy > -2) or (woy == -2 and isleap_prev):
                     woy = 53
                 else:
                     woy = 52

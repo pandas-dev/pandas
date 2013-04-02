@@ -1270,6 +1270,10 @@ class TestTimeSeries(unittest.TestCase):
         expected = 53 # ISO standard
         self.assertEqual(result, expected)
 
+        result = np.array([Timestamp(datetime(*args)).week for args in
+                           [(2000,1,1),(2000,1,2),(2005,1,1),(2005,1,2)]])
+        self.assertTrue((result == [52, 52, 53, 53]).all())
+
     def test_timestamp_date_out_of_range(self):
         self.assertRaises(ValueError, Timestamp, '1676-01-01')
         self.assertRaises(ValueError, Timestamp, '2263-01-01')
