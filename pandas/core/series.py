@@ -736,12 +736,24 @@ class Series(pa.Array, generic.PandasObject):
             other = other.reindex(ser.index)
         elif isinstance(other, (tuple,list)):
             other = np.array(other)
+
         if len(other) != len(ser):
+            icond = ~cond
 
             # GH 2745
             # treat like a scalar
             if len(other) == 1:
                 other = np.array(other[0]*len(ser))
+
+            # GH 3235 
+            # match True cond to other
+            elif len(icond[icond]) == len(other):
+                dtype, fill_value = _maybe_promote(other.dtype)
+                new_other = np.empty(len(cond),dtype=dtype)
+                new_other.fill(fill_value)
+                new_other[icond] = other
+                other = new_other
+
             else:
                 raise ValueError('Length of replacements must equal series length')
 

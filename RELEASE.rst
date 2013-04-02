@@ -239,6 +239,7 @@ pandas 0.11.0
   - Fix implemented ``.xs`` when called with ``axes=1`` and a level parameter (GH2903_)
   - Timestamp now supports the class method fromordinal similar to datetimes (GH3042_)
   - Fix issue with indexing a series with a boolean key and specifiying a 1-len list on the rhs (GH2745_)
+    or a list on the rhs (GH3235_)
   - Fixed bug in groupby apply when kernel generate list of arrays having unequal len (GH1738_)
   - fixed handling of rolling_corr with center=True which could produce corr>1 (GH3155_)
   - Fixed issues where indices can be passed as 'index/column' in addition to 0/1 for the axis parameter
