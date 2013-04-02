@@ -200,8 +200,12 @@ def profile_head_single(benchmarks):
     print( "Running %d benchmarks" % len(benchmarks))
     for b in benchmarks:
         d=dict()
+        sys.stdout.write('.')
+        sys.stdout.flush()
         try:
             d = b.run()
+        except KeyboardInterrupt:
+            raise
         except Exception as e: # if a single vbench bursts into flames, don't die.
             err=""
             try:
@@ -213,6 +217,7 @@ def profile_head_single(benchmarks):
         d.update(dict(name=b.name))
         results.append(dict(name=b.name,timing=d.get('timing',np.nan)))
 
+    print("\n\n")
     df = DataFrame(results)
     df.columns = ["name",HEAD_COL]
     return df.set_index("name")[HEAD_COL]
