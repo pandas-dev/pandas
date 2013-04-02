@@ -1404,8 +1404,8 @@ class MultiIndex(Index):
             subarr.names = [None] * subarr.nlevels
         else:
             if len(names) != subarr.nlevels:
-                raise AssertionError(('Length of names must be same as level '
-                                      '(%d), got %d') % (subarr.nlevels))
+                raise AssertionError(('Length of names (%d) must be same as level '
+                                      '(%d)') % (len(names),subarr.nlevels))
 
             subarr.names = list(names)
 
@@ -2765,13 +2765,13 @@ def _handle_legacy_indexes(indexes):
 
 
 def _get_consensus_names(indexes):
-    consensus_name = indexes[0].names
-    for index in indexes[1:]:
-        if index.names != consensus_name:
-            consensus_name = [None] * index.nlevels
-            break
-    return consensus_name
 
+    # find the non-none names, need to tupleify to make 
+    # the set hashable, then reverse on return
+    consensus_names = set([ tuple(i.names) for i in indexes if all(n is not None for n in i.names) ])
+    if len(consensus_names) == 1:
+        return list(list(consensus_names)[0])
+    return [None] * indexes[0].nlevels
 
 def _maybe_box(idx):
     from pandas.tseries.api import DatetimeIndex, PeriodIndex
