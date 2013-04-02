@@ -245,8 +245,8 @@ def profile_head(benchmarks):
 
 def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
-        name_width=32
-        col_width = 12
+        name_width=45
+        col_width = 10
 
         hdr = ("{:%s}" % name_width).format("Test name")
         hdr += ("|{:^%d}"  % col_width)* len(df.columns)
