@@ -147,6 +147,27 @@ def get_store(path, mode='a', complevel=None, complib=None,
             store.close()
 
 
+### interface to/from ###
+
+def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, **kwargs):
+    """ store this object, close it if we opened it """
+    f = lambda store: store.put(key, value, **kwargs)
+
+    if isinstance(path_or_buf, basestring):
+        with get_store(path_or_buf, mode=mode, complevel=complevel, complib=complib) as store:
+            f(store)
+    else:
+        f(path_or_buf)
+
+def read_hdf(path_or_buf, key, **kwargs):
+    """ read from the store, closeit if we opened it """
+    f = lambda store: store.select(key, **kwargs)
+
+    if isinstance(path_or_buf, basestring):
+        with get_store(path_or_buf) as store:
+            return f(store)
+    f(path_or_buf)
+    
 class HDFStore(object):
     """
     dict-like IO interface for storing pandas objects in PyTables
@@ -190,7 +211,7 @@ class HDFStore(object):
     """
     _quiet = False
 
-    def __init__(self, path, mode='a', complevel=None, complib=None,
+    def __init__(self, path, mode=None, complevel=None, complib=None,
                  fletcher32=False):
         try:
             import tables as _
@@ -198,6 +219,8 @@ class HDFStore(object):
             raise Exception('HDFStore requires PyTables')
 
         self._path = path
+        if mode is None:
+            mode = 'a'
         self._mode = mode
         self._handle = None
         self._complevel = complevel

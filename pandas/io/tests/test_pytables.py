@@ -94,6 +94,37 @@ class TestHDFStore(unittest.TestCase):
         finally:
             safe_remove(self.path)
 
+    def test_conv_read_write(self):
+
+        try:
+
+            from pandas import read_hdf
+        
+            def roundtrip(key, obj,**kwargs):
+                obj.to_hdf(self.path, key,**kwargs)
+                return read_hdf(self.path, key)
+            
+            o = tm.makeTimeSeries()
+            assert_series_equal(o, roundtrip('series',o))
+            
+            o = tm.makeStringSeries()
+            assert_series_equal(o, roundtrip('string_series',o))
+            
+            o = tm.makeDataFrame()
+            assert_frame_equal(o, roundtrip('frame',o))
+
+            o = tm.makePanel()
+            tm.assert_panel_equal(o, roundtrip('panel',o))
+
+            # table
+            df = DataFrame(dict(A=range(5), B=range(5)))
+            df.to_hdf(self.path,'table',append=True)
+            result = read_hdf(self.path, 'table', where = ['index>2'])
+            assert_frame_equal(df[df.index>2],result)
+
+        finally:
+            safe_remove(self.path)
+
     def test_keys(self):
 
         with ensure_clean(self.path) as store:
