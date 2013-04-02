@@ -395,4 +395,7 @@ if __name__ == '__main__':
     if not args.head and (not args.base_commit and not args.target_commit):
         parser.print_help()
     else:
+        import warnings
+        warnings.filterwarnings('ignore',category=FutureWarning)
+        warnings.filterwarnings('ignore',category=DeprecationWarning)
         main()
