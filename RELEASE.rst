@@ -258,6 +258,7 @@ pandas 0.11.0
   - Upcast/split blocks when needed in a mixed DataFrame when setitem 
     with an indexer (GH3216_)
   - Invoking df.applymap on a dataframe with dupe cols now raises a ValueError (GH2786_)
+  - Apply with invalid returned indices raise correct Exception (GH2808_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -304,6 +305,7 @@ pandas 0.11.0
 .. _GH2867: https://github.com/pydata/pandas/issues/2867
 .. _GH2803: https://github.com/pydata/pandas/issues/2803
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2808: https://github.com/pydata/pandas/issues/2808
 .. _GH2849: https://github.com/pydata/pandas/issues/2849
 .. _GH2850: https://github.com/pydata/pandas/issues/2850
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
