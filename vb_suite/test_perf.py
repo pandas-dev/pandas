@@ -308,10 +308,13 @@ def main():
     for b in benchmarks:
         b.repeat = args.repeats
 
-    if args.head:
-        profile_head(benchmarks)
+    if benchmarks:
+        if args.head:
+            profile_head(benchmarks)
+        else:
+            profile_comparative(benchmarks)
     else:
-        profile_comparative(benchmarks)
+        print( "No matching benchmarks")
 
     os.chdir(saved_dir)
 
