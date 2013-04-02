@@ -199,16 +199,25 @@ def profile_head_single(benchmarks):
 
     print( "Running %d benchmarks" % len(benchmarks))
     for b in benchmarks:
-        d = b.run()
+        try:
+            d = b.run()
+        except Exception as e: # if a single vbench bursts into flames, don't die.
+            try:
+                err =  d.get("traceback","")
+            except:
+                pass
+            print("%s died with:\n%s\nSkipping...\n" % (b.name, err))
+
         d.update(dict(name=b.name))
-        results.append(dict(name=d['name'],timing=d['timing']))
+        results.append(dict(name=b.name,timing=d.get('timing',np.nan)))
 
     df = DataFrame(results)
     df.columns = ["name",HEAD_COL]
     return df.set_index("name")[HEAD_COL]
 
 def profile_head(benchmarks):
-    print( "profile_head")
+
+
     ss= [profile_head_single(benchmarks) for i in range(args.hrepeats)]
 
     results = DataFrame(ss)
