@@ -628,7 +628,7 @@ class IntBlock(NumericBlock):
         return com.is_integer_dtype(value) and value.dtype == self.dtype
 
 
-class BoolBlock(Block):
+class BoolBlock(NumericBlock):
     is_bool = True
     _can_hold_na = False
 
@@ -640,9 +640,6 @@ class BoolBlock(Block):
             return bool(element)
         except:  # pragma: no cover
             return element
-
-    def _try_cast_result(self, result):
-        return _possibly_downcast_to_dtype(result, self.dtype)
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
