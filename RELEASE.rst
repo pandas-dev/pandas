@@ -263,6 +263,8 @@ pandas 0.11.0
     with an indexer (GH3216_)
   - Invoking df.applymap on a dataframe with dupe cols now raises a ValueError (GH2786_)
   - Apply with invalid returned indices raise correct Exception (GH2808_)
+  - Produce a series on apply if we only generate a singular series and have
+    a simple index (GH2893_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -314,6 +316,7 @@ pandas 0.11.0
 .. _GH2850: https://github.com/pydata/pandas/issues/2850
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
 .. _GH2892: https://github.com/pydata/pandas/issues/2892
+.. _GH2893: https://github.com/pydata/pandas/issues/2893
 .. _GH2902: https://github.com/pydata/pandas/issues/2902
 .. _GH2903: https://github.com/pydata/pandas/issues/2903
 .. _GH2909: https://github.com/pydata/pandas/issues/2909
