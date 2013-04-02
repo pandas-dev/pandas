@@ -287,7 +287,7 @@ class GroupBy(object):
         """
         Apply function and combine results together in an intelligent way. The
         split-apply-combine combination rules attempt to be as common sense
-        based as possible. For example:
+        based as possible. For example (overridable with combine=False):
 
         case 1:
         group DataFrame
@@ -307,6 +307,9 @@ class GroupBy(object):
         Parameters
         ----------
         func : function
+        combine : (default: True), You may pass in a combine=True argument to get back
+                 the values exactly as returned by func, as long as func doesn't itself
+                 use a `combine` keyword  or capture all kwd args using **kwds.
 
         Notes
         -----
@@ -320,14 +323,34 @@ class GroupBy(object):
         -------
         applied : type depending on grouped object and function
         """
-        func = _intercept_function(func)
-        f = lambda g: func(g, *args, **kwargs)
-        return self._python_apply_general(f)
+        import inspect
 
-    def _python_apply_general(self, f):
+        func = _intercept_function(func)
+
+        # make sure f doesn't expect a "combine" keyword
+        # and if not, hijack it if specified
+        combine = True
+        try:
+            fargs=inspect.getargspec(func)
+            if not fargs.keywords and 'combine' not in fargs.args[len(fargs.defaults or []):]:
+                combine = kwargs.pop('combine',True)
+        except TypeError: # func is not a python function?
+            pass
+
+        f = lambda g: func(g, *args, **kwargs)
+
+        return self._python_apply_general(f,combine=combine)
+
+    def _python_apply_general(self, f,combine=True):
         keys, values, mutated = self.grouper.apply(f, self.obj, self.axis)
 
-        return self._wrap_applied_output(keys, values,
+        if not combine:
+            if len(keys) == 0:
+                return Series([])
+            else:
+                return zip(keys,values)
+        else:
+            return self._wrap_applied_output(keys, values,
                                          not_indexed_same=mutated)
 
     def aggregate(self, func, *args, **kwargs):
