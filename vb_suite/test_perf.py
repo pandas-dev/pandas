@@ -199,9 +199,11 @@ def profile_head_single(benchmarks):
 
     print( "Running %d benchmarks" % len(benchmarks))
     for b in benchmarks:
+        d=dict()
         try:
             d = b.run()
         except Exception as e: # if a single vbench bursts into flames, don't die.
+            err=""
             try:
                 err =  d.get("traceback","")
             except:
