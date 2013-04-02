@@ -13,8 +13,8 @@ SECTION = 'Binary ops'
 # add
 
 setup = common_setup + """
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 """
 frame_add = \
     Benchmark("df + df2", setup, name='frame_add',
@@ -22,8 +22,8 @@ frame_add = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_numexpr_threads(1)
 """
 
@@ -33,8 +33,8 @@ frame_add_st = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_use_numexpr(False)
 """
 frame_add_no_ne = \
@@ -45,8 +45,8 @@ frame_add_no_ne = \
 # mult
 
 setup = common_setup + """
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 """
 frame_mult = \
     Benchmark("df * df2", setup, name='frame_mult',
@@ -54,8 +54,8 @@ frame_mult = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_numexpr_threads(1)
 """
 frame_mult_st = \
@@ -64,8 +64,8 @@ frame_mult_st = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_use_numexpr(False)
 """
 frame_mult_no_ne = \
@@ -76,8 +76,8 @@ frame_mult_no_ne = \
 # multi and
 
 setup = common_setup + """
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 """
 frame_multi_and = \
     Benchmark("df[(df>0) & (df2>0)]", setup, name='frame_multi_and',
@@ -85,8 +85,8 @@ frame_multi_and = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_numexpr_threads(1)
 """
 frame_multi_and_st = \
@@ -95,11 +95,10 @@ frame_multi_and_st = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(20000, 100))
+df2 = DataFrame(np.random.randn(20000, 100))
 expr.set_use_numexpr(False)
 """
 frame_multi_and_no_ne = \
     Benchmark("df[(df>0) & (df2>0)]", setup, name='frame_multi_and_no_ne',cleanup="expr.set_use_numexpr(True)",
               start_date=datetime(2012, 1, 1))
-

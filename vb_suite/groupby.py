@@ -278,8 +278,8 @@ groupby_sum_booleans = Benchmark("df.groupby('ii').sum()", setup)
 # Transform testing
 
 setup = common_setup + """
-n_dates = 1000
-n_securities = 500
+n_dates = 400
+n_securities = 250
 n_columns = 3
 share_na = 0.1
 

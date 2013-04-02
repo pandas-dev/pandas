@@ -47,7 +47,7 @@ frame_to_csv = Benchmark("df.to_csv('__test__.csv')", setup,
 #----------------------------------
 
 setup = common_setup + """
-df=DataFrame({'A':range(100000)})
+df=DataFrame({'A':range(50000)})
 df['B'] = df.A + 1.0
 df['C'] = df.A + 2.0
 df['D'] = df.A + 3.0
@@ -61,8 +61,8 @@ from pandas import concat, Timestamp
 
 def create_cols(name):
     return [ "%s%03d" % (name,i) for i in xrange(5) ]
-df_float  = DataFrame(np.random.randn(10000, 5),dtype='float64',columns=create_cols('float'))
-df_int    = DataFrame(np.random.randn(10000, 5),dtype='int64',columns=create_cols('int'))
+df_float  = DataFrame(np.random.randn(5000, 5),dtype='float64',columns=create_cols('float'))
+df_int    = DataFrame(np.random.randn(5000, 5),dtype='int64',columns=create_cols('int'))
 df_bool   = DataFrame(True,index=df_float.index,columns=create_cols('bool'))
 df_object = DataFrame('foo',index=df_float.index,columns=create_cols('object'))
 df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=create_cols('date'))

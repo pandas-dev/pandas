@@ -95,8 +95,8 @@ indexing_dataframe_boolean_rows_object = \
               name='indexing_dataframe_boolean_rows_object')
 
 setup = common_setup + """
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(50000, 100))
+df2 = DataFrame(np.random.randn(50000, 100))
 """
 indexing_dataframe_boolean = \
     Benchmark("df > df2", setup, name='indexing_dataframe_boolean',
@@ -104,8 +104,8 @@ indexing_dataframe_boolean = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(50000, 100))
+df2 = DataFrame(np.random.randn(50000, 100))
 expr.set_numexpr_threads(1)
 """
 
@@ -115,8 +115,8 @@ indexing_dataframe_boolean_st = \
 
 setup = common_setup + """
 import pandas.core.expressions as expr
-df  = DataFrame(np.random.randn(100000, 100))
-df2 = DataFrame(np.random.randn(100000, 100))
+df  = DataFrame(np.random.randn(50000, 100))
+df2 = DataFrame(np.random.randn(50000, 100))
 expr.set_use_numexpr(False)
 """
 
