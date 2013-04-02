@@ -242,6 +242,7 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
         name_width=32
         col_width = 12
+
         hdr = ("{:%s}" % name_width).format("Test name")
         hdr += ("|{:^%d}"  % col_width)* len(df.columns)
         hdr += "|"
@@ -249,6 +250,11 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
         hdr = "-"*len(hdr) + "\n" + hdr + "\n" + "-"*len(hdr) + "\n"
         ftr=hdr
         s = "\n"
+        s+= "Invoked with :\n"
+        s+= "--ncalls: %s\n" % (args.ncalls or 'Auto')
+        s+= "--repeats: %s\n" % (args.repeats)
+        s+= "\n\n"
+
         s += hdr
         # import ipdb
         # ipdb.set_trace()
