@@ -314,8 +314,12 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    prprint("LOG_FILE = %s\n" % args.log_file)
+    print("\n")
+    prprint("LOG_FILE = %s" % args.log_file)
+    if args.outdf:
+        prprint("PICKE_FILE = %s" % args.outdf)
 
+    print("\n")
 
     # move away from the pandas root dit, to avoid possible import
     # surprises
