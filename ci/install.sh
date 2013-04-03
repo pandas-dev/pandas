@@ -3,6 +3,9 @@
 echo "inside $0"
 # Install Dependencies
 
+# workaround for travis ignoring system_site_packages in travis.yml
+rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
+
 # Hard Deps
 pip install $PIP_ARGS --use-mirrors cython nose python-dateutil pytz
 
@@ -15,15 +18,10 @@ pip install $PIP_ARGS --use-mirrors cython nose python-dateutil pytz
 
 if [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
     sudo apt-get $APT_ARGS install python3-numpy;
-fi
-
-# or else, get it with pip and compile it
-if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ] || \
-   [ ${TRAVIS_PYTHON_VERSION}     == "3.1" ] || \
-   [ ${TRAVIS_PYTHON_VERSION}     == "3.2" ]; then
-     pip $PIP_ARGS install numpy;
+elif [ ${TRAVIS_PYTHON_VERSION} == "3.3" ] || [  x"$LOCALE_OVERRIDE" != x""  ]; then # should be >=3,3
+    pip $PIP_ARGS install https://github.com/numpy/numpy/archive/v1.7.0.tar.gz;
 else
-    pip $PIP_ARGS install https://github.com/numpy/numpy/archive/v1.7.0b2.tar.gz;
+     pip install numpy==1.6.1
 fi
 
 # Optional Deps
@@ -70,5 +68,8 @@ fi;
 
 # make sure the desired locale is generated
 if [ x"$LOCALE_OVERRIDE" != x"" ]; then
+    # piggyback this build for plotting tests. oh boy.
+    pip install $PIP_ARGS --use-mirrors  matplotlib;
+
     sudo locale-gen "$LOCALE_OVERRIDE"
 fi

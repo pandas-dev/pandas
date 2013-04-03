@@ -378,7 +378,8 @@ to sparse
 
     @property
     def density(self):
-        return float(len(self.sp_index)) / len(self.index)
+        r = float(self.sp_index.npoints) / float(self.sp_index.length)
+        return r
 
     def astype(self, dtype=None):
         """
@@ -467,7 +468,7 @@ to sparse
         else:
             return result
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, convert=True):
         """
         Sparse-compatible version of ndarray.take
 

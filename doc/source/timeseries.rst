@@ -563,6 +563,12 @@ Filling forward / backward
 Related to ``asfreq`` and ``reindex`` is the ``fillna`` function documented in
 the :ref:`missing data section <missing_data.fillna>`.
 
+Converting to Python datetimes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``DatetimeIndex`` can be converted to an array of Python native datetime.datetime objects using the
+``to_pydatetime`` method.
+
 .. _timeseries.resampling:
 
 Up- and downsampling
@@ -572,6 +578,8 @@ With 0.8, pandas introduces simple, powerful, and efficient functionality for
 performing resampling operations during frequency conversion (e.g., converting
 secondly data into 5-minutely data). This is extremely common in, but not
 limited to, financial applications.
+
+See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
 .. ipython:: python
 
@@ -911,3 +919,79 @@ TimeSeries, aligning the data on the UTC timestamps:
    result = eastern + berlin
    result
    result.index
+
+.. _timeseries.timedeltas:
+
+Time Deltas
+-----------
+
+Timedeltas are differences in times, expressed in difference units, e.g. days,hours,minutes,seconds.
+They can be both positive and negative.
+
+.. ipython:: python
+
+    from datetime import datetime, timedelta
+    s  = Series(date_range('2012-1-1', periods=3, freq='D'))
+    td = Series([ timedelta(days=i) for i in range(3) ])
+    df = DataFrame(dict(A = s, B = td))
+    df
+    df['C'] = df['A'] + df['B']
+    df
+    df.dtypes
+
+    s - s.max()
+    s - datetime(2011,1,1,3,5)
+    s + timedelta(minutes=5)
+
+Series of timedeltas with ``NaT`` values are supported
+
+.. ipython:: python
+
+    y = s - s.shift()
+    y
+The can be set to ``NaT`` using ``np.nan`` analagously to datetimes
+
+.. ipython:: python
+
+    y[1] = np.nan
+    y
+
+Operands can also appear in a reversed order (a singluar object operated with a Series)
+
+.. ipython:: python
+
+    s.max() - s
+    datetime(2011,1,1,3,5) - s
+    timedelta(minutes=5) + s
+
+Some timedelta numeric like operations are supported.
+
+.. ipython:: python
+
+    td - timedelta(minutes=5,seconds=5,microseconds=5)
+
+``min, max`` and the corresponding ``idxmin, idxmax`` operations are support on frames
+
+.. ipython:: python
+
+    df = DataFrame(dict(A = s - Timestamp('20120101')-timedelta(minutes=5,seconds=5),
+                        B = s - Series(date_range('2012-1-2', periods=3, freq='D'))))
+    df
+
+
+    df.min()
+    df.min(axis=1)
+
+    df.idxmin()
+    df.idxmax()
+
+``min, max`` operations are support on series, these return a single element ``timedelta64[ns]`` Series (this avoids
+having to deal with numpy timedelta64 issues). ``idxmin, idxmax`` are supported as well.
+
+.. ipython:: python
+
+    df.min().max()
+    df.min(axis=1).min()
+
+    df.min().idxmax()
+    df.min(axis=1).idxmin()

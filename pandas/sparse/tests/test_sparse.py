@@ -156,6 +156,14 @@ class TestSparseSeries(TestCase,
         # it works!
         df = DataFrame({'col': self.bseries})
 
+    def test_series_density(self):
+        # GH2803
+        ts = Series(np.random.randn(10))
+        ts[2:-2] = nan
+        sts = ts.to_sparse()
+        density =  sts.density # don't die
+        self.assertEqual(density,4/10.0)
+
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
         series = self.bseries.to_dense()
@@ -821,6 +829,39 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         sdf = SparseDataFrame(columns=range(4), index=arr)
         self.assertTrue(sdf[0].index is sdf[1].index)
 
+    def test_constructor_from_series(self):
+
+        # GH 2873
+        x = Series(np.random.randn(10000), name='a')
+        x = x.to_sparse(fill_value=0)
+        self.assert_(isinstance(x,SparseSeries))
+        df = SparseDataFrame(x)
+        self.assert_(isinstance(df,SparseDataFrame))
+
+        x = Series(np.random.randn(10000), name ='a')
+        y = Series(np.random.randn(10000), name ='b')
+        x.ix[:9998] = 0
+        x = x.to_sparse(fill_value=0)
+        
+        # currently fails
+        #df1 = SparseDataFrame([x, y])
+
+    def test_dtypes(self):
+        df = DataFrame(np.random.randn(10000, 4))
+        df.ix[:9998] = np.nan
+        sdf = df.to_sparse()
+
+        result = sdf.get_dtype_counts()
+        expected = Series({ 'float64' : 4 })
+        assert_series_equal(result, expected)
+
+    def test_str(self):
+        df = DataFrame(np.random.randn(10000, 4))
+        df.ix[:9998] = np.nan
+        sdf = df.to_sparse()
+
+        str(sdf)
+        
     def test_array_interface(self):
         res = np.sqrt(self.frame)
         dres = np.sqrt(self.frame.to_dense())

@@ -135,6 +135,9 @@ class TestCut(unittest.TestCase):
         expected = qcut(arr, 4)
         self.assert_(factor.equals(expected))
 
+    def test_qcut_all_bins_same(self):
+        self.assertRaises(Exception, qcut, [0,0,0,0,0,0,0,0,0,0], 3)
+
     def test_cut_out_of_bounds(self):
         arr = np.random.randn(100)
 

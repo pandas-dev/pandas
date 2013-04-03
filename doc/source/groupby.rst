@@ -59,6 +59,8 @@ We aim to make operations like this natural and easy to express using
 pandas. We'll address each area of GroupBy functionality then provide some
 non-trivial examples / use cases.
 
+See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies
+
 .. _groupby.split:
 
 Splitting an object into groups

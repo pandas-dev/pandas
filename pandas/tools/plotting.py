@@ -23,6 +23,71 @@ try:  # mpl optional
 except ImportError:
     pass
 
+# Extracted from https://gist.github.com/huyng/816622
+# this is the rcParams set when setting display.with_mpl_style
+# to True.
+mpl_stylesheet = {
+    'axes.axisbelow': True,
+     'axes.color_cycle': ['#348ABD',
+      '#7A68A6',
+      '#A60628',
+      '#467821',
+      '#CF4457',
+      '#188487',
+      '#E24A33'],
+     'axes.edgecolor': '#bcbcbc',
+     'axes.facecolor': '#eeeeee',
+     'axes.grid': True,
+     'axes.labelcolor': '#555555',
+     'axes.labelsize': 'large',
+     'axes.linewidth': 1.0,
+     'axes.titlesize': 'x-large',
+     'figure.edgecolor': 'white',
+     'figure.facecolor': 'white',
+     'figure.figsize': (6.0, 4.0),
+     'figure.subplot.hspace': 0.5,
+     'font.family': 'monospace',
+     'font.monospace': ['Andale Mono',
+      'Nimbus Mono L',
+      'Courier New',
+      'Courier',
+      'Fixed',
+      'Terminal',
+      'monospace'],
+     'font.size': 10,
+     'interactive': True,
+     'keymap.all_axes': ['a'],
+     'keymap.back': ['left', 'c', 'backspace'],
+     'keymap.forward': ['right', 'v'],
+     'keymap.fullscreen': ['f'],
+     'keymap.grid': ['g'],
+     'keymap.home': ['h', 'r', 'home'],
+     'keymap.pan': ['p'],
+     'keymap.save': ['s'],
+     'keymap.xscale': ['L', 'k'],
+     'keymap.yscale': ['l'],
+     'keymap.zoom': ['o'],
+     'legend.fancybox': True,
+     'lines.antialiased': True,
+     'lines.linewidth': 1.0,
+     'patch.antialiased': True,
+     'patch.edgecolor': '#EEEEEE',
+     'patch.facecolor': '#348ABD',
+     'patch.linewidth': 0.5,
+     'toolbar': 'toolbar2',
+     'xtick.color': '#555555',
+     'xtick.direction': 'in',
+     'xtick.major.pad': 6.0,
+     'xtick.major.size': 0.0,
+     'xtick.minor.pad': 6.0,
+     'xtick.minor.size': 0.0,
+     'ytick.color': '#555555',
+     'ytick.direction': 'in',
+     'ytick.major.pad': 6.0,
+     'ytick.major.size': 0.0,
+     'ytick.minor.pad': 6.0,
+     'ytick.minor.size': 0.0
+}
 
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
@@ -154,49 +219,42 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
             ax.set_xlabel('')
             ax.set_ylabel('')
 
-            ax.xaxis.set_visible(False)
-            ax.yaxis.set_visible(False)
+            _label_axis(ax, kind='x', label=b, position='bottom', rotate=True)
 
-            # setup labels
-            if i == 0 and j % 2 == 1:
-                ax.set_xlabel(b, visible=True)
-                ax.xaxis.set_visible(True)
-                ax.set_xlabel(b)
-                ax.xaxis.set_ticks_position('top')
-                ax.xaxis.set_label_position('top')
-                setp(ax.get_xticklabels(), rotation=90)
-            elif i == n - 1 and j % 2 == 0:
-                ax.set_xlabel(b, visible=True)
-                ax.xaxis.set_visible(True)
-                ax.set_xlabel(b)
-                ax.xaxis.set_ticks_position('bottom')
-                ax.xaxis.set_label_position('bottom')
-                setp(ax.get_xticklabels(), rotation=90)
-            elif j == 0 and i % 2 == 0:
-                ax.set_ylabel(a, visible=True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel(a)
-                ax.yaxis.set_ticks_position('left')
-                ax.yaxis.set_label_position('left')
-            elif j == n - 1 and i % 2 == 1:
-                ax.set_ylabel(a, visible=True)
-                ax.yaxis.set_visible(True)
-                ax.set_ylabel(a)
-                ax.yaxis.set_ticks_position('right')
-                ax.yaxis.set_label_position('right')
+            _label_axis(ax, kind='y', label=a, position='left')
 
-            # ax.grid(b=grid)
-
-    axes[0, 0].yaxis.set_visible(False)
-    axes[n - 1, n - 1].xaxis.set_visible(False)
-    axes[n - 1, n - 1].yaxis.set_visible(False)
-    axes[0, n - 1].yaxis.tick_right()
+            if j!= 0:
+                ax.yaxis.set_visible(False)
+            if i != n-1:
+                ax.xaxis.set_visible(False)
 
     for ax in axes.flat:
         setp(ax.get_xticklabels(), fontsize=8)
         setp(ax.get_yticklabels(), fontsize=8)
 
     return axes
+
+def _label_axis(ax, kind='x', label='', position='top',
+    ticks=True, rotate=False):
+
+    from matplotlib.artist import setp
+    if kind == 'x':
+        ax.set_xlabel(label, visible=True)
+        ax.xaxis.set_visible(True)
+        ax.xaxis.set_ticks_position(position)
+        ax.xaxis.set_label_position(position)
+        if rotate:
+            setp(ax.get_xticklabels(), rotation=90)
+    elif kind == 'y':
+        ax.yaxis.set_visible(True)
+        ax.set_ylabel(label, visible=True)
+        # ax.set_ylabel(a)
+        ax.yaxis.set_ticks_position(position)
+        ax.yaxis.set_label_position(position)
+    return
+
+
+
 
 
 def _gca():
@@ -520,12 +578,13 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     return ax
 
 
-def lag_plot(series, ax=None, **kwds):
+def lag_plot(series, lag=1, ax=None, **kwds):
     """Lag plot for time series.
 
     Parameters:
     -----------
     series: Time series
+    lag: lag of the scatter plot, default 1
     ax: Matplotlib axis object, optional
     kwds: Matplotlib scatter method keyword arguments, optional
 
@@ -535,12 +594,12 @@ def lag_plot(series, ax=None, **kwds):
     """
     import matplotlib.pyplot as plt
     data = series.values
-    y1 = data[:-1]
-    y2 = data[1:]
+    y1 = data[:-lag]
+    y2 = data[lag:]
     if ax is None:
         ax = plt.gca()
     ax.set_xlabel("y(t)")
-    ax.set_ylabel("y(t + 1)")
+    ax.set_ylabel("y(t + %s)" % lag)
     ax.scatter(y1, y2, **kwds)
     return ax
 
@@ -748,6 +807,8 @@ class MPLPlot(object):
 
         if (sec_true or has_sec) and not hasattr(ax, 'right_ax'):
             orig_ax, new_ax = ax, ax.twinx()
+            new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
+
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
 
             if len(orig_ax.get_lines()) == 0:  # no data on left y
@@ -872,13 +933,15 @@ class MPLPlot(object):
             if convert_period and isinstance(index, PeriodIndex):
                 index = index.to_timestamp().order()
                 x = index._mpl_repr()
-            elif index.is_numeric() or is_datetype:
+            elif index.is_numeric():
                 """
                 Matplotlib supports numeric values or datetime objects as
                 xaxis values. Taking LBYL approach here, by the time
                 matplotlib raises exception when using non numeric/datetime
                 values for xaxis, several actions are already taken by plt.
                 """
+                x = index._mpl_repr()
+            elif is_datetype:
                 x = index.order()._mpl_repr()
             else:
                 self._need_to_set_index = True
@@ -963,6 +1026,19 @@ class MPLPlot(object):
 
         return style or None
 
+    def _get_colors(self):
+        import matplotlib.pyplot as plt
+        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+        if isinstance(cycle, basestring):
+            cycle = list(cycle)
+        colors = self.kwds.get('color', cycle)
+        return colors
+
+    def _maybe_add_color(self, colors, kwds, style, i):
+        has_color = 'color' in kwds
+        if has_color and (style is None or re.match('[a-z]+', style) is None):
+            kwds['color'] = colors[i % len(colors)]
+
 
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
@@ -971,6 +1047,7 @@ class KdePlot(MPLPlot):
     def _make_plot(self):
         from scipy.stats import gaussian_kde
         plotf = self._get_plot_function()
+        colors = self._get_colors()
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
             style = self._get_style(i, label)
@@ -986,6 +1063,7 @@ class KdePlot(MPLPlot):
             y = gkde.evaluate(ind)
             kwds = self.kwds.copy()
             kwds['label'] = label
+            self._maybe_add_color(colors, kwds, style, i)
             if style is None:
                 args = (ax, ind, y)
             else:
@@ -1040,7 +1118,7 @@ class LinePlot(MPLPlot):
             if (base <= freqmod.FreqGroup.FR_DAY):
                 return x[:1].is_normalized
 
-            return Period(x[0], freq).to_timestamp() == x[0]
+            return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
         return True
 
     def _use_dynamic_x(self):
@@ -1055,20 +1133,6 @@ class LinePlot(MPLPlot):
                 return False
 
         return (freq is not None) and self._is_dynamic_freq(freq)
-
-    def _get_colors(self):
-        import matplotlib.pyplot as plt
-        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
-        if isinstance(cycle, basestring):
-            cycle = list(cycle)
-        has_colors = 'color' in self.kwds
-        colors = self.kwds.get('color', cycle)
-        return colors
-
-    def _maybe_add_color(self, colors, kwds, style, i):
-        kwds.pop('color', None)
-        if style is None or re.match('[a-z]+', style) is None:
-            kwds['color'] = colors[i % len(colors)]
 
     def _make_plot(self):
         import pandas.tseries.plotting as tsplot
@@ -1276,8 +1340,17 @@ class BarPlot(MPLPlot):
 
         return f
 
+    def _get_colors(self):
+        import matplotlib.pyplot as plt
+        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+        if isinstance(cycle, basestring):
+            cycle = list(cycle)
+        has_colors = 'color' in self.kwds
+        colors = self.kwds.get('color', cycle)
+        return colors
+
     def _make_plot(self):
-        colors = self.kwds.pop('color', 'brgyk')
+        colors = self._get_colors()
         rects = []
         labels = []
 
@@ -1297,7 +1370,7 @@ class BarPlot(MPLPlot):
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
                 rect = bar_f(ax, self.ax_pos, y,
-                             self.bar_width, start=pos_prior, **kwds)
+                             self.bar_width, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
@@ -1308,7 +1381,7 @@ class BarPlot(MPLPlot):
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
-                             start=pos_prior, label=label, **kwds)
+                              label=label, **kwds)
             rects.append(rect)
             labels.append(label)
 
@@ -1353,7 +1426,7 @@ class HistPlot(MPLPlot):
 
 
 def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
-               sharey=False, use_index=True, figsize=None, grid=False,
+               sharey=False, use_index=True, figsize=None, grid=None,
                legend=True, rot=None, ax=None, style=None, title=None,
                xlim=None, ylim=None, logx=False, logy=False, xticks=None,
                yticks=None, kind='line', sort_columns=False, fontsize=None,
@@ -1382,7 +1455,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         Sort column names to determine plot ordering
     title : string
         Title to use for the plot
-    grid : boolean, default True
+    grid : boolean, default None (matlab style default)
         Axis grid lines
     legend : boolean, default True
         Place legend on axis subplots
@@ -1390,9 +1463,10 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     ax : matplotlib axis object, default None
     style : list or dict
         matplotlib line style per column
-    kind : {'line', 'bar', 'barh'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density'}
         bar : vertical bar plot
         barh : horizontal bar plot
+        kde/density : Kernel Density Estimation plot
     logx : boolean, default False
         For line plots, use log scaling on x axis
     logy : boolean, default False
@@ -1470,31 +1544,32 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     Parameters
     ----------
     label : label argument to provide to plot
-    kind : {'line', 'bar', 'barh'}
+    kind : {'line', 'bar', 'barh', 'kde', 'density'}
         bar : vertical bar plot
         barh : horizontal bar plot
-    rot : int, default 30
-        Rotation for tick labels
+        kde/density : Kernel Density Estimation plot
     use_index : boolean, default True
         Plot index as axis tick labels
-    ax : matplotlib axis object
-        If not passed, uses gca()
-    style : string, default matplotlib default
-        matplotlib line style to use
-    ax : matplotlib axis object
-        If not passed, uses gca()
-    logx : boolean, default False
-        For line plots, use log scaling on x axis
-    logy : boolean, default False
-        For line plots, use log scaling on y axis
+    rot : int, default None
+        Rotation for tick labels
     xticks : sequence
         Values to use for the xticks
     yticks : sequence
         Values to use for the yticks
     xlim : 2-tuple/list
     ylim : 2-tuple/list
-    rot : int, default None
-        Rotation for ticks
+    ax : matplotlib axis object
+        If not passed, uses gca()
+    style : string, default matplotlib default
+        matplotlib line style to use
+    grid : matplot grid
+    legend: matplot legende
+    logx : boolean, default False
+        For line plots, use log scaling on x axis
+    logy : boolean, default False
+        For line plots, use log scaling on y axis
+    secondary_y : boolean or sequence of ints, default False
+        If True then y-axis will be on the right
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -1631,7 +1706,7 @@ def format_date_labels(ax, rot):
         pass
 
 
-def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwargs):
     """
 
     Returns
@@ -1643,7 +1718,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
     def plot_group(group, ax):
         xvals = group[x].values
         yvals = group[y].values
-        ax.scatter(xvals, yvals)
+        ax.scatter(xvals, yvals, **kwargs)
         ax.grid(grid)
 
     if by is not None:
@@ -2075,6 +2150,8 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     if on_right(0):
         orig_ax = ax0
         ax0 = ax0.twinx()
+        ax0._get_lines.color_cycle = orig_ax._get_lines.color_cycle
+
         orig_ax.get_yaxis().set_visible(False)
         orig_ax.right_ax = ax0
         ax0.left_ax = orig_ax
@@ -2092,6 +2169,8 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         if on_right(i):
             orig_ax = ax
             ax = ax.twinx()
+            ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
+
             orig_ax.get_yaxis().set_visible(False)
         axarr[i] = ax
 

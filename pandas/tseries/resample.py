@@ -24,8 +24,8 @@ class TimeGrouper(CustomGrouper):
     Parameters
     ----------
     freq : pandas date offset or offset alias for identifying bin edges
-    closed : closed end of interval; left (default) or right
-    label : interval boundary to use for labeling; left (default) or right
+    closed : closed end of interval; left or right
+    label : interval boundary to use for labeling; left or right
     nperiods : optional, integer
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
@@ -209,7 +209,13 @@ class TimeGrouper(CustomGrouper):
             else:
                 # upsampling shortcut
                 assert(self.axis == 0)
-                result = obj.reindex(binner[1:], method=self.fill_method,
+
+                if self.closed == 'right':
+                    res_index = binner[1:]
+                else:
+                    res_index = binner[:-1]
+
+                result = obj.reindex(res_index, method=self.fill_method,
                                      limit=self.limit)
         else:
             # Irregular data, have to use groupby

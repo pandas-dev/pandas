@@ -7,13 +7,15 @@ import operator
 import sys
 import numpy as np
 from pandas.core.common import (PandasError, _mut_exclusive,
-                                _try_sort, _default_index, _infer_dtype,
+                                _try_sort, _default_index, _infer_dtype_from_scalar,
                                 notnull)
 from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
-from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
-from pandas.core.internals import BlockManager, make_block, form_blocks
+from pandas.core.indexing import _maybe_droplevels, _is_list_like
+from pandas.core.internals import (BlockManager, 
+                                   create_block_manager_from_arrays,
+                                   create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -310,10 +312,7 @@ class Panel(NDFrame):
         return self._init_arrays(arrays, haxis, [haxis] + raxes)
 
     def _init_arrays(self, arrays, arr_names, axes):
-        # segregates dtypes and forms blocks matching to columns
-        blocks = form_blocks(arrays, arr_names, axes)
-        mgr = BlockManager(blocks, axes).consolidate()
-        return mgr
+        return create_block_manager_from_arrays(arrays, arr_names, axes)
 
     @property
     def shape(self):
@@ -398,9 +397,7 @@ class Panel(NDFrame):
                 ax = _ensure_index(ax)
             fixed_axes.append(ax)
 
-        items = fixed_axes[0]
-        block = make_block(values, items, items)
-        return BlockManager([block], fixed_axes)
+        return create_block_manager_from_blocks([ values ], fixed_axes)
 
     #----------------------------------------------------------------------
     # Array interface
@@ -540,16 +537,6 @@ class Panel(NDFrame):
 
         return index, columns
 
-    # Fancy indexing
-    _ix = None
-
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _NDFrameIndexer(self)
-
-        return self._ix
-
     def _wrap_array(self, arr, axes, copy=False):
         d = self._construct_axes_dict_from(self, axes, copy=copy)
         return self._constructor(arr, **d)
@@ -657,8 +644,8 @@ class Panel(NDFrame):
             axes = self._expand_axes(args)
             d = self._construct_axes_dict_from(self, axes, copy=False)
             result = self.reindex(**d)
-
-            likely_dtype = com._infer_dtype(args[-1])
+            args  = list(args)
+            likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
             made_bigger = not np.array_equal(
                 axes[0], getattr(self, self._info_axis))
             # how to make this logic simpler?
@@ -679,8 +666,8 @@ class Panel(NDFrame):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
 
-    def _slice(self, slobj, axis=0):
-        new_data = self._data.get_slice(slobj, axis=axis)
+    def _slice(self, slobj, axis=0, raise_on_error=False):
+        new_data = self._data.get_slice(slobj, axis=axis, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def __setitem__(self, key, value):
@@ -693,7 +680,7 @@ class Panel(NDFrame):
             assert(value.shape == shape[1:])
             mat = np.asarray(value)
         elif np.isscalar(value):
-            dtype = _infer_dtype(value)
+            dtype, value = _infer_dtype_from_scalar(value)
             mat = np.empty(shape[1:], dtype=dtype)
             mat.fill(value)
         else:
@@ -838,7 +825,7 @@ class Panel(NDFrame):
             indexer2 = range(len(new_minor))
 
         for i, ind in enumerate(indexer0):
-            com.take_2d_multi(values[ind], indexer1, indexer2,
+            com.take_2d_multi(values[ind], (indexer1, indexer2),
                               out=new_values[i])
 
         return Panel(new_values, items=new_items, major_axis=new_major,
@@ -1064,6 +1051,7 @@ class Panel(NDFrame):
         -------
         y : ndim(self)-1
         """
+        axis = self._get_axis_number(axis)
         if axis == 0:
             data = self[key]
             if copy:
@@ -1075,10 +1063,17 @@ class Panel(NDFrame):
         new_data = self._data.xs(key, axis=axis_number, copy=copy)
         return self._constructor_sliced(new_data)
 
+    _xs = xs
+
     def _ixs(self, i, axis=0):
         # for compatibility with .ix indexing
         # Won't work with hierarchical indexing yet
         key = self._get_axis(axis)[i]
+
+        # xs cannot handle a non-scalar key, so just reindex here
+        if _is_list_like(key):
+            return self.reindex(**{ self._get_axis_name(axis) : key })
+
         return self.xs(key, axis=axis)
 
     def groupby(self, function, axis='major'):
@@ -1326,10 +1321,11 @@ class Panel(NDFrame):
             vslicer = slice(-lags, None)
             islicer = slice(None, lags)
 
-        if axis == 'major':
+        axis = self._get_axis_name(axis)
+        if axis == 'major_axis':
             values = values[:, vslicer, :]
             major_axis = major_axis[islicer]
-        elif axis == 'minor':
+        elif axis == 'minor_axis':
             values = values[:, :, vslicer]
             minor_axis = minor_axis[islicer]
         else:

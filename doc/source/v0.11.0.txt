@@ -1,0 +1,348 @@
+.. _whatsnew_0110:
+
+v0.11.0 (March ??, 2013)
+------------------------
+
+This is a major release from 0.10.1 and includes many new features and
+enhancements along with a large number of bug fixes. The methods of Selecting
+Data have had quite a number of additions, and Dtype support is now full-fledged.
+There are also a number of important API changes that long-time pandas users should
+pay close attention to.
+
+There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
+primarily geared to new users.
+
+There is a new section in the documentation, :ref:`Cookbook <cookbook>`, a collection
+of useful recipes in pandas (and that we want contributions!).
+
+There are several libraries that are now :ref:`Recommended Dependencies <install.recommended_dependencies>`
+
+Selection Choices
+~~~~~~~~~~~~~~~~~
+
+Starting in 0.11.0, object selection has had a number of user-requested additions in
+order to support more explicit location based indexing. Pandas now supports
+three types of multi-axis indexing.
+
+  - ``.loc`` is strictly label based, will raise ``KeyError`` when the items are not found,
+    allowed inputs are:
+
+    - A single label, e.g. ``5`` or ``'a'``
+
+      (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
+    - A list or array of labels ``['a', 'b', 'c']``
+    - A slice object with labels ``'a':'f'``
+
+      (note that contrary to usual python slices, **both** the start and the stop are included!)
+    - A boolean array
+
+    See more at :ref:`Selection by Label <indexing.label>`
+
+  - ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will
+    raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
+
+    - An integer e.g. ``5``
+    - A list or array of integers ``[4, 3, 0]``
+    - A slice object with ints ``1:7``
+    - A boolean array
+
+    See more at :ref:`Selection by Position <indexing.integer>`
+
+  - ``.ix`` supports mixed integer and label based access. It is primarily label based, but
+    will fallback to integer positional access. ``.ix`` is the most general and will support
+    any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes.
+
+    As using integer slices with ``.ix`` have different behavior depending on whether the slice
+    is interpreted as integer location based or label position based, it's usually better to be
+    explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
+
+    ``.ix`` is especially usefull when dealing with mixed positional/label based hierarchial indexes.
+
+    See more at :ref:`Advanced Indexing <indexing.advanced>` and :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>`
+
+
+Selection Deprecations
+~~~~~~~~~~~~~~~~~~~~~~
+
+Starting in version 0.11.0, these methods may be deprecated in future versions.
+
+  - ``irow``
+  - ``icol``
+  - ``iget_value``
+
+See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
+
+Cross-sectional slices on non-hierarchical indices are now easily performed using
+``.loc`` and/or ``.loc``. The methods:
+
+  - ``xs`` (for DataFrame),
+  - ``minor_xs`` and ``major_xs`` (for Panel)
+
+now exist primarily for backward compatibility.
+
+See the section :ref:`Selection by Label <indexing.label>` for substitutes.
+
+Dtypes
+~~~~~~
+
+Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
+
+.. ipython:: python
+
+   df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
+   df1
+   df1.dtypes
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
+                         B = Series(randn(8)),
+                         C = Series(randn(8),dtype='uint8') ))
+   df2
+   df2.dtypes
+
+   # here you get some upcasting
+   df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
+   df3
+   df3.dtypes
+
+Dtype Conversion
+~~~~~~~~~~~~~~~~
+
+This is lower-common-denomicator upcasting, meaning you get the dtype which can accomodate all of the types
+
+.. ipython:: python
+
+   df3.values.dtype
+
+Conversion
+
+.. ipython:: python
+
+   df3.astype('float32').dtypes
+
+Mixed Conversion
+
+.. ipython:: python
+
+   df3['D'] = '1.'
+   df3['E'] = '1'
+   df3.convert_objects(convert_numeric=True).dtypes
+
+   # same, but specific dtype conversion
+   df3['D'] = df3['D'].astype('float16')
+   df3['E'] = df3['E'].astype('int32')
+   df3.dtypes
+
+Forcing Date coercion (and setting ``NaT`` when not datelike)
+
+.. ipython:: python
+
+   s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1,
+               Timestamp('20010104'), '20010105'],dtype='O')
+   s.convert_objects(convert_dates='coerce')
+
+Dtype Gotchas
+~~~~~~~~~~~~~
+
+**Platform Gotchas**
+
+Starting in 0.11.0, construction of DataFrame/Series will use default dtypes of ``int64`` and ``float64``,
+*regardless of platform*. This is not an apparent change from earlier versions of pandas. If you specify
+dtypes, they *WILL* be respected, however (GH2837_)
+
+The following will all result in ``int64`` dtypes
+
+.. ipython:: python
+
+    DataFrame([1,2],columns=['a']).dtypes
+    DataFrame({'a' : [1,2] }).dtypes
+    DataFrame({'a' : 1 }, index=range(2)).dtypes
+
+Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on 32-bit platforms!
+
+
+**Upcasting Gotchas**
+
+Performing indexing operations on integer type data can easily upcast the data.
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
+
+.. ipython:: python
+
+   dfi = df3.astype('int32')
+   dfi['D'] = dfi['D'].astype('int64')
+   dfi
+   dfi.dtypes
+
+   casted = dfi[dfi>0]
+   casted
+   casted.dtypes
+
+While float dtypes are unchanged.
+
+.. ipython:: python
+
+   df4 = df3.copy()
+   df4['A'] = df4['A'].astype('float32')
+   df4.dtypes
+
+   casted = df4[df4>0]
+   casted
+   casted.dtypes
+
+Datetimes Conversion
+~~~~~~~~~~~~~~~~~~~~
+
+Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value,
+in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way.
+Furthermore ``datetime64[ns]`` columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
+(GH2809_, GH2810_)
+
+.. ipython:: python
+
+   df = DataFrame(randn(6,2),date_range('20010102',periods=6),columns=['A','B'])
+   df['timestamp'] = Timestamp('20010103')
+   df
+
+   # datetime64[ns] out of the box
+   df.get_dtype_counts()
+
+   # use the traditional nan, which is mapped to NaT internally
+   df.ix[2:4,['A','timestamp']] = np.nan
+   df
+
+Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`` to ``np.nan``
+
+.. ipython:: python
+
+   import datetime
+   s = Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
+   s.dtype
+   s[1] = np.nan
+   s
+   s.dtype
+   s = s.astype('O')
+   s
+   s.dtype
+
+
+API changes
+~~~~~~~~~~~
+
+Enhancements
+~~~~~~~~~~~~
+
+  - Improved performance of df.to_csv() by up to 10x in some cases. (GH3059_)
+
+  - Numexpr is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
+    types of numerical and boolean operations
+
+  - Bottleneck is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
+    types of ``nan`` operations
+
+  - For ``HDFStore``, support ``read_hdf/to_hdf`` API similar to ``read_csv/to_csv``
+
+    .. ipython:: python
+
+       df = DataFrame(dict(A=range(5), B=range(5)))
+       df.to_hdf('store.h5','table',append=True)
+       read_hdf('store.h5', 'table', where = ['index>2'])
+
+    .. ipython:: python
+       :suppress:
+       :okexcept:
+
+       os.remove('store.h5')
+
+  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
+    (e.g. ``store.df == store['df']``)
+
+  - In ``HDFStore``, new keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
+    provided to support iteration on ``select`` and ``select_as_multiple`` (GH3076_)
+
+  - You can now select timestamps from an *unordered* timeseries similarly to an *ordered* timeseries (GH2437_)
+
+  - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (GH3070_)
+
+    .. ipython:: python
+
+        idx = date_range("2001-10-1", periods=5, freq='M')
+        ts = Series(np.random.rand(len(idx)),index=idx)
+        ts['2001']
+
+        df = DataFrame(dict(A = ts))
+        df['2001']
+
+  - ``Squeeze`` to possibly remove length 1 dimensions from an object.
+
+    .. ipython:: python
+
+       p = Panel(randn(3,4,4),items=['ItemA','ItemB','ItemC'],
+                          major_axis=date_range('20010102',periods=4),
+                          minor_axis=['A','B','C','D'])
+       p
+       p.reindex(items=['ItemA']).squeeze()
+       p.reindex(items=['ItemA'],minor=['B']).squeeze()
+
+  - In ``pd.io.data.Options``,
+
+    + Fix bug when trying to fetch data for the current month when already
+      past expiry.
+    + Now using lxml to scrape html instead of BeautifulSoup (lxml was faster).
+    + New instance variables for calls and puts are automatically created
+      when a method that creates them is called. This works for current month
+      where the instance variables are simply ``calls`` and ``puts``. Also
+      works for future expiry months and save the instance variable as
+      ``callsMMYY`` or ``putsMMYY``, where ``MMYY`` are, respectively, the
+      month and year of the option's expiry.
+    + ``Options.get_near_stock_price`` now allows the user to specify the
+      month for which to get relevant options data.
+    + ``Options.get_forward_data`` now has optional kwargs ``near`` and
+      ``above_below``. This allows the user to specify if they would like to
+      only return forward looking data for options near the current stock
+      price. This just obtains the data from Options.get_near_stock_price
+      instead of Options.get_xxx_data().  (GH2758_)
+
+  - added option `display.max_seq_items` to control the number of
+    elements printed per sequence pprinting it.  (GH2979_)
+
+  - added option `display.chop_threshold` to control display of small numerical
+    values. (GH2739_)
+
+  - added option `display.max_info_rows` to prevent verbose_info from being
+    calculated for frames above 1M rows (configurable). (GH2807_, GH2918_)
+
+  - value_counts() now accepts a "normalize" argument, for normalized
+    histograms. (GH2710_).
+
+  - DataFrame.from_records now accepts not only dicts but any instance of
+    the collections.Mapping ABC.
+
+  - added option `display.with_wmp_style` providing a sleeker visual style
+    for plots. Based on https://gist.github.com/huyng/816622 (GH3075_).
+
+  - Treat boolean values as integers (values 1 and 0) for numeric
+    operations. (GH2641_)
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+
+.. _GH2437: https://github.com/pydata/pandas/issues/2437
+.. _GH2809: https://github.com/pydata/pandas/issues/2809
+.. _GH2810: https://github.com/pydata/pandas/issues/2810
+.. _GH2837: https://github.com/pydata/pandas/issues/2837
+.. _GH2898: https://github.com/pydata/pandas/issues/2898
+.. _GH3035: https://github.com/pydata/pandas/issues/3035
+.. _GH2978: https://github.com/pydata/pandas/issues/2978
+.. _GH2877: https://github.com/pydata/pandas/issues/2877
+.. _GH2739: https://github.com/pydata/pandas/issues/2739
+.. _GH2710: https://github.com/pydata/pandas/issues/2710
+.. _GH2806: https://github.com/pydata/pandas/issues/2806
+.. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH2918: https://github.com/pydata/pandas/issues/2918
+.. _GH2758: https://github.com/pydata/pandas/issues/2758
+.. _GH2979: https://github.com/pydata/pandas/issues/2979
+.. _GH3011: https://github.com/pydata/pandas/issues/3011
+.. _GH3076: https://github.com/pydata/pandas/issues/3076
+.. _GH3059: https://github.com/pydata/pandas/issues/3059
+.. _GH3070: https://github.com/pydata/pandas/issues/3070
+.. _GH3075: https://github.com/pydata/pandas/issues/3075
+.. _GH2641: https://github.com/pydata/pandas/issues/2641

@@ -245,6 +245,8 @@ _parser_defaults = {
     'dayfirst': False,
     'date_parser': None,
 
+    'usecols': None,
+
     # 'nrows': None,
     # 'iterator': False,
     'chunksize': None,
@@ -268,7 +270,6 @@ _c_parser_defaults = {
     'warn_bad_lines': True,
     'factorize': True,
     'dtype': None,
-    'usecols': None,
     'decimal': b'.'
 }
 
@@ -1120,6 +1121,10 @@ class PythonParser(ParserBase):
         self.buf = []
         self.pos = 0
 
+        if kwds['usecols'] is not None:
+            raise Exception("usecols not supported with engine='python'"
+                            " or multicharacter separators (yet).")
+
         self.header = kwds['header']
         self.encoding = kwds['encoding']
         self.compression = kwds['compression']
@@ -1548,14 +1553,17 @@ def _make_date_converter(date_parser=None, dayfirst=False):
                 return lib.try_parse_dates(strs, dayfirst=dayfirst)
         else:
             try:
-                return date_parser(*date_cols)
+                result = date_parser(*date_cols)
+                if isinstance(result, datetime.datetime):
+                    raise Exception('scalar parser')
+                return result
             except Exception:
                 try:
-                    return generic_parser(date_parser, *date_cols)
-                except Exception:
                     return lib.try_parse_dates(_concat_date_cols(date_cols),
                                                parser=date_parser,
                                                dayfirst=dayfirst)
+                except Exception:
+                    return generic_parser(date_parser, *date_cols)
 
     return converter
 

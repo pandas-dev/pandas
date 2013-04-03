@@ -9,14 +9,15 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
 from pandas.core.categorical import Categorical
-from pandas.core.common import notnull, _ensure_platform_int
+from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
+                                _maybe_upcast)
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
 import pandas.algos as algos
 
 
-from pandas.core.index import MultiIndex
+from pandas.core.index import MultiIndex, Index
 
 
 class ReshapeError(Exception):
@@ -93,7 +94,7 @@ class _Unstacker(object):
         indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
         indexer = _ensure_platform_int(indexer)
 
-        self.sorted_values = com.take_2d(self.values, indexer, axis=0)
+        self.sorted_values = com.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
 
     def _make_selectors(self):
@@ -136,23 +137,30 @@ class _Unstacker(object):
             # rare case, level values not observed
             if len(obs_ids) < self.full_shape[1]:
                 inds = (value_mask.sum(0) > 0).nonzero()[0]
-                values = com.take_2d(values, inds, axis=1)
+                values = com.take_nd(values, inds, axis=1)
                 columns = columns[inds]
 
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
         values = self.values
+
         # place the values
         length, width = self.full_shape
         stride = values.shape[1]
         result_width = width * stride
+        result_shape = (length, result_width)
 
-        new_values = np.empty((length, result_width), dtype=values.dtype)
-        new_mask = np.zeros((length, result_width), dtype=bool)
+        # if our mask is all True, then we can use our existing dtype
+        if self.mask.all():
+            dtype = values.dtype
+            new_values = np.empty(result_shape, dtype=dtype)
+        else:
+            dtype, fill_value = _maybe_promote(values.dtype)
+            new_values = np.empty(result_shape, dtype=dtype)
+            new_values.fill(fill_value)
 
-        new_values = com._maybe_upcast(new_values)
-        new_values.fill(np.nan)
+        new_mask = np.zeros(result_shape, dtype=bool)
 
         # is there a simpler / faster way of doing this?
         for i in xrange(values.shape[1]):
@@ -498,11 +506,16 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     new_data = {}
     level_vals = this.columns.levels[-1]
     levsize = len(level_vals)
+    drop_cols = []
     for key in unique_groups:
         loc = this.columns.get_loc(key)
-
+        slice_len = loc.stop - loc.start
         # can make more efficient?
-        if loc.stop - loc.start != levsize:
+
+        if slice_len == 0:
+            drop_cols.append(key)
+            continue
+        elif slice_len != levsize:
             chunk = this.ix[:, this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
             value_slice = chunk.reindex(columns=level_vals).values
@@ -513,6 +526,9 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
                 value_slice = this.values[:, loc]
 
         new_data[key] = value_slice.ravel()
+
+    if len(drop_cols) > 0:
+        new_columns = new_columns - drop_cols
 
     N = len(this)
 
@@ -761,40 +777,6 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     return DataFrame(values, columns=items, index=frame.index)
 
 
-def block2d_to_block3d(values, items, shape, major_labels, minor_labels,
-                       ref_items=None):
-    """
-    Developer method for pivoting DataFrame -> Panel. Used in HDFStore and
-    DataFrame.to_panel
-    """
-    from pandas.core.internals import make_block
-    panel_shape = (len(items),) + shape
-
-    # TODO: lexsort depth needs to be 2!!
-
-    # Create observation selection vector using major and minor
-    # labels, for converting to panel format.
-    selector = minor_labels + shape[1] * major_labels
-    mask = np.zeros(np.prod(shape), dtype=bool)
-    mask.put(selector, True)
-
-    pvalues = np.empty(panel_shape, dtype=values.dtype)
-    if not issubclass(pvalues.dtype.type, (np.integer, np.bool_)):
-        pvalues.fill(np.nan)
-    elif not mask.all():
-        pvalues = com._maybe_upcast(pvalues)
-        pvalues.fill(np.nan)
-
-    values = values
-    for i in xrange(len(items)):
-        pvalues[i].flat[mask] = values[:, i]
-
-    if ref_items is None:
-        ref_items = items
-
-    return make_block(pvalues, items, ref_items)
-
-
 def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
     """ pivot to the labels shape """
     from pandas.core.internals import make_block
@@ -808,12 +790,12 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
     mask = np.zeros(np.prod(shape), dtype=bool)
     mask.put(selector, True)
 
-    pvalues = np.empty(panel_shape, dtype=values.dtype)
-    if not issubclass(pvalues.dtype.type, (np.integer, np.bool_)):
-        pvalues.fill(np.nan)
-    elif not mask.all():
-        pvalues = com._maybe_upcast(pvalues)
-        pvalues.fill(np.nan)
+    if mask.all():
+        pvalues = np.empty(panel_shape, dtype=values.dtype)
+    else:
+        dtype, fill_value = _maybe_promote(values.dtype)
+        pvalues = np.empty(panel_shape, dtype=dtype)
+        pvalues.fill(fill_value)
 
     values = values
     for i in xrange(len(items)):

@@ -58,7 +58,7 @@ join_dataframe_index_single_key_bigger = \
 
 join_dataframe_index_single_key_bigger_sort = \
     Benchmark("df_shuf.join(df_key2, on='key2', sort=True)", setup,
-              name='join_dataframe_index_single_key_bigger',
+              name='join_dataframe_index_single_key_bigger_sort',
               start_date=datetime(2012, 2, 5))
 
 join_dataframe_index_multi = \

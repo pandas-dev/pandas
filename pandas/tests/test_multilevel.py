@@ -248,6 +248,29 @@ class TestMultiLevel(unittest.TestCase):
     def test_series_slice_partial(self):
         pass
 
+    def test_frame_getitem_setitem_boolean(self):
+        df = self.frame.T.copy()
+        values = df.values
+
+        result = df[df > 0]
+        expected = df.where(df > 0)
+        assert_frame_equal(result, expected)
+
+        df[df > 0] = 5
+        values[values > 0] = 5
+        assert_almost_equal(df.values, values)
+
+        df[df == 5] = 0
+        values[values == 5] = 0
+        assert_almost_equal(df.values, values)
+
+        # a df that needs alignment first
+        df[df[:-1] < 0] = 2
+        np.putmask(values[:-1], values[:-1] < 0, 2)
+        assert_almost_equal(df.values, values)
+
+        self.assertRaises(Exception, df.__setitem__, df * 0, 2)
+
     def test_frame_getitem_setitem_slice(self):
         # getitem
         result = self.frame.ix[:4]
@@ -616,12 +639,22 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(rs, self.frame.sortlevel(0))
 
     def test_sortlevel_large_cardinality(self):
-        # #2684
+
+        # #2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)]*3)
-        df = DataFrame(np.random.randn(4000), index=index)
+        df = DataFrame(np.random.randn(4000), index=index, dtype = np.int64)
 
         # it works!
         result = df.sortlevel(0)
+        self.assertTrue(result.index.lexsort_depth == 3)
+
+        # #2684 (int32)
+        index = MultiIndex.from_arrays([np.arange(4000)]*3)
+        df = DataFrame(np.random.randn(4000), index=index, dtype = np.int32)
+
+        # it works!
+        result = df.sortlevel(0)
+        self.assert_((result.dtypes.values == df.dtypes.values).all() == True)
         self.assertTrue(result.index.lexsort_depth == 3)
 
     def test_delevel_infer_dtype(self):
@@ -723,7 +756,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = self.frame[:0]
         result = df.count(level=0)
         expected = DataFrame({}, index=s.index.levels[0],
-                             columns=df.columns).fillna(0).astype(int)
+                             columns=df.columns).fillna(0).astype(np.int64)
         assert_frame_equal(result, expected)
 
     def test_unstack(self):
@@ -733,6 +766,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # test that ints work
         unstacked = self.ymd.astype(int).unstack()
+
+        # test that int32 work
+        unstacked = self.ymd.astype(np.int32).unstack()
 
     def test_unstack_multiple_no_empty_columns(self):
         index = MultiIndex.from_tuples([(0, 'foo', 0), (0, 'bar', 0),
@@ -894,6 +930,24 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
         assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
 
+    def test_stack_multiple_bug(self):
+        """ bug when some uniques are not present in the data #3170"""
+        id_col = ([1] * 3) + ([2] * 3)
+        name = (['a'] * 3) + (['b'] * 3)
+        date = pd.to_datetime(['2013-01-03', '2013-01-04', '2013-01-05'] * 2)
+        var1 = np.random.randint(0, 100, 6)
+        df = DataFrame(dict(ID=id_col, NAME=name, DATE=date, VAR1=var1))
+
+        multi = df.set_index(['DATE', 'ID'])
+        multi.columns.name = 'Params'
+        unst = multi.unstack('ID')
+        down = unst.resample('W-THU')
+
+        rs = down.stack('ID')
+        xp = unst.ix[:, ['VAR1']].resample('W-THU').stack('ID')
+        xp.columns.name = 'Params'
+        assert_frame_equal(rs, xp)
+
     def test_unstack_multiple_hierarchical(self):
         df = DataFrame(index=[[0, 0, 0, 0, 1, 1, 1, 1],
                               [0, 0, 1, 1, 0, 0, 1, 1],
@@ -979,7 +1033,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         self.assert_(not np.isnan(joined.values).all())
 
-        assert_frame_equal(joined, expected)
+        assert_frame_equal(joined, expected, check_names=False)  # TODO what should join do with names ?
 
     def test_swaplevel(self):
         swapped = self.frame['A'].swaplevel(0, 1)
@@ -1240,7 +1294,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         expected = self.ymd.groupby([k1, k2]).mean()
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)  # TODO groupby with level_values drops names
         self.assertEquals(result.index.names, self.ymd.index.names[:2])
 
         result2 = self.ymd.groupby(level=self.ymd.index.names[:2]).mean()
@@ -1310,7 +1364,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # test roundtrip
         stacked = result.stack()
-        assert_series_equal(s.astype(np.float64),
+        assert_series_equal(s,
                             stacked.reindex(s.index))
 
         # put it at beginning

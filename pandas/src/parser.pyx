@@ -131,6 +131,7 @@ cdef extern from "parser/tokenizer.h":
         int allow_embedded_newline
         int strict                 # raise exception on bad CSV */
 
+        int expected_fields
         int error_bad_lines
         int warn_bad_lines
 
@@ -583,6 +584,10 @@ cdef class TextReader:
                 header = self.names
 
         elif self.names is not None:
+            # Enforce this unless usecols
+            if not self.has_usecols:
+                self.parser.expected_fields = len(self.names)
+
             # Names passed
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
@@ -605,14 +610,19 @@ cdef class TextReader:
         if self.parser.lines < data_line + 1:
             field_count = len(header)
         else: # not self.has_usecols:
+
             field_count = self.parser.line_fields[data_line]
+
+            # #2981
+            if self.names is not None:
+                field_count = max(field_count, len(self.names))
 
             passed_count = len(header)
 
-            if passed_count > field_count:
-                raise CParserError('Column names have %d fields, '
-                                   'data has %d fields'
-                                   % (passed_count, field_count))
+            # if passed_count > field_count:
+            #     raise CParserError('Column names have %d fields, '
+            #                        'data has %d fields'
+            #                        % (passed_count, field_count))
 
             if self.has_usecols:
                 nuse = len(self.usecols)
@@ -623,8 +633,8 @@ cdef class TextReader:
                 elif passed_count != field_count:
                     raise ValueError('Passed header names '
                                      'mismatches usecols')
-            # oh boy, #2442
-            elif self.allow_leading_cols:
+            # oh boy, #2442, #2981
+            elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
 
         return header, field_count

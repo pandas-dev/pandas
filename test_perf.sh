@@ -3,10 +3,13 @@
 CURDIR=$(pwd)
 BASEDIR=$(readlink -f $(dirname $0  ))
 
-echo "Use vbench to compare the performance of one commit against another."
-echo "Make sure the python 'vbench' library is installed..\n"
+echo "This script compares the performance of two commits."
+echo "Make sure the python 'vbench' library is installed.\n"
+echo "Setting the BUILD_CACHE_DIR env var to a temp directory will"
+echo "potentially speed up subsequent runs.\n"
 
-cd "$BASEDIR/vb_suite/"
-python test_perf.py $@
 
-cd "$CURDIR"
+#cd "$BASEDIR/vb_suite/"
+python "$BASEDIR"/vb_suite/test_perf.py $@
+
+#cd "$CURDIR"

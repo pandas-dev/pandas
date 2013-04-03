@@ -16,7 +16,7 @@ compiler (MinGW or Visual Studio) installed. `How-to install MinGW on Windows
 Python version support
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Officially Python 2.5 to 2.7 and Python 3.1+, although Python 3 support is less
+Officially Python 2.6 to 2.7 and Python 3.1+, although Python 3 support is less
 well tested. Python 2.4 support is being phased out since the userbase has
 shrunk significantly. Continuing Python 2.4 support will require either monetary
 development support or someone contributing to the project to maintain
@@ -70,7 +70,23 @@ Dependencies
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support
 
-Optional dependencies
+.. _install.recommended_dependencies:
+
+Recommended Dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+  * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations. 
+    ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
+  * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+    evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
+
+.. note::
+
+   You are highly encouraged to install these libraries, as they provide large speedups, especially 
+   if working with large data sets.
+
+
+Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `Cython <http://www.cython.org>`__: Only necessary to build development

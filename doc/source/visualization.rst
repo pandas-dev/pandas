@@ -33,6 +33,8 @@ We use the standard convention for referencing the matplotlib API:
 Basic plotting: ``plot``
 ------------------------
 
+See the :ref:`cookbook<cookbook.plotting>` for some advanced strategies
+
 The ``plot`` method on Series and DataFrame is just a simple wrapper around
 ``plt.plot``:
 
@@ -129,9 +131,12 @@ keyword:
 .. ipython:: python
 
    plt.figure()
+   ax = df.plot(secondary_y=['A', 'B'])
+   ax.set_ylabel('CD scale')
+   @savefig frame_plot_secondary_y.png width=4.5in   
+   ax.right_ax.set_ylabel('AB scale')
 
-   @savefig frame_plot_secondary_y.png width=4.5in
-   df.plot(secondary_y=['A', 'B'])
+
 
 Note that the columns plotted on the secondary y-axis is automatically marked
 with "(right)" in the legend. To turn off the automatic marking, use the
@@ -141,7 +146,7 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 
    plt.figure()
 
-   @savefig frame_plot_secondary_y.png width=4.5in
+   @savefig frame_plot_secondary_y_no_right.png width=4.5in
    df.plot(secondary_y=['A', 'B'], mark_right=False)
 
 

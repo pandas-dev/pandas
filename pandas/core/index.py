@@ -12,8 +12,8 @@ import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp
 
-from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
+from pandas.core.common import isnull
 import pandas.core.common as com
 from pandas.util import py3compat
 from pandas.core.config import get_option
@@ -95,6 +95,8 @@ class Index(np.ndarray):
                     return Index(result.to_pydatetime(), dtype=_o_dtype)
                 else:
                     return result
+            elif issubclass(data.dtype.type, np.timedelta64):
+                return Int64Index(data, copy=copy, name=name)
 
             if dtype is not None:
                 try:
@@ -105,7 +107,7 @@ class Index(np.ndarray):
                 return PeriodIndex(data, copy=copy, name=name)
 
             if issubclass(data.dtype.type, np.integer):
-                return Int64Index(data, copy=copy, name=name)
+                return Int64Index(data, copy=copy, dtype=dtype, name=name)
 
             subarr = com._ensure_object(data)
         elif np.isscalar(data):
@@ -171,9 +173,9 @@ class Index(np.ndarray):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
         """
         if len(self) > 6 and len(self) > np.get_printoptions()['threshold']:
-            data = self[:3].tolist() + ["..."] + self[-3:].tolist()
+            data = self[:3].format() + ["..."] + self[-3:].format()
         else:
-            data = self
+            data = self.format()
 
         prepr = com.pprint_thing(data, escape_chars=('\t', '\r', '\n'))
         return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
@@ -245,8 +247,14 @@ class Index(np.ndarray):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
-                                            com.pprint_thing(self[-1]))
+            head = self[0]
+            if hasattr(head,'format'):
+                head = head.format()
+            tail = self[-1]
+            if hasattr(tail,'format'):
+                tail = tail.format()
+            index_summary = ', %s to %s' % (com.pprint_thing(head),
+                                            com.pprint_thing(tail))
         else:
             index_summary = ''
 
@@ -265,6 +273,9 @@ class Index(np.ndarray):
     @property
     def is_monotonic(self):
         return self._engine.is_monotonic
+
+    def is_lexsorted_for_tuple(self, tup):
+        return True
 
     @cache_readonly
     def is_unique(self):
@@ -417,12 +428,10 @@ class Index(np.ndarray):
         taken = self.view(np.ndarray).take(indexer)
         return self._constructor(taken, name=self.name)
 
-    def format(self, name=False, formatter=None):
+    def format(self, name=False, formatter=None, **kwargs):
         """
         Render a string representation of the Index
         """
-        from pandas.core.format import format_array
-
         header = []
         if name:
             header.append(com.pprint_thing(self.name,
@@ -432,16 +441,12 @@ class Index(np.ndarray):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        if self.is_all_dates:
-            zero_time = time(0, 0)
-            result = []
-            for dt in self:
-                if dt.time() != zero_time or dt.tzinfo is not None:
-                    return header + [u'%s' % x for x in self]
-                result.append(u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
-            return header + result
+        return self._format_with_header(header, **kwargs)
 
+    def _format_with_header(self, header, na_rep='NaN', **kwargs):
         values = self.values
+
+        from pandas.core.format import format_array
 
         if values.dtype == np.object_:
             values = lib.maybe_convert_objects(values, safe=1)
@@ -449,9 +454,31 @@ class Index(np.ndarray):
         if values.dtype == np.object_:
             result = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
                       for x in values]
+
+            # could have nans
+            mask = isnull(values)
+            if mask.any():
+                result = np.array(result)
+                result[mask] = na_rep
+                result = result.tolist()
+
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
+
+    def to_native_types(self, slicer=None, **kwargs):
+        """ slice and dice then format """
+        values = self
+        if slicer is not None:
+            values = values[slicer]
+        return values._format_native_types(**kwargs)
+
+    def _format_native_types(self, na_rep='', **kwargs):
+        """ actually format my specific types """
+        mask = isnull(self)
+        values = np.array(self,dtype=object,copy=True)
+        values[mask] = na_rep
+        return values.tolist()
 
     def equals(self, other):
         """
@@ -608,7 +635,8 @@ class Index(np.ndarray):
             indexer = (indexer == -1).nonzero()[0]
 
             if len(indexer) > 0:
-                other_diff = ndtake(other.values, indexer)
+                other_diff = com.take_nd(other.values, indexer,
+                                         allow_fill=False)
                 result = com._concat_compat((self.values, other_diff))
                 try:
                     result.sort()
@@ -687,13 +715,16 @@ class Index(np.ndarray):
             raise Exception('Input must be iterable!')
 
         if self.equals(other):
-            return Index([])
+            return Index([], name=self.name)
 
         if not isinstance(other, Index):
             other = np.asarray(other)
+            result_name = self.name
+        else:
+            result_name = self.name if self.name == other.name else None
 
         theDiff = sorted(set(self) - set(other))
-        return Index(theDiff)
+        return Index(theDiff, name=result_name)
 
     def unique(self):
         """
@@ -1037,7 +1068,8 @@ class Index(np.ndarray):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
-            new_lev_labels = ndtake(rev_indexer, left.labels[level])
+            new_lev_labels = com.take_nd(rev_indexer, left.labels[level],
+                                         allow_fill=False)
             omit_mask = new_lev_labels != -1
 
             new_labels = list(left.labels)
@@ -1057,8 +1089,9 @@ class Index(np.ndarray):
             left_indexer = None
 
         if right_lev_indexer is not None:
-            right_indexer = ndtake(right_lev_indexer,
-                                   join_index.labels[level])
+            right_indexer = com.take_nd(right_lev_indexer,
+                                        join_index.labels[level],
+                                        allow_fill=False)
         else:
             right_indexer = join_index.labels[level]
 
@@ -1117,6 +1150,30 @@ class Index(np.ndarray):
         name = self.name if self.name == other.name else None
         return Index(joined, name=name)
 
+    def slice_indexer(self, start=None, end=None, step=None):
+        """
+        For an ordered Index, compute the slice indexer for input labels and
+        step
+
+        Parameters
+        ----------
+        start : label, default None
+            If None, defaults to the beginning
+        end : label, default None
+            If None, defaults to the end
+        step : int, default None 
+
+        Returns
+        -------
+        indexer : ndarray or slice
+
+        Notes
+        -----
+        This function assumes that the data is sorted, so use at your own peril
+        """
+        start_slice, end_slice = self.slice_locs(start, end)
+        return slice(start_slice, end_slice, step)
+
     def slice_locs(self, start=None, end=None):
         """
         For an ordered Index, compute the slice locations for input labels
@@ -1125,27 +1182,27 @@ class Index(np.ndarray):
         ----------
         start : label, default None
             If None, defaults to the beginning
-        end : label
+        end : label, default None
             If None, defaults to the end
 
         Returns
         -------
-        (begin, end) : (int, int)
+        (start, end) : (int, int)
 
         Notes
         -----
         This function assumes that the data is sorted, so use at your own peril
         """
         if start is None:
-            beg_slice = 0
+            start_slice = 0
         else:
             try:
-                beg_slice = self.get_loc(start)
-                if isinstance(beg_slice, slice):
-                    beg_slice = beg_slice.start
+                start_slice = self.get_loc(start)
+                if isinstance(start_slice, slice):
+                    start_slice = start_slice.start
             except KeyError:
                 if self.is_monotonic:
-                    beg_slice = self.searchsorted(start, side='left')
+                    start_slice = self.searchsorted(start, side='left')
                 else:
                     raise
 
@@ -1164,7 +1221,7 @@ class Index(np.ndarray):
                 else:
                     raise
 
-        return beg_slice, end_slice
+        return start_slice, end_slice
 
     def delete(self, loc):
         """
@@ -1242,7 +1299,12 @@ class Int64Index(Index):
             raise TypeError('String dtype not supported, you may need '
                             'to explicitly cast to int')
         elif issubclass(data.dtype.type, np.integer):
-            subarr = np.array(data, dtype=np.int64, copy=copy)
+            # don't force the upcast as we may be dealing
+            # with a platform int
+            if dtype is None or not issubclass(np.dtype(dtype).type, np.integer):
+                dtype = np.int64
+
+            subarr = np.array(data, dtype=dtype, copy=copy)
         else:
             subarr = np.array(data, dtype=np.int64, copy=copy)
             if len(data) > 0:
@@ -1262,9 +1324,10 @@ class Int64Index(Index):
     def _constructor(self):
         return Int64Index
 
-    @cache_readonly
-    def dtype(self):
-        return np.dtype('int64')
+    @property
+    def asi8(self):
+        # do not cache or you'll create a memory leak
+        return self.values.view('i8')
 
     @property
     def is_all_dates(self):
@@ -1341,8 +1404,8 @@ class MultiIndex(Index):
             subarr.names = [None] * subarr.nlevels
         else:
             if len(names) != subarr.nlevels:
-                raise AssertionError(('Length of names must be same as level '
-                                      '(%d), got %d') % (subarr.nlevels))
+                raise AssertionError(('Length of names (%d) must be same as level '
+                                      '(%d)') % (len(names),subarr.nlevels))
 
             subarr.names = list(names)
 
@@ -1414,10 +1477,9 @@ class MultiIndex(Index):
         np.set_printoptions(threshold=50)
 
         if len(self) > 100:
-            values = np.concatenate([self[:50].values,
-                                     self[-50:].values])
+            values = self[:50].format() + self[-50:].format()
         else:
-            values = self.values
+            values = self.format()
 
         summary = com.pprint_thing(values, escape_chars=('\t', '\r', '\n'))
 
@@ -1435,6 +1497,9 @@ class MultiIndex(Index):
 
     def __len__(self):
         return len(self.labels[0])
+
+    def _format_native_types(self, **kwargs):
+        return self.tolist()
 
     @property
     def _constructor(self):
@@ -1586,10 +1651,19 @@ class MultiIndex(Index):
         stringified_levels = []
         for lev, lab in zip(self.levels, self.labels):
             if len(lev) > 0:
+
                 formatted = lev.take(lab).format(formatter=formatter)
+
+                # we have some NA
+                mask = lab==-1
+                if mask.any():
+                    formatted = np.array(formatted,dtype=object)
+                    formatted[mask] = na_rep
+                    formatted = formatted.tolist()
+
             else:
                 # weird all NA case
-                formatted = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
+                formatted = [com.pprint_thing(na_rep if isnull(x) else x, escape_chars=('\t', '\r', '\n'))
                              for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
 
@@ -1600,6 +1674,7 @@ class MultiIndex(Index):
             if names:
                 level.append(com.pprint_thing(name, escape_chars=('\t', '\r', '\n'))
                              if name is not None else '')
+
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
@@ -1626,6 +1701,12 @@ class MultiIndex(Index):
         Return True if the labels are lexicographically sorted
         """
         return self.lexsort_depth == self.nlevels
+
+    def is_lexsorted_for_tuple(self, tup):
+        """
+        Return True if we are correctly lexsorted given the passed tuple
+        """
+        return len(tup) <= self.lexsort_depth
 
     @cache_readonly
     def lexsort_depth(self):
@@ -1898,6 +1979,11 @@ class MultiIndex(Index):
         """
         Swap level i with level j. Do not change the ordering of anything
 
+        Parameters
+        ----------
+        i, j : int, string (can be mixed)
+            Level of index to be swapped. Can pass level name as string.
+
         Returns
         -------
         swapped : MultiIndex
@@ -2101,7 +2187,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        (begin, end) : (int, int)
+        (start, end) : (int, int)
 
         Notes
         -----
@@ -2340,8 +2426,10 @@ class MultiIndex(Index):
             return False
 
         for i in xrange(self.nlevels):
-            svalues = ndtake(self.levels[i].values, self.labels[i])
-            ovalues = ndtake(other.levels[i].values, other.labels[i])
+            svalues = com.take_nd(self.levels[i].values, self.labels[i],
+                                  allow_fill=False)
+            ovalues = com.take_nd(other.levels[i].values, other.labels[i],
+                                  allow_fill=False)
             if not np.array_equal(svalues, ovalues):
                 return False
 
@@ -2423,7 +2511,16 @@ class MultiIndex(Index):
         """
         self._assert_can_do_setop(other)
 
-        result_names = self.names if self.names == other.names else None
+        if not isinstance(other, MultiIndex):
+            if len(other) == 0:
+                return self
+            try:
+                other = MultiIndex.from_tuples(other)
+            except:
+                raise TypeError("other should be a MultiIndex or a list of tuples")
+            result_names = self.names
+        else:
+            result_names = self.names if self.names == other.names else None
 
         if self.equals(other):
             return MultiIndex(levels=[[]] * self.nlevels,
@@ -2516,7 +2613,6 @@ class MultiIndex(Index):
 
 
 # For utility purposes
-
 
 def _sparsify(label_list, start=0):
     pivoted = zip(*label_list)
@@ -2669,13 +2765,13 @@ def _handle_legacy_indexes(indexes):
 
 
 def _get_consensus_names(indexes):
-    consensus_name = indexes[0].names
-    for index in indexes[1:]:
-        if index.names != consensus_name:
-            consensus_name = [None] * index.nlevels
-            break
-    return consensus_name
 
+    # find the non-none names, need to tupleify to make 
+    # the set hashable, then reverse on return
+    consensus_names = set([ tuple(i.names) for i in indexes if all(n is not None for n in i.names) ])
+    if len(consensus_names) == 1:
+        return list(list(consensus_names)[0])
+    return [None] * indexes[0].nlevels
 
 def _maybe_box(idx):
     from pandas.tseries.api import DatetimeIndex, PeriodIndex

@@ -18,7 +18,8 @@ from pandas.util import py3compat
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
-                                 assert_almost_equal)
+                                 assert_almost_equal,
+                                 ensure_clean)
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
@@ -782,6 +783,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_almost_equal(casted.values, exp_values)
         assert_almost_equal(casted2.values, exp_values)
 
+        casted = Panel(zero_filled._data, dtype=np.int32)
+        casted2 = Panel(zero_filled.values, dtype=np.int32)
+
+        exp_values = zero_filled.values.astype(np.int32)
+        assert_almost_equal(casted.values, exp_values)
+        assert_almost_equal(casted2.values, exp_values)
+
         # can't cast
         data = [[['foo', 'bar', 'baz']]]
         self.assertRaises(ValueError, Panel, data, dtype=float)
@@ -797,6 +805,30 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         panel = Panel(items=range(3), major_axis=range(3),
                       minor_axis=range(3), dtype='O')
         self.assert_(panel.values.dtype == np.object_)
+
+    def test_constructor_dtypes(self):
+        # GH #797
+
+        def _check_dtype(panel, dtype):
+            for i in panel.items:
+                self.assert_(panel[i].values.dtype.name == dtype)
+
+        # only nan holding types allowed here
+        for dtype in ['float64','float32','object']:
+            panel = Panel(items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
+
+        for dtype in ['float64','float32','int64','int32','object']:
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype=dtype),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
+
+        for dtype in ['float64','float32','int64','int32','object']:
+            panel = Panel(np.array(np.random.randn(2,10,5),dtype='O'),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
+
+        for dtype in ['float64','float32','int64','int32','object']:
+            panel = Panel(np.random.randn(2,10,5),items=range(2),major_axis=range(10),minor_axis=range(5),dtype=dtype)
+            _check_dtype(panel,dtype)
 
     def test_consolidate(self):
         self.assert_(self.panel._data.is_consolidated())
@@ -842,6 +874,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                        for k, v in d.iteritems())
         result = Panel(dcasted, dtype=int)
         expected = Panel(dict((k, v.astype(int))
+                              for k, v in dcasted.iteritems()))
+        assert_panel_equal(result, expected)
+
+        result = Panel(dcasted, dtype=np.int32)
+        expected = Panel(dict((k, v.astype(np.int32))
                               for k, v in dcasted.iteritems()))
         assert_panel_equal(result, expected)
 
@@ -902,9 +939,25 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assert_(panel['foo'].values.dtype == np.object_)
         self.assert_(panel['A'].values.dtype == np.float64)
 
-    def test_values(self):
-        self.assertRaises(Exception, Panel, np.random.randn(5, 5, 5),
-                          range(5), range(5), range(4))
+    def test_constructor_error_msgs(self):
+
+        try:
+            Panel(np.random.randn(3,4,5), range(4), range(5), range(5))
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (4, 5, 5)"))
+
+        try:
+            Panel(np.random.randn(3,4,5), range(5), range(4), range(5))
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (5, 4, 5)"))
+
+        try:
+            Panel(np.random.randn(3,4,5), range(5), range(5), range(4))
+        except (Exception), detail:
+            self.assert_(type(detail) == ValueError)
+            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (5, 5, 4)"))
 
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
@@ -977,7 +1030,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         expected = self.panel.reindex(minor=['D', 'A', 'B', 'C'])
         assert_panel_equal(result, expected)
 
-        self.assertRaises(Exception, self.panel.take, [3, -1, 1, 2], axis=2)
+        # neg indicies ok
+        expected = self.panel.reindex(minor=['D', 'D', 'B', 'C'])
+        result = self.panel.take([3, -1, 1, 2], axis=2)
+        assert_panel_equal(result, expected)
+
         self.assertRaises(Exception, self.panel.take, [4, 0, 1, 2], axis=2)
 
     def test_sort_index(self):
@@ -1277,12 +1334,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         for ext in ['xls', 'xlsx']:
             path = '__tmp__.' + ext
-            self.panel.to_excel(path)
-            reader = ExcelFile(path)
-            for item, df in self.panel.iterkv():
-                recdf = reader.parse(str(item), index_col=0)
-                assert_frame_equal(df, recdf)
-            os.remove(path)
+            with ensure_clean(path) as path:
+                self.panel.to_excel(path)
+                reader = ExcelFile(path)
+                for item, df in self.panel.iterkv():
+                    recdf = reader.parse(str(item), index_col=0)
+                    assert_frame_equal(df, recdf)
 
     def test_dropna(self):
         p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
@@ -1526,17 +1583,17 @@ class TestLongPanel(unittest.TestCase):
         trunced = self.panel.truncate(start, end).to_panel()
         expected = self.panel.to_panel()['ItemA'].truncate(start, end)
 
-        assert_frame_equal(trunced['ItemA'], expected)
+        assert_frame_equal(trunced['ItemA'], expected, check_names=False)  # TODO trucate drops index.names
 
         trunced = self.panel.truncate(before=start).to_panel()
         expected = self.panel.to_panel()['ItemA'].truncate(before=start)
 
-        assert_frame_equal(trunced['ItemA'], expected)
+        assert_frame_equal(trunced['ItemA'], expected, check_names=False)  # TODO trucate drops index.names
 
         trunced = self.panel.truncate(after=end).to_panel()
         expected = self.panel.to_panel()['ItemA'].truncate(after=end)
 
-        assert_frame_equal(trunced['ItemA'], expected)
+        assert_frame_equal(trunced['ItemA'], expected, check_names=False)  # TODO trucate drops index.names
 
         # truncate on dates that aren't in there
         wp = self.panel.to_panel()

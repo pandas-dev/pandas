@@ -72,7 +72,7 @@ dependencies = ['pandas_vb_common.py']
 
 START_DATE = datetime(2010, 6, 1)
 
-repo = GitRepo(REPO_PATH)
+# repo = GitRepo(REPO_PATH)
 
 RST_BASE = 'source'
 

@@ -162,7 +162,7 @@ timeseries_infer_freq = \
 # setitem PeriodIndex
 
 setup = common_setup + """
-rng = period_range('1/1/1990', freq='S', periods=100000)
+rng = period_range('1/1/1990', freq='S', periods=20000)
 df = DataFrame(index=range(len(rng)))
 """
 

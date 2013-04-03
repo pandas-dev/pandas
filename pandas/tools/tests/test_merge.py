@@ -357,6 +357,7 @@ class TestMerge(unittest.TestCase):
         joined = df1.join(df2, how='outer')
         ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        expected.index.names = index1.names
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
 
@@ -366,6 +367,7 @@ class TestMerge(unittest.TestCase):
         joined = df1.join(df2, how='outer').sortlevel(0)
         ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        expected.index.names = index1.names
 
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
@@ -422,23 +424,27 @@ class TestMerge(unittest.TestCase):
         self.assertTrue('b' in result)
 
     def test_join_float64_float32(self):
-        a = DataFrame(randn(10, 2), columns=['a', 'b'])
-        b = DataFrame(randn(10, 1), columns=['c']).astype(np.float32)
+
+        a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype = np.float64)
+        b = DataFrame(randn(10, 1), columns=['c'], dtype = np.float32)
         joined = a.join(b)
-        expected = a.join(b.astype('f8'))
-        assert_frame_equal(joined, expected)
+        self.assert_(joined.dtypes['a'] == 'float64')
+        self.assert_(joined.dtypes['b'] == 'float64')
+        self.assert_(joined.dtypes['c'] == 'float32')
 
-        joined = b.join(a)
-        assert_frame_equal(expected, joined.reindex(columns=['a', 'b', 'c']))
-
-        a = np.random.randint(0, 5, 100)
-        b = np.random.random(100).astype('Float64')
-        c = np.random.random(100).astype('Float32')
+        a = np.random.randint(0, 5, 100).astype('int64')
+        b = np.random.random(100).astype('float64')
+        c = np.random.random(100).astype('float32')
         df = DataFrame({'a': a, 'b': b, 'c': c})
-        xpdf = DataFrame({'a': a, 'b': b, 'c': c.astype('Float64')})
-        s = DataFrame(np.random.random(5).astype('f'), columns=['md'])
+        xpdf = DataFrame({'a': a, 'b': b, 'c': c })
+        s = DataFrame(np.random.random(5).astype('float32'), columns=['md'])
         rs = df.merge(s, left_on='a', right_index=True)
-        xp = xpdf.merge(s.astype('f8'), left_on='a', right_index=True)
+        self.assert_(rs.dtypes['a'] == 'int64')
+        self.assert_(rs.dtypes['b'] == 'float64')
+        self.assert_(rs.dtypes['c'] == 'float32')
+        self.assert_(rs.dtypes['md'] == 'float32')
+
+        xp = xpdf.merge(s, left_on='a', right_index=True)
         assert_frame_equal(rs, xp)
 
     def test_join_many_non_unique_index(self):
@@ -591,7 +597,7 @@ class TestMerge(unittest.TestCase):
                                                  np.nan, np.nan]),
                               'rvalue': np.array([0, 1, 0, 1, 2, 2, 3, 4, 5])},
                              columns=['value', 'key', 'rvalue'])
-        assert_frame_equal(joined, expected)
+        assert_frame_equal(joined, expected, check_dtype=False)
 
         self.assert_(joined._data.is_consolidated())
 
@@ -713,6 +719,24 @@ class TestMerge(unittest.TestCase):
 
         self.assert_((df.var3.unique() == result.var3.unique()).all())
 
+    def test_merge_nan_right(self):
+        df1 = DataFrame({"i1" : [0, 1], "i2" : [0, 1]})
+        df2 = DataFrame({"i1" : [0], "i3" : [0]})
+        result = df1.join(df2, on="i1", rsuffix="_")
+        expected = DataFrame({'i1': {0: 0.0, 1: 1}, 'i2': {0: 0, 1: 1},
+                              'i1_': {0: 0, 1: np.nan}, 'i3': {0: 0.0, 1: np.nan},
+                               None: {0: 0, 1: 0}}).set_index(None).reset_index()[['i1', 'i2', 'i1_', 'i3']]
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        df1 = DataFrame({"i1" : [0, 1], "i2" : [0.5, 1.5]})
+        df2 = DataFrame({"i1" : [0], "i3" : [0.7]})
+        result = df1.join(df2, rsuffix="_", on='i1')
+        expected = DataFrame({'i1': {0: 0, 1: 1}, 'i1_': {0: 0.0, 1: nan},
+                              'i2': {0: 0.5, 1: 1.5}, 'i3': {0: 0.69999999999999996,
+                              1: nan}})[['i1', 'i2', 'i1_', 'i3']]
+        assert_frame_equal(result, expected)
+
+
     def test_overlapping_columns_error_message(self):
         # #2649
         df = DataFrame({'key': [1, 2, 3],
@@ -735,7 +759,7 @@ def _check_merge(x, y):
                          sort=True)
         expected = expected.set_index('index')
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)  # TODO check_names on merge?
 
 
 class TestMergeMulti(unittest.TestCase):
@@ -801,7 +825,25 @@ class TestMergeMulti(unittest.TestCase):
 
         left = DataFrame({'k1': [0, 1, 2] * 8,
                           'k2': ['foo', 'bar'] * 12,
-                          'v': np.arange(24)})
+                          'v': np.array(np.arange(24),dtype=np.int64) })
+
+        index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
+        right = DataFrame({'v2': [5, 7]}, index=index)
+
+        result = left.join(right, on=['k1', 'k2'])
+
+        expected = left.copy()
+        expected['v2'] = np.nan
+        expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
+        expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
+
+        tm.assert_frame_equal(result, expected)
+
+        # test join with multi dtypes blocks
+        left = DataFrame({'k1': [0, 1, 2] * 8,
+                          'k2': ['foo', 'bar'] * 12,
+                          'k3' : np.array([0, 1, 2]*8, dtype=np.float32),
+                          'v': np.array(np.arange(24),dtype=np.int32) })
 
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
@@ -819,6 +861,33 @@ class TestMergeMulti(unittest.TestCase):
         joined = merge(right, left, left_index=True,
                        right_on=['k1', 'k2'], how='right')
         tm.assert_frame_equal(joined.ix[:, expected.columns], expected)
+
+    def test_join_multi_dtypes(self):
+
+        # test with multi dtypes in the join index
+        def _test(dtype1,dtype2):
+            left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
+                              'k2': ['foo', 'bar'] * 12,
+                              'v': np.array(np.arange(24),dtype=np.int64) })
+
+            index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
+            right = DataFrame({'v2': np.array([5, 7], dtype=dtype2)}, index=index)
+
+            result = left.join(right, on=['k1', 'k2'])
+
+            expected = left.copy()
+
+            if dtype2.kind == 'i':
+                dtype2 = np.dtype('float64')
+            expected['v2'] = np.array(np.nan,dtype=dtype2)
+            expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
+            expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
+
+            tm.assert_frame_equal(result, expected)
+
+        for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
+            for d2 in [np.int64,np.float64,np.float32,np.float16]:
+                _test(np.dtype(d1),np.dtype(d2))
 
     def test_left_merge_na_buglet(self):
         left = DataFrame({'id': list('abcde'), 'v1': randn(5),
@@ -1602,6 +1671,23 @@ class TestConcatenate(unittest.TestCase):
 
         self.assertEqual(len(left), len(right))
 
+    def test_concat_bug_2972(self):
+        ts0 = Series(np.zeros(5))
+        ts1 = Series(np.ones(5))
+        ts0.name = ts1.name = 'same name'
+        result = concat([ts0, ts1], axis=1)
+
+        expected = DataFrame({0: ts0, 1: ts1})
+        expected.columns=['same name', 'same name']
+        assert_frame_equal(result, expected)
+
+    def test_concat_series_axis1_same_names_ignore_index(self):
+        dates = date_range('01-Jan-2013', '01-Jan-2014', freq='MS')[0:-1]
+        s1 = Series(randn(len(dates)), index=dates, name='value')
+        s2 = Series(randn(len(dates)), index=dates, name='value')
+
+        result = concat([s1, s2], axis=1, ignore_index=True)
+        self.assertTrue(np.array_equal(result.columns, [0, 1]))
 
 class TestOrderedMerge(unittest.TestCase):
 

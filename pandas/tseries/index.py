@@ -67,10 +67,11 @@ def _dt_index_cmp(opname):
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
         if isinstance(other, datetime):
-            func = getattr(self, opname)
-            other = _to_m8(other)
+            other = _to_m8(other, tz=self.tz)
         elif isinstance(other, list):
             other = DatetimeIndex(other)
+        elif isinstance(other, basestring):
+            other = _to_m8(other, tz=self.tz)
         elif not isinstance(other, np.ndarray):
             other = _ensure_datetime64(other)
         result = func(other)
@@ -297,14 +298,20 @@ class DatetimeIndex(Int64Index):
         if end is not None:
             end = Timestamp(end)
 
-        inferred_tz = tools._infer_tzinfo(start, end)
+        try:
+            inferred_tz = tools._infer_tzinfo(start, end)
+        except:
+            raise ValueError('Start and end cannot both be tz-aware with '
+                             'different timezones')
+
+        inferred_tz = tools._maybe_get_tz(inferred_tz)
+        tz = tools._maybe_get_tz(tz)
 
         if tz is not None and inferred_tz is not None:
             assert(inferred_tz == tz)
         elif inferred_tz is not None:
             tz = inferred_tz
 
-        tz = tools._maybe_get_tz(tz)
 
         if start is not None:
             if normalize:
@@ -561,6 +568,26 @@ class DatetimeIndex(Int64Index):
         except (KeyError, TypeError):
             return False
 
+    def _format_with_header(self, header, **kwargs):
+        return header + self._format_native_types(**kwargs)
+
+    def _format_native_types(self, na_rep=u'NaT', **kwargs):
+        data = list(self)
+
+        # tz formatter or time formatter
+        zero_time = time(0, 0)
+        for d in data:
+            if d.time() != zero_time or d.tzinfo is not None:
+                return [u'%s' % x for x in data ]
+            
+        values = np.array(data,dtype=object)
+        mask = isnull(self.values)
+        values[mask] = na_rep
+        
+        imask = -mask
+        values[imask] = np.array([ u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day) for dt in values[imask] ])
+        return values.tolist()
+
     def isin(self, values):
         """
         Compute boolean array of whether each index value is found in the
@@ -619,11 +646,6 @@ class DatetimeIndex(Int64Index):
             return self.asi8.copy()
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
-
-    @property
-    def asi8(self):
-        # do not cache or you'll create a memory leak
-        return self.values.view('i8')
 
     def _get_time_micros(self):
         utc = _utc()
@@ -1037,46 +1059,53 @@ class DatetimeIndex(Int64Index):
             return self._view_like(left_chunk)
 
     def _partial_date_slice(self, reso, parsed):
-        if not self.is_monotonic:
-            raise TimeSeriesError('Partial indexing only valid for ordered '
-                                  'time series.')
 
         if reso == 'year':
-            t1 = Timestamp(datetime(parsed.year, 1, 1))
-            t2 = Timestamp(datetime(parsed.year, 12, 31))
+            t1 = Timestamp(datetime(parsed.year, 1, 1), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, 12, 31), tz=self.tz)
         elif reso == 'month':
             d = tslib.monthrange(parsed.year, parsed.month)[1]
-            t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
-            t2 = Timestamp(datetime(parsed.year, parsed.month, d))
+            t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, parsed.month, d), tz=self.tz)
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
-            t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
-            t2 = Timestamp(datetime(parsed.year, qe, d))
+            t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, qe, d), tz=self.tz)
         elif reso == 'day' and self._resolution < Resolution.RESO_DAY:
             st = datetime(parsed.year, parsed.month, parsed.day)
-            t1 = Timestamp(st)
+            t1 = Timestamp(st, tz=self.tz)
             t2 = st + offsets.Day()
-            t2 = Timestamp(Timestamp(t2).value - 1)
+            t2 = Timestamp(Timestamp(t2, tz=self.tz).value - 1)
         elif (reso == 'hour' and
               self._resolution < Resolution.RESO_HR):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
-            t1 = Timestamp(st)
-            t2 = Timestamp(Timestamp(st + offsets.Hour()).value - 1)
+            t1 = Timestamp(st, tz=self.tz)
+            t2 = Timestamp(Timestamp(st + offsets.Hour(),
+                                     tz=self.tz).value - 1)
         elif (reso == 'minute' and
               self._resolution < Resolution.RESO_MIN):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
-            t1 = Timestamp(st)
-            t2 = Timestamp(Timestamp(st + offsets.Minute()).value - 1)
+            t1 = Timestamp(st, tz=self.tz)
+            t2 = Timestamp(Timestamp(st + offsets.Minute(),
+                                     tz=self.tz).value - 1)
         else:
             raise KeyError
+        
 
         stamps = self.asi8
-        left = stamps.searchsorted(t1.value, side='left')
-        right = stamps.searchsorted(t2.value, side='right')
-        return slice(left, right)
+
+        if self.is_monotonic:
+
+            # a monotonic (sorted) series can be sliced
+            left = stamps.searchsorted(t1.value, side='left')
+            right = stamps.searchsorted(t2.value, side='right')
+            return slice(left, right)
+
+        # try to find a the dates
+        return ((stamps>=t1.value) & (stamps<=t2.value)).nonzero()[0]
 
     def _possibly_promote(self, other):
         if other.inferred_type == 'date':
@@ -1088,10 +1117,14 @@ class DatetimeIndex(Int64Index):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        if isinstance(key, datetime):
+            # needed to localize naive datetimes
+            stamp = Timestamp(key, tz=self.tz)
+            return self._engine.get_value(series, stamp)
+
         try:
             return Index.get_value(self, series, key)
         except KeyError:
-
             try:
                 loc = self._get_string_slice(key)
                 return series[loc]
@@ -1102,14 +1135,11 @@ class DatetimeIndex(Int64Index):
                 locs = self.indexer_at_time(key)
                 return series.take(locs)
 
-            if isinstance(key, basestring):
-                stamp = Timestamp(key, tz=self.tz)
-            else:
-                stamp = Timestamp(key)
             try:
+                stamp = Timestamp(key, tz=self.tz)
                 return self._engine.get_value(series, stamp)
-            except KeyError:
-                raise KeyError(stamp)
+            except (KeyError, ValueError):
+                raise KeyError(key)
 
     def get_loc(self, key):
         """
@@ -1119,9 +1149,14 @@ class DatetimeIndex(Int64Index):
         -------
         loc : int
         """
+        if isinstance(key, datetime):
+            # needed to localize naive datetimes
+            stamp = Timestamp(key, tz=self.tz)
+            return self._engine.get_loc(stamp)
+
         try:
-            return self._engine.get_loc(key)
-        except KeyError:
+            return Index.get_loc(self, key)
+        except (KeyError, ValueError):
             try:
                 return self._get_string_slice(key)
             except (TypeError, KeyError, ValueError):
@@ -1131,17 +1166,31 @@ class DatetimeIndex(Int64Index):
                 return self.indexer_at_time(key)
 
             try:
-                return self._engine.get_loc(Timestamp(key))
+                stamp = Timestamp(key, tz=self.tz)
+                return self._engine.get_loc(stamp)
             except (KeyError, ValueError):
                 raise KeyError(key)
 
     def _get_string_slice(self, key):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
-        asdt, parsed, reso = parse_time_string(key, freq)
-        key = asdt
+        _, parsed, reso = parse_time_string(key, freq)
         loc = self._partial_date_slice(reso, parsed)
         return loc
+
+    def slice_indexer(self, start=None, end=None, step=None):
+        """
+        Index.slice_indexer, customized to handle time slicing
+        """
+        if isinstance(start, time) and isinstance(end, time):
+            if step is not None and step != 1:
+                raise ValueError('Must have step size of 1 with time slices')
+            return self.indexer_between_time(start, end)
+
+        if isinstance(start, time) or isinstance(end, time):
+            raise KeyError('Cannot mix time and non-time slice keys')
+
+        return Index.slice_indexer(self, start, end, step)
 
     def slice_locs(self, start=None, end=None):
         """
@@ -1162,6 +1211,9 @@ class DatetimeIndex(Int64Index):
                 return start_loc, end_loc
             except KeyError:
                 pass
+
+        if isinstance(start, time) or isinstance(end, time):
+            raise KeyError('Cannot use slice_locs with time slice keys')
 
         return Index.slice_locs(self, start, end)
 
@@ -1250,7 +1302,7 @@ class DatetimeIndex(Int64Index):
         if isinstance(key, np.ndarray):
             key = np.array(key, dtype=_NS_DTYPE, copy=False)
         else:
-            key = _to_m8(key)
+            key = _to_m8(key, tz=self.tz)
 
         return self.values.searchsorted(key, side=side)
 
@@ -1339,7 +1391,7 @@ class DatetimeIndex(Int64Index):
         new_index : Index
         """
         if isinstance(item, datetime):
-            item = _to_m8(item)
+            item = _to_m8(item, tz=self.tz)
 
         new_index = np.concatenate((self[:loc].asi8,
                                     [item.view(np.int64)],
@@ -1512,17 +1564,21 @@ def _generate_regular_range(start, end, periods, offset):
             b = Timestamp(start).value
             e = Timestamp(end).value
             e += stride - e % stride
+            # end.tz == start.tz by this point due to _generate implementation
+            tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
             e = b + periods * stride
+            tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
             b = e - periods * stride
+            tz = end.tz
         else:
             raise NotImplementedError
 
         data = np.arange(b, e, stride, dtype=np.int64)
-        data = data.view(_NS_DTYPE)
+        data = DatetimeIndex._simple_new(data, None, tz=tz)
     else:
         if isinstance(start, Timestamp):
             start = start.to_pydatetime()
@@ -1613,13 +1669,13 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                          freq=freq, tz=tz, normalize=normalize, name=name)
 
 
-def _to_m8(key):
+def _to_m8(key, tz=None):
     '''
     Timestamp-like => dt64
     '''
-    if not isinstance(key, datetime):
+    if not isinstance(key, Timestamp):
         # this also converts strings
-        key = Timestamp(key)
+        key = Timestamp(key, tz=tz)
 
     return np.int64(tslib.pydt_to_i8(key)).view(_NS_DTYPE)
 
@@ -1697,7 +1753,8 @@ def _process_concat_data(to_concat, name):
             else:
                 to_concat = [x.values for x in to_concat]
 
-            klass = DatetimeIndex
+            # well, technically not a "class" anymore...oh well
+            klass = DatetimeIndex._simple_new
             kwargs = {'tz': tz}
             concat = com._concat_compat
     else:

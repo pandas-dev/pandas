@@ -37,13 +37,16 @@ reshape_pivot_time_series = Benchmark('f()', setup,
 
 setup = common_setup + """
 NUM_ROWS = 1000
-df = DataFrame({'A' : np.random.randint(50, size=NUM_ROWS),
-                'B' : np.random.randint(50, size=NUM_ROWS),
-                'C' : np.random.randint(-10,10, size=NUM_ROWS),
-                'D' : np.random.randint(-10,10, size=NUM_ROWS),
-                'E' : np.random.randint(10, size=NUM_ROWS),
-                'F' : np.random.randn(NUM_ROWS)})
-idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
+for iter in range(10):
+    df = DataFrame({'A' : np.random.randint(50, size=NUM_ROWS),
+                    'B' : np.random.randint(50, size=NUM_ROWS),
+                    'C' : np.random.randint(-10,10, size=NUM_ROWS),
+                    'D' : np.random.randint(-10,10, size=NUM_ROWS),
+                    'E' : np.random.randint(10, size=NUM_ROWS),
+                    'F' : np.random.randn(NUM_ROWS)})
+    idf = df.set_index(['A', 'B', 'C', 'D', 'E'])
+    if len(idf.index.unique()) == NUM_ROWS:
+        break
 """
 
 unstack_sparse_keyspace = Benchmark('idf.unstack()', setup,

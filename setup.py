@@ -12,19 +12,21 @@ import shutil
 import warnings
 
 try:
-    BUILD_CACHE_DIR = None
+    basedir = os.path.dirname(__file__)
+    dotfile = os.path.join(basedir,".build_cache_dir")
+    BUILD_CACHE_DIR = ""
+    if os.path.exists(dotfile):
+        BUILD_CACHE_DIR = open(dotfile).readline().strip()
+    BUILD_CACHE_DIR = os.environ.get('BUILD_CACHE_DIR',BUILD_CACHE_DIR)
 
-    # uncomment to activate the build cache
-    # BUILD_CACHE_DIR="/tmp/.pandas_build_cache/"
-
-    if os.isdir(BUILD_CACHE_DIR):
+    if os.path.isdir(BUILD_CACHE_DIR):
         print("--------------------------------------------------------")
         print("BUILD CACHE ACTIVATED. be careful, this is experimental.")
         print("--------------------------------------------------------")
     else:
         BUILD_CACHE_DIR = None
 except:
-    pass
+        BUILD_CACHE_DIR = None
 
 # may need to work around setuptools bug by providing a fake Pyrex
 try:
@@ -85,30 +87,30 @@ else:
                      "  use pip or easy_install."
                      "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
-try:
-    import numpy as np
-except ImportError:
-    nonumpy_msg = ("# numpy needed to finish setup.  run:\n\n"
-                   "    $ pip install numpy  # or easy_install numpy\n")
-    sys.exit(nonumpy_msg)
-
-if np.__version__ < '1.6.1':
-    msg = "pandas requires NumPy >= 1.6.1 due to datetime64 dependency"
-    sys.exit(msg)
-
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.sdist import sdist
-from distutils.command.build_ext import build_ext
+from distutils.command.build_ext import build_ext as _build_ext
 
 try:
-    from Cython.Distutils import build_ext
+    from Cython.Distutils import build_ext as _build_ext
     # from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython = True
 except ImportError:
     cython = False
 
 from os.path import splitext, basename, join as pjoin
+
+
+class build_ext(_build_ext):
+    def build_extensions(self):
+        numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
+
+        for ext in self.extensions:
+            if hasattr(ext, 'include_dirs') and not numpy_incl in ext.include_dirs:
+                ext.include_dirs.append(numpy_incl)
+        _build_ext.build_extensions(self)
+
 
 DESCRIPTION = ("Powerful data structures for data analysis, time series,"
                "and statistics")
@@ -199,9 +201,9 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 10
-MICRO = 1
-ISRELEASED = True
+MINOR = 11
+MICRO = 0
+ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
@@ -341,10 +343,7 @@ class CheckingBuildExt(build_ext):
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
-        self.check_extensions_list(self.extensions)
-
-        for ext in self.extensions:
-            self.build_extension(ext)
+        build_ext.build_extensions(self)
 
 
 class CompilationCacheMixin(object):
@@ -389,41 +388,6 @@ class CompilationCacheMixin(object):
             return hash(obj)
         except:
             raise NotImplementedError("You must override this method")
-
-    # this is missing in 2.5, mro will do the right thing
-    def get_ext_fullpath(self, ext_name):
-        """Returns the path of the filename for a given extension.
-
-        The file is located in `build_lib` or directly in the package
-        (inplace option).
-        """
-        import string
-        # makes sure the extension name is only using dots
-        all_dots = string.maketrans('/' + os.sep, '..')
-        ext_name = ext_name.translate(all_dots)
-
-        fullname = self.get_ext_fullname(ext_name)
-        modpath = fullname.split('.')
-        filename = self.get_ext_filename(ext_name)
-        filename = os.path.split(filename)[-1]
-
-        if not self.inplace:
-            # no further work needed
-            # returning :
-            #   build_dir/package/path/filename
-            filename = os.path.join(*modpath[:-1] + [filename])
-            return os.path.join(self.build_lib, filename)
-
-        # the inplace option requires to find the package directory
-        # using the build_py command for that
-        package = '.'.join(modpath[0:-1])
-        build_py = self.get_finalized_command('build_py')
-        package_dir = os.path.abspath(build_py.get_package_dir(package))
-
-        # returning
-        #   package_dir/filename
-        return os.path.join(package_dir, filename)
-
 
 class CompilationCacheExtMixin(CompilationCacheMixin):
     def __init__(self, *args, **kwds):
@@ -524,6 +488,8 @@ class CachingBuildExt(build_ext, CompilationCacheExtMixin):
             build_ext.cython_sources(self, [s], extension)
             self._put_to_cache(hash, target)
 
+        sources = [x for x in sources if x.startswith("pandas")]
+
         return sources
 
 
@@ -555,14 +521,14 @@ cmdclass = {'clean': CleanCommand,
 
 if cython:
     suffix = '.pyx'
-    cmdclass['build_ext'] = build_ext
+    cmdclass['build_ext'] = CheckingBuildExt
     if BUILD_CACHE_DIR:  # use the cache
         cmdclass['build_ext'] = CachingBuildExt
     cmdclass['cython'] = CythonCommand
 else:
     suffix = '.c'
     cmdclass['build_src'] = DummyBuildSrc
-    cmdclass['build_ext'] = build_ext
+    cmdclass['build_ext'] = CheckingBuildExt
 
 lib_depends = ['reduce', 'inference', 'properties']
 
@@ -577,7 +543,7 @@ else:
     lib_depends = []
     plib_depends = []
 
-common_include = [np.get_include(), 'pandas/src/klib', 'pandas/src']
+common_include = ['pandas/src/klib', 'pandas/src']
 
 
 def pxd(name):
@@ -636,7 +602,7 @@ for name, data in ext_data.items():
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
-                       include_dirs=[np.get_include()],
+                       include_dirs=[],
                        libraries=libraries)
 
 
@@ -658,7 +624,7 @@ sandbox_ext = Extension('pandas._sandbox',
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
-                           include_dirs=[np.get_include()])
+                           include_dirs=[])
 
 extensions.extend([sparse_ext, parser_ext])
 

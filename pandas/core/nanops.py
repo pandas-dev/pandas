@@ -8,6 +8,7 @@ import pandas.core.config as cf
 import pandas.lib as lib
 import pandas.algos as algos
 import pandas.hashtable as _hash
+import pandas.tslib as tslib
 
 try:
     import bottleneck as bn
@@ -55,7 +56,7 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
 
 def _bn_ok_dtype(dt):
     # Bottleneck chokes on datetime64
-    return dt != np.object_ and not issubclass(dt.type, np.datetime64)
+    return dt != np.object_ and not issubclass(dt.type, (np.datetime64,np.timedelta64))
 
 
 def _has_infs(result):
@@ -69,45 +70,110 @@ def _has_infs(result):
     else:
         return np.isinf(result) or np.isneginf(result)
 
+def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
+    """ return the correct fill value for the dtype of the values """
+    if fill_value is not None:
+        return fill_value
+    if _na_ok_dtype(dtype):
+        if fill_value_typ is None:
+            return np.nan
+        else:
+            if fill_value_typ == '+inf':
+                return np.inf
+            else:
+                return -np.inf
+    else:
+        if fill_value_typ is None:
+            return tslib.iNaT
+        else:
+            if fill_value_typ == '+inf':
+                # need the max int here
+                return np.iinfo(np.int64).max
+            else:
+                return tslib.iNaT
+
+def _get_values(values, skipna, fill_value=None, fill_value_typ=None, isfinite=False, copy=True):
+    """ utility to get the values view, mask, dtype
+        if necessary copy and mask using the specified fill_value
+        copy = True will force the copy """
+    if isfinite:
+        mask = _isfinite(values)
+    else:
+        mask = isnull(values)
+
+    dtype    = values.dtype
+    dtype_ok = _na_ok_dtype(dtype)
+
+    # get our fill value (in case we need to provide an alternative dtype for it)
+    fill_value = _get_fill_value(dtype, fill_value=fill_value, fill_value_typ=fill_value_typ)
+
+    if skipna:
+        if copy:
+            values = values.copy()
+        if dtype_ok:
+            np.putmask(values, mask, fill_value)
+
+        # promote if needed
+        else:
+            values, changed = com._maybe_upcast_putmask(values, mask, fill_value)
+
+    elif copy:
+        values = values.copy()
+
+    values = _view_if_needed(values)
+    return values, mask, dtype
+
+def _isfinite(values):
+    if issubclass(values.dtype.type, (np.timedelta64,np.datetime64)):
+        return isnull(values)
+    return -np.isfinite(values)
+
+def _na_ok_dtype(dtype):
+    return not issubclass(dtype.type, (np.integer, np.datetime64, np.timedelta64))
+
+def _view_if_needed(values):
+    if issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+        return values.view(np.int64)
+    return values
+
+def _wrap_results(result,dtype):
+    """ wrap our results if needed """
+
+    if issubclass(dtype.type, np.datetime64):
+        if not isinstance(result, np.ndarray):
+            result = lib.Timestamp(result)
+        else:
+            result = result.view(dtype)
+    elif issubclass(dtype.type, np.timedelta64):
+        if not isinstance(result, np.ndarray):
+
+            # this is a scalar timedelta result!
+            # we have series convert then take the element (scalar)
+            # as series will do the right thing in py3 (and deal with numpy 1.6.2
+            # bug in that it results dtype of timedelta64[us]
+            from pandas import Series
+            result = Series([result],dtype='timedelta64[ns]')
+        else:
+            result = result.view(dtype)
+
+    return result
 
 def nanany(values, axis=None, skipna=True):
-    mask = isnull(values)
-
-    if skipna:
-        values = values.copy()
-        np.putmask(values, mask, False)
+    values, mask, dtype = _get_values(values, skipna, False, copy=skipna)
     return values.any(axis)
 
-
 def nanall(values, axis=None, skipna=True):
-    mask = isnull(values)
-
-    if skipna:
-        values = values.copy()
-        np.putmask(values, mask, True)
+    values, mask, dtype = _get_values(values, skipna, True, copy=skipna)
     return values.all(axis)
 
-
 def _nansum(values, axis=None, skipna=True):
-    mask = isnull(values)
-
-    if skipna and not issubclass(values.dtype.type, np.integer):
-        values = values.copy()
-        np.putmask(values, mask, 0)
-
+    values, mask, dtype = _get_values(values, skipna, 0)
     the_sum = values.sum(axis)
     the_sum = _maybe_null_out(the_sum, axis, mask)
-
     return the_sum
 
-
 def _nanmean(values, axis=None, skipna=True):
-    mask = isnull(values)
-
-    if skipna and not issubclass(values.dtype.type, np.integer):
-        values = values.copy()
-        np.putmask(values, mask, 0)
-
+    values, mask, dtype = _get_values(values, skipna, 0)
     the_sum = _ensure_numeric(values.sum(axis))
     count = _get_counts(mask, axis)
 
@@ -138,6 +204,9 @@ def _nanmedian(values, axis=None, skipna=True):
 
 
 def _nanvar(values, axis=None, skipna=True, ddof=1):
+    if not isinstance(values.dtype.type, np.floating):
+        values = values.astype('f8')
+
     mask = isnull(values)
 
     if axis is not None:
@@ -155,17 +224,7 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
 
 
 def _nanmin(values, axis=None, skipna=True):
-    mask = isnull(values)
-
-    dtype = values.dtype
-
-    if skipna and not issubclass(dtype.type,
-                                 (np.integer, np.datetime64)):
-        values = values.copy()
-        np.putmask(values, mask, np.inf)
-
-    if issubclass(dtype.type, np.datetime64):
-        values = values.view(np.int64)
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ = '+inf')
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
@@ -184,26 +243,12 @@ def _nanmin(values, axis=None, skipna=True):
         else:
             result = values.min(axis)
 
-    if issubclass(dtype.type, np.datetime64):
-        if not isinstance(result, np.ndarray):
-            result = lib.Timestamp(result)
-        else:
-            result = result.view(dtype)
-
+    result = _wrap_results(result,dtype)
     return _maybe_null_out(result, axis, mask)
 
 
 def _nanmax(values, axis=None, skipna=True):
-    mask = isnull(values)
-
-    dtype = values.dtype
-
-    if skipna and not issubclass(dtype.type, (np.integer, np.datetime64)):
-        values = values.copy()
-        np.putmask(values, mask, -np.inf)
-
-    if issubclass(dtype.type, np.datetime64):
-        values = values.view(np.int64)
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ ='-inf')
 
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
@@ -223,12 +268,7 @@ def _nanmax(values, axis=None, skipna=True):
         else:
             result = values.max(axis)
 
-    if issubclass(dtype.type, np.datetime64):
-        if not isinstance(result, np.ndarray):
-            result = lib.Timestamp(result)
-        else:
-            result = result.view(dtype)
-
+    result = _wrap_results(result,dtype)
     return _maybe_null_out(result, axis, mask)
 
 
@@ -236,10 +276,7 @@ def nanargmax(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    mask = -np.isfinite(values)
-    if not issubclass(values.dtype.type, np.integer):
-        values = values.copy()
-        np.putmask(values, mask, -np.inf)
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ = '-inf', isfinite=True)
     result = values.argmax(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
@@ -249,10 +286,7 @@ def nanargmin(values, axis=None, skipna=True):
     """
     Returns -1 in the NA case
     """
-    mask = -np.isfinite(values)
-    if not issubclass(values.dtype.type, np.integer):
-        values = values.copy()
-        np.putmask(values, mask, np.inf)
+    values, mask, dtype = _get_values(values, skipna, fill_value_typ = '+inf', isfinite=True)
     result = values.argmin(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result

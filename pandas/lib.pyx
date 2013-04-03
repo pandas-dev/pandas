@@ -32,7 +32,7 @@ from datetime cimport *
 
 from tslib cimport convert_to_tsobject
 import tslib
-from tslib import NaT, Timestamp
+from tslib import NaT, Timestamp, repr_timedelta64
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -160,6 +160,9 @@ def time64_to_datetime(ndarray[int64_t, ndim=1] arr):
 
     return result
 
+cdef inline int64_t get_timedelta64_value(val):
+    return val.view('i8')
+
 #----------------------------------------------------------------------
 # isnull / notnull related
 
@@ -174,6 +177,8 @@ cpdef checknull(object val):
         return get_datetime64_value(val) == NPY_NAT
     elif val is NaT:
         return True
+    elif util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
     elif is_array(val):
         return False
     else:
@@ -186,6 +191,8 @@ cpdef checknull_old(object val):
         return get_datetime64_value(val) == NPY_NAT
     elif val is NaT:
         return True
+    elif util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
     elif is_array(val):
         return False
     else:
@@ -751,13 +758,16 @@ def max_len_string_array(ndarray[object, ndim=1] arr):
     cdef:
         int i, m, l
         length = arr.shape[0]
+        object v
 
     m = 0
     for i from 0 <= i < length:
-        l = len(arr[i])
+        v = arr[i]
+        if PyString_Check(v):
+            l = len(v)
 
-        if l > m:
-            m = l
+            if l > m:
+                m = l
 
     return m
 
@@ -776,6 +786,54 @@ def array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_rep, obje
             arr[i] = replace
 
     return arr
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+
+def write_csv_rows(list data, list data_index, int nlevels, list cols, object writer):
+
+    cdef int N, j, i, ncols
+    cdef list rows
+    cdef object val
+
+    # In crude testing, N>100 yields little marginal improvement
+    N=100
+
+    # pre-allocate  rows
+    ncols = len(cols)
+    rows = [[None]*(nlevels+ncols) for x in range(N)]
+
+    j = -1
+    if nlevels == 1:
+        for j in range(len(data_index)):
+            row = rows[j % N]
+            row[0] = data_index[j]
+            for i in range(ncols):
+                row[1+i] = data[i][j]
+
+            if j >= N-1 and j % N == N-1:
+                writer.writerows(rows)
+    elif nlevels > 1:
+        for j in range(len(data_index)):
+            row = rows[j % N]
+            row[:nlevels] = list(data_index[j])
+            for i in range(ncols):
+                row[nlevels+i] = data[i][j]
+
+            if j >= N-1 and j % N == N-1:
+                writer.writerows(rows)
+    else:
+        for j in range(len(data_index)):
+            row = rows[j % N]
+            for i in range(ncols):
+                row[i] = data[i][j]
+
+            if j >= N-1 and j % N == N-1:
+                writer.writerows(rows)
+
+    if  j >= 0 and (j < N-1 or (j % N) != N-1 ):
+        writer.writerows(rows[:((j+1) % N)])
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

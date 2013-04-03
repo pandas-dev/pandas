@@ -12,6 +12,7 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
+from pandas.core.common import isnull
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -128,9 +129,16 @@ class Period(object):
 
     def __eq__(self, other):
         if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
             return (self.ordinal == other.ordinal
                     and _gfc(self.freq) == _gfc(other.freq))
+        else:
+            raise TypeError(other)
         return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash((self.ordinal, self.freq))
@@ -151,6 +159,23 @@ class Period(object):
             return self.ordinal - other.ordinal
         else:  # pragma: no cover
             raise TypeError(other)
+
+    def _comp_method(func, name):
+        def f(self, other):
+            if isinstance(other, Period):
+                if other.freq != self.freq:
+                    raise ValueError("Cannot compare non-conforming periods")
+                return func(self.ordinal, other.ordinal)
+            else:
+                raise TypeError(other)
+
+        f.__name__ = name
+        return f
+
+    __lt__ = _comp_method(operator.lt, '__lt__')
+    __le__ = _comp_method(operator.le, '__le__')
+    __gt__ = _comp_method(operator.gt, '__gt__')
+    __ge__ = _comp_method(operator.ge, '__ge__')
 
     def asfreq(self, freq, how='E'):
         """
@@ -188,7 +213,7 @@ class Period(object):
         ordinal = (self + 1).start_time.value - 1
         return Timestamp(ordinal)
 
-    def to_timestamp(self, freq=None, how='start'):
+    def to_timestamp(self, freq=None, how='start',tz=None):
         """
         Return the Timestamp representation of the Period at the target
         frequency at the specified end (how) of the Period
@@ -216,7 +241,7 @@ class Period(object):
         val = self.asfreq(freq, how)
 
         dt64 = tslib.period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64)
+        return Timestamp(dt64,tz=tz)
 
     year = _period_field_accessor('year', 0)
     month = _period_field_accessor('month', 3)
@@ -768,6 +793,21 @@ class PeriodIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return self._get_object_array()
 
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        return np.array_equal(self.asi8, other.asi8)
+
+    def tolist(self):
+        """
+        Return a list of Period objects
+        """
+        return self._get_object_array().tolist()
+
     def to_timestamp(self, freq=None, how='start'):
         """
         Cast to DatetimeIndex
@@ -881,8 +921,11 @@ class PeriodIndex(Int64Index):
             except TypeError:
                 pass
 
-            key = Period(key, self.freq).ordinal
-            return self._engine.get_loc(key)
+            key = Period(key, self.freq)
+            try:
+                return self._engine.get_loc(key.ordinal)
+            except KeyError as inst:
+                raise KeyError(key)
 
     def slice_locs(self, start=None, end=None):
         """
@@ -996,16 +1039,18 @@ class PeriodIndex(Int64Index):
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 
-    def format(self, name=False, formatter=None):
-        """
-        Render a string representation of the Index
-        """
-        header = []
+    def _format_with_header(self, header, **kwargs):
+        return header + self._format_native_types(**kwargs)
 
-        if name:
-            header.append(str(self.name) if self.name is not None else '')
+    def _format_native_types(self, na_rep=u'NaT', **kwargs):
 
-        return header + ['%s' % Period(x, freq=self.freq) for x in self]
+        values = np.array(list(self),dtype=object)
+        mask = isnull(self.values)
+        values[mask] = na_rep
+        
+        imask = -mask
+        values[imask] = np.array([ u'%s' % dt for dt in values[imask] ])
+        return values.tolist()
 
     def __array_finalize__(self, obj):
         if self.ndim == 0:  # pragma: no cover
@@ -1070,6 +1115,25 @@ class PeriodIndex(Int64Index):
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
 
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = (self.name, self.freq)
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+        if len(state) == 2:
+            nd_state, own_state = state
+            np.ndarray.__setstate__(self, nd_state)
+            self.name = own_state[0]
+            try: # backcompat
+                self.freq = own_state[1]
+            except:
+                pass
+        else:  # pragma: no cover
+            np.ndarray.__setstate__(self, state)
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:
