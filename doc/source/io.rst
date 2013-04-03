@@ -35,7 +35,7 @@ CSV & Text files
 The two workhorse functions for reading text files (a.k.a. flat files) are
 :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
 They both use the same parsing code to intelligently convert tabular
-data into a DataFrame object. See the :ref:`cookbook<cookbook.csv>` 
+data into a DataFrame object. See the :ref:`cookbook<cookbook.csv>`
 for some advanced strategies
 
 They can take a number of arguments:
@@ -917,7 +917,7 @@ Excel files
 
 The ``ExcelFile`` class can read an Excel 2003 file using the ``xlrd`` Python
 module and use the same parsing code as the above to convert tabular data into
-a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some 
+a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
 To use it, create the ``ExcelFile`` object:
@@ -1248,9 +1248,8 @@ greater than the date 20000102 and the minor_axis must be A or B`
    store
    store.select('wp', [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A', 'B']) ])
 
-The ``columns`` keyword can be supplied to select to filter a list of
-the return columns, this is equivalent to passing a
-``Term('columns', list_of_columns_to_filter)``
+The ``columns`` keyword can be supplied to select a list of columns to be returned,
+this is equivalent to passing a ``Term('columns', list_of_columns_to_filter)``:
 
 .. ipython:: python
 
@@ -1323,7 +1322,7 @@ be data_columns
    # this is in-memory version of this type of selection
    df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == 'foo')]
 
-   # we have automagically created this index and that the B/C/string/string2
+   # we have automagically created this index and the B/C/string/string2
    # columns are stored separately as ``PyTables`` columns
    store.root.df_dc.table
 
@@ -1395,9 +1394,9 @@ New in 0.10.1 are the methods ``append_to_multple`` and
 ``select_as_multiple``, that can perform appending/selecting from
 multiple tables at once. The idea is to have one table (call it the
 selector table) that you index most/all of the columns, and perform your
-queries. The other table(s) are data tables that are indexed the same as
-the selector table. You can then perform a very fast query on the
-selector table, yet get lots of data back. This method works similar to
+queries. The other table(s) are data tables with an index matching the
+selector table's index. You can then perform a very fast query
+on the selector table, yet get lots of data back. This method works similar to
 having a very wide table, but is more efficient in terms of queries.
 
 Note, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**. This
@@ -1437,8 +1436,8 @@ deleting rows, it is important to understand the ``PyTables`` deletes
 rows by erasing the rows, then **moving** the following data. Thus
 deleting can potentially be a very expensive operation depending on the
 orientation of your data. This is especially true in higher dimensional
-objects (``Panel`` and ``Panel4D``). To get optimal deletion speed, it
-pays to have the dimension you are deleting be the first of the
+objects (``Panel`` and ``Panel4D``). To get optimal performance, it's
+worthwhile to have the dimension you are deleting be the first of the
 ``indexables``.
 
 Data is ordered (on the disk) in terms of the ``indexables``. Here's a
@@ -1500,8 +1499,8 @@ off file compression for a specific table by passing ``complevel=0``
 
 **ptrepack**
 
-``PyTables`` offer better write performance when compressed after
-writing them, as opposed to turning on compression at the very
+``PyTables`` offers better write performance when tables are compressed after
+they are written, as opposed to turning on compression at the very
 beginning. You can use the supplied ``PyTables`` utility
 ``ptrepack``. In addition, ``ptrepack`` can change compression levels
 after the fact.
@@ -1615,10 +1614,10 @@ format store like this:
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-0.10.1 of ``HDFStore`` is backwards compatible for reading tables
-created in a prior version of pandas however, query terms using the
+0.10.1 of ``HDFStore`` can read tables created in a prior version of pandas,
+however query terms using the
 prior (undocumented) methodology are unsupported. ``HDFStore`` will
-issue a warning if you try to use a prior-version format file. You must
+issue a warning if you try to use a legacy-format file. You must
 read in the entire file and write it out using the new format, using the
 method ``copy`` to take advantage of the updates. The group attribute
 ``pandas_version`` contains the version information. ``copy`` takes a
@@ -1658,11 +1657,11 @@ Performance
      query (potentially very large amounts of data).  Write times are
      generally longer as compared with regular stores. Query times can
      be quite fast, especially on an indexed axis.
-   - You can pass ``chunksize=an integer`` to ``append``, to change the
-     writing chunksize (default is 50000). This will signficantly lower
+   - You can pass ``chunksize=<int>`` to ``append``, specifying the
+     write chunksize (default is 50000). This will signficantly lower
      your memory usage on writing.
-   - You can pass ``expectedrows=an integer`` to the first ``append``,
-     to set the TOTAL number of expectedrows that ``PyTables`` will
+   - You can pass ``expectedrows=<int>`` to the first ``append``,
+     to set the TOTAL number of expected rows that ``PyTables`` will
      expected. This will optimize read/write performance.
    - Duplicate rows can be written to tables, but are filtered out in
      selection (with the last items being selected; thus a table is
@@ -1688,7 +1687,7 @@ HDFStore supports ``Panel4D`` storage.
 These, by default, index the three axes ``items, major_axis,
 minor_axis``. On an ``AppendableTable`` it is possible to setup with the
 first append a different indexing scheme, depending on how you want to
-store your data. Pass the ``axes`` keyword with a list of dimension
+store your data. Pass the ``axes`` keyword with a list of dimensions
 (currently must by exactly 1 less than the total dimensions of the
 object). This cannot be changed after table creation.
 
@@ -1712,12 +1711,14 @@ SQL Queries
 -----------
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
-facilitate data retrieval and to reduce dependency on DB-specific API. There
+facilitate data retrieval and to reduce dependency on DB-specific API. These
 wrappers only support the Python database adapters which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`_. See some 
+DB-API <http://www.python.org/dev/peps/pep-0249/>`_. See some
 :ref:`cookbook examples <cookbook.sql>` for some advanced strategies
 
-Suppose you want to query some data with different types from a table such as:
+For example, suppose you want to query some data with different types from a
+table such as:
+
 
 +-----+------------+-------+-------+-------+
 | id  |    Date    | Col_1 | Col_2 | Col_3 |
@@ -1729,8 +1730,9 @@ Suppose you want to query some data with different types from a table such as:
 | 63  | 2012-10-20 |   Z   |  5.73 | True  |
 +-----+------------+-------+-------+-------+
 
+
 Functions from :mod:`pandas.io.sql` can extract some data into a DataFrame. In
-the following example, we use `SQlite <http://www.sqlite.org/>`_ SQL database
+the following example, we use the `SQlite <http://www.sqlite.org/>`_ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory". Just do:
 
@@ -1779,7 +1781,7 @@ You can also specify the name of the column as the DataFrame index:
    sql.read_frame("SELECT * FROM data;", cnx, index_col='id')
    sql.read_frame("SELECT * FROM data;", cnx, index_col='date')
 
-Of course, you can specify more "complex" query.
+Of course, you can specify a more "complex" query.
 
 .. ipython:: python
 
@@ -1794,8 +1796,8 @@ Of course, you can specify more "complex" query.
 
 There are a few other available functions:
 
-  - ``tquery`` returns list of tuples corresponding to each row.
-  - ``uquery`` does the same thing as tquery, but instead of returning results,
+  - ``tquery`` returns a list of tuples corresponding to each row.
+  - ``uquery`` does the same thing as tquery, but instead of returning results
     it returns the number of related rows.
   - ``write_frame`` writes records stored in a DataFrame into the SQL table.
   - ``has_table`` checks if a given SQLite table exists.
