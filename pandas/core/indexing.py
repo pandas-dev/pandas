@@ -28,6 +28,7 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(object):
+    _exception   = KeyError
 
     def __init__(self, obj, name):
         self.obj = obj
@@ -292,22 +293,14 @@ class _NDFrameIndexer(object):
         return True
 
     def _multi_take(self, tup):
-        from pandas.core.frame import DataFrame
-        from pandas.core.panel import Panel
-        from pandas.core.panel4d import Panel4D
+        """ create the reindex map for our objects, raise the _exception if we can't create the indexer """
 
-        if isinstance(self.obj, DataFrame):
-            index = self._convert_for_reindex(tup[0], axis=0)
-            columns = self._convert_for_reindex(tup[1], axis=1)
-            return self.obj.reindex(index=index, columns=columns)
-        elif isinstance(self.obj, Panel4D):
-            conv = [self._convert_for_reindex(x, axis=i)
-                    for i, x in enumerate(tup)]
-            return self.obj.reindex(labels=tup[0], items=tup[1], major=tup[2], minor=tup[3])
-        elif isinstance(self.obj, Panel):
-            conv = [self._convert_for_reindex(x, axis=i)
-                    for i, x in enumerate(tup)]
-            return self.obj.reindex(items=tup[0], major=tup[1], minor=tup[2])
+        try:
+            o = self.obj
+            d = dict([ (a,self._convert_for_reindex(t, axis=o._get_axis_number(a))) for t, a in zip(tup, o._AXIS_ORDERS) ])
+            return o.reindex(**d)
+        except:
+            raise self._exception
 
     def _convert_for_reindex(self, key, axis=0):
         labels = self.obj._get_axis(axis)

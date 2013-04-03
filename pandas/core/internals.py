@@ -442,6 +442,7 @@ class Block(object):
 
                 dtype, _ = com._maybe_promote(np.array(new).dtype)
                 nv = new_values.astype(dtype)
+                np.putmask(nv, mask, new)
                 new_blocks.append(make_block(nv, self.items, self.ref_items))
 
             return new_blocks
@@ -464,9 +465,14 @@ class Block(object):
                     return self.copy()
 
         values = self.values if inplace else self.values.copy()
+        ndim   = values.ndim
 
-        if values.ndim != 2:
-            raise NotImplementedError
+        
+        # reshape a 1 dim if needed
+        if values.ndim == 1:
+            if axis != 0:
+                raise Exception("cannot interpolate on a ndim == 1 with axis != 0")
+            values = _block_shape(values)
 
         transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
@@ -479,6 +485,10 @@ class Block(object):
             com.pad_2d(transf(values), limit=limit, mask=mask)
         else:
             com.backfill_2d(transf(values), limit=limit, mask=mask)
+
+        # reshape back
+        if ndim == 1:
+            values = values[0]
 
         return make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
 

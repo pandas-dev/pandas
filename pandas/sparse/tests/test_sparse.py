@@ -1232,7 +1232,6 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_fillna(self):
         df = self.zframe.reindex(range(5))
-        import pdb; pdb.set_trace()
         result = df.fillna(0)
         expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
         assert_sp_frame_equal(result, expected)

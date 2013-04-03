@@ -11,7 +11,7 @@ from pandas.core.internals import BlockManager
 import pandas.lib as lib
 from pandas.util import py3compat
 import pandas.core.common as com
-from pandas.core.common import (isnull, notnull, 
+from pandas.core.common import (isnull, notnull, is_list_like,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
@@ -1146,6 +1146,239 @@ class NDFrame(PandasObject):
         return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
 
     #----------------------------------------------------------------------
+    # Filling NA's
+
+    def fillna(self, value=None, method=None, axis=0, inplace=False,
+               limit=None, downcast=None):
+        """
+        Fill NA/NaN values using the specified method
+
+        Parameters
+        ----------
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        value : scalar or dict
+            Value to use to fill holes (e.g. 0), alternately a dict of values
+            specifying which value to use for each column (columns not in the
+            dict will not be filled)
+        axis : a valid axis for this object
+        inplace : boolean, default False
+            If True, fill the DataFrame in place. Note: this will modify any
+            other views on this DataFrame, like if you took a no-copy slice of
+            an existing DataFrame, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+        downcast : dict, default is None, a dict of item->dtype of what to 
+            downcast if possible
+
+        See also
+        --------
+        reindex, asfreq
+
+        Returns
+        -------
+        filled : DataFrame
+        """
+        self._consolidate_inplace()
+
+        axis = self._get_axis_number(axis)
+        if axis > self._AXIS_LEN:
+            raise Exception("axis [%s] is not supported for this type [%s]" % (axis,type(self)))
+
+        if value is None:
+            if method is None:
+                raise ValueError('must specify a fill method or value')
+            if self._is_mixed_type and axis == 1:
+                if inplace:
+                    raise NotImplementedError()
+                return self.T.fillna(method=method, limit=limit).T
+
+            method = com._clean_fill_method(method)
+            new_data = self._data.interpolate(method  = method,
+                                              axis    = axis,
+                                              limit   = limit,
+                                              inplace = inplace,
+                                              coerce  = True)
+        else:
+            if method is not None:
+                raise ValueError('cannot specify both a fill method and value')
+            # Float type values
+            for a in self._AXIS_ORDERS:
+                if len(self._get_axis(a)) == 0:
+                    return self
+
+            from pandas import Series
+            if isinstance(value, (dict, Series)):
+                if axis == 1:
+                    raise NotImplementedError('Currently only can fill '
+                                              'with dict/Series column '
+                                              'by column')
+
+                result = self if inplace else self.copy()
+                for k, v in value.iteritems():
+                    if k not in result:
+                        continue
+                    result[k].fillna(v, inplace=True, downcast=downcast)
+                return result
+            else:
+                new_data = self._data.fillna(value, inplace=inplace)
+
+        if inplace:
+            self._data = new_data
+        else:
+            return self._constructor(new_data)
+
+    def ffill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='ffill', axis=axis, inplace=inplace,
+                           limit=limit)
+
+    def bfill(self, axis=0, inplace=False, limit=None):
+        return self.fillna(method='bfill', axis=axis, inplace=inplace,
+                           limit=limit)
+
+    def replace(self, to_replace, value=None, method='pad', axis=0,
+                inplace=False, limit=None):
+        """
+        Replace values given in 'to_replace' with 'value' or using 'method'
+
+        Parameters
+        ----------
+        value : scalar or dict, default None
+            Value to use to fill holes (e.g. 0), alternately a dict of values
+            specifying which value to use for each column (columns not in the
+            dict will not be filled)
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        axis : a valid axis for this object
+        inplace : boolean, default False
+            If True, fill the DataFrame in place. Note: this will modify any
+            other views on this DataFrame, like if you took a no-copy slice of
+            an existing DataFrame, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        See also
+        --------
+        reindex, asfreq
+
+        Returns
+        -------
+        filled : DataFrame
+        """
+        self._consolidate_inplace()
+
+        axis = self._get_axis_number(axis)
+        if axis > self._AXIS_LEN:
+            raise Exception("axis [%s] is not supported for this type [%s]" % (axis,type(self)))
+
+        if value is None:
+            return self._interpolate(to_replace, method, axis, inplace, limit)
+        else:
+            for a in self._AXIS_ORDERS:
+                if len(self._get_axis(a)) == 0:
+                    return self
+
+            from pandas import Series
+            new_data = self._data
+            if isinstance(to_replace, (dict, Series)):
+                if isinstance(value, (dict, Series)):  # {'A' : NA} -> {'A' : 0}
+                    new_data = self._data
+                    for c, src in to_replace.iteritems():
+                        if c in value and c in self:
+                            new_data = new_data.replace(src, value[c],
+                                                        filter=[ c ],
+                                                        inplace=inplace)
+
+                elif not isinstance(value, (list, np.ndarray)):
+                    new_data = self._data
+                    for k, src in to_replace.iteritems():
+                        if k in self:
+                            new_data = new_data.replace(src, value,
+                                                        filter = [ k ],
+                                                        inplace=inplace)
+                else:
+                    raise ValueError('Fill value must be scalar or dict or Series')
+
+            elif isinstance(to_replace, (list, np.ndarray)):
+                # [NA, ''] -> [0, 'missing']
+                if isinstance(value, (list, np.ndarray)):
+                    if len(to_replace) != len(value):
+                        raise ValueError('Replacement lists must match '
+                                         'in length. Expecting %d got %d ' %
+                                         (len(to_replace), len(value)))
+
+                    new_data = self._data.replace_list(to_replace, value,
+                                                       inplace=inplace)
+
+                else:  # [NA, ''] -> 0
+                    new_data = self._data.replace(to_replace, value,
+                                                  inplace=inplace)
+
+            else:
+
+                # dest iterable dict-like
+                if isinstance(value, (dict, Series)):  # NA -> {'A' : 0, 'B' : -1}
+
+                    new_data = self._data
+                    for k, v in value.iteritems():
+                        if k in self:
+                            new_data = new_data.replace(to_replace, v,
+                                                        filter=[ k ],
+                                                        inplace=inplace)
+
+                elif not isinstance(value, (list, np.ndarray)):  # NA -> 0
+                    new_data = self._data.replace(to_replace, value,
+                                                  inplace=inplace)
+                else:
+                    raise ValueError('Invalid to_replace type: %s' %
+                                     type(to_replace))  # pragma: no cover
+
+
+        if inplace:
+            self._data = new_data
+        else:
+            return self._constructor(new_data)
+
+    def _interpolate(self, to_replace, method, axis, inplace, limit):
+        if self._is_mixed_type and axis == 1:
+            return self.T.replace(to_replace, method=method, limit=limit).T
+
+        method = com._clean_fill_method(method)
+
+        from pandas import Series
+        if isinstance(to_replace, (dict, Series)):
+            if axis == 1:
+                return self.T.replace(to_replace, method=method,
+                                      limit=limit).T
+
+            rs = self if inplace else self.copy()
+            for k, v in to_replace.iteritems():
+                if k in rs:
+                    rs[k].replace(v, method=method, limit=limit,
+                                  inplace=True)
+            return rs if not inplace else None
+
+        else:
+
+            new_data = self._data.interpolate(method  = method,
+                                              axis    = axis,
+                                              limit   = limit,
+                                              inplace = inplace,
+                                              missing = to_replace,
+                                              coerce  = False)
+
+            if inplace:
+                self._data = new_data
+            else:
+                return self._constructor(new_data)
+
+    #----------------------------------------------------------------------
     # Action Methods
 
     def abs(self):
@@ -1157,7 +1390,9 @@ class NDFrame(PandasObject):
         -------
         abs: type of caller
         """
-        return np.abs(self)
+        obj = np.abs(self)
+        obj = com._possibly_cast_to_timedelta(obj, coerce=False)
+        return obj
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True):
@@ -1548,8 +1783,11 @@ class NDFrame(PandasObject):
             # slice me out of the other
             else:
                 raise NotImplemented
-            
-        elif isinstance(other,np.ndarray):
+        
+        elif is_list_like(other):
+            other = np.array(other)
+    
+        if isinstance(other,np.ndarray):
 
             if other.shape != self.shape:
 
@@ -1574,9 +1812,9 @@ class NDFrame(PandasObject):
                     else:
                         raise ValueError('Length of replacements must equal series length')
 
-            else:
-                raise ValueError('other must be the same shape as self '
-                                 'when an ndarray')
+                else:
+                    raise ValueError('other must be the same shape as self '
+                                     'when an ndarray')
 
             other = self._constructor(other, **self._construct_axes_dict())
 

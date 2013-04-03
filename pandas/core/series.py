@@ -574,13 +574,6 @@ index : array-like or Index (1d)
     def axes(self):
         return [ self.index ]
 
-    @property
-    def ix(self):
-        if self._ix is None:
-            self._ix = _SeriesIndexer(self, 'ix')
-
-        return self._ix
-    
     def _maybe_box(self, values):
         """ genericically box the values """
 
@@ -758,26 +751,24 @@ index : array-like or Index (1d)
                 return
             elif _is_bool_indexer(key):
                 pass
-            else:
-                raise KeyError('%s not in this series!' % str(key))
+            elif com.is_timedelta64_dtype(self.dtype):
+                # reassign a null value to iNaT
+                if isnull(value):
+                    value = tslib.iNaT
+
+                    try:
+                        self.index._engine.set_value(self.values, key, value)
+                        return
+                    except (TypeError):
+                        pass
+
+            raise KeyError('%s not in this series!' % str(key))
 
         except TypeError, e:
             # python 3 type errors should be raised
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
             # Could not hash item
-        except ValueError:
-
-            # reassign a null value to iNaT
-            if com.is_timedelta64_dtype(self.dtype):
-                if isnull(value):
-                    value = tslib.iNaT
-
-                    try:
-                        self.index._engine.set_value(self, key, value)
-                        return
-                    except (TypeError):
-                        pass
 
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
@@ -2347,6 +2338,109 @@ index : array-like or Index (1d)
         else:
             return self._constructor(mapped, index=self.index, name=self.name)
 
+    def replace(self, to_replace, value=None, method='pad', inplace=False,
+                limit=None):
+        """
+        Replace arbitrary values in a Series
+
+        Parameters
+        ----------
+        to_replace : list or dict
+            list of values to be replaced or dict of replacement values
+        value : anything
+            if to_replace is a list then value is the replacement value
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        inplace : boolean, default False
+            If True, fill the Series in place. Note: this will modify any other
+            views on this Series, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        Notes
+        -----
+        replace does not distinguish between NaN and None
+
+        See also
+        --------
+        fillna, reindex, asfreq
+
+        Returns
+        -------
+        replaced : Series
+        """
+
+        if inplace:
+            result = self
+            change = self
+        else:
+            result = self.copy()
+            change = None
+
+        def _rep_one(s, to_rep, v):  # replace single value
+            mask = com.mask_missing(s.values, to_rep)
+            com._maybe_upcast_putmask(s.values,mask,v,change=change)
+
+        def _rep_dict(rs, to_rep):  # replace {[src] -> dest}
+
+            all_src = set()
+            dd = {}  # group by unique destination value
+            for s, d in to_rep.iteritems():
+                dd.setdefault(d, []).append(s)
+                all_src.add(s)
+
+            if any(d in all_src for d in dd.keys()):
+                # don't clobber each other at the cost of temporaries
+                masks = {}
+                for d, sset in dd.iteritems():  # now replace by each dest
+                    masks[d] = com.mask_missing(rs.values, sset)
+
+                for d, m in masks.iteritems():
+                    com._maybe_upcast_putmask(rs.values,m,d,change=change)
+            else:  # if no risk of clobbering then simple
+                for d, sset in dd.iteritems():
+                    _rep_one(rs, sset, d)
+
+
+
+        if np.isscalar(to_replace):
+            to_replace = [to_replace]
+
+        if isinstance(to_replace, dict):
+            _rep_dict(result, to_replace)
+        elif isinstance(to_replace, (list, pa.Array)):
+
+            if isinstance(value, (list, pa.Array)):  # check same length
+                vl, rl = len(value), len(to_replace)
+                if vl == rl:
+                    _rep_dict(result, dict(zip(to_replace, value)))
+                else:
+                    raise ValueError('Got %d to replace but %d values'
+                                     % (rl, vl))
+
+            elif value is not None:  # otherwise all replaced with same value
+                _rep_one(result, to_replace, value)
+            else:  # method
+                if method is None:  # pragma: no cover
+                    raise ValueError('must specify a fill method')
+                fill_f = _get_fill_func(method)
+
+                mask = com.mask_missing(result.values, to_replace)
+                fill_f(result.values, limit=limit, mask=mask)
+
+                if not inplace:
+                    result = Series(result.values, index=self.index,
+                                    name=self.name)
+        else:
+            raise ValueError('Unrecognized to_replace type %s' %
+                             type(to_replace))
+
+        if not inplace:
+            return result
+
     def align(self, other, join='outer', level=None, copy=True,
               fill_value=None, method=None, limit=None):
         """
@@ -2473,171 +2567,6 @@ index : array-like or Index (1d)
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
         return self._constructor(new_values, index=new_index, name=self.name)
-
-    truncate = generic.NDFrame.truncate
-
-    def fillna(self, value=None, method=None, inplace=False,
-               limit=None):
-        """
-        Fill NA/NaN values using the specified method
-
-        Parameters
-        ----------
-        value : any kind (should be same type as array)
-            Value to use to fill holes (e.g. 0)
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        inplace : boolean, default False
-            If True, fill the Series in place. Note: this will modify any other
-            views on this Series, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        See also
-        --------
-        reindex, asfreq
-
-        Returns
-        -------
-        filled : Series
-        """
-        if not self._can_hold_na:
-            return self.copy() if not inplace else None
-
-        if value is not None:
-            if method is not None:
-                raise ValueError('Cannot specify both a fill value and method')
-            result = self._constructor(self._data.fillna(value, inplace=inplace), index=self.index, name=self.name)
-        else:
-            if method is None:  # pragma: no cover
-                raise ValueError('must specify a fill method or value')
-
-            fill_f = _get_fill_func(method)
-
-            if inplace:
-                values = self.values
-            else:
-                values = self.values.copy()
-
-            fill_f(values, limit=limit)
-
-            if inplace:
-                result = self
-            else:
-                result = self._constructor(values, index=self.index, name=self.name)
-
-        if not inplace:
-            return result
-
-    def ffill(self, inplace=False, limit=None):
-        return self.fillna(method='ffill', inplace=inplace, limit=limit)
-
-    def bfill(self, inplace=False, limit=None):
-        return self.fillna(method='bfill', inplace=inplace, limit=limit)
-
-    def replace(self, to_replace, value=None, method='pad', inplace=False,
-                limit=None):
-        """
-        Replace arbitrary values in a Series
-
-        Parameters
-        ----------
-        to_replace : list or dict
-            list of values to be replaced or dict of replacement values
-        value : anything
-            if to_replace is a list then value is the replacement value
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        inplace : boolean, default False
-            If True, fill the Series in place. Note: this will modify any other
-            views on this Series, for example a column in a DataFrame. Returns
-            a reference to the filled object, which is self if inplace=True
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-
-        Notes
-        -----
-        replace does not distinguish between NaN and None
-
-        See also
-        --------
-        fillna, reindex, asfreq
-
-        Returns
-        -------
-        replaced : Series
-        """
-
-        if inplace:
-            result = self
-            change = self
-        else:
-            result = self.copy()
-            change = None
-
-        def _rep_one(s, to_rep, v):  # replace single value
-            mask = com.mask_missing(s.values, to_rep)
-            com._maybe_upcast_putmask(s.values,mask,v,change=change)
-
-        def _rep_dict(rs, to_rep):  # replace {[src] -> dest}
-
-            all_src = set()
-            dd = {}  # group by unique destination value
-            for s, d in to_rep.iteritems():
-                dd.setdefault(d, []).append(s)
-                all_src.add(s)
-
-            if any(d in all_src for d in dd.keys()):
-                # don't clobber each other at the cost of temporaries
-                masks = {}
-                for d, sset in dd.iteritems():  # now replace by each dest
-                    masks[d] = com.mask_missing(rs.values, sset)
-
-                for d, m in masks.iteritems():
-                    com._maybe_upcast_putmask(rs.values,m,d,change=change)
-            else:  # if no risk of clobbering then simple
-                for d, sset in dd.iteritems():
-                    _rep_one(rs, sset, d)
-
-        if np.isscalar(to_replace):
-            to_replace = [to_replace]
-
-        if isinstance(to_replace, dict):
-            _rep_dict(result, to_replace)
-        elif isinstance(to_replace, (list, Series, pa.Array)):
-
-            if isinstance(value, (list, Series, pa.Array)):  # check same length
-                vl, rl = len(value), len(to_replace)
-                if vl == rl:
-                    _rep_dict(result, dict(zip(to_replace, value)))
-                else:
-                    raise ValueError('Got %d to replace but %d values'
-                                     % (rl, vl))
-
-            elif value is not None:  # otherwise all replaced with same value
-                _rep_one(result, to_replace, value)
-            else:  # method
-                if method is None:  # pragma: no cover
-                    raise ValueError('must specify a fill method')
-                fill_f = _get_fill_func(method)
-
-                mask = com.mask_missing(result, to_replace)
-                fill_f(result.values, limit=limit, mask=mask.values)
-
-                if not inplace:
-                    result = self._constructor(result.values, index=self.index,
-                                    name=self.name)
-        else:
-            raise ValueError('Unrecognized to_replace type %s' %
-                             type(to_replace))
-
-        if not inplace:
-            return result
 
     def isin(self, values):
         """
@@ -3101,6 +3030,9 @@ index : array-like or Index (1d)
 
 Series._setup_axes(['index'], info_axis=0, build_axes=False)
 _INDEX_TYPES = ndarray, Index, list, tuple
+
+# reinstall the SeriesIndexer
+Series._create_indexer('ix',_SeriesIndexer)
 
 #------------------------------------------------------------------------------
 # Supplementary functions
