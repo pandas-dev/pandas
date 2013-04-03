@@ -345,7 +345,9 @@ to sparse
         #if not np.isscalar(value):
         #    raise Exception("SparseArray does not support seting non-scalars via slices")
 
-        #self.values[slobj] = value
+        #x = self.values
+        #x[slobj] = value
+        #self.values = x
         raise Exception("SparseArray does not support seting via slices")
 
     def to_dense(self):

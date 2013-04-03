@@ -15,7 +15,7 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
-_setattr_names = set(['_data','_default_kind','_default_fill_value'])
+_internal_names = set(['_data','name','_default_kind','_default_fill_value'])
 
 class NDFrame(PandasObject):
     """
@@ -962,7 +962,7 @@ class NDFrame(PandasObject):
     def __setattr__(self, name, value):
         """After regular attribute access, try looking up the name of the info
         This allows simpler access to columns for interactive use."""
-        if name in _setattr_names:
+        if name in _internal_names:
             object.__setattr__(self, name, value)
         else:
             try:

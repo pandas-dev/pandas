@@ -72,6 +72,10 @@ class Block(object):
         return self.ndim == 1
 
     @property
+    def fill_value(self):
+        return np.nan
+
+    @property
     def ref_locs(self):
         if self._ref_locs is None:
             indexer = self.ref_items.get_indexer(self.items)
@@ -948,9 +952,9 @@ class SparseBlock(Block):
     def __init__(self, values, items, ref_items, ndim=None):
 
         if ndim == 1:
-            if len(items) != len(values):
-                raise AssertionError('Wrong number of items passed (%d vs %d)'
-                                     % (len(items), len(values)))
+            #if len(items) != len(values):
+            #    raise AssertionError('Wrong number of items passed (%d vs %d)'
+            #                         % (len(items), len(values)))
             self.ndim = 1
         else:
             if len(items) != 1:
@@ -980,6 +984,15 @@ class SparseBlock(Block):
         if issubclass(self.dtype.type, np.floating):
             v = float(v)
         self.values.fill_value = v
+
+    @rwproperty.getproperty
+    def sp_values(self):
+        return self.values.sp_values
+
+    @rwproperty.setproperty
+    def sp_values(self, v):
+        # reset the sparse values
+        self.values = SparseArray(v,sparse_index=self.sp_index,kind=self.kind,dtype=v.dtype,fill_value=self.fill_value,copy=False)
 
     @property
     def sp_index(self):
@@ -1050,7 +1063,7 @@ class SparseBlock(Block):
             return []
         return self.make_block(self.values, items=overlap)
 
-    def reindex_axis(self, indexer, axis=1, fill_value=np.nan, mask_info=None):
+    def reindex_axis(self, indexer, axis=1, fill_value=None, mask_info=None):
         """
         Reindex using pre-computed indexer information
         """
@@ -1058,6 +1071,8 @@ class SparseBlock(Block):
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
         # taking on the 0th axis always here
+        if fill_value is None:
+            fill_value = self.fill_value
         return self.make_block(self.values.take(indexer),items=self.items,fill_value=fill_value)
 
     def reindex_items_from(self, new_ref_items, copy=True):
@@ -1074,10 +1089,8 @@ class SparseBlock(Block):
         new_ref_items, indexer = self.items.reindex(new_ref_items)
         if indexer is None:
             indexer = np.arange(len(self.items))
-        masked_idx = indexer[indexer != -1]
 
-        return self.make_block(self.values.take(masked_idx),items=self.items.take(masked_idx),ref_items=new_ref_items,copy=copy)
-
+        return self.make_block(self.values.take(indexer),items=new_ref_items,ref_items=new_ref_items,copy=copy)
 
     def sparse_reindex(self, new_index):
         """ sparse reindex and return a new block
@@ -1861,7 +1874,7 @@ class BlockManager(object):
         if item not in self.items:
             raise KeyError('no item named %s' % com.pprint_thing(item))
 
-    def reindex_axis(self, new_axis, method=None, axis=0, fill_value=np.nan, copy=True):
+    def reindex_axis(self, new_axis, method=None, axis=0, fill_value=None, copy=True):
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 
@@ -1888,7 +1901,7 @@ class BlockManager(object):
         new_axis, indexer = cur_axis.reindex(new_axis, method)
         return self.reindex_indexer(new_axis, indexer, axis=axis, fill_value=fill_value)
 
-    def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=np.nan):
+    def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=None):
         """
         pandas-indexer with -1's only.
         """
@@ -1897,7 +1910,7 @@ class BlockManager(object):
 
         new_blocks = []
         for block in self.blocks:
-            newb = block.reindex_axis(indexer, axis=axis, fill_value=fill_value)
+            newb = block.reindex_axis(indexer, axis=axis, fill_value=block.fill_value)
             new_blocks.append(newb)
 
         new_axes = list(self.axes)
@@ -1937,7 +1950,7 @@ class BlockManager(object):
 
         return self.__class__(new_blocks, [new_items] + self.axes[1:])
 
-    def reindex_items(self, new_items, copy=True, fill_value=np.nan):
+    def reindex_items(self, new_items, copy=True, fill_value=None):
         """
 
         """

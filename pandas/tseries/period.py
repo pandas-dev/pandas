@@ -12,7 +12,7 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
-from pandas.core.common import isnull, _maybe_box
+from pandas.core.common import isnull, _maybe_box, _values_from_object
 from pandas.util import py3compat
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -910,8 +910,9 @@ class PeriodIndex(Int64Index):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        s = _values_from_object(series)
         try:
-            return _maybe_box(self, super(PeriodIndex, self).get_value(series, key), series, key)
+            return _maybe_box(self, super(PeriodIndex, self).get_value(s, key), s, key)
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -934,16 +935,14 @@ class PeriodIndex(Int64Index):
                     return series[key]
                 else:
                     key = Period(asdt, freq=self.freq)
-                    s = series.values if hasattr(series,'values') else series
-                    return _maybe_box(self, self._engine.get_value(s, key.ordinal), series, key)
+                    return _maybe_box(self, self._engine.get_value(s, key.ordinal), s, key)
             except TypeError:
                 pass
             except KeyError:
                 pass
 
             key = Period(key, self.freq)
-            s = series.values if hasattr(series,'values') else series
-            return _maybe_box(self, self._engine.get_value(s, key.ordinal), series, key)
+            return _maybe_box(self, self._engine.get_value(s, key.ordinal), s, key)
 
     def get_loc(self, key):
         """

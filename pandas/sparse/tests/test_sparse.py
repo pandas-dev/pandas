@@ -238,7 +238,7 @@ class TestSparseSeries(TestCase,
         # pass dict?
 
         # don't copy the data by default
-        values = np.ones(len(self.bseries.sp_values))
+        values = np.ones(self.bseries.npoints)
         sp = SparseSeries(values, sparse_index=self.bseries.sp_index)
         sp.sp_values[:5] = 97
         self.assert_(values[0] == 97)
@@ -1444,7 +1444,6 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_isin(self):
         sparse_df = DataFrame({'flag': [1., 0., 1.]}).to_sparse(fill_value=0.)
-        #import pdb; pdb.set_trace()
         xp = sparse_df[sparse_df.flag == 1.]
         rs = sparse_df[sparse_df.flag.isin([1.])]
         assert_frame_equal(xp, rs)

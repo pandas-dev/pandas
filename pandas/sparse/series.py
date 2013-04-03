@@ -185,6 +185,15 @@ class SparseSeries(Series):
         self.name  = name
 
     @property
+    def values(self):
+        """ return the array """
+        return self.block.values
+
+    def get_values(self):
+        """ same as values """
+        return self.block.values.to_dense().view()
+
+    @property
     def block(self):
         return self._data.block
 
@@ -200,9 +209,13 @@ class SparseSeries(Series):
     def sp_index(self):
         return self.block.sp_index
 
-    @rwproperty.getproperty
+    @property
     def sp_values(self):
-        return self.values
+        return self.values.sp_values
+
+    @property
+    def npoints(self):
+        return self.sp_index.npoints
 
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False, fill_value=None):
@@ -260,15 +273,6 @@ class SparseSeries(Series):
         __div__ = _sparse_op_wrap(operator.div, 'div')
         __rdiv__ = _sparse_op_wrap(lambda x, y: y / x, '__rdiv__')
 
-
-    @property
-    def values(self):
-        """ return the array """
-        return self.block.values
-
-    def get_values(self):
-        """ same as values """
-        return self.block.values.to_dense().view()
 
     def __array_wrap__(self, result):
         """
