@@ -5183,54 +5183,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.between_time(bkey.start, bkey.stop)
         expected = df.ix[bkey]
         expected2 = df.ix[binds]
-
-        # Non-Empty df with columns append empty df
-
-    def test_asfreq(self):
-        offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
-        rule_monthly = self.tsframe.asfreq('BM')
-
-        assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
-
-        filled = rule_monthly.asfreq('B', method='pad')
-        # TODO: actually check that this worked.
-
-        # don't forget!
-        filled_dep = rule_monthly.asfreq('B', method='pad')
-
-        # test does not blow up on length-0 DataFrame
-        zero_length = self.tsframe.reindex([])
-        result = zero_length.asfreq('BM')
-        self.assert_(result is not zero_length)
-
-    def test_asfreq_datetimeindex(self):
-        df = DataFrame({'A': [1, 2, 3]},
-                       index=[datetime(2011, 11, 01), datetime(2011, 11, 2),
-                              datetime(2011, 11, 3)])
-        df = df.asfreq('B')
-        self.assert_(isinstance(df.index, DatetimeIndex))
-
-        ts = df['A'].asfreq('B')
-        self.assert_(isinstance(ts.index, DatetimeIndex))
-
-    def test_at_time_between_time_datetimeindex(self):
-        index = pan.date_range("2012-01-01", "2012-01-05", freq='30min')
-        df = DataFrame(randn(len(index), 5), index=index)
-        akey = time(12, 0, 0)
-        bkey = slice(time(13, 0, 0), time(14, 0, 0))
-        ainds = [24, 72, 120, 168]
-        binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
-
-        result = df.at_time(akey)
-        expected = df.ix[akey]
-        expected2 = df.ix[ainds]
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result, expected2)
-        self.assert_(len(result) == 4)
-
-        result = df.between_time(bkey.start, bkey.stop)
-        expected = df.ix[bkey]
-        expected2 = df.ix[binds]
         assert_frame_equal(result, expected)
         assert_frame_equal(result, expected2)
         self.assert_(len(result) == 12)
