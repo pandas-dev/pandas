@@ -147,7 +147,7 @@ class Block(object):
             values = values.copy()
         if ref_items is None:
             ref_items = self.ref_items
-        return make_block(values, self.items, ref_items, klass=self.__class__, fastpath=True)
+        return make_block(values, self.items, ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
 
     @property
     def ftype(self):

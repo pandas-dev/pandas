@@ -15,6 +15,8 @@ from pandas.core.common import (isnull, notnull,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
+_setattr_names = set(['_data','_default_kind','_default_fill_value'])
+
 class NDFrame(PandasObject):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -964,7 +966,7 @@ class NDFrame(PandasObject):
     def __setattr__(self, name, value):
         """After regular attribute access, try looking up the name of the info
         This allows simpler access to columns for interactive use."""
-        if name == '_data':
+        if name in _setattr_names:
             object.__setattr__(self, name, value)
         else:
             try:

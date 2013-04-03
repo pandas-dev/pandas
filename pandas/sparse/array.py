@@ -480,6 +480,8 @@ def make_sparse(arr, kind='block', fill_value=nan):
     -------
     (sparse_values, index) : (ndarray, SparseIndex)
     """
+    if np.isscalar(arr):
+        arr = [ arr ]
     arr = np.asarray(arr)
     length = len(arr)
 
