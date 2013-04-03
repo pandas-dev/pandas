@@ -43,8 +43,6 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries. Will not
         override SparseSeries passed in
     """
-    _columns = None
-    _series = None
     _is_mixed_type = False
     ndim = 2
     _verbose_info = False
@@ -75,7 +73,6 @@ class SparseDataFrame(DataFrame):
                 raise Exception("cannot pass a series w/o a name or columns")
             data = { columns[0] : data }
 
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
         if default_fill_value is None:
             default_fill_value = np.nan
 

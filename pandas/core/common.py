@@ -33,14 +33,11 @@ try:
 except Exception:  # pragma: no cover
     pass
 
-
 class PandasError(Exception):
     pass
 
-
 class AmbiguousIndexError(PandasError, KeyError):
     pass
-
 
 _POSSIBLY_CAST_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]','O','int8','uint8','int16','uint16','int32','uint32','int64','uint64'] ])
 
@@ -1079,14 +1076,15 @@ def _possibly_cast_to_timedelta(value, coerce=True):
         don't force the conversion unless coerce is True """
 
     # deal with numpy not being able to handle certain timedelta operations
-    if isinstance(value,np.ndarray) and value.dtype.kind == 'm':
+    from pandas import Series
+    if isinstance(value,(np.ndarray, Series)) and value.dtype.kind == 'm':
         if value.dtype != 'timedelta64[ns]':
             value = value.astype('timedelta64[ns]')
         return value
 
     # we don't have a timedelta, but we want to try to convert to one (but don't force it)
     if coerce:
-        new_value = tslib.array_to_timedelta64(value.astype(object), coerce=False)
+        new_value = tslib.array_to_timedelta64(_values_from_object(value).astype(object), coerce=False)
         if new_value.dtype == 'i8':
             value = np.array(new_value,dtype='timedelta64[ns]')
 

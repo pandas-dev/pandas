@@ -412,34 +412,42 @@ class Block(object):
 
             # need to go column by column
             new_blocks = []
-            for i, item in enumerate(self.items):
 
-                m = mask[i]
+            if self.ndim > 1:
+                for i, item in enumerate(self.items):
 
-                # need a new block
-                if m.any():
+                    m = mask[i]
 
-                    n = new[i] if isinstance(new, np.ndarray) else new
+                    # need a new block
+                    if m.any():
 
-                    # type of the new block
-                    dtype, _ = com._maybe_promote(np.array(n).dtype)
+                        n = new[i] if isinstance(new, np.ndarray) else new
 
-                    # we need to exiplicty astype here to make a copy
-                    nv = new_values[i].astype(dtype)
+                        # type of the new block
+                        dtype, _ = com._maybe_promote(np.array(n).dtype)
 
-                    # we create a new block type
-                    np.putmask(nv, m, n)
+                        # we need to exiplicty astype here to make a copy
+                        nv = new_values[i].astype(dtype)
 
-                else:
-                    nv = new_values[i] if inplace else new_values[i].copy()
+                        # we create a new block type
+                        np.putmask(nv, m, n)
+
+                    else:
+                        nv = new_values[i] if inplace else new_values[i].copy()
 
                 nv = _block_shape(nv)
                 new_blocks.append(make_block(nv, Index([ item ]), self.ref_items, fastpath=True))
 
+            else:
+
+                dtype, _ = com._maybe_promote(np.array(new).dtype)
+                nv = new_values.astype(dtype)
+                new_blocks.append(make_block(nv, self.items, self.ref_items))
+
             return new_blocks
 
         if inplace:
-            return self
+            return [ self ]
 
         return make_block(new_values, self.items, self.ref_items, fastpath=True)
 
@@ -1229,7 +1237,7 @@ class BlockManager(object):
             if block.ref_items is not self.items:
                 raise AssertionError("Block ref_items must be BlockManager "
                                      "items")
-            if block.values.shape[1:] != mgr_shape[1:]:
+            if not block.is_sparse and block.values.shape[1:] != mgr_shape[1:]:
                 construction_error(tot_items,block.values.shape[1:],self.axes)
         if len(self.items) != tot_items:
             raise AssertionError('Number of manager items must equal union of '
@@ -1441,7 +1449,6 @@ class BlockManager(object):
         return self.get_data(**kwargs)
 
     def get_data(self, copy=False, columns=None, **kwargs):
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
         """
         Parameters
         ----------
@@ -2146,7 +2153,6 @@ class SingleBlockManager(SingleBlockMix, BlockManager):
 
         if isinstance(axis, list):
             if len(axis) != 1:
-                import pdb; pdb.set_trace()
                 raise ValueError("cannot create SingleBlockManager with more than 1 axis")
             axis = axis[0]
         self.axes   = [ _ensure_index(axis) ]
@@ -2431,7 +2437,7 @@ def _consolidate(blocks, items):
 
     new_blocks = []
     for (_can_consolidate, dtype), group_blocks in grouper:
-        merged_blocks = _merge_blocks(list(group_blocks), items, _can_consolidate)
+        merged_blocks = _merge_blocks(list(group_blocks), items, dtype=dtype, _can_consolidate=_can_consolidate)
         if isinstance(merged_blocks, list):
             new_blocks.extend(merged_blocks)
         else:
@@ -2440,12 +2446,17 @@ def _consolidate(blocks, items):
     return new_blocks
 
 
-def _merge_blocks(blocks, items, _can_consolidate = True):
+def _merge_blocks(blocks, items, dtype=None, _can_consolidate = True):
     if len(blocks) == 1:
         return blocks[0]
 
+    if dtype is None:
+        if len(set([ b.dtype for b in blocks ])) != 1:
+            raise AssertionError("_merge_blocks are invalid!")
+        dtype = blocks[0].dtype
+
     if _can_consolidate:
-        new_values = _vstack([b.values for b in blocks])
+        new_values = _vstack([ b.values for b in blocks ], dtype)
         new_items = blocks[0].items.append([b.items for b in blocks[1:]])
         new_block = make_block(new_values, new_items, items)
         return new_block.reindex_items_from(items)

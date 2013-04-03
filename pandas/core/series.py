@@ -94,14 +94,14 @@ def _arith_method(op, name):
                     values = np.array([values])
                 inferred_type = lib.infer_dtype(values)
                 if inferred_type in set(['datetime64','datetime','date','time']):
-                    if isinstance(values, pa.Array) and com.is_datetime64_dtype(values):
+                    if isinstance(values, (pa.Array, Series)) and com.is_datetime64_dtype(values):
                         pass
                     else:
                         values = tslib.array_to_datetime(values)
                 elif inferred_type in set(['timedelta','timedelta64']):
                     # need to convert timedelta to ns here
                     # safest to convert it to an object arrany to process
-                    if isinstance(values, pa.Array) and com.is_timedelta64_dtype(values):
+                    if isinstance(values, (pa.Array, Series)) and com.is_timedelta64_dtype(values):
                         pass
                     else:
                         values = com._possibly_cast_to_timedelta(values)
@@ -619,7 +619,7 @@ index : array-like or Index (1d)
         value : scalar (int) or Series (slice, sequence)
         """
         try:
-            return _index.get_value_at(self, i)
+            return _index.get_value_at(self.values, i)
         except IndexError:
             raise
         except:
@@ -2504,7 +2504,7 @@ index : array-like or Index (1d)
         new_values = self.values.take(indices)
         return self._constructor(new_values, index=new_index, name=self.name)
 
-    truncate = generic.PandasObject.truncate
+    truncate = generic.NDFrame.truncate
 
     def fillna(self, value=None, method=None, inplace=False,
                limit=None):
@@ -3129,7 +3129,7 @@ index : array-like or Index (1d)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index, name=self.name)
 
-Series._setup_axes(['index'], build_axes = False)
+Series._setup_axes(['index'], info_axis=0, build_axes=False)
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #------------------------------------------------------------------------------

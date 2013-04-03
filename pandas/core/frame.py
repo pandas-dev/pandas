@@ -1627,7 +1627,6 @@ class DataFrame(NDFrame):
 
     blocks = property(fget=as_blocks)
 
->>>>>>> ENH: initial commite - attempt to reengineer series to inherit from NDFrame rather than ndarray
     def transpose(self):
         return super(DataFrame, self).transpose(1,0)
 
