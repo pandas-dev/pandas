@@ -5166,6 +5166,36 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.append(DataFrame(dicts), ignore_index=True)
         assert_frame_equal(result, expected)
 
+    def test_append_empty_dataframe(self):
+
+        # Empty df append empty df
+        df1 = DataFrame([])
+        df2 = DataFrame([])
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        # Non-empty df append empty df
+        df1 = DataFrame(np.random.randn(5, 2))
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        # Empty df with columns append empty df
+        df1 = DataFrame(columns=['bar', 'foo'])
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
+        # Non-Empty df with columns append empty df
+        df1 = DataFrame(np.random.randn(5, 2), columns=['bar', 'foo'])
+        df2 = DataFrame()
+        result = df1.append(df2)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
         rule_monthly = self.tsframe.asfreq('BM')
