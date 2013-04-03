@@ -764,7 +764,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
             # our type is wrong here, need to upcast
             r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
             np.putmask(r, mask, other)
-                
+
             # we need to actually change the dtype here
             if change is not None:
                 change.dtype = r.dtype
@@ -779,7 +779,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
         new_dtype, fill_value = _maybe_promote(result.dtype,other)
         if new_dtype != result.dtype:
 
-            # we have a scalar or len 0 ndarray 
+            # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
             if np.isscalar(other) or (isinstance(other,np.ndarray) and other.ndim < 1):
                 if isnull(other):
@@ -1908,7 +1908,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False):
             result = str(thing).decode('utf-8', "replace")
 
         translate = {'\t': r'\t',
-                     '\n': r'\n',
+                    '\n': r'\n',
                      '\r': r'\r',
                      }
         if isinstance(escape_chars, dict):

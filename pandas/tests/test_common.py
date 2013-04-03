@@ -700,7 +700,7 @@ class TestTake(unittest.TestCase):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
-    
+
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
         arr = np.random.randint(11045376L, 11360736L, (5,3))*100000000000
