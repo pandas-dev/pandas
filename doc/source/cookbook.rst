@@ -121,6 +121,9 @@ Expanding Data
 `Rolling Computation window based on values instead of counts
 <http://stackoverflow.com/questions/14300768/pandas-rolling-computation-with-window-based-on-values-instead-of-counts>`__
 
+`Rolling Mean by Time Interval
+<http://stackoverflow.com/questions/15771472/pandas-rolling-mean-by-time-interval>`__
+
 Splitting
 ~~~~~~~~~
 
@@ -229,6 +232,10 @@ The :ref:`CSV <io.read_csv_table>` docs
 
 `Dealing with bad lines
 <https://github.com/pydata/pandas/issues/2886>`__
+
+Turn a matrix with hours in columns and days in rows into a continous row sequence in the form of a time series.
+`How to rearrange a python pandas dataframe?
+<http://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
 
 .. _cookbook.sql:
 
