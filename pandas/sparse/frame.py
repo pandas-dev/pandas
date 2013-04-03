@@ -197,12 +197,12 @@ class SparseDataFrame(DataFrame):
         series = dict((k, (v.sp_index, v.sp_values))
                       for k, v in self.iteritems())
         columns = self.columns
-        index = self.index
+        index   = self.index
 
         return (series, columns, index, self._default_fill_value,
                 self._default_kind)
 
-    def __setstate__(self, state):
+    def _unpickle_sparse_frame_compat(self, state):
         series, cols, idx, fv, kind = state
 
         if not isinstance(cols, Index):  # pragma: no cover

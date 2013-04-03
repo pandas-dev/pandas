@@ -3559,7 +3559,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         'F' : np.array(np.arange(6), dtype = np.int32) })
 
         # this is actually tricky to create the recordlike arrays and have the dtypes be intact
-        blocks = df.as_blocks(typ='dtype')
+        blocks = df.blocks
         tuples = []
         columns = []
         dtypes  = []
@@ -5366,10 +5366,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertTrue(np.array_equal(result, expected))
 
-    def test_as_blocks(self):
+    def test_ftypes(self):
         frame = self.mixed_float
-        mat = frame.blocks
-        self.assert_(set(frame.ftypes.values) == set(mat.keys()))
+        expected = Series(dict(A = 'float32:dense', B = 'float32:dense', C = 'float16:dense', D = 'float64:dense'))
+        expected.sort()
+        result = frame.ftypes
+        result.sort()
+        assert_series_equal(result,expected)        
 
     def test_values(self):
         self.frame.values[:, 0] = 5.
@@ -7322,7 +7325,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.ix[::2, 'A'] = np.nan
         result = self.frame.apply(np.mean, axis=1)
         expected = self.frame.mean(1)
+
+        #### it seems that np.mean does not do the correct thing here!!! ####
         assert_series_equal(result, expected)
+        #assert_series_equal(result.ix[1::2], expected.ix[1::2])
 
     def test_apply_differently_indexed(self):
         df = DataFrame(np.random.randn(20, 10))

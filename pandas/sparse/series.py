@@ -10,7 +10,7 @@ import numpy as np
 
 import operator
 
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _values_from_object
 from pandas.core.index import Index, _ensure_index
 from pandas.core.series import Series, _maybe_match_name
 from pandas.core.frame import DataFrame
@@ -298,6 +298,9 @@ class SparseSeries(Series):
         """ forward to the array """
         return iter(self.values)
 
+    def __setitem__(self, key, value):
+        raise Exception("setitem not enabled")
+
     def _get_val_at(self, loc):
         """ forward to the array """
         return self.block.values._get_val_at(loc)
@@ -321,6 +324,7 @@ class SparseSeries(Series):
         # is there a case where this would NOT be an ndarray?
         # need to find an example, I took out the case for now
 
+        key = _values_from_object(key)
         dataSlice = self.values[key]
         new_index = Index(self.index.view(ndarray)[key])
         return self._constructor(dataSlice, index=new_index, name=self.name)
@@ -401,13 +405,14 @@ class SparseSeries(Series):
         dense = self.to_dense().set_value(label, value)
         return dense.to_sparse(kind=self.kind, fill_value=self.fill_value)
 
+    ##### not enabled now, does this work? #####
     def _set_values(self, key, value):
         values = self.values
         if isinstance(key, Series):
             key = key.values
 
-        ### do we need to reconstruct the Sparse Array here???? ###
-        values[key] = _index.convert_scalar(values, value)
+        import pdb; pdb.set_trace()
+        self.sp_values[key] = _index.convert_scalar(values, value)
 
     def to_dense(self, sparse_only=False):
         """
@@ -456,7 +461,7 @@ class SparseSeries(Series):
             else:
                 return self
         
-        return self._constructor(self._data.reindex(new_index),index=new_index,name=self.name)
+        return self._constructor(self._data.reindex(new_index,method=method,limit=limit,copy=copy),index=new_index,name=self.name)
 
     def sparse_reindex(self, new_index):
         """
@@ -491,19 +496,6 @@ class SparseSeries(Series):
 
         # be subclass-friendly
         return self._constructor(new_values, new_index, name=self.name)
-
-    @Appender(Series.fillna.__doc__)
-    def fillna(self, value=None, method=None, inplace=False, limit=None):
-        dense = self.to_dense()
-        filled = dense.fillna(value=value, method=method, limit=limit)
-        result = filled.to_sparse(kind=self.kind,
-                                  fill_value=self.fill_value)
-
-        if inplace:
-            self._data = SingleBlockManager(result, self.index)
-            return self
-        else:
-            return result
 
     def take(self, indices, axis=0, convert=True):
         """

@@ -1187,7 +1187,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         s = Series(np.arange(10))
         mask = s > 5
-        self.assertRaises(ValueError, s.__setitem__, mask, ([0]*5,))
+        self.assertRaises(ValueError, s.__setitem__, mask, [0]*5)
 
     def test_where_inplace(self):
         s = Series(np.random.randn(5))

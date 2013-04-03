@@ -166,12 +166,14 @@ class Block(object):
         #     union_ref = self.ref_items + other.ref_items
         return _merge_blocks([self, other], self.ref_items)
 
-    def reindex_axis(self, indexer, axis=1, fill_value=np.nan, mask_info=None):
+    def reindex_axis(self, indexer, method=None, axis=1, fill_value=None, limit=None, mask_info=None):
         """
         Reindex using pre-computed indexer information
         """
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
+        if fill_value is None:
+            fill_value = self.fill_value
         new_values = com.take_nd(self.values, indexer, axis,
                                  fill_value=fill_value, mask_info=mask_info)
         return make_block(new_values, self.items, self.ref_items, ndim=self.ndim, fastpath=True)
@@ -468,32 +470,7 @@ class Block(object):
                 else:
                     return self.copy()
 
-        values = self.values if inplace else self.values.copy()
-        ndim   = values.ndim
-
-        
-        # reshape a 1 dim if needed
-        if values.ndim == 1:
-            if axis != 0:
-                raise Exception("cannot interpolate on a ndim == 1 with axis != 0")
-            values = _block_shape(values)
-
-        transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
-
-        if missing is None:
-            mask = None
-        else:  # todo create faster fill func without masking
-            mask = com.mask_missing(transf(values), missing)
-
-        if method == 'pad':
-            com.pad_2d(transf(values), limit=limit, mask=mask)
-        else:
-            com.backfill_2d(transf(values), limit=limit, mask=mask)
-
-        # reshape back
-        if ndim == 1:
-            values = values[0]
-
+        values = com.interpolate_2d(values, method, axis, limit, missing)
         return make_block(values, self.items, self.ref_items, ndim=self.ndim, klass=self.__class__, fastpath=True)
 
     def take(self, indexer, ref_items, axis=1):
@@ -951,14 +928,12 @@ class SparseBlock(Block):
 
     def __init__(self, values, items, ref_items, ndim=None):
 
+        # kludgetastic
         if ndim == 1:
-            #if len(items) != len(values):
-            #    raise AssertionError('Wrong number of items passed (%d vs %d)'
-            #                         % (len(items), len(values)))
             self.ndim = 1
         else:
             if len(items) != 1:
-                raise AssertionError('Must only have 1 item for a SparseBlock of ndim=2')
+                self.ndim = 1
             self.ndim = 2
 
         self._ref_locs = None
@@ -1018,6 +993,9 @@ class SparseBlock(Block):
     def post_merge(self, items, **kwargs):
         return self
 
+    def set(self, item, value):
+        self.values = value
+
     def get(self, item):
         if self.ndim == 1:
             loc = self.items.get_loc(item)
@@ -1045,6 +1023,12 @@ class SparseBlock(Block):
         new_values = SparseArray(values,sparse_index=sparse_index,kind=kind or self.kind,dtype=dtype,fill_value=fill_value,copy=copy)
         return make_block(new_values, items, ref_items, ndim=self.ndim)
 
+    def interpolate(self, method='pad', axis=0, inplace=False,
+                    limit=None, missing=None, **kwargs):
+
+        values = com.interpolate_2d(self.values.to_dense(), method, axis, limit, missing)
+        return self.make_block(values, self.items, self.ref_items)
+
     def fillna(self, value, inplace=False):
         if not inplace:
             self = self.copy()
@@ -1063,7 +1047,7 @@ class SparseBlock(Block):
             return []
         return self.make_block(self.values, items=overlap)
 
-    def reindex_axis(self, indexer, axis=1, fill_value=None, mask_info=None):
+    def reindex_axis(self, indexer, method=None, axis=1, fill_value=None, limit=None, mask_info=None):
         """
         Reindex using pre-computed indexer information
         """
@@ -1220,6 +1204,14 @@ class BlockManager(object):
         counts = dict()
         for b in self.blocks:
             counts[b.dtype.name] = counts.get(b.dtype,0) + b.shape[0]
+        return counts
+
+    def get_ftype_counts(self):
+        """ return a dict of the counts of dtypes in BlockManager """
+        self._consolidate_inplace()
+        counts = dict()
+        for b in self.blocks:
+            counts[b.ftype] = counts.get(b.ftype,0) + b.shape[0]
         return counts
 
     def __getstate__(self):
@@ -1874,7 +1866,7 @@ class BlockManager(object):
         if item not in self.items:
             raise KeyError('no item named %s' % com.pprint_thing(item))
 
-    def reindex_axis(self, new_axis, method=None, axis=0, fill_value=None, copy=True):
+    def reindex_axis(self, new_axis, method=None, axis=0, fill_value=None, limit=None, copy=True):
         new_axis = _ensure_index(new_axis)
         cur_axis = self.axes[axis]
 
@@ -1910,7 +1902,7 @@ class BlockManager(object):
 
         new_blocks = []
         for block in self.blocks:
-            newb = block.reindex_axis(indexer, axis=axis, fill_value=block.fill_value)
+            newb = block.reindex_axis(indexer, axis=axis, fill_value=fill_value)
             new_blocks.append(newb)
 
         new_axes = list(self.axes)
@@ -1992,9 +1984,11 @@ class BlockManager(object):
 
         return self.__class__(new_blocks, [new_items] + self.axes[1:])
 
-    def _make_na_block(self, items, ref_items, fill_value=np.nan):
+    def _make_na_block(self, items, ref_items, fill_value=None):
         # TODO: infer dtypes other than float64 from fill_value
 
+        if fill_value is None:
+            fill_value = np.nan
         block_shape = list(self.shape)
         block_shape[0] = len(items)
 
@@ -2141,11 +2135,49 @@ class BlockManager(object):
             raise AssertionError('Some items were not in any block')
         return result
 
-class SingleBlockMix(object):
-    """ provide single block mixins """
+class SingleBlockManager(BlockManager):
+    """ manage a single block with """
 
-    def reindex(self, index):
-        return self.reindex_axis(index)
+    def __init__(self, block, axis, do_integrity_check=True):
+
+        if isinstance(axis, list):
+            if len(axis) != 1:
+                raise ValueError("cannot create SingleBlockManager with more than 1 axis")
+            axis = axis[0]
+        self.axes   = [ _ensure_index(axis) ]
+
+        # create the block here
+        if isinstance(block, list):
+
+            # provide consolidation to the interleaved_dtype
+            if len(block) > 1:
+                dtype = _interleaved_dtype(block)
+                block = [ b.astype(dtype) for b in block ]
+                block = _consolidate(block, axis)
+
+            if len(block) != 1:
+                raise ValueError("cannot create SingleBlockManager with more than 1 block")
+            block = block[0]
+            
+        if not isinstance(block, Block):
+            block = make_block(block, axis, axis, ndim = 1)
+
+        self.blocks = [ block ]
+
+        if do_integrity_check:
+            self._verify_integrity()
+
+        self._is_consolidated = True
+        self._known_consolidated = True
+
+    def reindex(self, new_axis, method=None, limit=None, copy=True):
+        block = self.block.reindex_items_from(new_axis, copy=copy)
+
+        if method is not None or limit is not None:
+            block = block.interpolate(method=method, limit=limit)
+        mgr = SingleBlockManager(block, new_axis)
+        mgr._consolidate_inplace()
+        return mgr
 
     @property
     def index(self):
@@ -2180,40 +2212,6 @@ class SingleBlockMix(object):
     def _can_hold_na(self):
         return self.block._can_hold_na
 
-class SingleBlockManager(SingleBlockMix, BlockManager):
-    """ manage a single block with """
-
-    def __init__(self, block, axis, do_integrity_check=True):
-
-        if isinstance(axis, list):
-            if len(axis) != 1:
-                raise ValueError("cannot create SingleBlockManager with more than 1 axis")
-            axis = axis[0]
-        self.axes   = [ _ensure_index(axis) ]
-
-        # create the block here
-        if isinstance(block, list):
-
-            # provide consolidation to the interleaved_dtype
-            if len(block) > 1:
-                dtype = _interleaved_dtype(block)
-                block = [ b.astype(dtype) for b in block ]
-                block = _consolidate(block, axis)
-
-            if len(block) != 1:
-                raise ValueError("cannot create SingleBlockManager with more than 1 block")
-            block = block[0]
-            
-        if not isinstance(block, Block):
-            block = make_block(block, axis, axis, ndim = 1)
-
-        self.blocks = [ block ]
-
-        if do_integrity_check:
-            self._verify_integrity()
-
-        self._is_consolidated = True
-        self._known_consolidated = True
 
 def construction_error(tot_items, block_shape, axes):
     """ raise a helpful message about our construction """
@@ -2266,8 +2264,10 @@ def form_blocks(arrays, names, axes):
     object_items = []
     sparse_items = []
     datetime_items = []
+
+    from pandas import SparseSeries
     for k, v in zip(names, arrays):
-        if isinstance(v, SparseArray):
+        if isinstance(v, (SparseArray,SparseSeries)):
             sparse_items.append((k,v))
         elif issubclass(v.dtype.type, np.floating):
             float_items.append((k, v))
@@ -2373,7 +2373,8 @@ def _sparse_blockify(tuples, ref_items, dtype = None):
             names = [ names ]
         items = ref_items[ref_items.isin(names)]
 
-        block = make_block(_maybe_to_sparse(array), items, ref_items)
+        array = _maybe_to_sparse(array)
+        block = make_block(array, items, ref_items)
         new_blocks.append(block)
 
     return new_blocks

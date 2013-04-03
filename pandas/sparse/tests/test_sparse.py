@@ -163,6 +163,11 @@ class TestSparseSeries(TestCase,
         # printing
         str(df)
 
+        # blocking
+        expected = Series({ 'col' : 'float64:sparse' })
+        result = df.ftypes
+        assert_series_equal(expected,result)
+
     def test_series_density(self):
         # GH2803
         ts = Series(np.random.randn(10))
@@ -402,7 +407,6 @@ class TestSparseSeries(TestCase,
 
         self._check_all(_compare_with_dense)
 
-        self.assertRaises(Exception, self.bseries.take, [-1, 0])
         self.assertRaises(Exception, self.bseries.take,
                           [0, len(self.bseries) + 1])
 
@@ -1145,11 +1149,14 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_sp_series_equal(self.frame['a'], self.frame['B'])
 
     def test_setitem_array(self):
-        arr = self.frame['B'].view(SparseArray)
+        arr = self.frame['B']
 
         self.frame['E'] = arr
         assert_sp_series_equal(self.frame['E'], self.frame['B'])
-        self.assertRaises(Exception, self.frame.__setitem__, 'F', arr[:-1])
+
+        self.frame['F'] = arr[:-1]
+        index = self.frame.index[:-1]
+        assert_sp_series_equal(self.frame['E'].reindex(index), self.frame['F'].reindex(index))
 
     def test_delitem(self):
         A = self.frame['A']

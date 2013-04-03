@@ -994,6 +994,34 @@ def backfill_2d(values, limit=None, mask=None):
         # for test coverage
         pass
 
+def interpolate_2d(values, method='pad', axis=0, limit=None, missing=None):
+    """ perform an actual interpolation of values, values will be make 2-d if needed
+        fills inplace, returns the result """
+
+    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
+    
+    # reshape a 1 dim if needed
+    ndim = values.ndim
+    if values.ndim == 1:
+        if axis != 0:
+            raise Exception("cannot interpolate on a ndim == 1 with axis != 0")
+        values = values.reshape(tuple((1,) + values.shape))
+
+    if missing is None:
+        mask = None
+    else:  # todo create faster fill func without masking
+        mask = mask_missing(transf(values), missing)
+
+    if method == 'pad':
+        pad_2d(transf(values), limit=limit, mask=mask)
+    else:
+        backfill_2d(transf(values), limit=limit, mask=mask)
+
+    # reshape back
+    if ndim == 1:
+        values = values[0]
+
+    return values
 
 def _consensus_name_attr(objs):
     name = objs[0].name
@@ -1169,6 +1197,11 @@ def _is_bool_indexer(key):
             return False
 
     return False
+
+def _is_sparse_array_like(v):
+    from pandas.sparse.array import SparseArray
+    from pandas.sparse.series import SparseSeries
+    return isinstance(v, (SparseArray, SparseSeries))
 
 def _default_index(n):
     from pandas.core.index import Int64Index

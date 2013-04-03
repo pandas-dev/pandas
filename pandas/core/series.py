@@ -17,7 +17,8 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_promote, _maybe_upcast,
                                 _asarray_tuplesafe, is_integer_dtype,
-                                _infer_dtype_from_scalar, is_list_like, _values_from_object)
+                                _infer_dtype_from_scalar, is_list_like, _values_from_object,
+                                _is_sparse_array_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds
@@ -65,7 +66,7 @@ def _arith_method(op, name):
             result = op(x, y)
         except TypeError:
             result = pa.empty(len(x), dtype=x.dtype)
-            if isinstance(y, pa.Array):
+            if isinstance(y, (pa.Array,Series)):
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], y[mask])
             else:
@@ -189,7 +190,7 @@ def _comp_method(op, name):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, pa.Array):
+            if isinstance(y, (pa.Array,Series)):
                 if y.dtype != np.object_:
                     result = lib.vec_compare(x, y.astype(np.object_), op)
                 else:
@@ -212,7 +213,7 @@ def _comp_method(op, name):
                           index=self.index, name=name)
         elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, pa.Array):
+        elif isinstance(other, (pa.Array,Series)):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
@@ -229,8 +230,10 @@ def _comp_method(op, name):
             if np.isscalar(res):
                 raise TypeError('Could not compare %s type with Series'
                                 % type(other))
-            return self._constructor(na_op(values, other),
-                          index=self.index, name=self.name)
+
+            # always return a full value series here
+            res = _values_from_object(res)
+            return Series(res, index=self.index, name=self.name, dtype='bool')
     return wrapper
 
 
@@ -246,7 +249,7 @@ def _bool_method(op, name):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, pa.Array):
+            if isinstance(y, (pa.Array,Series)):
                 if (x.dtype == np.bool_ and
                         y.dtype == np.bool_):  # pragma: no cover
                     result = op(x, y)  # when would this be hit?
@@ -323,7 +326,7 @@ def _flex_method(op, name):
     def f(self, other, level=None, fill_value=None):
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (pa.Array, list, tuple)):
+        elif isinstance(other, (pa.Array, Series, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
             return self._binop(self._constructor(other, self.index), op,
@@ -340,7 +343,7 @@ def _unbox(func):
     @Appender(func.__doc__)
     def f(self, *args, **kwargs):
         result = func(self.values, *args, **kwargs)
-        if isinstance(result, pa.Array) and result.ndim == 0:
+        if isinstance(result, (pa.Array, Series)) and result.ndim == 0:
             # return NumPy type
             return result.dtype.type(result.item())
         else:  # pragma: no cover
@@ -455,6 +458,11 @@ index : array-like or Index (1d)
             data = list(data)
         elif isinstance(data, set):
             raise TypeError('Set value is unordered')
+        else:
+
+            # handle sparse passed here (and force conversion)
+            if _is_sparse_array_like(data):
+                data = data.to_dense()
 
         if index is None:
             index = _default_index(len(data))
@@ -476,6 +484,12 @@ index : array-like or Index (1d)
 
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False):
+
+        # return a sparse series here
+        if _is_sparse_array_like(arr):
+            from pandas.sparse.series import SparseSeries
+            cls = SparseSeries
+
         return cls(arr, index=index, name=name, copy=copy)
 
     @property
@@ -495,6 +509,10 @@ index : array-like or Index (1d)
     index  = lib.SeriesIndex()
 
     # ndarray compatibility
+    @property
+    def flags(self):
+        return self.values.flags
+
     @property
     def dtype(self):
         return self._data.dtype
@@ -554,20 +572,17 @@ index : array-like or Index (1d)
     def __contains__(self, key):
         return key in self.index
 
-    # pickle support
+    # we are preserving name here
     def __getstate__(self):
         return dict(_data = self._data, name = self.name)
 
-    def __setstate__(self, state):
+    def _unpickle_series_compat(self, state):
         if isinstance(state, dict):
             self._data = state['_data']
             self.name  = state['name']
             self.index = self._data.index
         else:  # pragma: no cover
             raise Exception("cannot unpickle legacy formats -> [%s]" % state)
-
-        # ordinarily created in NDFrame
-        self._item_cache = {}
 
     # indexers
     @property
@@ -686,7 +701,7 @@ index : array-like or Index (1d)
                             return self._get_values(key)
                     raise
 
-            if not isinstance(key, (list, pa.Array)):  # pragma: no cover
+            if not isinstance(key, (list, pa.Array, Series)):  # pragma: no cover
                 key = list(key)
 
             if isinstance(key, Index):
@@ -792,7 +807,7 @@ index : array-like or Index (1d)
                 except Exception:
                     pass
 
-            if not isinstance(key, (list, Series, pa.Array)):
+            if not isinstance(key, (list, Series, pa.Array, Series)):
                 key = list(key)
 
             if isinstance(key, Index):
@@ -2411,9 +2426,9 @@ index : array-like or Index (1d)
 
         if isinstance(to_replace, dict):
             _rep_dict(result, to_replace)
-        elif isinstance(to_replace, (list, pa.Array)):
+        elif isinstance(to_replace, (list, pa.Array, Series)):
 
-            if isinstance(value, (list, pa.Array)):  # check same length
+            if isinstance(value, (list, pa.Array, Series)):  # check same length
                 vl, rl = len(value), len(to_replace)
                 if vl == rl:
                     _rep_dict(result, dict(zip(to_replace, value)))
@@ -2582,7 +2597,7 @@ index : array-like or Index (1d)
         isin : Series (boolean dtype)
         """
         value_set = set(values)
-        result = lib.ismember(self.values, value_set)
+        result = lib.ismember(self.get_values(), value_set)
         return self._constructor(result, self.index, name=self.name)
 
     def between(self, left, right, inclusive=True):

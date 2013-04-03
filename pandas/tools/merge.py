@@ -948,15 +948,17 @@ class _Concatenator(object):
 
     def get_result(self):
         if self._is_series and self.axis == 0:
-            new_data = com._concat_compat([x.values for x in self.objs])
+            new_data = com._concat_compat([x.get_values() for x in self.objs])
             name = com._consensus_name_attr(self.objs)
             new_data = self._post_merge(new_data)
             return Series(new_data, index=self.new_axes[0], name=name)
         elif self._is_series:
-            new_data = dict(zip(self.new_axes[1], self.objs))
-            new_data = self._post_merge(new_data)
-            return DataFrame(new_data, index=self.new_axes[0],
-                             columns=self.new_axes[1])
+            data = dict(itertools.izip(xrange(len(self.objs)), self.objs))
+            index, columns = self.new_axes
+            tmpdf = DataFrame(data, index=index)
+            if columns is not None:
+                tmpdf.columns = columns
+            return tmpdf
         else:
             new_data = self._get_concatenated_data()
             new_data = self._post_merge(new_data)

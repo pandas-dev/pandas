@@ -153,7 +153,10 @@ to sparse
 
         # if we have a bool type, make sure that we have a bool fill_value
         if (dtype is not None and issubclass(dtype.type,np.bool_)) or (data is not None and lib.is_bool_array(subarr)):
-            fill_value = bool(fill_value)
+            if np.isnan(fill_value) or not fill_value:
+                fill_value = False
+            else:
+                fill_value = bool(fill_value)
 
         # Change the class of the array to be the subclass type.
         output = subarr.view(cls)
@@ -256,6 +259,10 @@ to sparse
     def sp_values(self):
         # caching not an option, leaks memory
         return self.view(np.ndarray)
+    
+    def get_values(self):
+        """ return a dense representation """
+        return self.to_dense()
 
     def __iter__(self):
         for i in xrange(len(self)):
@@ -464,6 +471,9 @@ def _maybe_to_dense(obj):
     return obj
 
 def _maybe_to_sparse(array):
+    from pandas import SparseSeries
+    if isinstance(array, SparseSeries):
+        array = SparseArray(array.values,sparse_index=array.sp_index,fill_value=array.fill_value,copy=True)
     if not isinstance(array, SparseArray):
         array = com._values_from_object(array)
     return array

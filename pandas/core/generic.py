@@ -461,15 +461,19 @@ class NDFrame(PandasObject):
 
         if isinstance(state, BlockManager):
             self._data = state
+        elif isinstance(state, dict):
+            self._unpickle_series_compat(state)
         elif isinstance(state[0], dict):
-            self._unpickle_frame_compat(state)
+            if len(state) == 5:
+                self._unpickle_sparse_frame_compat(state)
+            else:
+                self._unpickle_frame_compat(state)
         elif len(state) == 4:
             self._unpickle_panel_compat(state)
         else:  # pragma: no cover
             # old pickling format, for compatibility
             self._unpickle_matrix_compat(state)
 
-        # ordinarily created in NDFrame
         self._item_cache = {}
 
     #----------------------------------------------------------------------
@@ -1059,10 +1063,18 @@ class NDFrame(PandasObject):
         # compat
         return self.values
 
+    def get_values(self):
+        """ same as values (but handles sparseness conversions) """
+        return self.values
+
     def get_dtype_counts(self):
         """ return the counts of dtypes in this frame """
         from pandas import Series
         return Series(self._data.get_dtype_counts())
+
+    def get_ftype_counts(self):
+        """ return the counts of ftypes in this frame """
+        return Series(self._data.get_ftype_counts())
 
     def as_blocks(self, columns=None):
         """
@@ -1793,7 +1805,7 @@ class NDFrame(PandasObject):
 
                 if self.ndim == 1:
 
-                    icond = ~(cond.values)
+                    icond = cond.values
 
                     # GH 2745
                     # treat like a scalar
@@ -1802,12 +1814,21 @@ class NDFrame(PandasObject):
 
                     # GH 3235 
                     # match True cond to other
-                    elif len(icond[icond]) == len(other):
-                        dtype, fill_value = _maybe_promote(other.dtype)
-                        new_other = np.empty(len(cond),dtype=dtype)
-                        new_other.fill(fill_value)
-                        new_other[icond] = other
-                        other = new_other
+                    elif len(cond[icond]) == len(other):
+
+                        # try to not change dtype at first
+                        try:
+                            new_other = self.values.copy()
+                            new_other[icond] = other
+                            other = new_other
+
+                        # let's create a new 
+                        except:
+                            dtype, fill_value = _maybe_promote(other.dtype)
+                            new_other = np.empty(len(icond),dtype=dtype)
+                            new_other.fill(fill_value)
+                            com._maybe_upcast_putmask(new_other, icond, other)
+                            other = new_other
 
                     else:
                         raise ValueError('Length of replacements must equal series length')
@@ -1816,7 +1837,9 @@ class NDFrame(PandasObject):
                     raise ValueError('other must be the same shape as self '
                                      'when an ndarray')
 
-            other = self._constructor(other, **self._construct_axes_dict())
+            # we are the same shape, so create an actual object for alignment
+            else:
+                other = self._constructor(other, **self._construct_axes_dict())
 
         if inplace:
             # we may have different type blocks come out of putmask, so reconstruct the block manager
