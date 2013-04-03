@@ -152,7 +152,7 @@ class SparseDataFrame(DataFrame):
                     v = v.reindex(index)
 
                 if not isinstance(v, SparseSeries):
-                    v = sp_maker(v)
+                    v = sp_maker(v.values)
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, nan) for i in index]
@@ -766,19 +766,6 @@ class SparseDataFrame(DataFrame):
         applied : DataFrame
         """
         return self.apply(lambda x: map(func, x))
-
-    @Appender(DataFrame.fillna.__doc__)
-    def fillna(self, value=None, method=None, inplace=False, limit=None):
-        new_series = {}
-        for k, v in self.iterkv():
-            new_series[k] = v.fillna(value=value, method=method, limit=limit, inplace=inplace)
-
-        if inplace:
-            self._data = dict_to_manager(new_series, self.columns, self.index)
-            return self
-        else:
-            return self._constructor(new_series, index=self.index,
-                                     columns=self.columns)
 
 
 def dict_to_manager(sdict, columns, index):

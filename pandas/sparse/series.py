@@ -18,6 +18,7 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.datetools as datetools
+import pandas.index as _index
 
 from pandas.util import py3compat, rwproperty
 
@@ -267,7 +268,7 @@ class SparseSeries(Series):
 
     def get_values(self):
         """ same as values """
-        return self.values.to_dense().view()
+        return self.block.values.to_dense().view()
 
     def __array_wrap__(self, result):
         """
@@ -279,6 +280,16 @@ class SparseSeries(Series):
                                  fill_value=self.fill_value,
                                  copy=False)
   
+    def __array_finalize__(self, obj):
+        """
+        Gets called after any ufunc or other array operations, necessary
+        to pass on the index.
+        """
+        self._index = getattr(obj, '_index', None)
+        self.name = getattr(obj, 'name', None)
+        self.sp_index = getattr(obj, 'sp_index', None)
+        self.fill_value = getattr(obj, 'fill_value', None)
+
     def __iter__(self):
         """ forward to the array """
         return iter(self.values)

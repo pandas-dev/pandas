@@ -2457,8 +2457,8 @@ class DataFrame(NDFrame):
             else:
                 new_columns = self.columns.take(indices)
                 new_index = self.index
-            return DataFrame(new_values, index=new_index,
-                             columns=new_columns)
+            return self._constructor(new_values, index=new_index,
+                                     columns=new_columns)
 
     #----------------------------------------------------------------------
     # Reindex-based selection methods

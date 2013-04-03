@@ -930,6 +930,7 @@ class SparseBlock(Block):
     __slots__ = ['items', 'ref_items', '_ref_locs', 'ndim', 'values']
     is_sparse = True
     is_numeric = True
+    _can_hold_na = True
     _can_consolidate = False
     _verify_integrity = False
     _ftype = 'sparse'
@@ -965,6 +966,9 @@ class SparseBlock(Block):
 
     @rwproperty.setproperty
     def fill_value(self, v):
+        # we may need to upcast our fill to match our dtype
+        if issubclass(self.dtype.type, np.floating):
+            v = float(v)
         self.values.fill_value = v
 
     @property
@@ -1017,6 +1021,13 @@ class SparseBlock(Block):
             ref_items = self.ref_items
         new_values = SparseArray(values,sparse_index=sparse_index,kind=kind or self.kind,dtype=dtype,fill_value=fill_value,copy=copy)
         return make_block(new_values, items, ref_items, ndim=self.ndim)
+
+    def fillna(self, value, inplace=False):
+        if not inplace:
+            self = self.copy()
+        self.fill_value = value
+        self.values.sp_values[:] = value
+        return self
 
     def take(self, indexer, axis=1):
         """ going to take our items """

@@ -369,10 +369,6 @@ class NDFrame(PandasObject):
         copy : boolean, default True
             Also copy underlying data
 
-        See also
-        --------
-        DataFrame.rename
-
         Returns
         -------
         renamed : type of caller
