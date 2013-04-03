@@ -1426,7 +1426,7 @@ class HistPlot(MPLPlot):
 
 
 def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
-               sharey=False, use_index=True, figsize=None, grid=False,
+               sharey=False, use_index=True, figsize=None, grid=None,
                legend=True, rot=None, ax=None, style=None, title=None,
                xlim=None, ylim=None, logx=False, logy=False, xticks=None,
                yticks=None, kind='line', sort_columns=False, fontsize=None,
@@ -1455,7 +1455,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         Sort column names to determine plot ordering
     title : string
         Title to use for the plot
-    grid : boolean, default False
+    grid : boolean, default None (matlab style default)
         Axis grid lines
     legend : boolean, default True
         Place legend on axis subplots

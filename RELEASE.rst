@@ -259,11 +259,13 @@ pandas 0.11.0
   - Fix automatic color cycling when plotting consecutive timeseries
     without color arguments (GH2816_)
   - fixed bug in the pickling of PeriodIndex (GH2891_)
-  - Upcast/split blocks when needed in a mixed DataFrame when setitem 
+  - Upcast/split blocks when needed in a mixed DataFrame when setitem
     with an indexer (GH3216_)
   - Invoking df.applymap on a dataframe with dupe cols now raises a ValueError (GH2786_)
   - Apply with invalid returned indices raise correct Exception (GH2808_)
   - Fixed a bug in plotting log-scale bar plots (GH3247_)
+  - df.plot() grid on/off now obeys the mpl default style, just like
+    series.plot(). (GH3233_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -276,6 +278,7 @@ pandas 0.11.0
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
 .. _GH2898: https://github.com/pydata/pandas/issues/2898
+.. _GH3233: https://github.com/pydata/pandas/issues/3233
 .. _GH3035: https://github.com/pydata/pandas/issues/3035
 .. _GH3020: https://github.com/pydata/pandas/issues/3020
 .. _GH2978: https://github.com/pydata/pandas/issues/2978
