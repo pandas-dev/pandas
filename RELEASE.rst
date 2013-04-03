@@ -263,6 +263,7 @@ pandas 0.11.0
     with an indexer (GH3216_)
   - Invoking df.applymap on a dataframe with dupe cols now raises a ValueError (GH2786_)
   - Apply with invalid returned indices raise correct Exception (GH2808_)
+  - Fixed a bug in plotting log-scale bar plots (GH3247_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -270,6 +271,7 @@ pandas 0.11.0
 .. _GH1978: https://github.com/pydata/pandas/issues/1978
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH2121: https://github.com/pydata/pandas/issues/2121
+.. _GH3247: https://github.com/pydata/pandas/issues/3247
 .. _GH2809: https://github.com/pydata/pandas/issues/2809
 .. _GH2810: https://github.com/pydata/pandas/issues/2810
 .. _GH2837: https://github.com/pydata/pandas/issues/2837
