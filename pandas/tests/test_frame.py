@@ -2040,6 +2040,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df.ix[1, 0] is None)
         self.assert_(df.ix[0, 1] == '2')
 
+    def test_constructor_list_frames(self):
+
+        # GH 3243
+        result = DataFrame([DataFrame([])])
+        self.assert_(result.shape == (1,0))
+
+        result = DataFrame([DataFrame(dict(A = range(5)))])
+        self.assert_(type(result.iloc[0,0]) == DataFrame)
+
     def test_constructor_mixed_dtypes(self):
 
         def _make_mixed_dtypes_df(typ, ad = None):

@@ -1028,7 +1028,7 @@ def _possibly_convert_platform(values):
 
     if isinstance(values, (list,tuple)):
         values = lib.list_to_object_array(values)
-    if values.dtype == np.object_:
+    if getattr(values,'dtype',None) == np.object_:
         values = lib.maybe_convert_objects(values)
 
     return values
