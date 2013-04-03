@@ -18,6 +18,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 
 from pandas.util import py3compat
+from pandas.util import compat
 import codecs
 import csv
 
@@ -1471,9 +1472,31 @@ def is_list_like(arg):
 
 def _is_sequence(x):
     try:
-        iter(x)
+        if  isinstance(x, basestring):
+            return False
+        iter(x) # it's iterable
         len(x) # it has a length
-        return not isinstance(x, basestring) and True
+
+        return True
+    except Exception:
+        return False
+
+def _is_pprint_sequence(x):
+    try:
+        if  isinstance(x, basestring):
+            return False
+
+        # proper subclass of stdlib dicts, let them format themselves
+        if (isinstance(x, dict) and
+            (not type(x) == dict) and
+            (not type(x) == compat.OrderedDict)):
+            return False
+
+        iter(x) # it's iterable
+        len(x) # it has a length
+
+        return True
+
     except Exception:
         return False
 
@@ -1856,15 +1879,17 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False):
 
     """
 
+
     if thing is None:
         result = ''
     elif (py3compat.PY3 and hasattr(thing, '__next__')) or \
             hasattr(thing, 'next'):
         return unicode(thing)
-    elif (isinstance(thing, dict) and
+    elif ((type(thing) == dict) or
+          (type(thing) == compat.OrderedDict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_dict(thing, _nest_lvl)
-    elif _is_sequence(thing) and _nest_lvl < \
+    elif _is_pprint_sequence(thing) and _nest_lvl < \
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars)
     else:

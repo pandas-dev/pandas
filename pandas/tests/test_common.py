@@ -290,6 +290,8 @@ def test_ensure_platform_int():
 
 
 def test_pprint_thing():
+    from pandas.util.compat import OrderedDict
+
     if py3compat.PY3:
         raise nose.SkipTest
 
@@ -309,6 +311,20 @@ def test_pprint_thing():
     # GH #2038
     assert not "\t" in pp_t("a\tb", escape_chars=("\t",))
 
+    assert  u'{a: 1}' ==  pp_t(dict(a=1))
+    assert  u'{a: 1}' ==  pp_t(OrderedDict(a=1))
+
+    # allow proper subclasses of dict/OrderedDict to format themselves
+    class SubDict(dict):
+        def __unicode__(self):
+            return "kagles"
+
+    class SubODict(OrderedDict):
+        def __unicode__(self):
+            return "kagles"
+
+    assert  u'kagles' ==  pp_t(SubDict())
+    assert  u'kagles' ==  pp_t(SubODict())
 
 class TestTake(unittest.TestCase):
 
