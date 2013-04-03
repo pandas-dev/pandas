@@ -1370,7 +1370,7 @@ class BarPlot(MPLPlot):
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
                 rect = bar_f(ax, self.ax_pos, y,
-                             self.bar_width, start=pos_prior, **kwds)
+                             self.bar_width, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
@@ -1381,7 +1381,7 @@ class BarPlot(MPLPlot):
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
-                             start=pos_prior, label=label, **kwds)
+                              label=label, **kwds)
             rects.append(rect)
             labels.append(label)
 
