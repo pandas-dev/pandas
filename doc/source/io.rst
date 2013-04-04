@@ -1352,16 +1352,17 @@ then the ``nrows`` of the table are considered.
 Advanced Queries
 ~~~~~~~~~~~~~~~~
 
-**Unique**
+**Select a Single Column**
 
-To retrieve the *unique* values of an indexable or data column, use the
-method ``unique``. This will, for example, enable you to get the index
-very quickly. Note ``nan`` are excluded from the result set.
+To retrieve a single indexable or data column, use the
+method ``select_column``. This will, for example, enable you to get the index
+very quickly. These return a ``Series`` of the result, indexed by the row number.
+These do not currently accept the ``where`` selector (coming soon)
 
 .. ipython:: python
 
-   store.unique('df_dc', 'index')
-   store.unique('df_dc', 'string')
+   store.select_column('df_dc', 'index')
+   store.select_column('df_dc', 'string')
 
 **Replicating or**
 

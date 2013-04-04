@@ -423,8 +423,13 @@ class HDFStore(object):
         return self.get_storer(key).read_coordinates(where=where, start=start, stop=stop, **kwargs)
 
     def unique(self, key, column, **kwargs):
+        warnings.warn("unique(key,column) is deprecated\n"
+                      "use select_column(key,column).unique() instead")
+        return self.get_storer(key).read_column(column = column, **kwargs).unique()
+
+    def select_column(self, key, column, **kwargs):
         """
-        return a single column uniquely from the table. This is generally only useful to select an indexable
+        return a single column from the table. This is generally only useful to select an indexable
 
         Parameters
         ----------
@@ -2525,7 +2530,7 @@ class Table(Storer):
         self.selection = Selection(self, where=where, start=start, stop=stop, **kwargs)
         return Coordinates(self.selection.select_coords(), group=self.group, where=where)
 
-    def read_column(self, column, **kwargs):
+    def read_column(self, column, where = None, **kwargs):
         """ return a single column from the table, generally only indexables are interesting """
 
         # validate the version
@@ -2534,6 +2539,9 @@ class Table(Storer):
         # infer the data kind
         if not self.infer_axes():
             return False
+
+        if where is not None:
+            raise Exception("read_column does not currently accept a where clause")
 
         # find the axes
         for a in self.axes:
@@ -2544,7 +2552,7 @@ class Table(Storer):
 
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
-                return Categorical.from_array(a.convert(c[:], nan_rep=self.nan_rep).take_data()).levels
+                return Series(a.convert(c[:], nan_rep=self.nan_rep).take_data())
 
         raise KeyError("column [%s] not found in the table" % column)
 

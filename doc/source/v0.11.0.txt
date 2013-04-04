@@ -226,6 +226,10 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`
 API changes
 ~~~~~~~~~~~
 
+  - In ``HDFStore``, added the method ``select_column`` to select a single column from a table as a Series.
+
+  - In ``HDFStore``, deprecated the ``unique`` method, can be replicated by ``select_column(key,column).unique()``
+
 Enhancements
 ~~~~~~~~~~~~
 
