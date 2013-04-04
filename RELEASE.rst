@@ -163,6 +163,11 @@ pandas 0.11.0
     when invalid shapes are passed
   - Methods return None when inplace=True (GH1893_)
 
+  - ``HDFStore``
+
+     - added the method ``select_column`` to select a single column from a table as a Series.
+     - deprecated the ``unique`` method, can be replicated by ``select_column(key,column).unique()``
+
 **Bug Fixes**
 
   - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill``
