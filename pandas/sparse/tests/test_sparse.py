@@ -273,7 +273,7 @@ class TestSparseSeries(TestCase,
         assert_equal(sp_series.values.values, arr)
 
     def test_copy_astype(self):
-        cop = self.bseries.astype(np.float_)
+        cop = self.bseries.astype(np.float64)
         self.assert_(cop is not self.bseries)
         self.assert_(cop.sp_index is self.bseries.sp_index)
         self.assert_(cop.dtype == np.float64)
@@ -1211,9 +1211,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         self.assert_(self.empty.apply(np.sqrt) is self.empty)
 
+        from pandas.core import nanops
         applied = self.frame.apply(np.sum)
         assert_series_equal(applied,
-                            self.frame.to_dense().apply(np.sum))
+                            self.frame.to_dense().apply(nanops.nansum))
 
     def test_apply_nonuq(self):
         df_orig = DataFrame(
@@ -1241,12 +1242,12 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         df = self.zframe.reindex(range(5))
         result = df.fillna(0)
         expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
-        assert_sp_frame_equal(result, expected)
+        assert_sp_frame_equal(result, expected, exact_indices=False)
 
         result = df.copy()
         result.fillna(0, inplace=True)
         expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
-        assert_sp_frame_equal(result, expected)
+        assert_sp_frame_equal(result, expected, exact_indices=False)
 
         result = df.copy()
         result = df['A']
@@ -1264,13 +1265,15 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_describe(self):
         self.frame['foo'] = np.nan
+        self.frame.get_dtype_counts()
+        str(self.frame)
         desc = self.frame.describe()
 
     def test_join(self):
         left = self.frame.ix[:, ['A', 'B']]
         right = self.frame.ix[:, ['C', 'D']]
         joined = left.join(right)
-        assert_sp_frame_equal(joined, self.frame)
+        assert_sp_frame_equal(joined, self.frame, exact_indices=False)
 
         right = self.frame.ix[:, ['B', 'D']]
         self.assertRaises(Exception, left.join, right)

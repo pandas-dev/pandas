@@ -180,7 +180,7 @@ def _arith_method(op, name):
     return wrapper
 
 
-def _comp_method(op, name):
+def _comp_method(op, name, masker = False):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -219,6 +219,9 @@ def _comp_method(op, name):
             return self._constructor(na_op(self.values, np.asarray(other)),
                           index=self.index, name=self.name)
         else:
+
+            mask = isnull(self)
+
             values = self.values
             other = _index.convert_scalar(values, other)
 
@@ -233,7 +236,14 @@ def _comp_method(op, name):
 
             # always return a full value series here
             res = _values_from_object(res)
-            return Series(res, index=self.index, name=self.name, dtype='bool')
+            
+            res = Series(res, index=self.index, name=self.name, dtype='bool')
+
+            # mask out the invalids
+            if mask.any():
+                res[mask.values] = masker
+
+            return res
     return wrapper
 
 
@@ -1175,7 +1185,7 @@ index : array-like or Index (1d)
     __lt__ = _comp_method(operator.lt, '__lt__')
     __le__ = _comp_method(operator.le, '__le__')
     __eq__ = _comp_method(operator.eq, '__eq__')
-    __ne__ = _comp_method(operator.ne, '__ne__')
+    __ne__ = _comp_method(operator.ne, '__ne__', True)
 
     # inversion
     def __neg__(self):
@@ -1234,15 +1244,9 @@ index : array-like or Index (1d)
         return self._data.values.view()
 
     def copy(self, order='C'):
-        """
-        Return new Series with copy of underlying values
-
-        Returns
-        -------
-        cp : Series
-        """
-        return self._constructor(self.values.copy(order), index=self.index,
-                      name=self.name)
+        new_self = super(Series, self).copy(deep=True)
+        new_self.name = self.name
+        return new_self
 
     def tolist(self):
         """ Convert Series to a nested list """

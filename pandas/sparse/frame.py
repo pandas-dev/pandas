@@ -43,7 +43,6 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries. Will not
         override SparseSeries passed in
     """
-    _is_mixed_type = False
     ndim = 2
     _verbose_info = False
     _constructor_sliced = SparseSeries
@@ -276,7 +275,8 @@ class SparseDataFrame(DataFrame):
     # Support different internal representation of SparseDataFrame
 
     def _set_item(self, key, value):
-        sp_maker = lambda x: SparseArray(x, 
+        sp_maker = lambda x, index=None: SparseArray(x,
+                                         index=index,
                                          fill_value=self._default_fill_value,
                                          kind=self._default_kind)
         if hasattr(value, '__iter__'):
@@ -289,7 +289,7 @@ class SparseDataFrame(DataFrame):
 
         # Scalar
         else:
-            clean_series = sp_maker(value)
+            clean_series = sp_maker(value,self.index)
 
         self._data.set(key, _maybe_to_sparse(clean_series))
 
@@ -610,6 +610,10 @@ class SparseDataFrame(DataFrame):
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
+        if isinstance(other, Series):
+            assert(other.name is not None)
+            other = SparseDataFrame({other.name: other},
+                                    default_fill_value=self._default_fill_value)
         if on is not None:
             raise NotImplementedError
         else:
@@ -630,11 +634,8 @@ class SparseDataFrame(DataFrame):
 
         this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
 
-        result_series = this._series
-        other_series = other._series
-        result_series.update(other_series)
-
-        return self._constructor(result_series, index=join_index)
+        from pandas import concat
+        return concat([this,other],axis=1,verify_integrity=True)
 
     def _maybe_rename_join(self, other, lsuffix, rsuffix):
         intersection = self.columns.intersection(other.columns)

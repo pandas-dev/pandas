@@ -709,11 +709,11 @@ class _BlockJoinOperation(object):
         funit, fblock = merge_chunks[0]
         fidx = funit.indexer
 
-        out_shape = list(fblock.values.shape)
+        out_shape = list(fblock.get_values().shape)
 
         n = len(fidx) if fidx is not None else out_shape[self.axis]
 
-        out_shape[0] = sum(len(blk) for unit, blk in merge_chunks)
+        out_shape[0] = sum(blk.get_merge_length() for unit, blk in merge_chunks)
         out_shape[self.axis] = n
 
         # Should use Fortran order??
@@ -723,7 +723,7 @@ class _BlockJoinOperation(object):
         sofar = 0
         for unit, blk in merge_chunks:
             out_chunk = out[sofar: sofar + len(blk)]
-            com.take_nd(blk.values, unit.indexer, self.axis, out=out_chunk)
+            com.take_nd(blk.get_values(), unit.indexer, self.axis, out=out_chunk)
             sofar += len(blk)
 
         # does not sort

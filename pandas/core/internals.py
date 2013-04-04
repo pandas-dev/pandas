@@ -140,6 +140,10 @@ class Block(object):
         self.values = values
         self.ndim = values.ndim
 
+    def _slice(self, slicer):
+        """ return a slice of my values """
+        return self.values[slicer]
+
     @property
     def shape(self):
         return self.values.shape
@@ -268,6 +272,8 @@ class Block(object):
 
         new_values = self.values if inplace else self.values.copy()
         mask = com.isnull(new_values)
+
+        value = self._try_fill(value)
         np.putmask(new_values, mask, value)
 
         block = make_block(new_values, self.items, self.ref_items, fastpath=True)
@@ -373,6 +379,9 @@ class Block(object):
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
         return result
+
+    def _try_fill(self, value):
+        return value
 
     def to_native_types(self, slicer=None, na_rep='', **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -489,6 +498,9 @@ class Block(object):
 
     def get_values(self, dtype=None):
         return self.values
+
+    def get_merge_length(self):
+        return len(self.values)
 
     def diff(self, n):
         """ return block for the diff of the values """
@@ -857,6 +869,12 @@ class DatetimeBlock(Block):
             result = lib.Timestamp(result)
         return result
 
+    def _try_fill(self, value):
+        """ if we are a NaT, return the actual fill value """
+        if isinstance(value, type(tslib.NaT)):
+            value = tslib.iNaT
+        return value
+
     def to_native_types(self, slicer=None, na_rep=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
@@ -1010,12 +1028,19 @@ class SparseBlock(Block):
         else:
             return self.values
 
+    def _slice(self, slicer):
+        """ return a slice of my values (but densify first) """
+        return self.get_values()[slicer]
+
     def get_values(self, dtype=None):
         """ need to to_dense myself (and always return a ndim sized object) """
         values = self.values.to_dense()
         if values.ndim == self.ndim - 1:
             values = values.reshape((1,) + values.shape)
         return values
+
+    def get_merge_length(self):
+        return 1
 
     def make_block(self, values, items=None, ref_items=None, sparse_index=None, kind=None, dtype=None, fill_value=None, copy=False):
         """ return a new block """
@@ -1044,15 +1069,12 @@ class SparseBlock(Block):
         return self
 
     def take(self, indexer, axis=1):
-        """ going to take our items """
+        """ going to take our items
+            along the long dimension"""
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
-        items = self.ref_items.take(indexer)
-        overlap = items & self.items
-        if not len(overlap):
-            return []
-        return self.make_block(self.values, items=overlap)
+        return self.make_block(self.values.take(indexer))
 
     def reindex_axis(self, indexer, method=None, axis=1, fill_value=None, limit=None, mask_info=None):
         """

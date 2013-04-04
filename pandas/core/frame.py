@@ -1807,10 +1807,7 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        if isinstance(values, SparseArray):
-            from pandas.sparse.series import SparseSeries
-            return SparseSeries(values, index=self.index, name=items)
-        return Series(values, index=self.index, name=items)
+        return self._constructor_sliced.from_array(values, index=self.index, name=items)
 
     def __setitem__(self, key, value):
         # see if we can slice the rows
