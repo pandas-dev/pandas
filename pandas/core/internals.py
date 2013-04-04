@@ -78,12 +78,19 @@ class Block(object):
     @property
     def ref_locs(self):
         if self._ref_locs is None:
-            indexer = self.ref_items.get_indexer(self.items)
-            indexer = com._ensure_platform_int(indexer)
-            if (indexer == -1).any():
-                raise AssertionError('Some block items were not in block '
-                                     'ref_items')
-            self._ref_locs = indexer
+
+            # we have a single block, maybe have duplicates
+            # but indexer is easy
+            if self._is_single_block:
+                self._ref_locs = np.arange(len(self.items))
+            else:
+                indexer = self.ref_items.get_indexer(self.items)
+                indexer = com._ensure_platform_int(indexer)
+                if (indexer == -1).any():
+                    raise AssertionError('Some block items were not in block '
+                                         'ref_items')
+                self._ref_locs = indexer
+
         return self._ref_locs
 
     def set_ref_items(self, ref_items, maybe_rename=True):

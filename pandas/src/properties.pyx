@@ -43,34 +43,6 @@ cdef class AxisProperty(object):
     def __set__(self, obj, value):
         obj._set_axis(self.axis, value)
 
-cdef class SeriesIndex(object):
-    cdef:
-        object _check_type
-
-    def __init__(self):
-        from pandas.core.index import _ensure_index
-        self._check_type = _ensure_index
-
-    def __get__(self, obj, type):
-        return obj._index
-
-    def __set__(self, obj, value):
-        if len(obj) != len(value):
-            raise AssertionError('Index length did not match values')
-
-        val = self._check_type(value)
-        if val.is_all_dates:
-            from pandas.tseries.index import DatetimeIndex
-            from pandas.tseries.period import PeriodIndex
-            if not isinstance(val, (DatetimeIndex, PeriodIndex)):
-                val = DatetimeIndex(val)
-            obj._typ = 'time_series'
-        else:
-            obj._typ = 'series'
-
-        obj._index = val
-
-
 cdef class ValuesProperty(object):
 
     def __get__(self, obj, type):

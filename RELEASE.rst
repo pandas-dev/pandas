@@ -37,6 +37,7 @@ pandas 0.12.0
   - Fixed various issues with internal pprinting code, the repr() for various objects
     including TimeStamp and *Index now produces valid python code strings and
     can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
+  - Added modulo operator to Series
 
 **API Changes**
 

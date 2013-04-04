@@ -603,7 +603,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # wrong length
         series = self.series.copy()
-        self.assertRaises(AssertionError, setattr, series, 'index',
+        self.assertRaises(Exception, setattr, series, 'index',
                           np.arange(len(series) - 1))
 
         # works

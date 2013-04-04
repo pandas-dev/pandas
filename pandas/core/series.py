@@ -506,7 +506,22 @@ index : array-like or Index (1d)
         return self._typ == 'time_series'
 
     _index = None
-    index  = lib.SeriesIndex()
+
+    def _set_axis(self, axis, labels):
+        """ override generic, we want to set the _typ here """
+
+        labels = _ensure_index(labels)
+        if labels.is_all_dates:
+            from pandas.tseries.index import DatetimeIndex
+            from pandas.tseries.period import PeriodIndex
+            if not isinstance(labels, (DatetimeIndex, PeriodIndex)):
+                labels = DatetimeIndex(labels)
+            self._typ = 'time_series'
+        else:
+            self._typ = 'series'
+
+        self._index = labels
+        self._data.set_axis(axis, labels)
 
     # ndarray compatibility
     @property
@@ -1144,6 +1159,7 @@ index : array-like or Index (1d)
     __truediv__ = _arith_method(operator.truediv, '__truediv__')
     __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
     __pow__ = _arith_method(operator.pow, '__pow__')
+    __mod__ = _arith_method(operator.mod, '__mod__')
 
     __radd__ = _arith_method(_radd_compat, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
@@ -1151,6 +1167,7 @@ index : array-like or Index (1d)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')
     __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__')
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
+    __rmod__ = _arith_method(lambda x, y: y % x, '__mod__')
 
     # comparisons
     __gt__ = _comp_method(operator.gt, '__gt__')
@@ -3043,7 +3060,7 @@ index : array-like or Index (1d)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index, name=self.name)
 
-Series._setup_axes(['index'], info_axis=0, build_axes=False)
+Series._setup_axes(['index'], info_axis=0)
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 # reinstall the SeriesIndexer
