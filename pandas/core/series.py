@@ -391,7 +391,7 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
     def f(self, axis=0, dtype=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level(shortname, level=level, skipna=skipna)
-        return nanop(self.values, skipna=skipna)
+        return nanop(self.get_values(), skipna=skipna)
     f.__name__ = shortname
     return f
 
@@ -1423,7 +1423,7 @@ index : array-like or Index (1d)
     def min(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('min', level=level, skipna=skipna)
-        return nanops.nanmin(self.values, skipna=skipna)
+        return nanops.nanmin(self.get_values(), skipna=skipna)
 
     @Substitution(name='maximum', shortname='max',
                   na_action=_doc_exclude_na, extras='')
@@ -1431,7 +1431,7 @@ index : array-like or Index (1d)
     def max(self, axis=None, out=None, skipna=True, level=None):
         if level is not None:
             return self._agg_by_level('max', level=level, skipna=skipna)
-        return nanops.nanmax(self.values, skipna=skipna)
+        return nanops.nanmax(self.get_values(), skipna=skipna)
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
@@ -1444,7 +1444,7 @@ index : array-like or Index (1d)
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna,
                                       ddof=ddof)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof))
+        return np.sqrt(nanops.nanvar(self.get_values(), skipna=skipna, ddof=ddof))
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
@@ -1457,7 +1457,7 @@ index : array-like or Index (1d)
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna,
                                       ddof=ddof)
-        return nanops.nanvar(self.values, skipna=skipna, ddof=ddof)
+        return nanops.nanvar(self.get_values(), skipna=skipna, ddof=ddof)
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -1466,7 +1466,7 @@ index : array-like or Index (1d)
         if level is not None:
             return self._agg_by_level('skew', level=level, skipna=skipna)
 
-        return nanops.nanskew(self.values, skipna=skipna)
+        return nanops.nanskew(self.get_values(), skipna=skipna)
 
     @Substitution(name='unbiased kurtosis', shortname='kurt',
                   na_action=_doc_exclude_na, extras='')
@@ -1475,7 +1475,7 @@ index : array-like or Index (1d)
         if level is not None:
             return self._agg_by_level('kurt', level=level, skipna=skipna)
 
-        return nanops.nankurt(self.values, skipna=skipna)
+        return nanops.nankurt(self.get_values(), skipna=skipna)
 
     def _agg_by_level(self, name, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level)
@@ -1498,7 +1498,7 @@ index : array-like or Index (1d)
         -------
         idxmin : Index of minimum of values
         """
-        i = nanops.nanargmin(self.values, skipna=skipna)
+        i = nanops.nanargmin(self.get_values(), skipna=skipna)
         if i == -1:
             return pa.NA
         return self.index[i]
@@ -1516,7 +1516,7 @@ index : array-like or Index (1d)
         -------
         idxmax : Index of minimum of values
         """
-        i = nanops.nanargmax(self.values, skipna=skipna)
+        i = nanops.nanargmax(self.get_values(), skipna=skipna)
         if i == -1:
             return pa.NA
         return self.index[i]
@@ -1536,7 +1536,7 @@ index : array-like or Index (1d)
         -------
         cumsum : Series
         """
-        arr = self.values.copy()
+        arr = self.get_values().copy()
 
         do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
@@ -1565,7 +1565,7 @@ index : array-like or Index (1d)
         -------
         cumprod : Series
         """
-        arr = self.values.copy()
+        arr = self.get_values().copy()
 
         do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
@@ -1594,7 +1594,7 @@ index : array-like or Index (1d)
         -------
         cummax : Series
         """
-        arr = self.values.copy()
+        arr = self.get_values().copy()
 
         do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
@@ -1623,7 +1623,7 @@ index : array-like or Index (1d)
         -------
         cummin : Series
         """
-        arr = self.values.copy()
+        arr = self.get_values().copy()
 
         do_mask = skipna and not issubclass(self.dtype.type, np.integer)
         if do_mask:
@@ -1642,7 +1642,7 @@ index : array-like or Index (1d)
         """
 
         """
-        result = self.values.round(decimals, out=out)
+        result = self.get_values().round(decimals, out=out)
         if out is None:
             result = self._constructor(result, index=self.index, name=self.name)
 
@@ -1668,7 +1668,7 @@ index : array-like or Index (1d)
         return _quantile(valid_values, q * 100)
 
     def ptp(self, axis=None, out=None):
-        return self.values.ptp(axis, out)
+        return self.get_values().ptp(axis, out)
 
     def describe(self, percentile_width=50):
         """
@@ -1796,7 +1796,7 @@ index : array-like or Index (1d)
         -------
         diffed : Series
         """
-        result = com.diff(self.values, periods)
+        result = com.diff(self.get_values(), periods)
         return self._constructor(result, self.index, name=self.name)
 
     def autocorr(self):
@@ -2097,7 +2097,7 @@ index : array-like or Index (1d)
             return self._constructor(result, index=self.index, name=self.name)
         else:
             return self._constructor(np.argsort(values, kind=kind), index=self.index,
-                          name=self.name)
+                          name=self.name,dtype='int64')
 
     def rank(self, method='average', na_option='keep', ascending=True):
         """
@@ -3111,7 +3111,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         return subarr
 
     # GH #846
-    if isinstance(data, pa.Array):
+    if isinstance(data, (pa.Array, Series)):
         subarr = np.array(data, copy=False)
         if dtype is not None:
 
