@@ -2068,6 +2068,7 @@ class TestHDFStore(unittest.TestCase):
             expected = df2[isnull(df2.x)]
             assert_frame_equal(result,expected)
 
+
             # int ==/!=
             df['int'] = 1
             df.ix[2:7,'int'] = 2
@@ -2083,42 +2084,44 @@ class TestHDFStore(unittest.TestCase):
             assert_frame_equal(result,expected)
 
 
-    def test_unique(self):
+    def test_read_column(self):
 
         df = tm.makeTimeDataFrame()
-
-        def check(x, y):
-            self.assert_((np.unique(x) == np.unique(y)).all() == True)
 
         with ensure_clean(self.path) as store:
             store.remove('df')
             store.append('df', df)
             
             # error
-            self.assertRaises(KeyError, store.unique, 'df', 'foo')
+            self.assertRaises(KeyError, store.select_column, 'df', 'foo')
+
+            def f():
+                store.select_column('df', 'index', where = ['index>5'])
+            self.assertRaises(Exception, f)
 
             # valid
-            result = store.unique('df', 'index')
-            check(result.values, df.index.values)
-            
+            result = store.select_column('df', 'index')
+            tm.assert_almost_equal(result.values, Series(df.index).values)
+            self.assert_(isinstance(result,Series))
+
             # not a data indexable column
             self.assertRaises(
-                ValueError, store.unique, 'df', 'values_block_0')
+                ValueError, store.select_column, 'df', 'values_block_0')
 
             # a data column
             df2 = df.copy()
             df2['string'] = 'foo'
             store.append('df2', df2, data_columns=['string'])
-            result = store.unique('df2', 'string')
-            check(result.values, df2['string'].unique())
+            result = store.select_column('df2', 'string')
+            tm.assert_almost_equal(result.values, df2['string'].values)
             
             # a data column with NaNs, result excludes the NaNs
             df3 = df.copy()
             df3['string'] = 'foo'
             df3.ix[4:6, 'string'] = np.nan
             store.append('df3', df3, data_columns=['string'])
-            result = store.unique('df3', 'string')
-            check(result.values, df3['string'].valid().unique())
+            result = store.select_column('df3', 'string')
+            tm.assert_almost_equal(result.values, df3['string'].values)
 
     def test_coordinates(self):
         df = tm.makeTimeDataFrame()
