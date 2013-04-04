@@ -276,6 +276,9 @@ The :ref:`HDFStores <io.hdf5>` docs
 `Large Data work flows
 <http://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
 
+`Groupby on a HDFStore
+<http://stackoverflow.com/questions/15798209/pandas-group-by-query-on-large-data-in-hdfstore>`__
+
 `Troubleshoot HDFStore exceptions
 <http://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__
 
