@@ -1247,7 +1247,7 @@ class BlockManager(object):
         self._consolidate_inplace()
         counts = dict()
         for b in self.blocks:
-            counts[b.dtype.name] = counts.get(b.dtype,0) + b.shape[0]
+            counts[b.dtype.name] = counts.get(b.dtype.name,0) + b.shape[0]
         return counts
 
     def get_ftype_counts(self):

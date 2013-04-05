@@ -126,7 +126,7 @@ class SparseDataFrame(DataFrame):
                                      copy=copy)
 
             # fill if requested
-            if fill and not isnull(fill_value):
+            if fill_value is not None and not isnull(fill_value):
                 result.fillna(fill_value,inplace=True)
             
             return result
@@ -243,13 +243,6 @@ class SparseDataFrame(DataFrame):
         data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
 
-    def get_dtype_counts(self):
-        from collections import defaultdict
-        d = defaultdict(int)
-        for k, v in self.iteritems():
-            d[v.dtype.name] += 1
-        return Series(d)
-     
     def astype(self, dtype):
         raise NotImplementedError
 
@@ -257,10 +250,11 @@ class SparseDataFrame(DataFrame):
         """
         Make a copy of this SparseDataFrame
         """
-        series = dict((k, v.copy()) for k, v in self.iteritems())
-        return SparseDataFrame(series, index=self.index, columns=self.columns,
-                               default_fill_value=self._default_fill_value,
-                               default_kind=self._default_kind)
+        result = super(SparseDataFrame, self).copy(deep=deep)
+        result._default_fill_value = self._default_fill_value
+        result._default_kind = self._default_kind
+        return result
+
     @property
     def default_fill_value(self):
         return self._default_fill_value
@@ -288,7 +282,7 @@ class SparseDataFrame(DataFrame):
             self = new_self
 
         # set the fill value if we are filling as a scalar with nothing special going on
-        if ((np.isscalar(value) and value is not None) or np.isnan(value)) and method is None and limit is None:
+        if value is not None and value == value and method is None and limit is None:
             self._default_fill_value = value
 
         if not inplace:
@@ -342,41 +336,6 @@ class SparseDataFrame(DataFrame):
         else:
             return self._get_item_cache(key)
 
-    def icol(self, i):
-        """
-        Retrieve the i-th column or columns of the DataFrame by location
-
-        Parameters
-        ----------
-        i : int, slice, or sequence of integers
-
-        Notes
-        -----
-        If slice passed, the resulting data will be a view
-
-        Returns
-        -------
-        column : Series (int) or DataFrame (slice, sequence)
-        """
-        if isinstance(i, slice):
-            # need to return view
-            lab_slice = slice(label[0], label[-1])
-            return self.ix[:, lab_slice]
-        else:
-            label = self.columns[i]
-            if isinstance(label, Index):
-                if self.columns.inferred_type == 'integer':
-                    # XXX re: #2228
-                    return self.reindex(columns=label)
-                else:
-                    return self.ix[:, i]
-
-            return self[label]
-            # values = self._data.iget(i)
-            # return self._constructor_sliced.from_array(
-            #     values, index=self.index, name=label,
-            #     fill_value= self._default_fill_value)
-
     @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col):
         return self._get_item_cache(col).get_value(index)
@@ -419,24 +378,6 @@ class SparseDataFrame(DataFrame):
 
         return self.reindex(index=new_index, columns=new_columns)
 
-    def as_matrix(self, columns=None):
-        """
-        Convert the frame to its Numpy-array matrix representation
-
-        Columns are presented in sorted order unless a specific list
-        of columns is provided.
-        """
-        if columns is None:
-            columns = self.columns
-
-        if len(columns) == 0:
-            return np.zeros((len(self.index), 0), dtype=float)
-
-        return np.array([self.icol(i).get_values()
-                         for i in range(len(self.columns))]).T
-
-    values = property(as_matrix)
-
     def xs(self, key, axis=0, copy=False):
         """
         Returns a row (cross-section) from the SparseDataFrame as a Series
@@ -460,31 +401,6 @@ class SparseDataFrame(DataFrame):
 
     #----------------------------------------------------------------------
     # Arithmetic-related methods
-
-    def combine_first(self, other):
-        """
-        Combine two DataFrame objects and default to non-null values in frame
-        calling the method. Result index columns will be the union of the
-        respective indexes and columns
-
-        Parameters
-        ----------
-        other : DataFrame
-
-        Examples
-        --------
-        >>> a.combine_first(b)
-            a's values prioritized, use values from b to fill holes
-
-        Returns
-        -------
-        combined : DataFrame
-        """
-        def combiner(x, y):
-            x = _maybe_to_dense(x)
-            y = _maybe_to_dense(y)
-            return np.where(isnull(x), y, x)
-        return self.combine(other, combiner)
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join='outer', level=level,
