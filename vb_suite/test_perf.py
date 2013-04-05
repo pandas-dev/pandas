@@ -86,7 +86,7 @@ parser.add_argument('-n', '--repeats',
                     dest='repeats',
                     default=3,
                     type=int,
-                    help='number of times to run each vbench, result value is the average')
+                    help='number of times to run each vbench, result value is the best of')
 parser.add_argument('-c', '--ncalls',
                     metavar="N",
                     dest='ncalls',
@@ -131,7 +131,7 @@ def get_results_df(db, rev):
 def prprint(s):
     print("*** %s" % s)
 
-def clear():
+def pre_hook():
     import gc
     gc.collect()
 
@@ -142,6 +142,12 @@ def clear():
         libc.malloc_trim(0)
     except:
         pass
+
+    gc.disable()
+
+def post_hook():
+    import gc
+    gc.enable()
 
 def profile_comparative(benchmarks):
 
@@ -232,8 +238,11 @@ def profile_head_single(benchmark):
 
     results = []
     for i in range(N):
-        clear()
+        pre_hook() # gc collect then disable
+
         d=dict()
+        sys.stdout.write('.')
+        sys.stdout.flush()
         try:
             d = benchmark.run()
 
@@ -250,6 +259,8 @@ def profile_head_single(benchmark):
             print("%s died with:\n%s\nSkipping...\n" % (benchmark.name, err))
 
         results.append(d.get('timing',np.nan))
+
+        post_hook() # gc enable
 
     if results:
         # throw away the burn_in
