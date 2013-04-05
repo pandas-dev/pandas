@@ -7,17 +7,17 @@ if [ x"$LOCALE_OVERRIDE" != x"" ]; then
     echo "Setting LC_ALL to $LOCALE_OVERRIDE"
     (cd /; python -c 'import pandas; print("pandas detected console encoding: %s" % pandas.get_option("display.encoding"))')
 
-    # also do slow tests here, especially plotting
-    nosetests --exe -w /tmp -A "not network" pandas;
-    exit
 fi
 
-if [ x"$VBENCH" != x"true" ]; then
+if   $TEST_SLOW ; then
+    nosetests --exe -w /tmp -A "not network" pandas;
+    exit
+else
     nosetests --exe -w /tmp -A "not slow" pandas;
     exit
 fi
 
-if [ x"$VBENCH" == x"true" ]; then
-    python vb_suite/perf_HEAD.py;
-    exit
-fi
+# if [ x"$VBENCH" == x"true" ]; then
+#     python vb_suite/perf_HEAD.py;
+#     exit
+# fi
