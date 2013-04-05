@@ -133,16 +133,6 @@ def prprint(s):
 
 def pre_hook():
     import gc
-    gc.collect()
-
-    try:
-        from ctypes import cdll, CDLL
-        cdll.LoadLibrary("libc.so.6")
-        libc = CDLL("libc.so.6")
-        libc.malloc_trim(0)
-    except:
-        pass
-
     gc.disable()
 
 def post_hook():
@@ -231,36 +221,49 @@ def profile_comparative(benchmarks):
 
 
 def profile_head_single(benchmark):
+    import gc
     results = []
+
+    # just in case
+    gc.collect()
+
+    try:
+        from ctypes import cdll, CDLL
+        cdll.LoadLibrary("libc.so.6")
+        libc = CDLL("libc.so.6")
+        libc.malloc_trim(0)
+    except:
+        pass
 
 
     N =  args.hrepeats + args.burnin
 
     results = []
-    for i in range(N):
-        pre_hook() # gc collect then disable
+    try:
+        for i in range(N):
+            gc.disable()
+            d=dict()
 
-        d=dict()
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        try:
-            d = benchmark.run()
-
-        except KeyboardInterrupt:
-            raise
-        except Exception as e: # if a single vbench bursts into flames, don't die.
-            err=""
             try:
-                err =  d.get("traceback")
-                if err is None:
-                    err = str(e)
-            except:
-                pass
-            print("%s died with:\n%s\nSkipping...\n" % (benchmark.name, err))
+                d = benchmark.run()
 
-        results.append(d.get('timing',np.nan))
+            except KeyboardInterrupt:
+                raise
+            except Exception as e: # if a single vbench bursts into flames, don't die.
+                err=""
+                try:
+                    err =  d.get("traceback")
+                    if err is None:
+                        err = str(e)
+                except:
+                    pass
+                print("%s died with:\n%s\nSkipping...\n" % (benchmark.name, err))
 
-        post_hook() # gc enable
+            results.append(d.get('timing',np.nan))
+            gc.enable()
+
+    finally:
+        gc.enable()
 
     if results:
         # throw away the burn_in
