@@ -42,6 +42,21 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
+    def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
+        """ passed a manager and a axes dict """
+        for a, axe in axes.items():
+            if axe is not None:
+                mgr = mgr.reindex_axis(axe, axis=self._get_block_manager_axis(a), copy=False)
+
+        # do not copy BlockManager unless explicitly done
+        if copy and dtype is None:
+            mgr = mgr.copy()
+        elif dtype is not None:
+            # avoid copy if we can
+            if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
+                mgr = mgr.astype(dtype)
+        return mgr
+
     #----------------------------------------------------------------------
     # Construction
 
@@ -197,8 +212,7 @@ class NDFrame(PandasObject):
 
     def _get_block_manager_axis(self, axis):
         """ map the axis to the block_manager axis """
-        if axis not in self._AXIS_NAMES:
-            raise Exception("this object does not support an axis of [%s]" % axis)
+        axis = self._get_axis_number(axis)
         if self._AXIS_REVERSED:
             m = self._AXIS_LEN-1
             return m-axis
@@ -462,7 +476,12 @@ class NDFrame(PandasObject):
         if isinstance(state, BlockManager):
             self._data = state
         elif isinstance(state, dict):
-            self._unpickle_series_compat(state)
+            typ = state.get('_typ')
+            if typ is not None:
+                for k, v in state.items():
+                    setattr(self,k,v)
+            else:
+                self._unpickle_series_compat(state)
         elif isinstance(state[0], dict):
             if len(state) == 5:
                 self._unpickle_sparse_frame_compat(state)

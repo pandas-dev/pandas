@@ -260,9 +260,15 @@ to sparse
         # caching not an option, leaks memory
         return self.view(np.ndarray)
     
-    def get_values(self):
+    def get_values(self, fill = None):
         """ return a dense representation """
-        return self.to_dense()
+        values = self.to_dense()
+
+        # fill the nans
+        if fill is not None:
+            values[np.isnan(values)] = fill
+
+        return values
 
     def __iter__(self):
         for i in xrange(len(self)):

@@ -93,6 +93,7 @@ pandas 0.12.0
     - Operations on sparse structures within DataFrames should preserve sparseness,
       merging type operations will convert to dense (and back to sparse), so might
       be somewhat inefficient
+    - SparsePanels implementation is unchanged (e.g. not using BlockManager, needs work)
 
   - added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
     if the underlying is sparse/dense (as well as the dtype)

@@ -289,10 +289,15 @@ class SparseSeries(Series):
         Gets called after any ufunc or other array operations, necessary
         to pass on the index.
         """
-        self._index = getattr(obj, '_index', None)
         self.name = getattr(obj, 'name', None)
-        self.sp_index = getattr(obj, 'sp_index', None)
         self.fill_value = getattr(obj, 'fill_value', None)
+
+    def __getstate__(self):
+        # pickling
+        return dict(_typ       = 'sparse_series', 
+                    _data      = self._data, 
+                    fill_value = self.fill_value,
+                    name       = self.name)
 
     def __iter__(self):
         """ forward to the array """

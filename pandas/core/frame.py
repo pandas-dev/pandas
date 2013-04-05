@@ -387,7 +387,7 @@ class DataFrame(NDFrame):
             data = data._data
 
         if isinstance(data, BlockManager):
-            mgr = self._init_mgr(data, index, columns, dtype=dtype, copy=copy)
+            mgr = self._init_mgr(data, axes = dict(index=index, columns=columns), dtype=dtype, copy=copy)
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
@@ -448,20 +448,6 @@ class DataFrame(NDFrame):
                 raise PandasError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr)
-
-    def _init_mgr(self, mgr, index, columns, dtype=None, copy=False):
-        if columns is not None:
-            mgr = mgr.reindex_axis(columns, axis=0, copy=False)
-        if index is not None:
-            mgr = mgr.reindex_axis(index, axis=1, copy=False)
-        # do not copy BlockManager unless explicitly done
-        if copy and dtype is None:
-            mgr = mgr.copy()
-        elif dtype is not None:
-            # avoid copy if we can
-            if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
-                mgr = mgr.astype(dtype)
-        return mgr
 
     def _init_dict(self, data, index, columns, dtype=None):
         """

@@ -43,7 +43,6 @@ class SparseDataFrame(DataFrame):
         Default fill_value for converting Series to SparseSeries. Will not
         override SparseSeries passed in
     """
-    ndim = 2
     _verbose_info = False
     _constructor_sliced = SparseSeries
 
@@ -87,13 +86,13 @@ class SparseDataFrame(DataFrame):
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         elif isinstance(data, SparseDataFrame):
-            mgr = self._init_mgr(data._data, index, columns, dtype=dtype, copy=copy)
+            mgr = self._init_mgr(data._data, dict(index=index, columns=columns), dtype=dtype, copy=copy)
         elif isinstance(data, DataFrame):
             mgr = self._init_dict(data, data.index, data.columns)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         elif isinstance(data, BlockManager):
-            mgr = self._init_mgr(data, index, columns, dtype=dtype, copy=copy)
+            mgr = self._init_mgr(data, axes = dict(index=index, columns=columns), dtype=dtype, copy=copy)
         elif data is None:
             data = {}
 
@@ -193,15 +192,14 @@ class SparseDataFrame(DataFrame):
                                default_fill_value=self._default_fill_value)
 
     def __getstate__(self):
-        series = dict((k, (v.sp_index, v.sp_values))
-                      for k, v in self.iteritems())
-        columns = self.columns
-        index   = self.index
-
-        return (series, columns, index, self._default_fill_value,
-                self._default_kind)
+        # pickling
+        return dict(_typ                = 'sparse_frame', 
+                    _data               = self._data, 
+                    _default_fill_value = self._default_fill_value,
+                    _default_kind       = self._default_kind)
 
     def _unpickle_sparse_frame_compat(self, state):
+        """ original pickle format """
         series, cols, idx, fv, kind = state
 
         if not isinstance(cols, Index):  # pragma: no cover
@@ -418,9 +416,8 @@ class SparseDataFrame(DataFrame):
             return data
 
         i = self.index.get_loc(key)
-        series = self._series
-        values = [series[k][i] for k in self.columns]
-        return Series(values, index=self.columns)
+        data = self.take([i]).get_values()[0]
+        return Series(data, index=self.columns)
 
     #----------------------------------------------------------------------
     # Arithmetic-related methods
@@ -599,14 +596,6 @@ class SparseDataFrame(DataFrame):
                 new_arrays[col] = self[col]
 
         return self._constructor(new_arrays, index=index, columns=columns)
-
-    def add_prefix(self, prefix):
-        f = (('%s' % prefix) + '%s').__mod__
-        return self.rename(columns=f)
-
-    def add_suffix(self, suffix):
-        f = ('%s' + ('%s' % suffix)).__mod__
-        return self.rename(columns=f)
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):

@@ -956,6 +956,8 @@ class SparseBlock(Block):
         # kludgetastic
         if ndim == 1:
             self.ndim = 1
+        elif ndim > 2:
+            self.ndim = ndim
         else:
             if len(items) != 1:
                 self.ndim = 1
@@ -1062,11 +1064,11 @@ class SparseBlock(Block):
         return self.make_block(values, self.items, self.ref_items)
 
     def fillna(self, value, inplace=False):
-        if not inplace:
-            self = self.copy()
-        self.fill_value = value
-        self.values.sp_values[:] = value
-        return self
+        # we may need to upcast our fill to match our dtype
+        if issubclass(self.dtype.type, np.floating):
+            value = float(value)
+        values = self.values if inplace else self.values.copy()
+        return self.make_block(values.get_values(value),fill_value=value)
 
     def take(self, indexer, axis=1):
         """ going to take our items
