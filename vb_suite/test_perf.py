@@ -101,6 +101,14 @@ parser.add_argument('-N', '--hrepeats',
                     help='implies -H, number of times to run the vbench suite on the head\n'
                     'each iteration will yield another column in the output'
     )
+parser.add_argument('-a', '--affinity',
+                    metavar="b",
+                    dest='affinity',
+                    default=1,
+                    type=int,
+                    help='set processor affinity of processm by default bind to cpu/core #1 only'
+                             'requires the "affinity" python module , will raise Warning otherwise'  )
+
 
 
 def get_results_df(db, rev):
@@ -118,6 +126,18 @@ def get_results_df(db, rev):
 
 def prprint(s):
     print("*** %s" % s)
+
+def clear():
+    import gc
+    gc.collect()
+
+    try:
+        from ctypes import cdll, CDLL
+        cdll.LoadLibrary("libc.so.6")
+        libc = CDLL("libc.so.6")
+        libc.malloc_trim(0)
+    except:
+        pass
 
 def profile_comparative(benchmarks):
 
@@ -205,6 +225,7 @@ def profile_head_single(benchmarks):
 
     print( "Running %d benchmarks" % len(benchmarks))
     for b in benchmarks:
+        clear()
         d=dict()
         sys.stdout.write('.')
         sys.stdout.flush()
@@ -313,6 +334,15 @@ def main():
 
     random.seed(args.seed)
     np.random.seed(args.seed)
+
+    try:
+        import affinity
+        affinity.set_process_affinity_mask(0,args.affinity)
+        assert affinity.get_process_affinity_mask(0) == args.affinity
+        print("CPU affinity set to %d" % args.affinity)
+    except ImportError:
+        import warnings
+        warnings.warn("The 'affinity' module is not available, results may be unreliable")
 
     print("\n")
     prprint("LOG_FILE = %s" % args.log_file)
