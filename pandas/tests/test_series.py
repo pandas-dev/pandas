@@ -3909,6 +3909,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         xp = self.ts - self.ts.shift(-1)
         assert_series_equal(rs, xp)
 
+        # 0
+        rs = self.ts.diff(0)
+        xp = self.ts - self.ts
+        assert_series_equal(rs, xp)
+
     def test_pct_change(self):
         rs = self.ts.pct_change(fill_method=None)
         assert_series_equal(rs, self.ts / self.ts.shift(1) - 1)

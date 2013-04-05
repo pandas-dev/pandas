@@ -634,7 +634,7 @@ def diff(arr, n, axis=0):
         res_indexer = tuple(res_indexer)
 
         lag_indexer = [slice(None)] * arr.ndim
-        lag_indexer[axis] = slice(None, -n) if n >= 0 else slice(-n, None)
+        lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
         lag_indexer = tuple(lag_indexer)
 
         out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
@@ -763,7 +763,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
             # our type is wrong here, need to upcast
             r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
             np.putmask(r, mask, other)
-                
+
             # we need to actually change the dtype here
             if change is not None:
                 change.dtype = r.dtype
@@ -778,7 +778,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
         new_dtype, fill_value = _maybe_promote(result.dtype,other)
         if new_dtype != result.dtype:
 
-            # we have a scalar or len 0 ndarray 
+            # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
             if np.isscalar(other) or (isinstance(other,np.ndarray) and other.ndim < 1):
                 if isnull(other):
