@@ -260,12 +260,20 @@ to sparse
         # caching not an option, leaks memory
         return self.view(np.ndarray)
     
-    def get_values(self, fill = None):
+    def get_values(self, fill=None):
         """ return a dense representation """
-        values = self.to_dense()
+        return self.to_dense(fill=fill)
+
+    def to_dense(self, fill=None):
+        """
+        Convert SparseSeries to (dense) Series
+        """
+        values = self.values
 
         # fill the nans
-        if fill is not None:
+        if fill is None:
+            fill = self.fill_value
+        if not np.isnan(fill):
             values[np.isnan(values)] = fill
 
         return values
@@ -362,12 +370,6 @@ to sparse
         #x[slobj] = value
         #self.values = x
         raise Exception("SparseArray does not support seting via slices")
-
-    def to_dense(self):
-        """
-        Convert SparseSeries to (dense) Series
-        """
-        return self.values
 
     def astype(self, dtype=None):
         """

@@ -1326,7 +1326,7 @@ index : array-like or Index (1d)
                                         labels, max_bin)
             return self._constructor(counts, index=level_index)
 
-        return notnull(self.values).sum()
+        return notnull(self.get_values()).sum()
 
     def value_counts(self, normalize=False):
         """

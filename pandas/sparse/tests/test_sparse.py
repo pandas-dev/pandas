@@ -998,6 +998,8 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         for op in ops:
             _compare_to_dense(frame, frame[::2], frame.to_dense(),
                               frame[::2].to_dense(), op)
+            #if op == operator.add:
+            #    import pdb; pdb.set_trace()
             for s in series:
                 _compare_to_dense(frame, s, frame.to_dense(),
                                   s.to_dense(), op)
@@ -1107,8 +1109,8 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             # insert SparseSeries differently-indexed
             to_insert = frame['A'][::2]
             frame['E'] = to_insert
-            assert_series_equal(frame['E'].to_dense(),
-                                to_insert.to_dense().reindex(frame.index))
+            expected = to_insert.to_dense().reindex(frame.index).fillna(to_insert.fill_value)
+            assert_series_equal(frame['E'].to_dense(),expected)
 
             # insert Series
             frame['F'] = frame['A'].to_dense()
@@ -1118,8 +1120,9 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             # insert Series differently-indexed
             to_insert = frame['A'].to_dense()[::2]
             frame['G'] = to_insert
-            assert_series_equal(frame['G'].to_dense(),
-                                to_insert.reindex(frame.index))
+            expected = to_insert.reindex(frame.index).fillna(frame.default_fill_value)
+            assert_series_equal(frame['G'].to_dense(),expected)
+                                
 
             # insert ndarray
             frame['H'] = np.random.randn(N)
@@ -1293,7 +1296,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                                dense_result)
 
             sparse_result2 = sparse_result.reindex(index)
-            dense_result2 = dense_result.reindex(index)
+            dense_result2 = dense_result.reindex(index).fillna(frame.default_fill_value)
             assert_frame_equal(sparse_result2.to_dense(), dense_result2)
 
             # propagate CORRECT fill value
@@ -1390,7 +1393,6 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
     def test_shift(self):
         def _check(frame):
             shifted = frame.shift(0)
-            self.assert_(shifted is not frame)
             assert_sp_frame_equal(shifted, frame)
 
             f = lambda s: s.shift(1)
@@ -1484,7 +1486,7 @@ def _dense_series_compare(s, f):
 def _dense_frame_compare(frame, f):
     result = f(frame)
     assert(isinstance(frame, SparseDataFrame))
-    dense_result = f(frame.to_dense())
+    dense_result = f(frame.to_dense()).fillna(frame.default_fill_value)
     assert_frame_equal(result.to_dense(), dense_result)
 
 
