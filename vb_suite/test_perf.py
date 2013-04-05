@@ -37,7 +37,7 @@ import re
 import random
 import numpy as np
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from suite import REPO_PATH
 
@@ -102,14 +102,18 @@ parser.add_argument('-N', '--hrepeats',
                     'each iteration will yield another column in the output'
     )
 parser.add_argument('-a', '--affinity',
-                    metavar="b",
+                    metavar="a",
                     dest='affinity',
                     default=1,
                     type=int,
                     help='set processor affinity of processm by default bind to cpu/core #1 only'
                              'requires the "affinity" python module , will raise Warning otherwise'  )
-
-
+parser.add_argument('-u', '--burnin',
+                    metavar="u",
+                    dest='burnin',
+                    default=1,
+                    type=int,
+                    help='number of extra iteration per benchmark to perform first, then throw away. '  )
 
 def get_results_df(db, rev):
     """Takes a git commit hash and returns a Dataframe of benchmark results
@@ -220,42 +224,53 @@ def profile_comparative(benchmarks):
         shutil.rmtree(TMP_DIR)
 
 
-def profile_head_single(benchmarks):
+def profile_head_single(benchmark):
     results = []
 
-    print( "Running %d benchmarks" % len(benchmarks))
-    for b in benchmarks:
+
+    N =  args.hrepeats + args.burnin
+
+    results = []
+    for i in range(N):
         clear()
         d=dict()
-        sys.stdout.write('.')
-        sys.stdout.flush()
         try:
-            d = b.run()
+            d = benchmark.run()
+
         except KeyboardInterrupt:
             raise
         except Exception as e: # if a single vbench bursts into flames, don't die.
             err=""
             try:
-                err =  d.get("traceback","")
+                err =  d.get("traceback")
+                if err is None:
+                    err = str(e)
             except:
                 pass
-            print("%s died with:\n%s\nSkipping...\n" % (b.name, err))
+            print("%s died with:\n%s\nSkipping...\n" % (benchmark.name, err))
 
-        d.update(dict(name=b.name))
-        results.append(dict(name=b.name,timing=d.get('timing',np.nan)))
+        results.append(d.get('timing',np.nan))
 
-    print("\n\n")
-    df = DataFrame(results)
-    df.columns = ["name",HEAD_COL]
-    return df.set_index("name")[HEAD_COL]
+    if results:
+        # throw away the burn_in
+        results = results[args.burnin:]
+    sys.stdout.write('.')
+    sys.stdout.flush()
+    return Series(results, name=benchmark.name)
+
+    # df = DataFrame(results)
+    # df.columns = ["name",HEAD_COL]
+    # return df.set_index("name")[HEAD_COL]
 
 def profile_head(benchmarks):
+    print( "Performing %d benchmarks (%d runs each)" % ( len(benchmarks), args.hrepeats))
 
-    ss= [profile_head_single(benchmarks) for i in range(args.hrepeats)]
+    ss= [profile_head_single(b) for b in benchmarks]
 
     results = DataFrame(ss)
-    results.index = ["#%d" % i for i in range(len(ss))]
-    results = results.T
+    results.columns=[ "#%d" %i for i in range(args.hrepeats)]
+    # results.index = ["#%d" % i for i in range(len(ss))]
+    # results = results.T
 
     shas, messages, _,_  = _parse_commit_log(None,REPO_PATH,base_commit="HEAD^")
     print_report(results,h_head=shas[-1],h_msg=messages[-1])
@@ -342,7 +357,11 @@ def main():
         print("CPU affinity set to %d" % args.affinity)
     except ImportError:
         import warnings
-        warnings.warn("The 'affinity' module is not available, results may be unreliable")
+        print("\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"+
+                      "The 'affinity' module is not available, results may be unreliable\n" +
+                      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"
+            )
+        time.sleep(2)
 
     print("\n")
     prprint("LOG_FILE = %s" % args.log_file)
