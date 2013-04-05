@@ -12,6 +12,7 @@ import pandas.lib as lib
 from pandas.util import py3compat
 import pandas.core.common as com
 from pandas.core.common import (isnull, notnull, is_list_like,
+                                _values_from_object,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
@@ -411,11 +412,11 @@ class NDFrame(PandasObject):
         raise NotImplementedError
 
     def __neg__(self):
-        arr = operator.neg(self.values)
+        arr = operator.neg(_values_from_object(self))
         return self._wrap_array(arr, self.axes, copy=False)
 
     def __invert__(self):
-        arr = operator.inv(self.values)
+        arr = operator.inv(_values_from_object(self))
         return self._wrap_array(arr, self.axes, copy=False)
 
     #----------------------------------------------------------------------
@@ -459,7 +460,7 @@ class NDFrame(PandasObject):
         return self._constructor(arr, **d)
 
     def __array__(self, dtype=None):
-        return self.values
+        return _values_from_object(self)
 
     def __array_wrap__(self, result):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
@@ -1080,11 +1081,11 @@ class NDFrame(PandasObject):
     @property
     def _get_values(self):
         # compat
-        return self.values
+        return self.as_matrix()
 
     def get_values(self):
         """ same as values (but handles sparseness conversions) """
-        return self.values
+        return self.as_matrix()
 
     def get_dtype_counts(self):
         """ return the counts of dtypes in this frame """
@@ -1837,7 +1838,7 @@ class NDFrame(PandasObject):
 
                         # try to not change dtype at first
                         try:
-                            new_other = self.values.copy()
+                            new_other = _values_from_object(self).copy()
                             new_other[icond] = other
                             other = new_other
 
@@ -1910,7 +1911,7 @@ class NDFrame(PandasObject):
             data = self.fillna(method=fill_method, limit=limit)
         rs = data / data.shift(periods=periods, freq=freq, **kwds) - 1
         if freq is None:
-            mask = com.isnull(self.values)
+            mask = com.isnull(_values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -1935,9 +1936,9 @@ class NDFrame(PandasObject):
         else:
             axis = self._get_axis_number(axis)
 
-        y = self.values.copy()
+        y = _values_from_object(self).copy()
         if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(self.values)
+            mask = np.isnan(_values_from_object(self))
 
             if skipna:
                 np.putmask(y, mask, 0.)
@@ -1971,9 +1972,9 @@ class NDFrame(PandasObject):
         else:
             axis = self._get_axis_number(axis)
 
-        y = self.values.copy()
+        y = _values_from_object(self).copy()
         if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(self.values)
+            mask = np.isnan(_values_from_object(self))
 
             if skipna:
                 np.putmask(y, mask, 1.)
@@ -2006,9 +2007,9 @@ class NDFrame(PandasObject):
         else:
             axis = self._get_axis_number(axis)
 
-        y = self.values.copy()
+        y = _values_from_object(self).copy()
         if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(self.values)
+            mask = np.isnan(_values_from_object(self))
 
             if skipna:
                 np.putmask(y, mask, -np.inf)
@@ -2042,9 +2043,9 @@ class NDFrame(PandasObject):
         else:
             axis = self._get_axis_number(axis)
 
-        y = self.values.copy()
+        y = _values_from_object(self).copy()
         if not issubclass(y.dtype.type, np.integer):
-            mask = np.isnan(self.values)
+            mask = np.isnan(_values_from_object(self))
 
             if skipna:
                 np.putmask(y, mask, np.inf)

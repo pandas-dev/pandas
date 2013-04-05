@@ -277,6 +277,9 @@ class Index(np.ndarray):
     def values(self):
         return np.asarray(self)
 
+    def get_values(self):
+        return self.values
+
     @property
     def is_monotonic(self):
         return self._engine.is_monotonic

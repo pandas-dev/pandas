@@ -6,6 +6,8 @@ Offer fast expression evaluation thru numexpr
 
 """
 import numpy as np
+from pandas.core import common as com
+from pandas.core.common import _values_from_object
 
 try:
     import numexpr as ne
@@ -84,10 +86,8 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False):
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
         try:
-            if hasattr(a,'get_values'):
-                a = a.get_values()
-            if hasattr(b,'get_values'):
-                b = b.get_values()
+            a = _values_from_object(a)
+            b = _values_from_object(b)
             result = ne.evaluate('a %s b' % op_str, 
                                  local_dict={ 'a' : a, 
                                               'b' : b }, 
@@ -105,12 +105,9 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False):
     return result
 
 def _where_standard(cond, a, b, raise_on_error=True):           
-    if hasattr(cond,'get_values'):
-        cond = cond.get_values()
-    if hasattr(a,'get_values'):
-        a = a.get_values()
-    if hasattr(b,'get_values'):
-        b = b.get_values()
+    cond = _values_from_object(cond)
+    a = _values_from_object(a)
+    b = _values_from_object(b)
     return np.where(cond, a, b)
 
 def _where_numexpr(cond, a, b, raise_on_error = False):
@@ -118,12 +115,9 @@ def _where_numexpr(cond, a, b, raise_on_error = False):
 
     if _can_use_numexpr(None, 'where', a, b, 'where'):
 
-        if hasattr(cond,'get_values'):
-            cond = cond.get_values()
-        if hasattr(a,'get_values'):
-            a = a.get_values()
-        if hasattr(b,'get_values'):
-            b = b.get_values()
+        cond = _values_from_object(cond)
+        a = _values_from_object(a)
+        b = _values_from_object(b)
 
         try:
             result = ne.evaluate('where(cond,a,b)',

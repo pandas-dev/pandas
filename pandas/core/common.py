@@ -1042,9 +1042,9 @@ def _maybe_box(indexer, values, obj, key):
     # return the value
     return values
 
-def _values_from_object(series):
-    # compat with ndarray or series
-    return series.values if hasattr(series,'values') else series
+def _values_from_object(o):
+    """ return my values or the object if we are say an ndarray """
+    return o.get_values() if hasattr(o,'get_values') else o
 
 def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     """ if we have an object dtype, try to coerce dates and/or numers """
