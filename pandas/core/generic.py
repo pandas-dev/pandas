@@ -1057,6 +1057,7 @@ def truncate(self, before=None, after=None, copy=True):
         Truncate before date
     after : date
         Truncate after date
+	copy : boolean, default True
 
     Returns
     -------

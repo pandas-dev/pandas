@@ -5619,7 +5619,12 @@ def boxplot(self, column=None, by=None, ax=None, fontsize=None,
         Can be any valid input to groupby
     by : string or sequence
         Column in the DataFrame to group by
+	ax : matplotlib axis object, default None
     fontsize : int or string
+	rot : int, default None
+        Rotation for ticks
+	grid : boolean, default None (matlab style default)
+        Axis grid lines
 
     Returns
     -------
