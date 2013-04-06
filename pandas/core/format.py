@@ -347,6 +347,12 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a LaTeX tabular environment output.
         """
+        def get_col_type(dtype):
+            if issubclass(dtype.type, np.number):
+                return 'r'
+            else:
+                return 'l'
+        
         import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn(
@@ -362,27 +368,28 @@ class DataFrameFormatter(TableFormatter):
             strcols = [[info_line]]
         else:
             strcols = self._to_str_columns()
-
+        
         if column_format is None:
-            column_format = '|l|%s|' % '|'.join('c' for _ in strcols)
+            dtypes = self.frame.dtypes.values
+            column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
         elif not isinstance(column_format, basestring):
             raise AssertionError(('column_format must be str or unicode, not %s'
                                   % type(column_format)))
 
         self.buf.write('\\begin{tabular}{%s}\n' % column_format)
-        self.buf.write('\\hline\n')
+        self.buf.write('\\toprule\n')
 
         nlevels = frame.index.nlevels
         for i, row in enumerate(izip(*strcols)):
             if i == nlevels:
-                self.buf.write('\\hline\n')  # End of header
+                self.buf.write('\\midrule\n')  # End of header
             crow = [(x.replace('_', '\\_')
                      .replace('%', '\\%')
                      .replace('&', '\\&') if x else '{}') for x in row]
             self.buf.write(' & '.join(crow))
             self.buf.write(' \\\\\n')
 
-        self.buf.write('\\hline\n')
+        self.buf.write('\\bottomrule\n')
         self.buf.write('\\end{tabular}\n')
 
     def _format_col(self, i):
