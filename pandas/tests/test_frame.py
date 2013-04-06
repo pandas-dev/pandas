@@ -4600,6 +4600,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
              self.assertRaises(ValueError, self.frame2.to_csv, path,
                                header=['AA', 'X'])
 
+        with ensure_clean(pname) as path:
+            import pandas as pd
+            df1 = DataFrame(np.random.randn(3, 1))
+            df2 = DataFrame(np.random.randn(3, 1))
+
+            df1.to_csv(path)
+            df2.to_csv(path,mode='a',header=False)
+            xp = pd.concat([df1,df2])
+            rs = pd.read_csv(path,index_col=0)
+            rs.columns = map(int,rs.columns)
+            xp.columns = map(int,xp.columns)
+            assert_frame_equal(xp,rs)
+
+
     @slow
     def test_to_csv_moar(self):
         from pandas.util.testing import makeCustomDataframe as mkdf
