@@ -303,8 +303,8 @@ class _MergeOperation(object):
         left_drop = []
         left, right = self.left, self.right
 
-        is_lkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(right)
+        is_lkey = lambda x: isinstance(x, (np.ndarray, Series)) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, (np.ndarray, Series)) and len(x) == len(right)
 
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):

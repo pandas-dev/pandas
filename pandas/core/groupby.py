@@ -1839,7 +1839,7 @@ class NDFrameGroupBy(GroupBy):
                 else:
                     key_index = Index(keys, name=key_names[0])
 
-            if isinstance(values[0], np.ndarray):
+            if isinstance(values[0], (np.ndarray, Series)):
                 if isinstance(values[0], Series):
                     applied_index    = self.obj._get_axis(self.axis)
                     all_indexed_same = _all_indexes_same([x.index for x in values])

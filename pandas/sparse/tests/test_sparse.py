@@ -364,15 +364,14 @@ class TestSparseSeries(TestCase,
         assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
 
     def test_set_value(self):
-        idx = self.btseries.index[7]
-        res = self.btseries.set_value(idx, 0)
-        self.assert_(res is not self.btseries)
-        self.assertEqual(res[idx], 0)
 
-        res = self.iseries.set_value('foobar', 0)
-        self.assert_(res is not self.iseries)
-        self.assert_(res.index[-1] == 'foobar')
-        self.assertEqual(res['foobar'], 0)
+        idx = self.btseries.index[7]
+        self.btseries.set_value(idx, 0)
+        self.assertEqual(self.btseries[idx], 0)
+
+        self.iseries.set_value('foobar', 0)
+        self.assert_(self.iseries.index[-1] == 'foobar')
+        self.assertEqual(self.iseries['foobar'], 0)
 
     def test_getitem_slice(self):
         idx = self.bseries.index
@@ -415,11 +414,12 @@ class TestSparseSeries(TestCase,
         assert_almost_equal(sp.take([0, 1, 2, 3, 4]), np.repeat(nan, 5))
 
     def test_setitem(self):
-        self.assertRaises(Exception, self.bseries.__setitem__, 5, 7.)
-        self.assertRaises(Exception, self.iseries.__setitem__, 5, 7.)
+        self.bseries[5] = 7.
+        self.assert_(self.bseries[5] == 7.)
 
     def test_setslice(self):
-        self.assertRaises(Exception, self.bseries.__setslice__, 5, 10, 7.)
+        self.bseries[5:10] = 7.
+        assert_series_equal(self.bseries[5:10].to_dense(),Series(7.,index=range(5,10),name=self.bseries.name))
 
     def test_operators(self):
         def _check_op(a, b, op):
@@ -544,7 +544,7 @@ class TestSparseSeries(TestCase,
 
             expected = Series(values, index=int_indices1)
             expected = expected.reindex(int_indices2).fillna(fill_value)
-            assert_almost_equal(expected.values, reindexed.sp_values.values)
+            assert_almost_equal(expected.values, reindexed.sp_values)
 
             # make sure level argument asserts
             expected = expected.reindex(int_indices2).fillna(fill_value)

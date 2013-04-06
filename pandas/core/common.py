@@ -873,7 +873,7 @@ def _possibly_downcast_to_dtype(result, dtype):
     """ try to cast to the specified dtype (e.g. convert back to bool/int
         or could be an astype of float64->float32 """
 
-    if not isinstance(result, np.ndarray):
+    if np.isscalar(result):
         return result
 
     try:

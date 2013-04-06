@@ -639,6 +639,8 @@ index : array-like or Index (1d)
     def _xs(self, key, axis=0, level=None, copy=True):
         return self.__getitem__(key)
 
+    xs = _xs
+
     def _ixs(self, i, axis=0):
         """
         Return the i-th value or values in the Series by location
@@ -773,14 +775,10 @@ index : array-like or Index (1d)
 
     def __setitem__(self, key, value):
         try:
-            try:
-                self.index._engine.set_value(self.values, key, value)
-                return
-            except KeyError:
-                values = self.values
-                values[self.index.get_loc(key)] = value
-                return
+            self._set_with_engine(key, value)
+            return
         except (KeyError,ValueError):
+            values = self.values
             if (com.is_integer(key)
                     and not self.index.inferred_type == 'integer'):
 
@@ -815,6 +813,15 @@ index : array-like or Index (1d)
             self.where(~key,value,inplace=True)
         else:
             self._set_with(key, value)
+
+    def _set_with_engine(self, key, value):
+        values = self.values
+        try:
+            self.index._engine.set_value(values, key, value)
+            return
+        except KeyError:
+            values[self.index.get_loc(key)] = value
+            return
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise

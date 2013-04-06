@@ -912,7 +912,7 @@ class PeriodIndex(Int64Index):
         """
         s = _values_from_object(series)
         try:
-            return _maybe_box(self, super(PeriodIndex, self).get_value(s, key), s, key)
+            return _maybe_box(self, super(PeriodIndex, self).get_value(s, key), series, key)
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -934,15 +934,15 @@ class PeriodIndex(Int64Index):
                     key = slice(pos[0], pos[1] + 1)
                     return series[key]
                 else:
-                    key = Period(asdt, freq=self.freq)
-                    return _maybe_box(self, self._engine.get_value(s, key.ordinal), s, key)
+                    key = Period(asdt, freq=self.freq).ordinal
+                    return _maybe_box(self, self._engine.get_value(s, key), series, key)
             except TypeError:
                 pass
             except KeyError:
                 pass
 
-            key = Period(key, self.freq)
-            return _maybe_box(self, self._engine.get_value(s, key.ordinal), s, key)
+            key = Period(key, self.freq).ordinal
+            return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
     def get_loc(self, key):
         """

@@ -753,11 +753,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         # setitem
+        s2  = s.copy()
         cop = s.copy()
         cop[omask] = 5
-        s[mask] = 5
-        assert_series_equal(cop, s)
-
+        s2[mask] = 5
+        assert_series_equal(cop, s2)
+            
         # nans raise exception
         omask[5:10] = np.nan
         self.assertRaises(Exception, s.__getitem__, omask)

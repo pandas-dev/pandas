@@ -16,7 +16,7 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
-_internal_names = set(['_data','name','_default_kind','_default_fill_value'])
+_internal_names = set(['_data','name','_typ','_index','_default_kind','_default_fill_value'])
 
 class NDFrame(PandasObject):
     """
@@ -1805,6 +1805,7 @@ class NDFrame(PandasObject):
             cond = cond.fillna(False).astype(bool)
 
         # try to align
+        try_quick = True
         if hasattr(other, 'align'):
 
             # align with me
@@ -1817,8 +1818,23 @@ class NDFrame(PandasObject):
                 raise NotImplemented
         
         elif is_list_like(other):
-            other = np.array(other)
-    
+
+            if self.ndim == 1:
+
+                # try to set the same dtype as ourselves
+                new_other = np.array(other,dtype=self.dtype)
+                if not (new_other == np.array(other)).all():
+                    other = np.array(other)
+
+                    # we can't use our existing dtype
+                    # because of incompatibilities
+                    try_quick = False
+                else:
+                    other = new_other
+            else:
+
+                other = np.array(other)
+
         if isinstance(other,np.ndarray):
 
             if other.shape != self.shape:
@@ -1836,14 +1852,19 @@ class NDFrame(PandasObject):
                     # match True cond to other
                     elif len(cond[icond]) == len(other):
 
-                        # try to not change dtype at first
-                        try:
-                            new_other = _values_from_object(self).copy()
-                            new_other[icond] = other
-                            other = new_other
+                        # try to not change dtype at first (if try_quick)
+                        if try_quick:
 
-                        # let's create a new 
-                        except:
+                            try:
+                                new_other = _values_from_object(self).copy()
+                                new_other[icond] = other
+                                other = new_other
+                            except:
+                                try_quick = False
+
+                        # let's create a new (if we failed at the above
+                        # or not try_quick
+                        if not try_quick:
                             dtype, fill_value = _maybe_promote(other.dtype)
                             new_other = np.empty(len(icond),dtype=dtype)
                             new_other.fill(fill_value)

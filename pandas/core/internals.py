@@ -81,15 +81,18 @@ class Block(object):
 
             # we have a single block, maybe have duplicates
             # but indexer is easy
-            if self._is_single_block:
-                self._ref_locs = np.arange(len(self.items))
+            # also if we are not really reindexing, just numbering
+            if self._is_single_block or self.ref_items.equals(self.items):
+                indexer = np.arange(len(self.items))
             else:
+
                 indexer = self.ref_items.get_indexer(self.items)
                 indexer = com._ensure_platform_int(indexer)
                 if (indexer == -1).any():
                     raise AssertionError('Some block items were not in block '
                                          'ref_items')
-                self._ref_locs = indexer
+
+            self._ref_locs = indexer
 
         return self._ref_locs
 
@@ -435,37 +438,58 @@ class Block(object):
             # need to go column by column
             new_blocks = []
 
+            def create_block(v,m,n,item,reshape=True):
+                """ return a new block, try to preserve dtype if possible """
+
+                # n should the length of the mask or a scalar here
+                if np.isscalar(n):
+                    n = np.array([n] * len(m))
+
+                # see if we are only masking values that if putted
+                # will work in the current dtype
+                nv = None
+                try:
+                    nn = n[m]
+                    nn_at = nn.astype(self.dtype)
+                    if (nn == nn_at).all():
+                            nv = v.copy()
+                            nv[mask] = nn_at
+                except:
+                    pass
+
+                # change the dtype
+                if nv is None:
+                    dtype, _ = com._maybe_promote(n.dtype)
+                    nv = v.astype(dtype)
+                    np.putmask(nv, m, n)
+
+                if reshape:
+                    nv = _block_shape(nv)
+                    return make_block(nv, [ item ], self.ref_items)
+                else:
+                    return make_block(nv, item, self.ref_items)
+
             if self.ndim > 1:
                 for i, item in enumerate(self.items):
-
                     m = mask[i]
+                    v = new_values[i]
 
                     # need a new block
                     if m.any():
 
                         n = new[i] if isinstance(new, np.ndarray) else new
-
-                        # type of the new block
-                        dtype, _ = com._maybe_promote(np.array(n).dtype)
-
-                        # we need to exiplicty astype here to make a copy
-                        nv = new_values[i].astype(dtype)
-
-                        # we create a new block type
-                        np.putmask(nv, m, n)
+                        block = create_block(v,m,n,item)
 
                     else:
-                        nv = new_values[i] if inplace else new_values[i].copy()
+                        nv = v if inplace else v.copy()
+                        nv = _block_shape(nv)
+                        block = make_block(nv, Index([ item ]), self.ref_items, fastpath=True)
 
-                nv = _block_shape(nv)
-                new_blocks.append(make_block(nv, Index([ item ]), self.ref_items, fastpath=True))
+                    new_blocks.append(block)
 
             else:
 
-                dtype, _ = com._maybe_promote(np.array(new).dtype)
-                nv = new_values.astype(dtype)
-                np.putmask(nv, mask, new)
-                new_blocks.append(make_block(nv, self.items, self.ref_items))
+                new_blocks.append(create_block(new_values,mask,new,self.items,reshape=False))
 
             return new_blocks
 
@@ -2215,6 +2239,11 @@ class SingleBlockManager(BlockManager):
         self._known_consolidated = True
 
     def reindex(self, new_axis, method=None, limit=None, copy=True):
+
+        # if we are the same and don't copy, just return
+        if not copy and self.index.equals(new_axis):
+            return self
+                
         block = self.block.reindex_items_from(new_axis, copy=copy)
 
         if method is not None or limit is not None:

@@ -7324,16 +7324,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_apply_reduce_Series(self):
         self.frame.ix[::2, 'A'] = np.nan
         expected = self.frame.mean(1)
-
-        # this uses pandas replacement for np.mean
-        import pandas.core.nanops as nanops
-        result = self.frame.apply(nanops.nanmean, axis=1)
-        assert_series_equal(result, expected)
-
-        #### it seems that np.mean does not do the correct thing here!!! ####
+        #import pdb; pdb.set_trace()
         result = self.frame.apply(np.mean, axis=1)
         assert_series_equal(result, expected)
-        #assert_series_equal(result.ix[1::2], expected.ix[1::2])
 
     def test_apply_differently_indexed(self):
         df = DataFrame(np.random.randn(20, 10))

@@ -138,8 +138,7 @@ class SparseSeries(Series):
             if index is None:
                 index = data.index
             else:
-                data = data.reindex(index)
-
+                data = data.reindex(index,copy=False)
         else:
             if index is None:
                 raise Exception('must pass index!')
@@ -316,9 +315,6 @@ class SparseSeries(Series):
         """ forward to the array """
         return iter(self.values)
 
-    def __setitem__(self, key, value):
-        raise Exception("setitem not enabled")
-
     def _get_val_at(self, loc):
         """ forward to the array """
         return self.block.values._get_val_at(loc)
@@ -346,6 +342,9 @@ class SparseSeries(Series):
         dataSlice = self.values[key]
         new_index = Index(self.index.view(ndarray)[key])
         return self._constructor(dataSlice, index=new_index, name=self.name)
+
+    def _set_with_engine(self, key, value):
+        return self.set_value(key, value)
 
     def abs(self):
         """
@@ -420,17 +419,31 @@ class SparseSeries(Series):
         -------
         series : SparseSeries
         """
-        dense = self.to_dense().set_value(label, value)
-        return dense.to_sparse(kind=self.kind, fill_value=self.fill_value)
+        values = self.to_dense()
 
-    ##### not enabled now, does this work? #####
+        # if the label doesn't exist, we will create a new object here
+        # and possibily change the index
+        new_values = values.set_value(label, value)
+        if new_values is not None:
+            values = new_values
+        new_index = values.index
+        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
+        self._data = SingleBlockManager(values, new_index)
+        self._index = new_index
+
     def _set_values(self, key, value):
-        values = self.values
+        
+        # this might be inefficient as we have to recreate the sparse array
+        # rather than setting individual elements, but have to convert
+        # the passed slice/boolean that's in dense space into a sparse indexer
+        # not sure how to do that!
         if isinstance(key, Series):
             key = key.values
 
-        import pdb; pdb.set_trace()
-        self.sp_values[key] = _index.convert_scalar(values, value)
+        values = self.values.to_dense()
+        values[key] = _index.convert_scalar(values, value)
+        values = SparseArray(values, fill_value=self.fill_value, kind=self.kind)
+        self._data = SingleBlockManager(values, self.index)
 
     def to_dense(self, sparse_only=False):
         """

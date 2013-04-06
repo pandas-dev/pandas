@@ -1151,7 +1151,7 @@ class DatetimeIndex(Int64Index):
 
             try:
                 return self.get_value_maybe_box(series, key)
-            except KeyError:
+            except (TypeError, ValueError, KeyError):
                 raise KeyError(key)
 
     def get_value_maybe_box(self, series, key):
