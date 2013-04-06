@@ -30,13 +30,13 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='fraction'):
     limit : tuple, optional
         Tuple of two scalars, the lower and upper limits within which to
         compute the percentile.
-    interpolation : {'fraction', 'lower', 'higher'}, optional
+    interpolation_method : {'fraction', 'lower', 'higher'}, optional
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
 
         - fraction: `i + (j - i)*fraction`, where `fraction` is the
                     fractional part of the index surrounded by `i` and `j`.
-        -lower: `i`.
+        - lower: `i`.
         - higher: `j`.
 
     Returns
