@@ -1351,7 +1351,7 @@ class DataFrame(NDFrame):
                                          quoting=quoting,na_rep=na_rep,
                                          float_format=float_format, cols=cols,
                                          header=header, index=index,
-                                         index_label=index_label,
+                                         index_label=index_label,mode=mode,
                                          chunksize=chunksize,engine=kwds.get("engine") )
             formatter.save()
 
