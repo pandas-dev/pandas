@@ -177,9 +177,9 @@ html_static_path = ['_static']
 
 # If false, no module index is generated.
 
-# 4/2013, the agogo them used already includes this
-# setting tihs true create an extra modules link
-# ttps://github.com/pydata/pandas-website/issues/20
+# 4/2013, the agogo theme used by the docs already includes this.
+# setting this to true creates an extra modules link in the doc header section.
+# https://github.com/pydata/pandas-website/issues/20
 html_use_modindex = False
 
 # If false, no index is generated.
