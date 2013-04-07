@@ -395,6 +395,7 @@ class CompilationCacheExtMixin(CompilationCacheMixin):
 
     def _hash_file(self, fname):
         from hashlib import sha1
+        f= None
         try:
             hash = sha1()
             hash.update(self.build_lib.encode('utf-8'))
@@ -416,7 +417,8 @@ class CompilationCacheExtMixin(CompilationCacheMixin):
                 raise
                 return None
             finally:
-                f.close()
+                if f:
+                    f.close()
 
         except IOError:
             return None
