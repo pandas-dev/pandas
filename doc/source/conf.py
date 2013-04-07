@@ -176,7 +176,11 @@ html_static_path = ['_static']
 # html_additional_pages = {}
 
 # If false, no module index is generated.
-html_use_modindex = True
+
+# 4/2013, the agogo them used already includes this
+# setting tihs true create an extra modules link
+# ttps://github.com/pydata/pandas-website/issues/20
+html_use_modindex = False
 
 # If false, no index is generated.
 # html_use_index = True
