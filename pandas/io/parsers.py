@@ -87,8 +87,9 @@ keep_date_col : boolean, default False
     If True and parse_dates specifies combining multiple columns then
     keep the original columns.
 date_parser : function
-    Function to use for converting dates to strings. Defaults to
-    dateutil.parser
+    Function to use for converting a sequence of string columns to an
+    array of datetime instances. The default uses dateutil.parser.parser
+    to do the conversion.
 dayfirst : boolean, default False
     DD/MM format dates, international and European format
 thousands : str, default None
