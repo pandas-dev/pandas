@@ -163,6 +163,7 @@ pandas 0.11.0
   - util.testing.assert_frame_equal now checks the column and index names (GH2964_)
   - Constructors will now return a more informative ValueError on failures
     when invalid shapes are passed
+  - Don't suppress TypeError in GroupBy.agg (GH3238_)
   - Methods return None when inplace=True (GH1893_)
 
   - ``HDFStore``
@@ -370,6 +371,7 @@ pandas 0.11.0
 .. _GH3216: https://github.com/pydata/pandas/issues/3216
 .. _GH3222: https://github.com/pydata/pandas/issues/3222
 .. _GH2641: https://github.com/pydata/pandas/issues/2641
+.. _GH3238: https://github.com/pydata/pandas/issues/3238
 
 pandas 0.10.1
 =============
