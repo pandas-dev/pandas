@@ -244,6 +244,7 @@ pandas 0.11.0
   - Fixed bug in Timestamp(d,tz=foo) when d is date() rather then datetime() (GH2993_)
   - series.plot(kind='bar') now respects pylab color schem (GH3115_)
   - Fixed bug in reshape if not passed correct input, now raises TypeError (GH2719_)
+  - Fixed a bug where Series ctor did not respect ordering if OrderedDict passed in (GH3282_)
   - Fix NameError issue on RESO_US (GH2787_)
   - Allow selection in an *unordered* timeseries to work similary
     to an *ordered* timeseries (GH2437_).
@@ -314,6 +315,7 @@ pandas 0.11.0
 .. _GH2781: https://github.com/pydata/pandas/issues/2781
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
 .. _GH2787: https://github.com/pydata/pandas/issues/2787
+.. _GH3282: https://github.com/pydata/pandas/issues/3282
 .. _GH2437: https://github.com/pydata/pandas/issues/2437
 .. _GH2753: https://github.com/pydata/pandas/issues/2753
 .. _GH2793: https://github.com/pydata/pandas/issues/2793
