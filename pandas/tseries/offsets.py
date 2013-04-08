@@ -966,7 +966,7 @@ class YearBegin(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year begin dates"""
 
     def __init__(self, n=1, **kwds):
-        self.month = kwds.get('month', 12)
+        self.month = kwds.get('month', 1)
 
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
@@ -974,19 +974,44 @@ class YearBegin(DateOffset, CacheableOffset):
         DateOffset.__init__(self, n=n, **kwds)
 
     def apply(self, other):
-        n = self.n
-        if other.month != 1 or other.day != 1:
-            other = datetime(other.year, 1, 1,
-                             other.hour, other.minute, other.second,
-                             other.microsecond)
-            if n <= 0:
-                n = n + 1
-        other = other + relativedelta(years=n, day=1)
-        return other
+        def _increment(date):
+            year = date.year
+            if date.month >= self.month:
+                year += 1
+            return datetime(year, self.month, 1, date.hour, date.minute,
+                            date.second, date.microsecond)
 
-    @classmethod
-    def onOffset(cls, dt):
-        return dt.month == 1 and dt.day == 1
+        def _decrement(date):
+            year = date.year
+            if date.month < self.month or (date.month == self.month and
+                                           date.day == 1):
+                year -= 1
+            return datetime(year, self.month, 1, date.hour, date.minute,
+                            date.second, date.microsecond)
+
+        def _rollf(date):
+            if (date.month != self.month) or date.day > 1:
+                date = _increment(date)
+            return date
+
+        n = self.n
+        result = other
+        if n > 0:
+            while n > 0:
+                result = _increment(result)
+                n -= 1
+        elif n < 0:
+            while n < 0:
+                result = _decrement(result)
+                n += 1
+        else:
+            # n == 0, roll forward
+            result = _rollf(result)
+
+        return result
+
+    def onOffset(self, dt):
+        return dt.month == self.month and dt.day == 1
 
     @property
     def rule_code(self):
