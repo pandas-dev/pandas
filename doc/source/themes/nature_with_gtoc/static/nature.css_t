@@ -79,7 +79,7 @@ div.sphinxsidebar {
   width: {{ theme_sidebarwidth|toint }}px;
   margin: 0 ;
   float: left;
-
+  /*position: fixed;*/
   background-color: #eee;
 }
 /*
