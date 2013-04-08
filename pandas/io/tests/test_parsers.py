@@ -1548,26 +1548,6 @@ A,B,C
 
         tm.assert_frame_equal(result, expected)
 
-    def test_parse_ragged_csv(self):
-        data = """1,2,3
-1,2,3,4
-1,2,3,4,5
-1,2
-1,2,3,4"""
-
-        nice_data = """1,2,3,,
-1,2,3,4,
-1,2,3,4,5
-1,2,,,
-1,2,3,4,"""
-        result = self.read_csv(StringIO(data), header=None,
-                               names=['a', 'b', 'c', 'd', 'e'])
-
-        expected = self.read_csv(StringIO(nice_data), header=None,
-                                 names=['a', 'b', 'c', 'd', 'e'])
-
-        tm.assert_frame_equal(result, expected)
-
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 
@@ -2077,6 +2057,36 @@ No,No,No"""
         result = self.read_csv(StringIO(data))
         self.assertEquals(result['Date'][1], '2012-05-12')
         self.assertTrue(result['UnitPrice'].isnull().all())
+
+    def test_parse_ragged_csv(self):
+        data = """1,2,3
+1,2,3,4
+1,2,3,4,5
+1,2
+1,2,3,4"""
+
+        nice_data = """1,2,3,,
+1,2,3,4,
+1,2,3,4,5
+1,2,,,
+1,2,3,4,"""
+        result = self.read_csv(StringIO(data), header=None,
+                               names=['a', 'b', 'c', 'd', 'e'])
+
+        expected = self.read_csv(StringIO(nice_data), header=None,
+                                 names=['a', 'b', 'c', 'd', 'e'])
+
+        tm.assert_frame_equal(result, expected)
+
+        # too many columns, cause segfault if not careful
+        data = "1,2\n3,4,5"
+
+        result = self.read_csv(StringIO(data), header=None,
+                               names=range(50))
+        expected = self.read_csv(StringIO(data), header=None,
+                                 names=range(3)).reindex(columns=range(50))
+
+        tm.assert_frame_equal(result, expected)
 
 
 class TestParseSQL(unittest.TestCase):

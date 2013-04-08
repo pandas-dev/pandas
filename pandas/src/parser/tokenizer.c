@@ -498,7 +498,14 @@ static int end_line(parser_t *self) {
     }
     else {
         /* missing trailing delimiters */
-        if (self->lines >= self->header + 1) {
+        if ((self->lines >= self->header + 1) && fields < ex_fields) {
+
+            /* Might overrun the buffer when closing fields */
+            if (make_stream_space(self, ex_fields - fields) < 0) {
+                self->error_msg = "out of memory";
+                return -1;
+            }
+
             while (fields < ex_fields){
                 end_field(self);
                 /* printf("Prior word: %s\n", self->words[self->words_len - 2]); */
