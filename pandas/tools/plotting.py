@@ -691,8 +691,10 @@ class MPLPlot(object):
     """
     _default_rot = 0
 
-    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog']
-    _attr_defaults = {'logy': False, 'logx': False, 'loglog': False}
+    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
+                       'raise_on_error']
+    _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
+                      'raise_on_error': True}
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
@@ -1185,7 +1187,12 @@ class LinePlot(MPLPlot):
                 except AttributeError as inst: # non-numeric
                     msg = ('Unable to plot data %s vs index %s,\n'
                            'error was: %s' % (str(y), str(x), str(inst)))
-                    print msg
+                    if not self.raise_on_error:
+                        print msg
+                    else:
+                        msg = msg + ('\nConsider setting raise_on_error=False'
+                                     'to suppress')
+                        raise Exception(msg)
 
             self._make_legend(lines, labels)
 
@@ -1214,7 +1221,12 @@ class LinePlot(MPLPlot):
             except AttributeError as inst: #non-numeric
                 msg = ('Unable to plot %s,\n'
                        'error was: %s' % (str(data), str(inst)))
-                print msg
+                if not self.raise_on_error:
+                    print msg
+                else:
+                    msg = msg + ('\nConsider setting raise_on_error=False'
+                                 'to suppress')
+                    raise Exception(msg)
 
         if isinstance(data, Series):
             ax = self._get_ax(0)  # self.axes[0]

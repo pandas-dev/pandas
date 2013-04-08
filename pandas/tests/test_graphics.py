@@ -239,8 +239,11 @@ class TestDataFramePlots(unittest.TestCase):
         import matplotlib.pyplot as plt
         plt.close('all')
 
-        ax = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]}).plot() # it works
+        df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]})
+        ax = df.plot(raise_on_error=False) # it works
         self.assert_(len(ax.get_lines()) == 1) #B was plotted
+
+        self.assertRaises(Exception, df.plot)
 
     @slow
     def test_label(self):
