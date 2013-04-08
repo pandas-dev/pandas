@@ -326,7 +326,7 @@ of the new set of columns rather than the original ones:
    os.remove('tmp.csv')
 
 
-Differences with NumPy 
+Differences with NumPy
 ----------------------
 For Series and DataFrame objects, ``var`` normalizes by ``N-1`` to produce
 unbiased estimates of the sample variance, while NumPy's ``var`` normalizes
@@ -334,3 +334,13 @@ by N, which measures the variance of the sample. Note that ``cov``
 normalizes by ``N-1`` in both pandas and NumPy.
 
 
+Thread-safety
+-------------
+
+As of pandas 0.11, pandas is not 100% thread safe. The known issues relate to
+the ``DataFrame.copy`` method. If you are doing a lot of copying of DataFrame
+objects shared among threads, we recommend holding locks inside the threads
+where the data copying occurs.
+
+See `this link <http://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
+for more information.
