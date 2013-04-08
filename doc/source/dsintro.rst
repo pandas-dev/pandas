@@ -77,14 +77,11 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. note::
 
-    Starting in v0.8.0, pandas supports non-unique index values. In previous
-    version, if the index values are not unique an exception will
-    **not** be raised immediately, but attempting any operation involving the
-    index will later result in an exception. In other words, the Index object
-    containing the labels "lazily" checks whether the values are unique. The
-    reason for being lazy is nearly all performance-based (there are many
-    instances in computations, like parts of GroupBy, where the index is not
-    used).
+    Starting in v0.8.0, pandas supports non-unique index values. If an operation
+    that does not support duplicate index values is attempted, an exception
+    will be raised at that time. The reason for being lazy is nearly all performance-based
+    (there are many instances in computations, like parts of GroupBy, where the index
+    is not used).
 
 **From dict**
 
