@@ -274,6 +274,7 @@ pandas 0.11.0
   - Fixed a bug in plotting log-scale bar plots (GH3247_)
   - df.plot() grid on/off now obeys the mpl default style, just like
     series.plot(). (GH3233_)
+  - Fixed a bug in the legend of plotting.andrews_curves() (GH3278_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -295,6 +296,7 @@ pandas 0.11.0
 .. _GH2710: https://github.com/pydata/pandas/issues/2710
 .. _GH2806: https://github.com/pydata/pandas/issues/2806
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
+.. _GH3278: https://github.com/pydata/pandas/issues/3278
 .. _GH2891: https://github.com/pydata/pandas/issues/2891
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
 .. _GH3011: https://github.com/pydata/pandas/issues/3011

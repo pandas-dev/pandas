@@ -37,7 +37,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              'numpydoc',
+              # 'numpydoc',
               'ipython_directive',
               'ipython_console_highlighting',
               'sphinx.ext.intersphinx',
@@ -176,11 +176,7 @@ html_static_path = ['_static']
 # html_additional_pages = {}
 
 # If false, no module index is generated.
-
-# 4/2013, the agogo theme used by the docs already includes this.
-# setting this to true creates an extra modules link in the doc header section.
-# https://github.com/pydata/pandas-website/issues/20
-html_use_modindex = False
+html_use_modindex = True
 
 # If false, no index is generated.
 # html_use_index = True
