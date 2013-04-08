@@ -1170,17 +1170,22 @@ class LinePlot(MPLPlot):
                 else:
                     args = (ax, x, y, style)
 
-                newline = plotf(*args, **kwds)[0]
-                lines.append(newline)
-                leg_label = label
-                if self.mark_right and self.on_right(i):
-                    leg_label += ' (right)'
-                labels.append(leg_label)
-                ax.grid(self.grid)
+                try:
+                    newline = plotf(*args, **kwds)[0]
+                    lines.append(newline)
+                    leg_label = label
+                    if self.mark_right and self.on_right(i):
+                        leg_label += ' (right)'
+                    labels.append(leg_label)
+                    ax.grid(self.grid)
 
-                if self._is_datetype():
-                    left, right = _get_xlim(lines)
-                    ax.set_xlim(left, right)
+                    if self._is_datetype():
+                        left, right = _get_xlim(lines)
+                        ax.set_xlim(left, right)
+                except AttributeError as inst: # non-numeric
+                    msg = ('Unable to plot data %s vs index %s,\n'
+                           'error was: %s' % (str(y), str(x), str(inst)))
+                    print msg
 
             self._make_legend(lines, labels)
 
@@ -1198,6 +1203,19 @@ class LinePlot(MPLPlot):
                 return label + ' (right)'
             return label
 
+        def _plot(data, col_num, ax, label, style, **kwds):
+            try:
+                newlines = tsplot(data, plotf, ax=ax, label=label,
+                                  style=style, **kwds)
+                ax.grid(self.grid)
+                lines.append(newlines[0])
+                leg_label = to_leg_label(label, col_num)
+                labels.append(leg_label)
+            except AttributeError as inst: #non-numeric
+                msg = ('Unable to plot %s,\n'
+                       'error was: %s' % (str(data), str(inst)))
+                print msg
+
         if isinstance(data, Series):
             ax = self._get_ax(0)  # self.axes[0]
             style = self.style or ''
@@ -1205,12 +1223,7 @@ class LinePlot(MPLPlot):
             kwds = kwargs.copy()
             self._maybe_add_color(colors, kwds, style, 0)
 
-            newlines = tsplot(data, plotf, ax=ax, label=label,
-                              style=self.style, **kwds)
-            ax.grid(self.grid)
-            lines.append(newlines[0])
-            leg_label = to_leg_label(label, 0)
-            labels.append(leg_label)
+            _plot(data, 0, ax, label, self.style, **kwds)
         else:
             for i, col in enumerate(data.columns):
                 label = com.pprint_thing(col)
@@ -1220,13 +1233,7 @@ class LinePlot(MPLPlot):
 
                 self._maybe_add_color(colors, kwds, style, i)
 
-                newlines = tsplot(data[col], plotf, ax=ax, label=label,
-                                  style=style, **kwds)
-
-                lines.append(newlines[0])
-                leg_label = to_leg_label(label, i)
-                labels.append(leg_label)
-                ax.grid(self.grid)
+                _plot(data[col], i, ax, label, style, **kwds)
 
         self._make_legend(lines, labels)
 
