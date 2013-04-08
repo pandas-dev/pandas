@@ -407,7 +407,10 @@ def andrews_curves(data, class_column, ax=None, samples=200):
         if com.pprint_thing(class_col[i]) not in used_legends:
             label = com.pprint_thing(class_col[i])
             used_legends.add(label)
-        ax.plot(x, y, color=random_color(class_col[i]), label=label)
+            ax.plot(x, y, color=random_color(class_col[i]), label=label)
+        else:
+            ax.plot(x, y, color=random_color(class_col[i]))
+
     ax.legend(loc='upper right')
     ax.grid()
     return ax
