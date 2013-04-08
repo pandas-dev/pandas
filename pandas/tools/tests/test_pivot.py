@@ -69,6 +69,26 @@ class TestPivotTable(unittest.TestCase):
         expected = self.data.groupby(rows + [cols]).agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
+    def test_pivot_dtypes(self):
+
+        # can convert dtypes
+        f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1,2,3,4], 'i' : ['a','b','a','b']})
+        self.assert_(f.dtypes['v'] == 'int64')
+
+        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.sum)
+        result = z.get_dtype_counts()
+        expected = Series(dict(int64 = 2))
+        tm.assert_series_equal(result, expected)
+
+        # cannot convert dtypes
+        f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1.5,2.5,3.5,4.5], 'i' : ['a','b','a','b']})
+        self.assert_(f.dtypes['v'] == 'float64')
+
+        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.mean)
+        result = z.get_dtype_counts()
+        expected = Series(dict(float64 = 2))
+        tm.assert_series_equal(result, expected)
+
     def test_pivot_multi_values(self):
         result = pivot_table(self.data, values=['D', 'E'],
                              rows='A', cols=['B', 'C'], fill_value=0)
