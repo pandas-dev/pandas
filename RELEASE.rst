@@ -171,6 +171,8 @@ pandas 0.11.0
      - added the method ``select_column`` to select a single column from a table as a Series.
      - deprecated the ``unique`` method, can be replicated by ``select_column(key,column).unique()``
 
+  - Downcast on pivot if possible (GH3283_), adds argument ``downcast`` to ``fillna``
+
 **Bug Fixes**
 
   - Fix seg fault on empty data frame when fillna with ``pad`` or ``backfill``
@@ -376,6 +378,7 @@ pandas 0.11.0
 .. _GH3222: https://github.com/pydata/pandas/issues/3222
 .. _GH2641: https://github.com/pydata/pandas/issues/2641
 .. _GH3238: https://github.com/pydata/pandas/issues/3238
+.. _GH3283: https://github.com/pydata/pandas/issues/3283
 
 pandas 0.10.1
 =============
