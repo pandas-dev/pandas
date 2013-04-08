@@ -233,6 +233,12 @@ API changes
 
   - In ``HDFStore``, deprecated the ``unique`` method, can be replicated by ``select_column(key,column).unique()``
 
+  - an experimental new df.dgrep() for selecting rows by applying regex/predicate function to *data* values
+    can be made available via the "sandbox.dgrep" option. Note that this is not an official part of the API yet
+    so is subject to breaking change. Feedback is welcome (GH2460_).
+
+.. _GH2460: https://github.com/pydata/pandas/issues/2460
+
 Enhancements
 ~~~~~~~~~~~~
 
