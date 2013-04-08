@@ -813,6 +813,7 @@ class MPLPlot(object):
             new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
 
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
+            new_ax.right_ax = new_ax
 
             if len(orig_ax.get_lines()) == 0:  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
@@ -1573,6 +1574,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         For line plots, use log scaling on y axis
     secondary_y : boolean or sequence of ints, default False
         If True then y-axis will be on the right
+    figsize : a tuple (width, height) in inches
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -1588,7 +1590,18 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     elif kind == 'kde':
         klass = KdePlot
 
-    if ax is None:
+    """
+    If no axis is specified, we check whether there are existing figures.
+    If so, we get the current axis and check whether yaxis ticks are on the
+    right. Ticks for the plot of the series will be on the right unless
+    there is at least one axis with ticks on the left.
+
+    If we do not check for whether there are existing figures, _gca() will
+    create a figure with the default figsize, causing the figsize= parameter to
+    be ignored.
+    """
+    import matplotlib.pyplot as plt
+    if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
         if ax.get_yaxis().get_ticks_position().strip().lower() == 'right':
             fig = _gcf()
@@ -1612,7 +1625,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     plot_obj.generate()
     plot_obj.draw()
 
-    return plot_obj.ax
+    # plot_obj.ax is None if we created the first figure
+    return plot_obj.axes[0]
 
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
