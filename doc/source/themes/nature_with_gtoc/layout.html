@@ -66,28 +66,4 @@ by Andi Albrecht.
         </div>
     </div>
 </div>
-
-<script type="text/javascript">
-    // http://movethewebforward.org/
-    // paul irish et al. we <3 you.
-    var $body = $( document.body );
-
-    var $scrollable = $(window); // default scrollable thingy, which'll be body or docEl (html)
-    $originalnavtop =52; //$scrollable.css('top');
-
-    // work on scroll, but debounced
-    var $document = $(document).scroll( function() {
-        var $nav = $("div.sphinxsidebar");
-        if($scrollable.scrollTop() > ($originalnavtop - 20)) {
-            $nav.addClass('sticky').css('top', '0');
-            $nav.addClass('sticky').css('position', 'fixed');
-        } else {
-            $nav.removeClass('sticky');
-            $nav.addClass('sticky').css('position', '');
-            $nav.addClass('sticky').css('top', '');
-        }
-
-    });
-</script>
-
 {%- endblock %}
