@@ -121,7 +121,7 @@ class TestGroupBy(unittest.TestCase):
             agged = grouped.aggregate([np.mean, np.std])
             agged = grouped.aggregate({'one': np.mean,
                                        'two': np.std})
-            
+
             group_constants = {
                 0: 10,
                 1: 20,
@@ -425,10 +425,11 @@ class TestGroupBy(unittest.TestCase):
         df['E'] = ['a'] * len(self.df)
         grouped = self.df.groupby('A')
 
-        def aggfun(ser):
-            return len(ser + 'a')
-        result = grouped.agg(aggfun)
-        self.assertEqual(len(result.columns), 1)
+        # API change in 0.11
+        # def aggfun(ser):
+        #     return len(ser + 'a')
+        # result = grouped.agg(aggfun)
+        # self.assertEqual(len(result.columns), 1)
 
         aggfun = lambda ser: ser.size
         result = grouped.agg(aggfun)
@@ -443,6 +444,19 @@ class TestGroupBy(unittest.TestCase):
         result = DataFrame().groupby(self.df.A).agg(aggfun)
         self.assert_(isinstance(result, DataFrame))
         self.assertEqual(len(result), 0)
+
+    def test_agg_item_by_item_raise_typeerror(self):
+        from numpy.random import randint
+
+        df = DataFrame(randint(10, size=(20, 10)))
+
+        def raiseException(df):
+          print '----------------------------------------'
+          print df.to_string()
+          raise TypeError
+
+        self.assertRaises(TypeError, df.groupby(0).agg,
+                          raiseException)
 
     def test_basic_regression(self):
         # regression
@@ -614,7 +628,7 @@ class TestGroupBy(unittest.TestCase):
         df = DataFrame({'a':[1,2,2,2],
                         'b':range(4),
                         'c':range(5,9)})
-        
+
         df2 = DataFrame({'a':[3,2,2,2],
                          'b':range(4),
                          'c':range(5,9)})
@@ -624,7 +638,7 @@ class TestGroupBy(unittest.TestCase):
         result1 = df.groupby('a').apply(f1)
         result2 = df2.groupby('a').apply(f1)
         assert_frame_equal(result1, result2)
-        
+
         # should fail (not the same number of levels)
         self.assertRaises(AssertionError, df.groupby('a').apply, f2)
         self.assertRaises(AssertionError, df2.groupby('a').apply, f2)
