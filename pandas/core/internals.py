@@ -28,6 +28,7 @@ class Block(object):
     is_bool = False
     is_object = False
     _can_hold_na = False
+    _downcast_dtype = None
 
     def __init__(self, values, items, ref_items, ndim=2):
         if issubclass(values.dtype.type, basestring):
@@ -205,7 +206,7 @@ class Block(object):
                              self.items[s:e].copy(),
                              self.ref_items)
 
-    def fillna(self, value, inplace=False):
+    def fillna(self, value, inplace=False, downcast=None):
         if not self._can_hold_na:
             if inplace:
                 return self
@@ -216,10 +217,32 @@ class Block(object):
         mask = com.isnull(new_values)
         np.putmask(new_values, mask, value)
 
-        if inplace:
-            return self
-        else:
-            return make_block(new_values, self.items, self.ref_items)
+        block = make_block(new_values, self.items, self.ref_items)
+        if downcast:
+            block = block.downcast()
+        return block
+
+    def downcast(self, dtypes = None):
+        """ try to downcast each item to the dict of dtypes if present """
+
+        if dtypes is None:
+            dtypes = dict()
+
+        values = self.values
+        blocks = []
+        for i, item in enumerate(self.items):
+
+            dtype = dtypes.get(item,self._downcast_dtype)
+            if dtype is None:
+                nv = _block_shape(values[i])
+                blocks.append(make_block(nv, [ item ], self.ref_items))
+                continue
+            
+            nv = _possibly_downcast_to_dtype(values[i], np.dtype(dtype))
+            nv = _block_shape(nv)
+            blocks.append(make_block(nv, [ item ], self.ref_items))
+
+        return blocks
 
     def astype(self, dtype, copy = True, raise_on_error = True):
         """
@@ -563,6 +586,7 @@ class NumericBlock(Block):
         return _possibly_downcast_to_dtype(result, self.dtype)
 
 class FloatBlock(NumericBlock):
+    _downcast_dtype = 'int64'
 
     def _can_hold_element(self, element):
         if isinstance(element, np.ndarray):
@@ -973,6 +997,9 @@ class BlockManager(object):
 
     def fillna(self, *args, **kwargs):
         return self.apply('fillna', *args, **kwargs)
+
+    def downcast(self, *args, **kwargs):
+        return self.apply('downcast', *args, **kwargs)
 
     def astype(self, *args, **kwargs):
         return self.apply('astype', *args, **kwargs)

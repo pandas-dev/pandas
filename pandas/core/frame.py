@@ -3231,7 +3231,7 @@ class DataFrame(NDFrame):
     # Filling NA's
 
     def fillna(self, value=None, method=None, axis=0, inplace=False,
-               limit=None):
+               limit=None, downcast=None):
         """
         Fill NA/NaN values using the specified method
 
@@ -3255,6 +3255,8 @@ class DataFrame(NDFrame):
             a reference to the filled object, which is self if inplace=True
         limit : int, default None
             Maximum size gap to forward or backward fill
+        downcast : dict, default is None, a dict of item->dtype of what to 
+            downcast if possible
 
         See also
         --------
@@ -3300,7 +3302,8 @@ class DataFrame(NDFrame):
                     result[k].fillna(v, inplace=True)
                 return result
             else:
-                new_data = self._data.fillna(value, inplace=inplace)
+                new_data = self._data.fillna(value, inplace=inplace, 
+                                             downcast=downcast)
 
         if inplace:
             self._data = new_data
