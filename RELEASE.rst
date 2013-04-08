@@ -1,3 +1,4 @@
+
 =============
 Release Notes
 =============
@@ -127,6 +128,7 @@ pandas 0.11.0
     on rhs (GH3216_)
   - Treat boolean values as integers (values 1 and 0) for numeric
     operations. (GH2641_)
+  - Add ``time()`` method to DatetimeIndex (GH3180_)
 
 **API Changes**
 
