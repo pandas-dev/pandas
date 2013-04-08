@@ -438,7 +438,7 @@ class GroupBy(object):
                 dtype = obj.dtype
 
             if _is_numeric_dtype(dtype):
-                
+
                 # need to respect a non-number here (e.g. Decimal)
                 if len(result) and issubclass(type(result[0]),(np.number,float,int)):
                     result = _possibly_downcast_to_dtype(result, dtype)
@@ -494,7 +494,7 @@ class GroupBy(object):
                 values = result
                 if _is_numeric_dtype(values.dtype):
                     values = com.ensure_float(values)
-                
+
                 output[name] = self._try_cast(values[mask],result)
 
         return self._wrap_aggregated_output(output)
@@ -794,7 +794,7 @@ class Grouper(object):
 
                 # need to curry our sub-function
                 func = wrapper
-                
+
         else:
             func = get_func(ftype)
 
@@ -1778,7 +1778,7 @@ class NDFrameGroupBy(GroupBy):
                 colg = SeriesGroupBy(obj[item], selection=item,
                                      grouper=self.grouper)
                 result[item] = colg.aggregate(func, *args, **kwargs)
-            except (ValueError, TypeError):
+            except ValueError:
                 cannot_agg.append(item)
                 continue
 
@@ -1917,7 +1917,7 @@ class NDFrameGroupBy(GroupBy):
                     # if we make it here, test if we can use the fast path
                     try:
                         res_fast = fast_path(group)
-                    
+
                         # compare that we get the same results
                         if res.shape == res_fast.shape:
                             res_r = res.values.ravel()
@@ -1925,7 +1925,7 @@ class NDFrameGroupBy(GroupBy):
                             mask = notnull(res_r)
                             if (res_r[mask] == res_fast_r[mask]).all():
                                 path = fast_path
-                
+
                     except:
                         pass
                 except TypeError:
