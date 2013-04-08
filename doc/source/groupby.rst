@@ -11,6 +11,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
+   options.display.mpl_style='default'
 
 *****************************
 Group By: split-apply-combine

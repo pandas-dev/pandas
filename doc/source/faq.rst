@@ -20,6 +20,7 @@ Frequently Asked Questions (FAQ)
    from pandas.tseries.offsets import *
    import matplotlib.pyplot as plt
    plt.close('all')
+   options.display.mpl_style='default'
 
 .. _ref-monkey-patching:
 

@@ -14,6 +14,7 @@
    randn = np.random.randn
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
+   options.display.mpl_style='default'
 
    #### portions of this were borrowed from the
    #### Pandas cheatsheet  
@@ -607,6 +608,7 @@ Plotting
 
    import matplotlib.pyplot as plt
    plt.close('all')
+   options.display.mpl_style='default'
 
 .. ipython:: python
 
