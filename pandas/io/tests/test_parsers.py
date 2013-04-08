@@ -1548,6 +1548,33 @@ A,B,C
 
         tm.assert_frame_equal(result, expected)
 
+    def test_parse_integers_above_fp_precision(self):
+        data = """Numbers
+17007000002000191
+17007000002000191
+17007000002000191
+17007000002000191
+17007000002000192
+17007000002000192
+17007000002000192
+17007000002000192
+17007000002000192
+17007000002000194"""
+
+        result = self.read_csv(StringIO(data))
+        expected = DataFrame({'Numbers': [17007000002000191,
+                                          17007000002000191,
+                                          17007000002000191,
+                                          17007000002000191,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000194]})
+
+        self.assertTrue(np.array_equal(result['Numbers'], expected['Numbers']))
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 

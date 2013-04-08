@@ -280,6 +280,8 @@ pandas 0.11.0
   - Fixed a bug in the legend of plotting.andrews_curves() (GH3278_)
   - Produce a series on apply if we only generate a singular series and have
     a simple index (GH2893_)
+  - Fix Python ascii file parsing when integer falls outside of floating point
+    spacing (GH3258_)
 
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
@@ -381,6 +383,7 @@ pandas 0.11.0
 .. _GH3222: https://github.com/pydata/pandas/issues/3222
 .. _GH2641: https://github.com/pydata/pandas/issues/2641
 .. _GH3238: https://github.com/pydata/pandas/issues/3238
+.. _GH3258: https://github.com/pydata/pandas/issues/3258
 .. _GH3283: https://github.com/pydata/pandas/issues/3283
 
 pandas 0.10.1

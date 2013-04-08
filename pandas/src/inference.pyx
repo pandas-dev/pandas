@@ -393,7 +393,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     elif 'inf' in val:  # special case to handle +/-inf
                         seen_float = 1
                     elif fval < fINT64_MAX and fval > fINT64_MIN:
-                        ints[i] = <int64_t> fval
+                        try:
+                            ints[i] = int(val)
+                        except ValueError:
+                            ints[i] = <int64_t> fval
                     else:
                         seen_float = 1
             except:
@@ -402,7 +405,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
                 floats[i] = nan
                 seen_float = 1
-               
+
 
     if seen_complex:
         return complexes
