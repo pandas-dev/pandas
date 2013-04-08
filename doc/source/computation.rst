@@ -231,7 +231,7 @@ These functions can be applied to ndarrays or Series objects:
 
    ts.plot(style='k--')
 
-   @savefig rolling_mean_ex.png width=4.5in
+   @savefig rolling_mean_ex.png width=6in
    rolling_mean(ts, 60).plot(style='k')
 
 They can also be applied to DataFrame objects. This is really just syntactic
@@ -248,7 +248,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
                   columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
-   @savefig rolling_mean_frame.png width=4.5in
+   @savefig rolling_mean_frame.png width=6in
    rolling_sum(df, 60).plot(subplots=True)
 
 The ``rolling_apply`` function takes an extra ``func`` argument and performs
@@ -259,7 +259,7 @@ compute the mean absolute deviation on a rolling basis:
 .. ipython:: python
 
    mad = lambda x: np.fabs(x - x.mean()).mean()
-   @savefig rolling_apply_ex.png width=4.5in
+   @savefig rolling_apply_ex.png width=6in
    rolling_apply(ts, 60, mad).plot(style='k')
 
 The ``rolling_window`` function performs a generic rolling window computation
@@ -362,7 +362,7 @@ columns using ``ix`` indexing:
 
 .. ipython:: python
 
-   @savefig rolling_corr_pairwise_ex.png width=4.5in
+   @savefig rolling_corr_pairwise_ex.png width=6in
    correls.ix[:, 'A', 'C'].plot()
 
 Expanding window moment functions
@@ -435,7 +435,7 @@ relative impact of an individual data point. As an example, here is the
 
    ts.plot(style='k--')
 
-   @savefig expanding_mean_frame.png width=4.5in
+   @savefig expanding_mean_frame.png width=6in
    expanding_mean(ts).plot(style='k')
 
 Exponentially weighted moment functions
@@ -486,7 +486,7 @@ Here are an example for a univariate time series:
    plt.close('all')
    ts.plot(style='k--')
 
-   @savefig ewma_ex.png width=4.5in
+   @savefig ewma_ex.png width=6in
    ewma(ts, span=20).plot(style='k')
 
 .. note::

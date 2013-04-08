@@ -43,7 +43,7 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
    ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
-   @savefig series_plot_basic.png width=4.5in
+   @savefig series_plot_basic.png width=6in
    ts.plot()
 
 If the index consists of dates, it calls ``gcf().autofmt_xdate()`` to try to
@@ -52,7 +52,7 @@ for controlling the look of the plot:
 
 .. ipython:: python
 
-   @savefig series_plot_basic2.png width=4.5in
+   @savefig series_plot_basic2.png width=6in
    plt.figure(); ts.plot(style='k--', label='Series'); plt.legend()
 
 On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
@@ -63,7 +63,7 @@ On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
                   columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
-   @savefig frame_plot_basic.png width=4.5in
+   @savefig frame_plot_basic.png width=6in
    plt.figure(); df.plot(); plt.legend(loc='best')
 
 You may set the ``legend`` argument to ``False`` to hide the legend, which is
@@ -71,15 +71,15 @@ shown by default.
 
 .. ipython:: python
 
-   @savefig frame_plot_basic_noleg.png width=4.5in
+   @savefig frame_plot_basic_noleg.png width=6in
    df.plot(legend=False)
 
 Some other options are available, like plotting each Series on a different axis:
 
 .. ipython:: python
 
-   @savefig frame_plot_subplots.png width=4.5in
-   df.plot(subplots=True, figsize=(8, 8)); plt.legend(loc='best')
+   @savefig frame_plot_subplots.png width=6in
+   df.plot(subplots=True, figsize=(6, 6)); plt.legend(loc='best')
 
 You may pass ``logy`` to get a log-scale Y axis.
 
@@ -90,7 +90,7 @@ You may pass ``logy`` to get a log-scale Y axis.
    ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
    ts = np.exp(ts.cumsum())
 
-   @savefig series_plot_logy.png width=4.5in
+   @savefig series_plot_logy.png width=6in
    ts.plot(logy=True)
 
 You can plot one column versus another using the `x` and `y` keywords in
@@ -103,7 +103,7 @@ You can plot one column versus another using the `x` and `y` keywords in
    df3 = DataFrame(np.random.randn(1000, 2), columns=['B', 'C']).cumsum()
    df3['A'] = Series(range(len(df)))
 
-   @savefig df_plot_xy.png width=4.5in
+   @savefig df_plot_xy.png width=6in
    df3.plot(x='A', y='B')
 
 
@@ -118,7 +118,7 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
 
    df.A.plot()
 
-   @savefig series_plot_secondary_y.png width=4.5in
+   @savefig series_plot_secondary_y.png width=6in
    df.B.plot(secondary_y=True, style='g')
 
 
@@ -133,7 +133,7 @@ keyword:
    plt.figure()
    ax = df.plot(secondary_y=['A', 'B'])
    ax.set_ylabel('CD scale')
-   @savefig frame_plot_secondary_y.png width=4.5in   
+   @savefig frame_plot_secondary_y.png width=6in
    ax.right_ax.set_ylabel('AB scale')
 
 
@@ -146,7 +146,7 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 
    plt.figure()
 
-   @savefig frame_plot_secondary_y_no_right.png width=4.5in
+   @savefig frame_plot_secondary_y_no_right.png width=6in
    df.plot(secondary_y=['A', 'B'], mark_right=False)
 
 
@@ -164,7 +164,7 @@ Here is the default behavior, notice how the x-axis tick labelling is performed:
 
    plt.figure()
 
-   @savefig ser_plot_suppress.png width=4.5in
+   @savefig ser_plot_suppress.png width=6in
    df.A.plot()
 
 
@@ -174,7 +174,7 @@ Using the ``x_compat`` parameter, you can suppress this bevahior:
 
    plt.figure()
 
-   @savefig ser_plot_suppress_parm.png width=4.5in
+   @savefig ser_plot_suppress_parm.png width=6in
    df.A.plot(x_compat=True)
 
 
@@ -187,7 +187,7 @@ in ``pandas.plot_params`` can be used in a `with statement`:
 
    plt.figure()
 
-   @savefig ser_plot_suppress_context.png width=4.5in
+   @savefig ser_plot_suppress_context.png width=6in
    with pd.plot_params.use('x_compat', True):
        df.A.plot(color='r')
        df.B.plot(color='g')
@@ -201,12 +201,12 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
 
 .. ipython:: python
 
-   fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(8, 5))
+   fig, axes = plt.subplots(nrows=2, ncols=2)
    df['A'].plot(ax=axes[0,0]); axes[0,0].set_title('A')
    df['B'].plot(ax=axes[0,1]); axes[0,1].set_title('B')
    df['C'].plot(ax=axes[1,0]); axes[1,0].set_title('C')
 
-   @savefig series_plot_multi.png width=4.5in
+   @savefig series_plot_multi.png width=6in
    df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
 
 .. _visualization.other:
@@ -225,7 +225,7 @@ For labeled, non-time series data, you may wish to produce a bar plot:
 
    plt.figure();
 
-   @savefig bar_plot_ex.png width=4.5in
+   @savefig bar_plot_ex.png width=6in
    df.ix[5].plot(kind='bar'); plt.axhline(0, color='k')
 
 Calling a DataFrame's ``plot`` method with ``kind='bar'`` produces a multiple
@@ -273,7 +273,7 @@ Histograms
 
    plt.figure();
 
-   @savefig hist_plot_ex.png width=4.5in
+   @savefig hist_plot_ex.png width=6in
    df['A'].diff().hist()
 
 
@@ -284,7 +284,7 @@ subplots:
 
    plt.figure()
 
-   @savefig frame_hist_ex.png width=4.5in
+   @savefig frame_hist_ex.png width=6in
    df.diff().hist(color='k', alpha=0.5, bins=50)
 
 
@@ -299,7 +299,7 @@ New since 0.10.0, the ``by`` keyword can be specified to plot grouped histograms
 
    data = Series(np.random.randn(1000))
 
-   @savefig grouped_hist.png width=4.5in
+   @savefig grouped_hist.png width=6in
    data.hist(by=np.random.randint(0, 4, 1000))
 
 
@@ -319,7 +319,7 @@ a uniform random variable on [0,1).
    df = DataFrame(np.random.rand(10,5))
    plt.figure();
 
-   @savefig box_plot_ex.png width=4.5in
+   @savefig box_plot_ex.png width=6in
    bp = df.boxplot()
 
 You can create a stratified boxplot using the ``by`` keyword argument to create
@@ -332,7 +332,7 @@ groupings.  For instance,
 
    plt.figure();
 
-   @savefig box_plot_ex2.png width=4.5in
+   @savefig box_plot_ex2.png width=6in
    bp = df.boxplot(by='X')
 
 You can also pass a subset of columns to plot, as well as group by multiple
@@ -346,7 +346,7 @@ columns:
 
    plt.figure();
 
-   @savefig box_plot_ex3.png width=4.5in
+   @savefig box_plot_ex3.png width=6in
    bp = df.boxplot(column=['Col1','Col2'], by=['X','Y'])
 
 .. _visualization.scatter_matrix:
@@ -363,7 +363,7 @@ Scatter plot matrix
    df = DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig scatter_matrix_kde.png width=6in
-   scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='kde')
+   scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
 
 .. _visualization.kde:
 
@@ -489,7 +489,7 @@ are what constitutes the bootstrap plot.
 
    data = Series(np.random.random(1000))
 
-   @savefig bootstrap_plot.png width=8in
+   @savefig bootstrap_plot.png width=6in
    bootstrap_plot(data, size=50, samples=500, color='grey')
 
 .. _visualization.radviz:

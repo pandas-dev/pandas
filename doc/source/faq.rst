@@ -171,7 +171,7 @@ adopted to pandas's data structures. For example:
    rng = period_range('1987Q2', periods=10, freq='Q-DEC')
    data = Series(np.random.randn(10), index=rng)
 
-   @savefig skts_ts_plot.png width=4.5in
+   @savefig skts_ts_plot.png width=6in
    plt.figure(); data.plot()
 
 Converting to and from period format

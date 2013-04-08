@@ -168,7 +168,7 @@ New plotting methods
 
    fx['FR'].plot(style='g')
 
-   @savefig whatsnew_secondary_y.png width=4.5in
+   @savefig whatsnew_secondary_y.png width=6in
    fx['IT'].plot(style='k--', secondary_y=True)
 
 Vytautas Jancauskas, the 2012 GSOC participant, has added many new plot
@@ -180,7 +180,7 @@ types. For example, ``'kde'`` is a new option:
                               np.random.randn(1000) * 0.5 + 3)))
    plt.figure()
    s.hist(normed=True, alpha=0.2)
-   @savefig whatsnew_kde.png width=4.5in
+   @savefig whatsnew_kde.png width=6in
    s.plot(kind='kde')
 
 See :ref:`the plotting page <visualization.other>` for much more.
