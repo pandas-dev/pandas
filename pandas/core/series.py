@@ -410,7 +410,11 @@ class Series(pa.Array, generic.PandasObject):
                 data = data.reindex(index).values
         elif isinstance(data, dict):
             if index is None:
-                index = Index(sorted(data))
+                from pandas.util.compat import OrderedDict
+                if isinstance(data,OrderedDict):
+                    index = Index(data)
+                else:
+                    index = Index(sorted(data))
             try:
                 if isinstance(index, DatetimeIndex):
                     # coerce back to datetime objects for lookup
@@ -745,7 +749,7 @@ class Series(pa.Array, generic.PandasObject):
             if len(other) == 1:
                 other = np.array(other[0]*len(ser))
 
-            # GH 3235 
+            # GH 3235
             # match True cond to other
             elif len(icond[icond]) == len(other):
                 dtype, fill_value = _maybe_promote(other.dtype)
