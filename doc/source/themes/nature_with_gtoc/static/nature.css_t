@@ -29,7 +29,7 @@ div.documentwrapper {
 
 div.bodywrapper {
 /* ugly hack, probably not attractive with other font size for re*/
-    margin: 0 0 0 {{ theme_sidebarwidth|toint + 32 }}px;
+    margin: 0 0 0 {{ theme_sidebarwidth|toint}}px;
 }
 
 
@@ -77,7 +77,6 @@ div.sphinxsidebar {
   font-size: 0.75em;
   line-height: 1.5em;
   width: {{ theme_sidebarwidth|toint }}px;
-  padding: 0 1em;
   margin: 0 ;
   float: left;
 
@@ -111,8 +110,14 @@ div.sphinxsidebar h3 a {
 
 div.sphinxsidebar p {
     color: #888;
-/*   padding: 5px 20px;*/
+/* padding: 5px 20px;*/
 }
+
+div.sphinxsidebar p.searchtip {
+    color: #888;
+  padding: 5px 20px;
+}
+
 
 div.sphinxsidebar p.topless {
 }
