@@ -489,6 +489,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         refseries = Series(dict(data.iteritems()))
         assert_series_equal(refseries, series)
 
+    def test_orderedDict_ctor(self):
+        # GH3283
+        from pandas.util.compat import OrderedDict
+        import pandas, random
+        data = OrderedDict([('col%s' % i, random.random()) for i in range(12)])
+        s = pandas.Series(data)
+        self.assertTrue(all(s.values == data.values()))
+
+    def test_orderedDict_subclass_ctor(self):
+        # GH3283
+        from pandas.util.compat import OrderedDict
+        import pandas, random
+        class A(OrderedDict):
+            pass
+        data = A([('col%s' % i, random.random()) for i in range(12)])
+        s = pandas.Series(data)
+        self.assertTrue(all(s.values == data.values()))
+
     def test_constructor_list_of_tuples(self):
         data = [(1, 1), (2, 2), (2, 3)]
         s = Series(data)
@@ -571,6 +589,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(range(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
         _check_all_orients(Series(s, dtype=np.float64), dtype=np.float64)
         _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
+
 
     def test_to_json_except(self):
         raise nose.SkipTest
