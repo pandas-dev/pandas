@@ -1245,7 +1245,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.index.equals(exp_index))
         self.assertEquals(result.name, 'foo')
 
-        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = series.to_timestamp(how='start')
         self.assert_(result.index.equals(exp_index))
 
@@ -1354,7 +1354,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.index.equals(exp_index))
         assert_almost_equal(result.values, df.values)
 
-        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = df.to_timestamp('D', 'start')
         self.assert_(result.index.equals(exp_index))
 
@@ -1385,7 +1385,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.columns.equals(exp_index))
         assert_almost_equal(result.values, df.values)
 
-        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = df.to_timestamp('D', 'start', axis=1)
         self.assert_(result.columns.equals(exp_index))
 
