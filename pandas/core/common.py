@@ -1806,6 +1806,9 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
                                     for e in seq[:nitems])
     if nitems < len(seq):
         body+= ", ..."
+    elif isinstance(seq,tuple) and len(seq) == 1:
+        body += ','
+
     return fmt % body
 
 

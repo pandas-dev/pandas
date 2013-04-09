@@ -308,7 +308,7 @@ def test_pprint_thing():
     # escape embedded tabs in string
     # GH #2038
     assert not "\t" in pp_t("a\tb", escape_chars=("\t",))
-
+    assert(pp_t((1,)) == u'(1,)')
 
 class TestTake(unittest.TestCase):
 
