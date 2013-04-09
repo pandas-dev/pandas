@@ -284,7 +284,9 @@ pandas 0.11.0
     a simple index (GH2893_)
   - Fix Python ascii file parsing when integer falls outside of floating point
     spacing (GH3258_)
+  - fixed pretty priniting of sets (GH3294_)
 
+.. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH1893: https://github.com/pydata/pandas/issues/1893
