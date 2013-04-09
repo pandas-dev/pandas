@@ -19,7 +19,9 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal,
-                                 ensure_clean)
+                                 ensure_clean,
+                                 makeCustomDataframe as mkdf
+    )
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
@@ -903,6 +905,16 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         data['ItemB'] = self.panel['ItemB'].values[:, :-1]
         self.assertRaises(Exception, Panel, data)
+
+    def test_ctor_orderedDict(self):
+        from pandas.util.compat import OrderedDict
+        keys = list(set(np.random.randint(0,5000,100)))[:50] # unique random int  keys
+        d = OrderedDict([(k,mkdf(10,5)) for k in keys])
+        p = Panel(d)
+        self.assertTrue(list(p.items) == keys)
+
+        p = Panel.from_dict(d)
+        self.assertTrue(list(p.items) == keys)
 
     def test_constructor_resize(self):
         data = self.panel._data
