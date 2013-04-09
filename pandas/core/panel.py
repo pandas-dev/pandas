@@ -13,7 +13,7 @@ from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
 from pandas.core.indexing import _maybe_droplevels, _is_list_like
-from pandas.core.internals import (BlockManager, 
+from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
@@ -274,14 +274,18 @@ class Panel(NDFrame):
             return cls(data, **d)
 
     def _init_dict(self, data, axes, dtype=None):
+        from pandas.util.compat import OrderedDict
         haxis = axes.pop(self._het_axis)
 
         # prefilter if haxis passed
         if haxis is not None:
             haxis = _ensure_index(haxis)
-            data = dict((k, v) for k, v in data.iteritems() if k in haxis)
+            data = OrderedDict((k, v) for k, v in data.iteritems() if k in haxis)
         else:
-            haxis = Index(_try_sort(data.keys()))
+            ks = data.keys()
+            if not isinstance(data,OrderedDict):
+                ks = _try_sort(ks)
+            haxis = Index(ks)
 
         for k, v in data.iteritems():
             if isinstance(v, dict):
@@ -341,11 +345,11 @@ class Panel(NDFrame):
         -------
         Panel
         """
-        from collections import defaultdict
+        from pandas.util.compat import OrderedDict,OrderedDefaultdict
 
         orient = orient.lower()
         if orient == 'minor':
-            new_data = defaultdict(dict)
+            new_data = OrderedDefaultdict(dict)
             for col, df in data.iteritems():
                 for item, s in df.iteritems():
                     new_data[item][col] = s
@@ -354,7 +358,10 @@ class Panel(NDFrame):
             raise ValueError('only recognize items or minor for orientation')
 
         d = cls._homogenize_dict(cls, data, intersect=intersect, dtype=dtype)
-        d[cls._info_axis] = Index(sorted(d['data'].keys()))
+        ks = d['data'].keys()
+        if not isinstance(d['data'],OrderedDict):
+            ks = list(sorted(ks))
+        d[cls._info_axis] = Index(ks)
         return cls(**d)
 
     def __getitem__(self, key):
@@ -1491,9 +1498,13 @@ class Panel(NDFrame):
         -------
         dict of aligned results & indicies
         """
-        result = {}
+        from pandas.util.compat import OrderedDict
 
-        adj_frames = {}
+        result = dict()
+        if isinstance(frames,OrderedDict): # caller differs dict/ODict, presered type
+            result = OrderedDict()
+
+        adj_frames = OrderedDict()
         for k, v in frames.iteritems():
             if isinstance(v, dict):
                 adj_frames[k] = self._constructor_sliced(v)
