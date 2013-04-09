@@ -645,9 +645,9 @@ def autocorrelation_plot(series, ax=None):
     return ax
 
 
-def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
+def grouped_hist(data, column=None, by=None, ax=None, bins=50,
                  figsize=None, layout=None, sharex=False, sharey=False,
-                 rot=90, **kwargs):
+                 rot=90, grid=True, **kwargs):
     """
     Grouped histogram
 
@@ -658,19 +658,20 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
     by: object, optional
     ax: axes, optional
     bins: int, default 50
-    log: boolean, default False
     figsize: tuple, optional
     layout: optional
     sharex: boolean, default False
     sharey: boolean, default False
     rot: int, default 90
+    grid: bool, default True
+    kwargs: dict, keyword arguments passed to matplotlib.Axes.hist
 
     Returns
     -------
     axes: collection of Matplotlib Axes
     """
     def plot_group(group, ax):
-        ax.hist(group.dropna().values, bins=bins)
+        ax.hist(group.dropna().values, bins=bins, **kwargs)
 
     fig, axes = _grouped_plot(plot_group, data, column=column,
                               by=by, sharex=sharex, sharey=sharey,
