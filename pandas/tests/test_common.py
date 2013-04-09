@@ -290,6 +290,8 @@ def test_ensure_platform_int():
 
 
 def test_pprint_thing():
+    from pandas.util.compat import OrderedDict
+
     if py3compat.PY3:
         raise nose.SkipTest
 
@@ -309,6 +311,20 @@ def test_pprint_thing():
     # GH #2038
     assert not "\t" in pp_t("a\tb", escape_chars=("\t",))
 
+    assert  u'{a: 1}' ==  pp_t(dict(a=1))
+    assert  u'{a: 1}' ==  pp_t(OrderedDict(a=1))
+
+    # allow proper subclasses of dict/OrderedDict to format themselves
+    class SubDict(dict):
+        def __unicode__(self):
+            return "kagles"
+
+    class SubODict(OrderedDict):
+        def __unicode__(self):
+            return "kagles"
+
+    assert  u'kagles' ==  pp_t(SubDict())
+    assert  u'kagles' ==  pp_t(SubODict())
 
 class TestTake(unittest.TestCase):
 
@@ -684,7 +700,7 @@ class TestTake(unittest.TestCase):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
-    
+
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
         arr = np.random.randint(11045376L, 11360736L, (5,3))*100000000000
