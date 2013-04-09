@@ -105,7 +105,7 @@ See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
 .. _indexing.xs:
 
 Cross-sectional slices on non-hierarchical indices are now easily performed using
-``.loc`` and/or ``.loc``. These methods now exist primarily for backward compatibility.
+``.loc`` and/or ``.iloc``. These methods now exist primarily for backward compatibility.
 
   - ``xs`` (for DataFrame),
   - ``minor_xs`` and ``major_xs`` (for Panel)

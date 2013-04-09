@@ -452,7 +452,6 @@ Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>`
    df
    s = df.iloc[3]
    df.append(s, ignore_index=True)
-   df
 
 
 Grouping
@@ -508,7 +507,7 @@ Stack
    df2 = df[:4]
    df2
 
-The ``stack`` function "compresses" a level in the DataFrame's columns. to
+The ``stack`` function "compresses" a level in the DataFrame's columns.
 
 .. ipython:: python
 
@@ -661,19 +660,17 @@ Writing to a HDF5 Store
 
 .. ipython:: python
 
-   store = pd.HDFStore('foo.h5')
-   store['df'] = df
+   df.to_hdf('foo.h5','df')
 
 Reading from a HDF5 Store
 
 .. ipython:: python
 
-   store['df']
+   read_hdf('foo.h5','df')
 
 .. ipython:: python
    :suppress:
 
-   store.close()
    os.remove('foo.h5')
 
 Excel
