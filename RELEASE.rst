@@ -287,6 +287,7 @@ pandas 0.11.0
   - Fix Python ascii file parsing when integer falls outside of floating point
     spacing (GH3258_)
   - fixed pretty priniting of sets (GH3294_)
+  - Panel() and Panel.from_dict() now respects ordering when give OrderedDict (GH3303_)
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
