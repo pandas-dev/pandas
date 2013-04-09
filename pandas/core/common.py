@@ -760,12 +760,27 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
         def changeit():
 
-            # our type is wrong here, need to upcast
+            # try to directly set by expanding our array to full
+            # length of the boolean
+            om = other[mask]
+            om_at = om.astype(result.dtype)
+            if (om == om_at).all():
+                new_other = result.values.copy()
+                new_other[mask] = om_at
+                result[:] = new_other
+                return result, False
+
+            # we are forced to change the dtype of the result as the input isn't compatible
             r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
             np.putmask(r, mask, other)
 
             # we need to actually change the dtype here
             if change is not None:
+
+                # if we are trying to do something unsafe
+                # like put a bigger dtype in a smaller one, use the smaller one
+                if change.dtype.itemsize < r.dtype.itemsize:
+                    raise Exception("cannot change dtype of input to smaller size")
                 change.dtype = r.dtype
                 change[:] = r
 

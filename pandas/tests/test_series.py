@@ -1127,26 +1127,44 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]), [0,2,3])
         self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]), [])
 
+        # unsafe dtype changes
+        for dtype in [ np.int8, np.int16, np.int32, np.int64, np.float16, np.float32, np.float64 ]:
+            s = Series(np.arange(10), dtype=dtype)
+            mask = s < 5
+            s[mask] = range(2,7)
+            expected = Series(range(2,7) + range(5,10), dtype=dtype)
+            assert_series_equal(s, expected)
+            self.assertEquals(s.dtype, expected.dtype)
 
-        s = Series(np.arange(10), dtype=np.int32)
-        mask = s < 5
-        s[mask] = range(5)
-        expected = Series(np.arange(10), dtype=np.int32)
-        assert_series_equal(s, expected)
-        self.assertEquals(s.dtype, expected.dtype)
+        # these are allowed operations, but are upcasted
+        for dtype in [ np.int64, np.float64 ]:
+            s = Series(np.arange(10), dtype=dtype)
+            mask = s < 5
+            values = [2.5,3.5,4.5,5.5,6.5]
+            s[mask] = values 
+            expected = Series(values + range(5,10), dtype='float64')
+            assert_series_equal(s, expected)
+            self.assertEquals(s.dtype, expected.dtype)
+
+        # can't do these as we are forced to change the itemsize of the input to something we cannot
+        for dtype in [ np.int8, np.int16, np.int32, np.float16, np.float32 ]:
+            s = Series(np.arange(10), dtype=dtype)
+            mask = s < 5
+            values = [2.5,3.5,4.5,5.5,6.5]
+            self.assertRaises(Exception, s.__setitem__, tuple(mask), values)
 
         # GH3235
         s = Series(np.arange(10))
         mask = s < 5
-        s[mask] = range(5)
-        expected = Series(np.arange(10))
+        s[mask] = range(2,7)
+        expected = Series(range(2,7) + range(5,10))
         assert_series_equal(s, expected)
         self.assertEquals(s.dtype, expected.dtype)
 
         s = Series(np.arange(10))
         mask = s > 5
         s[mask] = [0]*4
-        expected = Series([0,1,2,3,4,5] + [0]*4,dtype='float64')
+        expected = Series([0,1,2,3,4,5] + [0]*4)
         assert_series_equal(s,expected)
 
         s = Series(np.arange(10))
@@ -3174,7 +3192,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # need to upcast
         s = Series([1,2],index=[1,2],dtype='int64')
         s[[True, False]] = Series([0],index=[1],dtype='int64')
-        expected = Series([0,2],index=[1,2],dtype='float64')
+        expected = Series([0,2],index=[1,2],dtype='int64')
 
         assert_series_equal(s, expected)
 
