@@ -1325,6 +1325,7 @@ class BarPlot(MPLPlot):
         else:
             self.tickoffset = 0.375
         self.bar_width = 0.5
+        self.log = kwargs.pop('log',False)
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1335,9 +1336,9 @@ class BarPlot(MPLPlot):
     def bar_f(self):
         if self.kind == 'bar':
             def f(ax, x, y, w, start=None, **kwds):
-                return ax.bar(x, y, w, bottom=start, **kwds)
+                return ax.bar(x, y, w, bottom=start,log=self.log, **kwds)
         elif self.kind == 'barh':
-            def f(ax, x, y, w, start=None, **kwds):
+            def f(ax, x, y, w, start=None, log=self.log, **kwds):
                 return ax.barh(x, y, w, left=start, **kwds)
         else:
             raise NotImplementedError
@@ -1411,7 +1412,8 @@ class BarPlot(MPLPlot):
                 ax.set_xticks(self.ax_pos + self.tickoffset)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
-                ax.axhline(0, color='k', linestyle='--')
+                if not self.log: # GH3254+
+                    ax.axhline(0, color='k', linestyle='--')
                 if name is not None:
                     ax.set_xlabel(name)
             else:

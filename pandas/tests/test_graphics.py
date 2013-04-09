@@ -406,6 +406,9 @@ class TestDataFramePlots(unittest.TestCase):
                          ax.patches[0].get_x() + ax.patches[0].get_width())
     @slow
     def test_bar_log(self):
+        # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
+        # regressions in 1.2.1
+
         df = DataFrame({'A': [3] * 5, 'B': range(5)}, index=range(5))
         ax = df.plot(kind='bar', grid=True,log=True)
         self.assertEqual(ax.yaxis.get_ticklocs()[0],1.0)
