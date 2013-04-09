@@ -450,6 +450,7 @@ class DataFrame(NDFrame):
                 raise PandasError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr)
+        self.meta=dict()
 
     @classmethod
     def _from_axes(cls, data, axes):
@@ -1696,10 +1697,20 @@ class DataFrame(NDFrame):
     # Picklability
 
     def __getstate__(self):
-        return self._data
+        return self._data,dict(meta=self.meta)
 
     def __setstate__(self, state):
         # old DataFrame pickle
+        attrs = {}
+        if ( isinstance(state, tuple)
+            and isinstance(state[0],BlockManager)
+            and isinstance(state[1],dict)):
+            attrs=state[1]
+
+            # put things back to the prev version and
+            # reuse the old path
+            state = state[0]
+
         if isinstance(state, BlockManager):
             self._data = state
         elif isinstance(state[0], dict):  # pragma: no cover
@@ -1710,6 +1721,9 @@ class DataFrame(NDFrame):
 
         # ordinarily created in NDFrame
         self._item_cache = {}
+
+        for k,v in attrs.items():
+            setattr(self,k,v)
 
     # legacy pickle formats
     def _unpickle_frame_compat(self, state):  # pragma: no cover

@@ -27,7 +27,8 @@ from pandas.io.parsers import read_csv
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
-                                 ensure_clean)
+                                 ensure_clean,
+                                 makeCustomDataframe as mkdf )
 from pandas.util import py3compat
 from pandas.util.compat import OrderedDict
 
@@ -4616,7 +4617,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     @slow
     def test_to_csv_moar(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
         path = '__tmp_to_csv_moar__'
         chunksize=1000
 
@@ -6021,7 +6021,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result,expected)
 
         # test case from
-        from pandas.util.testing import makeCustomDataframe as mkdf
         df = DataFrame({'A' : Series([3,0],dtype='int64'), 'B' : Series([0,3],dtype='int64') })
         result = df.replace(3, df.mean().to_dict())
         expected = df.copy().astype('float64')
@@ -9427,6 +9426,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # df.all(1)
         # df.any(1, bool_only=True)
         # df.all(1, bool_only=True)
+
+    def test_meta_serialization(self):
+        import pandas as pd
+        df=mkdf(10,5)
+        df.meta == {}
+        # create some kv pairs for serialization
+        df.meta['Im']="persistent"
+        # roundtrip
+        with ensure_clean() as path:
+            df.save(path)
+            dfrt =pd.load(path)
+
+            # still here
+            self.assertEqual(dfrt.meta['Im'],'persistent')
 
     def test_consolidate_datetime64(self):
         # numpy vstack bug

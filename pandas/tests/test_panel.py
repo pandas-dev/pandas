@@ -40,6 +40,21 @@ class PanelTests(object):
         unpickled = cPickle.loads(pickled)
         assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
 
+    def test_meta_serialization(self):
+        import pandas as pd
+
+        p = self.panel
+        p.meta = {}
+        # create some kv pairs for serialization
+        p.meta['Im']="persistent"
+        # roundtrip
+        with ensure_clean() as path:
+            p.save(path)
+            prt =pd.load(path)
+
+            # still here
+            self.assertEqual(prt.meta['Im'],'persistent')
+
     def test_cumsum(self):
         cumsum = self.panel.cumsum()
         assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())

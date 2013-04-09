@@ -238,6 +238,7 @@ class Panel(NDFrame):
         self._init_data(
             data=data, items=items, major_axis=major_axis, minor_axis=minor_axis,
             copy=copy, dtype=dtype)
+        self.meta = {}
 
     def _init_data(self, data, copy, dtype, **kwargs):
         """ generate ND initialization; axes are passed as required objects to __init__ """
@@ -706,10 +707,21 @@ class Panel(NDFrame):
 
     def __getstate__(self):
         "Returned pickled representation of the panel"
-        return self._data
+        return self._data,dict(meta=self.meta)
 
     def __setstate__(self, state):
         # old Panel pickle
+        attrs = {}
+        print( state)
+        if ( isinstance(state, tuple)
+            and isinstance(state[0],BlockManager)
+            and isinstance(state[1],dict)):
+            attrs = state[1]
+
+            # put things back to the prev version and
+            # reuse the old path
+            state = state[0]
+
         if isinstance(state, BlockManager):
             self._data = state
         elif len(state) == 4:  # pragma: no cover
@@ -717,6 +729,9 @@ class Panel(NDFrame):
         else:  # pragma: no cover
             raise ValueError('unrecognized pickle')
         self._item_cache = {}
+
+        for k,v in attrs.items():
+            setattr(self,k,v)
 
     def _unpickle_panel_compat(self, state):  # pragma: no cover
         "Unpickle the panel"

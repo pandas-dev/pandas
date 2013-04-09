@@ -540,6 +540,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         series = Series(data, dtype=float)
         self.assert_(series.dtype == np.float64)
 
+    def test_meta_serialization(self):
+        import pandas as pd
+        s=Series([np.random.randn(100)])
+        s.meta == {}
+        # create some kv pairs for serialization
+        s.meta['Im']="persistent"
+        # roundtrip
+        with ensure_clean() as path:
+            s.save(path)
+            srt =pd.load(path)
+
+            # still here
+            self.assertEqual(srt.meta['Im'],'persistent')
+
     def test_from_json_to_json(self):
         raise nose.SkipTest
 
