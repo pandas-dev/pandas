@@ -50,6 +50,8 @@ pandas 0.11.0
   - Added support for expression evaluation using the ``numexpr`` library
   - Added ``convert=boolean`` to ``take`` routines to translate negative
     indices to positive, defaults to True
+  - Added to_series() method to indices, to facilitate the creation of indexeres
+    (GH3275_)
 
 **Improvements to existing features**
 
@@ -293,6 +295,7 @@ pandas 0.11.0
 .. _GH1893: https://github.com/pydata/pandas/issues/1893
 .. _GH1978: https://github.com/pydata/pandas/issues/1978
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
+.. _GH3275: https://github.com/pydata/pandas/issues/3275
 .. _GH2121: https://github.com/pydata/pandas/issues/2121
 .. _GH3247: https://github.com/pydata/pandas/issues/3247
 .. _GH2809: https://github.com/pydata/pandas/issues/2809

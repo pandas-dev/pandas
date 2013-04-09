@@ -1325,6 +1325,7 @@ class BarPlot(MPLPlot):
         else:
             self.tickoffset = 0.375
         self.bar_width = 0.5
+        self.log = kwargs.pop('log',False)
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1335,9 +1336,9 @@ class BarPlot(MPLPlot):
     def bar_f(self):
         if self.kind == 'bar':
             def f(ax, x, y, w, start=None, **kwds):
-                return ax.bar(x, y, w, bottom=start, **kwds)
+                return ax.bar(x, y, w, bottom=start,log=self.log, **kwds)
         elif self.kind == 'barh':
-            def f(ax, x, y, w, start=None, **kwds):
+            def f(ax, x, y, w, start=None, log=self.log, **kwds):
                 return ax.barh(x, y, w, left=start, **kwds)
         else:
             raise NotImplementedError
@@ -1354,6 +1355,7 @@ class BarPlot(MPLPlot):
         return colors
 
     def _make_plot(self):
+        import matplotlib as mpl
         colors = self._get_colors()
         rects = []
         labels = []
@@ -1371,10 +1373,15 @@ class BarPlot(MPLPlot):
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % len(colors)]
 
+            # default, GH3254
+            # I tried, I really did.
+            start = 0 if mpl.__version__ == "1.2.1" else None
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
-                rect = bar_f(ax, self.ax_pos, y,
-                             self.bar_width, **kwds)
+
+                rect = bar_f(ax, self.ax_pos, y,  self.bar_width,
+                             start = start,
+                             **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
@@ -1385,6 +1392,7 @@ class BarPlot(MPLPlot):
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
+                             start = start,
                               label=label, **kwds)
             rects.append(rect)
             labels.append(label)
@@ -1404,7 +1412,8 @@ class BarPlot(MPLPlot):
                 ax.set_xticks(self.ax_pos + self.tickoffset)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
-                ax.axhline(0, color='k', linestyle='--')
+                if not self.log: # GH3254+
+                    ax.axhline(0, color='k', linestyle='--')
                 if name is not None:
                     ax.set_xlabel(name)
             else:

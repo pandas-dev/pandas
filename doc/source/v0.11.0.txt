@@ -226,6 +226,9 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`
 API changes
 ~~~~~~~~~~~
 
+  - Added to_series() method to indicies, to facilitate the creation of indexers
+    (GH3275_)
+
   - In ``HDFStore``, added the method ``select_column`` to select a single column from a table as a Series.
 
   - In ``HDFStore``, deprecated the ``unique`` method, can be replicated by ``select_column(key,column).unique()``
@@ -344,6 +347,7 @@ on GitHub for a complete list.
 .. _GH2807: https://github.com/pydata/pandas/issues/2807
 .. _GH2918: https://github.com/pydata/pandas/issues/2918
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
+.. _GH3275: https://github.com/pydata/pandas/issues/3275
 .. _GH2979: https://github.com/pydata/pandas/issues/2979
 .. _GH3011: https://github.com/pydata/pandas/issues/3011
 .. _GH3076: https://github.com/pydata/pandas/issues/3076
