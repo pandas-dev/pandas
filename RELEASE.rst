@@ -131,6 +131,9 @@ pandas 0.11.0
   - Add ``time()`` method to DatetimeIndex (GH3180_)
   - Return NA when using Series.str[...] for values that are not long enough
     (GH3223_)
+  - to_html() now accepts an optional "escape" argument to control reserved
+    HTML character escaping (enabled by default) and escapes ``&``, in addition
+    to ``<`` and ``>``.  (GH2919_)
 
 **API Changes**
 
@@ -390,6 +393,7 @@ pandas 0.11.0
 .. _GH3238: https://github.com/pydata/pandas/issues/3238
 .. _GH3258: https://github.com/pydata/pandas/issues/3258
 .. _GH3283: https://github.com/pydata/pandas/issues/3283
+.. _GH2919: https://github.com/pydata/pandas/issues/2919
 
 pandas 0.10.1
 =============
