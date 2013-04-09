@@ -442,6 +442,7 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_hist(self):
+        import matplotlib.pyplot as plt
         df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.hist)
         _check_plot_works(df.hist, grid=False)
@@ -462,7 +463,7 @@ class TestDataFramePlots(unittest.TestCase):
         # make sure sharex, sharey is handled
         _check_plot_works(df.hist, sharex=True, sharey=True)
 
-        # make sure kwargs are handled
+        # make sure xlabelsize and xrot are handled
         ser = df[0]
         xf, yf = 20, 20
         xrot, yrot = 30, 30
@@ -485,6 +486,21 @@ class TestDataFramePlots(unittest.TestCase):
                 self.assertAlmostEqual(ytick.get_rotation(), yrot)
                 self.assertAlmostEqual(xtick.get_fontsize(), xf)
                 self.assertAlmostEqual(xtick.get_rotation(), xrot)
+
+        plt.close('all')
+        # make sure kwargs to hist are handled
+        ax = ser.hist(normed=True, cumulative=True, bins=4)
+        # height of last bin (index 5) must be 1.0
+        self.assertAlmostEqual(ax.get_children()[5].get_height(), 1.0)
+
+        plt.close('all')
+        ax = ser.hist(log=True)
+        # scale of y must be 'log'
+        self.assert_(ax.get_yscale() == 'log')
+
+        plt.close('all')
+        # propagate attr exception from matplotlib.Axes.hist
+        self.assertRaises(AttributeError, ser.hist, foo='bar')
 
     @slow
     def test_scatter(self):
@@ -723,6 +739,28 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
 
         for ax in axes.ravel():
             self.assert_(len(ax.patches) > 0)
+
+        plt.close('all')
+        # make sure kwargs to hist are handled
+        axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
+                                     cumulative=True, bins=4)
+
+        # height of last bin (index 5) must be 1.0
+        for ax in axes.ravel():
+            height = ax.get_children()[5].get_height()
+            self.assertAlmostEqual(height, 1.0)
+
+        plt.close('all')
+        axes = plotting.grouped_hist(df.A, by=df.C, log=True)
+        # scale of y must be 'log'
+        for ax in axes.ravel():
+            self.assert_(ax.get_yscale() == 'log')
+
+        plt.close('all')
+        # propagate attr exception from matplotlib.Axes.hist
+        self.assertRaises(AttributeError, plotting.grouped_hist, df.A,
+                          by=df.C, foo='bar')
+
 
     def test_option_mpl_style(self):
         # just a sanity check
