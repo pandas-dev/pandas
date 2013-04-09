@@ -404,6 +404,11 @@ class TestDataFramePlots(unittest.TestCase):
         ax = df.plot(kind='bar', grid=True)
         self.assertEqual(ax.xaxis.get_ticklocs()[0],
                          ax.patches[0].get_x() + ax.patches[0].get_width())
+    @slow
+    def test_bar_log(self):
+        df = DataFrame({'A': [3] * 5, 'B': range(5)}, index=range(5))
+        ax = df.plot(kind='bar', grid=True,log=True)
+        self.assertEqual(ax.yaxis.get_ticklocs()[0],0.1)
 
     @slow
     def test_boxplot(self):
