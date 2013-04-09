@@ -1354,6 +1354,7 @@ class BarPlot(MPLPlot):
         return colors
 
     def _make_plot(self):
+        import matplotlib as mpl
         colors = self._get_colors()
         rects = []
         labels = []
@@ -1371,10 +1372,15 @@ class BarPlot(MPLPlot):
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % len(colors)]
 
+            # default, GH3254
+            # I tried, I really did.
+            start = 0 if mpl.__version__ == "1.2.1" else None
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
-                rect = bar_f(ax, self.ax_pos, y,
-                             self.bar_width, **kwds)
+
+                rect = bar_f(ax, self.ax_pos, y,  self.bar_width,
+                             start = start,
+                             **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
@@ -1385,6 +1391,7 @@ class BarPlot(MPLPlot):
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
+                             start = start,
                               label=label, **kwds)
             rects.append(rect)
             labels.append(label)
