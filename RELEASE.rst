@@ -129,6 +129,8 @@ pandas 0.11.0
   - Treat boolean values as integers (values 1 and 0) for numeric
     operations. (GH2641_)
   - Add ``time()`` method to DatetimeIndex (GH3180_)
+  - Return NA when using Series.str[...] for values that are not long enough
+    (GH3223_)
 
 **API Changes**
 
@@ -382,6 +384,7 @@ pandas 0.11.0
 .. _GH3216: https://github.com/pydata/pandas/issues/3216
 .. _GH3222: https://github.com/pydata/pandas/issues/3222
 .. _GH2641: https://github.com/pydata/pandas/issues/2641
+.. _GH3223: https://github.com/pydata/pandas/issues/3223
 .. _GH3238: https://github.com/pydata/pandas/issues/3238
 .. _GH3258: https://github.com/pydata/pandas/issues/3258
 .. _GH3283: https://github.com/pydata/pandas/issues/3283

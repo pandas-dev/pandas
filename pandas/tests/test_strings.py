@@ -754,6 +754,19 @@ class TestStringMethods(unittest.TestCase):
         expected = s.str.slice(stop=3)
         assert_series_equal(result, expected)
 
+    def test_string_slice_out_of_bounds(self):
+        s = Series([(1, 2), (1,), (3,4,5)])
+
+        result = s.str[1]
+        expected = Series([2, np.nan, 4])
+
+        assert_series_equal(result, expected)
+
+        s = Series(['foo', 'b', 'ba'])
+        result = s.str[1]
+        expected = Series(['o', np.nan, 'a'])
+        assert_series_equal(result, expected)
+
     def test_match_findall_flags(self):
         data = {'Dave': 'dave@google.com', 'Steve': 'steve@gmail.com',
                 'Rob': 'rob@gmail.com', 'Wes': np.nan}

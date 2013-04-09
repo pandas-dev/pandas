@@ -559,7 +559,7 @@ def str_get(arr, i):
     -------
     items : array
     """
-    f = lambda x: x[i]
+    f = lambda x: x[i] if len(x) > i else np.nan
     return _na_map(f, arr)
 
 
