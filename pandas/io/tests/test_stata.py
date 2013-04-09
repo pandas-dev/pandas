@@ -119,14 +119,14 @@ class StataTests(unittest.TestCase):
                 ["eight", "three", 8, np.nan, "eight"],
                 ["nine", "two", 9, np.nan, "nine"],
                 ["ten", "one", "ten", np.nan, "ten"]
-             ],
-             columns=['fully_labeled', 'fully_labeled2', 'incompletely_labeled', 'labeled_with_missings', 'float_labelled'])
+            ],
+            columns=['fully_labeled', 'fully_labeled2', 'incompletely_labeled', 'labeled_with_missings', 'float_labelled'])
 
         tm.assert_frame_equal(parsed, expected)
 
     def test_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
-                      columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
+                             columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
 
         writer = StataWriter(self.dta5, original, None, False)
         writer.write_file()

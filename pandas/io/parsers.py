@@ -2271,6 +2271,17 @@ class ExcelWriter(object):
                           val, style)
 
 
+"""
+The StataReader below was originally written by Joe Presbrey as part of PyDTA.
+It has been extended and improved by Skipper Seabold from the Statsmodels project
+who also developed the StataWriter and was finally added to pandas in an once again
+improved version.
+
+You can find more information on http://presbrey.mit.edu/PyDTA and
+http://statsmodels.sourceforge.net/devel/
+"""
+
+
 def is_py3():
     if sys.version_info[0] == 3:
         return True
@@ -2746,7 +2757,7 @@ class StataReader(StataParser):
                 labeled_data = np.copy(data[col])
                 labeled_data = labeled_data.astype(object)
                 for k, v in self.value_label_dict[self.lbllist[i]].iteritems():
-                   labeled_data[data[col]==k] = v
+                    labeled_data[data[col] == k] = v
                 data[col] = Categorical.from_array(labeled_data)
 
         return data
