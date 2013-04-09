@@ -739,7 +739,13 @@ class Series(pa.Array, generic.PandasObject):
         if isinstance(other, Series):
             other = other.reindex(ser.index)
         elif isinstance(other, (tuple,list)):
-            other = np.array(other)
+
+            # try to set the same dtype as ourselves
+            new_other = np.array(other,dtype=self.dtype)
+            if not (new_other == np.array(other)).all():
+                other = np.array(other)
+            else:
+                other = new_other
 
         if len(other) != len(ser):
             icond = ~cond
