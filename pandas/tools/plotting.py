@@ -1374,9 +1374,13 @@ class BarPlot(MPLPlot):
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % len(colors)]
 
-            # default, GH3254
-            # I tried, I really did.
-            start = 0 if mpl.__version__ == "1.2.1" else None
+            start =0
+            if self.log:
+                start = 1
+                if any(y < 1):
+                    # GH3254
+                    start = 0 if mpl.__version__ == "1.2.1" else None
+
             if self.subplots:
                 ax = self._get_ax(i)  # self.axes[i]
 

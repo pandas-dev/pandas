@@ -409,7 +409,7 @@ class TestDataFramePlots(unittest.TestCase):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
 
-        df = DataFrame({'A': [3] * 5, 'B': range(5)}, index=range(5))
+        df = DataFrame({'A': [3] * 5, 'B': range(1,6)}, index=range(5))
         ax = df.plot(kind='bar', grid=True,log=True)
         self.assertEqual(ax.yaxis.get_ticklocs()[0],1.0)
 
@@ -417,8 +417,8 @@ class TestDataFramePlots(unittest.TestCase):
         p2 = DataFrame([Series([200,300]),Series([300,500])]).plot(log=True,kind='bar',subplots=True)
 
         (p1.yaxis.get_ticklocs() == np.array([ 0.625,  1.625]))
-        (p2[0].yaxis.get_ticklocs() == np.array([ 100., 1000.])).all()
-        (p2[1].yaxis.get_ticklocs() == np.array([ 100., 1000.])).all()
+        (p2[0].yaxis.get_ticklocs() == np.array([ 1., 10., 100., 1000.])).all()
+        (p2[1].yaxis.get_ticklocs() == np.array([ 1., 10., 100., 1000.])).all()
 
     @slow
     def test_boxplot(self):
