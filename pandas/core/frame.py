@@ -1542,11 +1542,11 @@ class DataFrame(NDFrame):
 
     @property
     def dtypes(self):
-        return self.apply(lambda x: x.dtype)
+        return self.apply(lambda x: x.dtype, reduce=False)
 
     @property
     def ftypes(self):
-        return self.apply(lambda x: x.ftype)
+        return self.apply(lambda x: x.ftype, reduce=False)
 
     def transpose(self):
         return super(DataFrame, self).transpose(1,0)
@@ -3258,7 +3258,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False, raw=False,
+    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=True,
               args=(), **kwds):
         """
         Applies function along input axis of DataFrame. Objects passed to
@@ -3276,6 +3276,7 @@ class DataFrame(NDFrame):
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
+        reduce : bool, default True, try to apply reduction procedures
         raw : boolean, default False
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
@@ -3331,7 +3332,7 @@ class DataFrame(NDFrame):
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(f, axis)
                 else:
-                    return self._apply_standard(f, axis)
+                    return self._apply_standard(f, axis, reduce=reduce)
             else:
                 return self._apply_broadcast(f, axis)
 
@@ -3348,21 +3349,26 @@ class DataFrame(NDFrame):
         else:
             return Series(result, index=self._get_agg_axis(axis))
 
-    def _apply_standard(self, func, axis, ignore_failures=False):
-        try:
+    def _apply_standard(self, func, axis, ignore_failures=False, reduce=True):
 
-            if self._is_mixed_type:  # maybe a hack for now
-                raise AssertionError('Must be mixed type DataFrame')
-            values = self.values
-            dummy = Series(NA, index=self._get_axis(axis),
-                           dtype=values.dtype)
-
-            labels = self._get_agg_axis(axis)
-            result = lib.reduce(values, func, axis=axis, dummy=dummy,
-                                labels=labels)
-            return Series(result, index=self._get_agg_axis(axis))
-        except Exception:
-            pass
+        # try to reduce first (by default)
+        # this only matters if the reduction in values is of different dtype
+        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
+        if reduce:
+            try:
+                
+                if self._is_mixed_type:  # maybe a hack for now
+                    raise AssertionError('Must be mixed type DataFrame')
+                values = self.values.ravel()
+                dummy = Series(NA, index=self._get_axis(axis),
+                               dtype=values.dtype)
+                
+                labels = self._get_agg_axis(axis)
+                result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                    labels=labels)
+                return Series(result, index=self._get_agg_axis(axis))
+            except Exception:
+                pass
 
         if axis == 0:
             series_gen = (self.icol(i) for i in range(len(self.columns)))

@@ -7323,8 +7323,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_apply_reduce_Series(self):
         self.frame.ix[::2, 'A'] = np.nan
-        expected = self.frame.mean(1)
-        #import pdb; pdb.set_trace()
+        expected = self.frame.mean(1)    
         result = self.frame.apply(np.mean, axis=1)
         assert_series_equal(result, expected)
 
@@ -8289,8 +8288,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 return alternative(nona)
 
             def wrapper(x):
-                #return alternative(x.values)
-                return alternative(x)
+                return alternative(x.values)
 
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)

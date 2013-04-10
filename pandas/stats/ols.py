@@ -96,7 +96,7 @@ class OLS(object):
             filt_rhs['intercept'] = 1.
             pre_filt_rhs['intercept'] = 1.
 
-        return (filt_lhs, filt_rhs, filt_weights,
+        return (filt_lhs.to_dense(), filt_rhs.to_dense(), filt_weights,
                 pre_filt_rhs, index, valid)
 
     @property

@@ -469,6 +469,10 @@ class NDFrame(PandasObject):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
         return self._constructor(result, **d)
 
+    def to_dense(self):
+        # compat
+        return self
+
     #----------------------------------------------------------------------
     # Picklability
 

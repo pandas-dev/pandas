@@ -9,8 +9,7 @@ cdef class Reducer:
     '''
     cdef:
         Py_ssize_t increment, chunksize, nresults
-        object arr, dummy, f, labels
-        bint can_set_name
+        object arr, dummy, f, labels, typ, index
 
     def __init__(self, object arr, object f, axis=1, dummy=None,
                  labels=None):
@@ -33,49 +32,84 @@ cdef class Reducer:
 
         self.f = f
         self.arr = arr
-        self.dummy = self._check_dummy(dummy)
+        self.typ = None
         self.labels = labels
+        self.dummy, index = self._check_dummy(dummy)
+  
+        if axis == 0:
+             self.labels = index
+             self.index  = labels
+        else:
+             self.labels = labels
+             self.index  = index
 
     def _check_dummy(self, dummy=None):
-        self.can_set_name = 0
+        cdef object index
+
         if dummy is None:
             dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
+            index = None
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError('Dummy array must be length %d' %
                                  self.chunksize)
-            if not isinstance(dummy,np.ndarray):
-                dummy = dummy.values
+
+            # we passed a series-like
+            if hasattr(dummy,'values'):
                 
-        return dummy
+                self.typ = type(dummy)
+                index = getattr(dummy,'index',None)
+                dummy = dummy.values                
+
+        return dummy, index
 
     def get_result(self):
         cdef:
             char* dummy_buf
             ndarray arr, result, chunk
-            Py_ssize_t i
+            Py_ssize_t i, incr
             flatiter it
-            object res
-            bint set_label = 0
-            ndarray labels
+            object res, tchunk, name, labels, index, typ
 
         arr = self.arr
         chunk = self.dummy
         dummy_buf = chunk.data
         chunk.data = arr.data
-
-        set_label = self.labels is not None and self.can_set_name
-        if set_label:
-            labels = self.labels
+        labels = self.labels
+        index = self.index
+        typ = self.typ
+        incr = self.increment
 
         try:
             for i in range(self.nresults):
-                if set_label:
-                    chunk.name = util.get_value_at(labels, i)
+                # need to make sure that we pass an actual object to the function
+                # and not just an ndarray
+                if typ is not None:
+                     try:
+                         if labels is not None:
+                            name = labels[i]
 
-                res = self.f(chunk)
+                         # recreate with the index if supplied
+                         if index is not None:
+                              tchunk = typ(chunk,
+                                 index = index,
+                                 name  = name)
+                         else:
+                             tchunk = typ(chunk, name=name)    
+
+                     except:
+                         tchunk = chunk
+                         typ = None
+                else:
+                     tchunk = chunk
+
+                res = self.f(tchunk)
+
+                if hasattr(res,'values'):
+                    res = res.values
+
                 if i == 0:
                     result = self._get_result_array(res)
                     it = <flatiter> PyArray_IterNew(result)

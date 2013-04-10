@@ -667,7 +667,7 @@ class SparseDataFrame(DataFrame):
         """
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
-    def apply(self, func, axis=0, broadcast=False):
+    def apply(self, func, axis=0, broadcast=False, reduce=False):
         """
         Analogous to DataFrame.apply, for SparseDataFrame
 
@@ -699,7 +699,7 @@ class SparseDataFrame(DataFrame):
                                    default_kind=self._default_kind)
         else:
             if not broadcast:
-                return self._apply_standard(func, axis)
+                return self._apply_standard(func, axis, reduce=reduce)
             else:
                 return self._apply_broadcast(func, axis)
 
