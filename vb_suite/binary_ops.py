@@ -29,7 +29,7 @@ expr.set_numexpr_threads(1)
 
 frame_add_st = \
     Benchmark("df + df2", setup, name='frame_add_st',cleanup="expr.set_numexpr_threads()",
-              start_date=datetime(2012, 1, 1))
+              start_date=datetime(2013, 2, 26))
 
 setup = common_setup + """
 import pandas.core.expressions as expr
@@ -39,7 +39,7 @@ expr.set_use_numexpr(False)
 """
 frame_add_no_ne = \
     Benchmark("df + df2", setup, name='frame_add_no_ne',cleanup="expr.set_use_numexpr(True)",
-              start_date=datetime(2012, 1, 1))
+              start_date=datetime(2013, 2, 26))
 
 #----------------------------------------------------------------------
 # mult
@@ -60,7 +60,7 @@ expr.set_numexpr_threads(1)
 """
 frame_mult_st = \
     Benchmark("df * df2", setup, name='frame_mult_st',cleanup="expr.set_numexpr_threads()",
-              start_date=datetime(2012, 1, 1))
+              start_date=datetime(2013, 2, 26))
 
 setup = common_setup + """
 import pandas.core.expressions as expr
@@ -70,7 +70,7 @@ expr.set_use_numexpr(False)
 """
 frame_mult_no_ne = \
     Benchmark("df * df2", setup, name='frame_mult_no_ne',cleanup="expr.set_use_numexpr(True)",
-              start_date=datetime(2012, 1, 1))
+              start_date=datetime(2013, 2, 26))
 
 #----------------------------------------------------------------------
 # multi and
@@ -91,7 +91,7 @@ expr.set_numexpr_threads(1)
 """
 frame_multi_and_st = \
     Benchmark("df[(df>0) & (df2>0)]", setup, name='frame_multi_and_st',cleanup="expr.set_numexpr_threads()",
-              start_date=datetime(2012, 1, 1))
+              start_date=datetime(2013, 2, 26))
 
 setup = common_setup + """
 import pandas.core.expressions as expr
@@ -101,4 +101,4 @@ expr.set_use_numexpr(False)
 """
 frame_multi_and_no_ne = \
     Benchmark("df[(df>0) & (df2>0)]", setup, name='frame_multi_and_no_ne',cleanup="expr.set_use_numexpr(True)",
-              start_date=datetime(2012, 1, 1))
+              start_date=datetime(2013, 2, 26))
