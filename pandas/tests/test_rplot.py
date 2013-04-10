@@ -2,8 +2,15 @@ import unittest
 import pandas.tools.rplot as rplot
 from pandas import read_csv
 import os
-import matplotlib.pyplot as plt
-import pdb
+
+import nose
+
+
+try:
+    import matplotlib.pyplot as plt
+except:
+    raise nose.SkipTest
+
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
