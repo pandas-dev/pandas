@@ -317,10 +317,11 @@ class DataFrameFormatter(TableFormatter):
 
     def _join_multiline(self, *strcols):
         lwidth = self.line_width
+        adjoin_width = 1
         strcols = list(strcols)
         if self.index:
             idx = strcols.pop(0)
-            lwidth -= np.array([len(x) for x in idx]).max()
+            lwidth -= np.array([len(x) for x in idx]).max() + adjoin_width
 
         col_widths = [np.array([len(x) for x in col]).max()
                       if len(col) > 0 else 0
@@ -339,7 +340,7 @@ class DataFrameFormatter(TableFormatter):
                 else:
                     row.append([' '] * len(self.frame))
 
-            str_lst.append(adjoin(1, *row))
+            str_lst.append(adjoin(adjoin_width, *row))
             st = ed
         return '\n\n'.join(str_lst)
 
@@ -1765,14 +1766,21 @@ def _put_lines(buf, lines):
     buf.write('\n'.join(lines))
 
 
-def _binify(cols, width):
+def _binify(cols, line_width):
+    adjoin_width = 1
     bins = []
     curr_width = 0
+    i_last_column = len(cols) - 1
     for i, w in enumerate(cols):
-        curr_width += w
-        if curr_width + 2 > width and i > 0:
+        w_adjoined = w + adjoin_width
+        curr_width += w_adjoined
+        if i_last_column == i:
+            wrap = curr_width + 1 > line_width and i > 0
+        else:
+            wrap = curr_width + 2 > line_width and i > 0
+        if wrap:
             bins.append(i)
-            curr_width = w
+            curr_width = w_adjoined
 
     bins.append(len(cols))
     return bins
