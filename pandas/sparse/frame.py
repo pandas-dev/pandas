@@ -119,7 +119,7 @@ class SparseDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        def wrapper(data, index=None, columns=None, fill_value=None, kind=None, fill=False):
+        def wrapper(data, index=None, columns=None, default_fill_value=None, kind=None, fill_value=None):
             result = SparseDataFrame(data, index=index, columns=columns,
                                      default_fill_value=fill_value,
                                      default_kind=kind,
@@ -129,6 +129,9 @@ class SparseDataFrame(DataFrame):
             if fill_value is not None and not isnull(fill_value):
                 result.fillna(fill_value,inplace=True)
             
+            # set the default_fill_value
+            #if default_fill_value is not None:
+            #    result._default_fill_value = default_fill_value
             return result
 
         return wrapper
@@ -275,9 +278,9 @@ class SparseDataFrame(DataFrame):
         return tot_nonsparse / float(tot)
 
     def fillna(self, value=None, method=None, axis=0, inplace=False,
-               limit=None):
+               limit=None, downcast=None):
         new_self = super(SparseDataFrame, self).fillna(value=value, method=method, axis=axis, 
-                                                       inplace=inplace, limit=limit)
+                                                       inplace=inplace, limit=limit, downcast=downcast)
         if not inplace:
             self = new_self
 
@@ -439,9 +442,11 @@ class SparseDataFrame(DataFrame):
         elif not np.isnan(self.default_fill_value) and np.isnan(other_fill_value):
             new_fill_value = self.default_fill_value
 
-        return self._constructor(data=new_data, index=new_index,
-                                 columns=new_columns, fill_value=new_fill_value,
-                                 fill=True)
+        return self._constructor(data=new_data, 
+                                 index=new_index,
+                                 columns=new_columns, 
+                                 default_fill_value=new_fill_value,
+                                 fill_value=new_fill_value)
 
     def _combine_match_index(self, other, func, fill_value=None):
         new_data = {}
@@ -460,10 +465,18 @@ class SparseDataFrame(DataFrame):
         for col, series in this.iteritems():
             new_data[col] = func(series.values, other.values)
 
-        return self._constructor(new_data, index=new_index,
+        # fill_value is a function of our operator
+        if isnull(other.fill_value) or isnull(self.default_fill_value):
+            fill_value = np.nan
+        else:
+            fill_value = func(np.float64(self.default_fill_value),
+                              np.float64(other.fill_value))
+
+        return self._constructor(new_data, 
+                                 index=new_index,
                                  columns=self.columns,
-                                 fill_value=self.default_fill_value,
-                                 fill=True)
+                                 default_fill_value=fill_value,
+                                 fill_value=self.default_fill_value)
 
     def _combine_match_columns(self, other, func, fill_value):
         # patched version of DataFrame._combine_match_columns to account for
@@ -485,20 +498,22 @@ class SparseDataFrame(DataFrame):
         for col in intersection:
             new_data[col] = func(self[col], float(other[col]))
 
-        return self._constructor(new_data, index=self.index,
+        return self._constructor(new_data, 
+                                 index=self.index,
                                  columns=union,
-                                 fill_value=self.default_fill_value,
-                                 fill=True)
+                                 default_fill_value=self.default_fill_value,
+                                 fill_value=self.default_fill_value)
 
     def _combine_const(self, other, func):
         new_data = {}
         for col, series in self.iteritems():
             new_data[col] = func(series, other)
 
-        return self._constructor(data=new_data, index=self.index,
+        return self._constructor(data=new_data, 
+                                 index=self.index,
                                  columns=self.columns,
-                                 fill_value=self.default_fill_value,
-                                 fill=True)
+                                 default_fill_value=self.default_fill_value,
+                                 fill_value=self.default_fill_value)
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
                        limit=None):

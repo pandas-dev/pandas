@@ -998,8 +998,6 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         for op in ops:
             _compare_to_dense(frame, frame[::2], frame.to_dense(),
                               frame[::2].to_dense(), op)
-            #if op == operator.add:
-            #    import pdb; pdb.set_trace()
             for s in series:
                 _compare_to_dense(frame, s, frame.to_dense(),
                                   s.to_dense(), op)

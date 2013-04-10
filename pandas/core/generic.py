@@ -422,6 +422,9 @@ class NDFrame(PandasObject):
     #----------------------------------------------------------------------
     # Iteration
 
+    def __hash__(self):
+        raise TypeError
+
     def __iter__(self):
         """
         Iterate over infor axis
@@ -1256,7 +1259,7 @@ class NDFrame(PandasObject):
                     result[k].fillna(v, inplace=True, downcast=downcast)
                 return result
             else:
-                new_data = self._data.fillna(value, inplace=inplace)
+                new_data = self._data.fillna(value, inplace=inplace, downcast=downcast)
 
         if inplace:
             self._data = new_data

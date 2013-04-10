@@ -1087,7 +1087,7 @@ class SparseBlock(Block):
         values = com.interpolate_2d(self.values.to_dense(), method, axis, limit, missing)
         return self.make_block(values, self.items, self.ref_items)
 
-    def fillna(self, value, inplace=False):
+    def fillna(self, value, inplace=False, downcast=None):
         # we may need to upcast our fill to match our dtype
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
@@ -1142,7 +1142,7 @@ class SparseBlock(Block):
         if indexer is None:
             indexer = np.arange(len(self.items))
 
-        return self.make_block(self.values.take(indexer),items=new_ref_items,ref_items=new_ref_items,copy=copy)
+        return self.make_block(com.take_1d(self.values.values, indexer),items=new_ref_items,ref_items=new_ref_items,copy=copy)
 
     def sparse_reindex(self, new_index):
         """ sparse reindex and return a new block
