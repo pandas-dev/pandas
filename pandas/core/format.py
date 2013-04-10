@@ -496,6 +496,7 @@ class HTMLFormatter(TableFormatter):
         self.columns = formatter.columns
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
+        self.escape = self.fmt.kwds.get('escape', True)
 
     def write(self, s, indent=0):
         rs = com.pprint_thing(s)
@@ -518,7 +519,10 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = '<%s>' % kind
 
-        esc = {'<' : r'&lt;', '>' : r'&gt;'}
+        if self.escape:
+            esc = {'<' : r'&lt;', '>' : r'&gt;', '&' : r'&amp;'}
+        else:
+            esc = {}
         rs = com.pprint_thing(s, escape_chars=esc)
         self.write(
             '%s%s</%s>' % (start_tag, rs, kind), indent)

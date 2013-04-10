@@ -275,8 +275,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         df.to_html()
 
     def test_to_html_escaped(self):
-        a = 'str<ing1'
-        b = 'stri>ng2'
+        a = 'str<ing1 &amp;'
+        b = 'stri>ng2 &amp;'
 
         test_dict = {'co<l1': {a: "<type 'str'>",
                                b: "<type 'str'>"},
@@ -293,14 +293,46 @@ class TestDataFrameFormatting(unittest.TestCase):
   </thead>
   <tbody>
     <tr>
-      <th>str&lt;ing1</th>
+      <th>str&lt;ing1 &amp;amp;</th>
       <td> &lt;type 'str'&gt;</td>
       <td> &lt;type 'str'&gt;</td>
     </tr>
     <tr>
-      <th>stri&gt;ng2</th>
+      <th>stri&gt;ng2 &amp;amp;</th>
       <td> &lt;type 'str'&gt;</td>
       <td> &lt;type 'str'&gt;</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(xp, rs)
+
+    def test_to_html_escape_disabled(self):
+        a = 'str<ing1 &amp;'
+        b = 'stri>ng2 &amp;'
+
+        test_dict = {'co<l1': {a: "<b>bold</b>",
+                               b: "<b>bold</b>"},
+                     'co>l2': {a: "<b>bold</b>",
+                               b: "<b>bold</b>"}}
+        rs = pd.DataFrame(test_dict).to_html(escape=False)
+        xp = """<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>co<l1</th>
+      <th>co>l2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>str<ing1 &amp;</th>
+      <td> <b>bold</b></td>
+      <td> <b>bold</b></td>
+    </tr>
+    <tr>
+      <th>stri>ng2 &amp;</th>
+      <td> <b>bold</b></td>
+      <td> <b>bold</b></td>
     </tr>
   </tbody>
 </table>"""
