@@ -1154,17 +1154,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             self.assertRaises(Exception, s.__setitem__, tuple(mask), values)
 
         # GH3235
-        s = Series(np.arange(10))
+        s = Series(np.arange(10),dtype='int64')
         mask = s < 5
         s[mask] = range(2,7)
-        expected = Series(range(2,7) + range(5,10))
+        expected = Series(range(2,7) + range(5,10),dtype='int64')
         assert_series_equal(s, expected)
         self.assertEquals(s.dtype, expected.dtype)
 
-        s = Series(np.arange(10))
+        s = Series(np.arange(10),dtype='int64')
         mask = s > 5
         s[mask] = [0]*4
-        expected = Series([0,1,2,3,4,5] + [0]*4)
+        expected = Series([0,1,2,3,4,5] + [0]*4,dtype='int64')
         assert_series_equal(s,expected)
 
         s = Series(np.arange(10))
