@@ -32,6 +32,17 @@ def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
 
+def has_info_repr(df):
+    r = repr(df)
+    return r.split('\n')[0].startswith("<class")
+
+def has_expanded_repr(df):
+    r = repr(df)
+    for line in r.split('\n'):
+        if line.endswith('\\'):
+            return True
+    return False
+
 
 class TestDataFrameFormatting(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -146,98 +157,55 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assertTrue('\\' not in repr(df))
 
     def test_expand_frame_repr(self):
-        import pandas.core.common as com
-        original_in_interactive_session = com.in_interactive_session
-        com.in_interactive_session = lambda: True
-        line_width = 50
-
         df_small = DataFrame('hello', [0], [0])
-        df_wide = DataFrame('hello', [0], range(8))
+        df_wide = DataFrame('hello', [0], range(10))
 
-        def has_info_repr(df):
-            r = repr(df)
-            return r.split('\n')[0].startswith("<class")
-
-        def has_wide_repr(df):
-            r = repr(df)
-            for line in r.split('\n'):
-                if line.endswith('\\'):
-                    return True
-            return False
-
-        with option_context('display.line_width', line_width):
-            with option_context('display.expand_frame_repr', True):
-                self.assertFalse(has_info_repr(df_small))
-                self.assertFalse(has_wide_repr(df_small))
-                self.assertFalse(has_info_repr(df_wide))
-                self.assertTrue(has_wide_repr(df_wide))
-                with option_context('display.max_columns', 7):
+        with option_context('mode.sim_interactive', True):
+            with option_context('display.width', 50):
+                with option_context('display.expand_frame_repr', True):
                     self.assertFalse(has_info_repr(df_small))
-                    self.assertFalse(has_wide_repr(df_small))
+                    self.assertFalse(has_expanded_repr(df_small))
+                    self.assertFalse(has_info_repr(df_wide))
+                    self.assertTrue(has_expanded_repr(df_wide))
+
+                with option_context('display.expand_frame_repr', False):
+                    self.assertFalse(has_info_repr(df_small))
+                    self.assertFalse(has_expanded_repr(df_small))
                     self.assertTrue(has_info_repr(df_wide))
-                    self.assertFalse(has_wide_repr(df_wide))
-
-            with option_context('display.expand_frame_repr', False):
-                self.assertFalse(has_info_repr(df_small))
-                self.assertFalse(has_wide_repr(df_small))
-                self.assertTrue(has_info_repr(df_wide))
-                self.assertFalse(has_wide_repr(df_wide))
-
-        with option_context('display.line_width', None):
-            with option_context('display.expand_frame_repr', True):
-                self.assertFalse(has_info_repr(df_small))
-                self.assertFalse(has_wide_repr(df_small))
-                self.assertFalse(has_info_repr(df_wide))
-                self.assertFalse(has_wide_repr(df_wide))
-
-        com.in_interactive_session = original_in_interactive_session
+                    self.assertFalse(has_expanded_repr(df_wide))
 
     def test_repr_max_columns_max_rows(self):
-        import pandas.core.common as com
-        original_in_interactive_session = com.in_interactive_session
-        com.in_interactive_session = lambda: True
-
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
             raise nose.SkipTest
 
-        def repr_is_info_view(n):
+        def mkframe(n):
             index = ['%05d' % i for i in range(n)]
-            df = DataFrame(0, index, index)
-            r = repr(df)
-            nlines = len(r.split('\n'))
-            return nlines > n + 2
+            return DataFrame(0, index, index)
 
-        with option_context('display.line_width', term_width * 2):
-            with option_context('display.max_rows', 5,
-                                'display.max_columns', 5):
-                self.assertFalse(repr_is_info_view(4))
-                self.assertFalse(repr_is_info_view(5))
-                self.assertTrue(repr_is_info_view(6))
+        with option_context('mode.sim_interactive', True):
+            with option_context('display.width', term_width * 2):
+                with option_context('display.max_rows', 5,
+                                    'display.max_columns', 5):
+                    self.assertFalse(has_expanded_repr(mkframe(4)))
+                    self.assertFalse(has_expanded_repr(mkframe(5)))
+                    self.assertFalse(has_expanded_repr(mkframe(6)))
+                    self.assertTrue(has_info_repr(mkframe(6)))
 
-            with option_context('display.max_rows', 10,
-                                'display.max_columns', 5):
-                self.assertFalse(repr_is_info_view(5))
-                self.assertTrue(repr_is_info_view(6))
+                with option_context('display.max_rows', 20,
+                                    'display.max_columns', 5):
+                    # Out off max_columns boundary, but no extending
+                    # occurs ... can improve?
+                    self.assertFalse(has_expanded_repr(mkframe(6)))
+                    self.assertFalse(has_info_repr(mkframe(6)))
 
-            with option_context('display.max_rows', 5,
-                                'display.max_columns', 10):
-                self.assertFalse(repr_is_info_view(5))
-                self.assertTrue(repr_is_info_view(6))
-
-            with option_context('display.max_rows', 0,
-                                'display.max_columns', term_height):
-                self.assertFalse(repr_is_info_view(term_height - 2))
-                self.assertTrue(repr_is_info_view(term_height + 1))
-
-            with option_context('display.max_rows', term_height * 2,
-                                'display.max_columns', 0):
-                self.assertTrue(com.in_interactive_session())
-                n = (term_width + 2) // 7
-                self.assertFalse(repr_is_info_view(n - 1))
-                self.assertTrue(repr_is_info_view(n + 1))
-
-        com.in_interactive_session = original_in_interactive_session
+            with option_context('display.max_columns', 0,
+                                'display.max_rows', term_width * 20,
+                                'display.width', 0):
+                df = mkframe((term_width // 7) - 2)
+                self.assertFalse(has_expanded_repr(df))
+                df = mkframe((term_width // 7) + 2)
+                self.assertTrue(has_expanded_repr(df))
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -1271,8 +1239,8 @@ c  10  11  12  13  14\
         self.assert_(repstr is not None)
 
         fmt.set_printoptions(max_rows=5, max_columns=2)
-
-        self.assert_(self.frame._repr_html_() is None)
+        repstr = self.frame._repr_html_()
+        self.assert_('class' in repstr)  # info fallback
 
         fmt.reset_printoptions()
 
