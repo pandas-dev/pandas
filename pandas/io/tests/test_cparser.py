@@ -31,15 +31,10 @@ from pandas._parser import TextReader
 import pandas._parser as parser
 
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
-
 class TestCParser(unittest.TestCase):
 
     def setUp(self):
-        self.dirpath = curpath()
+        self.dirpath = tm.get_data_path('/')
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')

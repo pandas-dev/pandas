@@ -93,6 +93,20 @@ def ensure_clean(filename = None):
         except:
             pass
 
+def get_data_path(f = None):
+    """  return the path of a data file, these are relative to the current test dir """
+
+    if f is None:
+        f = ''
+    import inspect, os
+
+    # get our callers file
+    frame,filename,line_number,function_name,lines,index = \
+        inspect.getouterframes(inspect.currentframe())[1]
+
+    base_dir = os.path.abspath(os.path.dirname(filename))
+    return os.path.join(base_dir, 'data/%s' % f)
+
 #------------------------------------------------------------------------------
 # Comparators
 

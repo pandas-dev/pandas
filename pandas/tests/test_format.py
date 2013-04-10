@@ -27,11 +27,6 @@ from pandas.core.config import (set_option, get_option,
 _frame = DataFrame(tm.getSeriesData())
 
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
-
 class TestDataFrameFormatting(unittest.TestCase):
     _multiprocess_can_split_ = True
 
@@ -491,8 +486,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         unicode(dm.to_string())
 
     def test_string_repr_encoding(self):
-        pth = curpath()
-        filepath = os.path.join(pth, 'data', 'unicode_series.csv')
+        filepath = tm.get_data_path('unicode_series.csv')
         df = pandas.read_csv(filepath, header=None, encoding='latin1')
         repr(df)
         repr(df[1])
