@@ -1,7 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import random
-import pdb
 from copy import deepcopy
 
 #
@@ -828,6 +826,7 @@ class RPlot:
         -----------
         fig: matplotlib figure
         """
+        import matplotlib.pyplot as plt
         if fig is None:
             fig = plt.gcf()
         # Look for the last TrellisGrid instance in the layer list
