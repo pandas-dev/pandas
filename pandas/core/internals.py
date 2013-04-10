@@ -237,7 +237,7 @@ class Block(object):
                 nv = _block_shape(values[i])
                 blocks.append(make_block(nv, [ item ], self.ref_items))
                 continue
-            
+
             nv = _possibly_downcast_to_dtype(values[i], np.dtype(dtype))
             nv = _block_shape(nv)
             blocks.append(make_block(nv, [ item ], self.ref_items))
@@ -369,7 +369,7 @@ class Block(object):
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None, coerce=False):
 
-        # if we are coercing, then don't force the conversion 
+        # if we are coercing, then don't force the conversion
         # if the block can't hold the type
         if coerce:
             if not self._can_hold_na:
@@ -377,7 +377,7 @@ class Block(object):
                     return self
                 else:
                     return self.copy()
-        
+
         values = self.values if inplace else self.values.copy()
 
         if values.ndim != 2:
@@ -426,8 +426,8 @@ class Block(object):
         return make_block(new_values, self.items, self.ref_items)
 
     def eval(self, func, other, raise_on_error = True, try_cast = False):
-        """ 
-        evaluate the block; return result block from the result 
+        """
+        evaluate the block; return result block from the result
 
         Parameters
         ----------
@@ -480,8 +480,8 @@ class Block(object):
         return make_block(result, self.items, self.ref_items)
 
     def where(self, other, cond, raise_on_error = True, try_cast = False):
-        """ 
-        evaluate the block; return result block(s) from the result 
+        """
+        evaluate the block; return result block(s) from the result
 
         Parameters
         ----------
@@ -528,7 +528,7 @@ class Block(object):
         def func(c,v,o):
             if c.ravel().all():
                 return v
-            
+
             try:
                 return expressions.where(c, v, o, raise_on_error=True)
             except (Exception), detail:
@@ -947,7 +947,7 @@ class BlockManager(object):
 
     def apply(self, f, *args, **kwargs):
         """ iterate over the blocks, collect and create a new block manager
-        
+
         Parameters
         ----------
         f : the callable or function name to operate on at the block level
@@ -1030,7 +1030,7 @@ class BlockManager(object):
             for i, d in enumerate(dest_lst):
                 new_rb = []
                 for b in rb:
-                    # get our mask for this element, sized to this 
+                    # get our mask for this element, sized to this
                     # particular block
                     m = masks[i][b.ref_locs]
                     if m.any():
@@ -1427,7 +1427,7 @@ class BlockManager(object):
             # GH 3010
             new_items = self.items.delete(loc)
             self.set_items_norename(new_items)
-            
+
             # re-raise
             raise
 
@@ -1605,7 +1605,7 @@ class BlockManager(object):
         n = len(self.axes[axis])
 
         if verify:
-           indexer = _maybe_convert_indices(indexer, n) 
+           indexer = _maybe_convert_indices(indexer, n)
 
         if ((indexer == -1) | (indexer >= n)).any():
             raise Exception('Indices must be nonzero and less than '
@@ -1739,7 +1739,8 @@ class BlockManager(object):
 def construction_error(tot_items, block_shape, axes):
     """ raise a helpful message about our construction """
     raise ValueError("Shape of passed values is %s, indices imply %s" % (
-            tuple([tot_items] + list(block_shape)),tuple(len(ax) for ax in axes)))
+            tuple(map(int, [tot_items] + list(block_shape))),
+            tuple(map(int, [len(ax) for ax in axes]))))
 
 
 def create_block_manager_from_blocks(blocks, axes):
