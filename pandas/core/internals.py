@@ -284,6 +284,14 @@ class Block(object):
         we may have roundtripped thru object in the mean-time """
         return result
 
+    def _try_coerce_args(self, values, other):
+        """ provide coercion to our input arguments """
+        return values, other
+
+    def _try_coerce_result(self, result):
+        """ reverse of try_coerce_args """
+        return result
+
     def to_native_types(self, slicer=None, na_rep='', **kwargs):
         """ convert to our native types format, slicing if desired """
 
@@ -454,9 +462,10 @@ class Block(object):
                 values = values.T
                 is_transposed = True
 
+        values, other = self._try_coerce_args(values, other)
         args = [ values, other ]
         try:
-            result = func(*args)
+            result = self._try_coerce_result(func(*args))
         except (Exception), detail:
             if raise_on_error:
                 raise TypeError('Could not operate [%s] with block values [%s]'
@@ -529,8 +538,9 @@ class Block(object):
             if c.ravel().all():
                 return v
 
+            v, o = self._try_coerce_args(v, o)
             try:
-                return expressions.where(c, v, o, raise_on_error=True)
+                return self._try_coerce_result(expressions.where(c, v, o, raise_on_error=True))
             except (Exception), detail:
                 if raise_on_error:
                     raise TypeError('Could not operate [%s] with block values [%s]'
@@ -734,6 +744,29 @@ class DatetimeBlock(Block):
             return int(element)
         except:
             return element
+
+    def _try_coerce_args(self, values, other):
+        """ provide coercion to our input arguments
+            we are going to compare vs i8, so coerce to integer
+            values is always ndarra like, other may not be """
+        values = values.view('i8')
+        if isinstance(other, datetime):
+            other = lib.Timestamp(other).asm8.view('i8')
+        elif isnull(other):
+            other = tslib.iNaT
+        else:
+            other = other.view('i8')
+
+        return values, other
+
+    def _try_coerce_result(self, result):
+        """ reverse of try_coerce_args """
+        if isinstance(result, np.ndarray):
+            if result.dtype == 'i8':
+                result = tslib.array_to_datetime(result.astype(object).ravel()).reshape(result.shape)
+        elif isinstance(result, np.integer):
+            result = lib.Timestamp(result)
+        return result
 
     def to_native_types(self, slicer=None, na_rep=None, **kwargs):
         """ convert to our native types format, slicing if desired """

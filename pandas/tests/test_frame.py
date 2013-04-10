@@ -22,6 +22,7 @@ import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex, DatetimeIndex, Timestamp, Period)
+from pandas import date_range
 from pandas.io.parsers import read_csv
 
 from pandas.util.testing import (assert_almost_equal,
@@ -2197,7 +2198,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assert_("Mixing dicts with non-Series may lead to ambiguous ordering." in str(detail))
 
         # wrong size ndarray, GH 3105
-        from pandas import date_range
         try:
             DataFrame(np.arange(12).reshape((4, 3)), columns=['foo', 'bar', 'baz'],
                       index=date_range('2000-01-01', periods=3))
@@ -2888,7 +2888,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(result, expected)
 
         # GH 2809
-        from pandas import date_range
         ind = date_range(start="2000-01-01", freq="D", periods=10)
         datetimes = [ts.to_pydatetime() for ts in ind]
         datetime_s = Series(datetimes)
@@ -2975,7 +2974,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_timedeltas(self):
 
-        from pandas import date_range
         df = DataFrame(dict(A = Series(date_range('2012-1-1', periods=3, freq='D')),
                             B = Series([ timedelta(days=i) for i in range(3) ])))
         result = df.get_dtype_counts()
@@ -3001,7 +2999,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_operators_timedelta64(self):
 
-        from pandas import date_range
         from datetime import datetime, timedelta
         df = DataFrame(dict(A = date_range('2012-1-1', periods=3, freq='D'),
                             B = date_range('2012-1-2', periods=3, freq='D'),
@@ -6837,6 +6834,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             result = df.copy()
             result.where(result > 2, np.nan, inplace=True)
             assert_frame_equal(result, expected)
+
+    def test_where_datetime(self):
+
+        # GH 3311
+        df = DataFrame(dict(A = date_range('20130102',periods=5), 
+                            B = date_range('20130104',periods=5),
+                            C = np.random.randn(5)))
+
+        stamp = datetime(2013,1,3)
+        result = df[df>stamp]
+        expected = df.copy()
+        expected.loc[[0,1],'A'] = np.nan
+        assert_frame_equal(result,expected)
 
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
