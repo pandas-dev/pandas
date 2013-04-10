@@ -475,3 +475,28 @@ if sys.version_info[:2] < (2, 7):
     Counter = _Counter
 else:
     from collections import OrderedDict, Counter
+
+# http://stackoverflow.com/questions/4126348
+# Thanks to @martineau at SO
+
+class OrderedDefaultdict(OrderedDict):
+    def __init__(self, *args, **kwargs):
+        newdefault = None
+        newargs = ()
+        if args:
+            newdefault = args[0]
+            if not (newdefault is None or callable(newdefault)):
+                raise TypeError('first argument must be callable or None')
+            newargs = args[1:]
+        self.default_factory = newdefault
+        super(self.__class__, self).__init__(*newargs, **kwargs)
+
+    def __missing__ (self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        self[key] = value = self.default_factory()
+        return value
+
+    def __reduce__(self):  # optional, for pickle support
+        args = self.default_factory if self.default_factory else tuple()
+        return type(self), args, None, None, self.items()
