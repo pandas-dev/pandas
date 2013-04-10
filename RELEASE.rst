@@ -292,6 +292,7 @@ pandas 0.11.0
     spacing (GH3258_)
   - fixed pretty priniting of sets (GH3294_)
   - Panel() and Panel.from_dict() now respects ordering when give OrderedDict (GH3303_)
+  - DataFrame where with a datetimelike incorrectly selecting (GH3311_)
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
@@ -400,6 +401,7 @@ pandas 0.11.0
 .. _GH3258: https://github.com/pydata/pandas/issues/3258
 .. _GH3283: https://github.com/pydata/pandas/issues/3283
 .. _GH2919: https://github.com/pydata/pandas/issues/2919
+.. _GH3311: https://github.com/pydata/pandas/issues/3311
 
 pandas 0.10.1
 =============
