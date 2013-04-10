@@ -909,6 +909,11 @@ c  10  11  12  13  14\
                     '4   4     bar')
         self.assertEqual(result, expected)
 
+    def test_to_string_line_width(self):
+        df = pd.DataFrame(123, range(10, 15), range(30))
+        s = df.to_string(line_width=80)
+        self.assertEqual(max(len(l) for l in s.split('\n')), 80)
+
     def test_to_html(self):
         # big mixed
         biggie = DataFrame({'A': randn(200),
