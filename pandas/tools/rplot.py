@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.stats as stats
 import matplotlib.pyplot as plt
 import random
 import pdb
@@ -562,6 +561,7 @@ class GeomDensity2D(Layer):
         X, Y = np.mgrid[x_min:x_max:200j, y_min:y_max:200j]
         positions = np.vstack([X.ravel(), Y.ravel()])
         values = np.vstack([x, y])
+        import scipy.stats as stats
         kernel = stats.gaussian_kde(values)
         Z = np.reshape(kernel(positions).T, X.shape)
         ax.contour(Z, extent=[x_min, x_max, y_min, y_max])
