@@ -286,23 +286,28 @@ The Pandas dev team
     return inner
 
 @sandbox(3276,msg="""
-Series/DataFrame now have a .dgrep method.
-See the docstring for usage examples.
+Series/DataFrame now have the `dgrep` and `neighbours` methods.
+See the docstrings for usage examples.
 """)
 def xp_dgrep_cb(key):
     import pandas
     val = cf.get_option(key)
     if val:
-        from pandas.sandbox.dgrep import dgrep
+        from pandas.sandbox.dgrep import dgrep,neighbours
         pandas.DataFrame.dgrep = dgrep
         pandas.Series.dgrep = dgrep
+        pandas.DataFrame.neighbours = neighbours
+        pandas.Series.neighbours = neighbours
+
     else:
         try:
             del pandas.DataFrame.dgrep
+            del pandas.DataFrame.context
         except:
             pass
         try:
             del pandas.series.dgrep
+            del pandas.series.context
         except:
             pass
 
