@@ -11,6 +11,7 @@ except:
 from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.util import py3compat
+from pandas.util.compat import OrderedDict
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
 import pandas.lib as lib
@@ -520,7 +521,10 @@ class HTMLFormatter(TableFormatter):
             start_tag = '<%s>' % kind
 
         if self.escape:
-            esc = {'<' : r'&lt;', '>' : r'&gt;', '&' : r'&amp;'}
+            # escape & first to prevent double escaping of &
+            esc = OrderedDict(
+                [('&', r'&amp;'), ('<', r'&lt;'), ('>', r'&gt;')]
+            )
         else:
             esc = {}
         rs = com.pprint_thing(s, escape_chars=esc)
