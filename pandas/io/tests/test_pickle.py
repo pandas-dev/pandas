@@ -22,9 +22,13 @@ class TestPickle(unittest.TestCase):
 
     def compare(self, vf):
 
-        fh = open(vf,'rb')
-        data = pickle.load(fh)
-        fh.close()
+        # py3 compat when reading py2 pickle
+        try:
+            with open(vf,'rb') as fh:
+                data = pickle.load(fh)
+        except:
+            with open(vf,'rb') as fh:
+                data = pickle.load(fh, encoding='latin1')
 
         for typ, dv in data.items():
             for dt, result in dv.items():

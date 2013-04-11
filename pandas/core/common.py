@@ -1575,12 +1575,12 @@ def load(path):
     -------
     unpickled : type of object stored in file
     """
-    f = open(path, 'rb')
     try:
-        return pickle.load(f)
-    finally:
-        f.close()
-
+        with open(path,'rb') as fh:
+            return pickle.load(fh)
+    except:
+        with open(path,'rb') as fh:
+            return pickle.load(fh, encoding='latin1')
 
 class UTF8Recoder:
     """
