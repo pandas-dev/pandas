@@ -62,7 +62,7 @@ class TestDgrep(unittest.TestCase):
         assert_series_equal(xp,s)
 
         # can also get the values "applied" onto the function
-        df.dgrep(lambda c1,c2: "cool" in c1 or "cool" in c2,df.columns[:2])
+        # TODO?: df.dgrep(lambda c1,c2: "cool" in c1 or "cool" in c2,df.columns[:2])
 
         # which also works with *args
-        df.dgrep(lambda *args: "supercool" in args,df.columns[:3])
+        df.dgrep(lambda *args: any(["supercool" in x for x in args]),df.columns[:3])

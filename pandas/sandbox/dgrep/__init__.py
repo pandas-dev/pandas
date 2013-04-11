@@ -1,4 +1,4 @@
-
+import numpy as np
 # TODO, add axis argument
 def dgrep(self,pred,cols=None,C=0,B=0,A=0,split=False,keys=True):
     """Select rows by regex match or predicate function, against *data*.
@@ -54,7 +54,7 @@ def dgrep(self,pred,cols=None,C=0,B=0,A=0,split=False,keys=True):
     df.C_l0_g0.dgrep(".cool$",C=3)
 
     # can also get the values "applied" onto the function
-    df.dgrep(lambda c1,c2: "cool" in c1 or "cool" in c2,df.columns[:2])
+    # TODO?: df.dgrep(lambda c1,c2: "cool" in c1 or "cool" in c2,df.columns[:2])
 
     # which also works with *args
     df.dgrep(lambda *args: "supercool" in args,df.columns[:3])
@@ -74,18 +74,19 @@ def dgrep(self,pred,cols=None,C=0,B=0,A=0,split=False,keys=True):
         if fargs.varargs:
            combine=True
 
-        elif len(fargs.args) > 1:
-           if len(fargs.args) !=  len(cols):
-               raise ValueError("predicate function argcount doesn't match num. of cols")
-           combine=True
+        # elif len(fargs.args) > 1:
+        #    if len(fargs.args) !=  len(cols):
+        #        raise ValueError("predicate function argcount doesn't match num. of cols")
+        #    combine=True
 
     elif isinstance(pred,basestring):
+        import re
         _pat = pred
+        matcher = re.compile(_pat)
         def f1(x):
-            import re
-            return bool(re.search(_pat,unicode(x)))
+            return bool(matcher.search(unicode(x)))
         pred=f1
-    else:
+    else: # can also match non-string values by equality
         def f2(x):
             return x == pred
         pred=f2
@@ -93,16 +94,17 @@ def dgrep(self,pred,cols=None,C=0,B=0,A=0,split=False,keys=True):
     indicies =  set()
     if isinstance(self,DataFrame):
         if  combine:
-            # print( [ self.irow(i).ix[cols] for i in range(len(self)) ])
-            indicies.update([ i for i,x in enumerate(self.index) if pred(*self.irow(i).ix[cols])])
+            vals = self.ix[cols].apply(pred).sum(1)
+            indicies.update(np.where(vals)[0].tolist())
+
         else:
-            for name in cols:
-                s = self[name]
-                indicies.update([ i for i,x in enumerate(s)
-                                if pred(x)])
+            for col in cols:
+                # print np.where(self[col].apply(pred))
+                vals = np.where(self[col].apply(pred))[0]
+                indicies.update(vals.tolist())
     else:
-            indicies.update([ i for i,x in enumerate(self)
-                                if pred(x)])
+
+        indicies.update(np.where(self.apply(pred))[0].tolist())
 
     return self.neighbours(self.index[list(sorted(indicies))],C=C,B=B,A=A,split=split,keys=keys)
 
