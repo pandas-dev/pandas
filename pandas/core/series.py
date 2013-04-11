@@ -3147,6 +3147,11 @@ class Series(pa.Array, generic.PandasObject):
     def tz_localize(self, tz, copy=True):
         """
         Localize tz-naive TimeSeries to target time zone
+        Entries will retain their "naive" value but will be annotated as
+        being relative to the specified tz.
+
+        After localizing the TimeSeries, you may use tz_convert() to
+        get the Datetime values recomputed to a different tz.
 
         Parameters
         ----------
