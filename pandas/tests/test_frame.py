@@ -1836,6 +1836,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, setattr, self.mixed_frame, 'index',
                           idx[::2])
 
+    def test_set_index_cast(self):
+
+        # issue casting an index then set_index
+        df = DataFrame({'A' : [1.1,2.2,3.3], 'B' : [5.0,6.1,7.2]},
+                       index = [2010,2011,2012])
+        expected = df.ix[2010]
+        new_index = df.index.astype(np.int32)
+        df.index = new_index
+        result = df.ix[2010]
+        assert_series_equal(result,expected)
+
     def test_set_index2(self):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
                         'B': ['one', 'two', 'three', 'one', 'two'],
