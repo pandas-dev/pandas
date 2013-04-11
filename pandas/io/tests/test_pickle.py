@@ -12,6 +12,8 @@ import os
 import numpy as np
 import pandas.util.testing as tm
 import pandas as pd
+from pandas import Index
+from pandas.sparse.tests import test_sparse
 
 class TestPickle(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -23,9 +25,14 @@ class TestPickle(unittest.TestCase):
     def compare(self, vf):
 
         # py3 compat when reading py2 pickle
+        
         try:
             with open(vf,'rb') as fh:
                 data = pickle.load(fh)
+        except (ValueError):
+
+            # we are trying to read a py3 pickle in py2.....
+            return
         except:
             with open(vf,'rb') as fh:
                 data = pickle.load(fh, encoding='latin1')
@@ -35,8 +42,16 @@ class TestPickle(unittest.TestCase):
 
                 expected = self.data[typ][dt]
 
-                comparator = getattr(tm,"assert_%s_equal" % typ)
-                comparator(result,expected)
+                if isinstance(expected,Index):
+                    self.assert_(expected.equals(result))
+                    continue
+
+                if typ.startswith('sp_'):
+                    comparator = getattr(test_sparse,"assert_%s_equal" % typ)
+                    comparator(result,expected,exact_indices=False)
+                else:
+                    comparator = getattr(tm,"assert_%s_equal" % typ)
+                    comparator(result,expected)
 
     def test_read_pickles_0_10_1(self):
 

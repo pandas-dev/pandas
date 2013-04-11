@@ -1,5 +1,37 @@
 """ self-contained to write legacy pickle files """
 
+def _create_sp_series():
+
+    import numpy as np
+    from pandas import bdate_range, SparseSeries
+
+    nan = np.nan
+
+    # nan-based
+    arr = np.arange(15, dtype=float)
+    index = np.arange(15)
+    arr[7:12] = nan
+    arr[-1:] = nan
+
+    date_index = bdate_range('1/1/2011', periods=len(index))
+    bseries = SparseSeries(arr, index=index, kind='block')
+    bseries.name = 'bseries'
+    return bseries
+
+def _create_sp_frame():
+    import numpy as np
+    from pandas import bdate_range, SparseDataFrame
+
+    nan = np.nan
+
+    data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+            'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+            'C': np.arange(10),
+            'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
+    
+    dates = bdate_range('1/1/2011', periods=10)
+    return SparseDataFrame(data, index=dates)
+
 def create_data():
     """ create the pickle data """
     
@@ -8,7 +40,8 @@ def create_data():
     from pandas import (Series,DataFrame,Panel,
                         SparseSeries,SparseDataFrame,SparsePanel,
                         Index,MultiIndex,PeriodIndex,
-                        date_range,Timestamp)
+                        date_range,bdate_range,Timestamp)
+    nan = np.nan
 
     data = {
         'A': [0., 1., 2., 3., np.nan],
@@ -18,6 +51,11 @@ def create_data():
         'E' : [0., 1, Timestamp('20100101'),'foo',2.],
         }
     
+    index  = dict(int   = Index(np.arange(10)),
+                  date  = date_range('20130101',periods=10))
+    mi     = dict(reg   = MultiIndex.from_tuples(zip([['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                                                      ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]),
+                                                 names=['first', 'second']))
     series = dict(float = Series(data['A']),
                   int   = Series(data['B']),
                   mixed = Series(data['E']))
@@ -25,10 +63,17 @@ def create_data():
                   int   = DataFrame(dict(A = series['int']  , B = series['int']   + 1)),
                   mixed = DataFrame(dict([ (k,data[k]) for k in ['A','B','C','D']])))
     panel  = dict(float = Panel(dict(ItemA = frame['float'], ItemB = frame['float']+1)))
-    
+
+ 
+
     return dict( series = series, 
                  frame  = frame, 
-                 panel  = panel )
+                 panel  = panel,
+                 index  = index,
+                 mi     = mi,
+                 sp_series = dict(float = _create_sp_series()),
+                 sp_frame  = dict(float = _create_sp_frame())
+                 )
 
 def write_legacy_pickles():
 
@@ -43,7 +88,7 @@ def write_legacy_pickles():
     import platform as pl
     import cPickle as pickle
 
-    print "This script generates a pickle file for the current arch, system, and python version"
+    print("This script generates a pickle file for the current arch, system, and python version")
 
     base_dir, _ = os.path.split(os.path.abspath(__file__))
     base_dir = os.path.join(base_dir,'data/legacy_pickle')
@@ -68,7 +113,7 @@ def write_legacy_pickles():
     pickle.dump(create_data(),fh,pickle.HIGHEST_PROTOCOL)
     fh.close()
     
-    print "created pickle file: %s" % pth
+    print("created pickle file: %s" % pth)
 
 if __name__ == '__main__':
     write_legacy_pickles()
