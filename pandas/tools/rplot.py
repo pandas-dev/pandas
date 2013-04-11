@@ -750,14 +750,14 @@ def adjust_subplots(fig, axes, trellis, layers):
             axis.get_xaxis().set_ticks([])
             axis.set_xlabel('')
         if trellis.by[0] == '.':
-            label1 = "%s = %s" % (trellis.by[1], trellis.group_grid[index / trellis.cols][index % trellis.cols])
+            label1 = "%s = %s" % (trellis.by[1], trellis.group_grid[index // trellis.cols][index % trellis.cols])
             label2 = None
         elif trellis.by[1] == '.':
-            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index / trellis.cols][index % trellis.cols])
+            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index // trellis.cols][index % trellis.cols])
             label2 = None
         else:
-            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index / trellis.cols][index % trellis.cols][0])
-            label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[index / trellis.cols][index % trellis.cols][1])
+            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index // trellis.cols][index % trellis.cols][0])
+            label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[index // trellis.cols][index % trellis.cols][1])
         if label2 is not None:
             axis.table(cellText=[[label1], [label2]],
                 loc='top', cellLoc='center',
