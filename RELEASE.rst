@@ -293,6 +293,7 @@ pandas 0.11.0
   - fixed pretty priniting of sets (GH3294_)
   - Panel() and Panel.from_dict() now respects ordering when give OrderedDict (GH3303_)
   - DataFrame where with a datetimelike incorrectly selecting (GH3311_)
+  - Ensure pickles created in py2 can be read in py3
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622

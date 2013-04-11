@@ -59,7 +59,7 @@ bar2,12,13,14,15
         import warnings
         warnings.filterwarnings(action='ignore', category=FutureWarning)
 
-        self.dirpath = curpath()
+        self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
@@ -1208,7 +1208,7 @@ a,b,c,d
             url = ('https://raw.github.com/pydata/pandas/master/'
                    'pandas/io/tests/salary.table')
             url_table = self.read_table(url)
-            dirpath = curpath()
+            dirpath = tm.get_data_path()
             localtable = os.path.join(dirpath, 'salary.table')
             local_table = self.read_table(localtable)
             tm.assert_frame_equal(url_table, local_table)
@@ -1229,7 +1229,7 @@ a,b,c,d
         # FILE
         if sys.version_info[:2] < (2, 6):
             raise nose.SkipTest("file:// not supported with Python < 2.6")
-        dirpath = curpath()
+        dirpath = tm.get_data_path()
         localtable = os.path.join(dirpath, 'salary.table')
         local_table = self.read_table(localtable)
 
@@ -1404,7 +1404,7 @@ A,B,C
                     tm.assert_frame_equal(result, expected)
 
     def test_utf16_example(self):
-        path = os.path.join(self.dirpath, 'utf16_ex.txt')
+        path = tm.get_data_path('utf16_ex.txt')
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
@@ -1476,8 +1476,7 @@ A,B,C
         tm.assert_frame_equal(result, result2)
 
     def test_unicode_encoding(self):
-        pth = psplit(psplit(curpath())[0])[0]
-        pth = os.path.join(pth, 'tests/data/unicode_series.csv')
+        pth = tm.get_data_path('unicode_series.csv')
 
         result = self.read_csv(pth, header=None, encoding='latin-1')
         result = result.set_index(0)
@@ -2183,11 +2182,6 @@ class TestParseSQL(unittest.TestCase):
 def assert_same_values_and_dtype(res, exp):
     assert(res.dtype == exp.dtype)
     assert_almost_equal(res, exp)
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
 
 
 if __name__ == '__main__':

@@ -2324,25 +2324,23 @@ class TestHDFStore(unittest.TestCase):
             comparator(retrieved, obj)
 
     def test_pytables_native_read(self):
-        pth = curpath()
 
         try:
-            store = HDFStore(os.path.join(pth, 'pytables_native.h5'), 'r')
+            store = HDFStore(tm.get_data_path('legacy_hdf/pytables_native.h5'), 'r')
             d2 = store['detector/readout']
         finally:
             safe_close(store)
 
         try:
-            store = HDFStore(os.path.join(pth, 'pytables_native2.h5'), 'r')
+            store = HDFStore(tm.get_data_path('legacy_hdf/pytables_native2.h5'), 'r')
             str(store)
             d1 = store['detector']
         finally:
             safe_close(store)
 
     def test_legacy_read(self):
-        pth = curpath()
         try:
-            store = HDFStore(os.path.join(pth, 'legacy.h5'), 'r')
+            store = HDFStore(tm.get_data_path('legacy_hdf/legacy.h5'), 'r')
             store['a']
             store['b']
             store['c']
@@ -2352,9 +2350,8 @@ class TestHDFStore(unittest.TestCase):
 
     def test_legacy_table_read(self):
         # legacy table types
-        pth = curpath()
         try:
-            store = HDFStore(os.path.join(pth, 'legacy_table.h5'), 'r')
+            store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table.h5'), 'r')
             store.select('df1')
             store.select('df2')
             store.select('wp1')
@@ -2376,23 +2373,21 @@ class TestHDFStore(unittest.TestCase):
 
     def test_legacy_0_10_read(self):
         # legacy from 0.10
-        pth = curpath()
         try:
-            store = HDFStore(os.path.join(pth, 'legacy_0.10.h5'), 'r')
+            store = HDFStore(tm.get_data_path('legacy_hdf/legacy_0.10.h5'), 'r')
             for k in store.keys():
                 store.select(k)
         finally:
             safe_close(store)
 
     def test_copy(self):
-        pth = curpath()
 
         def do_copy(f = None, new_f = None, keys = None, propindexes = True, **kwargs):
             try:
                 import os
 
                 if f is None:
-                    f = os.path.join(pth, 'legacy_0.10.h5')
+                    f = tm.get_data_path('legacy_hdf/legacy_0.10.h5')
 
                     
                 store = HDFStore(f, 'r')
@@ -2446,11 +2441,10 @@ class TestHDFStore(unittest.TestCase):
         raise nose.SkipTest
 
         # legacy table types
-        pth = curpath()
         df = tm.makeDataFrame()
         wp = tm.makePanel()
 
-        store = HDFStore(os.path.join(pth, 'legacy_table.h5'), 'a')
+        store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table.h5'), 'a')
 
         self.assertRaises(Exception, store.append, 'df1', df)
         self.assertRaises(Exception, store.append, 'wp1', wp)
@@ -2530,11 +2524,6 @@ class TestHDFStore(unittest.TestCase):
     #                          np.tile(np.arange(2), 5)])
 
     #    self.assertRaises(Exception, store.put, 'foo', df, table=True)
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
 
 
 def _test_sort(obj):

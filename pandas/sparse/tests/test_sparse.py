@@ -74,8 +74,7 @@ def _test_data2_zero():
     arr[np.isnan(arr)] = 0
     return arr, index
 
-
-def assert_sp_series_equal(a, b):
+def assert_sp_series_equal(a, b, exact_indices=True):
     assert(a.index.equals(b.index))
     assert_sp_array_equal(a, b)
 
