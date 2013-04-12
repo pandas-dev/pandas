@@ -96,7 +96,10 @@ class OLS(object):
             filt_rhs['intercept'] = 1.
             pre_filt_rhs['intercept'] = 1.
 
-        return (filt_lhs.to_dense(), filt_rhs.to_dense(), filt_weights,
+        if hasattr(filt_weights,'to_dense'):
+            filt_weights = filt_weights.to_dense()
+
+        return (filt_lhs, filt_rhs, filt_weights,
                 pre_filt_rhs, index, valid)
 
     @property
@@ -1300,8 +1303,11 @@ def _filter_data(lhs, rhs, weights=None):
     filt_lhs = combined.pop('__y__')
     filt_rhs = combined
 
-    return (filt_lhs, filt_rhs, filt_weights,
-            pre_filt_rhs, index, valid)
+    if hasattr(filt_weights,'to_dense'):
+        filt_weights = filt_weights.to_dense()
+
+    return (filt_lhs.to_dense(), filt_rhs.to_dense(), filt_weights,
+            pre_filt_rhs.to_dense(), index, valid)
 
 
 def _combine_rhs(rhs):
