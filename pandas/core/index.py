@@ -109,7 +109,7 @@ class Index(np.ndarray):
             if issubclass(data.dtype.type, np.integer):
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
 
-            subarr = com._ensure_object(data)
+            subarr = com._asarray_tuplesafe(data, dtype=object)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
@@ -1169,7 +1169,7 @@ class Index(np.ndarray):
             If None, defaults to the beginning
         end : label, default None
             If None, defaults to the end
-        step : int, default None 
+        step : int, default None
 
         Returns
         -------
@@ -2779,7 +2779,7 @@ def _handle_legacy_indexes(indexes):
 
 def _get_consensus_names(indexes):
 
-    # find the non-none names, need to tupleify to make 
+    # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
     consensus_names = set([ tuple(i.names) for i in indexes if all(n is not None for n in i.names) ])
     if len(consensus_names) == 1:

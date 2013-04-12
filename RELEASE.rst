@@ -294,6 +294,7 @@ pandas 0.11.0
   - Panel() and Panel.from_dict() now respects ordering when give OrderedDict (GH3303_)
   - DataFrame where with a datetimelike incorrectly selecting (GH3311_)
   - Ensure index casts work even in Int64Index
+  - Fix set_index segfault when passing MultiIndex (GH3308_)
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
@@ -402,6 +403,7 @@ pandas 0.11.0
 .. _GH3258: https://github.com/pydata/pandas/issues/3258
 .. _GH3283: https://github.com/pydata/pandas/issues/3283
 .. _GH2919: https://github.com/pydata/pandas/issues/2919
+.. _GH3308: https://github.com/pydata/pandas/issues/3308
 .. _GH3311: https://github.com/pydata/pandas/issues/3311
 
 pandas 0.10.1

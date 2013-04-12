@@ -113,7 +113,7 @@ class _NDFrameIndexer(object):
             het_axis = self.obj._het_axis
             het_idx = indexer[het_axis]
 
-            if isinstance(het_idx, (int, long)):
+            if com.is_integer(het_idx):
                 het_idx = [het_idx]
 
             plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
@@ -820,7 +820,7 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
     def __getitem__(self, key):
         if not isinstance(key, tuple):
-            
+
             # we could have a convertible item here (e.g. Timestamp)
             if not _is_list_like(key):
                 key = tuple([ key ])
