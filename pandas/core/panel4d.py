@@ -11,8 +11,8 @@ Panel4D = create_nd_panel_factory(
                     'minor_axis': 'minor_axis'},
     slicer     = Panel,
     aliases    = {'major': 'major_axis', 'minor': 'minor_axis'},
-    stat_axis  = 2)
-    ns=dict(__doc__=  """
+    stat_axis  = 2,
+    ns = dict(__doc__=  """
     Represents a 4 dimensonal structured
 
     Parameters
@@ -29,8 +29,7 @@ Panel4D = create_nd_panel_factory(
     copy : boolean, default False
     Copy data from inputs. Only affects DataFrame / 2d ndarray input
     """
-
-        )
+              )
     )
 
 def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,

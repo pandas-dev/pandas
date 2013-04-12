@@ -899,7 +899,7 @@ class Grouper(object):
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj[:0].copy()
+        dummy = obj._get_values(slice(None,0)).copy()
         indexer = _algos.groupsort_indexer(group_index, ngroups)[0]
         obj = obj.take(indexer)
         group_index = com.take_nd(group_index, indexer, allow_fill=False)
@@ -909,12 +909,11 @@ class Grouper(object):
         return result, counts
 
     def _aggregate_series_pure_python(self, obj, func):
+
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
         result = None
-
-        group_index, _, ngroups = self.group_info
 
         splitter = get_splitter(obj, group_index, ngroups, axis=self.axis)
 

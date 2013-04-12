@@ -3,7 +3,7 @@
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.common as com
-from pandas.core.common import _is_bool_indexer
+from pandas.core.common import _is_bool_indexer, is_series, is_dataframe
 import pandas.lib as lib
 
 import numpy as np
@@ -99,7 +99,6 @@ class _NDFrameIndexer(object):
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
-        from pandas.core.frame import DataFrame, Series
 
         # also has the side effect of consolidating in-place
 
@@ -109,7 +108,7 @@ class _NDFrameIndexer(object):
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
 
-            if isinstance(value, Series):
+            if is_series(value):
                 value = self._align_series(indexer, value)
 
             info_axis = self.obj._info_axis_number
@@ -134,7 +133,7 @@ class _NDFrameIndexer(object):
             if _is_list_like(value):
 
                 # we have an equal len Frame
-                if isinstance(value, DataFrame) and value.ndim > 1:
+                if is_dataframe(value) and value.ndim > 1:
 
                     for item in labels:
 
@@ -174,10 +173,10 @@ class _NDFrameIndexer(object):
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
 
-            if isinstance(value, Series):
+            if is_series(value):
                 value = self._align_series(indexer, value)
 
-            if isinstance(value, DataFrame):
+            elif is_dataframe(value):
                 value = self._align_frame(indexer, value)
 
             # 2096
@@ -207,8 +206,7 @@ class _NDFrameIndexer(object):
         raise ValueError('Incompatible indexer with Series')
 
     def _align_frame(self, indexer, df):
-        from pandas import DataFrame
-        is_frame = isinstance(self.obj, DataFrame)
+        is_frame = is_dataframe(self.obj)
         if not is_frame:
             df = df.T
         if isinstance(indexer, tuple):
@@ -322,7 +320,6 @@ class _NDFrameIndexer(object):
             return keyarr
 
     def _getitem_lowerdim(self, tup):
-        from pandas.core.frame import DataFrame
 
         ax0 = self.obj._get_axis(0)
         # a bit kludgy
@@ -367,7 +364,7 @@ class _NDFrameIndexer(object):
 
                     # unfortunately need an odious kludge here because of
                     # DataFrame transposing convention
-                    if (isinstance(section, DataFrame) and i > 0
+                    if (is_dataframe(section) and i > 0
                             and len(new_key) == 2):
                         a, b = new_key
                         new_key = b, a
@@ -979,8 +976,7 @@ def _check_bool_indexer(ax, key):
     return result
 
 def _is_series(obj):
-    from pandas.core.series import Series
-    return isinstance(obj, Series)
+    return is_series(obj)
 
 
 def _maybe_convert_indices(indices, n):
@@ -1001,11 +997,10 @@ def _maybe_convert_ix(*args):
     """
     We likely want to take the cross-product
     """
-    from pandas.core.series import Series
 
     ixify = True
     for arg in args:
-        if not isinstance(arg, (np.ndarray, list, Series)):
+        if not (isinstance(arg, (np.ndarray, list)) or is_series(arg)):
             ixify = False
 
     if ixify:

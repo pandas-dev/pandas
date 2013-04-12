@@ -16,7 +16,7 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
-_internal_names = set(['_data','name','_typ','_index','_default_kind','_default_fill_value'])
+_internal_names = set(['_data','name','_subtyp','_index','_default_kind','_default_fill_value'])
 
 class NDFrame(PandasObject):
     """
@@ -74,7 +74,7 @@ class NDFrame(PandasObject):
 
     @classmethod
     def _setup_axes(cls, axes, info_axis = None, stat_axis = None, aliases = None, slicers = None,
-                    axes_are_reversed = False, build_axes = True):
+                    axes_are_reversed = False, build_axes = True, ns = None):
         """ provide axes setup for the major PandasObjects
 
             axes : the names of the axes in order (lowest to highest)
@@ -94,6 +94,9 @@ class NDFrame(PandasObject):
         cls._AXIS_NAMES    = dict([(i, a) for i, a in enumerate(axes) ])
         cls._AXIS_SLICEMAP = slicers or None
         cls._AXIS_REVERSED = axes_are_reversed
+
+        # typ
+        setattr(cls,'_typ',cls.__name__.lower())
 
         # indexing support
         cls._ix = None
@@ -119,6 +122,11 @@ class NDFrame(PandasObject):
             else:
                 for i, a in cls._AXIS_NAMES.items():
                     set_axis(a,i)
+
+        # addtl parms
+        if isinstance(ns, dict):
+            for k, v in ns.items():
+                setattr(cls,k,v)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """ return an axes dictionary for myself """

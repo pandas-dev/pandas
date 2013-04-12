@@ -21,7 +21,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _is_sparse_array_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds
+from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds, _is_index_slice
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
 from pandas.tseries.index import DatetimeIndex
@@ -423,84 +423,101 @@ index : array-like or Index (1d)
 """
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
-                 copy=False):
-        if data is None:
-            data = {}
+                 copy=False, fastpath=False):
 
-        if index is not None:
-            index = _ensure_index(index)
+        # we are called internally, so short-circuit
+        if fastpath:
 
-        if isinstance(data, SingleBlockManager):
-            if dtype is not None:
-                data = data.astype(dtype)
-            if index is None:
-                index = data.index
-            else:
-                data = data.reindex(index)
-        elif isinstance(data, Series):
-            if name is None:
-                name = data.name
-            if index is None:
-                index = data.index
-            else:
-                data = data.reindex(index)._data
-        elif isinstance(data, dict):
-            if index is None:
-                from pandas.util.compat import OrderedDict
-                if isinstance(data, OrderedDict):
-                    index = Index(data)
-                else:
-                    index = Index(sorted(data))
-            try:
-                if isinstance(index, DatetimeIndex):
-                    # coerce back to datetime objects for lookup
-                    data = lib.fast_multiget(data, index.astype('O'),
-                                             default=pa.NA)
-                elif isinstance(index, PeriodIndex):
-                    data = [data.get(i, nan) for i in index]
-                else:
-                    data = lib.fast_multiget(data, index.values,
-                                             default=pa.NA)
-            except TypeError:
-                data = [data.get(i, nan) for i in index]
-
-        elif isinstance(data, types.GeneratorType):
-            data = list(data)
-        elif isinstance(data, set):
-            raise TypeError('Set value is unordered')
-        else:
-
-            # handle sparse passed here (and force conversion)
-            if _is_sparse_array_like(data):
-                data = data.to_dense()
-
-        if index is None:
-            index = _default_index(len(data))
-
-        # create/copy the manager
-        if isinstance(data, SingleBlockManager):
+            # data is an ndarray, index is defined
+            if not isinstance(data, SingleBlockManager):
+                data = SingleBlockManager(data, index, fastpath=True)
             if copy:
                 data = data.copy()
-        else:
-            data = _sanitize_array(data, index, dtype, copy,
-                                   raise_cast_failure=True)
+            if index is None:
+                index = data.index
 
-            data = SingleBlockManager(data, index)
+        else:
+
+            if data is None:
+                data = {}
+
+            if index is not None:
+                index = _ensure_index(index)
+
+            if isinstance(data, pa.Array):
+                pass
+            elif isinstance(data, Series):
+                if name is None:
+                    name = data.name
+                if index is None:
+                    index = data.index
+                else:
+                    data = data.reindex(index)._data
+            elif isinstance(data, dict):
+                if index is None:
+                    from pandas.util.compat import OrderedDict
+                    if isinstance(data, OrderedDict):
+                        index = Index(data)
+                    else:
+                        index = Index(sorted(data))
+                try:
+                    if isinstance(index, DatetimeIndex):
+                        # coerce back to datetime objects for lookup
+                        data = lib.fast_multiget(data, index.astype('O'),
+                                                 default=pa.NA)
+                    elif isinstance(index, PeriodIndex):
+                        data = [data.get(i, nan) for i in index]
+                    else:
+                        data = lib.fast_multiget(data, index.values,
+                                                 default=pa.NA)
+                except TypeError:
+                    data = [data.get(i, nan) for i in index]
+
+            elif isinstance(data, SingleBlockManager):
+                if dtype is not None:
+                    data = data.astype(dtype)
+                if index is None:
+                    index = data.index
+                else:
+                    data = data.reindex(index)
+            elif isinstance(data, types.GeneratorType):
+                data = list(data)
+            elif isinstance(data, set):
+                raise TypeError('Set value is unordered')
+            else:
+
+                # handle sparse passed here (and force conversion)
+                if _is_sparse_array_like(data):
+                    data = data.to_dense()
+
+            if index is None:
+                index = _default_index(len(data))
+
+            # create/copy the manager
+            if isinstance(data, SingleBlockManager):
+                if copy:
+                    data = data.copy()
+            else:
+                data = _sanitize_array(data, index, dtype, copy,
+                                       raise_cast_failure=True)
+
+                data = SingleBlockManager(data, index, fastpath=True)
+
 
         generic.NDFrame.__init__(self, data)
 
-        self.index = index
         self.name  = name
+        self._set_axis(0,index,fastpath=True)
 
     @classmethod
-    def from_array(cls, arr, index=None, name=None, copy=False):
+    def from_array(cls, arr, index=None, name=None, copy=False, fastpath=False):
 
         # return a sparse series here
         if _is_sparse_array_like(arr):
             from pandas.sparse.series import SparseSeries
             cls = SparseSeries
 
-        return cls(arr, index=index, name=name, copy=copy)
+        return cls(arr, index=index, name=name, copy=copy, fastpath=fastpath)
 
     @property
     def _constructor(self):
@@ -513,25 +530,33 @@ index : array-like or Index (1d)
 
     @property
     def is_time_series(self):
-        return self._typ == 'time_series'
+        return self._subtyp in ['time_series','sparse_time_series']
 
     _index = None
 
-    def _set_axis(self, axis, labels):
+    def _set_axis(self, axis, labels, fastpath=False):
         """ override generic, we want to set the _typ here """
 
-        labels = _ensure_index(labels)
-        if labels.is_all_dates:
+        if not fastpath:
+            labels = _ensure_index(labels)
+
+        is_all_dates = labels.is_all_dates
+        if is_all_dates:
             from pandas.tseries.index import DatetimeIndex
             from pandas.tseries.period import PeriodIndex
             if not isinstance(labels, (DatetimeIndex, PeriodIndex)):
                 labels = DatetimeIndex(labels)
-            self._typ = 'time_series'
-        else:
-            self._typ = 'series'
+        self._set_subtyp(is_all_dates)
 
-        self._index = labels
-        self._data.set_axis(axis, labels)
+        object.__setattr__(self,'_index',labels)
+        if not fastpath:
+            self._data.set_axis(axis, labels)
+
+    def _set_subtyp(self, is_all_dates):
+        if is_all_dates:
+            object.__setattr__(self,'_subtyp','time_series')
+        else:
+            object.__setattr__(self,'_subtyp','series')
 
     # ndarray compatibility
     @property
@@ -707,7 +732,6 @@ index : array-like or Index (1d)
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            from pandas.core.indexing import _is_index_slice
 
             idx_type = self.index.inferred_type
             if idx_type == 'floating':
@@ -768,8 +792,7 @@ index : array-like or Index (1d)
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(self.values[indexer], index=self.index[indexer],
-                          name=self.name)
+            return self._constructor(self._data.get_slice(indexer),name=self.name,fastpath=True)
         except Exception:
             return self.values[indexer]
 
@@ -826,7 +849,6 @@ index : array-like or Index (1d)
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            from pandas.core.indexing import _is_index_slice
             if self.index.inferred_type == 'integer' or _is_index_slice(key):
                 indexer = key
             else:
@@ -884,7 +906,7 @@ index : array-like or Index (1d)
         if j < 0:
             j = 0
         slobj = slice(i, j)
-        return self.__getitem__(slobj)
+        return self._slice(slobj)
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""

@@ -1700,7 +1700,7 @@ class DataFrame(NDFrame):
 
                 values = self._data.iget(i)
                 return self._constructor_sliced.from_array(values, index=self.index,
-                                                           name=label)
+                                                           name=label, fastpath=True)
 
     def iget_value(self, i, j):
         return self.iat[i,j]
@@ -1793,7 +1793,7 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        return self._constructor_sliced.from_array(values, index=self.index, name=items)
+        return self._constructor_sliced.from_array(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
         # see if we can slice the rows

@@ -106,6 +106,7 @@ must change values, convert to dense, make your changes, then convert back
 to sparse
     """
     __array_priority__ = 15
+    _typ = 'sparse_array'
 
     sp_index = None
     fill_value = None
@@ -500,6 +501,8 @@ def make_sparse(arr, kind='block', fill_value=nan):
     -------
     (sparse_values, index) : (ndarray, SparseIndex)
     """
+    if hasattr(arr,'values'):
+        arr = arr.values
     if np.isscalar(arr):
         arr = [ arr ]
     arr = np.asarray(arr)

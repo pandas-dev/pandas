@@ -84,50 +84,57 @@ class Index(np.ndarray):
 
     _engine_type = _index.ObjectEngine
 
-    def __new__(cls, data, dtype=None, copy=False, name=None):
-        from pandas.tseries.period import PeriodIndex
-        if isinstance(data, np.ndarray):
-            if issubclass(data.dtype.type, np.datetime64):
-                from pandas.tseries.index import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name)
-                if dtype is not None and _o_dtype == dtype:
-                    return Index(result.to_pydatetime(), dtype=_o_dtype)
-                else:
-                    return result
-            elif issubclass(data.dtype.type, np.timedelta64):
-                return Int64Index(data, copy=copy, name=name)
+    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False):
 
-            if dtype is not None:
-                try:
-                    data = np.array(data, dtype=dtype, copy=copy)
-                except TypeError:
-                    pass
-            elif isinstance(data, PeriodIndex):
-                return PeriodIndex(data, copy=copy, name=name)
+        # no class inference!
+        if fastpath:
+            subarr = data
 
-            if issubclass(data.dtype.type, np.integer):
-                return Int64Index(data, copy=copy, dtype=dtype, name=name)
-
-            subarr = com._asarray_tuplesafe(data, dtype=object)
-        elif np.isscalar(data):
-            raise ValueError('Index(...) must be called with a collection '
-                             'of some kind, %s was passed' % repr(data))
         else:
-            # other iterable of some kind
-            subarr = com._asarray_tuplesafe(data, dtype=object)
 
-        if dtype is None:
-            inferred = lib.infer_dtype(subarr)
-            if inferred == 'integer':
-                return Int64Index(subarr.astype('i8'), name=name)
-            elif inferred != 'string':
-                if (inferred.startswith('datetime') or
-                        tslib.is_timestamp_array(subarr)):
+            from pandas.tseries.period import PeriodIndex
+            if isinstance(data, np.ndarray):
+                if issubclass(data.dtype.type, np.datetime64):
                     from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(subarr, copy=copy, name=name)
+                    result = DatetimeIndex(data, copy=copy, name=name)
+                    if dtype is not None and _o_dtype == dtype:
+                        return Index(result.to_pydatetime(), dtype=_o_dtype)
+                    else:
+                        return result
+                elif issubclass(data.dtype.type, np.timedelta64):
+                    return Int64Index(data, copy=copy, name=name)
 
-                elif inferred == 'period':
-                    return PeriodIndex(subarr, name=name)
+                if dtype is not None:
+                    try:
+                        data = np.array(data, dtype=dtype, copy=copy)
+                    except TypeError:
+                        pass
+                elif isinstance(data, PeriodIndex):
+                    return PeriodIndex(data, copy=copy, name=name)
+
+                if issubclass(data.dtype.type, np.integer):
+                    return Int64Index(data, copy=copy, dtype=dtype, name=name)
+
+                subarr = com._asarray_tuplesafe(data, dtype=object)
+            elif np.isscalar(data):
+                raise ValueError('Index(...) must be called with a collection '
+                                 'of some kind, %s was passed' % repr(data))
+            else:
+                # other iterable of some kind
+                subarr = com._asarray_tuplesafe(data, dtype=object)
+                
+            if dtype is None:
+                inferred = lib.infer_dtype(subarr)
+                if inferred == 'integer':
+                    return Int64Index(subarr.astype('i8'), name=name)
+                elif inferred != 'string':
+                    if (inferred.startswith('datetime') or
+                        tslib.is_timestamp_array(subarr)):
+                        from pandas.tseries.index import DatetimeIndex
+                        return DatetimeIndex(subarr, copy=copy, name=name)
+                    
+                    elif inferred == 'period':
+                        return PeriodIndex(subarr, name=name)
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -386,6 +393,15 @@ class Index(np.ndarray):
                 return result
 
             return Index(result, name=self.name)
+
+    def _getitem_bool(self, key):
+        """ getitem for a bool, fallback to standard getitem """
+        try:
+            arr_idx = self.view(np.ndarray)
+            result = arr_idx[key]
+            return self.__class__(result, name=self.name, fastpath=True)
+        except:
+            return self.__getitem__(key)
 
     def append(self, other):
         """
@@ -1321,33 +1337,39 @@ class Int64Index(Index):
 
     _engine_type = _index.Int64Engine
 
-    def __new__(cls, data, dtype=None, copy=False, name=None):
-        if not isinstance(data, np.ndarray):
-            if np.isscalar(data):
-                raise ValueError('Index(...) must be called with a collection '
-                                 'of some kind, %s was passed' % repr(data))
+    def __new__(cls, data, dtype=None, copy=False, name=None, fastpath=False):
 
-            # other iterable of some kind
-            if not isinstance(data, (list, tuple)):
-                data = list(data)
-            data = np.asarray(data)
+        if fastpath:
+            subarr = data
 
-        if issubclass(data.dtype.type, basestring):
-            raise TypeError('String dtype not supported, you may need '
-                            'to explicitly cast to int')
-        elif issubclass(data.dtype.type, np.integer):
-            # don't force the upcast as we may be dealing
-            # with a platform int
-            if dtype is None or not issubclass(np.dtype(dtype).type, np.integer):
-                dtype = np.int64
-
-            subarr = np.array(data, dtype=dtype, copy=copy)
         else:
-            subarr = np.array(data, dtype=np.int64, copy=copy)
-            if len(data) > 0:
-                if (subarr != data).any():
-                    raise TypeError('Unsafe NumPy casting, you must '
-                                    'explicitly cast')
+
+            if not isinstance(data, np.ndarray):
+                if np.isscalar(data):
+                    raise ValueError('Index(...) must be called with a collection '
+                                     'of some kind, %s was passed' % repr(data))
+
+                # other iterable of some kind
+                if not isinstance(data, (list, tuple)):
+                    data = list(data)
+                data = np.asarray(data)
+                    
+            if issubclass(data.dtype.type, basestring):
+                raise TypeError('String dtype not supported, you may need '
+                                'to explicitly cast to int')
+            elif issubclass(data.dtype.type, np.integer):
+                # don't force the upcast as we may be dealing
+                # with a platform int
+                if dtype is None or not issubclass(np.dtype(dtype).type, np.integer):
+                    dtype = np.int64
+                    
+                subarr = np.array(data, dtype=dtype, copy=copy)
+            else:
+                subarr = np.array(data, dtype=np.int64, copy=copy)
+                if len(data) > 0:
+                    if (subarr != data).any():
+                        raise TypeError('Unsafe NumPy casting, you must '
+                                        'explicitly cast')
 
         subarr = subarr.view(cls)
         subarr.name = name

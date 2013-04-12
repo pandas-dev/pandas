@@ -45,10 +45,11 @@ class SparseDataFrame(DataFrame):
     """
     _verbose_info = False
     _constructor_sliced = SparseSeries
+    _typ = 'sparse_frame'
 
     def __init__(self, data=None, index=None, columns=None,
                  default_kind=None, default_fill_value=None,
-                 dtype = None, copy = False):
+                 dtype=None, copy=False):
 
         # pick up the defaults from the Sparse structures
         if isinstance(data, SparseDataFrame):
@@ -119,7 +120,7 @@ class SparseDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        def wrapper(data, index=None, columns=None, default_fill_value=None, kind=None, fill_value=None):
+        def wrapper(data, index=None, columns=None, default_fill_value=None, kind=None, fill_value=None, copy=False):
             result = SparseDataFrame(data, index=index, columns=columns,
                                      default_fill_value=fill_value,
                                      default_kind=kind,
@@ -207,7 +208,7 @@ class SparseDataFrame(DataFrame):
 
     def __getstate__(self):
         # pickling
-        return dict(_typ                = 'sparse_frame', 
+        return dict(_typ                = self._typ,
                     _data               = self._data, 
                     _default_fill_value = self._default_fill_value,
                     _default_kind       = self._default_kind)

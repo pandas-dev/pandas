@@ -40,6 +40,18 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 _POSSIBLY_CAST_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]','O','int8','uint8','int16','uint16','int32','uint32','int64','uint64'] ])
+_TIMELIKE_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]'] ])
+
+def is_series(obj):
+    return getattr(obj,'_typ',None) == 'series'
+def is_sparse_series(obj):
+    return getattr(obj,'_subtyp',None) in ('sparse_series','sparse_time_series')
+def is_dataframe(obj):
+    return getattr(obj,'_typ',None) == 'dataframe'
+def is_panel(obj):
+    return getattr(obj,'_typ',None) == 'panel'
+def is_generic(obj):
+    return getattr(obj,'_data',None) is not None
 
 def isnull(obj):
     '''
@@ -60,14 +72,12 @@ def _isnull_new(obj):
     if lib.isscalar(obj):
         return lib.checknull(obj)
 
-    from pandas.core.generic import PandasObject
-    if isinstance(obj, np.ndarray):
+    if is_series(obj) or isinstance(obj, np.ndarray):
         return _isnull_ndarraylike(obj)
-    elif isinstance(obj, PandasObject):
-        # TODO: optimize for DataFrame, etc.
+    elif is_generic(obj):
         return obj.apply(isnull)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
-        return _isnull_ndarraylike(obj)
+        return _isnull_ndarraylike(np.asarray(obj))
     else:
         return obj is None
 
@@ -87,14 +97,12 @@ def _isnull_old(obj):
     if lib.isscalar(obj):
         return lib.checknull_old(obj)
 
-    from pandas.core.generic import PandasObject
-    if isinstance(obj, np.ndarray):
+    if is_series(obj) or isinstance(obj, np.ndarray):
         return _isnull_ndarraylike_old(obj)
-    elif isinstance(obj, PandasObject):
-        # TODO: optimize for DataFrame, etc.
+    elif is_generic(obj):
         return obj.apply(_isnull_old)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
-        return _isnull_ndarraylike_old(obj)
+        return _isnull_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
 
@@ -127,39 +135,41 @@ def _use_inf_as_null(key):
 
 
 def _isnull_ndarraylike(obj):
-    from pandas import Series
-    values = np.asarray(obj)
 
-    if values.dtype.kind in ('O', 'S', 'U'):
+    values = obj
+    dtype  = values.dtype
+
+    if dtype.kind in ('O', 'S', 'U'):
         # Working around NumPy ticket 1542
         shape = values.shape
 
-        if values.dtype.kind in ('S', 'U'):
+        if dtype.kind in ('S', 'U'):
             result = np.zeros(values.shape, dtype=bool)
         else:
             result = np.empty(shape, dtype=bool)
             vec = lib.isnullobj(values.ravel())
             result[:] = vec.reshape(shape)
-
-        if isinstance(obj, Series):
-            result = Series(result, index=obj.index, copy=False)
-    elif values.dtype == np.dtype('M8[ns]'):
+                
+    elif dtype in _TIMELIKE_DTYPES:
         # this is the NaT pattern
-        result = values.view('i8') == tslib.iNaT
-    elif values.dtype == np.dtype('m8[ns]'):
-        # this is the NaT pattern
-        result = values.view('i8') == tslib.iNaT
+        v = getattr(values,'asi8',None)
+        if v is None:
+            v = values.view('i8')
+        result = v == tslib.iNaT
     else:
-        # -np.isfinite(obj)
         result = np.isnan(obj)
+
+    if is_series(obj):
+        from pandas import Series
+        result = Series(result, index=obj.index, copy=False)
+
     return result
 
-
 def _isnull_ndarraylike_old(obj):
-    from pandas import Series
-    values = np.asarray(obj)
+    values = obj
+    dtype  = values.dtype
 
-    if values.dtype.kind in ('O', 'S', 'U'):
+    if dtype.kind in ('O', 'S', 'U'):
         # Working around NumPy ticket 1542
         shape = values.shape
 
@@ -170,15 +180,20 @@ def _isnull_ndarraylike_old(obj):
             vec = lib.isnullobj_old(values.ravel())
             result[:] = vec.reshape(shape)
 
-        if isinstance(obj, Series):
-            result = Series(result, index=obj.index, copy=False)
-    elif values.dtype == np.dtype('M8[ns]'):
+    elif dtype in _TIMELIKE_DTYPES:
         # this is the NaT pattern
-        result = values.view('i8') == tslib.iNaT
+        v = getattr(values,'asi8',None)
+        if v is None:
+            v = values.view('i8')
+        result = v == tslib.iNaT
     else:
         result = -np.isfinite(obj)
-    return result
 
+    if is_series(obj):
+        from pandas import Series
+        result = Series(result, index=obj.index, copy=False)
+
+    return result
 
 def notnull(obj):
     '''
@@ -1104,8 +1119,7 @@ def _possibly_cast_to_timedelta(value, coerce=True):
         don't force the conversion unless coerce is True """
 
     # deal with numpy not being able to handle certain timedelta operations
-    from pandas import Series
-    if isinstance(value,(np.ndarray, Series)) and value.dtype.kind == 'm':
+    if (isinstance(value,np.ndarray) or is_series(value)) and value.dtype.kind == 'm':
         if value.dtype != 'timedelta64[ns]':
             value = value.astype('timedelta64[ns]')
         return value
@@ -1177,18 +1191,18 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
 
 
 def _is_bool_indexer(key):
-    from pandas import Series
-    if isinstance(key, (np.ndarray, Series)) and key.dtype == np.object_:
-        key = np.asarray(_values_from_object(key))
+    if isinstance(key, np.ndarray) or is_series(key):
+        if key.dtype == np.object_:
+            key = np.asarray(_values_from_object(key))
 
-        if len(key) and not lib.is_bool_array(key):
-            if isnull(key).any():
-                raise ValueError('cannot index with vector containing '
-                                 'NA / NaN values')
-            return False
-        return True
-    elif isinstance(key, (np.ndarray,Series)) and key.dtype == np.bool_:
-        return True
+            if len(key) and not lib.is_bool_array(key):
+                if isnull(key).any():
+                    raise ValueError('cannot index with vector containing '
+                                     'NA / NaN values')
+                return False
+            return True
+        elif key.dtype == np.bool_:
+            return True
     elif isinstance(key, list):
         try:
             arr = np.asarray(key)
@@ -1199,9 +1213,7 @@ def _is_bool_indexer(key):
     return False
 
 def _is_sparse_array_like(v):
-    from pandas.sparse.array import SparseArray
-    from pandas.sparse.series import SparseSeries
-    return isinstance(v, (SparseArray, SparseSeries))
+    return getattr(v,'_subtyp',None) in ['sparse_array','sparse_series']
 
 def _default_index(n):
     from pandas.core.index import Int64Index

@@ -58,6 +58,7 @@ class SparsePanel(Panel):
     -----
     """
     ndim = 3
+    _typ = 'sparse_panel'
 
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=np.nan, default_kind='block',
