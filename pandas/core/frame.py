@@ -599,44 +599,39 @@ class DataFrame(NDFrame):
     def __nonzero__(self):
         raise ValueError("Cannot call bool() on DataFrame.")
 
-    def _need_info_repr_(self):
+    def _repr_fits_boundaries_(self):
         """
-        Check if it is needed to use info/summary view to represent a
-        particular DataFrame.
+        Check if repr fits in boundaries imposed by the following sets of
+        display options:
+            * width, height
+            * max_rows, max_columns
+        In case off non-interactive session, no boundaries apply.
         """
+        if not com.in_interactive_session():
+            return True
 
-        if com.in_qtconsole():
-            terminal_width, terminal_height = 100, 100
-        else:
-            terminal_width, terminal_height = get_terminal_size()
-        max_rows = (terminal_height if get_option("display.max_rows") == 0
-                    else get_option("display.max_rows"))
+        terminal_width, terminal_height = get_terminal_size()
+
+        # check vertical boundaries (excluding column axis area)
+        max_rows = get_option("display.max_rows") or terminal_height
+        display_height = get_option("display.height") or terminal_height
+        if len(self.index) > min(max_rows, display_height):
+            return False
+
+        # check horizontal boundaries (including index axis area)
         max_columns = get_option("display.max_columns")
-        expand_repr = get_option("display.expand_frame_repr")
+        display_width = get_option("display.width") or terminal_width
+        nb_columns = len(self.columns)
+        if max_columns and nb_columns > max_columns:
+            return False
+        if nb_columns > (display_width // 2):
+            return False
 
-        if max_columns > 0:
-            if (len(self.index) <= max_rows and
-                    (len(self.columns) <= max_columns and expand_repr)):
-                return False
-            else:
-                return True
-        else:
-            # save us
-            if (len(self.index) > max_rows or
-                (com.in_interactive_session() and
-                 len(self.columns) > terminal_width // 2 and
-                 not expand_repr)):
-                return True
-            else:
-                buf = StringIO()
-                self.to_string(buf=buf)
-                value = buf.getvalue()
-                if (max([len(l) for l in value.split('\n')]) > terminal_width
-                    and com.in_interactive_session()
-                        and not expand_repr):
-                    return True
-                else:
-                    return False
+        buf = StringIO()
+        self.to_string(buf=buf)
+        value = buf.getvalue()
+        repr_width = max([len(l) for l in value.split('\n')])
+        return repr_width <= display_width
 
     def __str__(self):
         """
@@ -668,25 +663,28 @@ class DataFrame(NDFrame):
         py2/py3.
         """
         buf = StringIO(u"")
-        if self._need_info_repr_():
-            max_info_rows = get_option('display.max_info_rows')
-            verbose = max_info_rows is None or self.shape[0] <= max_info_rows
-            self.info(buf=buf, verbose=verbose)
+        if self._repr_fits_boundaries_():
+            self.to_string(buf=buf)
         else:
-            is_wide = self._need_wide_repr()
-            line_width = None
-            if is_wide:
-                line_width = get_option('display.line_width')
-            self.to_string(buf=buf, line_width=line_width)
+            terminal_width, terminal_height = get_terminal_size()
+            max_rows = get_option("display.max_rows") or terminal_height
+            # Expand or info? Decide based on option display.expand_frame_repr
+            # and keep it sane for the number of display rows used by the
+            # expanded repr.
+            if (get_option("display.expand_frame_repr") and
+                len(self.columns) < max_rows):
+                line_width = get_option("display.width") or terminal_width
+                self.to_string(buf=buf, line_width=line_width)
+            else:
+                max_info_rows = get_option('display.max_info_rows')
+                verbose = (max_info_rows is None or
+                           self.shape[0] <= max_info_rows)
+                self.info(buf=buf, verbose=verbose)
 
         value = buf.getvalue()
         assert type(value) == unicode
 
         return value
-
-    def _need_wide_repr(self):
-        return (get_option("display.expand_frame_repr")
-                and com.in_interactive_session())
 
     def __repr__(self):
         """
@@ -705,12 +703,18 @@ class DataFrame(NDFrame):
             raise ValueError('Disable HTML output in QtConsole')
 
         if get_option("display.notebook_repr_html"):
-            if self._need_info_repr_():
-                return None
-            else:
+            if self._repr_fits_boundaries_():
                 return ('<div style="max-height:1000px;'
                         'max-width:1500px;overflow:auto;">\n' +
                         self.to_html() + '\n</div>')
+            else:
+                buf = StringIO(u"")
+                max_info_rows = get_option('display.max_info_rows')
+                verbose = (max_info_rows is None or
+                           self.shape[0] <= max_info_rows)
+                self.info(buf=buf, verbose=verbose)
+                info = buf.getvalue().replace('<', '&lt').replace('>', '&gt')
+                return ('<pre>\n' + info + '\n</pre>')
         else:
             return None
 
