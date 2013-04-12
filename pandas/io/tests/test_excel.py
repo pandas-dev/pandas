@@ -65,10 +65,6 @@ def _skip_if_no_excelsuite():
     _skip_if_no_openpyxl()
 
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)[:10]
@@ -81,7 +77,7 @@ _mixed_frame['foo'] = 'bar'
 class ExcelTests(unittest.TestCase):
 
     def setUp(self):
-        self.dirpath = curpath()
+        self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')

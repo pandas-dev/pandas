@@ -295,6 +295,7 @@ pandas 0.11.0
   - DataFrame where with a datetimelike incorrectly selecting (GH3311_)
   - Ensure index casts work even in Int64Index
   - Fix set_index segfault when passing MultiIndex (GH3308_)
+  - Ensure pickles created in py2 can be read in py3
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
