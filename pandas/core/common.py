@@ -42,6 +42,8 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
+_POSSIBLY_CAST_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]','O','int8','uint8','int16','uint16','int32','uint32','int64','uint64'] ])
+
 def isnull(obj):
     '''
     Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -1037,6 +1039,9 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
             pass
 
     return values
+
+def _possibly_castable(arr):
+    return arr.dtype not in _POSSIBLY_CAST_DTYPES
 
 def _possibly_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """

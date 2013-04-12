@@ -3196,7 +3196,6 @@ def remove_na(arr):
     """
     return arr[notnull(arr)]
 
-
 def _sanitize_array(data, index, dtype=None, copy=False,
                     raise_cast_failure=False):
 
@@ -3208,7 +3207,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         else:
             data = data.copy()
 
-    def _try_cast(arr):
+    def _try_cast(arr, take_fast_path):
+
+        # perf shortcut as this is the most common case
+        if take_fast_path:
+            if com._possibly_castable(arr) and not copy and dtype is None:
+                return arr
+
         try:
             arr = com._possibly_cast_to_datetime(arr, dtype)
             subarr = pa.array(arr, dtype=dtype, copy=copy)
@@ -3227,7 +3232,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # possibility of nan -> garbage
             if com.is_float_dtype(data.dtype) and com.is_integer_dtype(dtype):
                 if not isnull(data).any():
-                    subarr = _try_cast(data)
+                    subarr = _try_cast(data, True)
                 elif copy:
                     subarr = data.copy()
             else:
@@ -3239,9 +3244,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     elif raise_cast_failure:
                         raise TypeError('Cannot cast datetime64 to %s' % dtype)
                 else:
-                    subarr = _try_cast(data)
+                    subarr = _try_cast(data, True)
         else:
-            subarr = _try_cast(data)
+            subarr = _try_cast(data, True)
 
         if copy:
             subarr = data.copy()
@@ -3249,7 +3254,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     elif isinstance(data, list) and len(data) > 0:
         if dtype is not None:
             try:
-                subarr = _try_cast(data)
+                subarr = _try_cast(data, False)
             except Exception:
                 if raise_cast_failure:  # pragma: no cover
                     raise
@@ -3262,7 +3267,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = com._possibly_cast_to_datetime(subarr, dtype)
 
     else:
-        subarr = _try_cast(data)
+        subarr = _try_cast(data, False)
 
     # scalar like
     if subarr.ndim == 0:
