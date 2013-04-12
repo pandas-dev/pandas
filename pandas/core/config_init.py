@@ -212,6 +212,9 @@ with cf.config_prefix('display'):
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)
+    cf.register_option('height', 100, 'TODO', validator=is_int)
+    cf.register_option('width',80, 'TODO', validator=is_int)
+cf.deprecate_option('display.line_width', msg='TODO', rkey='display.width')
 
 tc_sim_interactive_doc = """
 : boolean

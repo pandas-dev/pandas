@@ -19,6 +19,7 @@ from pandas import DataFrame, Series, Index
 from pandas.util.py3compat import lzip
 import pandas.core.format as fmt
 import pandas.util.testing as tm
+from pandas.util.terminal import get_terminal_size
 import pandas
 import pandas as pd
 from pandas.core.config import (set_option, get_option,
@@ -30,6 +31,17 @@ _frame = DataFrame(tm.getSeriesData())
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
+
+def has_info_repr(df):
+    r = repr(df)
+    return r.split('\n')[0].startswith("<class")
+
+def has_expanded_repr(df):
+    r = repr(df)
+    for line in r.split('\n'):
+        if line.endswith('\\'):
+            return True
+    return False
 
 
 class TestDataFrameFormatting(unittest.TestCase):
@@ -143,6 +155,57 @@ class TestDataFrameFormatting(unittest.TestCase):
         with option_context('mode.sim_interactive', True):
             df = DataFrame(np.random.randn(10, 4))
             self.assertTrue('\\' not in repr(df))
+
+    def test_expand_frame_repr(self):
+        df_small = DataFrame('hello', [0], [0])
+        df_wide = DataFrame('hello', [0], range(10))
+
+        with option_context('mode.sim_interactive', True):
+            with option_context('display.width', 50):
+                with option_context('display.expand_frame_repr', True):
+                    self.assertFalse(has_info_repr(df_small))
+                    self.assertFalse(has_expanded_repr(df_small))
+                    self.assertFalse(has_info_repr(df_wide))
+                    self.assertTrue(has_expanded_repr(df_wide))
+
+                with option_context('display.expand_frame_repr', False):
+                    self.assertFalse(has_info_repr(df_small))
+                    self.assertFalse(has_expanded_repr(df_small))
+                    self.assertTrue(has_info_repr(df_wide))
+                    self.assertFalse(has_expanded_repr(df_wide))
+
+    def test_repr_max_columns_max_rows(self):
+        term_width, term_height = get_terminal_size()
+        if term_width < 10 or term_height < 10:
+            raise nose.SkipTest
+
+        def mkframe(n):
+            index = ['%05d' % i for i in range(n)]
+            return DataFrame(0, index, index)
+
+        with option_context('mode.sim_interactive', True):
+            with option_context('display.width', term_width * 2):
+                with option_context('display.max_rows', 5,
+                                    'display.max_columns', 5):
+                    self.assertFalse(has_expanded_repr(mkframe(4)))
+                    self.assertFalse(has_expanded_repr(mkframe(5)))
+                    self.assertFalse(has_expanded_repr(mkframe(6)))
+                    self.assertTrue(has_info_repr(mkframe(6)))
+
+                with option_context('display.max_rows', 20,
+                                    'display.max_columns', 5):
+                    # Out off max_columns boundary, but no extending
+                    # occurs ... can improve?
+                    self.assertFalse(has_expanded_repr(mkframe(6)))
+                    self.assertFalse(has_info_repr(mkframe(6)))
+
+            with option_context('display.max_columns', 0,
+                                'display.max_rows', term_width * 20,
+                                'display.width', 0):
+                df = mkframe((term_width // 7) - 2)
+                self.assertFalse(has_expanded_repr(df))
+                df = mkframe((term_width // 7) + 2)
+                self.assertTrue(has_expanded_repr(df))
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -1176,8 +1239,8 @@ c  10  11  12  13  14\
         self.assert_(repstr is not None)
 
         fmt.set_printoptions(max_rows=5, max_columns=2)
-
-        self.assert_(self.frame._repr_html_() is None)
+        repstr = self.frame._repr_html_()
+        self.assert_('class' in repstr)  # info fallback
 
         fmt.reset_printoptions()
 
