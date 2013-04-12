@@ -40,10 +40,12 @@ pc_max_rows_doc = """
 pc_max_cols_doc = """
 : int
     max_rows and max_columns are used in __repr__() methods to decide if
-    to_string() or info() is used to render an object to a string.
-    Either one, or both can be set to 0 (experimental). Pandas will figure
-    out how big the terminal is and will not display more rows or/and
-    columns that can fit on it.
+    to_string() or info() is used to render an object to a string.  In case
+    python/IPython is running in a terminal this can be set to 0 and pandas
+    will correctly auto-detect the width the terminal and swap to a smaller
+    format in case all columns would not fit vertically. The IPython notebook,
+    IPython qtconsole, or IDLE do not run in a terminal and hence it is not
+    possible to do correct auto-detection.
 """
 
 pc_max_info_cols_doc = """
@@ -117,6 +119,26 @@ pc_expand_repr_doc = """
 pc_line_width_doc = """
 : int
     When printing wide DataFrames, this is the width of each line.
+"""
+
+pc_line_width_deprecation_warning = """\
+use display.width instead (currently both are indentical) 
+"""
+
+pc_width_doc = """
+: int
+    Width of the display. In case python/IPython is running in a terminal this
+    can be set to 0 and pandas will correctly auto-detect the width. Note that
+    the IPython notebook, IPython qtconsole, or IDLE do not run in a terminal
+    and hence it is not possible to correctly detect the width.
+"""
+
+pc_height_doc = """
+: int
+    Height of the display. In case python/IPython is running in a terminal this
+    can be set to 0 and pandas will auto-detect the width. Note that the
+    IPython notebook, IPython qtconsole, or IDLE do not run in a terminal,
+    and hence it is not possible to correctly detect the height.
 """
 
 pc_chop_threshold_doc = """
@@ -212,9 +234,11 @@ with cf.config_prefix('display'):
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)
-    cf.register_option('height', 100, 'TODO', validator=is_int)
-    cf.register_option('width',80, 'TODO', validator=is_int)
-cf.deprecate_option('display.line_width', msg='TODO', rkey='display.width')
+    cf.register_option('height', 100, pc_height_doc, validator=is_int)
+    cf.register_option('width',80, pc_width_doc, validator=is_int)
+cf.deprecate_option('display.line_width',
+                    msg=pc_line_width_deprecation_warning,
+                    rkey='display.width')
 
 tc_sim_interactive_doc = """
 : boolean

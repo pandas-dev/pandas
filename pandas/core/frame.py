@@ -599,32 +599,38 @@ class DataFrame(NDFrame):
     def __nonzero__(self):
         raise ValueError("Cannot call bool() on DataFrame.")
 
-    def _repr_fits_boundaries_(self):
+    def _repr_fits_vertical_(self):
         """
-        Check if repr fits in boundaries imposed by the following sets of
-        display options:
-            * width, height
-            * max_rows, max_columns
-        In case off non-interactive session, no boundaries apply.
+        Check if full repr fits in vertical boundaries imposed by the display
+        options height and max_columns.  In case off non-interactive session,
+        no boundaries apply.
         """
         if not com.in_interactive_session():
             return True
 
         terminal_width, terminal_height = get_terminal_size()
 
-        # check vertical boundaries (excluding column axis area)
+        # excluding column axis area
         max_rows = get_option("display.max_rows") or terminal_height
         display_height = get_option("display.height") or terminal_height
-        if len(self.index) > min(max_rows, display_height):
-            return False
+        return len(self.index) <= min(max_rows, display_height)
 
-        # check horizontal boundaries (including index axis area)
+    def _repr_fits_horizontal_(self):
+        """
+        Check if full repr fits in horizontal boundaries imposed by the display
+        options width and max_columns. In case off non-interactive session, no
+        boundaries apply.
+        """
+        if not com.in_interactive_session():
+            return True
+
+        terminal_width, terminal_height = get_terminal_size()
+
         max_columns = get_option("display.max_columns")
         display_width = get_option("display.width") or terminal_width
         nb_columns = len(self.columns)
-        if max_columns and nb_columns > max_columns:
-            return False
-        if nb_columns > (display_width // 2):
+        if ((max_columns and nb_columns > max_columns) or
+            (nb_columns > (display_width // 2))):
             return False
 
         buf = StringIO()
@@ -663,7 +669,9 @@ class DataFrame(NDFrame):
         py2/py3.
         """
         buf = StringIO(u"")
-        if self._repr_fits_boundaries_():
+        fits_vertical = self._repr_fits_vertical_()
+        fits_horizontal = self._repr_fits_horizontal_()
+        if fits_vertical and fits_horizontal:
             self.to_string(buf=buf)
         else:
             terminal_width, terminal_height = get_terminal_size()
@@ -671,7 +679,7 @@ class DataFrame(NDFrame):
             # Expand or info? Decide based on option display.expand_frame_repr
             # and keep it sane for the number of display rows used by the
             # expanded repr.
-            if (get_option("display.expand_frame_repr") and
+            if (get_option("display.expand_frame_repr") and fits_vertical and
                 len(self.columns) < max_rows):
                 line_width = get_option("display.width") or terminal_width
                 self.to_string(buf=buf, line_width=line_width)
@@ -703,7 +711,7 @@ class DataFrame(NDFrame):
             raise ValueError('Disable HTML output in QtConsole')
 
         if get_option("display.notebook_repr_html"):
-            if self._repr_fits_boundaries_():
+            if self._repr_fits_horizontal_() and self._repr_fits_vertical_():
                 return ('<div style="max-height:1000px;'
                         'max-width:1500px;overflow:auto;">\n' +
                         self.to_html() + '\n</div>')
@@ -713,7 +721,10 @@ class DataFrame(NDFrame):
                 verbose = (max_info_rows is None or
                            self.shape[0] <= max_info_rows)
                 self.info(buf=buf, verbose=verbose)
-                info = buf.getvalue().replace('<', '&lt').replace('>', '&gt')
+                info = buf.getvalue()
+                info = info.replace('&', r'&amp;')
+                info = info.replace('<', r'&lt')
+                info = info.replace('>', r'&gt')
                 return ('<pre>\n' + info + '\n</pre>')
         else:
             return None

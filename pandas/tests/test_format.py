@@ -159,20 +159,26 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_expand_frame_repr(self):
         df_small = DataFrame('hello', [0], [0])
         df_wide = DataFrame('hello', [0], range(10))
+        df_tall = DataFrame('hello', range(30), range(5))
 
         with option_context('mode.sim_interactive', True):
-            with option_context('display.width', 50):
+            with option_context('display.width', 50, 
+                                'display.height', 20):
                 with option_context('display.expand_frame_repr', True):
                     self.assertFalse(has_info_repr(df_small))
                     self.assertFalse(has_expanded_repr(df_small))
                     self.assertFalse(has_info_repr(df_wide))
                     self.assertTrue(has_expanded_repr(df_wide))
+                    self.assertTrue(has_info_repr(df_tall))
+                    self.assertFalse(has_expanded_repr(df_tall))
 
                 with option_context('display.expand_frame_repr', False):
                     self.assertFalse(has_info_repr(df_small))
                     self.assertFalse(has_expanded_repr(df_small))
                     self.assertTrue(has_info_repr(df_wide))
                     self.assertFalse(has_expanded_repr(df_wide))
+                    self.assertTrue(has_info_repr(df_tall))
+                    self.assertFalse(has_expanded_repr(df_tall))
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
@@ -183,21 +189,29 @@ class TestDataFrameFormatting(unittest.TestCase):
             index = ['%05d' % i for i in range(n)]
             return DataFrame(0, index, index)
 
+        df6 = mkframe(6)
+        df10 = mkframe(10)
         with option_context('mode.sim_interactive', True):
             with option_context('display.width', term_width * 2):
                 with option_context('display.max_rows', 5,
                                     'display.max_columns', 5):
                     self.assertFalse(has_expanded_repr(mkframe(4)))
                     self.assertFalse(has_expanded_repr(mkframe(5)))
-                    self.assertFalse(has_expanded_repr(mkframe(6)))
-                    self.assertTrue(has_info_repr(mkframe(6)))
+                    self.assertFalse(has_expanded_repr(df6))
+                    self.assertTrue(has_info_repr(df6))
 
                 with option_context('display.max_rows', 20,
                                     'display.max_columns', 5):
                     # Out off max_columns boundary, but no extending
-                    # occurs ... can improve?
-                    self.assertFalse(has_expanded_repr(mkframe(6)))
-                    self.assertFalse(has_info_repr(mkframe(6)))
+                    # since not exceeding width
+                    self.assertFalse(has_expanded_repr(df6))
+                    self.assertFalse(has_info_repr(df6))
+                    
+                with option_context('display.max_rows', 9,
+                                    'display.max_columns', 10):
+                    # out vertical bounds can not result in exanded repr
+                    self.assertFalse(has_expanded_repr(df10))
+                    self.assertTrue(has_info_repr(df10))
 
             with option_context('display.max_columns', 0,
                                 'display.max_rows', term_width * 20,
