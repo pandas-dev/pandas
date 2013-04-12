@@ -254,7 +254,7 @@ use_inf_as_null_doc = """
     (new way).
 """
 
-# we don't want to start importing evrything at the global context level
+# We don't want to start importing everything at the global context level
 # or we'll hit circular deps.
 
 
