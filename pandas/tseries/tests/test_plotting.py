@@ -81,6 +81,26 @@ class TestTSPlot(unittest.TestCase):
         df.plot()
 
     @slow
+    def test_nonnumeric_exclude(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+        idx = date_range('1/1/1987', freq='A', periods=3)
+        df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]}, idx)
+        self.assertRaises(Exception, df.plot)
+
+        plt.close('all')
+        ax = df.plot(raise_on_error=False) # it works
+        self.assert_(len(ax.get_lines()) == 1) #B was plotted
+
+        plt.close('all')
+        self.assertRaises(Exception, df.A.plot)
+
+        plt.close('all')
+        ax = df['A'].plot(raise_on_error=False) # it works
+        self.assert_(len(ax.get_lines()) == 0)
+
+    @slow
     def test_tsplot(self):
         from pandas.tseries.plotting import tsplot
         import matplotlib.pyplot as plt

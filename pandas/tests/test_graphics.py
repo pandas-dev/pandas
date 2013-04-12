@@ -244,6 +244,17 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, title=u'\u03A3')
 
     @slow
+    def test_nonnumeric_exclude(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+        df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]})
+        ax = df.plot(raise_on_error=False) # it works
+        self.assert_(len(ax.get_lines()) == 1) #B was plotted
+
+        self.assertRaises(Exception, df.plot)
+
+    @slow
     def test_label(self):
         import matplotlib.pyplot as plt
         plt.close('all')
