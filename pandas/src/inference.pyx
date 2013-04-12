@@ -97,6 +97,10 @@ def infer_dtype(object _values):
         if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
 
+    elif is_period(val):
+        if is_period_array(values):
+            return 'period'
+
     for i in range(n):
         val = util.get_value_1d(values, i)
         if util.is_integer_object(val):
@@ -320,6 +324,10 @@ def is_time_array(ndarray[object] values):
         if not is_time(values[i]):
             return False
     return True
+
+def is_period(object o):
+    from pandas import Period
+    return isinstance(o,Period)
 
 def is_period_array(ndarray[object] values):
     cdef int i, n = len(values)
