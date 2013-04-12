@@ -272,6 +272,9 @@ cdef class IndexEngine:
 
 cdef class Int64Engine(IndexEngine):
 
+    cdef _get_index_values(self):
+        return algos.ensure_int64(self.vgetter())
+
     cdef _make_hash_table(self, n):
         return _hash.Int64HashTable(n)
 

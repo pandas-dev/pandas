@@ -1332,11 +1332,6 @@ class Int64Index(Index):
     def _constructor(self):
         return Int64Index
 
-    @cache_readonly
-    def _engine(self):
-        # property, for now, slow to look up
-        return self._engine_type(lambda: com._ensure_int64(self.values), len(self))
-
     @property
     def asi8(self):
         # do not cache or you'll create a memory leak
