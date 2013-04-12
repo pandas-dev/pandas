@@ -127,8 +127,8 @@ class Index(np.ndarray):
                     from pandas.tseries.index import DatetimeIndex
                     return DatetimeIndex(subarr, copy=copy, name=name)
 
-            if lib.is_period_array(subarr):
-                return PeriodIndex(subarr, name=name)
+                elif inferred == 'period':
+                    return PeriodIndex(subarr, name=name)
 
         subarr = subarr.view(cls)
         subarr.name = name
