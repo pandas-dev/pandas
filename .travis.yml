@@ -6,16 +6,16 @@ python:
 
 env:
   global:
-    - # need at least this so travis page will show env column
+    - NOSE_ARGS="not slow" # need at least this so travis page will show env column
 
 matrix:
   include:
     - python: 2.7
-      env: TEST_SLOW=true LOCALE_OVERRIDE="zh_CN.GB18030"  # simplified chinese
+      env: NOSE_ARGS="not network"  LOCALE_OVERRIDE="zh_CN.GB18030"
     - python: 2.7
-      env: FULL_DEPS=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true
     - python: 3.2
-      env: FULL_DEPS=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons
