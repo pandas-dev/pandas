@@ -14,6 +14,7 @@ import pandas.util.testing as tm
 import pandas as pd
 from pandas import Index
 from pandas.sparse.tests import test_sparse
+from pandas.util import py3compat
 
 class TestPickle(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -34,6 +35,8 @@ class TestPickle(unittest.TestCase):
             # we are trying to read a py3 pickle in py2.....
             return
         except:
+            if not py3compat.PY3:
+                raise
             with open(vf,'rb') as fh:
                 data = pickle.load(fh, encoding='latin1')
 
