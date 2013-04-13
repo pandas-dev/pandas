@@ -92,7 +92,7 @@ Accelerated operations
 ----------------------
 
 Pandas has support for accelerating certain types of binary numerical and boolean operations using
-the ``numexpr`` library (starting in 0.11.0) and the ``bottleneck`` libraries. 
+the ``numexpr`` library (starting in 0.11.0) and the ``bottleneck`` libraries.
 
 These libraries are especially useful when dealing with large data sets, and provide large
 speedups. ``numexpr`` uses smart chunking, caching, and multiple cores. ``bottleneck`` is
@@ -110,7 +110,7 @@ Here is a sample (using 100 column x 100,000 row ``DataFrames``):
     ``df1 * df2``; 21.71;  36.63;  0.5928
     ``df1 + df2``; 22.04;  36.50;  0.6039
 
-You are highly encouraged to install both libraries. See the section 
+You are highly encouraged to install both libraries. See the section
 :ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
 
 .. _basics.binop:
@@ -1011,16 +1011,16 @@ dtypes
 ------
 
 The main types stored in pandas objects are ``float``, ``int``, ``bool``, ``datetime64[ns]``, ``timedelta[ns]``,
-and ``object``. In addition these dtypes have item sizes, e.g. ``int64`` and ``int32``. A convenient ``dtypes`` 
+and ``object``. In addition these dtypes have item sizes, e.g. ``int64`` and ``int32``. A convenient ``dtypes``
 attribute for DataFrames returns a Series with the data type of each column.
 
 .. ipython:: python
 
-   dft = DataFrame(dict( A = np.random.rand(3), 
-                         B = 1, 
-                         C = 'foo', 
-                         D = Timestamp('20010102'), 
-                         E = Series([1.0]*3).astype('float32'), 
+   dft = DataFrame(dict( A = np.random.rand(3),
+                         B = 1,
+                         C = 'foo',
+                         D = Timestamp('20010102'),
+                         E = Series([1.0]*3).astype('float32'),
 			 F = False,
 			 G = Series([1]*3,dtype='int8')))
    dft
@@ -1032,7 +1032,7 @@ On a ``Series`` use the ``dtype`` method.
 
    dft['A'].dtype
 
-If a pandas object contains data multiple dtypes *IN A SINGLE COLUMN*, the dtype of the 
+If a pandas object contains data multiple dtypes *IN A SINGLE COLUMN*, the dtype of the
 column will be chosen to accommodate all of the data types (``object`` is the most
 general).
 
@@ -1051,9 +1051,9 @@ each type in a ``DataFrame``:
 
    dft.get_dtype_counts()
 
-Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0). 
-If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, 
-or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, 
+Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0).
+If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
+or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore,
 different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
 .. ipython:: python
@@ -1061,8 +1061,8 @@ different numeric dtypes will **NOT** be combined. The following example will gi
    df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
    df1
    df1.dtypes
-   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), 
-                         B = Series(randn(8)), 
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
+                         B = Series(randn(8)),
                          C = Series(np.array(randn(8),dtype='uint8')) ))
    df2
    df2.dtypes
@@ -1070,7 +1070,7 @@ different numeric dtypes will **NOT** be combined. The following example will gi
 defaults
 ~~~~~~~~
 
-By default integer types are ``int64`` and float types are ``float64``, 
+By default integer types are ``int64`` and float types are ``float64``,
 *REGARDLESS* of platform (32-bit or 64-bit). The following will all result in ``int64`` dtypes.
 
 .. ipython:: python
@@ -1090,7 +1090,7 @@ The following **WILL** result in ``int32`` on 32-bit platform.
 upcasting
 ~~~~~~~~~
 
-Types can potentially be *upcasted* when combined with other types, meaning they are promoted 
+Types can potentially be *upcasted* when combined with other types, meaning they are promoted
 from the current type (say ``int`` to ``float``)
 
 .. ipython:: python
@@ -1099,8 +1099,8 @@ from the current type (say ``int`` to ``float``)
    df3
    df3.dtypes
 
-The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning 
-the dtype that can accomodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can 
+The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
+the dtype that can accomodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can
 force some *upcasting*.
 
 .. ipython:: python
@@ -1116,7 +1116,7 @@ You can use the ``astype`` method to explicity convert dtypes from one to anothe
 even if the dtype was unchanged (pass ``copy=False`` to change this behavior). In addition, they will raise an
 exception if the astype operation is invalid.
 
-Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation, 
+Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation,
 then the more *general* one will be used as the result of the operation.
 
 .. ipython:: python
@@ -1132,7 +1132,7 @@ object conversion
 
 ``convert_objects`` is a method to try to force conversion of types from the ``object`` dtype to other types.
 To force conversion of specific types that are *number like*, e.g. could be a string that represents a number,
-pass ``convert_numeric=True``. This will force strings and numbers alike to be numbers if possible, otherwise 
+pass ``convert_numeric=True``. This will force strings and numbers alike to be numbers if possible, otherwise
 they will be set to ``np.nan``.
 
 .. ipython:: python
@@ -1146,20 +1146,20 @@ they will be set to ``np.nan``.
    df3['E'] = df3['E'].astype('int32')
    df3.dtypes
 
-To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``. 
+To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``.
 This will convert any datetimelike object to dates, forcing other values to ``NaT``.
 This might be useful if you are reading in data which is mostly dates,
 but occasionally has non-dates intermixed and you want to represent as missing.
 
 .. ipython:: python
 
-   s = Series([datetime(2001,1,1,0,0), 
-              'foo', 1.0, 1, Timestamp('20010104'), 
+   s = Series([datetime(2001,1,1,0,0),
+              'foo', 1.0, 1, Timestamp('20010104'),
               '20010105'],dtype='O')
    s
    s.convert_objects(convert_dates='coerce')
 
-In addition, ``convert_objects`` will attempt the *soft* conversion of any *object* dtypes, meaning that if all 
+In addition, ``convert_objects`` will attempt the *soft* conversion of any *object* dtypes, meaning that if all
 the objects in a Series are of the same type, the Series will have that dtype.
 
 gotchas
@@ -1230,10 +1230,12 @@ Working with package options
 ----------------------------
 
 .. _basics.working_with_options:
+.. versionadded:: 0.10.1
 
-Introduced in 0.10.0, pandas supports a new system for working with options.
+Pandas has an options system that let's you customize some aspects of it's behaviour,
+display-related options being those the user is must likely to adjust.
+
 Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``),
-
 You can get/set options directly as attributes of the top-level ``options`` attribute:
 
 .. ipython:: python
