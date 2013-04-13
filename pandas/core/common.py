@@ -1584,6 +1584,8 @@ def load(path):
         with open(path,'rb') as fh:
             return pickle.load(fh)
     except:
+        if not py3compat.PY3:
+            raise
         with open(path,'rb') as fh:
             return pickle.load(fh, encoding='latin1')
 
