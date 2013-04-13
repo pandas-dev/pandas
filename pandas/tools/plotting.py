@@ -1689,16 +1689,34 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         data = DataFrame({'x': data})
         column = 'x'
 
+
+    def _get_colors():
+        import matplotlib.pyplot as plt
+        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+        if isinstance(cycle, basestring):
+            cycle = list(cycle)
+        colors = kwds.get('color', cycle)
+        return colors
+
+    def maybe_color_bp(bp):
+        if 'color' not in kwds :
+            from matplotlib.artist import setp
+            setp(bp['boxes'],color=colors[0],alpha=1)
+            setp(bp['whiskers'],color=colors[0],alpha=1)
+            setp(bp['medians'],color=colors[2],alpha=1)
+
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [com.pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
-        ax.boxplot(values, **kwds)
+        bp = ax.boxplot(values, **kwds)
         if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
+        maybe_color_bp(bp)
 
+    colors = _get_colors()
     if column is None:
         columns = None
     else:
@@ -1731,7 +1749,10 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         # Return boxplot dict in single plot case
 
         clean_values = [remove_na(x) for x in data[cols].values.T]
+
         bp = ax.boxplot(clean_values, **kwds)
+        maybe_color_bp(bp)
+
         if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
