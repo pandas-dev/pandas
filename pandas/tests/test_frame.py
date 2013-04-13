@@ -4847,22 +4847,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                  lines = f.readlines()
                  self.assert_(lines[1].split(',')[2] == '999')
 
-    @slow
-    def test_to_csv_boundry_conditions(self):
-        from pandas.util.testing import makeTimeDataFrame
-
-        with ensure_clean() as path:
-
-            df = makeTimeDataFrame(25000)
-            df.to_csv(path)
-            rs = pan.read_csv(path, index_col=0, parse_dates=True)
-            assert_frame_equal(rs, df)
-
-            df = makeTimeDataFrame(25001)
-            df.to_csv(path)
-            rs = pan.read_csv(path, index_col=0, parse_dates=True)
-            assert_frame_equal(rs, df)
-
     def test_to_csv_withcommas(self):
 
         # Commas inside fields should be correctly escaped when saving as CSV.
