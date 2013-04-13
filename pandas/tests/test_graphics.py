@@ -533,6 +533,7 @@ class TestDataFramePlots(unittest.TestCase):
         _skip_if_no_scipy()
 
         df = DataFrame(np.random.randn(100, 4))
+        df = DataFrame(np.random.randn(100, 2))
         import pandas.tools.plotting as plt
 
         def scat(**kwds):
