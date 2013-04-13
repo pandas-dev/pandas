@@ -53,14 +53,14 @@ class TestUtilityFunctions(unittest.TestCase):
         self.assertTrue(type(aes) is dict)
 
     def test_make_aes2(self):
-        with self.assertRaises(ValueError):
-            rplot.make_aes(size=rplot.ScaleShape('test'))
-        with self.assertRaises(ValueError):
-            rplot.make_aes(colour=rplot.ScaleShape('test'))
-        with self.assertRaises(ValueError):
-            rplot.make_aes(shape=rplot.ScaleSize('test'))
-        with self.assertRaises(ValueError):
-            rplot.make_aes(alpha=rplot.ScaleShape('test'))
+        self.assertRaises(ValueError, rplot.make_aes,
+                          size=rplot.ScaleShape('test'))
+        self.assertRaises(ValueError, rplot.make_aes,
+                          colour=rplot.ScaleShape('test'))
+        self.assertRaises(ValueError, rplot.make_aes,
+                          shape=rplot.ScaleSize('test'))
+        self.assertRaises(ValueError, rplot.make_aes,
+                          alpha=rplot.ScaleShape('test'))
 
     def test_dictionary_union(self):
         dict1 = {1 : 1, 2 : 2, 3 : 3}
@@ -199,12 +199,12 @@ class TestScaleRandomColour(unittest.TestCase):
             colour = self.colour(self.data, index)
             self.assertEqual(len(colour), 3)
             r, g, b = colour
-            self.assertGreaterEqual(r, 0.0)
-            self.assertGreaterEqual(g, 0.0)
-            self.assertGreaterEqual(b, 0.0)
-            self.assertLessEqual(r, 1.0)
-            self.assertLessEqual(g, 1.0)
-            self.assertLessEqual(b, 1.0)
+            self.assertTrue(r >= 0.0)
+            self.assertTrue(g >= 0.0)
+            self.assertTrue(b >= 0.0)
+            self.assertTrue(r <= 1.0)
+            self.assertTrue(g <= 1.0)
+            self.assertTrue(b <= 1.0)
 
 class TestScaleConstant(unittest.TestCase):
     def test_scale_constant(self):
@@ -226,9 +226,12 @@ class TestScaleSize(unittest.TestCase):
             self.assertTrue(marker in ['o', '+', 's', '*', '^', '<', '>', 'v', '|', 'x'])
 
     def test_scale_overflow(self):
-        with self.assertRaises(ValueError):
+        def f():
             for index in range(len(self.data)):
                 self.scale2(self.data, index)
+
+        self.assertRaises(ValueError, f)
+
 
 class TestRPlot(unittest.TestCase):
     def test_rplot1(self):
