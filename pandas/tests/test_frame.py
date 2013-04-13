@@ -4626,7 +4626,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_to_csv_moar(self):
         from pandas.util.testing import makeCustomDataframe as mkdf
         path = '__tmp_to_csv_moar__'
-        chunksize=1000
 
         def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None,
                      dupe_col=False):
@@ -4705,25 +4704,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
 
         N = 100
+        chunksize=1000
 
-        for ncols in [128]:
+        for ncols in [4]:
             base = int((chunksize// ncols or 1) or 1)
             for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                   base-1,base,base+1]:
                 _do_test(mkdf(nrows, ncols,r_idx_type='dt',
                               c_idx_type='s'),path, 'dt','s')
+                pass
 
-        for r_idx_type in ['i','s','u','p']:
-            for c_idx_type in ['i', 's','u','dt','p']:
-                for ncols in [1,2,128]:
-                    base = int((chunksize// ncols or 1) or 1)
-                    for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
-                          base-1,base,base+1]:
-                        _do_test(mkdf(nrows, ncols,r_idx_type=r_idx_type,
-                                      c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
+        for r_idx_type,c_idx_type  in [('i','i'),('s','s'),('u','dt'),('p','p')]:
+            for ncols in [1,2,3,4]:
+                base = int((chunksize// ncols or 1) or 1)
+                for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
+                      base-1,base,base+1]:
+                    _do_test(mkdf(nrows, ncols,r_idx_type=r_idx_type,
+                                  c_idx_type=c_idx_type),path,r_idx_type,c_idx_type)
 
-
-        for ncols in [1,10,30]:
+        for ncols in [1,2,3,4]:
             base = int((chunksize// ncols or 1) or 1)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
@@ -4731,7 +4730,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 _do_test(mkdf(nrows, ncols),path)
 
         for nrows in [10,N-2,N-1,N,N+1,N+2]:
-            df = mkdf(nrows, 10)
+            df = mkdf(nrows, 3)
             cols = list(df.columns)
             cols[:2] = ["dupe","dupe"]
             cols[-2:] = ["dupe","dupe"]
@@ -4745,7 +4744,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         _do_test(DataFrame(index=range(10)),path)
         _do_test(mkdf(chunksize//2+1, 2,r_idx_nlevels=2),path,rnlvl=2)
-        for ncols in [2,10,30]:
+        for ncols in [2,3,4]:
             base = int(chunksize//ncols)
             for nrows in [10,N-2,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
                       base-1,base,base+1]:
@@ -6833,7 +6832,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_where_datetime(self):
 
         # GH 3311
-        df = DataFrame(dict(A = date_range('20130102',periods=5), 
+        df = DataFrame(dict(A = date_range('20130102',periods=5),
                             B = date_range('20130104',periods=5),
                             C = np.random.randn(5)))
 

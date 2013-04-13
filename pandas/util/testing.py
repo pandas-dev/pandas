@@ -250,7 +250,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert(left.columns.names == right.columns.names)
 
 
-def assert_panel_equal(left, right, 
+def assert_panel_equal(left, right,
                        check_panel_type=False,
                        check_less_precise=False):
     if check_panel_type:
