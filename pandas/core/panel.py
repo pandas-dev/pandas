@@ -147,6 +147,24 @@ def _comp_method(func, name):
 
 
 class Panel(NDFrame):
+    """
+    Represents wide format panel data, stored as 3-dimensional array
+
+    Parameters
+    ----------
+    data : ndarray (items x major x minor), or dict of DataFrames
+    items : Index or array-like
+        axis=1
+    major_axis : Index or array-like
+        axis=1
+    minor_axis : Index or array-like
+        axis=2
+    dtype : dtype, default None
+        Data type to force, otherwise infer
+    copy : boolean, default False
+        Copy data from inputs. Only affects DataFrame / 2d ndarray input
+    """
+
     _AXIS_ORDERS = ['items', 'major_axis', 'minor_axis']
     _AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(_AXIS_ORDERS)])
     _AXIS_ALIASES = {
@@ -218,23 +236,6 @@ class Panel(NDFrame):
 
     def __init__(self, data=None, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
-        """
-        Represents wide format panel data, stored as 3-dimensional array
-
-        Parameters
-        ----------
-        data : ndarray (items x major x minor), or dict of DataFrames
-        items : Index or array-like
-            axis=1
-        major_axis : Index or array-like
-            axis=1
-        minor_axis : Index or array-like
-            axis=2
-        dtype : dtype, default None
-            Data type to force, otherwise infer
-        copy : boolean, default False
-            Copy data from inputs. Only affects DataFrame / 2d ndarray input
-        """
         self._init_data(
             data=data, items=items, major_axis=major_axis, minor_axis=minor_axis,
             copy=copy, dtype=dtype)

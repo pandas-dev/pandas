@@ -40,29 +40,28 @@ def _field_accessor(name, alias):
 
 
 class Period(object):
+    """
+    Represents an period of time
 
+    Parameters
+    ----------
+    value : Period or basestring, default None
+        The time period represented (e.g., '4Q2005')
+    freq : str, default None
+        e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
+    year : int, default None
+    month : int, default 1
+    quarter : int, default None
+    day : int, default 1
+    hour : int, default 0
+    minute : int, default 0
+    second : int, default 0
+    """
     __slots__ = ['freq', 'ordinal']
 
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
-        """
-        Represents an period of time
-
-        Parameters
-        ----------
-        value : Period or basestring, default None
-            The time period represented (e.g., '4Q2005')
-        freq : str, default None
-            e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
-        year : int, default None
-        month : int, default 1
-        quarter : int, default None
-        day : int, default 1
-        hour : int, default 0
-        minute : int, default 0
-        second : int, default 0
-        """
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
         # ('T', 5) but may be passed in as a string like '5T'

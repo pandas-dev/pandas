@@ -331,6 +331,7 @@ def _comp_method(func, name, str_rep):
 #----------------------------------------------------------------------
 # DataFrame class
 
+
 class DataFrame(NDFrame):
     """ Two-dimensional size-mutable, potentially heterogeneous tabular data
     structure with labeled axes (rows and columns). Arithmetic operations
