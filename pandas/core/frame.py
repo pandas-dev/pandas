@@ -331,8 +331,42 @@ def _comp_method(func, name, str_rep):
 #----------------------------------------------------------------------
 # DataFrame class
 
-
 class DataFrame(NDFrame):
+    """ Two-dimensional size-mutable, potentially heterogeneous tabular data
+    structure with labeled axes (rows and columns). Arithmetic operations
+    align on both row and column labels. Can be thought of as a dict-like
+    container for Series objects. The primary pandas data structure
+
+    Parameters
+    ----------
+    data : numpy ndarray (structured or homogeneous), dict, or DataFrame
+        Dict can contain Series, arrays, constants, or list-like objects
+    index : Index or array-like
+        Index to use for resulting frame. Will default to np.arange(n) if
+        no indexing information part of input data and no index provided
+    columns : Index or array-like
+        Will default to np.arange(n) if not column labels provided
+    dtype : dtype, default None
+        Data type to force, otherwise infer
+    copy : boolean, default False
+        Copy data from inputs. Only affects DataFrame / 2d ndarray input
+
+    Examples
+    --------
+    >>> d = {'col1': ts1, 'col2': ts2}
+    >>> df = DataFrame(data=d, index=index)
+    >>> df2 = DataFrame(np.random.randn(10, 5))
+    >>> df3 = DataFrame(np.random.randn(10, 5),
+    ...                 columns=['a', 'b', 'c', 'd', 'e'])
+
+    See also
+    --------
+    DataFrame.from_records: constructor from tuples, also record arrays
+    DataFrame.from_dict: from dicts of Series, arrays, or dicts
+    DataFrame.from_csv: from CSV files
+    DataFrame.from_items: from sequence of (key, value) pairs
+    read_csv / read_table / read_clipboard
+    """
     _auto_consolidate = True
     _het_axis = 1
     _info_axis = 'columns'
@@ -347,41 +381,6 @@ class DataFrame(NDFrame):
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
-        """Two-dimensional size-mutable, potentially heterogeneous tabular data
-        structure with labeled axes (rows and columns). Arithmetic operations
-        align on both row and column labels. Can be thought of as a dict-like
-        container for Series objects. The primary pandas data structure
-
-        Parameters
-        ----------
-        data : numpy ndarray (structured or homogeneous), dict, or DataFrame
-            Dict can contain Series, arrays, constants, or list-like objects
-        index : Index or array-like
-            Index to use for resulting frame. Will default to np.arange(n) if
-            no indexing information part of input data and no index provided
-        columns : Index or array-like
-            Will default to np.arange(n) if not column labels provided
-        dtype : dtype, default None
-            Data type to force, otherwise infer
-        copy : boolean, default False
-            Copy data from inputs. Only affects DataFrame / 2d ndarray input
-
-        Examples
-        --------
-        >>> d = {'col1': ts1, 'col2': ts2}
-        >>> df = DataFrame(data=d, index=index)
-        >>> df2 = DataFrame(np.random.randn(10, 5))
-        >>> df3 = DataFrame(np.random.randn(10, 5),
-        ...                 columns=['a', 'b', 'c', 'd', 'e'])
-
-        See also
-        --------
-        DataFrame.from_records: constructor from tuples, also record arrays
-        DataFrame.from_dict: from dicts of Series, arrays, or dicts
-        DataFrame.from_csv: from CSV files
-        DataFrame.from_items: from sequence of (key, value) pairs
-        read_csv / read_table / read_clipboard
-        """
         if data is None:
             data = {}
 
