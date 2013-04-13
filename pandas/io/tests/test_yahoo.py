@@ -85,8 +85,9 @@ class TestYahoo(unittest.TestCase):
         ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
         assert ts[0].dayofyear == 96
 
-        dfi = web.get_components_yahoo('^DJI')
-        pan = web.get_data_yahoo(dfi, 'JAN-01-12', 'JAN-31-12')
+        #dfi = web.get_components_yahoo('^DJI')
+        #pan = web.get_data_yahoo(dfi, 'JAN-01-12', 'JAN-31-12')
+        pan = web.get_data_yahoo(['GE', 'MSFT', 'INTC'], 'JAN-01-12', 'JAN-31-12')
         expected = [19.02, 28.23, 25.39]
         result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
         assert result == expected
