@@ -1206,7 +1206,7 @@ a,b,c,d
         try:
             # HTTP(S)
             url = ('https://raw.github.com/pydata/pandas/master/'
-                   'pandas/io/tests/salary.table')
+                   'pandas/io/tests/data/salary.table')
             url_table = self.read_table(url)
             dirpath = tm.get_data_path()
             localtable = os.path.join(dirpath, 'salary.table')
