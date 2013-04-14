@@ -18,14 +18,66 @@ try:
     if os.path.exists(dotfile):
         BUILD_CACHE_DIR = open(dotfile).readline().strip()
     BUILD_CACHE_DIR = os.environ.get('BUILD_CACHE_DIR',BUILD_CACHE_DIR)
+    if not   ("develop" in sys.argv or "install" in sys.argv or "build" in sys.argv          or "build_ext" in sys.argv):
+        1/0
 
-    if os.path.isdir(BUILD_CACHE_DIR):
+    if os.path.isdir(BUILD_CACHE_DIR) :
         print("--------------------------------------------------------")
         print("BUILD CACHE ACTIVATED. be careful, this is experimental.")
         print("--------------------------------------------------------")
     else:
         BUILD_CACHE_DIR = None
-except:
+        1/0
+
+    # retrieve 2to3 artifacts
+    if sys.version_info[0] >= 3:
+        from lib2to3 import refactor
+        from  hashlib import sha1
+        import shutil
+        import multiprocessing
+        pyver = "%d.%d" % (sys.version_info[:2])
+        files = ["pandas"]
+        print("h")
+        to_process = dict()
+        orig_hashes= dict((f.split("-")[0],f)  for f in os.listdir(BUILD_CACHE_DIR)
+                      if "-" in f and f.endswith(pyver))
+        post_hashes= dict((f.split("-")[1],f)  for f in os.listdir(BUILD_CACHE_DIR)
+                      if "-" in f and f.endswith(pyver))
+
+        while files:
+            f = files.pop()
+            if os.path.isdir(f):
+                files.extend([os.path.join(f,x) for x in os.listdir(f)])
+            else:
+                if not f.endswith(".py"):
+                    continue
+                else:
+                    try:
+                        h = sha1(open(f,"rb").read()).hexdigest()
+                    except IOError:
+                        to_process[h] = f
+                    if h in orig_hashes:
+                        src = os.path.join(BUILD_CACHE_DIR,orig_hashes[h])
+                        print("cache hit %s,%s" % (f,h))
+                        shutil.copyfile(src,f)
+                    elif h not in post_hashes:
+                        # we're not in a dev dir with already processed files
+                        print("cache miss %s,%s" % (f,h))
+                        to_process[h] = f
+
+        avail_fixes = set(refactor.get_fixers_from_package("lib2to3.fixes"))
+        avail_fixes.discard('lib2to3.fixes.fix_next')
+        t=refactor.RefactoringTool(avail_fixes)
+        t.refactor(to_process.values(),True)
+
+        for orig_h in to_process:
+            f = to_process[orig_h]
+            post_h = sha1(open(f,"rb").read()).hexdigest()
+            cached_fname = orig_h + "-" + post_h + "-" + pyver
+            print("cache put %s,%s in %s" % (f,h,cached_fname))
+            shutil.copyfile(f,os.path.join(BUILD_CACHE_DIR,cached_fname))
+
+except Exception:
         BUILD_CACHE_DIR = None
 
 # may need to work around setuptools bug by providing a fake Pyrex
@@ -53,18 +105,18 @@ except ImportError:
 setuptools_kwargs = {}
 if sys.version_info[0] >= 3:
 
-    min_numpy_ver = 1.6
+    min_numpy_ver = "1.6.2"
     if sys.version_info[1] >= 3:  # 3.3 needs numpy 1.7+
-        min_numpy_ver = "1.7.0b2"
+        min_numpy_ver = "1.7.0"
 
-    setuptools_kwargs = {'use_2to3': True,
-                         'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2',
-                                              'pytz',
-                                              'numpy >= %s' % min_numpy_ver],
-                         'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
-                                                     ],
-                         }
+    setuptools_kwargs = {'use_2to3': True if BUILD_CACHE_DIR is None else False,
+                     'zip_safe': False,
+                     'install_requires': ['python-dateutil >= 2',
+                                          'pytz',
+                                          'numpy >= %s' % min_numpy_ver],
+                     'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
+                                                 ],
+                     }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
                  "\n$ pip install distribute")
@@ -490,7 +542,7 @@ class CachingBuildExt(build_ext, CompilationCacheExtMixin):
             build_ext.cython_sources(self, [s], extension)
             self._put_to_cache(hash, target)
 
-        sources = [x for x in sources if x.startswith("pandas")]
+        sources = [x for x in sources if x.startswith("pandas") or "lib." in x]
 
         return sources
 
@@ -531,6 +583,8 @@ else:
     suffix = '.c'
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
+    if BUILD_CACHE_DIR:  # use the cache
+        cmdclass['build_ext'] = CachingBuildExt
 
 lib_depends = ['reduce', 'inference', 'properties']
 
