@@ -282,13 +282,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
     elif isinstance(obj, DataFrame):
         if axis == 1:
             raise NotImplementedError
-        data = obj._data
-
-        new_blocks = [b.take(indexer, axis=1) for b in data.blocks]
-        new_axes = list(data.axes)
-        new_axes[1] = new_index
-        new_data = BlockManager(new_blocks, new_axes)
-        return DataFrame(new_data)
+        return DataFrame(obj._data.take(indexer,new_index=new_index,axis=1))
     else:
         raise NotImplementedError
 

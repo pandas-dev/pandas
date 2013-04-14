@@ -4930,25 +4930,10 @@ class DataFrame(NDFrame):
             raise Exception('Must have 0<= axis <= 1')
 
     def _get_numeric_data(self):
-        if self._is_mixed_type:
-            num_data = self._data.get_numeric_data()
-            return DataFrame(num_data, index=self.index, copy=False)
-        else:
-            if (self.values.dtype != np.object_ and
-                    not issubclass(self.values.dtype.type, np.datetime64)):
-                return self
-            else:
-                return self.ix[:, []]
+        return self._constructor(self._data.get_numeric_data(), index=self.index, copy=False)
 
     def _get_bool_data(self):
-        if self._is_mixed_type:
-            bool_data = self._data.get_bool_data()
-            return DataFrame(bool_data, index=self.index, copy=False)
-        else:  # pragma: no cover
-            if self.values.dtype == np.bool_:
-                return self
-            else:
-                return self.ix[:, []]
+        return self._constructor(self._data.get_bool_data(), index=self.index, copy=False)
 
     def quantile(self, q=0.5, axis=0, numeric_only=True):
         """
