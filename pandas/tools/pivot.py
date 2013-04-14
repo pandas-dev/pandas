@@ -99,10 +99,11 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
     grouped = data.groupby(keys)
     agged = grouped.agg(aggfunc)
 
-    to_unstack = [agged.index.names[i]
-                  for i in range(len(rows), len(keys))]
-
-    table = agged.unstack(to_unstack)
+    table = agged
+    if table.index.nlevels > 1:
+        to_unstack = [agged.index.names[i]
+                      for i in range(len(rows), len(keys))]
+        table = agged.unstack(to_unstack)
 
     if isinstance(table, DataFrame):
         if isinstance(table.columns, MultiIndex):
@@ -120,6 +121,9 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
     # discard the top level
     if values_passed and not values_multi:
         table = table[values[0]]
+
+    if len(rows) == 0 and len(cols) > 0:
+        table = table.T
 
     return table
 

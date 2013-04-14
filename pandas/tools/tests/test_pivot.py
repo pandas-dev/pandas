@@ -50,6 +50,19 @@ class TestPivotTable(unittest.TestCase):
         expected = self.data.groupby(rows + [cols])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
+    def test_pivot_table_nocols(self):
+        df = DataFrame({'rows': ['a', 'b', 'c'],
+                        'cols': ['x', 'y', 'z'],
+                        'values': [1,2,3]})
+        rs = df.pivot_table(cols='cols', aggfunc=np.sum)
+        xp = df.pivot_table(rows='cols', aggfunc=np.sum).T
+        tm.assert_frame_equal(rs, xp)
+
+        rs = df.pivot_table(cols='cols', aggfunc={'values': 'mean'})
+        xp = df.pivot_table(rows='cols', aggfunc={'values': 'mean'}).T
+        tm.assert_frame_equal(rs, xp)
+
+
     def test_pass_array(self):
         result = self.data.pivot_table('D', rows=self.data.A, cols=self.data.C)
         expected = self.data.pivot_table('D', rows='A', cols='C')
