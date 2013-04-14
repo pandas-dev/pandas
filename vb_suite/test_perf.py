@@ -108,12 +108,23 @@ parser.add_argument('-a', '--affinity',
                     type=int,
                     help='set processor affinity of processm by default bind to cpu/core #1 only'
                              'requires the "affinity" python module , will raise Warning otherwise'  )
+
 parser.add_argument('-u', '--burnin',
                     metavar="u",
                     dest='burnin',
                     default=1,
                     type=int,
                     help='number of extra iteration per benchmark to perform first, then throw away. '  )
+
+parser.add_argument('-S', '--stats',
+                    default=False,
+                    action='store_true',
+                    help='when specified with -N, prints s.describe() per vbench. '  )
+
+parser.add_argument('-q', '--quiet',
+                    default=False,
+                    action='store_true',
+                    help='suppress report output to stdout. '  )
 
 def get_results_df(db, rev):
     """Takes a git commit hash and returns a Dataframe of benchmark results
@@ -281,6 +292,7 @@ def profile_head(benchmarks):
     print( "Performing %d benchmarks (%d runs each)" % ( len(benchmarks), args.hrepeats))
 
     ss= [profile_head_single(b) for b in benchmarks]
+    print("\n")
 
     results = DataFrame(ss)
     results.columns=[ "#%d" %i for i in range(args.hrepeats)]
@@ -290,54 +302,66 @@ def profile_head(benchmarks):
     shas, messages, _,_  = _parse_commit_log(None,REPO_PATH,base_commit="HEAD^")
     print_report(results,h_head=shas[-1],h_msg=messages[-1])
 
+
     if args.outdf:
         prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
         DataFrame(results).save(args.outdf)
 
 def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
-        name_width=45
-        col_width = 10
+    name_width=45
+    col_width = 10
 
-        hdr = ("{:%s}" % name_width).format("Test name")
-        hdr += ("|{:^%d}"  % col_width)* len(df.columns)
-        hdr += "|"
-        hdr = hdr.format(*df.columns)
-        hdr = "-"*len(hdr) + "\n" + hdr + "\n" + "-"*len(hdr) + "\n"
-        ftr=hdr
-        s = "\n"
-        s+= "Invoked with :\n"
-        s+= "--ncalls: %s\n" % (args.ncalls or 'Auto')
-        s+= "--repeats: %s\n" % (args.repeats)
-        s+= "\n\n"
+    hdr = ("{:%s}" % name_width).format("Test name")
+    hdr += ("|{:^%d}"  % col_width)* len(df.columns)
+    hdr += "|"
+    hdr = hdr.format(*df.columns)
+    hdr = "-"*len(hdr) + "\n" + hdr + "\n" + "-"*len(hdr) + "\n"
+    ftr=hdr
+    s = "\n"
+    s+= "Invoked with :\n"
+    s+= "--ncalls: %s\n" % (args.ncalls or 'Auto')
+    s+= "--repeats: %s\n" % (args.repeats)
+    s+= "\n\n"
 
-        s += hdr
-        # import ipdb
-        # ipdb.set_trace()
-        for i in range(len(df)):
-            lfmt = ("{:%s}" % name_width)
-            lfmt += ("| {:%d.4f} " % (col_width-2))* len(df.columns)
-            lfmt += "|\n"
-            s += lfmt.format(df.index[i],*list(df.irow(i).values))
+    s += hdr
+    # import ipdb
+    # ipdb.set_trace()
+    for i in range(len(df)):
+        lfmt = ("{:%s}" % name_width)
+        lfmt += ("| {:%d.4f} " % (col_width-2))* len(df.columns)
+        lfmt += "|\n"
+        s += lfmt.format(df.index[i],*list(df.irow(i).values))
 
-        s+= ftr + "\n"
+    s+= ftr + "\n"
 
-        s += "Ratio < 1.0 means the target commit is faster then the baseline.\n"
-        s += "Seed used: %d\n\n" % args.seed
+    s += "Ratio < 1.0 means the target commit is faster then the baseline.\n"
+    s += "Seed used: %d\n\n" % args.seed
 
-        if  h_head:
-            s += 'Target [%s] : %s\n' % (h_head, h_msg)
-        if  h_baseline:
-            s += 'Base   [%s] : %s\n\n' % (
-                h_baseline, b_msg)
+    if  h_head:
+        s += 'Target [%s] : %s\n' % (h_head, h_msg)
+    if  h_baseline:
+        s += 'Base   [%s] : %s\n\n' % (
+            h_baseline, b_msg)
 
-        logfile = open(args.log_file, 'w')
-        logfile.write(s)
-        logfile.close()
+    stats_footer = "\n"
+    if args.stats :
+        for l in df.index:
+            stats_footer += "\n" + l + "\n" + str(df.ix[l].describe()) + "\n\n"
 
+    s+= stats_footer
+    logfile = open(args.log_file, 'w')
+    logfile.write(s)
+    logfile.close()
+
+    if not args.quiet:
         prprint(s)
-        prprint("Results were also written to the logfile at '%s'" %
-                args.log_file)
+
+    if args.stats:
+        prprint(stats_footer)
+
+    prprint("Results were also written to the logfile at '%s'" %
+            args.log_file)
 
 
 
