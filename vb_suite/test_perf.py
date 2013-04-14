@@ -261,6 +261,7 @@ def profile_head_single(benchmark):
 
             results.append(d.get('timing',np.nan))
             gc.enable()
+            gc.collect()
 
     finally:
         gc.enable()
