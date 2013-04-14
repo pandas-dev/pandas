@@ -282,6 +282,9 @@ The :ref:`HDFStores <io.hdf5>` docs
 `Troubleshoot HDFStore exceptions
 <http://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__
 
+`Setting min_itemsize with strings
+<http://stackoverflow.com/questions/15988871/hdfstore-appendstring-dataframe-fails-when-string-column-contents-are-longer>`__
+
 Storing Attributes to a group node
 
 .. ipython:: python
