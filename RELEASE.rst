@@ -297,9 +297,11 @@ pandas 0.11.0
   - Ensure index casts work even in Int64Index
   - Fix set_index segfault when passing MultiIndex (GH3308_)
   - Ensure pickles created in py2 can be read in py3
+  - Insert ellipsis in MultiIndex summary repr (GH3348_)
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
+.. _GH3348: https://github.com/pydata/pandas/issues/3348
 .. _GH797: https://github.com/pydata/pandas/issues/797
 .. _GH1893: https://github.com/pydata/pandas/issues/1893
 .. _GH1978: https://github.com/pydata/pandas/issues/1978

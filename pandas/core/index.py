@@ -1502,7 +1502,7 @@ class MultiIndex(Index):
         np.set_printoptions(threshold=50)
 
         if len(self) > 100:
-            values = self[:50].format() + self[-50:].format()
+            values = self[:50].format() + ["..."] + self[-50:].format()
         else:
             values = self.format()
 
