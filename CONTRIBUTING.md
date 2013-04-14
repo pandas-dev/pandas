@@ -47,6 +47,16 @@ your contribution or address the issue you're having.
     and finally a commit message body if there's a need for one.
   - Please reference the GH issue number in your commit message using GH1234
     or #1234, either style is fine.
+  - Use "raise AssertionError" rather then plain `assert` in library code (using assert is fine
+    for test code). python -o strips assertions. better safe then sorry.
+  - When writing tests, don't use "new" assertion methods added to the unittest module
+    in 2.7 since pandas currently supports 2.6. The most common pitfall is:
+
+    with self.assertRaises(ValueError):
+         foo
+
+    which fails on python 2.6, use `self.assertRaises(TheException,func,args)` instead.
+
   - RELEASE.rst and doc/source/vx.y.z.txt contain an on-going changelog for each
     release as it is worked on. Add entries to these files as needed in
     a separate commit in your PR, documenting the fix, enhancement or (unavoidable)
