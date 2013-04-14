@@ -30,9 +30,7 @@ class Block(object):
     _can_hold_na = False
     _downcast_dtype = None
 
-    def __init__(self, values, items, ref_items, ndim=2):
-        if issubclass(values.dtype.type, basestring):
-            values = np.array(values, dtype=object)
+    def __init__(self, values, items, ref_items, ndim=2, fastpath=False):
 
         if values.ndim != ndim:
             raise ValueError('Wrong number of dimensions')
@@ -44,8 +42,13 @@ class Block(object):
         self._ref_locs = None
         self.values = values
         self.ndim = ndim
-        self.items = _ensure_index(items)
-        self.ref_items = _ensure_index(ref_items)
+
+        if fastpath:
+            self.items = items
+            self.ref_items = ref_items
+        else:
+            self.items = _ensure_index(items)
+            self.ref_items = _ensure_index(ref_items)
 
     def _gi(self, arg):
         return self.values[arg]
@@ -114,7 +117,7 @@ class Block(object):
         values = self.values
         if deep:
             values = values.copy()
-        return make_block(values, self.items, self.ref_items)
+        return make_block(values, self.items, self.ref_items, klass=self.__class__, fastpath=True)
 
     def merge(self, other):
         if not self.ref_items.equals(other.ref_items):
@@ -133,7 +136,7 @@ class Block(object):
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis,
                                  fill_value=fill_value, mask_info=mask_info)
-        return make_block(new_values, self.items, self.ref_items)
+        return make_block(new_values, self.items, self.ref_items, fastpath=True)
 
     def reindex_items_from(self, new_ref_items, copy=True):
         """
@@ -155,7 +158,7 @@ class Block(object):
             new_values = com.take_nd(self.values, masked_idx, axis=0,
                                      allow_fill=False)
             new_items = self.items.take(masked_idx)
-        return make_block(new_values, new_items, new_ref_items)
+        return make_block(new_values, new_items, new_ref_items, fastpath=True)
 
     def get(self, item):
         loc = self.items.get_loc(item)
@@ -181,7 +184,7 @@ class Block(object):
         loc = self.items.get_loc(item)
         new_items = self.items.delete(loc)
         new_values = np.delete(self.values, loc, 0)
-        return make_block(new_values, new_items, self.ref_items)
+        return make_block(new_values, new_items, self.ref_items, klass=self.__class__, fastpath=True)
 
     def split_block_at(self, item):
         """
@@ -204,7 +207,9 @@ class Block(object):
         for s, e in com.split_ranges(mask):
             yield make_block(self.values[s:e],
                              self.items[s:e].copy(),
-                             self.ref_items)
+                             self.ref_items,
+                             klass=self.__class__,
+                             fastpath=True)
 
     def fillna(self, value, inplace=False, downcast=None):
         if not self._can_hold_na:
@@ -217,7 +222,7 @@ class Block(object):
         mask = com.isnull(new_values)
         np.putmask(new_values, mask, value)
 
-        block = make_block(new_values, self.items, self.ref_items)
+        block = make_block(new_values, self.items, self.ref_items, fastpath=True)
         if downcast:
             block = block.downcast()
         return block
@@ -251,7 +256,7 @@ class Block(object):
         """
         try:
             newb = make_block(com._astype_nansafe(self.values, dtype, copy = copy),
-                              self.items, self.ref_items)
+                              self.items, self.ref_items, fastpath=True)
         except:
             if raise_on_error is True:
                 raise
@@ -365,14 +370,14 @@ class Block(object):
                     nv = new_values[i] if inplace else new_values[i].copy()
 
                 nv = _block_shape(nv)
-                new_blocks.append(make_block(nv, [ item ], self.ref_items))
+                new_blocks.append(make_block(nv, Index([ item ]), self.ref_items, fastpath=True))
 
             return new_blocks
 
         if inplace:
             return [ self ]
 
-        return [ make_block(new_values, self.items, self.ref_items) ]
+        return [ make_block(new_values, self.items, self.ref_items, fastpath=True) ]
 
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None, coerce=False):
@@ -403,14 +408,14 @@ class Block(object):
         else:
             com.backfill_2d(transf(values), limit=limit, mask=mask)
 
-        return make_block(values, self.items, self.ref_items)
+        return make_block(values, self.items, self.ref_items, klass=self.__class__, fastpath=True)
 
-    def take(self, indexer, axis=1):
+    def take(self, indexer, ref_items, axis=1):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis=axis,
                                  allow_fill=False)
-        return make_block(new_values, self.items, self.ref_items)
+        return make_block(new_values, self.items, ref_items, klass=self.__class__, fastpath=True)
 
     def get_values(self, dtype):
         return self.values
@@ -418,7 +423,7 @@ class Block(object):
     def diff(self, n):
         """ return block for the diff of the values """
         new_values = com.diff(self.values, n, axis=1)
-        return make_block(new_values, self.items, self.ref_items)
+        return make_block(new_values, self.items, self.ref_items, fastpath=True)
 
     def shift(self, indexer, periods):
         """ shift the block by periods, possibly upcast """
@@ -431,7 +436,7 @@ class Block(object):
             new_values[:, :periods] = fill_value
         else:
             new_values[:, periods:] = fill_value
-        return make_block(new_values, self.items, self.ref_items)
+        return make_block(new_values, self.items, self.ref_items, fastpath=True)
 
     def eval(self, func, other, raise_on_error = True, try_cast = False):
         """
@@ -486,7 +491,7 @@ class Block(object):
         if try_cast:
             result = self._try_cast_result(result)
 
-        return make_block(result, self.items, self.ref_items)
+        return make_block(result, self.items, self.ref_items, fastpath=True)
 
     def where(self, other, cond, raise_on_error = True, try_cast = False):
         """
@@ -551,7 +556,7 @@ class Block(object):
                     result.fill(np.nan)
                     return result
 
-        def create_block(result, items, transpose = True):
+        def create_block(result, items, transpose=True):
             if not isinstance(result, np.ndarray):
                 raise TypeError('Could not compare [%s] with block values'
                                 % repr(other))
@@ -581,7 +586,7 @@ class Block(object):
                     result = np.repeat(result,self.shape[1:])
 
                 result = _block_shape(result,ndim=self.ndim,shape=self.shape[1:])
-                result_blocks.append(create_block(result, item, transpose = False))
+                result_blocks.append(create_block(result, item, transpose=False))
 
             return result_blocks
         else:
@@ -683,6 +688,12 @@ class ObjectBlock(Block):
     is_object = True
     _can_hold_na = True
 
+    def __init__(self, values, items, ref_items, ndim=2, fastpath=False):
+        if issubclass(values.dtype.type, basestring):
+            values = np.array(values, dtype=object)
+
+        super(ObjectBlock, self).__init__(values, items, ref_items, ndim=ndim, fastpath=fastpath)
+
     @property
     def is_bool(self):
         """ we can be a bool if we have only bool values but are of type object """
@@ -704,7 +715,7 @@ class ObjectBlock(Block):
             values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
             values = _block_shape(values)
             items = self.items.take([i])
-            newb = make_block(values, items, self.ref_items)
+            newb = make_block(values, items, self.ref_items, fastpath=True)
             blocks.append(newb)
 
         return blocks
@@ -727,11 +738,11 @@ _TD_DTYPE = np.dtype('m8[ns]')
 class DatetimeBlock(Block):
     _can_hold_na = True
 
-    def __init__(self, values, items, ref_items, ndim=2):
+    def __init__(self, values, items, ref_items, ndim=2, fastpath=True):
         if values.dtype != _NS_DTYPE:
             values = tslib.cast_to_nanoseconds(values)
 
-        Block.__init__(self, values, items, ref_items, ndim=ndim)
+        super(DatetimeBlock, self).__init__(values, items, ref_items, ndim=ndim, fastpath=fastpath)
 
     def _gi(self, arg):
         return lib.Timestamp(self.values[arg])
@@ -813,40 +824,41 @@ class DatetimeBlock(Block):
         return self.values
 
 
-def make_block(values, items, ref_items):
-    dtype = values.dtype
-    vtype = dtype.type
-    klass = None
-
-    if issubclass(vtype, np.floating):
-        klass = FloatBlock
-    elif issubclass(vtype, np.complexfloating):
-        klass = ComplexBlock
-    elif issubclass(vtype, np.datetime64):
-        klass = DatetimeBlock
-    elif issubclass(vtype, np.integer):
-        klass = IntBlock
-    elif dtype == np.bool_:
-        klass = BoolBlock
-
-    # try to infer a datetimeblock
-    if klass is None and np.prod(values.shape):
-        flat = values.ravel()
-        inferred_type = lib.infer_dtype(flat)
-        if inferred_type == 'datetime':
-
-            # we have an object array that has been inferred as datetime, so
-            # convert it
-            try:
-                values = tslib.array_to_datetime(flat).reshape(values.shape)
-                klass = DatetimeBlock
-            except:  # it already object, so leave it
-                pass
+def make_block(values, items, ref_items, klass = None, fastpath=False):
 
     if klass is None:
-        klass = ObjectBlock
+        dtype = values.dtype
+        vtype = dtype.type
 
-    return klass(values, items, ref_items, ndim=values.ndim)
+        if issubclass(vtype, np.floating):
+            klass = FloatBlock
+        elif issubclass(vtype, np.complexfloating):
+            klass = ComplexBlock
+        elif issubclass(vtype, np.datetime64):
+            klass = DatetimeBlock
+        elif issubclass(vtype, np.integer):
+            klass = IntBlock
+        elif dtype == np.bool_:
+            klass = BoolBlock
+
+        # try to infer a datetimeblock
+        if klass is None and np.prod(values.shape):
+            flat = values.ravel()
+            inferred_type = lib.infer_dtype(flat)
+            if inferred_type == 'datetime':
+
+                # we have an object array that has been inferred as datetime, so
+                # convert it
+                try:
+                    values = tslib.array_to_datetime(flat).reshape(values.shape)
+                    klass = DatetimeBlock
+                except:  # it already object, so leave it
+                    pass
+
+        if klass is None:
+            klass = ObjectBlock
+
+    return klass(values, items, ref_items, ndim=values.ndim, fastpath=fastpath)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -1168,8 +1180,11 @@ class BlockManager(object):
             new_items = new_axes[0]
             if len(self.blocks) == 1:
                 blk = self.blocks[0]
-                newb = make_block(blk.values[slobj], new_items,
-                                  new_items)
+                newb = make_block(blk.values[slobj], 
+                                  new_items,
+                                  new_items, 
+                                  klass=blk.__class__,
+                                  fastpath=True)
                 new_blocks = [newb]
             else:
                 return self.reindex_items(new_items)
@@ -1186,8 +1201,11 @@ class BlockManager(object):
         slicer = tuple(slicer)
 
         for block in self.blocks:
-            newb = make_block(block.values[slicer], block.items,
-                              block.ref_items)
+            newb = make_block(block.values[slicer], 
+                              block.items,
+                              block.ref_items, 
+                              klass=block.__class__,
+                              fastpath=True)
             new_blocks.append(newb)
         return new_blocks
 
@@ -1296,13 +1314,22 @@ class BlockManager(object):
                 raise Exception('cannot get view of mixed-type or '
                                 'non-consolidated DataFrame')
             for blk in self.blocks:
-                newb = make_block(blk.values[slicer], blk.items, blk.ref_items)
+                newb = make_block(blk.values[slicer], 
+                                  blk.items, 
+                                  blk.ref_items, 
+                                  klass=blk.__class__,
+                                  fastpath=True)
                 new_blocks.append(newb)
         elif len(self.blocks) == 1:
-            vals = self.blocks[0].values[slicer]
+            block = self.blocks[0]
+            vals = block.values[slicer]
             if copy:
                 vals = vals.copy()
-            new_blocks = [make_block(vals, self.items, self.items)]
+            new_blocks = [make_block(vals, 
+                                     self.items, 
+                                     self.items,
+                                     klass=block.__class__,
+                                     fastpath=True)]
 
         return BlockManager(new_blocks, new_axes)
 
@@ -1491,7 +1518,7 @@ class BlockManager(object):
         if loc is None:
             loc = self.items.get_loc(item)
         new_block = make_block(value, self.items[loc:loc + 1].copy(),
-                               self.items)
+                               self.items, fastpath=True)
         self.blocks.append(new_block)
 
     def _find_block(self, item):
@@ -1569,7 +1596,7 @@ class BlockManager(object):
             new_values = com.take_nd(blk.values, blk_indexer[selector], axis=0,
                                      allow_fill=False)
             new_blocks.append(make_block(new_values, new_block_items,
-                                         new_items))
+                                         new_items, fastpath=True))
 
         if not mask.all():
             na_items = new_items[-mask]
@@ -1593,7 +1620,7 @@ class BlockManager(object):
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)
 
-        # could have some pathological (MultiIndex) issues here
+        # could have so me pathological (MultiIndex) issues here
         new_blocks = []
         if indexer is None:
             for blk in self.blocks:
@@ -1630,7 +1657,7 @@ class BlockManager(object):
         na_block = make_block(block_values, items, ref_items)
         return na_block
 
-    def take(self, indexer, axis=1, verify=True):
+    def take(self, indexer, new_index=None, axis=1, verify=True):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
@@ -1645,15 +1672,11 @@ class BlockManager(object):
                             'the axis length')
 
         new_axes = list(self.axes)
-        new_axes[axis] = self.axes[axis].take(indexer)
-        new_blocks = []
-        for blk in self.blocks:
-            new_values = com.take_nd(blk.values, indexer, axis=axis,
-                                     allow_fill=False)
-            newb = make_block(new_values, blk.items, self.items)
-            new_blocks.append(newb)
+        if new_index is None:
+            new_index = self.axes[axis].take(indexer)
 
-        return BlockManager(new_blocks, new_axes)
+        new_axes[axis] = new_index 
+        return self.apply('take',axes=new_axes,indexer=indexer,ref_items=new_axes[0],axis=axis)
 
     def merge(self, other, lsuffix=None, rsuffix=None):
         if not self._is_indexed_like(other):
