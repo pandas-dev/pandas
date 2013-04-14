@@ -694,24 +694,40 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
 
-            # infer the .typ on subsequent appends
+            def check_col(key,name,size):
+                self.assert_(getattr(store.get_storer(key).table.description,name).itemsize == size)
+
             df = DataFrame(dict(A = 'foo', B = 'bar'),index=range(10))
+
+            # a min_itemsize that creates a data_column
+            store.remove('df')
+            store.append('df', df, min_itemsize={'A' : 200 })
+            check_col('df', 'A', 200)
+            self.assert_(store.get_storer('df').data_columns == ['A'])
+
+            # a min_itemsize that creates a data_column2
+            store.remove('df')
+            store.append('df', df, data_columns = ['B'], min_itemsize={'A' : 200 })
+            check_col('df', 'A', 200)
+            self.assert_(store.get_storer('df').data_columns == ['B','A'])
+
+            # a min_itemsize that creates a data_column2
+            store.remove('df')
+            store.append('df', df, data_columns = ['B'], min_itemsize={'values' : 200 })
+            check_col('df', 'B', 200)
+            check_col('df', 'values_block_0', 200)
+            self.assert_(store.get_storer('df').data_columns == ['B'])
+
+            # infer the .typ on subsequent appends
             store.remove('df')
             store.append('df', df[:5], min_itemsize=200)
             store.append('df', df[5:], min_itemsize=200)
             tm.assert_frame_equal(store['df'], df)
 
             # invalid min_itemsize keys
-
             df = DataFrame(['foo','foo','foo','barh','barh','barh'],columns=['A'])
-
             store.remove('df')
             self.assertRaises(ValueError, store.append, 'df', df, min_itemsize={'foo' : 20, 'foobar' : 20})
-
-            # invalid sizes
-            store.remove('df')
-            store.append('df', df[:3], min_itemsize=3)
-            self.assertRaises(ValueError, store.append, 'df', df[3:])
 
     def test_append_with_data_columns(self):
 
