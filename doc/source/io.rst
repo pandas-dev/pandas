@@ -1391,7 +1391,7 @@ of rows in an object.
 Multiple Table Queries
 ~~~~~~~~~~~~~~~~~~~~~~
 
-New in 0.10.1 are the methods ``append_to_multple`` and
+New in 0.10.1 are the methods ``append_to_multiple`` and
 ``select_as_multiple``, that can perform appending/selecting from
 multiple tables at once. The idea is to have one table (call it the
 selector table) that you index most/all of the columns, and perform your
@@ -1535,24 +1535,6 @@ Notes & Caveats
      ``tables``. The sizes of a string based indexing column
      (e.g. *columns* or *minor_axis*) are determined as the maximum size
      of the elements in that axis or by passing the parameter
-     ``min_itemsize`` on the first table creation (``min_itemsize`` can
-     be an integer or a dict of column name to an integer). If
-     subsequent appends introduce elements in the indexing axis that are
-     larger than the supported indexer, an Exception will be raised
-     (otherwise you could have a silent truncation of these indexers,
-     leading to loss of information). Just to be clear, this fixed-width
-     restriction applies to **indexables** (the indexing columns) and
-     **string values** in a mixed_type table.
-
-     .. ipython:: python
-
-       store.append('wp_big_strings', wp, min_itemsize = { 'minor_axis' : 30 })
-       wp = wp.rename_axis(lambda x: x + '_big_strings', axis=2)
-       store.append('wp_big_strings', wp)
-       store.select('wp_big_strings')
-
-       # we have provided a minimum minor_axis indexable size
-       store.root.wp_big_strings.table
 
 DataTypes
 ~~~~~~~~~
@@ -1588,6 +1570,34 @@ conversion may not be necessary in future versions of pandas)
        df['datelike'] = Series(df['datelike'].values, dtype='M8[ns]')
        df
        df.dtypes
+
+String Columns
+~~~~~~~~~~~~~~
+
+The underlying implementation of ``HDFStore`` uses a fixed column width (itemsize) for string columns. A string column itemsize is calculated as the maximum of the
+length of data (for that column) that is passed to the ``HDFStore``, **in the first append**. Subsequent appends, may introduce a string for a column **larger** than the column can hold, an Exception will be raised (otherwise you could have a silent truncation of these columns, leading to loss of information). In the future we may relax this and allow a user-specified truncation to occur.
+
+Pass ``min_itemsize`` on the first table creation to a-priori specifiy the minimum length of a particular string column. ``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to allow all *indexables* or *data_columns* to have this min_itemsize.
+
+Starting in 0.11, passing a ``min_itemsize`` dict will cause all passed columns to be created as *data_columns* automatically.
+
+.. note::
+
+   If you are not passing any *data_columns*, then the min_itemsize will be the maximum of the length of any string passed
+
+.. ipython:: python
+
+   dfs = DataFrame(dict(A = 'foo', B = 'bar'),index=range(5))
+   dfs
+
+   # A and B have a size of 30
+   store.append('dfs', dfs, min_itemsize = 30)
+   store.get_storer('dfs').table
+
+   # A is created as a data_column with a size of 30
+   # B is size is calculated
+   store.append('dfs2', dfs, min_itemsize = { 'A' : 30 })
+   store.get_storer('dfs2').table
 
 External Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~

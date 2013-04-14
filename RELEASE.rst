@@ -178,6 +178,7 @@ pandas 0.11.0
 
      - added the method ``select_column`` to select a single column from a table as a Series.
      - deprecated the ``unique`` method, can be replicated by ``select_column(key,column).unique()``
+     - ``min_itemsize`` parameter will now automatically create data_columns for passed keys
 
   - Downcast on pivot if possible (GH3283_), adds argument ``downcast`` to ``fillna``
 
