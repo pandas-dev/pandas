@@ -119,6 +119,11 @@ def _is_fixed_offset(tz):
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
+    """TimeStamp is the pandas equivalent of python's Datetime
+    and is interchangable with it in most cases. It's the type used
+    in the label making up a DatetimeIndex, use by the various
+    timeseries oriented data structures in pandas.
+    """
 
     @classmethod
     def fromordinal(cls, ordinal, offset=None, tz=None):
@@ -309,7 +314,7 @@ class Timestamp(_Timestamp):
 
 
 class NaTType(_NaT):
-
+    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
     def __new__(cls):
         cdef _NaT base
 

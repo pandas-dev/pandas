@@ -3,7 +3,7 @@
 import pandas.lib as lib
 
 
-def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_aliases=None, stat_axis=2):
+def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_aliases=None, stat_axis=2,ns=None):
     """ manufacture a n-d class:
 
         parameters
@@ -35,7 +35,8 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
             raise Exception("cannot create this slicer [%s]" % slicer)
 
     # build the klass
-    klass = type(klass_name, (slicer,), {})
+    ns = {} if not ns else ns
+    klass = type(klass_name, (slicer,), ns)
 
     # add the class variables
     klass._AXIS_ORDERS = axis_orders

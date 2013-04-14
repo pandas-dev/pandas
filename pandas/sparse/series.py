@@ -572,4 +572,23 @@ class SparseSeries(SparseArray, Series):
 
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
+    """Data structure for labeled, sparse floating point data, with `TimeStamp`
+    index labels
+
+    Parameters
+    ----------
+    data : {array-like, Series, SparseSeries, dict}
+    kind : {'block', 'integer'}
+    fill_value : float
+        Defaults to NaN (code for missing)
+    sparse_index : {BlockIndex, IntIndex}, optional
+        Only if you have one. Mainly used internally
+
+    Notes
+    -----
+    SparseSeries objects are immutable via the typical Python means. If you
+    must change values, convert to dense, make your changes, then convert back
+    to sparse
+    """
+
     pass
