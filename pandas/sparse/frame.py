@@ -46,8 +46,14 @@ class _SparseMockBlockManager(object):
     @property
     def blocks(self):
         """ return our series in the column order """
-        s = self.sp_frame._series
-        return [ self.iget(i) for i in self.sp_frame.columns ]
+        return [ self.iget(i) for i, c in enumerate(self.sp_frame.columns) ]
+
+    def get_numeric_data(self):
+        # does not check, but assuming all numeric for now
+        return self.sp_frame
+
+    def get_bool_data(self):
+        raise NotImplementedError
 
 class SparseDataFrame(DataFrame):
     """
@@ -125,10 +131,13 @@ class SparseDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        def wrapper(data, index=None, columns=None):
-            return SparseDataFrame(data, index=index, columns=columns,
-                                   default_fill_value=self.default_fill_value,
-                                   default_kind=self.default_kind)
+        def wrapper(data, index=None, columns=None, copy=False):
+            sf = SparseDataFrame(data, index=index, columns=columns,
+                                 default_fill_value=self.default_fill_value,
+                                 default_kind=self.default_kind)
+            if copy:
+                sf = sf.copy()
+            return sf
         return wrapper
 
     def _init_dict(self, data, index, columns, dtype=None):
