@@ -137,14 +137,13 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assertTrue(len(com.pprint_thing(range(1000)))< 100)
 
     def test_repr_should_return_str(self):
-        """
-        http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
-        http://docs.python.org/reference/datamodel.html#object.__repr__
-        "...The return value must be a string object."
+        # http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
+        # http://docs.python.org/reference/datamodel.html#object.__repr__
+        # "...The return value must be a string object."
 
-        (str on py2.x, str (unicode) on py3)
+        # (str on py2.x, str (unicode) on py3)
 
-        """
+
         data = [8, 5, 3, 5]
         index1 = [u"\u03c3", u"\u03c4", u"\u03c5", u"\u03c6"]
         cols = [u"\u03c8"]
