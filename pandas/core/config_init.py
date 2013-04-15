@@ -122,7 +122,7 @@ pc_line_width_doc = """
 """
 
 pc_line_width_deprecation_warning = """\
-use display.width instead (currently both are indentical) 
+line_width has been deprecated, use display.width instead (currently both are identical)
 """
 
 pc_width_doc = """
