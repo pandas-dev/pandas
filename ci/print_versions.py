@@ -8,8 +8,8 @@ try:
     import os
     (sysname, nodename, release, version, machine) = os.uname()
     print("OS: %s %s %s %s" % (sysname, release, version,machine))
-    print("LC_ALL: %s" % os.environ.get('LC_ALL',"None"))
-    print("LANG: %s" % os.environ.get('LANG',"None"))
+    print("LC_ALL: %s" % os.environ['LC_ALL'])
+    print("LANG: %s" % os.environ['LANG'])
 except:
     pass
 
