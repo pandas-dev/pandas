@@ -346,8 +346,7 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
     stats_footer = "\n"
     if args.stats :
-        for l in df.index:
-            stats_footer += "\n" + l + "\n" + str(df.ix[l].describe()) + "\n\n"
+        stats_footer += str(df.T.describe().T) + "\n\n"
 
     s+= stats_footer
     logfile = open(args.log_file, 'w')
