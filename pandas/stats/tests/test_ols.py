@@ -100,6 +100,8 @@ class TestOLS(BaseTest):
         if sm.version.version < '0.5.0':
             raise nose.SkipTest
 
+        print( "Make sure you're using statsmodels 0.5.0.dev-cec4f26 or later.")
+
         X = DataFrame(np.random.randn(30, 4), columns=['A', 'B', 'C', 'D'])
         Y = Series(np.random.randn(30))
         weights = X.std(1)
