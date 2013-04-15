@@ -8,8 +8,11 @@ try:
     import os
     (sysname, nodename, release, version, machine) = os.uname()
     print("OS: %s %s %s %s" % (sysname, release, version,machine))
+    print("LC_ALL: %s" % os.environ['LC_ALL'])
+    print("LANG: %s" % os.environ['LANG'])
 except:
     pass
+
 print("")
 try:
     import Cython
