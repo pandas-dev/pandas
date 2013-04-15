@@ -139,14 +139,9 @@ class SeriesFormatter(object):
         maxlen = max(len(x) for x in fmt_index)
         pad_space = min(maxlen, 60)
 
-        _encode_diff = _encode_diff_func()
-
         result = ['%s   %s'] * len(fmt_values)
         for i, (k, v) in enumerate(izip(fmt_index[1:], fmt_values)):
-            try:
-                idx = k.ljust(pad_space + _encode_diff(k))
-            except UnicodeEncodeError:
-                idx = k.ljust(pad_space)
+            idx = k.ljust(pad_space)
             result[i] = result[i] % (idx, v)
 
         if self.header and have_header:
@@ -157,21 +152,6 @@ class SeriesFormatter(object):
             result.append(footer)
 
         return unicode(u'\n'.join(result))
-
-
-def _encode_diff_func():
-    if py3compat.PY3:  # pragma: no cover
-        _encode_diff = lambda x: 0
-    else:
-        encoding = get_option("display.encoding")
-
-        def _encode_diff(x):
-            if not isinstance(x,unicode):
-                return len(x) - len(x.decode(encoding))
-            return 0
-
-    return _encode_diff
-
 
 def _strlen_func():
     if py3compat.PY3:  # pragma: no cover
@@ -1490,7 +1470,6 @@ def _make_fixed_width(strings, justify='right', minimum=None):
         return strings
 
     _strlen = _strlen_func()
-    _encode_diff = _encode_diff_func()
 
     max_len = np.max([_strlen(x) for x in strings])
 
@@ -1507,10 +1486,7 @@ def _make_fixed_width(strings, justify='right', minimum=None):
         justfunc = lambda self, x: self.rjust(x)
 
     def just(x):
-        try:
-            eff_len = max_len + _encode_diff(x)
-        except UnicodeError:
-            eff_len = max_len
+        eff_len = max_len
 
         if conf_max is not None:
             if (conf_max > 3) & (_strlen(x) > max_len):
