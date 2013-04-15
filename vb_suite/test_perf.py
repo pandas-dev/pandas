@@ -356,7 +356,7 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
     if not args.quiet:
         prprint(s)
 
-    if args.stats and args.quiet:
+    if args.stats:
         prprint(stats_footer)
 
     prprint("Results were also written to the logfile at '%s'" %

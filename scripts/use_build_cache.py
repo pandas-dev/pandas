@@ -12,39 +12,15 @@ Artifacts included in the cache:
 - The .c files resulting from cythonizing pyx/d files
 - 2to3 refactoring results (when run under python3)
 
-Tested on releases back to 0.7.0.
+Tested on all released back to 0.7.0.
 
 """
-import argparse
-argparser = argparse.ArgumentParser(description="""
-'Program description.
-""".strip())
-
-argparser.add_argument('-f', '--force-overwrite',
-                    default=False,
-                   help='Setting this will overwrite any existing cache results for the current commit',
-                   action='store_true')
-argparser.add_argument('-d', '--debug',
-                    default=False,
-                   help='Report cache hits/misses',
-                   action='store_true')
-
-args = argparser.parse_args()
-
-#print args.accumulate(args.integers)
-
 shim="""
 import os
 import sys
 import shutil
 import warnings
-import re
-"""
 
-shim += ("BC_FORCE_OVERWRITE = %s\n" % args.force_overwrite)
-shim += ("BC_DEBUG = %s\n" % args.debug)
-
-shim += """
 try:
     if not ("develop" in sys.argv) and not ("install" in sys.argv):
         1/0
@@ -58,7 +34,6 @@ try:
     if os.path.isdir(BUILD_CACHE_DIR):
         print("--------------------------------------------------------")
         print("BUILD CACHE ACTIVATED (V2). be careful, this is experimental.")
-        print("BUILD_CACHE_DIR: " + BUILD_CACHE_DIR )
         print("--------------------------------------------------------")
     else:
         BUILD_CACHE_DIR = None
@@ -90,41 +65,33 @@ try:
                         h = sha1(open(f,"rb").read()).hexdigest()
                     except IOError:
                         to_process[h] = f
-                    if h in orig_hashes and not BC_FORCE_OVERWRITE:
+                    if h in orig_hashes:
                         src = os.path.join(BUILD_CACHE_DIR,orig_hashes[h])
-                        if BC_DEBUG:
-                            print("2to3 cache hit %s,%s" % (f,h))
+                        # print("cache hit %s,%s" % (f,h))
                         shutil.copyfile(src,f)
                     elif h not in post_hashes:
 
                         # we're not in a dev dir with already processed files
-                        if BC_DEBUG:
-                            print("2to3 cache miss %s,%s" % (f,h))
-                            print("2to3 will process " + f)
+                        #                        print("cache miss %s,%s" % (f,h))
+                        # print("will process " + f)
                         to_process[h] = f
 
         avail_fixes = set(refactor.get_fixers_from_package("lib2to3.fixes"))
         avail_fixes.discard('lib2to3.fixes.fix_next')
         t=refactor.RefactoringTool(avail_fixes)
-        print("Starting 2to3 refactoring...")
-        for f in to_process.values():
-            if BC_DEBUG:
-                print("2to3 on %s" % f)
-            try:
-                t.refactor([f],True)
-                post_h = sha1(open(f, "rb").read()).hexdigest()
-                cached_fname = f + "-" + post_h + "-" + pyver
-                if BC_DEBUG:
-                    print("cache put %s,%s in %s" % (f, h, cached_fname))
-                shutil.copyfile(f, os.path.join(BUILD_CACHE_DIR, cached_fname))
-
-            except:
-                pass
+        t.refactor(to_process.values(),True)
         print("2to3 done refactoring.")
+        for orig_h in to_process:
+            f = to_process[orig_h]
+            post_h = sha1(open(f,"rb").read()).hexdigest()
+            cached_fname = orig_h + "-" + post_h + "-" + pyver
+            # print("cache put %s,%s in %s" % (f,h,cached_fname))
+            shutil.copyfile(f,os.path.join(BUILD_CACHE_DIR,cached_fname))
 
-except Exception as e:
-    print( "Exception: " + str(e))
-    BUILD_CACHE_DIR = None
+except:
+        BUILD_CACHE_DIR = None
+
+print("BUILD_CACHE_DIR: " + str(BUILD_CACHE_DIR) )
 
 class CompilationCacheMixin(object):
     def __init__(self, *args, **kwds):
@@ -135,10 +102,9 @@ class CompilationCacheMixin(object):
 
     def _copy_from_cache(self, hash, target):
         src = os.path.join(self.cache_dir, hash)
-        if os.path.exists(src) and not BC_FORCE_OVERWRITE:
-            if BC_DEBUG:
-                print("Cache HIT: asked to copy file %s in %s"  %
-                    (src,os.path.abspath(target)))
+        if os.path.exists(src):
+        #            print("Cache HIT: asked to copy file %s in %s"  %
+        #            (src,os.path.abspath(target)))
             s = "."
             for d in target.split(os.path.sep)[:-1]:
                 s = os.path.join(s, d)
@@ -152,8 +118,7 @@ class CompilationCacheMixin(object):
 
     def _put_to_cache(self, hash, src):
         target = os.path.join(self.cache_dir, hash)
-        if BC_DEBUG:
-            print( "Cache miss: asked to copy file from %s to %s" % (src,target))
+        #        print( "Cache miss: asked to copy file from %s to %s" % (src,target))
         s = "."
         for d in target.split(os.path.sep)[:-1]:
             s = os.path.join(s, d)
@@ -298,7 +263,7 @@ def main():
             SEP="\nsetup("
             before,after = s.split(SEP)
             with open(opj(opd(__file__),"..","setup.py"),"wb") as f:
-                f.write((before + shim + SEP + after).encode('ascii'))
+                f.write(before + shim + SEP + after)
             print("""
     setup.py was rewritten to use a build cache.
     Make sure you've put the following in your .bashrc:
@@ -316,6 +281,7 @@ def main():
     python setup.py develop
 
     """)
+
 
 if __name__ == '__main__':
     import sys
