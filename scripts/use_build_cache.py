@@ -15,21 +15,29 @@ Artifacts included in the cache:
 Tested on releases back to 0.7.0.
 
 """
-import argparse
-argparser = argparse.ArgumentParser(description="""
-'Program description.
-""".strip())
 
-argparser.add_argument('-f', '--force-overwrite',
+try:
+    import argparse
+    argparser = argparse.ArgumentParser(description="""
+    'Program description.
+    """.strip())
+
+    argparser.add_argument('-f', '--force-overwrite',
                     default=False,
                    help='Setting this will overwrite any existing cache results for the current commit',
                    action='store_true')
-argparser.add_argument('-d', '--debug',
+    argparser.add_argument('-d', '--debug',
                     default=False,
                    help='Report cache hits/misses',
                    action='store_true')
 
-args = argparser.parse_args()
+    args = argparser.parse_args()
+except:
+    class Foo(object):
+        debug=False
+        force_overwrite=False
+
+    args = Foo() # for 2.6, no argparse
 
 #print args.accumulate(args.integers)
 
@@ -123,7 +131,6 @@ try:
         print("2to3 done refactoring.")
 
 except Exception as e:
-    print( "Exception: " + str(e))
     BUILD_CACHE_DIR = None
 
 class CompilationCacheMixin(object):
