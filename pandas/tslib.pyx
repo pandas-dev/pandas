@@ -121,8 +121,8 @@ def _is_fixed_offset(tz):
 class Timestamp(_Timestamp):
     """TimeStamp is the pandas equivalent of python's Datetime
     and is interchangable with it in most cases. It's the type used
-    in the label making up a DatetimeIndex, use by the various
-    timeseries oriented data structures in pandas.
+    for the entries that make up a DatetimeIndex, and other timeseries
+    oriented data structures in pandas.
     """
 
     @classmethod
