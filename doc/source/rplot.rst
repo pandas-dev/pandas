@@ -22,6 +22,12 @@
 Trellis plotting interface
 **************************
 
+We import the rplot API:
+
+.. ipython:: python
+
+   import pandas.tools.rplot as rplot
+
 --------
 Examples
 --------
