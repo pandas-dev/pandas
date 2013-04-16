@@ -1522,7 +1522,7 @@ class PythonParser(ParserBase):
                             new_rows.append(next(source))
                             rows += 1
                         except csv.Error, inst:
-                            if 'newline inside string' in inst.message:
+                            if 'newline inside string' in str(inst):
                                 row_num = str(self.pos + rows)
                                 msg = ('EOF inside string starting with line '
                                        + row_num)
