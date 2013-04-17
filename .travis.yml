@@ -2,20 +2,29 @@ language: python
 
 python:
   - 2.6
-  - 3.3
 
 env:
   global:
-    - NOSE_ARGS="not slow" # need at least this so travis page will show env column
+    - secure: "O04RU5QRKEDL/SrIWEsVe8O+1TxZqZQSa28Sd+Fz48NW/XddhefYyxzqcUXh\nk/NjWMqknJRQhApLolBianVpsE577OTllzlcyKn3nUL6hjOXcoszGaYray7S\niNGKGyO8xrtB/ZQDtmupz0ksK8sLoCTscdiGotFulczbx0zt+4g="
+    - secure: "PUJ9nC1/v2vpFUtELSoSjI53OHCVXfFTb8+t5lIGIqHtjUBkhiJSNPfCv8Bx\ndsdrx30qP8KsSceYzaa/bog6p8YNU1iih23S0KbjucutvA0LNHBTNvnxmjBR\nSJfKd5FmwnXvizRyghYBzmQ3NmGO7ADw2DBwKOhgGMqCHZ8Tlc8="
+    - secure: "IDcMrCCW+6pgJtsI3Q163OPc0iec1ogpitaqiRhHcrEBUCXZgVeclOeiZBlw\n/u+uGyW/O0NhHMaFXKB8BdDVwlQEEHv48syN6npS/A5+O6jriWKL4ozttOhE\npOlu+yLhHnEwx6wZVIHRTVn+t1GkOrjlBcjaQi+Z13G3XmDaSG8="
+    - secure: "Zu9aj0dTGpvMqT/HqBGQgDYl/v5ubC7lFwfE8Fqb0N1UVXqbpjXnNH/7oal1\nUsIT7klO++LWm+LxsP/A1FWENTSgdYe99JQtNyauW+0x5YR1JTuDJ8atDgx9\nSq66CaVpS5t+ov7UVm2bKSUX+1S8+8zGbIDADrMxEzYEMF7WoGM="
+    - secure: "AfIvLxvCxj22zrqg3ejGf/VePKT2AyGT9erYzlKpBS0H8yi5Pp1MfmJjhaR4\n51zBtzqHPHiIEY6ZdE06o9PioMWkXS+BqJNrxGSbt1ltxgOFrxW5zOpwiFGZ\nZOv1YeFkuPf8PEsWT7615mdydqTQT7B0pqUKK/d6aka4TQ/tg5Q="
+    - secure: "EM4ySBUusReNu7H1QHXvjnP/J1QowvfpwEBmjysYxJuq7KcG8HhhlfpUF+Gh\nLBzLak9QBA67k4edhum3qtKuJR5cHuja3+zuV8xmx096B/m96liJFTrwZpea\n58op3W6ZULctEpQNgIkyae20bjxl4f99JhZRUlonoPfx/rBIMFc="
+    - secure: "pgMYS/6MQqDGb58qdzTJesvAMmcJWTUEEM8gf9rVbfqfxceOL4Xpx8siR9B2\nC4U4MW1cHMPP3RFEb4Jy0uK49aHH10snwZY1S84YPPllpH5ZFXVdN68OayNj\nh4k5N/2hhaaQuJ6Uh8v8s783ye4oYTOW5RJUFqQu4QdG4IkTIMs="
+
+    - NOSE_ARGS="not slow" UPLOAD=true
 
 matrix:
   include:
     - python: 2.7
-      env: NOSE_ARGS="not network"  LOCALE_OVERRIDE="zh_CN.GB18030"
+      env: NOSE_ARGS="slow and not network"  LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true UPLOAD=false
     - python: 2.7
-      env: NOSE_ARGS="not slow" FULL_DEPS=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true UPLOAD=true
     - python: 3.2
-      env: NOSE_ARGS="not slow" FULL_DEPS=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true UPLOAD=true
+    - python: 3.3
+      env: NOSE_ARGS="not slow" UPLOAD=true
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons
@@ -26,11 +35,14 @@ virtualenv:
 before_install:
   - echo "Waldo1"
   - echo $VIRTUAL_ENV
+  - df
   - date
-  - export PIP_ARGS=-q # comment this this to debug travis install issues
-  - export APT_ARGS=-qq # comment this to debug travis install issues
+  # - export PIP_ARGS=-q # comment this this to debug travis install issues
+  # - export APT_ARGS=-qq # comment this to debug travis install issues
   # - set -x # enable this to see bash commands
-  - source ci/before_install.sh # we need to source this to bring in the env
+  - export ZIP_FLAGS=-q # comment this to debug travis install issues
+  - source ci/envars.sh # we need to source this to bring in the envars
+  - ci/before_install.sh
   - python -V
 
 install:
@@ -43,3 +55,4 @@ script:
 
 after_script:
   - ci/print_versions.py
+  - ci/after_script.sh
