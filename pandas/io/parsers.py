@@ -2491,6 +2491,13 @@ class StataParser(object):
                 'd': (-1.798e+308, +8.988e+307)
             }
 
+        self.OLD_TYPE_MAPPING = \
+            {
+                'i': 252,
+                'f': 254,
+                'b': 251
+            }
+
 
 class StataReader(StataParser):
     """
@@ -2547,42 +2554,64 @@ class StataReader(StataParser):
 
     def _read_header(self):
         # header
-        format_version = struct.unpack('b', self.path_or_buf.read(1))[0]
-        if format_version not in [113, 114, 115]:
-            raise ValueError("Version of given Stata file is not 113 (Stata 8/9), 114 (Stata 10/11) or 115 (Stata 12)")
+        self.format_version = struct.unpack('b', self.path_or_buf.read(1))[0]
+        if self.format_version not in [104, 105, 108, 113, 114, 115]:
+            raise ValueError("Version of given Stata file is not 104, 105, 108, 113 (Stata 8/9), 114 (Stata 10/11) or 115 (Stata 12)")
         self.byteorder = self.path_or_buf.read(1) == 0x1 and '>' or '<'
         self.filetype = struct.unpack('b', self.path_or_buf.read(1))[0]
         self.path_or_buf.read(1)  # unused
 
         self.nvar = struct.unpack(self.byteorder + 'H', self.path_or_buf.read(2))[0]
         self.nobs = struct.unpack(self.byteorder + 'I', self.path_or_buf.read(4))[0]
-        self.data_label = self.path_or_buf.read(81)
-        self.time_stamp = self.path_or_buf.read(18)
+        if self.format_version > 105:
+            self.data_label = self.path_or_buf.read(81)
+        else:
+            self.data_label = self.path_or_buf.read(32)
+        if self.format_version > 104:
+            self.time_stamp = self.path_or_buf.read(18)
 
         # descriptors
-        typlist = [ord(self.path_or_buf.read(1)) for i in range(self.nvar)]
+        if self.format_version > 108:
+            typlist = [ord(self.path_or_buf.read(1)) for i in range(self.nvar)]
+        else:
+            typlist = [self.OLD_TYPE_MAPPING[self.path_or_buf.read(1).decode(self.encoding)] for i in range(self.nvar)]
         self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        self.varlist = [self._null_terminate(self.path_or_buf.read(33)) for i in range(self.nvar)]
+        if self.format_version > 108:
+            self.varlist = [self._null_terminate(self.path_or_buf.read(33)) for i in range(self.nvar)]
+        else:
+            self.varlist = [self._null_terminate(self.path_or_buf.read(9)) for i in range(self.nvar)]
         self.srtlist = struct.unpack(self.byteorder + ('h' * (self.nvar + 1)), self.path_or_buf.read(2 * (self.nvar + 1)))[:-1]
-        if format_version <= 113:
+        if self.format_version > 113:
+            self.fmtlist = [self._null_terminate(self.path_or_buf.read(49)) for i in range(self.nvar)]
+        elif self.format_version > 104:
             self.fmtlist = [self._null_terminate(self.path_or_buf.read(12)) for i in range(self.nvar)]
         else:
-            self.fmtlist = [self._null_terminate(self.path_or_buf.read(49)) for i in range(self.nvar)]
-        self.lbllist = [self._null_terminate(self.path_or_buf.read(33)) for i in range(self.nvar)]
-        self.vlblist = [self._null_terminate(self.path_or_buf.read(81)) for i in range(self.nvar)]
+            self.fmtlist = [self._null_terminate(self.path_or_buf.read(7)) for i in range(self.nvar)]
+        if self.format_version > 108:
+            self.lbllist = [self._null_terminate(self.path_or_buf.read(33)) for i in range(self.nvar)]
+        else:
+            self.lbllist = [self._null_terminate(self.path_or_buf.read(9)) for i in range(self.nvar)]
+        if self.format_version > 105:
+            self.vlblist = [self._null_terminate(self.path_or_buf.read(81)) for i in range(self.nvar)]
+        else:
+            self.vlblist = [self._null_terminate(self.path_or_buf.read(32)) for i in range(self.nvar)]
 
-        # ignore expansion fields
+        # ignore expansion fields (Format 105 and later)
         # When reading, read five bytes; the last four bytes now tell you the
         # size of the next read, which you discard.  You then continue like
         # this until you read 5 bytes of zeros.
 
-        while True:
-            self.data_type = struct.unpack(self.byteorder + 'b', self.path_or_buf.read(1))[0]
-            self.data_len = struct.unpack(self.byteorder + 'i', self.path_or_buf.read(4))[0]
-            if self.data_type == 0:
-                break
-            self.path_or_buf.read(self.data_len)
+        if self.format_version > 104:
+            while True:
+                data_type = struct.unpack(self.byteorder + 'b', self.path_or_buf.read(1))[0]
+                if self.format_version > 108:
+                    data_len = struct.unpack(self.byteorder + 'i', self.path_or_buf.read(4))[0]
+                else:
+                    data_len = struct.unpack(self.byteorder + 'h', self.path_or_buf.read(2))[0]
+                if data_type == 0:
+                    break
+                self.path_or_buf.read(data_len)
 
         # necessary data to continue parsing
         self.data_location = self.path_or_buf.tell()
@@ -2677,6 +2706,9 @@ class StataReader(StataParser):
             raise Exception("Value labels have already been read.")
 
         self.value_label_dict = dict()
+
+        if self.format_version <= 108:
+            return  # Value labels are not supported in version 108 and earlier.
 
         while True:
             slength = self.path_or_buf.read(4)
