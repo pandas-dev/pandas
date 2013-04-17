@@ -158,9 +158,23 @@ def interactive_repr(frame):
 
 df = pandas.DataFrame(np.random.randn(10,10000))
 """
-        
+
 frame_wide_repr = Benchmark('repr(df)', setup,
                             start_date=datetime(2012, 8, 1))
 
 frame_wide_repr_interactive = Benchmark('interactive_repr(df)', setup,
                                         start_date=datetime(2012, 8, 1))
+
+##
+setup = common_setup + """
+df = DataFrame(randn(100000, 1))
+"""
+
+frame_xs_row = Benchmark('df.xs(50000)', setup)
+
+##
+setup = common_setup + """
+df = DataFrame(randn(1,100000))
+"""
+
+frame_xs_col = Benchmark('df.xs(50000,axis = 1)', setup)
