@@ -88,7 +88,7 @@ if ( ! $VENV_FILE_AVAILABLE ); then
     fi
 
     # pack up the venv and cache it
-    if [ x"$STORE_KEY" != x"" ] && $UPLOAD; then
+    if [ x"$STORE_KEY" != x"" ] && $UPLOAD && $PLEASE_TRAVIS_FASTER ; then
         VENV_FNAME="venv-$TRAVIS_PYTHON_VERSION.zip"
 
         zip $ZIP_FLAGS -r "$HOME/$VENV_FNAME" $SITE_PKG_DIR/
@@ -112,17 +112,19 @@ fi
 # that's everything the build cache (scripts/use_build_cache.py)
 # stored during the build (.so, pyx->.c and 2to3)
 if  (! $CACHE_FILE_AVAILABLE) ; then
-   echo "Posting artifacts"
-   strip  "$BUILD_CACHE_DIR/*" &> /dev/null
-   echo  "$BUILD_CACHE_DIR"
-   cd "$BUILD_CACHE_DIR"/
-   zip -r $ZIP_FLAGS "$HOME/$CYTHON_HASH".zip *
-   cd "$TRAVIS_BUILD_DIR"
-   pwd
-   zip "$HOME/$CYTHON_HASH".zip $(find pandas | grep -P '\.(pyx|pxd)$' | sed -r 's/.(pyx|pxd)$/.c/')
+ if [ x"$STORE_KEY" != x"" ] && $UPLOAD && $PLEASE_TRAVIS_FASTER ; then
+     echo "Posting artifacts"
+     strip  "$BUILD_CACHE_DIR/*" &> /dev/null
+     echo  "$BUILD_CACHE_DIR"
+     cd "$BUILD_CACHE_DIR"/
+     zip -r $ZIP_FLAGS "$HOME/$CYTHON_HASH".zip *
+     cd "$TRAVIS_BUILD_DIR"
+     pwd
+     zip "$HOME/$CYTHON_HASH".zip $(find pandas | grep -P '\.(pyx|pxd)$' | sed -r 's/.(pyx|pxd)$/.c/')
 
-   # silent, don't expose key
-   curl -s --form upload=@"$HOME/$CYTHON_HASH".zip "$CACHE_FILE_STORE_URL/$CYTHON_HASH.zip"
+     # silent, don't expose key
+     curl   --connect-timeout 5 -s --form upload=@"$HOME/$CYTHON_HASH".zip "$CACHE_FILE_STORE_URL/$CYTHON_HASH.zip"
+ fi
 fi
 
 true
