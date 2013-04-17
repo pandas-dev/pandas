@@ -724,6 +724,11 @@ class TestIndexing(unittest.TestCase):
         expected = df.iloc[:,0:2].loc[:,'a']
         assert_frame_equal(result,expected)
 
+        result = df.xs('foo', level='lvl1', axis=1)
+        expected = df.iloc[:, 1:2].copy()
+        expected.columns = expected.columns.droplevel('lvl1')
+        assert_frame_equal(result, expected)
+
     def test_setitem_dtype_upcast(self):
  
         # GH3216

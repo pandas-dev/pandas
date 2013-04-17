@@ -2226,8 +2226,9 @@ class DataFrame(NDFrame):
                 raise ValueError('Cannot retrieve view (copy=False)')
 
             # level = 0
-            if not isinstance(loc, slice):
-                indexer = [slice(None, None)] * 2
+            loc_is_slice = isinstance(loc, slice)
+            if not loc_is_slice:
+                indexer = [slice(None)] * 2
                 indexer[axis] = loc
                 indexer = tuple(indexer)
             else:
@@ -2237,10 +2238,9 @@ class DataFrame(NDFrame):
                     indexer = self.index[loc]
 
             # select on the correct axis
-            if axis == 1:
-                result = self.ix[:, indexer]
-            else:
-                result = self.ix[indexer]
+            if axis == 1 and loc_is_slice:
+                indexer = slice(None), indexer
+            result = self.ix[indexer]
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 
