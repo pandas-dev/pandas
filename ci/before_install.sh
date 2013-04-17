@@ -20,13 +20,8 @@ if  $PLEASE_TRAVIS_FASTER ; then
         unzip $ZIP_FLAGS /tmp/_"$CYTHON_HASH.zip" -d "$BUILD_CACHE_DIR";
         rm -f /tmp/_"$CYTHON_HASH.zip"
         # copy cythonized c files over
-        cp -R "$BUILD_CACHE_DIR"/pandas/* pandas/
-        # mkdir build/
-        # ls -l build
-        # mkdir build/temp.linux-x86-$TRAVIS_PYTHON_VERSION
-        # mkdir build/temp.linux-x86-$TRAVIS_PYTHON_VERSION/pandas/
-        # touch build/temp.linux-x86-$TRAVIS_PYTHON_VERSION/pandas/lib.o
-
+        cp -R "$BUILD_CACHE_DIR"/pandas/*.c pandas/
+        cp -R "$BUILD_CACHE_DIR"/pandas/src/*.c pandas/src/
     fi;
     echo "VENV_FILE_AVAILABLE=$VENV_FILE_AVAILABLE"
     if $VENV_FILE_AVAILABLE ; then
