@@ -298,6 +298,8 @@ pandas 0.11.0
   - Fix set_index segfault when passing MultiIndex (GH3308_)
   - Ensure pickles created in py2 can be read in py3
   - Insert ellipsis in MultiIndex summary repr (GH3348_)
+  - Groupby will handle mutation among an input groups columns (and fallback
+    to non-fast apply) (GH3380_)
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
@@ -409,6 +411,7 @@ pandas 0.11.0
 .. _GH2919: https://github.com/pydata/pandas/issues/2919
 .. _GH3308: https://github.com/pydata/pandas/issues/3308
 .. _GH3311: https://github.com/pydata/pandas/issues/3311
+.. _GH3380: https://github.com/pydata/pandas/issues/3380
 
 pandas 0.10.1
 =============

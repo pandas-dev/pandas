@@ -620,7 +620,9 @@ class Grouper(object):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)
                 return group_keys, values, mutated
-            except lib.InvalidApply:
+            except (Exception), detail:
+                # we detect a mutatation of some kind
+                # so take slow path
                 pass
 
         result_values = []

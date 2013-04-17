@@ -1491,6 +1491,30 @@ class TestGroupBy(unittest.TestCase):
         for key, group in grouped:
             assert_frame_equal(result.ix[key], f(group))
 
+    def test_mutate_groups(self):
+
+        # GH3380
+
+        mydf = DataFrame({
+                'cat1' : ['a'] * 8 + ['b'] * 6,
+                'cat2' : ['c'] * 2 + ['d'] * 2 + ['e'] * 2 + ['f'] * 2 + ['c'] * 2 + ['d'] * 2 + ['e'] * 2,
+                'cat3' : map(lambda x: 'g%s' % x, range(1,15)),
+                'val' : np.random.randint(100, size=14),
+                })
+
+        def f_copy(x):
+            x = x.copy()
+            x['rank'] = x.val.rank(method='min')
+            return x.groupby('cat2')['rank'].min()
+
+        def f_no_copy(x):
+            x['rank'] = x.val.rank(method='min')
+            return x.groupby('cat2')['rank'].min()
+
+        grpby_copy    = mydf.groupby('cat1').apply(f_copy)
+        grpby_no_copy = mydf.groupby('cat1').apply(f_no_copy)
+        assert_series_equal(grpby_copy,grpby_no_copy)
+
     def test_apply_chunk_view(self):
         # Low level tinkering could be unsafe, make sure not
         df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
