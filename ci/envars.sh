@@ -33,10 +33,10 @@ export VENV_FILE_AVAILABLE=false
 export PLEASE_TRAVIS_FASTER=false
 
 # check whether the user opted in to use the cache via commit message
-if [ x"$(git log --format='%s' -n 1 | grep PLEASE_TRAVIS_FASTER | wc -l)" != x"0" ]; then
+if [ x"$(git log --format='%B' -n 1 | grep PLEASE_TRAVIS_FASTER | wc -l)" != x"0" ]; then
     export PLEASE_TRAVIS_FASTER=true
 fi;
-if [ x"$(git log --format='%s' -n 1 | grep PTF | wc -l)" != x"0" ]; then
+if [ x"$(git log --format='%B' -n 1 | grep PTF | wc -l)" != x"0" ]; then
     export PLEASE_TRAVIS_FASTER=true
 fi;
 
