@@ -1653,7 +1653,7 @@ def detect_console_encoding():
     except AttributeError:
         pass
 
-    if not encoding or encoding == 'ascii':  # try again for something better
+    if not encoding or 'ascii' in encoding.lower():  # try again for something better
         try:
             encoding = locale.getpreferredencoding()
         except Exception:
