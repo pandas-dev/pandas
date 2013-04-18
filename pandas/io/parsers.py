@@ -2493,7 +2493,7 @@ class StataParser(object):
 
         self.OLD_TYPE_MAPPING = \
             {
-                'i': 251,
+                'i': 252,
                 'f': 254,
                 'b': 251
             }
@@ -2597,18 +2597,21 @@ class StataReader(StataParser):
         else:
             self.vlblist = [self._null_terminate(self.path_or_buf.read(32)) for i in range(self.nvar)]
 
-        # ignore expansion fields (Format 108 and later)
+        # ignore expansion fields (Format 105 and later)
         # When reading, read five bytes; the last four bytes now tell you the
         # size of the next read, which you discard.  You then continue like
         # this until you read 5 bytes of zeros.
 
-        if self.format_version > 105:
+        if self.format_version > 104:
             while True:
-                self.data_type = struct.unpack(self.byteorder + 'b', self.path_or_buf.read(1))[0]
-                self.data_len = struct.unpack(self.byteorder + 'i', self.path_or_buf.read(4))[0]
-                if self.data_type == 0:
+                data_type = struct.unpack(self.byteorder + 'b', self.path_or_buf.read(1))[0]
+                if self.format_version > 108:
+                    data_len = struct.unpack(self.byteorder + 'i', self.path_or_buf.read(4))[0]
+                else:
+                    data_len = struct.unpack(self.byteorder + 'h', self.path_or_buf.read(2))[0]
+                if data_type == 0:
                     break
-                self.path_or_buf.read(self.data_len)
+                self.path_or_buf.read(data_len)
 
         # necessary data to continue parsing
         self.data_location = self.path_or_buf.tell()
