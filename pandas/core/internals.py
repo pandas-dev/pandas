@@ -10,8 +10,7 @@ from pandas.core.common import _possibly_downcast_to_dtype, isnull, is_series, i
 from pandas.core.index import Index, MultiIndex, _ensure_index, _handle_legacy_indexes
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
-from pandas.sparse.array import make_sparse, _maybe_to_sparse, SparseArray
-from pandas.sparse.array import SparseArray
+from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.expressions as expressions
@@ -1614,7 +1613,7 @@ class BlockManager(object):
         slicer = tuple(slicer)
 
         for block in self.blocks:
-            newb = make_block(block.values[slicer], 
+            newb = make_block(block._slice(slicer),
                               block.items,
                               block.ref_items, 
                               klass=block.__class__,
@@ -2271,7 +2270,7 @@ class SingleBlockManager(BlockManager):
     @property
     def shape(self):
         if getattr(self,'_shape',None) is None:
-            self._shape = tuple(len(self.axes[0]))
+            self._shape = tuple([len(self.axes[0])])
         return self._shape
 
     def reindex(self, new_axis, method=None, limit=None, copy=True):

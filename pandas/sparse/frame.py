@@ -10,7 +10,6 @@ import numpy as np
 
 from pandas.core.common import (isnull, notnull, _pickle_array, 
                                 _unpickle_array, _try_sort)
-from pandas.sparse.array import _maybe_to_dense, _maybe_to_sparse
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 from pandas.core.series import Series
@@ -729,7 +728,7 @@ def dict_to_manager(sdict, columns, index):
     axes = [_ensure_index(columns), _ensure_index(index)]
 
     # segregates dtypes and forms blocks matching to columns
-    blocks = form_blocks([ _maybe_to_sparse(sdict[c]) for c in columns ], columns, axes)
+    blocks = form_blocks([ sdict[c] for c in columns ], columns, axes)
 
     # consolidate for now
     mgr = BlockManager(blocks, axes)

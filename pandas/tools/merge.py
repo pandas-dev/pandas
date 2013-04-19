@@ -983,10 +983,11 @@ class _Concatenator(object):
         return blockmaps, reindexed_data
 
     def _get_concatenated_data(self):
+        blockmaps, rdata = self._prepare_blocks()
+
         try:
             # need to conform to same other (joined) axes for block join
 
-            blockmaps, rdata = self._prepare_blocks()
             kinds = _get_all_block_kinds(blockmaps)
 
             new_blocks = []
@@ -1036,7 +1037,7 @@ class _Concatenator(object):
 
     def _concat_blocks(self, blocks):
 
-        values_list = [b.values for b in blocks if b is not None]
+        values_list = [b.get_values() for b in blocks if b is not None]
         concat_values = com._concat_compat(values_list, axis=self.axis)
 
         if self.axis > 0:
@@ -1069,6 +1070,8 @@ class _Concatenator(object):
         for data, orig in zip(objs, self.objs):
             if item in orig:
                 values = data.get(item)
+                if hasattr(values,'to_dense'):
+                    values = values.to_dense()
                 dtypes.add(values.dtype)
                 all_values.append(values)
             else:

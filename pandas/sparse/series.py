@@ -125,7 +125,7 @@ class SparseSeries(Series):
                     index = data.index
 
                 # extract the SingleBlockManager
-                    data = data._data
+                data = data._data
 
             elif isinstance(data, (Series, dict)):
                 if index is None:

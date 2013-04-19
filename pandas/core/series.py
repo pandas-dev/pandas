@@ -21,7 +21,8 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _is_sparse_array_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds, _is_index_slice
+from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer, _check_slice_bounds, 
+                                  _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
 from pandas.tseries.index import DatetimeIndex
