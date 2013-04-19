@@ -2219,9 +2219,10 @@ class BlockManager(object):
 
 class SingleBlockManager(BlockManager):
     """ manage a single block with """
+    ndim = 1
     _is_consolidated = True
     _known_consolidated = True
-    __slots__ = ['axes', 'blocks', 'block', '_ndim', '_shape', '_known_consolidated', '_is_consolidated', '_has_sparse']
+    __slots__ = ['axes', 'blocks', 'block', '_shape', '_known_consolidated', '_is_consolidated', '_has_sparse']
 
     def __init__(self, block, axis, do_integrity_check=False, fastpath=True):
 
@@ -2266,6 +2267,12 @@ class SingleBlockManager(BlockManager):
 
     def _post_setstate(self):
         self.block = self.blocks[0]
+
+    @property
+    def shape(self):
+        if getattr(self,'_shape',None) is None:
+            self._shape = tuple(len(self.axes[0]))
+        return self._shape
 
     def reindex(self, new_axis, method=None, limit=None, copy=True):
 

@@ -2628,6 +2628,10 @@ index : array-like or Index (1d)
         -------
         taken : Series
         """
+        # check/convert indicies here
+        if convert:
+            indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+
         indices = com._ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
