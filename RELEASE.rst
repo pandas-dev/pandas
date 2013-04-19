@@ -182,6 +182,14 @@ pandas 0.11.0
      - ``min_itemsize`` parameter will now automatically create data_columns for passed keys
 
   - Downcast on pivot if possible (GH3283_), adds argument ``downcast`` to ``fillna``
+  - Introduced options `display.height/width` for explicitly specifying terminal
+    height/width in characters. Deprecated display.line_width, now replaced by display.width.
+    These defaults are in effect for scripts as well, so unless disabled, previously
+    very wide output will now be output as "expand_repr" style wrapped output.
+  - Various defaults for options (including display.max_rows) have been revised,
+    after a brief survey concluded they were wrong for everyone. Now at w=80,h=60.
+  - HTML repr output for dataframes is once again controlled by the option
+    `display.notebook_repr_html`, and on by default.
 
 **Bug Fixes**
 
