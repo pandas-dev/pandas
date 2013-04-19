@@ -34,7 +34,7 @@ pc_max_rows_doc = """
 : int
     This sets the maximum number of rows pandas should output when printing
     out various output. For example, this value determines whether the repr()
-    for a dataframe prints out fully or just an summary repr.
+    for a dataframe prints out fully or just a summary repr.
 """
 
 pc_max_cols_doc = """
@@ -127,18 +127,19 @@ line_width has been deprecated, use display.width instead (currently both are id
 
 pc_width_doc = """
 : int
-    Width of the display. In case python/IPython is running in a terminal this
-    can be set to 0 and pandas will correctly auto-detect the width. Note that
-    the IPython notebook, IPython qtconsole, or IDLE do not run in a terminal
-    and hence it is not possible to correctly detect the width.
+    Width of the display in characters. In case python/IPython is running in
+    a terminal this can be set to 0 and pandas will correctly auto-detect the
+    width.
+    Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
+    terminal and hence it is not possible to correctly detect the width.
 """
 
 pc_height_doc = """
 : int
-    Height of the display. In case python/IPython is running in a terminal this
-    can be set to 0 and pandas will auto-detect the width. Note that the
-    IPython notebook, IPython qtconsole, or IDLE do not run in a terminal,
-    and hence it is not possible to correctly detect the height.
+    Height of the display in lines. In case python/IPython is running in a
+    terminal this can be set to 0 and pandas will auto-detect the width.
+    Note that the IPython notebook, IPython qtconsole, or IDLE do not run
+    in a terminal, and hence it is not possible to correctly detect the height.
 """
 
 pc_chop_threshold_doc = """

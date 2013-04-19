@@ -602,7 +602,7 @@ class DataFrame(NDFrame):
     def _repr_fits_vertical_(self):
         """
         Check if full repr fits in vertical boundaries imposed by the display
-        options height and max_columns.  In case off non-interactive session,
+        options height and max_rows.  In case off non-interactive session,
         no boundaries apply.
         """
         width, height = fmt.get_console_size()
@@ -664,6 +664,8 @@ class DataFrame(NDFrame):
         fits_vertical = self._repr_fits_vertical_()
         fits_horizontal = False
         if fits_vertical:
+            # This needs to compute the entire repr
+            # so don't do it unless rownum is bounded
             fits_horizontal = self._repr_fits_horizontal_()
 
         if fits_vertical and fits_horizontal:
@@ -671,9 +673,10 @@ class DataFrame(NDFrame):
         else:
             width, height = fmt.get_console_size()
             max_rows = get_option("display.max_rows") or height
-            # Expand or info? Decide based on option display.expand_frame_repr
-            # and keep it sane for the number of display rows used by the
-            # expanded repr.
+            # expand_repr basically takes the extrac columns that don't
+            # fit the width, and creates a new page, which increases
+            # the effective row count. check number of cols agaibst
+            # max rows to catch wrapping. that would exceed max_rows.
             if (get_option("display.expand_frame_repr") and fits_vertical and
                 len(self.columns) < max_rows):
                 self.to_string(buf=buf, line_width=width)
