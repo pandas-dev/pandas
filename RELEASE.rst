@@ -173,7 +173,8 @@ pandas 0.11.0
     when invalid shapes are passed
   - Don't suppress TypeError in GroupBy.agg (GH3238_)
   - Methods return None when inplace=True (GH1893_)
-
+  - HTML repr output for dataframs is once again controlled by the option
+    `display.notebook_repr_html`, and on by default.
   - ``HDFStore``
 
      - added the method ``select_column`` to select a single column from a table as a Series.

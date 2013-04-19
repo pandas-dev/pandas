@@ -726,8 +726,6 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
-        if com.in_qtconsole():
-            raise ValueError('Disable HTML output in QtConsole')
 
         if get_option("display.notebook_repr_html"):
             fits_vertical = self._repr_fits_vertical_()
