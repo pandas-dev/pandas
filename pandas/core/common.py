@@ -1782,10 +1782,24 @@ def in_qtconsole():
     """
     try:
         ip = get_ipython()
-        if ip.config['KernelApp']['parent_appname'] == 'ipython-qtconsole':
+        front_end = (ip.config.get('KernelApp',{}).get('parent_appname',"") or
+                         ip.config.get('IPKernelApp',{}).get('parent_appname',""))
+        if 'qtconsole' in front_end.lower():
             return True
     except:
         return False
+
+def in_ipnb_frontend():
+    """
+    check if we're inside an an IPython zmq frontend
+    """
+    try:
+        ip = get_ipython()
+        return 'zmq' in str(type(ip)).lower()
+    except:
+        pass
+
+    return False
 
 # Unicode consolidation
 # ---------------------

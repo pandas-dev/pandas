@@ -22,7 +22,7 @@ def get_terminal_size():
     Detect terminal size and return tuple = (width, height).
 
     Only to be used when running in a terminal. Note that the IPython notebook,
-    IPython qtconsole, or IDLE do not run in a terminal,
+    IPython zmq frontends, or IDLE do not run in a terminal,
     """
     import platform
     current_os = platform.system()
