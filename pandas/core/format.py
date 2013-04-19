@@ -357,7 +357,7 @@ class DataFrameFormatter(TableFormatter):
                 return 'r'
             else:
                 return 'l'
-        
+
         import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn(
@@ -373,7 +373,7 @@ class DataFrameFormatter(TableFormatter):
             strcols = [[info_line]]
         else:
             strcols = self._to_str_columns()
-        
+
         if column_format is None:
             dtypes = self.frame.dtypes.values
             column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
@@ -1683,8 +1683,8 @@ def get_console_size():
         # pure terminal
         terminal_width, terminal_height = get_terminal_size()
     else:
-        terminal_width, terminal_height = 80, 100
-    
+        terminal_width, terminal_height = 100, 60
+
     return (display_width or terminal_width, display_height or terminal_height)
 
 
