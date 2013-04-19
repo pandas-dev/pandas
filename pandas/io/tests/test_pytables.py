@@ -66,6 +66,7 @@ tables.parameters.MAX_THREADS   = 1
 
 
 class TestHDFStore(unittest.TestCase):
+    _multiprocess_shared_ = True
 
     def setUp(self):
         warnings.filterwarnings(action='ignore', category=FutureWarning)
