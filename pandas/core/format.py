@@ -1659,7 +1659,7 @@ def detect_console_encoding():
         except Exception:
             pass
 
-    if not encoding:  # when all else fails. this will usually be "ascii"
+    if not encoding or 'ascii' in encoding.lower():  # when all else fails. this will usually be "ascii"
             encoding = sys.getdefaultencoding()
 
     return encoding
