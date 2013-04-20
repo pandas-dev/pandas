@@ -40,10 +40,11 @@ indexing.
    there's little new to learn if you already know how to deal with Python
    dictionaries and NumPy arrays. However, the type of the data to be accessed
    isn't known in advance. Therefore, accessing pandas objects directly using
-   standard operators has some optimization limits. In addition, whether a
-   copy or a reference is returned for a selection operation, may depend on the context.
-   For production code, we recommended that you take advantage of the optimized pandas data
-   access methods exposed in this chapter. See :ref:`Returning View versus Copy <indexing.view_versus_copy>` 
+   standard operators has some optimization limits. For production code, we recommended
+   that you take advantage of the optimized pandas data access methods exposed in this chapter.
+
+   In addition, whether a copy or a reference is returned for a selection operation, may depend on the context.
+   See :ref:`Returning View versus Copy <indexing.view_versus_copy>` 
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
@@ -54,51 +55,32 @@ Starting in 0.11.0, object selection has had a number of user-requested addition
 order to support more explicit location based indexing. Pandas now supports
 three types of multi-axis indexing.
 
-  - ``.loc`` is strictly label based, will raise ``KeyError`` when the items 
-  are not found,
-    allowed inputs are:
+- ``.loc`` is strictly label based, will raise ``KeyError`` when the items are not found, allowed inputs are:
 
-    - A single label, e.g. ``5`` or ``'a'``
+  - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
+  - A list or array of labels ``['a', 'b', 'c']``
+  - A slice object with labels ``'a':'f'``, (note that contrary to usual python slices, **both** the start and the stop are included!)
+  - A boolean array
 
-      (note that ``5`` is interpreted as a *label* of the index. This use is **
-      not** an integer position along the index)
-    - A list or array of labels ``['a', 'b', 'c']``
-    - A slice object with labels ``'a':'f'``
+  See more at :ref:`Selection by Label <indexing.label>`
 
-      (note that contrary to usual python slices, **both** the start and the
-      stop are included!)
-    - A boolean array
+- ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
 
-    See more at :ref:`Selection by Label <indexing.label>`
+  - An integer e.g. ``5``
+  - A list or array of integers ``[4, 3, 0]``
+  - A slice object with ints ``1:7``
+  - A boolean array
 
-  - ``.iloc`` is strictly integer position based (from 0 to length-1 of the
-   axis), will 
-    raise ``IndexError`` when the requested indicies are out of bounds.
-     Allowed inputs are:
+  See more at :ref:`Selection by Position <indexing.integer>` 
 
-    - An integer e.g. ``5``
-    - A list or array of integers ``[4, 3, 0]``
-    - A slice object with ints ``1:7``
-    - A boolean array
+- ``.ix`` supports mixed integer and label based access. It is primarily label based, but will fallback to integer positional access. ``.ix`` is the most general
+  and will support any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes. ``.ix`` is especially useful when dealing with mixed positional and label
+  based hierarchial indexes.
 
-    See more at :ref:`Selection by Position <indexing.integer>` 
+  As using integer slices with ``.ix`` have different behavior depending on whether the slice is interpreted as integer location based or label position based, it's
+  usually better to be explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
 
-  - ``.ix`` supports mixed integer and label based access. It is primarily 
-  label based, but
-    will fallback to integer positional access. ``.ix`` is the most general
-    and will support any of the inputs to ``.loc`` and ``.iloc``, as well as
-    support for floating point label schemes.
-
-    As using integer slices with ``.ix`` have different behavior depending on
-    whether the slice 
-    is interpreted as integer location based or label position based, it's
-    usually better to be 
-    explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
-
-    ``.ix`` is especially useful when dealing with mixed positional and label
-    based hierarchial indexes. 
-
-    See more at :ref:`Advanced Indexing <indexing.advanced>` and :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>`
+  See more at :ref:`Advanced Indexing <indexing.advanced>`, :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>` and :ref:`Fallback Indexing <indexing.fallback>`
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but applies to ``.iloc`` and ``.ix`` as
@@ -133,7 +115,6 @@ Cross-sectional slices on non-hierarchical indices are now easily performed
 using ``.loc`` and/or ``.iloc``. These methods now exist primarily for
 backward compatibility.
 
-  - ``xs`` (for DataFrame),
   - ``minor_xs`` and ``major_xs`` (for Panel)
 
 See the section at :ref:`Selection by Label <indexing.label>` for substitutes.
@@ -249,28 +230,15 @@ largely as a convenience since it is such a common operation.
 Selection By Label
 ~~~~~~~~~~~~~~~~~~
 
-Pandas provides a suite of methods in order to have **purely label based
-indexing**. 
-This is a strict inclusion based protocol. **ALL** of the labels for which you
-ask, must be in the index or a ``KeyError`` will be raised!
+Pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
+**ALL** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, the start bound is *included*, **AND** the stop bound is *included*. Integers are valid labels, but they refer to the label **and not the position**.
 
-When slicing, the start bound is *included*, **AND** the stop bound is *
-included*.
-Integers are valid labels, but they refer to the label *and not the position*.
+The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
-The ``.loc`` attribute is the primary access method. The following are valid 
-inputs:
-
-    - A single label, e.g. ``5`` or ``'a'``
-
-      (note that ``5`` is interpreted as a *label* of the index. This use is **
-      not** an integer position along the index)
-    - A list or array of labels ``['a', 'b', 'c']``
-    - A slice object with labels ``'a':'f'``
-
-      (note that contrary to usual python slices, **both** the start and the
-      stop are included!)
-    - A boolean array
+- A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
+- A list or array of labels ``['a', 'b', 'c']``
+- A slice object with labels ``'a':'f'`` (note that contrary to usual python slices, **both** the start and the stop are included!)
+- A boolean array
 
 .. ipython:: python
 
@@ -302,7 +270,7 @@ Accessing via label slices
 
    df1.loc['d':,'A':'C']
 
-For getting a cross section using a label (equiv to deprecated ``df.xs('a')``)
+For getting a cross section using a label (equiv to ``df.xs('a')``)
 
 .. ipython:: python
 
@@ -327,21 +295,14 @@ For getting a value explicity (equiv to deprecated ``df.get_value('a','A')``)
 Selection By Position
 ~~~~~~~~~~~~~~~~~~~~~
 
-Pandas provides a suite of methods in order to get **purely integer based
-indexing**. The semantics follow closely python and numpy slicing. These are ``
-0-based`` indexing.
+Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise a ``IndexError``.
 
-When slicing, the start bounds is *included*, while the upper bound is *
-excluded*. Trying to use a non-integer, even a **valid** label will raise a ``
-IndexError``.
+The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
-The ``.iloc`` attribute is the primary access method. The following are valid
-inputs:
-
-   - An integer e.g. ``5``
-   - A list or array of integers ``[4, 3, 0]``
-   - A slice object with ints ``1:7``
-   - A boolean array
+- An integer e.g. ``5``
+- A list or array of integers ``[4, 3, 0]``
+- A slice object with ints ``1:7``
+- A boolean array
 
 .. ipython:: python
 
@@ -397,24 +358,21 @@ For slicing columns explicitly (equiv to deprecated ``df.icol(slice(1,3))``).
 
    df1.iloc[:,1:3]
 
-For getting a scalar via integer position (equiv to deprecated ``df.get_value(
-1,1)``)
+For getting a scalar via integer position (equiv to deprecated ``df.get_value(1,1)``)
 
 .. ipython:: python
 
    # this is also equivalent to ``df1.iat[1,1]``
    df1.iloc[1,1]
 
-For getting a cross section using an integer position (equiv to deprecated ``df
-.xs(1)``)
+For getting a cross section using an integer position (equiv to ``df.xs(1)``)
 
 .. ipython:: python
 
    df1.iloc[1]
 
 There is one signficant departure from standard python/numpy slicing semantics.
-python/numpy allow slicing past the end of an array without an associated error
-.
+python/numpy allow slicing past the end of an array without an associated error.
 
 .. ipython:: python
 
@@ -423,8 +381,7 @@ python/numpy allow slicing past the end of an array without an associated error
     x[4:10]
     x[8:10]
 
-Pandas will detect this and raise ``IndexError``, rather than return an empty
-structure.
+Pandas will detect this and raise ``IndexError``, rather than return an empty structure.
 
 ::
 
@@ -442,8 +399,7 @@ out what you're asking for. If you only want to access a scalar value, the
 fastest way is to use the ``at`` and ``iat`` methods, which are implemented on
 all of the data structures.
 
-Similary to ``loc``, ``at`` provides **label** based scalar lookups, while, ``
-iat`` provides **integer** based lookups analagously to ``iloc``
+Similary to ``loc``, ``at`` provides **label** based scalar lookups, while, ``iat`` provides **integer** based lookups analagously to ``iloc``
 
 .. ipython:: python
 
@@ -453,8 +409,7 @@ iat`` provides **integer** based lookups analagously to ``iloc``
 
 You can also set using these same indexers. These have the additional
 capability of enlarging an object. This method *always* returns a reference to
-the object it modified, which in the case of enlargement, will be a **new
-object**:
+the object it modified, which in the case of enlargement, will be a **new object**:
 
 .. ipython:: python
 
@@ -467,8 +422,7 @@ Boolean indexing
 .. _indexing.boolean:
 
 Another common operation is the use of boolean vectors to filter the data.
-The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
-These are grouped using parentheses.
+The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``. These **must** be grouped by using parentheses.
 
 Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
@@ -514,10 +468,8 @@ more complex criteria:
    # Multiple criteria
    df2[criterion & (df2['b'] == 'x')]
 
-Note, with the choice methods :ref:`Selection by Label <indexing.label>`, :ref:
-`Selection by Position <indexing.integer>`, and :ref:`Advanced Indexing <
-indexing.advanced>` you may select along more than one axis using boolean
- vectors combined with other indexing expressions.
+Note, with the choice methods :ref:`Selection by Label <indexing.label>`, :ref:`Selection by Position <indexing.integer>`, 
+and :ref:`Advanced Indexing <indexing.advanced>` you may select along more than one axis using boolean vectors combined with other indexing expressions.
 
 .. ipython:: python
 
@@ -528,8 +480,7 @@ Where and Masking
 
 Selecting values from a Series with a boolean vector generally returns a
 subset of the data. To guarantee that selection output has the same shape as
-the original data, you can use the ``where`` method in ``Series`` and ``
-DataFrame``.
+the original data, you can use the ``where`` method in ``Series`` and ``DataFrame``.
 
 To return only the selected rows
 
@@ -571,8 +522,8 @@ This can be done intuitively like so:
    df2[df2 < 0] = 0
    df2
 
-Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame
-), such that partial selection with setting is possible. This is analagous to
+Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame), 
+such that partial selection with setting is possible. This is analagous to
 partial setting via ``.ix`` (but on the contents rather than the axis labels)
 
 .. ipython:: python
@@ -609,7 +560,7 @@ Take Methods
 Similar to numpy ndarrays, pandas Index, Series, and DataFrame also provides
 the ``take`` method that retrieves elements along a given axis at the given
 indices. The given indices must be either a list or an ndarray of integer
-index positions.
+index positions. ``take`` will also accept negative integers as relative positions to the end of the object.
 
 .. ipython:: python
 
@@ -676,10 +627,8 @@ If you want to identify and remove duplicate rows in a DataFrame,  there are
 two methods that will help: ``duplicated`` and ``drop_duplicates``. Each
 takes as an argument the columns to use to identify duplicated rows.
 
-``duplicated`` returns a boolean vector whose length is the number of rows, and
-which indicates whether a row is duplicated.
-
-``drop_duplicates`` removes duplicate rows.
+- ``duplicated`` returns a boolean vector whose length is the number of rows, and which indicates whether a row is duplicated.
+- ``drop_duplicates`` removes duplicate rows.
 
 By default, the first observed row of a duplicate set is considered unique, but
 each method has a ``take_last`` parameter that indicates the last observed row
@@ -724,15 +673,14 @@ Advanced Indexing with ``.ix``
    an example.
 
 The syntax of using ``.ix`` is identical to ``.loc``, in :ref:`Selection by
-Label <indexing.label>`, and ``.iloc`` in :ref:`Selection by Position <indexing
-.integer>`.
+Label <indexing.label>`, and ``.iloc`` in :ref:`Selection by Position <indexing.integer>`.
 
 The ``.ix`` attribute takes the following inputs:
 
-  - An integer or single label, e.g. ``5`` or ``'a'``
-  - A list or array of labels ``['a', 'b', 'c']`` or integers ``[4, 3, 0]``
-  - A slice object with ints ``1:7`` or labels ``'a':'f'``
-  - A boolean array
+- An integer or single label, e.g. ``5`` or ``'a'``
+- A list or array of labels ``['a', 'b', 'c']`` or integers ``[4, 3, 0]``
+- A slice object with ints ``1:7`` or labels ``'a':'f'``
+- A boolean array
 
 We'll illustrate all of these methods. First, note that this provides a concise
 way of reindexing on multiple axes at once:
@@ -796,31 +744,6 @@ labels or even boolean vectors:
 Slicing with labels is closely related to the ``truncate`` method which does
 precisely ``.ix[start:stop]`` but returns a copy (for legacy reasons).
 
-.. _indexing.view_versus_copy:
-
-Returning a view versus a copy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The rules about when a view on the data is returned are entirely dependent on
-NumPy. Whenever an array of labels or a boolean vector are involved in the
-indexing operation, the result will be a copy. With single label / scalar
-indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
-returned.
-
-In chained expressions, the order may determine whether a copy is returned or not:
-
-.. ipython:: python
-
-
-   dfb = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
-                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
-                    'c' : randn(7)})
-   dfb[dfb.a.str.startswith('o')]['c'] = 42  # goes to copy (will be lost)
-   dfb['c'][dfb.a.str.startswith('o')] = 42  # passed via reference (will stay)
-
-When assigning values to subsets of your data, thus, make sure to either use the 
-pandas access methods or explicitly handle the assignment creating a copy.
-
 The ``select`` method
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -845,7 +768,6 @@ numpy array.  For instance,
   dflookup = DataFrame(np.random.rand(20,4), columns = ['A','B','C','D'])
   dflookup.lookup(xrange(0,10,2), ['B','C','A','B','D'])
 
-
 Setting values in mixed-type DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -863,6 +785,30 @@ scalar values, though setting arbitrary vectors is not yet supported:
    print df2
    print df2.dtypes
 
+.. _indexing.view_versus_copy:
+
+Returning a view versus a copy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The rules about when a view on the data is returned are entirely dependent on
+NumPy. Whenever an array of labels or a boolean vector are involved in the
+indexing operation, the result will be a copy. With single label / scalar
+indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
+returned.
+
+In chained expressions, the order may determine whether a copy is returned or not:
+
+.. ipython:: python
+
+
+   dfb = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+                    'c' : randn(7)})
+   dfb[dfb.a.str.startswith('o')]['c'] = 42  # goes to copy (will be lost)
+   dfb['c'][dfb.a.str.startswith('o')] = 42  # passed via reference (will stay)
+
+When assigning values to subsets of your data, thus, make sure to either use the 
+pandas access methods or explicitly handle the assignment creating a copy.
 
 Fallback indexing
 ~~~~~~~~~~~~~~~~~~~~
