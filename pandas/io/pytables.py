@@ -1207,13 +1207,20 @@ class DataCol(IndexCol):
 
         self.values = list(block.items)
         dtype = block.dtype.name
-        inferred_type = lib.infer_dtype(block.values.ravel())
+        rvalues = block.values.ravel()
+        inferred_type = lib.infer_dtype(rvalues)
 
         if inferred_type == 'datetime64':
             self.set_atom_datetime64(block)
         elif inferred_type == 'date':
             raise TypeError(
                 "[date] is not implemented as a table column")
+        elif inferred_type == 'datetime':
+            if getattr(rvalues[0],'tzinfo',None) is not None:
+                raise TypeError(
+                    "timezone support on datetimes is not yet implemented as a table column")
+            raise TypeError(
+                "[datetime] is not implemented as a table column")
         elif inferred_type == 'unicode':
             raise TypeError(
                 "[unicode] is not implemented as a table column")
@@ -2080,8 +2087,18 @@ class Table(Storer):
                             (other.table_type, self.table_type))
 
         for c in ['index_axes','non_index_axes','values_axes']:
-            if getattr(self,c,None) != getattr(other,c,None):
-                raise ValueError("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,getattr(self,c,None),getattr(other,c,None)))
+            sv = getattr(self,c,None)
+            ov = getattr(other,c,None)
+            if sv != ov:
+
+                # show the error for the specific axes
+                for i, sax in enumerate(sv):
+                    oax = ov[i]
+                    if sax != oax:
+                        raise ValueError("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,sax,oax))
+
+                # should never get here
+                raise Exception("invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c,sv,ov))
 
     @property
     def nrows_expected(self):
