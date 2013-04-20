@@ -34,16 +34,16 @@ indexing.
 
 .. note:: 
 
-   Regular Python and NumPy indexing operators (squared brackets) and member
-   operators (dots) provide quick and easy access to pandas data structures
+   Regular Python and NumPy indexing operators ``[]`` and member
+   operators (dots access) provide quick and easy access to pandas data structures
    across a wide range of use cases. This makes interactive work intuitive, as
    there's little new to learn if you already know how to deal with Python
    dictionaries and NumPy arrays. However, the type of the data to be accessed
    isn't known in advance. Therefore, accessing pandas objects directly using
-   standard operators bears some optimization limits. In addition, whether a
-   copy or a reference is returned here, may depend on context. For production
-   code, we thus recommended to take advantage of the optimized pandas data
-   access methods exposed in this chapter.
+   standard operators has some optimization limits. In addition, whether a
+   copy or a reference is returned for a selection operation, may depend on the context.
+   For production code, we recommended that you take advantage of the optimized pandas data
+   access methods exposed in this chapter. See :ref:`Returning View versus Copy <indexing.view_versus_copy>` 
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
@@ -522,17 +522,6 @@ indexing.advanced>` you may select along more than one axis using boolean
 .. ipython:: python
 
    df2.loc[criterion & (df2['b'] == 'x'),'b':'c']
- 
-Caveat. Whether a copy or a reference is returned when using boolean indexing
-may depend on context, e.g., in chained expressions the order may determine
-whether a copy is returned or not:
-
-.. ipython:: python
-
-   df2[df2.a.str.startswith('o')]['c'] = 42  # goes to copy (will be lost)
-   df2['c'][df2.a.str.startswith('o')] = 42  # passed via reference (will stay)
-
-When assigning values to subsets of your data, thus, make sure to either use the pandas access methods or explicitly handle the assignment creating a copy.
 
 Where and Masking
 ~~~~~~~~~~~~~~~~~
@@ -541,7 +530,6 @@ Selecting values from a Series with a boolean vector generally returns a
 subset of the data. To guarantee that selection output has the same shape as
 the original data, you can use the ``where`` method in ``Series`` and ``
 DataFrame``.
-
 
 To return only the selected rows
 
@@ -808,6 +796,8 @@ labels or even boolean vectors:
 Slicing with labels is closely related to the ``truncate`` method which does
 precisely ``.ix[start:stop]`` but returns a copy (for legacy reasons).
 
+.. _indexing.view_versus_copy:
+
 Returning a view versus a copy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -816,6 +806,20 @@ NumPy. Whenever an array of labels or a boolean vector are involved in the
 indexing operation, the result will be a copy. With single label / scalar
 indexing and slicing, e.g. ``df.ix[3:6]`` or ``df.ix[:, 'A']``, a view will be
 returned.
+
+In chained expressions, the order may determine whether a copy is returned or not:
+
+.. ipython:: python
+
+
+   dfb = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
+                    'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
+                    'c' : randn(7)})
+   dfb[dfb.a.str.startswith('o')]['c'] = 42  # goes to copy (will be lost)
+   dfb['c'][dfb.a.str.startswith('o')] = 42  # passed via reference (will stay)
+
+When assigning values to subsets of your data, thus, make sure to either use the 
+pandas access methods or explicitly handle the assignment creating a copy.
 
 The ``select`` method
 ~~~~~~~~~~~~~~~~~~~~~

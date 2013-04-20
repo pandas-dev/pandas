@@ -124,8 +124,8 @@ Selection
 .. note:: 
 
    While standard Python / Numpy expressions for selecting and setting are
-   intuitive and come handy for interactive work, for production code, we
-   recommend the optimized  pandas data access methods, ``.at``, ``.iat``,
+   intuitive and come in handy for interactive work, for production code, we
+   recommend the optimized pandas data access methods, ``.at``, ``.iat``,
    ``.loc``, ``.iloc`` and ``.ix``.
 
 See the :ref:`Indexing section <indexing>` and below.
