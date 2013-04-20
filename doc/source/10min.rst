@@ -121,8 +121,14 @@ Sorting by values
 Selection
 ---------
 
-See the :ref:`Indexing section <indexing>`
+.. note:: 
 
+   While standard Python / Numpy expressions for selecting and setting are
+   intuitive and come handy for interactive work, for production code, we
+   recommend the optimized  pandas data access methods, ``.at``, ``.iat``,
+   ``.loc``, ``.iloc`` and ``.ix``.
+
+See the :ref:`Indexing section <indexing>` and below.
 
 Getting
 ~~~~~~~
@@ -230,7 +236,8 @@ For getting fast access to a scalar (equiv to the prior method)
    df.iat[1,1]
 
 There is one signficant departure from standard python/numpy slicing semantics.
-python/numpy allow slicing past the end of an array without an associated error.
+python/numpy allow slicing past the end of an array without an associated
+error.
 
 .. ipython:: python
 
@@ -239,7 +246,8 @@ python/numpy allow slicing past the end of an array without an associated error.
     x[4:10]
     x[8:10]
 
-Pandas will detect this and raise ``IndexError``, rather than return an empty structure.
+Pandas will detect this and raise ``IndexError``, rather than return an empty 
+structure.
 
 ::
 
@@ -306,11 +314,13 @@ A ``where`` operation with setting.
    df2[df2 > 0] = -df2
    df2
 
+
 Missing Data
 ------------
 
-Pandas primarily uses the value ``np.nan`` to represent missing data. It
-is by default not included in computations. See the :ref:`Missing Data section <missing_data>`
+Pandas primarily uses the value ``np.nan`` to represent missing data. It is by
+default not included in computations. See the :ref:`Missing Data section
+<missing_data>`
 
 Reindexing allows you to change/add/delete the index on a specified axis. This
 returns a copy of the data.
@@ -457,8 +467,8 @@ Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>`
 Grouping
 --------
 
-By "group by" we are referring to a process involving one or more of the following
-steps
+By "group by" we are referring to a process involving one or more of the
+following steps
 
  - **Splitting** the data into groups based on some criteria
  - **Applying** a function to each group independently
@@ -481,7 +491,8 @@ Grouping and then applying a function ``sum`` to the resulting groups.
 
    df.groupby('A').sum()
 
-Grouping by multiple columns forms a hierarchical index, which we then apply the function.
+Grouping by multiple columns forms a hierarchical index, which we then apply 
+the function.
 
 .. ipython:: python
 
@@ -547,10 +558,10 @@ We can produce pivot tables from this data very easily:
 Time Series
 -----------
 
-Pandas has simple, powerful, and efficient functionality for
-performing resampling operations during frequency conversion (e.g., converting
-secondly data into 5-minutely data). This is extremely common in, but not
-limited to, financial applications. See the :ref:`Time Series section <timeseries>`
+Pandas has simple, powerful, and efficient functionality for performing
+resampling operations during frequency conversion (e.g., converting secondly
+data into 5-minutely data). This is extremely common in, but not limited to,
+financial applications. See the :ref:`Time Series section <timeseries>`
 
 .. ipython:: python
 
