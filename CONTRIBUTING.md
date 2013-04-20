@@ -73,6 +73,7 @@ your contribution or address the issue you're having.
     - If your code changes are intermixed with style fixes, they are harder to review
       before merging. Keep style fixes in separate commits.
     - it's fine to clean-up a little around an area you just worked on.
+    - Generally its a BAD idea to PEP8 on documentation.
 
     Having said that, if you still feel a PEP8 storm is in order, go for it.
 
