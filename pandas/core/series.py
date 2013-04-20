@@ -618,7 +618,7 @@ index : array-like or Index (1d)
         """
         Gets called prior to a ufunc (and after)
         """
-        return self._constructor(result, index=self.index, copy=False)
+        return self._constructor(result, index=self.index, name=self.name, copy=False)
 
     def __contains__(self, key):
         return key in self.index
@@ -702,7 +702,8 @@ index : array-like or Index (1d)
         if raise_on_error:
             _check_slice_bounds(slobj, self.values)
 
-        return self._constructor(self.values[slobj], index=self.index[slobj])
+        return self._constructor(self.values[slobj], index=self.index[slobj],
+                                 name=self.name)
 
     def __getitem__(self, key):
         try:
@@ -793,7 +794,8 @@ index : array-like or Index (1d)
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(self._data.get_slice(indexer),name=self.name,fastpath=True)
+            return self._constructor(self._data.get_slice(indexer),
+                                     name=self.name,fastpath=True)
         except Exception:
             return self.values[indexer]
 
@@ -1578,7 +1580,7 @@ index : array-like or Index (1d)
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return self._constructor(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     def cumprod(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1607,7 +1609,7 @@ index : array-like or Index (1d)
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return self._constructor(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     def cummax(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1636,7 +1638,7 @@ index : array-like or Index (1d)
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return self._constructor(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     def cummin(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -1665,7 +1667,7 @@ index : array-like or Index (1d)
         if do_mask:
             np.putmask(result, mask, pa.NA)
 
-        return self._constructor(result, index=self.index)
+        return self._constructor(result, index=self.index, name=self.name)
 
     @Appender(pa.Array.round.__doc__)
     def round(self, decimals=0, out=None):
