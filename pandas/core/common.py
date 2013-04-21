@@ -1647,6 +1647,13 @@ def load(path):
     try:
         with open(path,'rb') as fh:
             return pickle.load(fh)
+
+    except (TypeError), detail:
+
+        # try to process a deprecated compatibility
+        from pandas.compat.pickle_compat import load
+        return load(vf)
+
     except:
         if not py3compat.PY3:
             raise

@@ -11,6 +11,7 @@ from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
+from pandas.core import base
 import pandas.core.common as com
 from pandas.core.common import isnull, _maybe_box, _values_from_object
 from pandas.util import py3compat
@@ -39,7 +40,7 @@ def _field_accessor(name, alias):
     return property(f)
 
 
-class Period(object):
+class Period(base.PandasObject):
     """
     Represents an period of time
 
@@ -270,28 +271,6 @@ class Period(object):
             formatted = formatted.encode(encoding)
 
         return "Period('%s', '%s')" % (formatted, freqstr)
-
-    def __str__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
 
     def __unicode__(self):
         """
@@ -1078,6 +1057,8 @@ class PeriodIndex(Int64Index):
                 return PeriodIndex(result, name=self.name, freq=self.freq)
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
+
+    _getitem_bool = __getitem__
 
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)

@@ -16,7 +16,8 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
-_internal_names = set(['_data','name','_subtyp','_index','_default_kind','_default_fill_value'])
+_internal_names     = ['_data','name','_subtyp','_index','_default_kind','_default_fill_value']
+_internal_names_set = set(_internal_names)
 
 class NDFrame(PandasObject):
     """
@@ -494,8 +495,20 @@ class NDFrame(PandasObject):
         elif isinstance(state, dict):
             typ = state.get('_typ')
             if typ is not None:
+
+                # set in the order of internal names
+                # to avoid definitional recursion
+                # e.g. say fill_value needing _data to be
+                # defined
+                for k in _internal_names:
+                    if k in state:
+                        v = state[k]
+                        object.__setattr__(self,k,v)
+                        
                 for k, v in state.items():
-                    setattr(self,k,v)
+                    if k not in _internal_names:
+                        object.__setattr__(self,k,v)
+
             else:
                 self._unpickle_series_compat(state)
         elif isinstance(state[0], dict):
@@ -505,6 +518,8 @@ class NDFrame(PandasObject):
                 self._unpickle_frame_compat(state)
         elif len(state) == 4:
             self._unpickle_panel_compat(state)
+        elif len(state) == 2:
+            self._unpickle_series_compat(state)
         else:  # pragma: no cover
             # old pickling format, for compatibility
             self._unpickle_matrix_compat(state)
@@ -1001,7 +1016,7 @@ class NDFrame(PandasObject):
     def __setattr__(self, name, value):
         """After regular attribute access, try looking up the name of the info
         This allows simpler access to columns for interactive use."""
-        if name in _internal_names:
+        if name in _internal_names_set:
             object.__setattr__(self, name, value)
         else:
             try:

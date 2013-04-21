@@ -971,14 +971,17 @@ class SparseBlock(Block):
     def __init__(self, values, items, ref_items, ndim=None, fastpath=None):
 
         # kludgetastic
-        if ndim == 1:
-            self.ndim = 1
-        elif ndim > 2:
-            self.ndim = ndim
+        if ndim is not None:
+            if ndim == 1:
+                ndim = 1
+            elif ndim > 2:
+                ndim = ndim
         else:
             if len(items) != 1:
-                self.ndim = 1
-            self.ndim = 2
+                ndim = 1
+            else:
+                ndim = 2
+        self.ndim = ndim
 
         self._ref_locs = None
         self.values = values

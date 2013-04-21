@@ -547,6 +547,10 @@ index : array-like or Index (1d)
             from pandas.tseries.period import PeriodIndex
             if not isinstance(labels, (DatetimeIndex, PeriodIndex)):
                 labels = DatetimeIndex(labels)
+
+                # need to set here becuase we changed the index
+                if fastpath:
+                    self._data.set_axis(axis, labels)
         self._set_subtyp(is_all_dates)
 
         object.__setattr__(self,'_index',labels)
@@ -632,7 +636,29 @@ index : array-like or Index (1d)
             self._data = state['_data']
             self.name  = state['name']
             self.index = self._data.index
-        else:  # pragma: no cover
+
+        elif isinstance(state, tuple):
+
+            # < 0.12 series pickle
+
+            nd_state, own_state = state
+        
+            # recreate the ndarray
+            data = np.empty(nd_state[1],dtype=nd_state[2])
+            np.ndarray.__setstate__(data, nd_state)
+
+            # backwards compat
+            index, name = own_state[0], None
+            if len(own_state) > 1:
+                name = own_state[1]
+            index = _handle_legacy_indexes([index])[0]
+                
+            # recreate
+            self._data = SingleBlockManager(data, index, fastpath=True)
+            self.index = index
+            self.name = name
+
+        else:
             raise Exception("cannot unpickle legacy formats -> [%s]" % state)
 
     # indexers
