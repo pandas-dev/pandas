@@ -1306,7 +1306,7 @@ class DataFrame(NDFrame):
         -------
         y : DataFrame
         """
-        from pandas.io.parsers import read_stata
+        from pandas.io.stata import read_stata
         return read_stata(path, parse_dates=parse_dates, convert_categoricals=convert_categoricals, encoding=encoding, index=index_col)
 
     def to_sparse(self, fill_value=None, kind='block'):

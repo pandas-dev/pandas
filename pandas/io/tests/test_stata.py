@@ -10,7 +10,8 @@ import nose
 import numpy as np
 
 from pandas.core.frame import DataFrame
-from pandas.io.parsers import (read_stata, read_csv, StataReader, StataWriter)
+from pandas.io.parsers import read_csv
+from pandas.io.stata import read_stata, StataReader, StataWriter
 import pandas.util.testing as tm
 
 
