@@ -2283,6 +2283,7 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^"]
 
 cdef _period_strftime(int64_t value, int freq, object fmt):
+    import sys
     cdef:
         Py_ssize_t i
         date_info dinfo
@@ -2324,6 +2325,10 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
     # Py3?
     if not PyString_Check(result):
         result = str(result)
+
+    # GH3363
+    if sys.version_info[0] == 2:
+       result = result.decode('utf-8','strict')
 
     return result
 
