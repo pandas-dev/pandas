@@ -10,7 +10,6 @@ import nose
 import numpy as np
 
 from pandas.core.frame import DataFrame
-from pandas.core.categorical import Categorical
 from pandas.io.parsers import (read_stata, read_csv, StataReader, StataWriter)
 import pandas.util.testing as tm
 
@@ -23,7 +22,9 @@ def curpath():
 class StataTests(unittest.TestCase):
 
     def setUp(self):
-        self.dirpath = curpath()
+        # Unit test datasets for dta7 - dta9 (old stata formats 104, 105 and 107) can be downloaded from:
+        # http://stata-press.com/data/glmext.html
+        self.dirpath = tm.get_data_path()
         self.dta1 = os.path.join(self.dirpath, 'stata1.dta')
         self.dta2 = os.path.join(self.dirpath, 'stata2.dta')
         self.dta3 = os.path.join(self.dirpath, 'stata3.dta')
@@ -31,6 +32,12 @@ class StataTests(unittest.TestCase):
         self.dta4 = os.path.join(self.dirpath, 'stata4.dta')
         self.dta5 = os.path.join(self.dirpath, 'stata5.dta')
         self.dta6 = os.path.join(self.dirpath, 'stata6.dta')
+        self.dta7 = os.path.join(self.dirpath, 'cancer.dta')
+        self.csv7 = os.path.join(self.dirpath, 'cancer.csv')
+        self.dta8 = os.path.join(self.dirpath, 'tbl19-3.dta')
+        self.csv8 = os.path.join(self.dirpath, 'tbl19-3.csv')
+        self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
+        self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -142,6 +149,42 @@ class StataTests(unittest.TestCase):
 
         written_and_read_again = self.read_dta(self.dta6)
         tm.assert_frame_equal(written_and_read_again, original)
+
+    @nose.tools.nottest
+    def test_read_dta7(self):
+        expected = read_csv(self.csv7, parse_dates=True, sep='\t')
+        parsed = self.read_dta(self.dta7)
+
+        for i, col in enumerate(parsed.columns):
+            np.testing.assert_almost_equal(
+                parsed[col],
+                expected[expected.columns[i]],
+                decimal=3
+            )
+
+    @nose.tools.nottest
+    def test_read_dta8(self):
+        expected = read_csv(self.csv8, parse_dates=True, sep='\t')
+        parsed = self.read_dta(self.dta8)
+
+        for i, col in enumerate(parsed.columns):
+            np.testing.assert_almost_equal(
+                parsed[col],
+                expected[expected.columns[i]],
+                decimal=3
+            )
+
+    @nose.tools.nottest
+    def test_read_dta9(self):
+        expected = read_csv(self.csv9, parse_dates=True, sep='\t')
+        parsed = self.read_dta(self.dta9)
+
+        for i, col in enumerate(parsed.columns):
+            np.testing.assert_equal(
+                parsed[col],
+                expected[expected.columns[i]],
+                decimal=3
+            )
 
 
 if __name__ == '__main__':
