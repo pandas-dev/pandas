@@ -2282,13 +2282,6 @@ http://statsmodels.sourceforge.net/devel/
 """
 
 
-def is_py3():
-    if sys.version_info[0] == 3:
-        return True
-    return False
-PY3 = is_py3()
-
-
 _date_formats = ["%tc", "%tC", "%td", "%tw", "%tm", "%tq", "%th", "%ty"]
 
 
@@ -2642,7 +2635,7 @@ class StataReader(StataParser):
         return d
 
     def _null_terminate(self, s):
-        if PY3:  # have bytes not strings, so must decode
+        if py3compat.PY3:  # have bytes not strings, so must decode
             null_byte = 0x00
             try:
                 s = s[:s.index(null_byte)]
@@ -3145,7 +3138,7 @@ class StataWriter(StataParser):
 
     def _null_terminate(self, s):
         null_byte = '\x00'
-        if PY3:
+        if py3compat.PY3:
             s += null_byte
             return s.encode(self._encoding)
         else:
