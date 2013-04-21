@@ -165,7 +165,9 @@ def _encode_diff_func():
         encoding = get_option("display.encoding")
 
         def _encode_diff(x):
-            return len(x) - len(x.decode(encoding))
+            if not isinstance(x,unicode):
+                return len(x) - len(x.decode(encoding))
+            return 0
 
     return _encode_diff
 
