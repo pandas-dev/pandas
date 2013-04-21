@@ -13,6 +13,7 @@ import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
 from pandas.core.common import isnull
+from pandas.util import py3compat
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -264,12 +265,49 @@ class Period(object):
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
+
+        if not py3compat.PY3:
+            encoding = com.get_option("display.encoding")
+            formatted = formatted.encode(encoding)
+
         return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        encoding = com.get_option("display.encoding")
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
+        """
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
-        return ("%s" % formatted)
+        value = (u"%s" % formatted)
+        assert type(value) == unicode
+
+        return value
+
 
     def strftime(self, fmt):
         """

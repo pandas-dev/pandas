@@ -15,29 +15,21 @@ Artifacts included in the cache:
 Tested on releases back to 0.7.0.
 
 """
+import argparse
+argparser = argparse.ArgumentParser(description="""
+'Program description.
+""".strip())
 
-try:
-    import argparse
-    argparser = argparse.ArgumentParser(description="""
-    'Program description.
-    """.strip())
-
-    argparser.add_argument('-f', '--force-overwrite',
+argparser.add_argument('-f', '--force-overwrite',
                     default=False,
                    help='Setting this will overwrite any existing cache results for the current commit',
                    action='store_true')
-    argparser.add_argument('-d', '--debug',
+argparser.add_argument('-d', '--debug',
                     default=False,
                    help='Report cache hits/misses',
                    action='store_true')
 
-    args = argparser.parse_args()
-except:
-    class Foo(object):
-        debug=False
-        force_overwrite=False
-
-    args = Foo() # for 2.6, no argparse
+args = argparser.parse_args()
 
 #print args.accumulate(args.integers)
 
@@ -78,28 +70,18 @@ try:
         import shutil
         import multiprocessing
         pyver = "%d.%d" % (sys.version_info[:2])
-        fileq = ["pandas"]
+        files = ["pandas"]
         to_process = dict()
+        orig_hashes= dict((f.split("-")[0],f)  for f in os.listdir(BUILD_CACHE_DIR)
+                      if "-" in f and f.endswith(pyver))
+        post_hashes= dict((f.split("-")[1],f)  for f in os.listdir(BUILD_CACHE_DIR)
+                      if "-" in f and f.endswith(pyver))
 
-        # retrieve the hashes existing in the cache
-        orig_hashes=dict()
-        post_hashes=dict()
-        for path,dirs,files in os.walk(os.path.join(BUILD_CACHE_DIR,'pandas')):
-            for f in files:
-                s=f.split(".py-")[-1]
-                try:
-                    prev_h,post_h,ver = s.split('-')
-                    if ver == pyver:
-                        orig_hashes[prev_h] = os.path.join(path,f)
-                        post_hashes[post_h] = os.path.join(path,f)
-                except:
-                    pass
-
-        while fileq:
-            f = fileq.pop()
+        while files:
+            f = files.pop()
 
             if os.path.isdir(f):
-                fileq.extend([os.path.join(f,x) for x in os.listdir(f)])
+                files.extend([os.path.join(f,x) for x in os.listdir(f)])
             else:
                 if not f.endswith(".py"):
                     continue
@@ -108,54 +90,40 @@ try:
                         h = sha1(open(f,"rb").read()).hexdigest()
                     except IOError:
                         to_process[h] = f
-                    else:
-                        if h in orig_hashes and not BC_FORCE_OVERWRITE:
-                            src = orig_hashes[h]
-                            if BC_DEBUG:
-                                print("2to3 cache hit %s,%s" % (f,h))
-                            shutil.copyfile(src,f)
-                        elif h not in post_hashes:
-                            # we're not in a dev dir with already processed files
-                            if BC_DEBUG:
-                                print("2to3 cache miss (will process) %s,%s" % (f,h))
-                            to_process[h] = f
+                    if h in orig_hashes and not BC_FORCE_OVERWRITE:
+                        src = os.path.join(BUILD_CACHE_DIR,orig_hashes[h])
+                        if BC_DEBUG:
+                            print("2to3 cache hit %s,%s" % (f,h))
+                        shutil.copyfile(src,f)
+                    elif h not in post_hashes:
+
+                        # we're not in a dev dir with already processed files
+                        if BC_DEBUG:
+                            print("2to3 cache miss %s,%s" % (f,h))
+                            print("2to3 will process " + f)
+                        to_process[h] = f
 
         avail_fixes = set(refactor.get_fixers_from_package("lib2to3.fixes"))
         avail_fixes.discard('lib2to3.fixes.fix_next')
         t=refactor.RefactoringTool(avail_fixes)
-        if to_process:
-            print("Starting 2to3 refactoring...")
-            for orig_h,f in to_process.items():
+        print("Starting 2to3 refactoring...")
+        for f in to_process.values():
+            if BC_DEBUG:
+                print("2to3 on %s" % f)
+            try:
+                t.refactor([f],True)
+                post_h = sha1(open(f, "rb").read()).hexdigest()
+                cached_fname = f + "-" + post_h + "-" + pyver
                 if BC_DEBUG:
-                    print("2to3 on %s" % f)
-                try:
-                    t.refactor([f],True)
-                    post_h = sha1(open(f, "rb").read()).hexdigest()
-                    cached_fname = f + '-' + orig_h  + '-' + post_h + '-' + pyver
-                    path = os.path.join(BUILD_CACHE_DIR, cached_fname)
-                    pathdir =os.path.dirname(path)
-                    if BC_DEBUG:
-                        print("cache put %s in %s" % (f, path))
-                    try:
-                        os.makedirs(pathdir)
-                    except OSError as exc:
-                        import errno
-                        if exc.errno == errno.EEXIST and os.path.isdir(pathdir):
-                            pass
-                        else:
-                            raise
+                    print("cache put %s,%s in %s" % (f, h, cached_fname))
+                shutil.copyfile(f, os.path.join(BUILD_CACHE_DIR, cached_fname))
 
-                    shutil.copyfile(f, path)
-
-                except Exception as e:
-                    print("While processing %s 2to3 raised: %s" % (f,str(e)))
-
-                    pass
-            print("2to3 done refactoring.")
+            except:
+                pass
+        print("2to3 done refactoring.")
 
 except Exception as e:
-    if not isinstance(e,ZeroDivisionError):
-        print( "Exception: " + str(e))
+    print( "Exception: " + str(e))
     BUILD_CACHE_DIR = None
 
 class CompilationCacheMixin(object):
