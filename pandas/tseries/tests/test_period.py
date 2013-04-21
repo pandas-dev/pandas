@@ -206,8 +206,9 @@ class TestPeriodProperties(TestCase):
 
     def test_strftime(self):
         p = Period('2000-1-1 12:34:12', freq='S')
-        self.assert_(p.strftime('%Y-%m-%d %H:%M:%S') ==
-                     '2000-01-01 12:34:12')
+        res = p.strftime('%Y-%m-%d %H:%M:%S')
+        self.assert_( res ==  '2000-01-01 12:34:12')
+        self.assert_( isinstance(res,unicode)) # GH3363
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
