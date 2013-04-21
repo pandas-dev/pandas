@@ -264,12 +264,12 @@ class Period(object):
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
-        return "Period('%s', '%s')" % (formatted, freqstr)
+        return u"Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
-        return ("%s" % formatted)
+        return (u"%s" % formatted)
 
     def strftime(self, fmt):
         """
