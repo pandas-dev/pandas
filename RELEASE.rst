@@ -301,6 +301,7 @@ pandas 0.11.0
   - Groupby will handle mutation among an input groups columns (and fallback
     to non-fast apply) (GH3380_)
   - Eliminated unicode errors on FreeBSD when using MPL GTK backend (GH3360_)
+  - Period.strftime should return unicode strings always (GH3363_)
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
@@ -309,6 +310,7 @@ pandas 0.11.0
 .. _GH1893: https://github.com/pydata/pandas/issues/1893
 .. _GH1978: https://github.com/pydata/pandas/issues/1978
 .. _GH3360: https://github.com/pydata/pandas/issues/3360
+.. _GH3363: https://github.com/pydata/pandas/issues/3363
 .. _GH2758: https://github.com/pydata/pandas/issues/2758
 .. _GH3275: https://github.com/pydata/pandas/issues/3275
 .. _GH2121: https://github.com/pydata/pandas/issues/2121
