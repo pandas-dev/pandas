@@ -179,6 +179,17 @@ class TestDataFrameFormatting(unittest.TestCase):
                     self.assertTrue(has_info_repr(df_tall))
                     self.assertFalse(has_expanded_repr(df_tall))
 
+    def test_repr_non_interactive(self):
+        # in non interactive mode, there can be no dependency on the
+        # result of terminal auto size detection
+        df = DataFrame('hello', range(99), range(5))
+
+        with option_context('mode.sim_interactive', False,
+                            'display.width', 0, 
+                            'display.height', 0):
+            self.assertFalse(has_info_repr(df))
+            self.assertFalse(has_expanded_repr(df))
+
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:

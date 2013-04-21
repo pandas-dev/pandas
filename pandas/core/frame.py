@@ -605,15 +605,11 @@ class DataFrame(NDFrame):
         options height and max_columns.  In case off non-interactive session,
         no boundaries apply.
         """
-        if not com.in_interactive_session():
-            return True
-
-        terminal_width, terminal_height = get_terminal_size()
+        width, height = fmt.get_console_size()
 
         # excluding column axis area
-        max_rows = get_option("display.max_rows") or terminal_height
-        display_height = get_option("display.height") or terminal_height
-        return len(self.index) <= min(max_rows, display_height)
+        max_rows = get_option("display.max_rows") or height
+        return len(self) <= min(max_rows, height)
 
     def _repr_fits_horizontal_(self):
         """
@@ -621,23 +617,19 @@ class DataFrame(NDFrame):
         options width and max_columns. In case off non-interactive session, no
         boundaries apply.
         """
-        if not com.in_interactive_session():
-            return True
-
-        terminal_width, terminal_height = get_terminal_size()
+        width, height = fmt.get_console_size()
 
         max_columns = get_option("display.max_columns")
-        display_width = get_option("display.width") or terminal_width
         nb_columns = len(self.columns)
         if ((max_columns and nb_columns > max_columns) or
-            (nb_columns > (display_width // 2))):
+            (nb_columns > (width // 2))):
             return False
 
         buf = StringIO()
         self.to_string(buf=buf)
         value = buf.getvalue()
         repr_width = max([len(l) for l in value.split('\n')])
-        return repr_width <= display_width
+        return repr_width <= width
 
     def __str__(self):
         """
@@ -670,19 +662,21 @@ class DataFrame(NDFrame):
         """
         buf = StringIO(u"")
         fits_vertical = self._repr_fits_vertical_()
-        fits_horizontal = self._repr_fits_horizontal_()
+        fits_horizontal = False
+        if fits_vertical:
+            fits_horizontal = self._repr_fits_horizontal_()
+
         if fits_vertical and fits_horizontal:
             self.to_string(buf=buf)
         else:
-            terminal_width, terminal_height = get_terminal_size()
-            max_rows = get_option("display.max_rows") or terminal_height
+            width, height = fmt.get_console_size()
+            max_rows = get_option("display.max_rows") or height
             # Expand or info? Decide based on option display.expand_frame_repr
             # and keep it sane for the number of display rows used by the
             # expanded repr.
             if (get_option("display.expand_frame_repr") and fits_vertical and
                 len(self.columns) < max_rows):
-                line_width = get_option("display.width") or terminal_width
-                self.to_string(buf=buf, line_width=line_width)
+                self.to_string(buf=buf, line_width=width)
             else:
                 max_info_rows = get_option('display.max_info_rows')
                 verbose = (max_info_rows is None or
@@ -711,7 +705,12 @@ class DataFrame(NDFrame):
             raise ValueError('Disable HTML output in QtConsole')
 
         if get_option("display.notebook_repr_html"):
-            if self._repr_fits_horizontal_() and self._repr_fits_vertical_():
+            fits_vertical = self._repr_fits_vertical_()
+            fits_horizontal = False
+            if fits_vertical:
+                fits_horizontal = self._repr_fits_horizontal_()
+
+            if fits_horizontal and fits_vertical:
                 return ('<div style="max-height:1000px;'
                         'max-width:1500px;overflow:auto;">\n' +
                         self.to_html() + '\n</div>')

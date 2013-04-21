@@ -12,6 +12,7 @@ from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.util import py3compat
 from pandas.util.compat import OrderedDict
+from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
 import pandas.lib as lib
@@ -1671,6 +1672,19 @@ def detect_console_encoding():
         _initial_defencoding = sys.getdefaultencoding()
 
     return encoding
+
+
+def get_console_size():
+    """Return console size as tuple = (width, height)."""
+    display_width = get_option('display.width')
+    display_height = get_option('display.height')
+
+    if com.in_interactive_session():
+        terminal_width, terminal_height = get_terminal_size()
+    else:
+        terminal_width, terminal_height = 80, 100
+    
+    return (display_width or terminal_width, display_height or terminal_height)
 
 
 class EngFormatter(object):
