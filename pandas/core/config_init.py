@@ -128,7 +128,7 @@ line_width has been deprecated, use display.width instead (currently both are id
 pc_width_doc = """
 : int
     Width of the display in characters. In case python/IPython is running in
-    a terminal this can be set to 0 and pandas will correctly auto-detect the
+    a terminal this can be set to None and pandas will correctly auto-detect the
     width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
     terminal and hence it is not possible to correctly detect the width.
@@ -137,7 +137,7 @@ pc_width_doc = """
 pc_height_doc = """
 : int
     Height of the display in lines. In case python/IPython is running in a
-    terminal this can be set to 0 and pandas will auto-detect the width.
+    terminal this can be set to None and pandas will auto-detect the width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run
     in a terminal, and hence it is not possible to correctly detect the height.
 """
