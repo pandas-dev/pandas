@@ -212,10 +212,10 @@ with cf.config_prefix('display'):
     cf.register_option('max_info_rows', 1690785, pc_max_info_rows_doc,
                        validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 60, pc_max_rows_doc,
-                        validator=is_one_of_factory([type(None), int]))
+                       validator=is_instance_factory([type(None), int]))
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc,
-                        validator=is_one_of_factory([type(None), int]))
+                       validator=is_instance_factory([type(None), int]))
     cf.register_option('max_info_columns', 100, pc_max_info_cols_doc,
                        validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
@@ -236,12 +236,12 @@ with cf.config_prefix('display'):
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', None, pc_max_seq_items)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
-                       validator=is_one_of_factory([type(None), False, 'default']),
+                       validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)
     cf.register_option('height', 60, pc_height_doc,
-                           validator=is_one_of_factory([type(None), int]))
+                       validator=is_instance_factory([type(None), int]))
     cf.register_option('width',80, pc_width_doc,
-                       validator=is_one_of_factory([type(None), int]))
+                       validator=is_instance_factory([type(None), int]))
     # redirected to width, make defval identical
     cf.register_option('line_width', get_default_val('display.width'), pc_line_width_doc)
 cf.deprecate_option('display.line_width',

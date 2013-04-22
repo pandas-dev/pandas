@@ -40,7 +40,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(hasattr(pd, 'describe_option'))
 
     def test_is_one_of_factory(self):
-        v = self.cf.is_one_of_factory([type(None),int])
+        v = self.cf.is_one_of_factory([None,12])
 
         v(12)
         v(None)

@@ -701,7 +701,12 @@ def is_instance_factory(_type):
     """
 
     def inner(x):
-        if not isinstance(x, _type):
+        if isinstance(_type,(tuple,list)) :
+            if not any([isinstance(x,t) for t in _type]):
+                from pandas.core.common import pprint_thing as pp
+                pp_values = map(pp, _type)
+                raise ValueError("Value must be an instance of %s" % pp("|".join(pp_values)))
+        elif not isinstance(x, _type):
             raise ValueError("Value must be an instance of '%s'" % str(_type))
 
     return inner
