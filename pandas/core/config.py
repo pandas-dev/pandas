@@ -140,6 +140,9 @@ def _reset_option(pat):
     for k in keys:
         _set_option(k, _registered_options[k].defval)
 
+def get_default_val(pat):
+    key =  _get_single_key(pat, silent=True)
+    return _get_registered_option(key).defval
 
 class DictWrapper(object):
     """ provide attribute-style access to a nested dict
