@@ -709,7 +709,7 @@ def is_instance_factory(_type):
 def is_one_of_factory(legal_values):
     def inner(x):
         from pandas.core.common import pprint_thing as pp
-        if not type(x) in legal_values:
+        if not x in legal_values:
             pp_values = map(pp, legal_values)
             raise ValueError("Value must be one of %s" % pp("|".join(pp_values)))
 
