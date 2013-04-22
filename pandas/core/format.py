@@ -1679,7 +1679,7 @@ def get_console_size():
     display_width = get_option('display.width')
     display_height = get_option('display.height')
 
-    if com.in_interactive_session():
+    if com.in_interactive_session() and not com.in_ipnb_frontend():
         terminal_width, terminal_height = get_terminal_size()
     else:
         terminal_width, terminal_height = 80, 100
