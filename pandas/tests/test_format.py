@@ -182,11 +182,12 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_repr_non_interactive(self):
         # in non interactive mode, there can be no dependency on the
         # result of terminal auto size detection
-        df = DataFrame('hello', range(99), range(5))
+        df = DataFrame('hello', range(1000), range(5))
 
         with option_context('mode.sim_interactive', False,
-                            'display.width', 0, 
-                            'display.height', 0):
+                            'display.width', 0,
+                            'display.height', 0,
+                            'display.max_rows',5000):
             self.assertFalse(has_info_repr(df))
             self.assertFalse(has_expanded_repr(df))
 
