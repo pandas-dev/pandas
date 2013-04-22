@@ -28,12 +28,19 @@ class OLS(object):
 
     Parameters
     ----------
-    y: Series
-    x: Series, DataFrame, dict of Series
-    intercept: bool
+    y : Series
+    x : Series, DataFrame, dict of Series
+    intercept : bool
         True if you want an intercept.
-    nw_lags: None or int
+    weights : array-like, optional
+        1d array of weights.  If you supply 1/W then the variables are pre-
+        multiplied by 1/sqrt(W).  If no weights are supplied the default value
+        is 1 and WLS reults are the same as OLS.
+    nw_lags : None or int
         Number of Newey-West lags.
+    nw_overlap : boolean, default False
+        Assume data is overlapping when computing Newey-West estimator
+    
     """
     _panel_model = False
 
@@ -593,16 +600,24 @@ class MovingOLS(OLS):
 
     Parameters
     ----------
-    y: Series
-    x: Series, DataFrame, or dict of Series
-    intercept: bool
-        True if you want an intercept.
-    nw_lags: None or int
-        Number of Newey-West lags.
-    window_type: {'full sample', 'rolling', 'expanding'}
+    y : Series
+    x : Series, DataFrame, or dict of Series
+    weights : array-like, optional
+        1d array of weights.  If None, equivalent to an unweighted OLS.
+    window_type : {'full sample', 'rolling', 'expanding'}
         Default expanding
-    window: int
+    window : int
         size of window (for rolling/expanding OLS)
+    min_periods : int
+        Threshold of non-null data points to require. 
+        If None, defaults to size of window. 
+    intercept : bool
+        True if you want an intercept.
+    nw_lags : None or int
+        Number of Newey-West lags.
+    nw_overlap : boolean, default False
+        Assume data is overlapping when computing Newey-West estimator
+    
     """
     def __init__(self, y, x, weights=None, window_type='expanding',
                  window=None, min_periods=None, intercept=True,
@@ -1246,10 +1261,12 @@ def _filter_data(lhs, rhs, weights=None):
 
     Parameters
     ----------
-    lhs: Series
+    lhs : Series
         Dependent variable in the regression.
-    rhs: dict, whose values are Series, DataFrame, or dict
+    rhs : dict, whose values are Series, DataFrame, or dict
         Explanatory variables of the regression.
+    weights : array-like, optional
+        1d array of weights.  If None, equivalent to an unweighted OLS.
 
     Returns
     -------

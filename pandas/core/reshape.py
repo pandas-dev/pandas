@@ -745,11 +745,13 @@ def make_axis_dummies(frame, axis='minor', transform=None):
 
     Parameters
     ----------
+    frame : DataFrame
     axis : {'major', 'minor'}, default 'minor'
     transform : function, default None
         Function to apply to axis labels first. For example, to
-        get "day of week" dummies in a time series regression you might
-        call:
+        get "day of week" dummies in a time series regression 
+        you might call::
+            
             make_axis_dummies(panel, axis='major',
                               transform=lambda d: d.weekday())
     Returns
