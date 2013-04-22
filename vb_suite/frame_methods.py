@@ -150,20 +150,19 @@ frame_get_dtype_counts = Benchmark('df.get_dtype_counts()', setup,
 
 ##
 setup = common_setup + """
-from pandas.core.config import option_context
-
-def interactive_repr(frame):
-    with option_context('mode.sim_interactive', True):
-        repr(frame)
-
 df = pandas.DataFrame(np.random.randn(10,10000))
 """
 
-frame_wide_repr = Benchmark('repr(df)', setup,
+frame_repr_wide = Benchmark('repr(df)', setup,
                             start_date=datetime(2012, 8, 1))
 
-frame_wide_repr_interactive = Benchmark('interactive_repr(df)', setup,
-                                        start_date=datetime(2012, 8, 1))
+##
+setup = common_setup + """
+df = pandas.DataFrame(np.random.randn(10000, 10))
+"""
+
+frame_repr_tall = Benchmark('repr(df)', setup,
+                            start_date=datetime(2012, 8, 1))
 
 ##
 setup = common_setup + """

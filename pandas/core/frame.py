@@ -602,18 +602,20 @@ class DataFrame(NDFrame):
     def _repr_fits_vertical_(self):
         """
         Check if full repr fits in vertical boundaries imposed by the display
-        options height and max_columns.  In case off non-interactive session,
+        options height and max_rows.  In case of non-interactive session,
         no boundaries apply.
         """
-        if not com.in_interactive_session():
+        width, height = fmt.get_console_size()
+        max_rows = get_option("display.max_rows")
+
+        if height is None and max_rows is None:
             return True
 
-        terminal_width, terminal_height = get_terminal_size()
-
-        # excluding column axis area
-        max_rows = get_option("display.max_rows") or terminal_height
-        display_height = get_option("display.height") or terminal_height
-        return len(self.index) <= min(max_rows, display_height)
+        else:
+            # min of two, where one may be None
+            height = height or max_rows +1
+            max_rows = max_rows or height +1
+            return len(self) <= min(max_rows, height)
 
     def _repr_fits_horizontal_(self):
         """
@@ -621,23 +623,35 @@ class DataFrame(NDFrame):
         options width and max_columns. In case off non-interactive session, no
         boundaries apply.
         """
-        if not com.in_interactive_session():
-            return True
-
-        terminal_width, terminal_height = get_terminal_size()
-
+        width, height = fmt.get_console_size()
         max_columns = get_option("display.max_columns")
-        display_width = get_option("display.width") or terminal_width
         nb_columns = len(self.columns)
+
+        # exceed max columns
         if ((max_columns and nb_columns > max_columns) or
-            (nb_columns > (display_width // 2))):
+            (width and nb_columns > (width // 2))):
             return False
 
+        if width is None:
+            # no sense finding width of repr if no width set
+            return True
+
         buf = StringIO()
-        self.to_string(buf=buf)
+
+        # only care about the stuff we'll actually print out
+        # and to_string on entire frame may be expensive
+        d = self
+        max_rows = get_option("display.max_rows")
+        if not (height is None and max_rows is None):
+            # min of two, where one may be None
+            height = height or max_rows +1
+            max_rows = max_rows or height +1
+            d=d.iloc[:min(max_rows, height,len(d))]
+
+        d.to_string(buf=buf)
         value = buf.getvalue()
         repr_width = max([len(l) for l in value.split('\n')])
-        return repr_width <= display_width
+        return repr_width <= width
 
     def __str__(self):
         """
@@ -670,19 +684,24 @@ class DataFrame(NDFrame):
         """
         buf = StringIO(u"")
         fits_vertical = self._repr_fits_vertical_()
-        fits_horizontal = self._repr_fits_horizontal_()
+        fits_horizontal = False
+        if fits_vertical:
+            # This needs to compute the entire repr
+            # so don't do it unless rownum is bounded
+            fits_horizontal = self._repr_fits_horizontal_()
+
         if fits_vertical and fits_horizontal:
             self.to_string(buf=buf)
         else:
-            terminal_width, terminal_height = get_terminal_size()
-            max_rows = get_option("display.max_rows") or terminal_height
-            # Expand or info? Decide based on option display.expand_frame_repr
-            # and keep it sane for the number of display rows used by the
-            # expanded repr.
+            width, height = fmt.get_console_size()
+            max_rows = get_option("display.max_rows") or height
+            # expand_repr basically takes the extrac columns that don't
+            # fit the width, and creates a new page, which increases
+            # the effective row count. check number of cols agaibst
+            # max rows to catch wrapping. that would exceed max_rows.
             if (get_option("display.expand_frame_repr") and fits_vertical and
                 len(self.columns) < max_rows):
-                line_width = get_option("display.width") or terminal_width
-                self.to_string(buf=buf, line_width=line_width)
+                self.to_string(buf=buf, line_width=width)
             else:
                 max_info_rows = get_option('display.max_info_rows')
                 verbose = (max_info_rows is None or
@@ -707,11 +726,14 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
-        if com.in_qtconsole():
-            raise ValueError('Disable HTML output in QtConsole')
 
         if get_option("display.notebook_repr_html"):
-            if self._repr_fits_horizontal_() and self._repr_fits_vertical_():
+            fits_vertical = self._repr_fits_vertical_()
+            fits_horizontal = False
+            if fits_vertical:
+                fits_horizontal = self._repr_fits_horizontal_()
+
+            if fits_horizontal and fits_vertical:
                 return ('<div style="max-height:1000px;'
                         'max-width:1500px;overflow:auto;">\n' +
                         self.to_html() + '\n</div>')
@@ -1580,7 +1602,7 @@ class DataFrame(NDFrame):
 
         # hack
         if max_cols is None:
-            max_cols = get_option('display.max_info_columns')
+            max_cols = get_option('display.max_info_columns',len(self.columns)+1)
 
         if verbose and len(self.columns) <= max_cols:
             lines.append('Data columns (total %d columns):' % len(self.columns))

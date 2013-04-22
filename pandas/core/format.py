@@ -12,6 +12,7 @@ from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.util import py3compat
 from pandas.util.compat import OrderedDict
+from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option, reset_option
 import pandas.core.common as com
 import pandas.lib as lib
@@ -356,7 +357,7 @@ class DataFrameFormatter(TableFormatter):
                 return 'r'
             else:
                 return 'l'
-        
+
         import warnings
         if force_unicode is not None:  # pragma: no cover
             warnings.warn(
@@ -372,7 +373,7 @@ class DataFrameFormatter(TableFormatter):
             strcols = [[info_line]]
         else:
             strcols = self._to_str_columns()
-        
+
         if column_format is None:
             dtypes = self.frame.dtypes.values
             column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
@@ -1671,6 +1672,43 @@ def detect_console_encoding():
         _initial_defencoding = sys.getdefaultencoding()
 
     return encoding
+
+
+def get_console_size():
+    """Return console size as tuple = (width, height).
+
+    May return (None,None) in some cases.
+    """
+    display_width = get_option('display.width')
+    display_height = get_option('display.height')
+
+    # Consider
+    # interactive shell terminal, can detect term size
+    # interactive non-shell terminal (ipnb/ipqtconsole), cannot detect term size
+    # non-interactive script, should disregard term size
+
+    # in addition
+    # width,height have default values, but setting to 'None' signals
+    # should use Auto-Detection, But only in interactive shell-terminal.
+    # Simple. yeah.
+
+    if com.in_interactive_session():
+        if com.in_ipnb_frontend():
+            # sane defaults for interactive non-shell terminal
+            # match default for width,height in config_init
+            from pandas.core.config import get_default_val
+            terminal_width = get_default_val('display.width')
+            terminal_height = get_default_val('display.height')
+        else:
+            # pure terminal
+            terminal_width, terminal_height = get_terminal_size()
+    else:
+        terminal_width, terminal_height = None,None
+
+    # Note if the User sets width/Height to None (auto-detection)
+    # and we're in a script (non-inter), this will return (None,None)
+    # caller needs to deal.
+    return (display_width or terminal_width, display_height or terminal_height)
 
 
 class EngFormatter(object):

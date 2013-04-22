@@ -39,6 +39,13 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(hasattr(pd, 'reset_option'))
         self.assertTrue(hasattr(pd, 'describe_option'))
 
+    def test_is_one_of_factory(self):
+        v = self.cf.is_one_of_factory([type(None),int])
+
+        v(12)
+        v(None)
+        self.assertRaises(ValueError,v,1.1)
+
     def test_register_option(self):
         self.cf.register_option('a', 1, 'doc')
 

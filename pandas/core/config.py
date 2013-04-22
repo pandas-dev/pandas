@@ -140,6 +140,9 @@ def _reset_option(pat):
     for k in keys:
         _set_option(k, _registered_options[k].defval)
 
+def get_default_val(pat):
+    key =  _get_single_key(pat, silent=True)
+    return _get_registered_option(key).defval
 
 class DictWrapper(object):
     """ provide attribute-style access to a nested dict
@@ -706,7 +709,7 @@ def is_instance_factory(_type):
 def is_one_of_factory(legal_values):
     def inner(x):
         from pandas.core.common import pprint_thing as pp
-        if not x in legal_values:
+        if not type(x) in legal_values:
             pp_values = map(pp, legal_values)
             raise ValueError("Value must be one of %s" % pp("|".join(pp_values)))
 

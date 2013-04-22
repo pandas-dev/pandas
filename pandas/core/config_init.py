@@ -1,6 +1,6 @@
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_float,
-                                is_instance_factory,is_one_of_factory)
+                                is_instance_factory,is_one_of_factory,get_default_val)
 from pandas.core.format import detect_console_encoding
 
 """
@@ -34,7 +34,8 @@ pc_max_rows_doc = """
 : int
     This sets the maximum number of rows pandas should output when printing
     out various output. For example, this value determines whether the repr()
-    for a dataframe prints out fully or just an summary repr.
+    for a dataframe prints out fully or just a summary repr.
+    'None' value means unlimited.
 """
 
 pc_max_cols_doc = """
@@ -46,6 +47,7 @@ pc_max_cols_doc = """
     format in case all columns would not fit vertically. The IPython notebook,
     IPython qtconsole, or IDLE do not run in a terminal and hence it is not
     possible to do correct auto-detection.
+    'None' value means unlimited.
 """
 
 pc_max_info_cols_doc = """
@@ -127,18 +129,19 @@ line_width has been deprecated, use display.width instead (currently both are id
 
 pc_width_doc = """
 : int
-    Width of the display. In case python/IPython is running in a terminal this
-    can be set to 0 and pandas will correctly auto-detect the width. Note that
-    the IPython notebook, IPython qtconsole, or IDLE do not run in a terminal
-    and hence it is not possible to correctly detect the width.
+    Width of the display in characters. In case python/IPython is running in
+    a terminal this can be set to None and pandas will correctly auto-detect the
+    width.
+    Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
+    terminal and hence it is not possible to correctly detect the width.
 """
 
 pc_height_doc = """
 : int
-    Height of the display. In case python/IPython is running in a terminal this
-    can be set to 0 and pandas will auto-detect the width. Note that the
-    IPython notebook, IPython qtconsole, or IDLE do not run in a terminal,
-    and hence it is not possible to correctly detect the height.
+    Height of the display in lines. In case python/IPython is running in a
+    terminal this can be set to None and pandas will auto-detect the width.
+    Note that the IPython notebook, IPython qtconsole, or IDLE do not run
+    in a terminal, and hence it is not possible to correctly detect the height.
 """
 
 pc_chop_threshold_doc = """
@@ -208,9 +211,11 @@ with cf.config_prefix('display'):
     cf.register_option('column_space', 12, validator=is_int)
     cf.register_option('max_info_rows', 1690785, pc_max_info_rows_doc,
                        validator=is_instance_factory((int, type(None))))
-    cf.register_option('max_rows', 100, pc_max_rows_doc, validator=is_int)
+    cf.register_option('max_rows', 60, pc_max_rows_doc,
+                        validator=is_one_of_factory([type(None), int]))
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
-    cf.register_option('max_columns', 20, pc_max_cols_doc, validator=is_int)
+    cf.register_option('max_columns', 20, pc_max_cols_doc,
+                        validator=is_one_of_factory([type(None), int]))
     cf.register_option('max_info_columns', 100, pc_max_info_cols_doc,
                        validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
@@ -228,14 +233,17 @@ with cf.config_prefix('display'):
     cf.register_option('encoding', detect_console_encoding(), pc_encoding_doc,
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
-    cf.register_option('line_width', 80, pc_line_width_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', None, pc_max_seq_items)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
-                       validator=is_one_of_factory([None, False, 'default']),
+                       validator=is_one_of_factory([type(None), False, 'default']),
                        cb=mpl_style_cb)
-    cf.register_option('height', 100, pc_height_doc, validator=is_int)
-    cf.register_option('width',80, pc_width_doc, validator=is_int)
+    cf.register_option('height', 60, pc_height_doc,
+                           validator=is_one_of_factory([type(None), int]))
+    cf.register_option('width',80, pc_width_doc,
+                       validator=is_one_of_factory([type(None), int]))
+    # redirected to width, make defval identical
+    cf.register_option('line_width', get_default_val('display.width'), pc_line_width_doc)
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
                     rkey='display.width')
