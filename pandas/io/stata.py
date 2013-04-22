@@ -10,6 +10,7 @@ You can find more information on http://presbrey.mit.edu/PyDTA and
 http://statsmodels.sourceforge.net/devel/
 """
 
+from StringIO import StringIO
 import numpy as np
 
 import sys
@@ -199,8 +200,13 @@ class StataMissingValue(object):
 
 
 class StataParser(object):
-    def __init__(self):
-        #type          code
+    def __init__(self, encoding):
+        if(encoding is None):
+            self._encoding = 'cp1252'
+        else:
+            self._encoding = encoding
+
+        #type          code.
         #--------------------
         #str1        1 = 0x01
         #str2        2 = 0x02
@@ -246,6 +252,12 @@ class StataParser(object):
                 'b': 251
             }
 
+    def _decode_bytes(self, str, errors=None):
+        if py3compat.PY3:
+            return str.decode(self._encoding, errors)
+        else:
+            return str
+
 
 class StataReader(StataParser):
     """
@@ -272,27 +284,23 @@ class StataReader(StataParser):
         support unicode. None defaults to cp1252.
     """
     def __init__(self, path_or_buf, encoding=None):
-        super(StataReader, self).__init__()
+        super(StataReader, self).__init__(encoding)
         self.col_sizes = ()
         self._has_string_data = False
         self._missing_values = False
         self._data_read = False
         self._value_labels_read = False
-        if(encoding is None):
-            self.encoding = 'cp1252'
-        else:
-            self.encoding = encoding
         if isinstance(path_or_buf, str) and _is_url(path_or_buf):
             from urllib.request import urlopen
             path_or_buf = urlopen(path_or_buf)
             if py3compat.PY3:  # pragma: no cover
-                if self.encoding:
+                if self._encoding:
                     errors = 'strict'
                 else:
                     errors = 'replace'
-                    self.encoding = 'cp1252'
+                    self._encoding = 'cp1252'
                 bytes = path_or_buf.read()
-                self.path_or_buf = StringIO(bytes.decode(self.encoding, errors))
+                self.path_or_buf = StringIO(self._decode_bytes(bytes, errors))
         elif type(path_or_buf) is str:
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
@@ -322,7 +330,7 @@ class StataReader(StataParser):
         if self.format_version > 108:
             typlist = [ord(self.path_or_buf.read(1)) for i in range(self.nvar)]
         else:
-            typlist = [self.OLD_TYPE_MAPPING[self.path_or_buf.read(1).decode(self.encoding)] for i in range(self.nvar)]
+            typlist = [self.OLD_TYPE_MAPPING[self._decode_bytes(self.path_or_buf.read(1))] for i in range(self.nvar)]
         self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         if self.format_version > 108:
@@ -391,14 +399,14 @@ class StataReader(StataParser):
 
     def _null_terminate(self, s):
         if py3compat.PY3:  # have bytes not strings, so must decode
-            null_byte = 0x00
+            null_byte = b"\0"
             try:
                 s = s[:s.index(null_byte)]
             except:
                 pass
-            return s.decode(self.encoding)
+            return s.decode(self._encoding)
         else:
-            null_byte = 0x00
+            null_byte = "\0"
             try:
                 return s.lstrip(null_byte)[:s.index(null_byte)]
             except:
@@ -721,7 +729,7 @@ class StataWriter(StataParser):
     """
     def __init__(self, fname, data, convert_dates=None, write_index=True, encoding="latin-1",
                  byteorder=None):
-        super(StataWriter, self).__init__()
+        super(StataWriter, self).__init__(encoding)
         self._convert_dates = convert_dates
         self._write_index = write_index
         # attach nobs, nvars, data, varlist, typlist
@@ -730,15 +738,17 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._encoding = encoding
-        self._file = _open_file_binary_write(fname, encoding)
+        self._file = _open_file_binary_write(fname, self._encoding)
         self.type_converters = {253: np.long, 252: int}
 
     def _write(self, to_write):
         """
-        Helper to call asbytes before writing to file for Python 3 compat.
+        Helper to call encode before writing to file for Python 3 compat.
         """
-        self._file.write(to_write.encode(self._encoding))
+        if py3compat.PY3:
+            self._file.write(to_write.encode(self._encoding))
+        else:
+            self._file.write(to_write)
 
     def _prepare_pandas(self, data):
         #NOTE: we might need a different API / class for pandas objects so
@@ -819,8 +829,8 @@ class StataWriter(StataParser):
 
         # varlist, length 33*nvar, char array, null terminated
         for name in self.varlist:
-            name = self._null_terminate(name)
-            name = _pad_bytes(name[:32].decode(self._encoding), 33)
+            name = self._null_terminate(name, True)
+            name = _pad_bytes(name[:32], 33)
             self._write(name)
 
         # srtlist, 2*(nvar+1), int array, encoded by byteorder
@@ -853,7 +863,7 @@ class StataWriter(StataParser):
                 typ = ord(typlist[i])
                 if typ <= 244:  # we've got a string
                     if len(var) < typ:
-                        var = _pad_bytes(var.decode(self._encoding), len(var) + 1)
+                        var = _pad_bytes(self._decode_bytes(var), len(var) + 1)
                     self._write(var)
                 else:
                     try:
@@ -891,9 +901,9 @@ class StataWriter(StataParser):
                         var = MISSING_VALUES[typ]
                     self._write(struct.pack(byteorder+TYPE_MAP[typ], var))
 
-    def _null_terminate(self, s):
+    def _null_terminate(self, s, as_string=False):
         null_byte = '\x00'
-        if py3compat.PY3:
+        if py3compat.PY3 and not as_string:
             s += null_byte
             return s.encode(self._encoding)
         else:
