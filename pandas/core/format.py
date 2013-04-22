@@ -1675,16 +1675,37 @@ def detect_console_encoding():
 
 
 def get_console_size():
-    """Return console size as tuple = (width, height)."""
+    """Return console size as tuple = (width, height).
+
+    May return (None,None) in some cases.
+    """
     display_width = get_option('display.width')
     display_height = get_option('display.height')
 
-    if com.in_interactive_session() and not com.in_ipnb_frontend():
-        # pure terminal
-        terminal_width, terminal_height = get_terminal_size()
-    else:
-        terminal_width, terminal_height = 100, 60
+    # Consider
+    # interactive shell terminal, can detect term size
+    # interactive non-shell terminal (ipnb/ipqtconsole), cannot detect term size
+    # non-interactive script, should disregard term size
 
+    # in addition
+    # width,height have default values, but setting to 'None' signals
+    # should use Auto-Detection, But only in interactive shell-terminal.
+    # Simple. yeah.
+
+    if com.in_interactive_session():
+        if com.in_ipnb_frontend():
+            # sane defaults for interactive non-shell terminal
+            # match default for width,height in config_init
+            terminal_width, terminal_height = 100, 60
+        else:
+            # pure terminal
+            terminal_width, terminal_height = get_terminal_size()
+    else:
+        terminal_width, terminal_height = None,None
+
+    # Note if the User sets width/Height to None (auto-detection)
+    # and we're in a script (non-inter), this will return (None,None)
+    # caller needs to deal.
     return (display_width or terminal_width, display_height or terminal_height)
 
 
