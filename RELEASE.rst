@@ -311,6 +311,7 @@ pandas 0.11.0
     to non-fast apply) (GH3380_)
   - Eliminated unicode errors on FreeBSD when using MPL GTK backend (GH3360_)
   - Period.strftime should return unicode strings always (GH3363_)
+  - Respect passed read_* chunksize in get_chunk function (GH3406_)
 
 .. _GH3294: https://github.com/pydata/pandas/issues/3294
 .. _GH622: https://github.com/pydata/pandas/issues/622
@@ -425,6 +426,7 @@ pandas 0.11.0
 .. _GH3308: https://github.com/pydata/pandas/issues/3308
 .. _GH3311: https://github.com/pydata/pandas/issues/3311
 .. _GH3380: https://github.com/pydata/pandas/issues/3380
+.. _GH3406: https://github.com/pydata/pandas/issues/3406
 
 pandas 0.10.1
 =============

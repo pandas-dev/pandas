@@ -649,9 +649,10 @@ class TextFileReader(object):
     def _create_index(self, col_dict, columns):
         pass
 
-    # backwards compatibility
-    get_chunk = read
-
+    def get_chunk(self, size=None):
+        if size is None:
+            size = self.chunksize
+        return self.read(nrows=size)
 
 def _is_index_col(col):
     return col is not None and col is not False
@@ -1285,7 +1286,10 @@ class PythonParser(ParserBase):
         return index, columns, data
 
     # legacy
-    get_chunk = read
+    def get_chunk(self, size=None):
+        if size is None:
+            size = self.chunksize
+        return self.read(nrows=size)
 
     def _convert_data(self, data):
         # apply converters

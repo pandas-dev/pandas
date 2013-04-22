@@ -456,7 +456,9 @@ skip
 2,3,4
 """
         try:
-            it = self.read_table(StringIO(data), sep=',', header=1, comment='#', iterator=True, chunksize=1, skiprows=[2])
+            it = self.read_table(StringIO(data), sep=',', header=1,
+                                 comment='#', iterator=True, chunksize=1,
+                                 skiprows=[2])
             df = it.read(1)
             it.read(2)
             self.assert_(False)
@@ -875,6 +877,17 @@ baz,7,8,9
         tm.assert_frame_equal(chunks[0], df[:2])
         tm.assert_frame_equal(chunks[1], df[2:4])
         tm.assert_frame_equal(chunks[2], df[4:])
+
+    def test_get_chunk_passed_chunksize(self):
+        data = """A,B,C
+1,2,3
+4,5,6
+7,8,9
+1,2,3"""
+        result = self.read_csv(StringIO(data), chunksize=2)
+
+        piece = result.get_chunk()
+        self.assertEqual(len(piece), 2)
 
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
