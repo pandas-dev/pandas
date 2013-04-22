@@ -746,6 +746,7 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex
+    warn : boolean, default True
 
     Returns
     -------
