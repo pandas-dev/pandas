@@ -399,14 +399,14 @@ class StataReader(StataParser):
 
     def _null_terminate(self, s):
         if py3compat.PY3:  # have bytes not strings, so must decode
-            null_byte = 0x00
+            null_byte = b"\0"
             try:
                 s = s[:s.index(null_byte)]
             except:
                 pass
             return s.decode(self._encoding)
         else:
-            null_byte = 0x00
+            null_byte = "\0"
             try:
                 return s.lstrip(null_byte)[:s.index(null_byte)]
             except:
