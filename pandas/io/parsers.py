@@ -4,7 +4,7 @@ Module contains tools for processing files into DataFrames or other objects
 from StringIO import StringIO
 import re
 from itertools import izip
-from urlparse import urlparse
+import urlparse
 import csv
 
 import numpy as np
@@ -166,14 +166,26 @@ fields if it is not spaces (e.g., '~').
 """ % (_parser_params % _fwf_widths)
 
 
+_VALID_URLS = set(urlparse.uses_relative + urlparse.uses_netloc +
+                  urlparse.uses_params)
+_VALID_URLS.discard('')
+
+
 def _is_url(url):
+    """Check to see if a URL has a valid protocol.
+
+    Parameters
+    ----------
+    url : str or unicode
+
+    Returns
+    -------
+    isurl : bool
+        If `url` has a valid protocol return True otherwise False.
     """
-    Very naive check to see if url is an http(s), ftp, or file location.
-    """
-    parsed_url = urlparse(url)
-    if parsed_url.scheme in ['http', 'file', 'ftp', 'https']:
-        return True
-    else:
+    try:
+        return urlparse.urlparse(url).scheme in _VALID_URLS
+    except:
         return False
 
 
