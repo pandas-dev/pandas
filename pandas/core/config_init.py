@@ -35,6 +35,7 @@ pc_max_rows_doc = """
     This sets the maximum number of rows pandas should output when printing
     out various output. For example, this value determines whether the repr()
     for a dataframe prints out fully or just a summary repr.
+    'None' value means unlimited.
 """
 
 pc_max_cols_doc = """
@@ -46,6 +47,7 @@ pc_max_cols_doc = """
     format in case all columns would not fit vertically. The IPython notebook,
     IPython qtconsole, or IDLE do not run in a terminal and hence it is not
     possible to do correct auto-detection.
+    'None' value means unlimited.
 """
 
 pc_max_info_cols_doc = """

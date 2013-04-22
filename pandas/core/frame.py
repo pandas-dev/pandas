@@ -602,14 +602,20 @@ class DataFrame(NDFrame):
     def _repr_fits_vertical_(self):
         """
         Check if full repr fits in vertical boundaries imposed by the display
-        options height and max_rows.  In case off non-interactive session,
+        options height and max_rows.  In case of non-interactive session,
         no boundaries apply.
         """
         width, height = fmt.get_console_size()
+        max_rows = get_option("display.max_rows")
 
-        # excluding column axis area
-        max_rows = get_option("display.max_rows") or height
-        return len(self) <= min(max_rows, height)
+        if height is None and max_rows is None:
+            return True
+
+        else:
+            # min of two, where one may be None
+            height = height or max_rows +1
+            max_rows = max_rows or height +1
+            return len(self) <= min(max_rows, height)
 
     def _repr_fits_horizontal_(self):
         """
@@ -618,12 +624,17 @@ class DataFrame(NDFrame):
         boundaries apply.
         """
         width, height = fmt.get_console_size()
-
         max_columns = get_option("display.max_columns")
         nb_columns = len(self.columns)
+
+        # exceed max columns
         if ((max_columns and nb_columns > max_columns) or
-            (nb_columns > (width // 2))):
+            (width and nb_columns > (width // 2))):
             return False
+
+        if width is None:
+            # no sense finding width of repr if no width set
+            return True
 
         buf = StringIO()
 
@@ -635,7 +646,7 @@ class DataFrame(NDFrame):
             # min of two, where one may be None
             height = height or max_rows +1
             max_rows = max_rows or height +1
-            d=d.iloc[:min(max_rows, height)]
+            d=d.iloc[:min(max_rows, height,len(d))]
 
         d.to_string(buf=buf)
         value = buf.getvalue()
@@ -1593,7 +1604,7 @@ class DataFrame(NDFrame):
 
         # hack
         if max_cols is None:
-            max_cols = get_option('display.max_info_columns')
+            max_cols = get_option('display.max_info_columns',len(self.columns)+1)
 
         if verbose and len(self.columns) <= max_cols:
             lines.append('Data columns (total %d columns):' % len(self.columns))
