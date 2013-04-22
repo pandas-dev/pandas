@@ -626,7 +626,18 @@ class DataFrame(NDFrame):
             return False
 
         buf = StringIO()
-        self.to_string(buf=buf)
+
+        # only care about the stuff we'll actually print out
+        # and to_string on entire frame may be expensive
+        d = self
+        max_rows = get_option("display.max_rows")
+        if not (height is None and max_rows is None):
+            # min of two, where one may be None
+            height = height or max_rows +1
+            max_rows = max_rows or height +1
+            d=d.iloc[:min(max_rows, height)]
+
+        d.to_string(buf=buf)
         value = buf.getvalue()
         repr_width = max([len(l) for l in value.split('\n')])
         return repr_width <= width
