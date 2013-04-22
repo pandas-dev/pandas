@@ -671,7 +671,7 @@ class TestDataFrameFormatting(unittest.TestCase):
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-            with option_context('display.width', 120):
+            with option_context('display.width', 150):
                 wider_repr = repr(df)
                 self.assert_(len(wider_repr) < len(wide_repr))
 
@@ -694,7 +694,7 @@ class TestDataFrameFormatting(unittest.TestCase):
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-            with option_context('display.width', 120):
+            with option_context('display.width', 150):
                 wider_repr = repr(df)
                 self.assert_(len(wider_repr) < len(wide_repr))
 
@@ -719,10 +719,9 @@ class TestDataFrameFormatting(unittest.TestCase):
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-        with option_context('display.width', 120):
+        with option_context('display.width', 150):
             wider_repr = repr(df)
             self.assert_(len(wider_repr) < len(wide_repr))
-            self.assert_(len(wide_repr.splitlines()) == 14 * 10 - 1)
 
         reset_option('display.expand_frame_repr')
 
@@ -736,7 +735,7 @@ class TestDataFrameFormatting(unittest.TestCase):
             wide_repr = repr(df)
             self.assert_(rep_str != wide_repr)
 
-            with option_context('display.width', 120):
+            with option_context('display.width', 150):
                 wider_repr = repr(df)
                 self.assert_(len(wider_repr) < len(wide_repr))
 
