@@ -173,7 +173,7 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    len(grouped)
 
 By default the group keys are sorted during the groupby operation. You may
-however pass ``sort``=``False`` for potential speedups:
+however pass ``sort=False`` for potential speedups:
 
 .. ipython:: python
 

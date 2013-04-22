@@ -34,17 +34,16 @@ indexing.
 
 .. note:: 
 
-   Regular Python and NumPy indexing operators ``[]`` and member
-   operators (dots access) provide quick and easy access to pandas data structures
+   The Python and NumPy indexing operators ``[]`` and attribute operator ``.`` provide quick and easy access to pandas data structures
    across a wide range of use cases. This makes interactive work intuitive, as
    there's little new to learn if you already know how to deal with Python
-   dictionaries and NumPy arrays. However, the type of the data to be accessed
-   isn't known in advance. Therefore, accessing pandas objects directly using
+   dictionaries and NumPy arrays. However, since the type of the data to be accessed
+   isn't known in advance, directly using
    standard operators has some optimization limits. For production code, we recommended
    that you take advantage of the optimized pandas data access methods exposed in this chapter.
 
    In addition, whether a copy or a reference is returned for a selection operation, may depend on the context.
-   See :ref:`Returning View versus Copy <indexing.view_versus_copy>` 
+   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>` 
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
@@ -64,7 +63,7 @@ three types of multi-axis indexing.
 
   See more at :ref:`Selection by Label <indexing.label>`
 
-- ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
+- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
 
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
@@ -77,14 +76,14 @@ three types of multi-axis indexing.
   and will support any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes. ``.ix`` is especially useful when dealing with mixed positional and label
   based hierarchial indexes.
 
-  As using integer slices with ``.ix`` have different behavior depending on whether the slice is interpreted as integer location based or label position based, it's
-  usually better to be explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
+  As using integer slices with ``.ix`` have different behavior depending on whether the slice is interpreted as position based or label based, it's
+  usually better to be explicit and use ``.iloc`` or ``.loc``.
 
   See more at :ref:`Advanced Indexing <indexing.advanced>`, :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>` and :ref:`Fallback Indexing <indexing.fallback>`
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but applies to ``.iloc`` and ``.ix`` as
-well) Any of the axes accessors may be the null slice ``:``. Axes left out of
+well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``. (e.g. ``p.loc['a']`` is equiv to
 ``p.loc['a',:,:]``)
 
@@ -100,24 +99,13 @@ the specification are assumed to be ``:``. (e.g. ``p.loc['a']`` is equiv to
 Deprecations
 ~~~~~~~~~~~~
 
-Starting in version 0.11.0, these methods may be deprecated in future versions.
+Starting in version 0.11.0, these methods *may* be deprecated in future versions.
 
   - ``irow``
   - ``icol``
   - ``iget_value``
 
-See the section :ref:`Selection by Position <indexing.integer>` for substitutes
-.
-
-.. _indexing.xs:
-
-Cross-sectional slices on non-hierarchical indices are now easily performed 
-using ``.loc`` and/or ``.iloc``. These methods now exist primarily for
-backward compatibility.
-
-  - ``minor_xs`` and ``major_xs`` (for Panel)
-
-See the section at :ref:`Selection by Label <indexing.label>` for substitutes.
+See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
 
 .. _indexing.basics:
 
@@ -162,6 +150,19 @@ Thus, as per above, we have the most basic indexing using ``[]``:
    s[dates[5]]
    panel['two']
 
+You can pass a list of columns to ``[]`` to select columns in that order.
+If a column is not contained in the DataFrame, an exception will be
+raised. Multiple columns can also be set in this manner:
+
+.. ipython:: python
+
+   df
+   df[['B', 'A']] = df[['A', 'B']]
+   df
+
+You may find this useful for applying a transform (in-place) to a subset of the
+columns.
+
 Attribute Access
 ~~~~~~~~~~~~~~~~
 
@@ -179,19 +180,6 @@ as an attribute:
 
 If you are using the IPython environment, you may also use tab-completion to
 see these accessable attributes.
-
-You can pass a list of columns to ``[]`` to select columns in that order:
-If a column is not contained in the DataFrame, an exception will be
-raised. Multiple columns can also be set in this manner:
-
-.. ipython:: python
-
-   df
-   df[['B', 'A']] = df[['A', 'B']]
-   df
-
-You may find this useful for applying a transform (in-place) to a subset of the
-columns.
 
 Slicing ranges
 ~~~~~~~~~~~~~~
@@ -1103,6 +1091,8 @@ The code for implementing ``.ix`` makes every attempt to "do the right thing"
 but as you use it you may uncover corner cases or unintuitive behavior. If you
 do find something like this, do not hesitate to report the issue or ask on the
 mailing list.
+
+.. _indexing.xs:
 
 Cross-section with hierarchical index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

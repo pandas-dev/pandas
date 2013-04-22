@@ -33,7 +33,7 @@ three types of multi-axis indexing.
 
   See more at :ref:`Selection by Label <indexing.label>`
 
-- ``.iloc`` is strictly integer position based (from 0 to length-1 of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
+- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
 
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
@@ -47,8 +47,8 @@ three types of multi-axis indexing.
   based hierarchial indexes.
 
   As using integer slices with ``.ix`` have different behavior depending on whether the slice
-  is interpreted as integer location based or label position based, it's usually better to be
-  explicit and use ``.iloc`` (integer location) or ``.loc`` (label location).
+  is interpreted as position based or label based, it's usually better to be
+  explicit and use ``.iloc`` or ``.loc``.
 
   See more at :ref:`Advanced Indexing <indexing.advanced>`, :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>` and
   :ref:`Fallback Indexing <indexing.fallback>`
@@ -57,22 +57,13 @@ three types of multi-axis indexing.
 Selection Deprecations
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Starting in version 0.11.0, these methods may be deprecated in future versions.
+Starting in version 0.11.0, these methods *may* be deprecated in future versions.
 
 - ``irow``
 - ``icol``
 - ``iget_value``
 
 See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
-
-Cross-sectional slices on non-hierarchical indices are now easily performed using
-``.loc`` and/or ``.loc``. The methods:
-
-- ``minor_xs`` and ``major_xs`` (for Panel)
-
-now exist primarily for backward compatibility.
-
-See the section :ref:`Selection by Label <indexing.label>` for substitutes.
 
 Dtypes
 ~~~~~~
