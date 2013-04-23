@@ -30,6 +30,7 @@ your contribution or address the issue you're having.
   - Performance matters. You can use the included "test_perf.sh"
     script to make sure your PR does not introduce any performance regressions
     in the library.
+  - docstrings follow the [numpydoc](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt) format.
   - **Don't** merge upstream into a branch you're going to submit as a PR,
     This can create all sorts of problems. Use "git rebase" instead. This ensures
     no merge conflicts occur when you're code is merged by the core team.
