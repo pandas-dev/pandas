@@ -11,7 +11,8 @@ from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import GroupByError, SpecificationError, DataError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
-                                 assert_series_equal, assert_almost_equal)
+                                 assert_series_equal, assert_almost_equal,
+                                 makeCustomDataframe as mkdf)
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
@@ -2426,6 +2427,35 @@ class TestGroupBy(unittest.TestCase):
 
         # don't die
         no_toes = df_grouped.apply(lambda x: noddy(x.value, x.weight ))
+
+    def test_groupby_apply_raw(self):
+        from random import randint
+        df=mkdf(10,2,data_gen_f=lambda x,y: randint(1,10))
+        df
+        def f1(g):
+            return g.sort('C_l0_g0')
+        def f2(g,combine=None):
+            return g.sort('C_l0_g0')
+        def f3(g,**kwds):
+            return g.sort('C_l0_g0')
+
+        g=df.groupby(lambda key: int(key.split("g")[-1]) >= 5)
+        r=g.apply(f1) # default result without  using combine
+
+        r1=g.apply(f1,combine=False)
+        r2=g.apply(f2,combine=False)
+        r3=g.apply(f3,combine=False)
+
+        # if the combine keyword is in the transformer signature, don't mess with it
+        assert_frame_equal(r,r2)
+        # if  the transformer catches all keywords, don't mess with it
+        assert_frame_equal(r,r3)
+
+        # else, make sure we get a kv pair, with the values
+        # being exactly what the transformer returns
+        self.assertEqual(len(r1),2)
+        assert_frame_equal(r1[0][1],f1(list(g)[0][1]))
+        assert_frame_equal(r1[1][1],f1(list(g)[1][1]))
 
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())
