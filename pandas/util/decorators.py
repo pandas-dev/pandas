@@ -46,8 +46,9 @@ class Substitution(object):
         "%s %s wrote the Raven"
     """
     def __init__(self, *args, **kwargs):
-        assert not (
-            args and kwargs), "Only positional or keyword args are allowed"
+        if (args and kwargs):
+            raise AssertionError( "Only positional or keyword args are allowed")
+
         self.params = args or kwargs
 
     def __call__(self, func):

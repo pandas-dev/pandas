@@ -313,8 +313,10 @@ options = DictWrapper(_global_config)
 
 class option_context(object):
     def __init__(self, *args):
-        assert len(args) % 2 == 0 and len(args) >= 2, \
-            "Need to invoke as option_context(pat,val,[(pat,val),..))."
+        if not ( len(args) % 2 == 0 and len(args) >= 2):
+           errmsg =  "Need to invoke as option_context(pat,val,[(pat,val),..))."
+           raise AssertionError(errmsg)
+
         ops = zip(args[::2], args[1::2])
         undo = []
         for pat, val in ops:

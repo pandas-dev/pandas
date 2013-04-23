@@ -619,7 +619,8 @@ class MovingOLS(OLS):
         self._window_type = scom._get_window_type(window_type)
 
         if self._is_rolling:
-            assert(window is not None)
+            if not ((window is not None)):
+                raise AssertionError()
             if min_periods is None:
                 min_periods = window
         else:
@@ -1196,7 +1197,8 @@ class MovingOLS(OLS):
         return result.astype(int)
 
     def _beta_matrix(self, lag=0):
-        assert(lag >= 0)
+        if not ((lag >= 0)):
+            raise AssertionError()
 
         betas = self._beta_raw
 
@@ -1257,7 +1259,8 @@ def _filter_data(lhs, rhs, weights=None):
         Cleaned lhs and rhs
     """
     if not isinstance(lhs, Series):
-        assert(len(lhs) == len(rhs))
+        if not ((len(lhs) == len(rhs))):
+            raise AssertionError()
         lhs = Series(lhs, index=rhs.index)
 
     rhs = _combine_rhs(rhs)
