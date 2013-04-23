@@ -50,13 +50,14 @@ def newey_west(m, max_lags, nobs, df, nw_overlap=False):
 
     Parameters
     ----------
-    m: (N x K)
-    max_lags: int
-    nobs: int
+    m : (N x K)
+    max_lags : int
+    nobs : int
         Number of observations in model
-    df: int
+    df : int
         Degrees of freedom in explanatory variables
-    nw_overlap: boolean
+    nw_overlap : boolean, default False
+        Assume data is overlapping
 
     Returns
     -------

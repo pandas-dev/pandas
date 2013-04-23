@@ -137,7 +137,8 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-
+    time_rule : Legacy alias for freq
+    
     Returns
     -------
     rolling_count : type of caller
@@ -268,7 +269,8 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-
+    time_rule : Legacy alias for freq
+    
     Returns
     -------
     y : type of input
@@ -540,7 +542,8 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-
+    time_rule : Legacy alias for freq
+    
     Returns
     -------
     y : type of input argument
@@ -569,7 +572,8 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-
+    time_rule : Legacy alias for freq
+    
     Returns
     -------
     y : type of input argument
@@ -604,7 +608,9 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
         Whether the label should correspond with center of window
     mean : boolean, default True
         If True computes weighted mean, else weighted sum
-
+    time_rule : Legacy alias for freq
+    axis : {0, 1}, default 0
+    
     Returns
     -------
     y : type of input argument
@@ -729,7 +735,8 @@ def expanding_count(arg, freq=None, center=False, time_rule=None):
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-
+    time_rule : Legacy alias for freq
+    
     Returns
     -------
     expanding_count : type of caller
@@ -752,7 +759,8 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None,
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-
+    time_rule : Legacy alias for freq
+    
     Returns
     -------
     y : type of input argument
@@ -816,7 +824,8 @@ def expanding_apply(arg, func, min_periods=1, freq=None, center=False,
         Frequency to conform to before computing statistic
     center : boolean, default False
         Whether the label should correspond with center of window
-
+    time_rule : Legacy alias for freq
+    
     Returns
     -------
     y : type of input argument
