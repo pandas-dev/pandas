@@ -44,7 +44,7 @@ class SparseDataFrame(DataFrame):
     """
     _verbose_info = False
     _constructor_sliced = SparseSeries
-    _typ = 'sparse_frame'
+    _subtyp = 'sparse_frame'
 
     def __init__(self, data=None, index=None, columns=None,
                  default_kind=None, default_fill_value=None,
@@ -208,6 +208,7 @@ class SparseDataFrame(DataFrame):
     def __getstate__(self):
         # pickling
         return dict(_typ                = self._typ,
+                    _subtyp             = self._subtyp,
                     _data               = self._data, 
                     _default_fill_value = self._default_fill_value,
                     _default_kind       = self._default_kind)

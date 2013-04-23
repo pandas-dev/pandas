@@ -570,7 +570,7 @@ class Block(object):
         # see if we can align other
         if hasattr(other, 'reindex_axis'):
             axis = getattr(other, '_info_axis_number', 0)
-            other = other.reindex_axis(self.items, axis=axis, copy=True).values
+            other = other.reindex_axis(self.items, axis=axis, copy=False).values
 
         # make sure that we can broadcast
         is_transposed = False
@@ -1135,6 +1135,14 @@ class SparseBlock(Block):
         -------
         reindexed : Block
         """
+
+        # 2-d
+        if self.ndim >= 2:
+            if self.items[0] not in self.ref_items:
+                return None
+            return self.make_block(self.values,ref_items=new_ref_items,copy=copy)
+
+        # 1-d
         new_ref_items, indexer = self.items.reindex(new_ref_items)
         if indexer is None:
             indexer = np.arange(len(self.items))
@@ -1228,8 +1236,8 @@ class BlockManager(object):
         if do_integrity_check:
             self._verify_integrity()
 
-        self._consolidate_check()
         self._has_sparse = False
+        self._consolidate_check()
 
     @classmethod
     def make_empty(cls):
@@ -1310,6 +1318,7 @@ class BlockManager(object):
     def _post_setstate(self):
         self._is_consolidated = False
         self._known_consolidated = False
+        self._set_has_sparse()
 
     def __len__(self):
         return len(self.items)
@@ -1441,6 +1450,7 @@ class BlockManager(object):
 
     def prepare_for_merge(self, *args, **kwargs):
         """ prepare for merging, return a new block manager with Sparse -> Dense """
+        self._consolidate_inplace()
         if self._has_sparse:
             return self.apply('prepare_for_merge', *args, **kwargs)
         return self
@@ -1474,6 +1484,9 @@ class BlockManager(object):
         ftypes = [blk.ftype for blk in self.blocks]
         self._is_consolidated = len(ftypes) == len(set(ftypes))
         self._known_consolidated = True
+        self._set_has_sparse()
+
+    def _set_has_sparse(self):
         self._has_sparse = any((blk.is_sparse for blk in self.blocks))
 
     @property
@@ -1783,16 +1796,16 @@ class BlockManager(object):
         if self.is_consolidated():
             return self
 
-        new_blocks = _consolidate(self.blocks, self.items)
-        self._is_consolidated = True
-        self._known_consolidated = True
-        return self.__class__(new_blocks, self.axes)
+        bm = self.__class__(self.blocks, self.axes)
+        bm._consolidate_inplace()
+        return bm
 
     def _consolidate_inplace(self):
         if not self.is_consolidated():
             self.blocks = _consolidate(self.blocks, self.items)
             self._is_consolidated = True
             self._known_consolidated = True
+            self._set_has_sparse()
 
     def get(self, item):
         _, block = self._find_block(item)
@@ -2054,17 +2067,14 @@ class BlockManager(object):
                 if len(newb.items) > 0:
                     new_blocks.append(newb)
 
-            # little bit hacky here, if we have a SingleBlockManger,
-            # we cannot have more than 1 block, so don't create
-            # guess could return a BlockManager instead (but this is really for sparse anyhow)
-            if self.ndim > 1 and not (len(new_blocks) and new_blocks[0].is_sparse):
-                mask = indexer == -1
-                if mask.any():
-                    extra_items = new_items[mask]
-                    na_block = self._make_na_block(extra_items, new_items,
-                                                   fill_value=fill_value)
-                    new_blocks.append(na_block)
-                    new_blocks = _consolidate(new_blocks, new_items)
+            # add a na block if we are missing items
+            mask = indexer == -1
+            if mask.any():
+                extra_items = new_items[mask]
+                na_block = self._make_na_block(extra_items, new_items,
+                                               fill_value=fill_value)
+                new_blocks.append(na_block)
+                new_blocks = _consolidate(new_blocks, new_items)
 
         return self.__class__(new_blocks, [new_items] + self.axes[1:])
 
@@ -2224,7 +2234,7 @@ class SingleBlockManager(BlockManager):
     ndim = 1
     _is_consolidated = True
     _known_consolidated = True
-    __slots__ = ['axes', 'blocks', 'block', '_shape', '_known_consolidated', '_is_consolidated', '_has_sparse']
+    __slots__ = ['axes', 'blocks', 'block', '_shape', '_has_sparse']
 
     def __init__(self, block, axis, do_integrity_check=False, fastpath=True):
 

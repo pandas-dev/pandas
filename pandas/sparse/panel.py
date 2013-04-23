@@ -58,7 +58,8 @@ class SparsePanel(Panel):
     -----
     """
     ndim = 3
-    _typ = 'sparse_panel'
+    _typ = 'panel'
+    _subtyp = 'sparse_panel'
 
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=np.nan, default_kind='block',
@@ -76,46 +77,31 @@ class SparsePanel(Panel):
         if not (isinstance(frames, dict)):
             raise AssertionError()
 
-        # pick up the defaults from the Sparse structures
-        if isinstance(data, SparsePanel):
-            if items is None:
-                items = data.items
-            if major_axis is None:
-                major_axis = data.major_axis
-            if minor_axis is None:
-                minor_axis = data.minor_axis
-            if default_fill_value is None:
-                default_fill_value = data.default_fill_value
-            if default_kind is None:
-                default_kind = data.default_kind
 
-        if default_fill_value is None:
-            default_fill_value = np.nan
+        self.default_fill_value = fill_value = default_fill_value
+        self.default_kind = kind = default_kind
 
-        self._default_kind = default_kind
-        self._default_fill_value = default_fill_value
+        # pre-filter, if necessary
+        if items is None:
+            items = Index(sorted(frames.keys()))
+        items = _ensure_index(items)
 
-        if isinstance(data, dict):
-            mgr = self._init_dict(data, items, major_axis, minor_axis)
-            if dtype is not None:
-                mgr = mgr.astype(dtype)
-        elif isinstance(data, (np.ndarray, list)):
-            mgr = self._init_matrix(data, items, major_axis, minor_axis)
-            if dtype is not None:
-                mgr = mgr.astype(dtype)
-        elif isinstance(data, Panel):
-            mgr = self._init_dict(data, data.items, data.major_axis, data.minor_axis)
-            if dtype is not None:
-                mgr = mgr.astype(dtype)
-        elif isinstance(data, BlockManager):
-            mgr = self._init_mgr(data, axes = dict(items=items, 
-                                                   major_axis=major_axis, 
-                                                   minor_axis=minor_axis), 
-                                 dtype=dtype, copy=copy)
-        else:
-            raise Exception("invalid input to SparsePanel")
-        
-        NDFrame.__init__(self, mgr)
+        (clean_frames,
+         major_axis,
+         minor_axis) = _convert_frames(frames, major_axis,
+                                       minor_axis, kind=kind,
+                                       fill_value=fill_value)
+
+        self._frames = clean_frames
+
+        # do we want to fill missing ones?
+        for item in items:
+            if item not in clean_frames:
+                raise Exception('column %s not found in data' % item)
+
+        self._items = items
+        self.major_axis = major_axis
+        self.minor_axis = minor_axis
 
     def _consolidate_inplace(self):  # pragma: no cover
         # do nothing when DataFrame calls this method

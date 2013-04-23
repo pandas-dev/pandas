@@ -47,7 +47,7 @@ pandas 0.12.0
 
     - moved methods
     - __str__,__bytes__,__repr__,save,load
-      (moved from Series,NDFrame hierarchy), Index et al not changed
+      All NDFrame hierarchy, Index hierarchy, Period (Timestamp not included)
 
   - Refactor of series.py/frame.py/panel.py to move common code to generic.py
     - added _setup_axes to created generic NDFrame structures

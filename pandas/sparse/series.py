@@ -89,7 +89,7 @@ class SparseSeries(Series):
     must change values, convert to dense, make your changes, then convert back
     to sparse
     """
-    _typ = 'sparse_series'
+    _subtyp = 'sparse_series'
 
     def __init__(self, data, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, dtype=None, copy=False, 
@@ -321,6 +321,7 @@ class SparseSeries(Series):
     def __getstate__(self):
         # pickling
         return dict(_typ       = self._typ,
+                    _subtyp    = self._subtyp,
                     _data      = self._data, 
                     fill_value = self.fill_value,
                     name       = self.name)

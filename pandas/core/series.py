@@ -453,7 +453,8 @@ index : array-like or Index (1d)
                 if index is None:
                     index = data.index
                 else:
-                    data = data.reindex(index)._data
+                    data = data.reindex(index)
+                data = data._data
             elif isinstance(data, dict):
                 if index is None:
                     from pandas.util.compat import OrderedDict
@@ -475,8 +476,6 @@ index : array-like or Index (1d)
                     data = [data.get(i, nan) for i in index]
 
             elif isinstance(data, SingleBlockManager):
-                if dtype is not None:
-                    data = data.astype(dtype)
                 if index is None:
                     index = data.index
                 else:
@@ -496,7 +495,9 @@ index : array-like or Index (1d)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
-                if copy:
+                if dtype is not None:
+                    data = data.astype(dtype,copy=copy)
+                elif copy:
                     data = data.copy()
             else:
                 data = _sanitize_array(data, index, dtype, copy,
