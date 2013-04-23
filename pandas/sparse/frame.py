@@ -161,10 +161,7 @@ class SparseDataFrame(DataFrame):
                 if not isinstance(v, SparseSeries):
                     v = sp_maker(v.values)
             elif isinstance(v, SparseArray):
-                v = SparseArray(v,
-                                kind=self._default_kind,
-                                fill_value=self._default_fill_value,
-                                copy=True)
+                v = sp_maker(v.values)
             else:
                 if isinstance(v, dict):
                     v = [v.get(i, nan) for i in index]
