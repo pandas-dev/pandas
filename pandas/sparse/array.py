@@ -25,7 +25,8 @@ def _sparse_op_wrap(op, name):
     """
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
-            assert(len(self) == len(other))
+            if not ((len(self) == len(other))):
+                raise AssertionError()
             if not isinstance(other, SparseArray):
                 other = SparseArray(other, fill_value=self.fill_value)
             return _sparse_array_op(self, other, op, name)
@@ -129,7 +130,8 @@ to sparse
                                                    fill_value=fill_value)
             else:
                 values = data
-                assert(len(values) == sparse_index.npoints)
+                if not ((len(values) == sparse_index.npoints)):
+                    raise AssertionError()
 
         # Create array, do *not* copy data by default
         if copy:
@@ -275,7 +277,8 @@ to sparse
         -------
         taken : ndarray
         """
-        assert(axis == 0)
+        if not ((axis == 0)):
+            raise AssertionError()
         indices = np.asarray(indices, dtype=int)
 
         n = len(self)

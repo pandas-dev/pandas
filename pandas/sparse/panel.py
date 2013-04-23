@@ -71,7 +71,8 @@ class SparsePanel(Panel):
                                     default_kind=default_kind)
             frames = new_frames
 
-        assert(isinstance(frames, dict))
+        if not (isinstance(frames, dict)):
+            raise AssertionError()
 
         self.default_fill_value = fill_value = default_fill_value
         self.default_kind = kind = default_kind

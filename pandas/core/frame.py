@@ -709,7 +709,8 @@ class DataFrame(NDFrame):
                 self.info(buf=buf, verbose=verbose)
 
         value = buf.getvalue()
-        assert type(value) == unicode
+        if not  type(value) == unicode:
+            raise AssertionError()
 
         return value
 

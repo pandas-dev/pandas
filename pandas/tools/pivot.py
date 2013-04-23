@@ -300,7 +300,8 @@ def _get_names(arrs, names, prefix='row'):
             else:
                 names.append('%s_%d' % (prefix, i))
     else:
-        assert(len(names) == len(arrs))
+        if not ((len(names) == len(arrs))):
+            raise AssertionError()
         if not isinstance(names, list):
             names = list(names)
 

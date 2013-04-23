@@ -579,7 +579,8 @@ class TextFileReader(object):
 
         # type conversion-related
         if converters is not None:
-            assert(isinstance(converters, dict))
+            if not (isinstance(converters, dict)):
+                raise AssertionError()
         else:
             converters = {}
 
@@ -1474,7 +1475,8 @@ class PythonParser(ParserBase):
         if self._implicit_index:
             col_len += len(self.index_col)
 
-        assert(self.skip_footer >= 0)
+        if not ((self.skip_footer >= 0)):
+            raise AssertionError()
 
         if col_len != zip_len and self.index_col is not False:
             row_num = -1
@@ -1768,12 +1770,15 @@ class FixedWidthReader(object):
         self.filler = filler  # Empty characters between fields.
         self.thousands = thousands
 
-        assert isinstance(colspecs, (tuple, list))
+        if not ( isinstance(colspecs, (tuple, list))):
+            raise AssertionError()
+
         for colspec in colspecs:
-            assert isinstance(colspec, (tuple, list))
-            assert len(colspec) == 2
-            assert isinstance(colspec[0], int)
-            assert isinstance(colspec[1], int)
+            if not ( isinstance(colspec, (tuple, list)) and
+                       len(colspec) == 2 and
+                       isinstance(colspec[0], int) and
+                       isinstance(colspec[1], int) ):
+                raise AssertionError()
 
     def next(self):
         line = next(self.f)

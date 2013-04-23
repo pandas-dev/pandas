@@ -308,7 +308,9 @@ class DatetimeIndex(Int64Index):
         tz = tools._maybe_get_tz(tz)
 
         if tz is not None and inferred_tz is not None:
-            assert(inferred_tz == tz)
+            if not inferred_tz == tz:
+                raise AssertionError()
+
         elif inferred_tz is not None:
             tz = inferred_tz
 
@@ -451,14 +453,17 @@ class DatetimeIndex(Int64Index):
             cachedRange = drc[offset]
 
         if start is None:
-            assert(isinstance(end, Timestamp))
+            if not (isinstance(end, Timestamp)):
+                raise AssertionError()
 
             end = offset.rollback(end)
 
             endLoc = cachedRange.get_loc(end) + 1
             startLoc = endLoc - periods
         elif end is None:
-            assert(isinstance(start, Timestamp))
+            if not (isinstance(start, Timestamp)):
+                raise AssertionError()
+
             start = offset.rollforward(start)
 
             startLoc = cachedRange.get_loc(start)

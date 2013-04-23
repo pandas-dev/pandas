@@ -404,14 +404,17 @@ class _MergeOperation(object):
         elif self.left_on is not None:
             n = len(self.left_on)
             if self.right_index:
-                assert(len(self.left_on) == self.right.index.nlevels)
+                if not ((len(self.left_on) == self.right.index.nlevels)):
+                    raise AssertionError()
                 self.right_on = [None] * n
         elif self.right_on is not None:
             n = len(self.right_on)
             if self.left_index:
-                assert(len(self.right_on) == self.left.index.nlevels)
+                if not ((len(self.right_on) == self.left.index.nlevels)):
+                    raise AssertionError()
                 self.left_on = [None] * n
-        assert(len(self.right_on) == len(self.left_on))
+        if not ((len(self.right_on) == len(self.left_on))):
+            raise AssertionError()
 
 
 def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
@@ -424,7 +427,8 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     -------
 
     """
-    assert(len(left_keys) == len(right_keys))
+    if not ((len(left_keys) == len(right_keys))):
+        raise AssertionError()
 
     left_labels = []
     right_labels = []
@@ -537,8 +541,9 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
     left_indexer = None
 
     if len(join_keys) > 1:
-        assert(isinstance(right_ax, MultiIndex) and
-               len(join_keys) == right_ax.nlevels)
+        if not ((isinstance(right_ax, MultiIndex) and
+               len(join_keys) == right_ax.nlevels) ):
+            raise AssertionError()
 
         left_tmp, right_indexer = \
             _get_multiindex_indexer(join_keys, right_ax,
@@ -637,7 +642,8 @@ class _BlockJoinOperation(object):
         if axis <= 0:  # pragma: no cover
             raise MergeError('Only axis >= 1 supported for this operation')
 
-        assert(len(data_list) == len(indexers))
+        if not ((len(data_list) == len(indexers))):
+            raise AssertionError()
 
         self.units = []
         for data, indexer in zip(data_list, indexers):
@@ -925,7 +931,8 @@ class _Concatenator(object):
             axis = 1 if axis == 0 else 0
 
         self._is_series = isinstance(sample, Series)
-        assert(0 <= axis <= sample.ndim)
+        if not ((0 <= axis <= sample.ndim)):
+            raise AssertionError()
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
@@ -1084,7 +1091,8 @@ class _Concatenator(object):
                 to_concat.append(item_values)
 
         # this method only gets called with axis >= 1
-        assert(self.axis >= 1)
+        if not ((self.axis >= 1)):
+            raise AssertionError()
         return com._concat_compat(to_concat, axis=self.axis - 1)
 
     def _get_result_dim(self):
@@ -1103,7 +1111,8 @@ class _Concatenator(object):
                     continue
                 new_axes[i] = self._get_comb_axis(i)
         else:
-            assert(len(self.join_axes) == ndim - 1)
+            if not ((len(self.join_axes) == ndim - 1)):
+                raise AssertionError()
 
             # ufff...
             indices = range(ndim)
