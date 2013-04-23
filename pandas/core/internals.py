@@ -787,7 +787,7 @@ class DatetimeBlock(Block):
             values = values[:,slicer]
         mask = isnull(values)
 
-        rvalues = np.empty(self.shape,dtype=object)
+        rvalues = np.empty(values.shape,dtype=object)
         if na_rep is None:
             na_rep = 'NaT'
         rvalues[mask] = na_rep
