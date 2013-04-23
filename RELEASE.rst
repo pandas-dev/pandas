@@ -23,6 +23,38 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.12.0
+=============
+
+**Release date:** not-yet-released
+
+**New features**
+
+  -
+
+**Improvements to existing features**
+
+  - Fixed various issues with internal pprinting code, the repr() for various objects
+    including TimeStamp and *Index now produces valid python code strings and
+    can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
+
+**API Changes**
+
+  -
+
+**Bug Fixes**
+
+  -  Fixed an esoteric excel reading bug, xlrd>= 0.9.0 now required for excel
+     support. Should provide python3 support (for reading) which has been
+     lacking. (GH3164_)
+
+.. _GH3164: https://github.com/pydata/pandas/issues/3164
+.. _GH3251: https://github.com/pydata/pandas/issues/3251
+.. _GH3379: https://github.com/pydata/pandas/issues/3379
+.. _GH3038: https://github.com/pydata/pandas/issues/3038
+
+
+
 pandas 0.11.0
 =============
 
