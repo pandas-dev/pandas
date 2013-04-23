@@ -226,6 +226,9 @@ cdef class SeriesBinGrouper:
 
                 res = self.f(chunk)
 
+                if hasattr(res,'values'):
+                    res = res.values
+
                 if not initialized:
                     result = self._get_result_array(res)
                     initialized = 1
@@ -269,7 +272,7 @@ cdef class SeriesGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index, f, labels, values
+        object arr, index, dummy_arr, dummy_index, f, labels, values, typ, name
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
@@ -283,6 +286,8 @@ cdef class SeriesGrouper:
             values = values.copy('C')
         self.arr = values
         self.index = series.index
+        self.typ = type(series)
+        self.name = getattr(series,'name',None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
@@ -310,14 +315,16 @@ cdef class SeriesGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
-            object gin
+            object gin, typ, name
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
         chunk = self.dummy_arr
         group_size = 0
         n = len(self.arr)
-	
+        typ = self.typ	
+        name = self.name
+
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
 
@@ -338,7 +345,10 @@ cdef class SeriesGrouper:
                     islider.set_length(group_size)
                     vslider.set_length(group_size)
 
-                    res = self.f(chunk)
+                    res = self.f(typ(chunk, name=name))
+
+                    if hasattr(res,'values'):
+                        res = res.values
 
                     if not initialized:
                         result = self._get_result_array(res)

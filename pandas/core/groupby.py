@@ -270,7 +270,7 @@ class GroupBy(object):
             obj = self.obj
 
         inds = self.indices[name]
-        return obj.take(inds, axis=self.axis)
+        return obj.take(inds, axis=self.axis, convert=False)
 
     def __iter__(self):
         """
@@ -899,9 +899,9 @@ class Grouper(object):
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj._get_values(slice(None,0)).copy()
+        dummy = obj._get_values(slice(None,0)).to_dense()
         indexer = _algos.groupsort_indexer(group_index, ngroups)[0]
-        obj = obj.take(indexer)
+        obj = obj.take(indexer, convert=False)
         group_index = com.take_nd(group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
                                     dummy)
@@ -1021,13 +1021,13 @@ class BinGrouper(Grouper):
             start = 0
             for edge, label in izip(self.bins, self.binlabels):
                 inds = range(start, edge)
-                yield label, data.take(inds, axis=axis)
+                yield label, data.take(inds, axis=axis, convert=False)
                 start = edge
 
             n = len(data.axes[axis])
             if edge < n:
                 inds = range(edge, n)
-                yield self.binlabels[-1], data.take(inds, axis=axis)
+                yield self.binlabels[-1], data.take(inds, axis=axis, convert=False)
 
     def apply(self, f, data, axis=0, keep_internal=False):
         result_keys = []
@@ -2233,7 +2233,7 @@ class DataSplitter(object):
             yield i, self._chop(sdata, slice(start, end))
 
     def _get_sorted_data(self):
-        return self.data.take(self.sort_idx, axis=self.axis)
+        return self.data.take(self.sort_idx, axis=self.axis, convert=False)
 
     def _chop(self, sdata, slice_obj):
         return sdata[slice_obj]
@@ -2249,7 +2249,7 @@ class ArraySplitter(DataSplitter):
 class SeriesSplitter(DataSplitter):
 
     def _chop(self, sdata, slice_obj):
-        return sdata._get_values(slice_obj)
+        return sdata._get_values(slice_obj).to_dense()
 
 
 class FrameSplitter(DataSplitter):
