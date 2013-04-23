@@ -245,18 +245,6 @@ class ExcelTests(unittest.TestCase):
         # self.assertRaises(Exception, ExcelFile, open(xlsx_file, 'rb'),
         #                   kind='xls')
 
-    def test_specify_kind_xlsx(self):
-        _skip_if_no_openpyxl()
-        xlsx_file = os.path.join(self.dirpath, 'test.xlsx')
-        xls_file = os.path.join(self.dirpath, 'test.xls')
-
-        self.assertRaises(Exception, ExcelFile, xls_file, kind='xlsx')
-
-        ExcelFile(open(xlsx_file, 'rb'), kind='xlsx')
-
-        self.assertRaises(Exception, ExcelFile, open(xls_file, 'rb'),
-                          kind='xlsx')
-
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = 'python'
@@ -544,19 +532,6 @@ class ExcelTests(unittest.TestCase):
             reader = ExcelFile(path)
             recons = reader.parse('test1')
             tm.assert_frame_equal(self.tsframe, recons)
-
-    def test_excel_roundtrip_bool(self):
-        _skip_if_no_openpyxl()
-
-        # Test roundtrip np.bool8, does not seem to work for xls
-        path = '__tmp_excel_roundtrip_bool__.xlsx'
-        frame = (DataFrame(np.random.randn(10, 2)) >= 0)
-        with ensure_clean(path) as path:
-
-            frame.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1')
-            tm.assert_frame_equal(frame, recons)
 
     def test_to_excel_periodindex(self):
         _skip_if_no_excelsuite()
