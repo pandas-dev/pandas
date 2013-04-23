@@ -37,7 +37,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              # 'numpydoc',
+              'numpydoc', # used to parse numpy-style docstrings for autodoc
               'ipython_directive',
               'ipython_console_highlighting',
               'sphinx.ext.intersphinx',
