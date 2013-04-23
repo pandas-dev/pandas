@@ -18,7 +18,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_promote, _maybe_upcast,
                                 _asarray_tuplesafe, is_integer_dtype,
                                 _infer_dtype_from_scalar, is_list_like, _values_from_object,
-                                _is_sparse_array_like)
+                                is_sparse_array_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer, _check_slice_bounds, 
@@ -487,7 +487,7 @@ index : array-like or Index (1d)
             else:
 
                 # handle sparse passed here (and force conversion)
-                if _is_sparse_array_like(data):
+                if is_sparse_array_like(data):
                     data = data.to_dense()
 
             if index is None:
@@ -515,7 +515,7 @@ index : array-like or Index (1d)
     def from_array(cls, arr, index=None, name=None, copy=False, fastpath=False):
 
         # return a sparse series here
-        if _is_sparse_array_like(arr):
+        if is_sparse_array_like(arr):
             from pandas.sparse.series import SparseSeries
             cls = SparseSeries
 

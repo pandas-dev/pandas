@@ -46,6 +46,8 @@ def is_series(obj):
     return getattr(obj,'_typ',None) == 'series'
 def is_sparse_series(obj):
     return getattr(obj,'_subtyp',None) in ('sparse_series','sparse_time_series')
+def is_sparse_array_like(obj):
+    return getattr(obj,'_subtyp',None) in ['sparse_array','sparse_series','sparse_array']
 def is_dataframe(obj):
     return getattr(obj,'_typ',None) == 'dataframe'
 def is_panel(obj):
@@ -1211,9 +1213,6 @@ def _is_bool_indexer(key):
             return False
 
     return False
-
-def _is_sparse_array_like(v):
-    return getattr(v,'_subtyp',None) in ['sparse_array','sparse_series']
 
 def _default_index(n):
     from pandas.core.index import Int64Index

@@ -1632,7 +1632,6 @@ class BlockManager(object):
             newb = make_block(block._slice(slicer),
                               block.items,
                               block.ref_items, 
-                              klass=block.__class__,
                               fastpath=True)
             new_blocks.append(newb)
         return new_blocks

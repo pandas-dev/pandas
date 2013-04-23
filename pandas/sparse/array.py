@@ -101,12 +101,13 @@ sparse_index : {BlockIndex, IntIndex}, optional
 
 Notes
 -----
-SparseSeries objects are immutable via the typical Python means. If you
+SparseArray objects are immutable via the typical Python means. If you
 must change values, convert to dense, make your changes, then convert back
 to sparse
     """
     __array_priority__ = 15
-    _typ = 'sparse_array'
+    _typ = 'array'
+    _subtyp = 'sparse_array'
 
     sp_index = None
     fill_value = None

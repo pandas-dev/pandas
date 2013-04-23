@@ -158,10 +158,14 @@ class TestSparseSeries(TestCase,
     def test_construct_DataFrame_with_sp_series(self):
         # it works!
         df = DataFrame({'col': self.bseries})
-        assert_sp_series_equal(df['col'],self.bseries)
 
-        # printing
+        # printing & access
+        df.iloc[:1]
+        df['col']
+        df.dtypes
         str(df)
+
+        assert_sp_series_equal(df['col'],self.bseries)
 
         # blocking
         expected = Series({ 'col' : 'float64:sparse' })
