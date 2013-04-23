@@ -1867,9 +1867,16 @@ def _pprint_dict(seq, _nest_lvl=0):
     pairs = []
 
     pfmt = u"%s: %s"
-    for k, v in seq.items():
-        pairs.append(pfmt % (repr(k), repr(v)))
-    return fmt % ", ".join(pairs)
+
+    nitems = get_option("max_seq_items") or len(seq)
+
+    for k, v in seq.items()[:nitems]:
+        pairs.append(pfmt % (pprint_thing(k,_nest_lvl+1), pprint_thing(v,_nest_lvl+1)))
+
+    if nitems < len(seq):
+        return fmt % (", ".join(pairs) + ", ...")
+    else:
+        return fmt % ", ".join(pairs)
 
 
 def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False):
