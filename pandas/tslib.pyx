@@ -164,20 +164,25 @@ class Timestamp(_Timestamp):
 
     def __repr__(self):
         result = self._repr_base
+        zone = None
 
         try:
             result += self.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += _tz_format(self, zone)
         except ValueError:
             year2000 = self.replace(year=2000)
             result += year2000.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += _tz_format(year2000, zone)
 
-        return '<Timestamp: %s>' % result
+        try:
+            result += zone.strftime(' %%Z')
+        except:
+            pass
+        zone = "'%s'" % zone if zone else 'None'
+
+        return "Timestamp('%s', tz=%s)" % (result,zone)
 
     @property
     def _repr_base(self):
