@@ -1039,6 +1039,7 @@ class BinGrouper(Grouper):
             # group might be modified
             group_axes = _get_axes(group)
             res = f(group)
+
             if not _is_indexed_like(res, group_axes):
                 mutated = True
 
@@ -1780,9 +1781,10 @@ class NDFrameGroupBy(GroupBy):
         cannot_agg = []
         for item in obj:
             try:
-                colg = SeriesGroupBy(obj[item], selection=item,
+                data = obj[item]
+                colg = SeriesGroupBy(data, selection=item,
                                      grouper=self.grouper)
-                result[item] = colg.aggregate(func, *args, **kwargs)
+                result[item] = self._try_cast(colg.aggregate(func, *args, **kwargs), data)
             except ValueError:
                 cannot_agg.append(item)
                 continue
