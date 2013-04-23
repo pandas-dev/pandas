@@ -1298,6 +1298,14 @@ class TestPeriodIndex(TestCase):
         conv = index.to_timestamp('D')
         self.assertEquals(conv.name, 'foo')
 
+    def test_to_timestamp_repr_is_code(self):
+        zs=[Timestamp('99-04-17 00:00:00',tz='UTC'),
+        Timestamp('2001-04-17 00:00:00',tz='UTC'),
+        Timestamp('2001-04-17 00:00:00',tz='America/Los_Angeles'),
+        Timestamp('2001-04-17 00:00:00',tz=None)]
+        for z in zs:
+            self.assertEquals( eval(repr(z)), z)
+
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
         df = DataFrame(randn(10, 5), columns=rng)
