@@ -1,0 +1,20 @@
+.. _whatsnew_0120:
+
+v0.12.0 (??)
+------------------------
+
+This is a major release from 0.11.0 and includes many new features and
+enhancements along with a large number of bug fixes.
+
+API changes
+~~~~~~~~~~~
+
+
+Enhancements
+~~~~~~~~~~~~
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+
+.. _GH2437: https://github.com/pydata/pandas/issues/2437
