@@ -1,6 +1,6 @@
 .. _whatsnew_0110:
 
-v0.11.0 (April ??, 2013)
+v0.11.0 (April 22, 2013)
 ------------------------
 
 This is a major release from 0.10.1 and includes many new features and

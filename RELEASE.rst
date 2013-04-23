@@ -26,7 +26,7 @@ Where to get it
 pandas 0.11.0
 =============
 
-**Release date:** 2013-??-??
+**Release date:** 2013-04-22
 
 **New features**
 
