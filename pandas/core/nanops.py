@@ -193,7 +193,7 @@ def _nanmedian(values, axis=None, skipna=True):
         mask = notnull(x)
         if not skipna and not mask.all():
             return np.nan
-        return algos.median(x[mask])
+        return algos.median(_values_from_object(x[mask]))
 
     if values.dtype != np.float64:
         values = values.astype('f8')
