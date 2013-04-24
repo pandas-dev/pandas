@@ -554,6 +554,10 @@ class HDFStore(object):
         -------
         number of rows removed (or None if not a Table)
 
+        Exceptions
+        ----------
+        raises KeyError if key is not a valid store
+
         """
         try:
             s = self.get_storer(key)
@@ -569,7 +573,7 @@ class HDFStore(object):
                 return None
 
         if s is None:
-            return None
+            raise KeyError('No object named %s in the file' % key)
 
         # remove the node
         if where is None:

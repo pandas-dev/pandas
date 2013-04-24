@@ -40,7 +40,8 @@ pandas 0.12.0
 
 **API Changes**
 
-  -
+  - When removing an object from a store, **store.remove(key)**, raises
+    **KeyError** if **key** is not a valid store object.
 
 **Bug Fixes**
 
