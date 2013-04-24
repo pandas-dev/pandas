@@ -691,8 +691,3 @@ Serialization / IO / Conversion
    Panel.to_sparse
    Panel.to_frame
 
-
-.. _api.panel.stats:
-
-Computations / Descriptive Stats
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
