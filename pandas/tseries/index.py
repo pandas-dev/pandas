@@ -1299,7 +1299,10 @@ class DatetimeIndex(Int64Index):
         """
         Returns array of datetime.time. The time of the day
         """
-        return self.map(lambda t: t.time())
+        # can't call self.map() which tries to treat func as ufunc
+        # and causes recursion warnings on python 2.6
+        return _algos.arrmap_object(self.asobject, lambda x:x.time())
+
 
     def normalize(self):
         """
