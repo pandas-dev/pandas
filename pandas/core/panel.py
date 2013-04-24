@@ -7,7 +7,8 @@ import operator
 import sys
 import numpy as np
 from pandas.core.common import (PandasError, _mut_exclusive,
-                                _try_sort, _default_index, _infer_dtype_from_scalar,
+                                _try_sort, _default_index,
+                                _infer_dtype_from_scalar,
                                 notnull)
 from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -154,7 +155,7 @@ class Panel(NDFrame):
     ----------
     data : ndarray (items x major x minor), or dict of DataFrames
     items : Index or array-like
-        axis=1
+        axis=0
     major_axis : Index or array-like
         axis=1
     minor_axis : Index or array-like
@@ -197,20 +198,20 @@ class Panel(NDFrame):
     _constructor_sliced = DataFrame
 
     def _construct_axes_dict(self, axes=None, **kwargs):
-        """ return an axes dictionary for myself """
+        """ Return an axes dictionary for myself """
         d = dict([(a, getattr(self, a)) for a in (axes or self._AXIS_ORDERS)])
         d.update(kwargs)
         return d
 
     @staticmethod
     def _construct_axes_dict_from(self, axes, **kwargs):
-        """ return an axes dictionary for the passed axes """
+        """ Return an axes dictionary for the passed axes """
         d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
         d.update(kwargs)
         return d
 
     def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
-        """ return an axes dictionary for myself """
+        """ Return an axes dictionary for myself """
         d = dict([(self._AXIS_SLICEMAP[a], getattr(self, a))
                  for a in (axes or self._AXIS_ORDERS)])
         d.update(kwargs)
@@ -241,7 +242,10 @@ class Panel(NDFrame):
             copy=copy, dtype=dtype)
 
     def _init_data(self, data, copy, dtype, **kwargs):
-        """ generate ND initialization; axes are passed as required objects to __init__ """
+        """
+        Generate ND initialization; axes are passed
+        as required objects to __init__
+        """
         if data is None:
             data = {}
 
@@ -281,7 +285,8 @@ class Panel(NDFrame):
         # prefilter if haxis passed
         if haxis is not None:
             haxis = _ensure_index(haxis)
-            data = OrderedDict((k, v) for k, v in data.iteritems() if k in haxis)
+            data = OrderedDict((k, v) for k, v
+                               in data.iteritems() if k in haxis)
         else:
             ks = data.keys()
             if not isinstance(data,OrderedDict):
@@ -356,7 +361,7 @@ class Panel(NDFrame):
                     new_data[item][col] = s
             data = new_data
         elif orient != 'items':  # pragma: no cover
-            raise ValueError('only recognize items or minor for orientation')
+            raise ValueError('Orientation must be one of {items, minor}.')
 
         d = cls._homogenize_dict(cls, data, intersect=intersect, dtype=dtype)
         ks = d['data'].keys()
@@ -421,7 +426,8 @@ class Panel(NDFrame):
     # Comparison methods
 
     def _indexed_same(self, other):
-        return all([getattr(self, a).equals(getattr(other, a)) for a in self._AXIS_ORDERS])
+        return all([getattr(self, a).equals(getattr(other, a))
+                    for a in self._AXIS_ORDERS])
 
     def _compare_constructor(self, other, func):
         if not self._indexed_same(other):
@@ -490,7 +496,8 @@ class Panel(NDFrame):
         """
         Return a string representation for a particular Panel
 
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        Invoked by unicode(df) in py2 only.
+        Yields a Unicode String in both py2/py3.
         """
 
         class_name = str(self.__class__)
@@ -502,7 +509,9 @@ class Panel(NDFrame):
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u'%s axis: %s to %s' % (a.capitalize(), com.pprint_thing(v[0]), com.pprint_thing(v[-1]))
+                return u'%s axis: %s to %s' % (a.capitalize(),
+                                               com.pprint_thing(v[0]),
+                                               com.pprint_thing(v[-1]))
             else:
                 return u'%s axis: None' % a.capitalize()
 
@@ -530,7 +539,11 @@ class Panel(NDFrame):
     iterkv = iteritems
 
     def _get_plane_axes(self, axis):
-        """ get my plane axes: these are already (as compared with higher level planes), as we are returning a DataFrame axes """
+        """
+        Get my plane axes: these are already
+        (as compared with higher level planes),
+        as we are returning a DataFrame axes
+        """
         axis = self._get_axis_name(axis)
 
         if axis == 'major_axis':
@@ -677,7 +690,9 @@ class Panel(NDFrame):
                              (type(self).__name__, name))
 
     def _slice(self, slobj, axis=0, raise_on_error=False):
-        new_data = self._data.get_slice(slobj, axis=axis, raise_on_error=raise_on_error)
+        new_data = self._data.get_slice(slobj,
+                                        axis=axis,
+                                        raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
     def __setitem__(self, key, value):
@@ -1268,7 +1283,8 @@ class Panel(NDFrame):
         if result.ndim == 2 and axis_name != self._info_axis:
             result = result.T
 
-        return self._constructor_sliced(result, **self._extract_axes_for_slice(self, axes))
+        return self._constructor_sliced(result,
+                                **self._extract_axes_for_slice(self, axes))
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
@@ -1280,7 +1296,9 @@ class Panel(NDFrame):
         if self.ndim == result.ndim:
             return self._constructor(result, **self._construct_axes_dict())
         elif self.ndim == result.ndim + 1:
-            return self._constructor_sliced(result, **self._extract_axes_for_slice(self, axes))
+            return self._constructor_sliced(result,
+                                **self._extract_axes_for_slice(self, axes))
+
         raise PandasError("invalid _wrap_result [self->%s] [result->%s]" %
                           (self.ndim, result.ndim))
 
@@ -1467,12 +1485,14 @@ class Panel(NDFrame):
     @staticmethod
     def _extract_axes(self, data, axes, **kwargs):
         """ return a list of the axis indicies """
-        return [self._extract_axis(self, data, axis=i, **kwargs) for i, a in enumerate(axes)]
+        return [self._extract_axis(self, data, axis=i, **kwargs) for i, a
+                in enumerate(axes)]
 
     @staticmethod
     def _extract_axes_for_slice(self, axes):
         """ return the slice dictionary for these axes """
-        return dict([(self._AXIS_SLICEMAP[i], a) for i, a in zip(self._AXIS_ORDERS[self._AXIS_LEN - len(axes):], axes)])
+        return dict([(self._AXIS_SLICEMAP[i], a) for i, a
+                     in zip(self._AXIS_ORDERS[self._AXIS_LEN - len(axes):], axes)])
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
@@ -1491,8 +1511,8 @@ class Panel(NDFrame):
     @staticmethod
     def _homogenize_dict(self, frames, intersect=True, dtype=None):
         """
-        Conform set of _constructor_sliced-like objects to either an intersection
-        of indices / columns or a union.
+        Conform set of _constructor_sliced-like objects to either
+        an intersection of indices / columns or a union.
 
         Parameters
         ----------
@@ -1614,7 +1634,8 @@ Return %(desc)s over requested axis
 
 Parameters
 ----------
-axis : {""" + ', '.join(cls._AXIS_ORDERS) + "} or {" + ', '.join([str(i) for i in range(cls._AXIS_LEN)]) + """}
+axis : {""" + ', '.join(cls._AXIS_ORDERS) + "} or {" \
++ ', '.join([str(i) for i in range(cls._AXIS_LEN)]) + """}
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA
@@ -1706,7 +1727,8 @@ def install_ipython_completers():  # pragma: no cover
     @complete_object.when_type(Panel)
     def complete_dataframe(obj, prev_completions):
         return prev_completions + [c for c in obj.keys()
-                                   if isinstance(c, basestring) and py3compat.isidentifier(c)]
+                                   if isinstance(c, basestring)
+                                        and py3compat.isidentifier(c)]
 
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
 # we're in IPython (when those modules are loaded anyway).

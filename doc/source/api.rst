@@ -535,10 +535,159 @@ Serialization / IO / Conversion
 .. _api.panel:
 
 Panel
------
+------
 
-.. _api.panel.stats:
+Attributes and underlying data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Axes**
+
+  * **items**: axis 0; each item corresponds to a DataFrame contained inside
+  * **major_axis**: axis 1; the index (rows) of each of the DataFrames
+  * **minor_axis**: axis 2; the columns of each of the DataFrames
+
+.. autosummary::
+   :toctree: generated/
+
+   Panel.values
+   Panel.axes
+   Panel.ndim
+   Panel.shape
+
+Conversion / Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.__init__
+   Panel.astype
+   Panel.copy
+
+Getting and setting
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.get_value
+   Panel.set_value
+
+Indexing, iteration, slicing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.ix
+   Panel.__iter__
+   Panel.iteritems
+   Panel.pop
+   Panel.xs
+   Panel.major_xs
+   Panel.minor_xs
+
+Binary operator functions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.add
+   Panel.div
+   Panel.mul
+   Panel.sub
+
+Function application, GroupBy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.apply
+   Panel.groupby
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.abs
+   Panel.count
+   Panel.cummax
+   Panel.cummin
+   Panel.cumprod
+   Panel.cumsum
+   Panel.max
+   Panel.mean
+   Panel.median
+   Panel.min
+   Panel.pct_change
+   Panel.prod
+   Panel.skew
+   Panel.sum
+   Panel.std
+   Panel.var
+
+Reindexing / Selection / Label manipulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.add_prefix
+   Panel.add_suffix
+   Panel.drop
+   Panel.filter
+   Panel.first
+   Panel.last
+   Panel.reindex
+   Panel.reindex_axis
+   Panel.reindex_like
+   Panel.select
+   Panel.take
+   Panel.truncate
+
+Missing data handling
+~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.dropna
+   Panel.fillna
+
+Reshaping, sorting, transposing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.sort_index
+   Panel.swaplevel
+   Panel.transpose
+   Panel.swapaxes
+   Panel.conform
+
+Combining / joining / merging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.join
+   Panel.update
+
+Time series-related
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.asfreq
+   Panel.shift
+   Panel.resample
+   Panel.tz_convert
+   Panel.tz_localize
+
+Serialization / IO / Conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.from_dict
+   Panel.load
+   Panel.save
+   Panel.to_excel
+   Panel.to_sparse
+   Panel.to_frame
 
