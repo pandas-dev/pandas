@@ -830,7 +830,8 @@ class CSVFormatter(object):
         if not index:
             self.nlevels = 0
 
-    # legacy to be removed in 0.12
+    # original python implem. of df.to_csv
+    # invoked by df.to_csv(engine=python)
     def _helper_csv(self, writer, na_rep=None, cols=None,
                     header=True, index=True,
                     index_label=None, float_format=None):
