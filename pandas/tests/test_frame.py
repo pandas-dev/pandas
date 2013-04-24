@@ -4706,6 +4706,37 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         N = 100
         chunksize=1000
 
+        # GH3437
+        from pandas import NaT
+        def make_dtnat_arr(n,nnat=None):
+             if nnat is None:
+                 nnat= int(n*0.1) # 10%
+             s=list(date_range('2000',freq='5min',periods=n))
+             if nnat:
+                 for i in np.random.randint(0,len(s),nnat):
+                     s[i] = NaT
+                 i = np.random.randint(100)
+                 s[-i] = NaT
+                 s[i] = NaT
+             return s
+        # N=35000
+        s1=make_dtnat_arr(chunksize+5)
+        s2=make_dtnat_arr(chunksize+5,0)
+        # s3=make_dtnat_arr(chunksize+5,0)
+        df=DataFrame(dict(a=s1,b=s2))
+        df.to_csv('/tmp/1.csv',chunksize=chunksize)
+        recons = DataFrame.from_csv('/tmp/1.csv').convert_objects('coerce')
+        assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
+
+        for ncols in [4]:
+            base = int((chunksize// ncols or 1) or 1)
+            for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
+                  base-1,base,base+1]:
+                _do_test(mkdf(nrows, ncols,r_idx_type='dt',
+                              c_idx_type='s'),path, 'dt','s')
+                pass
+
+
         for ncols in [4]:
             base = int((chunksize// ncols or 1) or 1)
             for nrows in [2,10,N-1,N,N+1,N+2,2*N-2,2*N-1,2*N,2*N+1,2*N+2,
