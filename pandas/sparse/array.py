@@ -481,8 +481,7 @@ def _maybe_to_dense(obj):
     return obj
 
 def _maybe_to_sparse(array):
-    from pandas import SparseSeries
-    if isinstance(array, SparseSeries):
+    if com.is_sparse_series(array):
         array = SparseArray(array.values,sparse_index=array.sp_index,fill_value=array.fill_value,copy=True)
     if not isinstance(array, SparseArray):
         array = com._values_from_object(array)
@@ -504,9 +503,11 @@ def make_sparse(arr, kind='block', fill_value=nan):
     """
     if hasattr(arr,'values'):
         arr = arr.values
-    if np.isscalar(arr):
-        arr = [ arr ]
-    arr = np.asarray(arr)
+    else:
+        if np.isscalar(arr):
+            arr = [ arr ]
+        arr = np.asarray(arr)
+
     length = len(arr)
 
     if np.isnan(fill_value):

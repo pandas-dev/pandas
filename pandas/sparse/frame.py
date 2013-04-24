@@ -111,7 +111,7 @@ class SparseDataFrame(DataFrame):
                                           index=index,
                                           kind=self._default_kind,
                                           fill_value=self._default_fill_value)
-            mgr = self._init_dict(data, index, columns)
+            mgr = dict_to_manager(data, columns, index)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         

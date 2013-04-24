@@ -1154,9 +1154,12 @@ class DatetimeIndex(Int64Index):
 
     def get_value_maybe_box(self, series, key):
         # needed to localize naive datetimes
-        stamp = Timestamp(key, tz=self.tz)
-        values = self._engine.get_value(_values_from_object(series), stamp)
-        return _maybe_box(self, values, series, stamp)
+        if self.tz is not None:
+            key = Timestamp(key, tz=self.tz)
+        elif not isinstance(key, Timestamp):
+            key = Timestamp(key)
+        values = self._engine.get_value(_values_from_object(series), key)
+        return _maybe_box(self, values, series, key)
 
     def get_loc(self, key):
         """
@@ -1278,7 +1281,7 @@ class DatetimeIndex(Int64Index):
 
             return self._simple_new(result, self.name, new_offset, self.tz)
 
-    _getitem_bool = __getitem__
+    _getitem_slice = __getitem__
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality

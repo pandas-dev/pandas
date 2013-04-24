@@ -200,15 +200,15 @@ class SparseSeries(Series):
     @property
     def values(self):
         """ return the array """
-        return self.block.values
+        return self._data._values
 
     def get_values(self):
         """ same as values """
-        return self.block.values.to_dense().view()
+        return self._data._values.to_dense().view()
 
     @property
     def block(self):
-        return self._data.block
+        return self._data._block
 
     @rwproperty.getproperty
     def fill_value(self):

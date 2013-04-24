@@ -447,7 +447,7 @@ class DataFrame(NDFrame):
             else:
                 raise PandasError('DataFrame constructor not properly called!')
 
-        NDFrame.__init__(self, mgr)
+        NDFrame.__init__(self, mgr, fastpath=True)
 
     def _init_dict(self, data, index, columns, dtype=None):
         """

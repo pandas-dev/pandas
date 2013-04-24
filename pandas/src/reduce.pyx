@@ -151,7 +151,7 @@ cdef class SeriesBinGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index, values, f, bins
+        object arr, index, dummy_arr, dummy_index, values, f, bins, typ, ityp, name
 
     def __init__(self, object series, object f, object bins, object dummy):
         n = len(series)
@@ -164,6 +164,9 @@ cdef class SeriesBinGrouper:
             values = values.copy('C')
         self.arr = values
         self.index = series.index
+        self.typ = type(series)
+        self.ityp = type(series.index)
+        self.name = getattr(series,'name',None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
@@ -194,9 +197,9 @@ cdef class SeriesBinGrouper:
             ndarray[int64_t] counts
             Py_ssize_t i, n, group_size
             object res, chunk
-            bint initialized = 0
+            bint initialized = 0, needs_typ = 1, try_typ = 0
             Slider vslider, islider
-            object gin
+            object gin, typ, ityp, name
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -211,6 +214,9 @@ cdef class SeriesBinGrouper:
         chunk = self.dummy_arr
         group_size = 0
         n = len(self.arr)
+        typ = self.typ	
+        ityp = self.ityp
+        name = self.name
 
         vslider = Slider(self.arr, self.dummy_arr)
         islider = Slider(self.index, self.dummy_index)
@@ -224,10 +230,28 @@ cdef class SeriesBinGrouper:
                 islider.set_length(group_size)
                 vslider.set_length(group_size)
 
-                res = self.f(chunk)
+                # see if we need to create the object proper
+                if not try_typ:
+                     try:
+                          chunk.name = name
+                          res = self.f(chunk)
+                          needs_typ = 0
+                     except:
+                          res = self.f(typ(vslider.buf, index=islider.buf,
+                                           name=name, fastpath=True))
+                          needs_typ = 1
+
+                     try_typ = 0
+                else:
+                    if needs_typ:
+                          res = self.f(typ(vslider.buf, index=islider.buf,
+                                           name=name, fastpath=True))
+                    else:                              
+                          chunk.name = name
+                          res = self.f(chunk)
 
                 if hasattr(res,'values'):
-                    res = res.values
+                        res = res.values
 
                 if not initialized:
                     result = self._get_result_array(res)
@@ -272,7 +296,7 @@ cdef class SeriesGrouper:
         bint passed_dummy
 
     cdef public:
-        object arr, index, dummy_arr, dummy_index, f, labels, values, typ, name
+        object arr, index, dummy_arr, dummy_index, f, labels, values, typ, ityp, name
 
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
@@ -287,6 +311,7 @@ cdef class SeriesGrouper:
         self.arr = values
         self.index = series.index
         self.typ = type(series)
+        self.ityp = type(series.index)
         self.name = getattr(series,'name',None)
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
@@ -313,9 +338,9 @@ cdef class SeriesGrouper:
             ndarray[int64_t] labels, counts
             Py_ssize_t i, n, group_size, lab
             object res, chunk
-            bint initialized = 0
+            bint initialized = 0, needs_typ = 1, try_typ = 0
             Slider vslider, islider
-            object gin, typ, name
+            object gin, typ, ityp, name
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
@@ -323,6 +348,7 @@ cdef class SeriesGrouper:
         group_size = 0
         n = len(self.arr)
         typ = self.typ	
+        ityp = self.ityp
         name = self.name
 
         vslider = Slider(self.arr, self.dummy_arr)
@@ -345,7 +371,25 @@ cdef class SeriesGrouper:
                     islider.set_length(group_size)
                     vslider.set_length(group_size)
 
-                    res = self.f(typ(chunk, name=name))
+                    # see if we need to create the object proper
+                    if not try_typ:
+                         try:
+                              chunk.name = name
+                              res = self.f(chunk)
+                              needs_typ = 0
+                         except:
+                              res = self.f(typ(vslider.buf, index=islider.buf,
+                                               name=name, fastpath=True))
+                              needs_typ = 1
+
+                         try_typ = 0
+                    else:
+                        if needs_typ:
+                              res = self.f(typ(vslider.buf, index=islider.buf,
+                                               name=name, fastpath=True))
+                        else:                              
+                              chunk.name = name
+                              res = self.f(chunk)
 
                     if hasattr(res,'values'):
                         res = res.values

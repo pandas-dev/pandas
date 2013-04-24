@@ -453,7 +453,7 @@ index : array-like or Index (1d)
                 if index is None:
                     index = data.index
                 else:
-                    data = data.reindex(index)
+                    data = data.reindex(index, copy=copy)
                 data = data._data
             elif isinstance(data, dict):
                 if index is None:
@@ -479,7 +479,7 @@ index : array-like or Index (1d)
                 if index is None:
                     index = data.index
                 else:
-                    data = data.reindex(index)
+                    data = data.reindex(index, copy=copy)
             elif isinstance(data, types.GeneratorType):
                 data = list(data)
             elif isinstance(data, set):
@@ -506,9 +506,9 @@ index : array-like or Index (1d)
                 data = SingleBlockManager(data, index, fastpath=True)
 
 
-        generic.NDFrame.__init__(self, data)
+        generic.NDFrame.__init__(self, data, fastpath=True)
 
-        self.name  = name
+        object.__setattr__(self,'name',name)
         self._set_axis(0,index,fastpath=True)
 
     @classmethod
@@ -672,8 +672,6 @@ index : array-like or Index (1d)
 
         if isinstance(values,self.__class__):
             return values
-        elif isinstance(values,(lib.Timestamp,tslib.NaTType)):
-            return values
         elif not hasattr(values,'__iter__'):
             v = lib.infer_dtype([values])
             if v == 'datetime':
@@ -734,7 +732,7 @@ index : array-like or Index (1d)
 
     def __getitem__(self, key):
         try:
-            return self._maybe_box(self.index.get_value(self, key))
+            return self.index.get_value(self, key)
         except InvalidIndexError:
             pass
         except (KeyError,ValueError):
@@ -1296,11 +1294,11 @@ index : array-like or Index (1d)
         -------
         arr : numpy.ndarray
         """
-        return self._data.values.view()
+        return self._data.values
 
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
-        return self._data.values.view()
+        return self._data.values
 
     def copy(self, order='C'):
         new_self = super(Series, self).copy(deep=True)

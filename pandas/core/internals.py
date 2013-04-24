@@ -968,7 +968,7 @@ class SparseBlock(Block):
     _verify_integrity = False
     _ftype = 'sparse'
 
-    def __init__(self, values, items, ref_items, ndim=None, fastpath=None):
+    def __init__(self, values, items, ref_items, ndim=None, fastpath=False):
 
         # kludgetastic
         if ndim is not None:
@@ -985,8 +985,12 @@ class SparseBlock(Block):
 
         self._ref_locs = None
         self.values = values
-        self.items = _ensure_index(items)
-        self.ref_items = _ensure_index(ref_items)
+        if fastpath:
+            self.items = items
+            self.ref_items = ref_items
+        else:
+            self.items = _ensure_index(items)
+            self.ref_items = _ensure_index(ref_items)
 
     @property
     def shape(self):
@@ -2233,7 +2237,7 @@ class SingleBlockManager(BlockManager):
     ndim = 1
     _is_consolidated = True
     _known_consolidated = True
-    __slots__ = ['axes', 'blocks', 'block', '_shape', '_has_sparse']
+    __slots__ = ['axes', 'blocks', '_block', '_values', '_shape', '_has_sparse']
 
     def __init__(self, block, axis, do_integrity_check=False, fastpath=True):
 
@@ -2273,11 +2277,13 @@ class SingleBlockManager(BlockManager):
                 block = make_block(block, axis, axis, ndim=1, fastpath=True)
 
         self.blocks = [ block ]
-        self.block  = self.blocks[0]
-        self._has_sparse = self.block.is_sparse
+        self._block  = self.blocks[0]
+        self._values = self._block.values
+        self._has_sparse = self._block.is_sparse
 
     def _post_setstate(self):
-        self.block = self.blocks[0]
+        self._block = self.blocks[0]
+        self._values = self._block.values
 
     @property
     def shape(self):
@@ -2291,7 +2297,7 @@ class SingleBlockManager(BlockManager):
         if not copy and self.index.equals(new_axis):
             return self
                 
-        block = self.block.reindex_items_from(new_axis, copy=copy)
+        block = self._block.reindex_items_from(new_axis, copy=copy)
 
         if method is not None or limit is not None:
             block = block.interpolate(method=method, limit=limit)
@@ -2302,7 +2308,7 @@ class SingleBlockManager(BlockManager):
     def get_slice(self, slobj, raise_on_error=False):
         if raise_on_error:
             _check_slice_bounds(slobj, self.index)
-        return self.__class__(self.block._slice(slobj), self.index._getitem_bool(slobj), fastpath=True)
+        return self.__class__(self._block._slice(slobj), self.index._getitem_slice(slobj), fastpath=True)
 
     def set_axis(self, axis, value):
         cur_axis = self.axes[axis]
@@ -2313,7 +2319,7 @@ class SingleBlockManager(BlockManager):
                             % (len(value), len(cur_axis)))
         self.axes[axis] = value
         self._shape = None
-        self.block.set_ref_items(self.items, maybe_rename=True)
+        self._block.set_ref_items(self.items, maybe_rename=True)
 
     def set_ref_items(self, ref_items, maybe_rename=True):
         """ we can optimize and our ref_locs are always equal to ref_items """
@@ -2332,23 +2338,23 @@ class SingleBlockManager(BlockManager):
 
     @property
     def dtype(self):
-        return self.block.dtype
+        return self._block.dtype
 
     @property
     def ftype(self):
-        return self.block.ftype
-
-    @property
-    def itemsize(self):
-        return self.block.itemsize
+        return self._block.ftype
 
     @property
     def values(self):
-        return self.block.values
+        return self._values.view()
+
+    @property
+    def itemsize(self):
+        return self._block.itemsize
 
     @property
     def _can_hold_na(self):
-        return self.block._can_hold_na
+        return self._block._can_hold_na
 
     def is_consolidated(self):
         return True
@@ -2519,7 +2525,7 @@ def _sparse_blockify(tuples, ref_items, dtype = None):
         items = ref_items[ref_items.isin(names)]
 
         array = _maybe_to_sparse(array)
-        block = make_block(array, items, ref_items)
+        block = make_block(array, items, ref_items, klass=SparseBlock, fastpath=True)
         new_blocks.append(block)
 
     return new_blocks
