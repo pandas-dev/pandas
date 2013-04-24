@@ -165,6 +165,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     Parameters
     ----------
+    frame : DataFrame
     alpha : amount of transparency applied
     figsize : a tuple (width, height) in inches
     ax : Matplotlib axis object
@@ -172,6 +173,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     diagonal : pick between 'kde' and 'hist' for
         either Kernel Density Estimation or Histogram
         plot in the diagonal
+    marker : Matplotlib marker type, default '.'
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
@@ -365,10 +367,17 @@ def radviz(frame, class_column, ax=None, **kwds):
 def andrews_curves(data, class_column, ax=None, samples=200):
     """
     Parameters:
-    data: A DataFrame containing data to be plotted, preferably
-    normalized to (0.0, 1.0).
-    class_column: Name of the column containing class names.
-    samples: Number of points to plot in each curve.
+    -----------
+    data : DataFrame 
+        Data to be plotted, preferably normalized to (0.0, 1.0)
+    class_column : Name of the column containing class names
+    ax : matplotlib axes object, default None
+    samples : Number of points to plot in each curve
+    
+    Returns:
+    --------
+    ax: Matplotlib axis object
+    
     """
     from math import sqrt, pi, sin, cos
     import matplotlib.pyplot as plt
@@ -1475,6 +1484,7 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
     Parameters
     ----------
+    frame : DataFrame
     x : label or position, default None
     y : label or position, default None
         Allows plotting of one column versus another
@@ -1675,8 +1685,11 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         Can be any valid input to groupby
     by : string or sequence
         Column in the DataFrame to group by
+    ax : Matplotlib axis object, optional
     fontsize : int or string
     rot : label rotation angle
+    figsize : A tuple (width, height) in inches
+    grid : Setting this to True will show the grid
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
 
@@ -1779,7 +1792,19 @@ def format_date_labels(ax, rot):
 
 def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwargs):
     """
+    Make a scatter plot from two DataFrame columns
 
+    Parameters
+    ----------
+    data : DataFrame
+    x : Column name for the x-axis values
+    y : Column name for the y-axis values
+    ax : Matplotlib axis object
+    figsize : A tuple (width, height) in inches
+    grid : Setting this to True will show the grid
+    kwargs : other plotting keyword arguments
+        To be passed to scatter function
+    
     Returns
     -------
     fig : matplotlib.Figure
@@ -1818,6 +1843,11 @@ def hist_frame(
 
     Parameters
     ----------
+    data : DataFrame
+    column : string or sequence
+        If passed, will be used to limit data to a subset of columns
+    by : object, optional
+        If passed, then used to form histograms for separate groups
     grid : boolean, default True
         Whether to show axis grid lines
     xlabelsize : int, default None
@@ -1956,6 +1986,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 
     Parameters
     ----------
+    grouped : Grouped DataFrame
     subplots :
         * ``False`` - no subplots will be used
         * ``True`` - create a subplot for each group
@@ -1963,6 +1994,8 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         Can be any valid input to groupby
     fontsize : int or string
     rot : label rotation angle
+    grid : Setting this to True will show the grid
+    figsize : A tuple (width, height) in inches
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
 
@@ -2157,14 +2190,18 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
       Dict with keywords passed to the add_subplot() call used to create each
       subplots.
 
-    fig_kw : dict
-      Dict with keywords passed to the figure() call.  Note that all keywords
-      not recognized above will be automatically included here.
-
-    ax : Matplotlib axis object, default None
+    ax : Matplotlib axis object, optional
 
     secondary_y : boolean or sequence of ints, default False
         If True then y-axis will be on the right
+
+    data : DataFrame, optional
+        If secondary_y is a sequence, data is used to select columns.
+     
+    fig_kw : Other keyword arguments to be passed to the figure() call.  
+        Note that all keywords not recognized above will be 
+        automatically included here.
+
 
     Returns:
 
