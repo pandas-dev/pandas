@@ -4621,7 +4621,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             xp.columns = map(int,xp.columns)
             assert_frame_equal(xp,rs)
 
-
     @slow
     def test_to_csv_moar(self):
         from pandas.util.testing import makeCustomDataframe as mkdf
@@ -4934,6 +4933,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         #### this raises because we have duplicate column names across dtypes ####
         with ensure_clean() as filename:
             self.assertRaises(Exception, df.to_csv, filename)
+
+        # GH3457
+        from pandas.util.testing import makeCustomDataframe as mkdf
+
+        N=10
+        df= mkdf(N, 3)
+        df.columns = ['a','a','b']
+
+        with ensure_clean() as filename:
+            df.to_csv(filename)
+
+            # read_csv will rename the dups columns
+            result = read_csv(filename,index_col=0)
+            result = result.rename(columns={ 'a.1' : 'a' })
+            assert_frame_equal(result,df)
 
     def test_to_csv_chunking(self):
 
