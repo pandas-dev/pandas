@@ -563,26 +563,34 @@ class _NDFrameIndexer(object):
                     check = labels.levels[0].get_indexer(objarr)
                 else:
                     level = None
-                    # XXX
+
+                    # unique index
                     if labels.is_unique:
                         indexer = check = labels.get_indexer(objarr)
+
+                    # non-unique (dups)
                     else:
-                        mask = np.zeros(len(labels), dtype=bool)
+                        indexer = []
+                        check   = np.arange(len(labels))
                         lvalues = labels.values
                         for x in objarr:
                             # ugh
                             to_or = lib.map_infer(lvalues, x.__eq__)
                             if not to_or.any():
                                 raise KeyError('%s not in index' % str(x))
-                            mask |= to_or
 
-                        indexer = check = mask.nonzero()[0]
+                            # add the indicies (as we want to take)
+                            indexer.extend(check[to_or])
+
+                        indexer = Index(indexer)
+
 
                 mask = check == -1
                 if mask.any():
                     raise KeyError('%s not in index' % objarr[mask])
-
+            
                 return indexer
+
         else:
             return labels.get_loc(obj)
 
