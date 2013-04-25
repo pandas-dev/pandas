@@ -28,6 +28,7 @@ from pandas.io.parsers import read_csv
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
+                                 makeCustomDataframe as mkdf,
                                  ensure_clean)
 from pandas.util import py3compat
 from pandas.util.compat import OrderedDict
@@ -4621,9 +4622,59 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             xp.columns = map(int,xp.columns)
             assert_frame_equal(xp,rs)
 
+    def test_to_csv_cols_reordering(self):
+        # GH3454
+        import pandas as pd
+
+        def _check_df(df,cols=None):
+            with ensure_clean() as path:
+                df.to_csv(path,cols = cols,engine='python')
+                rs_p = pd.read_csv(path,index_col=0)
+                df.to_csv(path,cols = cols,chunksize=chunksize)
+                rs_c = pd.read_csv(path,index_col=0)
+
+            if cols:
+                df = df[cols]
+            assert (rs_c.columns==rs_p.columns).all()
+            assert_frame_equal(df,rs_c,check_names=False)
+
+        chunksize=5
+        N = int(chunksize*2.5)
+
+        df= mkdf(N, 3)
+        cs = df.columns
+        cols = [cs[2],cs[0]]
+        _check_df(df,cols)
+
+    def test_to_csv_legacy_raises_on_dupe_cols(self):
+        df= mkdf(10, 3)
+        df.columns = ['a','a','b']
+        with ensure_clean() as path:
+            self.assertRaises(NotImplementedError,df.to_csv,path,engine='python')
+
+    def test_to_csv_new_dupe_cols(self):
+        import pandas as pd
+        def _check_df(df,cols=None):
+            with ensure_clean() as path:
+                df.to_csv(path,cols = cols,chunksize=chunksize)
+                rs_c = pd.read_csv(path,index_col=0)
+                rs_c.columns = df.columns
+                assert_frame_equal(df,rs_c,check_names=False)
+
+        chunksize=5
+        N = int(chunksize*2.5)
+
+        # dupe cols
+        df= mkdf(N, 3)
+        df.columns = ['a','a','b']
+        _check_df(df,None)
+
+        # dupe cols with selection
+        cols = ['b','a']
+        _check_df(df,cols)
+
     @slow
     def test_to_csv_moar(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
         path = '__tmp_to_csv_moar__'
 
         def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None,
