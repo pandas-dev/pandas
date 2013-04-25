@@ -761,6 +761,16 @@ class TestIndexing(unittest.TestCase):
         expected = DataFrame(np.array([0,101,102,3,104,105,6,7,8]).reshape((3, 3)), index=["A", "B", "C"], columns=["A", "B", "C"])
         assert_frame_equal(df,expected)
 
+    def test_dups_fancy_indexing(self):
+
+        # GH 3455
+        from pandas.util.testing import makeCustomDataframe as mkdf
+        df= mkdf(10, 3)
+        df.columns = ['a','a','b']
+        cols = ['b','a']
+        result = df[['b','a']].columns
+        expected = Index(['b','a','a'])
+        self.assert_(result.equals(expected))
 
 if __name__ == '__main__':
     import nose
