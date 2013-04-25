@@ -483,6 +483,16 @@ class TestIndexing(unittest.TestCase):
         expected = df[10]
         assert_frame_equal(result,expected)
 
+    def test_loc_to_fail(self):
+
+        # GH3449
+        df = DataFrame(np.random.random((3, 3)),
+                       index=['a', 'b', 'c'],
+                       columns=['e', 'f', 'g'])
+
+        # raise a KeyError?
+        self.assertRaises(KeyError, df.loc.__getitem__, tuple([[1, 2], [1, 2]]))
+
     def test_loc_getitem_label_slice(self):
 
         # label slices (with ints)

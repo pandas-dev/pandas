@@ -49,12 +49,14 @@ pandas 0.12.0
     lacking. (GH3164_)
   - Fix to_csv issue when having a large number of rows and ``NaT`` in some 
     columns (GH3437_)
+  - ``.loc`` was not raising when passed an integer list (GH3449_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3038: https://github.com/pydata/pandas/issues/3038
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
+.. _GH3449: https://github.com/pydata/pandas/issues/3449
 
 
 

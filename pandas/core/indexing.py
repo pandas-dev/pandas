@@ -253,12 +253,12 @@ class _NDFrameIndexer(object):
         except IndexingError:
             pass
 
+        # no multi-index, so validate all of the indexers
+        self._has_valid_tuple(tup)
+
         # ugly hack for GH #836
         if self._multi_take_opportunity(tup):
             return self._multi_take(tup)
-
-        # no multi-index, so validate all of the indexers
-        self._has_valid_tuple(tup)
 
         # no shortcut needed
         retval = self.obj
