@@ -1069,7 +1069,9 @@ class DatetimeIndex(Int64Index):
             left_chunk = left.values[lslice]
             return self._view_like(left_chunk)
 
-    def _partial_date_slice(self, reso, parsed):
+    def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
+        
+        is_monotonic = self.is_monotonic
 
         if reso == 'year':
             t1 = Timestamp(datetime(parsed.year, 1, 1), tz=self.tz)
@@ -1083,20 +1085,20 @@ class DatetimeIndex(Int64Index):
             d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
             t2 = Timestamp(datetime(parsed.year, qe, d), tz=self.tz)
-        elif reso == 'day' and self._resolution < Resolution.RESO_DAY:
+        elif (reso == 'day' and (self._resolution < Resolution.RESO_DAY or not is_monotonic)):
             st = datetime(parsed.year, parsed.month, parsed.day)
             t1 = Timestamp(st, tz=self.tz)
             t2 = st + offsets.Day()
             t2 = Timestamp(Timestamp(t2, tz=self.tz).value - 1)
-        elif (reso == 'hour' and
-              self._resolution < Resolution.RESO_HR):
+        elif (reso == 'hour' and (
+                self._resolution < Resolution.RESO_HR or not is_monotonic)):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
             t1 = Timestamp(st, tz=self.tz)
             t2 = Timestamp(Timestamp(st + offsets.Hour(),
                                      tz=self.tz).value - 1)
-        elif (reso == 'minute' and
-              self._resolution < Resolution.RESO_MIN):
+        elif (reso == 'minute' and (
+                self._resolution < Resolution.RESO_MIN or not is_monotonic)):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
             t1 = Timestamp(st, tz=self.tz)
@@ -1108,15 +1110,18 @@ class DatetimeIndex(Int64Index):
 
         stamps = self.asi8
 
-        if self.is_monotonic:
+        if is_monotonic:
 
             # a monotonic (sorted) series can be sliced
-            left = stamps.searchsorted(t1.value, side='left')
-            right = stamps.searchsorted(t2.value, side='right')
+            left = stamps.searchsorted(t1.value, side='left') if use_lhs else None
+            right = stamps.searchsorted(t2.value, side='right') if use_rhs else None
             return slice(left, right)
 
+        lhs_mask = (stamps>=t1.value) if use_lhs else True
+        rhs_mask = (stamps<=t2.value) if use_rhs else True
+
         # try to find a the dates
-        return ((stamps>=t1.value) & (stamps<=t2.value)).nonzero()[0]
+        return (lhs_mask & rhs_mask).nonzero()[0]
 
     def _possibly_promote(self, other):
         if other.inferred_type == 'date':
@@ -1182,11 +1187,11 @@ class DatetimeIndex(Int64Index):
             except (KeyError, ValueError):
                 raise KeyError(key)
 
-    def _get_string_slice(self, key):
+    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
         _, parsed, reso = parse_time_string(key, freq)
-        loc = self._partial_date_slice(reso, parsed)
+        loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
     def slice_indexer(self, start=None, end=None, step=None):
@@ -1208,20 +1213,40 @@ class DatetimeIndex(Int64Index):
         Index.slice_locs, customized to handle partial ISO-8601 string slicing
         """
         if isinstance(start, basestring) or isinstance(end, basestring):
-            try:
-                if start:
-                    start_loc = self._get_string_slice(start).start
-                else:
-                    start_loc = 0
 
-                if end:
-                    end_loc = self._get_string_slice(end).stop
-                else:
-                    end_loc = len(self)
+            if self.is_monotonic:
+                try:
+                    if start:
+                        start_loc = self._get_string_slice(start).start
+                    else:
+                        start_loc = 0
+                        
+                    if end:
+                        end_loc = self._get_string_slice(end).stop
+                    else:
+                        end_loc = len(self)
 
-                return start_loc, end_loc
-            except KeyError:
-                pass
+                    return start_loc, end_loc
+                except KeyError:
+                    pass
+
+            else:
+                # can't use a slice indexer because we are not sorted!
+                # so create an indexer directly
+                try:
+                    if start:
+                        start_loc = self._get_string_slice(start,use_rhs=False)
+                    else:
+                        start_loc = np.arange(len(self))
+                        
+                    if end:
+                        end_loc = self._get_string_slice(end,use_lhs=False)
+                    else:
+                        end_loc = np.arange(len(self))
+
+                    return start_loc, end_loc
+                except KeyError:
+                    pass
 
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError('Cannot use slice_locs with time slice keys')
