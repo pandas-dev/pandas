@@ -54,6 +54,7 @@ pandas 0.12.0
   - ``.loc`` was not raising when passed an integer list (GH3449_)
   - Unordered time series selection was misbehaving when using label slicing (GH3448_)
   - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
+  - Fix sorting in a frame with a list of columns which contains datetime64[ns] dtypes (GH3461_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
@@ -64,6 +65,7 @@ pandas 0.12.0
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
+.. _GH3461: https://github.com/pydata/pandas/issues/3461
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
 

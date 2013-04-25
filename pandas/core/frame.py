@@ -3144,7 +3144,12 @@ class DataFrame(NDFrame):
                                          % str(x))
                     keys.append(k)
 
-                keys = [self[x].values for x in by]
+                def trans(v):
+                    if com.needs_i8_conversion(v):
+                        return v.view('i8')
+                    return v
+
+                keys = [trans(self[x].values) for x in by]
                 indexer = _lexsort_indexer(keys, orders=ascending)
                 indexer = com._ensure_platform_int(indexer)
             else:
