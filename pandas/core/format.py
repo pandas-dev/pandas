@@ -772,6 +772,7 @@ class CSVFormatter(object):
 
         self.engine = engine  # remove for 0.12
         self.obj = obj
+
         self.path_or_buf = path_or_buf
         self.sep = sep
         self.na_rep = na_rep
@@ -789,13 +790,27 @@ class CSVFormatter(object):
 
         self.line_terminator = line_terminator
 
-        if cols is None:
-            cols = obj.columns
+        #GH3457
+        if not self.obj.columns.is_unique and engine == 'python':
+            msg= "columns.is_unique == False not supported with engine='python'"
+            raise NotImplementedError(msg)
 
+        if cols is not None:
+            if isinstance(cols,Index):
+                cols = cols.to_native_types(na_rep=na_rep,float_format=float_format)
+            else:
+                cols=list(cols)
+            self.obj = self.obj.loc[:,cols]
+
+        # update columns to include possible multiplicity of dupes
+        # and make sure sure cols is just a list of labels
+        cols = self.obj.columns
         if isinstance(cols,Index):
             cols = cols.to_native_types(na_rep=na_rep,float_format=float_format)
         else:
             cols=list(cols)
+
+        # save it
         self.cols = cols
 
         # preallocate data 2d list
@@ -804,7 +819,7 @@ class CSVFormatter(object):
         self.data =[None] * ncols
 
         if self.obj.columns.is_unique:
-            self.colname_map = dict((k,i) for i,k in  enumerate(obj.columns))
+            self.colname_map = dict((k,i) for i,k in  enumerate(self.obj.columns))
         else:
             ks = [set(x.items) for x in self.blocks]
             u = len(reduce(lambda a,x: a.union(x),ks,set()))
@@ -1024,7 +1039,9 @@ class CSVFormatter(object):
                     # self.data is a preallocated list
                     self.data[self.colname_map[k]] = d[j]
         else:
-            for i in range(len(self.cols)):
+            # self.obj should contain a proper view of the dataframes
+            # with the specified ordering of cols if cols was specified
+            for i in range(len(self.obj.columns)):
                 self.data[i] = self.obj.icol(i).values[slicer].tolist()
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
