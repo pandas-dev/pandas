@@ -58,9 +58,12 @@ class SparsePanel(Panel):
     -----
     """
     ndim = 3
+    _typ = 'panel'
+    _subtyp = 'sparse_panel'
 
     def __init__(self, frames, items=None, major_axis=None, minor_axis=None,
-                 default_fill_value=np.nan, default_kind='block'):
+                 default_fill_value=np.nan, default_kind='block',
+                 copy=False):
         if isinstance(frames, np.ndarray):
             new_frames = {}
             for item, vals in zip(items, frames):
@@ -73,6 +76,7 @@ class SparsePanel(Panel):
 
         if not (isinstance(frames, dict)):
             raise AssertionError()
+
 
         self.default_fill_value = fill_value = default_fill_value
         self.default_kind = kind = default_kind
@@ -127,6 +131,9 @@ class SparsePanel(Panel):
         """
         return Panel(self.values, self.items, self.major_axis,
                      self.minor_axis)
+
+    def as_matrix(self):
+        return self.values
 
     @property
     def values(self):
@@ -225,6 +232,7 @@ class SparsePanel(Panel):
         self._major_axis = _ensure_index(com._unpickle_array(major))
         self._minor_axis = _ensure_index(com._unpickle_array(minor))
         self._frames = frames
+
 
     def copy(self):
         """

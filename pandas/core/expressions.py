@@ -6,6 +6,8 @@ Offer fast expression evaluation thru numexpr
 
 """
 import numpy as np
+from pandas.core import common as com
+from pandas.core.common import _values_from_object
 
 try:
     import numexpr as ne
@@ -84,14 +86,11 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False):
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
         try:
-            a_value, b_value = a, b
-            if hasattr(a_value,'values'):
-                a_value = a_value.values
-            if hasattr(b_value,'values'):
-                b_value = b_value.values
-            result = ne.evaluate('a_value %s b_value' % op_str, 
-                                 local_dict={ 'a_value' : a_value, 
-                                              'b_value' : b_value }, 
+            a = _values_from_object(a)
+            b = _values_from_object(b)
+            result = ne.evaluate('a %s b' % op_str, 
+                                 local_dict={ 'a' : a, 
+                                              'b' : b }, 
                                  casting='safe')
         except (ValueError), detail:
             if 'unknown type object' in str(detail):
@@ -106,6 +105,9 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False):
     return result
 
 def _where_standard(cond, a, b, raise_on_error=True):           
+    cond = _values_from_object(cond)
+    a = _values_from_object(a)
+    b = _values_from_object(b)
     return np.where(cond, a, b)
 
 def _where_numexpr(cond, a, b, raise_on_error = False):
@@ -113,18 +115,15 @@ def _where_numexpr(cond, a, b, raise_on_error = False):
 
     if _can_use_numexpr(None, 'where', a, b, 'where'):
 
+        cond = _values_from_object(cond)
+        a = _values_from_object(a)
+        b = _values_from_object(b)
+
         try:
-            cond_value, a_value, b_value = cond, a, b
-            if hasattr(cond_value,'values'):
-                cond_value = cond_value.values
-            if hasattr(a_value,'values'):
-                a_value = a_value.values
-            if hasattr(b_value,'values'):
-                b_value = b_value.values
-            result = ne.evaluate('where(cond_value,a_value,b_value)',
-                                 local_dict={ 'cond_value' : cond_value,
-                                              'a_value' : a_value, 
-                                              'b_value' : b_value }, 
+            result = ne.evaluate('where(cond,a,b)',
+                                 local_dict={ 'c' : cond,
+                                              'a' : a, 
+                                              'b' : b }, 
                                  casting='safe')
         except (ValueError), detail:
             if 'unknown type object' in str(detail):

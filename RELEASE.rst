@@ -37,11 +37,67 @@ pandas 0.12.0
   - Fixed various issues with internal pprinting code, the repr() for various objects
     including TimeStamp and *Index now produces valid python code strings and
     can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
+  - Added modulo operator to Series
 
 **API Changes**
 
   - When removing an object from a store, **store.remove(key)**, raises
     **KeyError** if **key** is not a valid store object.
+  - Refactor of PandasObject to become new generic Pandas base class
+
+    - moved methods
+    - __str__,__bytes__,__repr__,save,load
+      All NDFrame hierarchy, Index hierarchy, Period (Timestamp not included)
+
+  - Refactor of series.py/frame.py/panel.py to move common code to generic.py
+    - added _setup_axes to created generic NDFrame structures
+    - moved methods
+
+      - from_axes,_wrap_array,axes,ix,shape,empty,swapaxes,transpose,pop
+      - __iter__,keys,__contains__,__len__,__neg__,__invert__
+      - convert_objects,as_blocks,as_matrix,values
+      - __getstate__,__setstate__ (though compat remains in frame/panel)
+      - __getattr__,__setattr__
+      - _indexed_same,reindex_like,reindex,align,where,mask
+      - filter (also added axis argument to selectively filter on a different axis)
+      - reindex,reindex_axis (which was the biggest change to make generic)
+      - truncate (moved to become part of NDFrame)
+
+    These are API changes which make Panel more consistent with DataFrame
+    - swapaxes on a Panel with the same axes specified now return a copy 
+    - support attribute access for setting
+    - filter supports same api as original DataFrame filter
+
+  - Reindex called with no arguments will now return a copy of the input object
+
+  - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
+    There are several minor changes that affect the API.
+
+    - numpy functions that do not support the array interface will now
+      return ``ndarrays`` rather than series, e.g. ``np.diff`` and ``np.where``
+    - ``Series(0.5)`` would previously return the scalar ``0.5``, this is not
+      longer supported
+    - several methods from frame/series have moved to ``NDFrame``
+      (convert_objects,where,mask)
+    - ``TimeSeries`` is now an alias for ``Series``. the property ``is_time_series``
+      can be used to distinguish (if desired) 
+
+  - Refactor of Sparse objects to use BlockManager
+
+    - Created a new block type in internals, SparseBlock, which can hold multi-dtypes
+      and is non-consolidatable. SparseSeries and SparseDataFrame now inherit
+      more methods from there hierarchy (Series/DataFrame), and no longer inherit
+      from SparseArray (which instead is the object of the SparseBlock)
+    - Sparse suite now supports integration with non-sparse data. Non-float sparse
+      data is supportable (partially implemented)
+    - Operations on sparse structures within DataFrames should preserve sparseness,
+      merging type operations will convert to dense (and back to sparse), so might
+      be somewhat inefficient
+    - enable setitem on SparseSeries for boolean/integer/slices
+    - SparsePanels implementation is unchanged (e.g. not using BlockManager, needs work)
+
+  - added ``ftypes`` method to Series/DataFame, similar to ``dtypes``, but indicates
+    if the underlying is sparse/dense (as well as the dtype)
 
 **Bug Fixes**
 
@@ -66,7 +122,6 @@ pandas 0.12.0
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
-
 
 pandas 0.11.0
 =============

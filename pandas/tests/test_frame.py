@@ -482,7 +482,7 @@ class CheckIndexing(object):
         mask = self.frame['A'] > 0
 
         self.frame.ix[mask, 'B'] = 0
-        expected.values[mask, 1] = 0
+        expected.values[mask.values, 1] = 0
 
         assert_frame_equal(self.frame, expected)
 
@@ -1028,6 +1028,7 @@ class CheckIndexing(object):
         assert_series_equal(xs, exp)
 
     def test_setitem_fancy_1d(self):
+
         # case 1: set cross-section for indices
         frame = self.frame.copy()
         expected = self.frame.copy()
@@ -1129,13 +1130,13 @@ class CheckIndexing(object):
 
         mask = frame['A'] > 0
         frame.ix[mask] = 0.
-        expected.values[mask] = 0.
+        expected.values[mask.values] = 0.
         assert_frame_equal(frame, expected)
 
         frame = self.frame.copy()
         expected = self.frame.copy()
         frame.ix[mask, ['A', 'B']] = 0.
-        expected.values[mask, :2] = 0.
+        expected.values[mask.values, :2] = 0.
         assert_frame_equal(frame, expected)
 
     def test_getitem_fancy_ints(self):
@@ -2867,8 +2868,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        index=np.arange(10))
         result = df.get_dtype_counts()
         expected = Series({'int64': 1, datetime64name: 2, objectname : 2})
-        result.sort()
-        expected.sort()
+        result.sort_index()
+        expected.sort_index()
         assert_series_equal(result, expected)
 
         # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0 ndarray with a dtype specified)
@@ -2887,16 +2888,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected['float64'] = 1
             expected[floatname] = 1
 
-        result.sort()
+        result.sort_index()
         expected = Series(expected)
-        expected.sort()
+        expected.sort_index()
         assert_series_equal(result, expected)
 
         # check with ndarray construction ndim>0
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo', floatname : np.array([1.]*10,dtype=floatname),
                         intname : np.array([1]*10,dtype=intname)}, index=np.arange(10))
         result = df.get_dtype_counts()
-        result.sort()
+        result.sort_index()
         assert_series_equal(result, expected)
 
         # GH 2809
@@ -2907,8 +2908,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({'datetime_s':datetime_s})
         result = df.get_dtype_counts()
         expected = Series({ datetime64name : 1 })
-        result.sort()
-        expected.sort()
+        result.sort_index()
+        expected.sort_index()
         assert_series_equal(result, expected)
 
         # GH 2810
@@ -2918,8 +2919,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({'datetimes': datetimes, 'dates':dates})
         result = df.get_dtype_counts()
         expected = Series({ datetime64name : 1, objectname : 1 })
-        result.sort()
-        expected.sort()
+        result.sort_index()
+        expected.sort_index()
         assert_series_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self):
@@ -2980,8 +2981,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         'e' : [1.,2,4.,7]})
         result = df.get_dtype_counts()
         expected = Series({'int64': 1, 'float64' : 2, datetime64name: 1, objectname : 1})
-        result.sort()
-        expected.sort()
+        result.sort_index()
+        expected.sort_index()
         assert_series_equal(result, expected)
 
     def test_timedeltas(self):
@@ -5416,10 +5417,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertTrue(np.array_equal(result, expected))
 
-    def test_as_blocks(self):
+    def test_ftypes(self):
         frame = self.mixed_float
-        mat = frame.blocks
-        self.assert_(set([ x.name for x in frame.dtypes.values ]) == set(mat.keys()))
+        expected = Series(dict(A = 'float32:dense', B = 'float32:dense', C = 'float16:dense', D = 'float64:dense'))
+        expected.sort()
+        result = frame.ftypes
+        result.sort()
+        assert_series_equal(result,expected)        
 
     def test_values(self):
         self.frame.values[:, 0] = 5.
@@ -6535,6 +6539,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
 
+        # copy with no axes
+        result = self.frame.reindex()
+        assert_frame_equal(result,self.frame)
+        self.assert_((result is self.frame) == False)
+
     def test_reindex_name_remains(self):
         s = Series(random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
@@ -6622,6 +6631,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_align(self):
+
         af, bf = self.frame.align(self.frame)
         self.assert_(af._data is not self.frame._data)
 
@@ -6795,13 +6805,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             rs = df.where(cond, other1)
             rs2 = df.where(cond.values, other1)
             for k, v in rs.iteritems():
-                assert_series_equal(v, np.where(cond[k], df[k], other1[k]))
+                assert_series_equal(v, Series(np.where(cond[k], df[k], other1[k]),index=v.index))
             assert_frame_equal(rs, rs2)
 
             # dtypes
             if check_dtypes:
                 self.assert_((rs.dtypes == df.dtypes).all() == True)
-
 
         # check getting
         for df in [ default_frame, self.mixed_frame, self.mixed_float, self.mixed_int ]:
@@ -7365,8 +7374,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_apply_reduce_Series(self):
         self.frame.ix[::2, 'A'] = np.nan
+        expected = self.frame.mean(1)    
         result = self.frame.apply(np.mean, axis=1)
-        expected = self.frame.mean(1)
         assert_series_equal(result, expected)
 
     def test_apply_differently_indexed(self):
@@ -7501,10 +7510,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_filter(self):
         # items
-
         filtered = self.frame.filter(['A', 'B', 'E'])
         self.assertEqual(len(filtered.columns), 2)
         self.assert_('E' not in filtered)
+
+        filtered = self.frame.filter(['A', 'B', 'E'], axis='columns')
+        self.assertEqual(len(filtered.columns), 2)
+        self.assert_('E' not in filtered)
+
+        # other axis
+        idx = self.frame.index[0:4]
+        filtered = self.frame.filter(idx, axis='index')
+        expected = self.frame.reindex(index=idx)
+        assert_frame_equal(filtered,expected)
 
         # like
         fcopy = self.frame.copy()
@@ -8071,8 +8089,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        index=np.arange(10))
         result = df.get_dtype_counts()
         expected = Series({'int64': 1, 'float64' : 1, datetime64name: 1, objectname : 1})
-        result.sort()
-        expected.sort()
+        result.sort_index()
+        expected.sort_index()
         assert_series_equal(result, expected)
 
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo',
@@ -8315,7 +8333,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         if has_skipna:
             def skipna_wrapper(x):
-                nona = x.dropna().values
+                nona = x.dropna()
                 if len(nona) == 0:
                     return np.nan
                 return alternative(nona)

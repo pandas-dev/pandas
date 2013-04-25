@@ -11,10 +11,10 @@ from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
+from pandas.core import base
 import pandas.core.common as com
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _maybe_box, _values_from_object
 from pandas.util import py3compat
-
 from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -40,7 +40,7 @@ def _field_accessor(name, alias):
     return property(f)
 
 
-class Period(object):
+class Period(base.PandasObject):
     """
     Represents an period of time
 
@@ -271,28 +271,6 @@ class Period(object):
             formatted = formatted.encode(encoding)
 
         return "Period('%s', '%s')" % (formatted, freqstr)
-
-    def __str__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
 
     def __unicode__(self):
         """
@@ -911,8 +889,9 @@ class PeriodIndex(Int64Index):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        s = _values_from_object(series)
         try:
-            return super(PeriodIndex, self).get_value(series, key)
+            return _maybe_box(self, super(PeriodIndex, self).get_value(s, key), series, key)
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -934,15 +913,15 @@ class PeriodIndex(Int64Index):
                     key = slice(pos[0], pos[1] + 1)
                     return series[key]
                 else:
-                    key = Period(asdt, freq=self.freq)
-                    return self._engine.get_value(series, key.ordinal)
+                    key = Period(asdt, freq=self.freq).ordinal
+                    return _maybe_box(self, self._engine.get_value(s, key), series, key)
             except TypeError:
                 pass
             except KeyError:
                 pass
 
-            key = Period(key, self.freq)
-            return self._engine.get_value(series, key.ordinal)
+            key = Period(key, self.freq).ordinal
+            return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
     def get_loc(self, key):
         """
@@ -1078,6 +1057,8 @@ class PeriodIndex(Int64Index):
                 return PeriodIndex(result, name=self.name, freq=self.freq)
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
+
+    _getitem_slice = __getitem__
 
     def _format_with_header(self, header, **kwargs):
         return header + self._format_native_types(**kwargs)
