@@ -1178,7 +1178,13 @@ class Index(np.ndarray):
         This function assumes that the data is sorted, so use at your own peril
         """
         start_slice, end_slice = self.slice_locs(start, end)
-        return slice(start_slice, end_slice, step)
+
+        # return a slice
+        if np.isscalar(start_slice) and np.isscalar(end_slice):
+            return slice(start_slice, end_slice, step)
+
+        # loc indexers
+        return Index(start_slice) & Index(end_slice)
 
     def slice_locs(self, start=None, end=None):
         """

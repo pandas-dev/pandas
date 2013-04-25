@@ -183,6 +183,23 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
             result = ts2[t]
             self.assertTrue(expected == result)
 
+        # GH 3448 (ranges)
+        def compare(slobj):
+            result = ts2[slobj].copy()
+            result = result.sort_index()
+            expected = ts[slobj]
+            assert_series_equal(result,expected)
+
+        compare(slice('2011-01-01','2011-01-15'))
+        compare(slice('2010-12-30','2011-01-15'))
+        compare(slice('2011-01-01','2011-01-16'))
+
+        # partial ranges
+        compare(slice('2011-01-01','2011-01-6'))
+        compare(slice('2011-01-06','2011-01-8'))
+        compare(slice('2011-01-06','2011-01-12'))
+
+        # single values
         result = ts2['2011'].sort_index()
         expected = ts['2011']
         assert_series_equal(result,expected)
