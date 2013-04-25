@@ -175,7 +175,7 @@ class Index(np.ndarray):
         else:
             data = self.format()
 
-        prepr = com.pprint_thing(data, escape_chars=('\t', '\r', '\n'))
+        prepr = com.pprint_thing(data, escape_chars=('\t', '\r', '\n'),quote_strings=True)
         return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
 
     def __repr__(self):
@@ -1506,7 +1506,8 @@ class MultiIndex(Index):
         else:
             values = self.format()
 
-        summary = com.pprint_thing(values, escape_chars=('\t', '\r', '\n'))
+        summary = com.pprint_thing(values, escape_chars=('\t', '\r', '\n'),
+                                   quote_strings=True)
 
         np.set_printoptions(threshold=options['threshold'])
 

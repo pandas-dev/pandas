@@ -16,7 +16,8 @@ from numpy.random import randn
 import numpy as np
 
 from pandas import DataFrame, Series, Index
-from pandas.util.py3compat import lzip
+from pandas.util.py3compat import lzip, PY3
+
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 from pandas.util.terminal import get_terminal_size
@@ -135,6 +136,14 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         with option_context("display.max_seq_items",5):
             self.assertTrue(len(com.pprint_thing(range(1000)))< 100)
+
+    def test_repr_is_valid_construction_code(self):
+        import pandas as pd
+
+        # for the case of Index, where the repr is traditional rather then stylized
+        idx = pd.Index(['a','b'])
+        res = eval("pd."+repr(idx))
+        tm.assert_series_equal(Series(res),Series(idx))
 
     def test_repr_should_return_str(self):
         # http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
@@ -540,7 +549,7 @@ class TestDataFrameFormatting(unittest.TestCase):
     <tr style="text-align: right;">
       <th></th>
       <th>foo</th>
-      <th></th>
+      <th>None</th>
     </tr>
   </thead>
   <tbody>
@@ -636,6 +645,29 @@ class TestDataFrameFormatting(unittest.TestCase):
         test_setting(None)
         test_setting(3)
         self.assertRaises(ValueError, test_setting, 'string')
+
+    def test_pprint_thing(self):
+        import nose
+        from pandas.core.common import pprint_thing as pp_t
+
+        if PY3:
+            raise nose.SkipTest()
+
+        self.assertEquals(pp_t('a') , u'a')
+        self.assertEquals(pp_t(u'a') , u'a')
+        self.assertEquals(pp_t(None) , 'None')
+        self.assertEquals(pp_t(u'\u05d0',quote_strings=True) , u"u'\u05d0'")
+        self.assertEquals(pp_t(u'\u05d0',quote_strings=False) , u'\u05d0')
+        self.assertEquals(pp_t((u'\u05d0', u'\u05d1'),quote_strings=True) ,
+                          u"(u'\u05d0', u'\u05d1')")
+        self.assertEquals(pp_t((u'\u05d0', (u'\u05d1', u'\u05d2')),quote_strings=True) ,
+               u"(u'\u05d0', (u'\u05d1', u'\u05d2'))")
+        self.assertEquals(pp_t(('foo', u'\u05d0', (u'\u05d0', u'\u05d0')),quote_strings=True)
+                          , u"(u'foo', u'\u05d0', (u'\u05d0', u'\u05d0'))")
+
+        # escape embedded tabs in string
+        # GH #2038
+        self.assertTrue(not "\t" in pp_t("a\tb", escape_chars=("\t",)))
 
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True):
@@ -1316,9 +1348,8 @@ c  10  11  12  13  14\
         df = DataFrame({'A': [{'a': 1, 'b': 2}]})
 
         val = df.to_string()
-        # to be fixed ot 'a': 1 when #3038 comes to town
-        self.assertTrue("a: 1" in val)
-        self.assertTrue("b: 2" in val)
+        self.assertTrue("'a': 1" in val)
+        self.assertTrue("'b': 2" in val)
 
     def test_to_latex(self):
         # it works!

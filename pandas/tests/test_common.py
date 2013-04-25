@@ -288,30 +288,6 @@ def test_ensure_platform_int():
 #         expected = u"\u05d0".encode('utf-8')
 #         assert (result == expected)
 
-
-def test_pprint_thing():
-    if py3compat.PY3:
-        raise nose.SkipTest
-
-    pp_t = com.pprint_thing
-
-    assert(pp_t('a') == u'a')
-    assert(pp_t(u'a') == u'a')
-    assert(pp_t(None) == '')
-    assert(pp_t(u'\u05d0') == u'\u05d0')
-    assert(pp_t((u'\u05d0', u'\u05d1')) == u'(\u05d0, \u05d1)')
-    assert(pp_t((u'\u05d0', (u'\u05d1', u'\u05d2'))) ==
-           u'(\u05d0, (\u05d1, \u05d2))')
-    assert(pp_t(('foo', u'\u05d0', (u'\u05d0', u'\u05d0'))) ==
-           u'(foo, \u05d0, (\u05d0, \u05d0))')
-
-    # escape embedded tabs in string
-    # GH #2038
-    assert not "\t" in pp_t("a\tb", escape_chars=("\t",))
-
-    assert(pp_t((1,)) == u'(1,)')
-    assert("set" in pp_t(set([1,2,3]))) # it works
-
 class TestTake(unittest.TestCase):
 
     _multiprocess_can_split_ = True

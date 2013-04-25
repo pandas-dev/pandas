@@ -1858,7 +1858,7 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     return fmt % body
 
 
-def _pprint_dict(seq, _nest_lvl=0):
+def _pprint_dict(seq, _nest_lvl=0,**kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -1871,7 +1871,8 @@ def _pprint_dict(seq, _nest_lvl=0):
     nitems = get_option("max_seq_items") or len(seq)
 
     for k, v in seq.items()[:nitems]:
-        pairs.append(pfmt % (pprint_thing(k,_nest_lvl+1), pprint_thing(v,_nest_lvl+1)))
+        pairs.append(pfmt % (pprint_thing(k,_nest_lvl+1,**kwds),
+                             pprint_thing(v,_nest_lvl+1,**kwds)))
 
     if nitems < len(seq):
         return fmt % (", ".join(pairs) + ", ...")
@@ -1879,7 +1880,8 @@ def _pprint_dict(seq, _nest_lvl=0):
         return fmt % ", ".join(pairs)
 
 
-def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False):
+def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
+                 quote_strings=False):
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -1904,26 +1906,10 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False):
     result - unicode object on py2, str on py3. Always Unicode.
 
     """
-
-    if thing is None:
-        result = ''
-    elif (py3compat.PY3 and hasattr(thing, '__next__')) or \
-            hasattr(thing, 'next'):
-        return unicode(thing)
-    elif (isinstance(thing, dict) and
-          _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_dict(thing, _nest_lvl)
-    elif _is_sequence(thing) and _nest_lvl < \
-            get_option("display.pprint_nest_depth"):
-        result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars)
-    else:
-        # when used internally in the package, everything
-        # should be unicode text. However as an aid to transition
-        # we also accept utf8 encoded strings,
-        # if that's not it either, we have no way of knowing,
-        # and the user should deal with it himself.
-        # we resort to utf-8 with replacing errors, rather then throwing
-        # an exception.
+    def as_escaped_unicode(thing,escape_chars=escape_chars):
+        # Unicode is fine, else we try to decode using utf-8 and 'replace'
+        # if that's not it either, we have no way of knowing and the user
+        #should deal with it himself.
 
         try:
             result = unicode(thing)  # we should try this first
@@ -1945,6 +1931,27 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False):
             escape_chars = escape_chars or tuple()
         for c in escape_chars:
             result = result.replace(c, translate[c])
+
+        return unicode(result)
+
+    if (py3compat.PY3 and hasattr(thing, '__next__')) or \
+            hasattr(thing, 'next'):
+        return unicode(thing)
+    elif (isinstance(thing, dict) and
+          _nest_lvl < get_option("display.pprint_nest_depth")):
+        result = _pprint_dict(thing, _nest_lvl,quote_strings=True)
+    elif _is_sequence(thing) and _nest_lvl < \
+            get_option("display.pprint_nest_depth"):
+        result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
+                             quote_strings=quote_strings)
+    elif isinstance(thing,basestring) and quote_strings:
+        if py3compat.PY3:
+            fmt = "'%s'"
+        else:
+            fmt = "u'%s'"
+        result = fmt % as_escaped_unicode(thing)
+    else:
+        result = as_escaped_unicode(thing)
 
     return unicode(result)  # always unicode
 
