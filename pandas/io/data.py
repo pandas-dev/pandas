@@ -367,7 +367,8 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
     url = fred_URL + '%s' % name + \
         '/downloaddata/%s' % name + '.csv'
     data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True,
-                    header=None, skiprows=1, names=["DATE", name])
+                    header=None, skiprows=1, names=["DATE", name],
+                    na_values='.')
     return data.truncate(start, end)
 
 
