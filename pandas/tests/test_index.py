@@ -17,6 +17,7 @@ from pandas.util import py3compat
 import pandas.core.common as com
 
 import pandas.util.testing as tm
+import pandas.core.config as cf
 
 from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
@@ -895,9 +896,10 @@ class TestInt64Index(unittest.TestCase):
         repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_summary(self):
-        r = repr(pd.Index(np.arange(10000)))
-        self.assertTrue(len(r) < 100)
-        self.assertTrue("..." in r)
+        with cf.option_context('display.max_seq_items',10):
+            r = repr(pd.Index(np.arange(1000)))
+            self.assertTrue(len(r) < 100)
+            self.assertTrue("..." in r)
 
     def test_unicode_string_with_unicode(self):
         idx = Index(range(1000))
