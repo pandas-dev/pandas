@@ -1355,6 +1355,31 @@ c  10  11  12  13  14\
         # it works!
         self.frame.to_latex()
 
+        df = DataFrame({'a': [1, 2],
+                        'b': ['b1', 'b2']})
+        withindex_result = df.to_latex()
+        withindex_expected = r"""\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(withindex_result, withindex_expected)
+
+        withoutindex_result = df.to_latex(index=False)
+        withoutindex_expected = r"""\begin{tabular}{rl}
+\toprule
+ a &   b \\
+\midrule
+ 1 &  b1 \\
+ 2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(withoutindex_result, withoutindex_expected)
 
 class TestSeriesFormatting(unittest.TestCase):
     _multiprocess_can_split_ = True
