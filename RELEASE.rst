@@ -42,6 +42,8 @@ pandas 0.12.0
 
   - When removing an object from a store, **store.remove(key)**, raises
     **KeyError** if **key** is not a valid store object.
+  - The repr() for (Multi)Index now obeys display.max_seq_items rather
+    then numpy threshold print options. (GH3426_, GH3466_)
 
 **Bug Fixes**
 
@@ -61,6 +63,8 @@ pandas 0.12.0
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3454: https://github.com/pydata/pandas/issues/3454
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
+.. _GH3426: https://github.com/pydata/pandas/issues/3426
+.. _GH3466: https://github.com/pydata/pandas/issues/3466
 .. _GH3038: https://github.com/pydata/pandas/issues/3038
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
