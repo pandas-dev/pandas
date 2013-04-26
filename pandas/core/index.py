@@ -170,12 +170,7 @@ class Index(np.ndarray):
 
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
         """
-        if len(self) > 6 and len(self) > np.get_printoptions()['threshold']:
-            data = self[:3].format() + ["..."] + self[-3:].format()
-        else:
-            data = self.format()
-
-        prepr = com.pprint_thing(data, escape_chars=('\t', '\r', '\n'),quote_strings=True)
+        prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),quote_strings=True)
         return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
 
     def __repr__(self):
@@ -1504,18 +1499,8 @@ class MultiIndex(Index):
         """
         output = 'MultiIndex\n%s'
 
-        options = np.get_printoptions()
-        np.set_printoptions(threshold=50)
-
-        if len(self) > 100:
-            values = self[:50].format() + ["..."] + self[-50:].format()
-        else:
-            values = self.format()
-
-        summary = com.pprint_thing(values, escape_chars=('\t', '\r', '\n'),
+        summary = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
                                    quote_strings=True)
-
-        np.set_printoptions(threshold=options['threshold'])
 
         return output % summary
 
