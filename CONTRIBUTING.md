@@ -1,5 +1,4 @@
-Guidelines
----
+###Guidelines
 
 All contributions, bug reports, bug fixes, documentation improvments,
 enhancements and ideas are welcome.
@@ -18,7 +17,8 @@ your contribution or address the issue you're having.
 
 - When submitting a Pull Request
   - **Make sure the test suite passes**., and that means on python3 as well.
-    You can use "test_fast.sh", or tox locally and/or [enable Travis-CI](http://about.travis-ci.org/docs/user/getting-started/) on your fork.
+    You can use "test_fast.sh", or tox locally and/or enable Travis-CI on your fork.
+    See the "Getting Travis-CI going" below.
   - We suggest you enable Travis-CI on your fork, to make it easier for the team
      to see that the PR does indeed pass all the tests.
   - Back-compatiblitiy **really** matters. Pandas already has a large user-base and
@@ -77,6 +77,46 @@ your contribution or address the issue you're having.
     - Generally its a BAD idea to PEP8 on documentation.
 
     Having said that, if you still feel a PEP8 storm is in order, go for it.
+
+###Getting Travis-CI going
+
+Instructions for getting Travis-CI installed are available [here](http://about.travis-ci.org/docs/user/getting-started/). For those users who are new to travis-ci and continuous-integration in particular,
+Here's a few high-level notes:
+- Travis-CI is a free service (with premium account available), that integrates
+well with Github.
+- Enabling Travis-CI on your github fork of a project will cause any *new* commit
+pushed to the repo to trigger a full build+test on Travis-CI's servers.
+- All the configuration for travis's builds is already specified by .travis.yml in the repo,
+That means all you have to do is enable Travis-CI once, and then just push commits
+and you'll get full testing across py2/3 with pandas's considerable test-suite.
+- Enabling travis-CI will attach the test results (red/green) to the Pull-Request
+page for any PR you submit. For example:
+
+    https://github.com/pydata/pandas/pull/2532,
+
+See the Green "Good to merge!" banner? that's it.
+
+This is especially important for new contributors, as memebers of the pandas dev team
+like to know the test suite passes before considering it for merging.
+Even regular contributors who test religiously on their local box (using tox
+for example) often rely on a PR+travis=green to make double sure everything
+works ok on another system, as occasionally, it doesn't.
+
+####Steps to enable Travis-CI
+
+- go to https://travis-ci.org/
+- "Sign in with Github", on top panel.
+- \[your username\]/Account, on top-panel.
+- 'sync now' to refresh the list of repos on your GH account.
+- flip the switch on the repos you want Travis-CI enabled for,
+"pandas" obviously.
+
+- Then, pushing a *new* commit to a certain branch on that repo
+will trigger a build/test for that branch, for example the branch
+might be "master" or "PR1234_fix_all_the_things", if that's the
+name of your PR branch.
+
+####More developer docs
 
 Please see [Developers](http://pandas.pydata.org/developers.html) page on
 the project website for more details.
