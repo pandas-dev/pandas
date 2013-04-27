@@ -110,11 +110,16 @@ works ok on another system, as occasionally, it doesn't.
 - 'sync now' to refresh the list of repos on your GH account.
 - flip the switch on the repos you want Travis-CI enabled for,
 "pandas" obviously.
-
 - Then, pushing a *new* commit to a certain branch on that repo
 will trigger a build/test for that branch, for example the branch
 might be "master" or "PR1234_fix_all_the_things", if that's the
 name of your PR branch.
+
+You can see the build history and current builds for your fork
+on: https://travis-ci.org/(your_GH_username)/pandas.
+
+For example, the builds for the main pandas repo can be seen at:
+https://travis-ci.org/pydata/pandas.
 
 ####More developer docs
 
