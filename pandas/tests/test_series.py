@@ -2486,6 +2486,33 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertEqual(self.ts.count(), np.isfinite(self.ts).sum())
 
+    def test_dot(self):
+        a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
+                      columns=['p', 'q', 'r', 's']).T
+
+        result = a.dot(b)
+        expected = Series(np.dot(a.values, b.values),
+                             index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+        
+        #Check index alignment
+        b2 = b.reindex(index=reversed(b.index))
+        result = a.dot(b)
+        assert_series_equal(result, expected)
+
+        # Check ndarray argument
+        result = a.dot(b.values)
+        self.assertTrue(np.all(result == expected.values))
+        self.assertEquals(a.dot(b['2'].values), expected['2'])
+
+        #Check series argument
+        self.assertEquals(a.dot(b['1']), expected['1'])
+        self.assertEquals(a.dot(b2['1']), expected['1'])
+
+        self.assertRaises(Exception, a.dot, a.values[:3])
+        self.assertRaises(ValueError, a.dot, b.T)
+
     def test_value_counts_nunique(self):
         s = Series(['a', 'b', 'b', 'b', 'b', 'a', 'c', 'd', 'd', 'a'])
         hist = s.value_counts()
