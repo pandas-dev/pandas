@@ -184,10 +184,10 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
         replace: If table exists, drop it, recreate it, and insert data.
         append: If table exists, insert data. Create if does not exist.
     """
-
+    
     if 'append' in kwargs:
         import warnings
-        warnings.warn("append is deprecated, use if_exists instead",
+        warnings.warn("append is deprecated, use if_exists instead", 
                       FutureWarning)
         if kwargs['append']:
             if_exists='append'
@@ -206,7 +206,12 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
 
     if create is not None:
         cur = con.cursor()
+<<<<<<< HEAD
         cur.execute(create)
+=======
+        create_table = get_schema(frame, name, flavor)
+        cur.execute(create_table)
+>>>>>>> Restored append keyword with a FutureWarning
         cur.close()
 
     cur = con.cursor()
@@ -252,17 +257,28 @@ def table_exists(name, con, flavor):
 
 def get_sqltype(pytype, flavor):
     sqltype = {'mysql': 'VARCHAR (63)',
-               'sqlite': 'TEXT'}
-
-    if issubclass(pytype, np.floating):
+                'oracle': 'VARCHAR2',
+                'sqlite': 'TEXT',
+                'postgresql': 'TEXT'}
+    if issubclass(pytype, np.number):
         sqltype['mysql'] = 'FLOAT'
         sqltype['sqlite'] = 'REAL'
+<<<<<<< HEAD
 
     if issubclass(pytype, np.integer):
         #TODO: Refine integer size.
         sqltype['mysql'] = 'BIGINT'
         sqltype['sqlite'] = 'INTEGER'
 
+=======
+        sqltype['postgresql'] = 'NUMBER'
+        if issubclass(pytype, np.integer):
+            #TODO: Refine integer size.
+            sqltype['mysql'] = 'BIGINT'
+            sqltype['oracle'] = 'PLS_INTEGER'
+            sqltype['sqlite'] = 'INTEGER'
+            sqltype['postgresql'] = 'INTEGER' 
+>>>>>>> Restored append keyword with a FutureWarning
     if issubclass(pytype, np.datetime64) or pytype is datetime:
         # Caution: np.datetime64 is also a subclass of np.number.
         sqltype['mysql'] = 'DATETIME'
@@ -287,7 +303,10 @@ def get_schema(frame, name, flavor, keys=None):
         columns = ',\n  '.join('[%s] %s' % x for x in column_types)
     else:
         columns = ',\n  '.join('`%s` %s' % x for x in column_types)
+<<<<<<< HEAD
 
+=======
+>>>>>>> added test keyword_as_column_names
     keystr = ''
     if keys is not None:
         if isinstance(keys, basestring):

@@ -47,6 +47,40 @@ def _skip_if_no_MySQLdb():
     except ImportError:
         raise nose.SkipTest('MySQLdb not installed, skipping')
 
+from datetime import datetime
+
+_formatters = {
+    datetime: lambda dt: "'%s'" % date_format(dt),
+    str: lambda x: "'%s'" % x,
+    np.str_: lambda x: "'%s'" % x,
+    unicode: lambda x: "'%s'" % x,
+    float: lambda x: "%.8f" % x,
+    int: lambda x: "%s" % x,
+    type(None): lambda x: "NULL",
+    np.float64: lambda x: "%.10f" % x,
+    bool: lambda x: "'%s'" % x,
+}
+
+def format_query(sql, *args):
+    """
+
+    """
+    processed_args = []
+    for arg in args:
+        if isinstance(arg, float) and isnull(arg):
+            arg = None
+
+        formatter = _formatters[type(arg)]
+        processed_args.append(formatter(arg))
+
+    return sql % tuple(processed_args)
+
+def _skip_if_no_MySQLdb():
+    try:
+        import MySQLdb
+    except ImportError:
+        raise nose.SkipTest('MySQLdb not installed, skipping')
+
 class TestSQLite(unittest.TestCase):
 
     def setUp(self):
@@ -219,19 +253,18 @@ class TestSQLite(unittest.TestCase):
         df = DataFrame({'From':np.ones(5)})
         sql.write_frame(df, con = self.db, name = 'testkeywords')
 
-
 class TestMySQL(unittest.TestCase):
-
+    _multiprocess_can_split_ = True
     def setUp(self):
         try:
-            import MySQLdb
+            import MySQLdb 
         except ImportError:
             raise nose.SkipTest
         try:
             self.db = MySQLdb.connect(read_default_group='pandas')
         except MySQLdb.Error, e:
             raise nose.SkipTest(
-                "Cannot connect to database. "
+                "Cannot connect to database. " 
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
@@ -262,6 +295,7 @@ class TestMySQL(unittest.TestCase):
 
         self.db.commit()
 
+>>>>>>> added mysql nosetests and made them optional
         result = sql.read_frame("select * from test", con=self.db)
         result.index = frame.index
         tm.assert_frame_equal(result, frame)
@@ -388,7 +422,7 @@ class TestMySQL(unittest.TestCase):
 
     def test_tquery(self):
         try:
-            import MySQLdb
+            import MySQLdb 
         except ImportError:
             raise nose.SkipTest
         frame = tm.makeTimeDataFrame()
@@ -413,7 +447,7 @@ class TestMySQL(unittest.TestCase):
 
     def test_uquery(self):
         try:
-            import MySQLdb
+            import MySQLdb 
         except ImportError:
             raise nose.SkipTest
         frame = tm.makeTimeDataFrame()
@@ -441,7 +475,7 @@ class TestMySQL(unittest.TestCase):
         '''
         _skip_if_no_MySQLdb()
         df = DataFrame({'From':np.ones(5)})
-        sql.write_frame(df, con = self.db, name = 'testkeywords',
+        sql.write_frame(df, con = self.db, name = 'testkeywords', 
                         if_exists='replace', flavor='mysql')
 
 
