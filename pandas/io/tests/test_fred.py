@@ -74,6 +74,12 @@ class TestFred(unittest.TestCase):
         result = web.get_data_fred("A09024USA144NNBR", start="1915").ix[:5]
         assert (result.values == expected).all()
 
+    @slow
+    @network
+    def test_invalid_series(self):
+        name = "NOT A REAL SERIES"
+        self.assertRaises(Exception, web.get_data_fred, name)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

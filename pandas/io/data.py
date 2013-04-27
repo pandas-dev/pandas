@@ -369,8 +369,15 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
     data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True,
                     header=None, skiprows=1, names=["DATE", name],
                     na_values='.')
-    return data.truncate(start, end)
-
+    try:
+        return data.truncate(start, end)
+    except KeyError:
+        if data.ix[3].name[7:12] == 'Error':
+            raise Exception("Failed to get the data. "
+                            "Check that {} is valid FRED "
+                            "series.".format(name))
+        else:
+            raise
 
 def get_data_famafrench(name, start=None, end=None):
     start, end = _sanitize_dates(start, end)
