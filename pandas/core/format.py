@@ -356,7 +356,10 @@ class DataFrameFormatter(TableFormatter):
 
         if column_format is None:
             dtypes = self.frame.dtypes.values
-            column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
+            if self.index:
+                column_format = 'l%s' % ''.join(map(get_col_type, dtypes))
+            else:
+                column_format = '%s' % ''.join(map(get_col_type, dtypes))
         elif not isinstance(column_format, basestring):
             raise AssertionError(('column_format must be str or unicode, not %s'
                                   % type(column_format)))
