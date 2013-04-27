@@ -57,6 +57,7 @@ pandas 0.12.0
   - Unordered time series selection was misbehaving when using label slicing (GH3448_)
   - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
   - Fix sorting in a frame with a list of columns which contains datetime64[ns] dtypes (GH3461_)
+  - DataFrames fetched via FRED now handle '.' as a NaN. (GH3469_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
