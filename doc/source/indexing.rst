@@ -99,7 +99,8 @@ the specification are assumed to be ``:``. (e.g. ``p.loc['a']`` is equiv to
 Deprecations
 ~~~~~~~~~~~~
 
-Starting in version 0.11.0, these methods *may* be deprecated in future versions.
+Beginning with version 0.11.0, it's recommended that you transition away from
+the following methods as they *may* be deprecated in future versions.
 
   - ``irow``
   - ``icol``
