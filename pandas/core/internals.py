@@ -56,15 +56,11 @@ class Block(object):
     @property
     def ref_locs(self):
         if self._ref_locs is None:
-            ri = self.ref_items
-            if ri.is_unique:
-                indexer = ri.get_indexer(self.items)
-                indexer = com._ensure_platform_int(indexer)
-                if (indexer == -1).any():
-                    raise AssertionError('Some block items were not in block '
-                                         'ref_items')
-            else:
-                indexer = np.arange(len(ri))
+            indexer = self.ref_items.get_indexer(self.items)
+            indexer = com._ensure_platform_int(indexer)
+            if (indexer == -1).any():
+                raise AssertionError('Some block items were not in block '
+                                     'ref_items')
 
             self._ref_locs = indexer
         return self._ref_locs
@@ -884,7 +880,7 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
-    __slots__ = ['axes', 'blocks', '_known_consolidated', '_is_consolidated']
+    __slots__ = ['axes', 'blocks', '_known_consolidated', '_is_consolidated', '_ref_locs']
 
     def __init__(self, blocks, axes, do_integrity_check=True):
         self.axes = [_ensure_index(ax) for ax in axes]
@@ -920,11 +916,83 @@ class BlockManager(object):
         if len(value) != len(cur_axis):
             raise Exception('Length mismatch (%d vs %d)'
                             % (len(value), len(cur_axis)))
+
         self.axes[axis] = value
 
         if axis == 0:
-            for block in self.blocks:
-                block.set_ref_items(self.items, maybe_rename=True)
+            # unique, we can take
+            if cur_axis.is_unique:
+                for block in self.blocks:
+                    block.set_ref_items(self.items, maybe_rename=True)
+
+            # compute a duplicate indexer that we can use to take
+            # the new items from ref_items (in place of _ref_items)
+            else:
+                self.set_ref_locs(cur_axis)
+                for block in self.blocks:
+                    block.set_ref_items(self.items, maybe_rename=True)
+
+    def set_ref_locs(self, labels = None):
+        # if we have a non-unique index on this axis, set the indexers
+        # we need to set an absolute indexer for the blocks
+        # return the indexer if we are not unique
+        if labels is None:
+            labels = self.items
+
+        if labels.is_unique: 
+            return None
+
+        #### THIS IS POTENTIALLY VERY SLOW #####
+
+        # if we are already computed, then we are done
+        if getattr(self,'_ref_locs',None) is not None:
+            return self._ref_locs
+
+        blocks = self.blocks
+
+        # initialize
+        blockmap = dict()
+        for b in blocks:
+            arr = np.empty(len(b.items),dtype='int64')
+            arr.fill(-1)
+            b._ref_locs = arr
+
+            # add this block to the blockmap for each
+            # of the items in the block
+            for item in b.items:
+               if item not in blockmap:
+                   blockmap[item] = []
+               blockmap[item].append(b)
+
+        rl = np.empty(len(labels),dtype=object)
+        for i, item in enumerate(labels.values):
+
+            try:
+                block = blockmap[item].pop(0)
+            except:
+                raise Exception("not enough items in set_ref_locs")
+
+            indexer = np.arange(len(block.items))
+            mask = (block.items == item) & (block._ref_locs == -1)
+            if not mask.any():
+
+                # this case will catch a comparison of a index of tuples
+                mask = np.empty(len(block.items),dtype=bool)
+                mask.fill(False)
+                for j, (bitem, brl) in enumerate(zip(block.items,block._ref_locs)):
+                    mask[j] = bitem == item and brl == -1
+
+            indices = indexer[mask]
+            if len(indices):
+                idx = indices[0]
+            else:
+                raise Exception("already set too many items in set_ref_locs")
+
+            block._ref_locs[idx] = i
+            rl[i] = (block,idx)
+           
+        self._ref_locs = rl
+        return rl
 
     # make items read only for now
     def _get_items(self):
@@ -1392,26 +1460,11 @@ class BlockManager(object):
         item = self.items[i]
         if self.items.is_unique:
             return self.get(item)
-        else:
-            # ugh
-            try:
-                inds, = (self.items == item).nonzero()
-            except AttributeError:  # MultiIndex
-                inds, = self.items.map(lambda x: x == item).nonzero()
 
-            _, block = self._find_block(item)
-
-            try:
-                binds, = (block.items == item).nonzero()
-            except AttributeError:  # MultiIndex
-                binds, = block.items.map(lambda x: x == item).nonzero()
-
-            for j, (k, b) in enumerate(zip(inds, binds)):
-                if i == k:
-                    return block.values[b]
-
-            raise Exception('Cannot have duplicate column names '
-                            'split across dtypes')
+        # compute the duplicative indexer if needed
+        ref_locs = self.set_ref_locs()
+        b, loc = ref_locs[i]
+        return b.values[loc]
 
     def get_scalar(self, tup):
         """
@@ -1587,6 +1640,8 @@ class BlockManager(object):
         # keep track of what items aren't found anywhere
         mask = np.zeros(len(item_order), dtype=bool)
 
+        new_axes = [new_items] + self.axes[1:]
+
         new_blocks = []
         for blk in self.blocks:
             blk_indexer = blk.items.get_indexer(item_order)
@@ -1610,7 +1665,7 @@ class BlockManager(object):
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
-        return BlockManager(new_blocks, [new_items] + self.axes[1:])
+        return BlockManager(new_blocks, new_axes)
 
     def reindex_items(self, new_items, copy=True, fill_value=np.nan):
         """
@@ -1624,6 +1679,7 @@ class BlockManager(object):
 
         # TODO: this part could be faster (!)
         new_items, indexer = self.items.reindex(new_items)
+        new_axes = [new_items] + self.axes[1:]
 
         # could have so me pathological (MultiIndex) issues here
         new_blocks = []
@@ -1648,7 +1704,7 @@ class BlockManager(object):
                 new_blocks.append(na_block)
                 new_blocks = _consolidate(new_blocks, new_items)
 
-        return BlockManager(new_blocks, [new_items] + self.axes[1:])
+        return BlockManager(new_blocks, new_axes)
 
     def _make_na_block(self, items, ref_items, fill_value=np.nan):
         # TODO: infer dtypes other than float64 from fill_value
@@ -1690,10 +1746,10 @@ class BlockManager(object):
         this, other = self._maybe_rename_join(other, lsuffix, rsuffix)
 
         cons_items = this.items + other.items
-        consolidated = _consolidate(this.blocks + other.blocks, cons_items)
-
         new_axes = list(this.axes)
         new_axes[0] = cons_items
+
+        consolidated = _consolidate(this.blocks + other.blocks, cons_items)
 
         return BlockManager(consolidated, new_axes)
 
@@ -1907,7 +1963,6 @@ def form_blocks(arrays, names, axes):
 
         na_block = make_block(block_values, extra_items, items)
         blocks.append(na_block)
-        blocks = _consolidate(blocks, items)
 
     return blocks
 
@@ -1958,15 +2013,20 @@ def _stack_arrays(tuples, ref_items, dtype):
 
     names, arrays = zip(*tuples)
 
-    # index may box values
-    items = ref_items[ref_items.isin(names)]
-
     first = arrays[0]
     shape = (len(arrays),) + _shape_compat(first)
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
         stacked[i] = _asarray_compat(arr)
+
+    # index may box values
+    if ref_items.is_unique:
+        items = ref_items[ref_items.isin(names)]
+    else:
+        items = _ensure_index([ n for n in names if n in ref_items ])
+        if len(items) != len(stacked):
+            raise Exception("invalid names passed _stack_arrays")
 
     return items, stacked
 
