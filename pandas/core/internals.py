@@ -56,11 +56,16 @@ class Block(object):
     @property
     def ref_locs(self):
         if self._ref_locs is None:
-            indexer = self.ref_items.get_indexer(self.items)
-            indexer = com._ensure_platform_int(indexer)
-            if (indexer == -1).any():
-                raise AssertionError('Some block items were not in block '
-                                     'ref_items')
+            ri = self.ref_items
+            if ri.is_unique:
+                indexer = ri.get_indexer(self.items)
+                indexer = com._ensure_platform_int(indexer)
+                if (indexer == -1).any():
+                    raise AssertionError('Some block items were not in block '
+                                         'ref_items')
+            else:
+                indexer = np.arange(len(ri))
+
             self._ref_locs = indexer
         return self._ref_locs
 

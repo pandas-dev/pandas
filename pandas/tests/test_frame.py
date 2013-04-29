@@ -9201,6 +9201,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(self.frame['C'], frame['baz'])
         assert_series_equal(self.frame['hi'], frame['foo2'])
 
+    def test_assign_columns_with_dups(self):
+
+        # GH 3468 related
+        df = DataFrame([[1,2]], columns=['a','a'])
+        df.columns = ['a','a.1']
+
+        expected = DataFrame([[1,2]], columns=['a','a.1'])
+        assert_frame_equal(df, expected)
+
+        df = DataFrame([[1,2]], columns=['a','a'])
+        df.columns = ['b','b']
+
+        expected = DataFrame([[1,2]], columns=['b','b'])
+        assert_frame_equal(df, expected)
+
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
         expected = DataFrame(self.frame._series, dtype=int)

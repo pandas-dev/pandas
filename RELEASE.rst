@@ -61,6 +61,7 @@ pandas 0.11.1
   - Fix regression in a DataFrame apply with axis=1, objects were not being converted back
     to base dtypes correctly (GH3480_)
   - Fix issue when storing uint dtypes in an HDFStore. (GH3493_)
+  - Fix assigning a new index to a duplicate index in a DataFrame would fail (GH3468_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
@@ -75,6 +76,7 @@ pandas 0.11.1
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3461: https://github.com/pydata/pandas/issues/3461
+.. _GH3468: https://github.com/pydata/pandas/issues/3468
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
