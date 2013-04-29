@@ -1573,6 +1573,9 @@ def load(path):
     Load pickled pandas object (or any other pickled object) from the specified
     file path
 
+    Warning: Loading pickled data received from untrusted sources can be unsafe.
+    See: http://docs.python.org/2.7/library/pickle.html
+
     Parameters
     ----------
     path : string

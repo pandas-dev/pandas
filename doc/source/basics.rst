@@ -1226,6 +1226,13 @@ There is also a ``save`` function which takes any object as its first argument:
    import os
    os.remove('foo.pickle')
 
+.. warning::
+
+   Loading pickled data received from untrusted sources can be unsafe.
+
+   See: http://docs.python.org/2.7/library/pickle.html
+
+
 Working with package options
 ----------------------------
 
