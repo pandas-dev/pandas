@@ -1119,12 +1119,12 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                 v = [ v ]
             if len(v):
                 inferred_type = lib.infer_dtype(v)
-                if inferred_type == 'datetime':
+                if inferred_type in ['datetime','datetime64']:
                     try:
                         value = tslib.array_to_datetime(np.array(v))
                     except:
                         pass
-                elif inferred_type == 'timedelta':
+                elif inferred_type in ['timedelta','timedelta64']:
                     value = _possibly_cast_to_timedelta(value)
 
     return value

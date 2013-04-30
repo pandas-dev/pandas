@@ -87,11 +87,14 @@ pandas 0.11.1
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
     on the last day (GH3546_)
+  - Properly convert np.datetime64 objects in a Series (GH3416_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
 .. _GH2194: https://github.com/pydata/pandas/issues/2194
 .. _GH3230: https://github.com/pydata/pandas/issues/3230
+.. _GH3164: https://github.com/pydata/pandas/issues/3164
+.. _GH3416: https://github.com/pydata/pandas/issues/3416
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3480: https://github.com/pydata/pandas/issues/3480
