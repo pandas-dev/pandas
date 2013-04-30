@@ -1284,8 +1284,17 @@ class DataCol(IndexCol):
     def convert_string_data(self, data, itemsize):
         return data.astype('S%s' % itemsize)
 
+    def get_atom_coltype(self):
+        """ return the PyTables column class for this column """
+        if self.kind.startswith('uint'):
+            col_name = "UInt%sCol" % self.kind[4:]
+        else:
+            col_name = "%sCol" % self.kind.capitalize()
+
+        return getattr(_tables(), col_name)
+
     def get_atom_data(self, block):
-        return getattr(_tables(), "%sCol" % self.kind.capitalize())(shape=block.shape[0])
+        return self.get_atom_coltype()(shape=block.shape[0])
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
@@ -1383,7 +1392,7 @@ class DataIndexableCol(DataCol):
         return _tables().StringCol(itemsize=itemsize)
 
     def get_atom_data(self, block):
-        return getattr(_tables(), "%sCol" % self.kind.capitalize())()
+        return self.get_atom_coltype()()
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col()
