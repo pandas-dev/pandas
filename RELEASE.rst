@@ -68,8 +68,14 @@ pandas 0.11.1
     - Fix assigning a new index to a duplicate index in a DataFrame would fail
     - Fix construction of a DataFrame with a duplicate index
     - ref_locs support to allow duplicative indices across dtypes
+      (GH2194_)
+    - applymap on a DataFrame with a non-unique index now works
+      (removed warning) (GH2786_), and fix (GH3230_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
+.. _GH2786: https://github.com/pydata/pandas/issues/2786
+.. _GH2194: https://github.com/pydata/pandas/issues/2194
+.. _GH3230: https://github.com/pydata/pandas/issues/3230
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3480: https://github.com/pydata/pandas/issues/3480
