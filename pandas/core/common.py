@@ -1084,6 +1084,12 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
 
         if is_datetime64 or is_timedelta64:
 
+            # force the dtype if needed
+            #if is_datetime64 and dtype != 'datetime64[ns]':
+            #    dtype = np.dtype('datetime64[ns]')
+            #elif is_timedelta64 and dtype != 'timedelta64[ns]':
+            #    dtype = np.dtype('timedelta64[ns]')
+
             if np.isscalar(value):
                 if value == tslib.iNaT or isnull(value):
                     value = tslib.iNaT
@@ -1098,7 +1104,9 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                 elif np.prod(value.shape) and value.dtype != dtype:
                     try:
                         if is_datetime64:
-                            value = tslib.array_to_datetime(value, coerce = coerce)
+                            from pandas.tseries.tools import to_datetime
+                            value = to_datetime(value, coerce=coerce).values
+                            #value = tslib.array_to_datetime(value, coerce = coerce)
                         elif is_timedelta64:
                             value = _possibly_cast_to_timedelta(value)
                     except:

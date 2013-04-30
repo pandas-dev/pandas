@@ -1470,7 +1470,7 @@ class TestTimeSeries(unittest.TestCase):
                         (3, np.datetime64('2012-07-04'))],
                        columns=['a', 'date'])
         result = df.groupby('a').first()
-        self.assertEqual(result['date'][3], np.datetime64('2012-07-03'))
+        self.assertEqual(result['date'][3], datetime(2012,7,3))
 
     def test_series_interpolate_intraday(self):
         # #1698
