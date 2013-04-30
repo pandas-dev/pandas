@@ -7492,12 +7492,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(result.dtypes[0] == object)
 
         # GH2786
-        df = DataFrame(np.random.random((3,4)))
-        df.columns = ['a','a','a','a']
-        try:
-            df.applymap(str)
-        except ValueError as e:
-            self.assertTrue("support" in str(e))
+        df  = DataFrame(np.random.random((3,4)))
+        df2 = df.copy()
+        cols = ['a','a','a','a']
+        df.columns = cols
+
+        expected = df2.applymap(str)
+        expected.columns = cols
+        result = df.applymap(str)
+        assert_frame_equal(result,expected)
 
     def test_filter(self):
         # items
@@ -9201,7 +9204,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(self.frame['C'], frame['baz'])
         assert_series_equal(self.frame['hi'], frame['foo2'])
 
-    def test_assign_columns_with_dups(self):
+    def test_columns_with_dups(self):
 
         # GH 3468 related
 
@@ -9245,6 +9248,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = df._data.set_ref_locs()
         self.assert_(len(result) == len(df.columns))
+
+        # testing iget
+        for i in range(len(df.columns)):
+             df.iloc[:,i]
+
+        # dup columns across dtype GH 2079/2194
+        vals = [[1, -1, 2.], [2, -2, 3.]] 
+        rs = DataFrame(vals, columns=['A', 'A', 'B']) 
+        xp = DataFrame(vals) 
+        xp.columns = ['A', 'A', 'B'] 
+        assert_frame_equal(rs, xp) 
 
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)

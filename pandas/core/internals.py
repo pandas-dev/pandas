@@ -165,6 +165,9 @@ class Block(object):
         loc = self.items.get_loc(item)
         return self.values[loc]
 
+    def iget(self, i):
+        return self.values[i]
+
     def set(self, item, value):
         """
         Modify Block in-place with new item value
@@ -711,7 +714,7 @@ class ObjectBlock(Block):
         # attempt to create new type blocks
         blocks = []
         for i, c in enumerate(self.items):
-            values = self.get(c)
+            values = self.iget(i)
 
             values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
             values = _block_shape(values)
@@ -920,17 +923,14 @@ class BlockManager(object):
         self.axes[axis] = value
 
         if axis == 0:
-            # unique, we can take
-            if cur_axis.is_unique:
-                for block in self.blocks:
-                    block.set_ref_items(self.items, maybe_rename=True)
 
-            # compute a duplicate indexer that we can use to take
-            # the new items from ref_items (in place of _ref_items)
-            else:
+            # we have a non-unique index, so setup the ref_locs
+            if not cur_axis.is_unique:
                 self.set_ref_locs(cur_axis)
-                for block in self.blocks:
-                    block.set_ref_items(self.items, maybe_rename=True)
+
+            # take via ref_locs
+            for block in self.blocks:
+                block.set_ref_items(self.items, maybe_rename=True)
 
     def set_ref_locs(self, labels = None):
         # if we have a non-unique index on this axis, set the indexers
@@ -945,8 +945,9 @@ class BlockManager(object):
         #### THIS IS POTENTIALLY VERY SLOW #####
 
         # if we are already computed, then we are done
-        if getattr(self,'_ref_locs',None) is not None:
-            return self._ref_locs
+        rl = getattr(self,'_ref_locs',None)
+        if rl is not None:
+            return rl
 
         blocks = self.blocks
 
