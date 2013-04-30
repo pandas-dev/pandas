@@ -2021,7 +2021,12 @@ def _stack_arrays(tuples, ref_items, dtype):
         stacked[i] = _asarray_compat(arr)
 
     # index may box values
-    items = ref_items[ref_items.isin(names)]
+    if ref_items.is_unique:
+        items = ref_items[ref_items.isin(names)]
+    else:
+        items = _ensure_index([ n for n in names if n in ref_items ])
+        if len(items) != len(stacked):
+            raise Exception("invalid names passed _stack_arrays")
 
     return items, stacked
 

@@ -772,6 +772,13 @@ class TestIndexing(unittest.TestCase):
         expected = Index(['b','a','a'])
         self.assert_(result.equals(expected))
 
+        # across dtypes
+        df = DataFrame([[1,2,1.,2.,3.,'foo','bar']], columns=list('aaaaaaa'))
+        result = DataFrame([[1,2,1.,2.,3.,'foo','bar']])
+        result.columns = list('aaaaaaa')
+        assert_frame_equal(df,result)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

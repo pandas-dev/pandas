@@ -63,6 +63,11 @@ pandas 0.11.1
   - Fix issue when storing uint dtypes in an HDFStore. (GH3493_)
   - Fix assigning a new index to a duplicate index in a DataFrame would fail (GH3468_)
   - ref_locs support to allow duplicative indices across dtypes (GH3468_)
+  - Non-unique index support clarified (GH3468_)
+
+    - Fix assigning a new index to a duplicate index in a DataFrame would fail
+    - Fix construction of a DataFrame with a duplicate index
+    - ref_locs support to allow duplicative indices across dtypes
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
