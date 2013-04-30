@@ -23,7 +23,7 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.12.0
+pandas 0.11.1
 =============
 
 **Release date:** not-yet-released
