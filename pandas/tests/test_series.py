@@ -469,6 +469,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(isnull(s[1]) == True)
         self.assert_(s.dtype == 'M8[ns]')
 
+        # GH3416
+        import pdb; pdb.set_trace()
+        dates = [
+            np.datetime64(datetime(2013, 1, 1)),
+            np.datetime64(datetime(2013, 1, 2)),
+            np.datetime64(datetime(2013, 1, 3)),
+            ]
+        
+        s = Series(dates)
+        self.assert_(s.dtype == 'M8[ns]')
+
+        s.ix[0] = np.nan
+        self.assert_(s.dtype == 'M8[ns]')
+
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
