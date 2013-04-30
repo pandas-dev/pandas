@@ -363,7 +363,7 @@ class MonthEnd(DateOffset, CacheableOffset):
     """DateOffset of one month end"""
 
     def apply(self, other):
-        other = datetime(other.year, other.month, other.day)
+        other = datetime(other.year, other.month, other.day, tzinfo=other.tzinfo)
 
         n = self.n
         _, days_in_month = tslib.monthrange(other.year, other.month)
