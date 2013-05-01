@@ -34,18 +34,23 @@ The :ref:`indexing <indexing>` docs.
 
 `Boolean Rows Indexing
 <http://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
+    Indexing using both row labels and conditionals
 
 `Using loc and iloc in selections
 <https://github.com/pydata/pandas/issues/2904>`__
+    Use loc for label-oriented slicing and iloc positional slicing
 
 `Extending a panel along the minor axis
 <http://stackoverflow.com/questions/15364050/extending-a-pandas-panel-frame-along-the-minor-axis>`__
+    Extend a panel frame by transposing, adding a new dimension, and transposing back to the original dimensions
 
 `Boolean masking in a panel
 <http://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
+    Mask a panel by using ``np.where`` and then reconstructing the panel with the new masked values
 
 `Selecting via the complement
 <http://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
+    ``~`` can be used to take the complement of a boolean array
 
 .. _cookbook.multi_index:
 
