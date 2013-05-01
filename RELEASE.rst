@@ -60,6 +60,7 @@ pandas 0.11.1
   - DataFrames fetched via FRED now handle '.' as a NaN. (GH3469_)
   - Fix regression in a DataFrame apply with axis=1, objects were not being converted back
     to base dtypes correctly (GH3480_)
+  - Fix issue when storing uint dtypes in an HDFStore. (GH3493_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
@@ -76,6 +77,7 @@ pandas 0.11.1
 .. _GH3461: https://github.com/pydata/pandas/issues/3461
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
+.. _GH3493: https://github.com/pydata/pandas/issues/3493
 
 
 pandas 0.11.0
