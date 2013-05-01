@@ -58,10 +58,13 @@ pandas 0.11.1
   - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
   - Fix sorting in a frame with a list of columns which contains datetime64[ns] dtypes (GH3461_)
   - DataFrames fetched via FRED now handle '.' as a NaN. (GH3469_)
+  - Fix regression in a DataFrame apply with axis=1, objects were not being converted back
+    to base dtypes correctly (GH3480_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
+.. _GH3480: https://github.com/pydata/pandas/issues/3480
 .. _GH3454: https://github.com/pydata/pandas/issues/3454
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3426: https://github.com/pydata/pandas/issues/3426
