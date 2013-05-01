@@ -7492,12 +7492,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(result.dtypes[0] == object)
 
         # GH2786
-        df = DataFrame(np.random.random((3,4)))
-        df.columns = ['a','a','a','a']
-        try:
-            df.applymap(str)
-        except ValueError as e:
-            self.assertTrue("support" in str(e))
+        df  = DataFrame(np.random.random((3,4)))
+        df2 = df.copy()
+        cols = ['a','a','a','a']
+        df.columns = cols
+
+        expected = df2.applymap(str)
+        expected.columns = cols
+        result = df.applymap(str)
+        assert_frame_equal(result,expected)
 
     def test_filter(self):
         # items
@@ -9200,6 +9203,62 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
         assert_series_equal(self.frame['C'], frame['baz'])
         assert_series_equal(self.frame['hi'], frame['foo2'])
+
+    def test_columns_with_dups(self):
+
+        # GH 3468 related
+
+        # basic
+        df = DataFrame([[1,2]], columns=['a','a'])
+        df.columns = ['a','a.1']
+        str(df)
+        expected = DataFrame([[1,2]], columns=['a','a.1'])
+        assert_frame_equal(df, expected)
+
+        df = DataFrame([[1,2,3]], columns=['b','a','a'])
+        df.columns = ['b','a','a.1']
+        str(df)
+        expected = DataFrame([[1,2,3]], columns=['b','a','a.1'])
+        assert_frame_equal(df, expected)
+
+        # with a dup index
+        df = DataFrame([[1,2]], columns=['a','a'])
+        df.columns = ['b','b']
+        str(df)
+        expected = DataFrame([[1,2]], columns=['b','b'])
+        assert_frame_equal(df, expected)
+
+        # multi-dtype
+        df = DataFrame([[1,2,1.,2.,3.,'foo','bar']], columns=['a','a','b','b','d','c','c'])
+        df.columns = list('ABCDEFG')
+        str(df)
+        expected = DataFrame([[1,2,1.,2.,3.,'foo','bar']], columns=list('ABCDEFG'))
+        assert_frame_equal(df, expected)
+
+        # this is an error because we cannot disambiguate the dup columns
+        self.assertRaises(Exception, lambda x: DataFrame([[1,2,'foo','bar']], columns=['a','a','a','a']))
+
+        # dups across blocks
+        df_float  = DataFrame(np.random.randn(10, 3),dtype='float64')
+        df_int    = DataFrame(np.random.randn(10, 3),dtype='int64')
+        df_bool   = DataFrame(True,index=df_float.index,columns=df_float.columns)
+        df_object = DataFrame('foo',index=df_float.index,columns=df_float.columns)
+        df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
+        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+
+        result = df._data.set_ref_locs()
+        self.assert_(len(result) == len(df.columns))
+
+        # testing iget
+        for i in range(len(df.columns)):
+             df.iloc[:,i]
+
+        # dup columns across dtype GH 2079/2194
+        vals = [[1, -1, 2.], [2, -2, 3.]] 
+        rs = DataFrame(vals, columns=['A', 'A', 'B']) 
+        xp = DataFrame(vals) 
+        xp.columns = ['A', 'A', 'B'] 
+        assert_frame_equal(rs, xp) 
 
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
