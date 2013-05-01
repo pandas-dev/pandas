@@ -1826,6 +1826,13 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(result.dtype == np.object_)
         self.assert_(isinstance(result[0], Decimal))
 
+    def test_apply_with_mixed_dtype(self):
+        # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
+        df = DataFrame({'foo1' : ['one', 'two', 'two', 'three', 'one', 'two'],
+                        'foo2' : np.random.randn(6)})
+        result = df.apply(lambda x: x, axis=1)
+        assert_series_equal(df.get_dtype_counts(), result.get_dtype_counts())
+
     def test_groupby_list_infer_array_like(self):
         result = self.df.groupby(list(self.df['A'])).mean()
         expected = self.df.groupby(self.df['A']).mean()
