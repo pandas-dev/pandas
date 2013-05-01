@@ -4210,7 +4210,7 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects(convert_dates=False)
+            result = result.convert_objects()
 
             return result
         else:
