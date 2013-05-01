@@ -458,6 +458,21 @@ class TestHDFStore(unittest.TestCase):
             store.append('df', df)
             tm.assert_frame_equal(store['df'], df)
 
+            # uints - test storage of uints
+            uint_data = DataFrame({'u08' : Series(np.random.random_integers(0, high=255, size=5), dtype=np.uint8),
+                                   'u16' : Series(np.random.random_integers(0, high=65535, size=5), dtype=np.uint16),
+                                   'u32' : Series(np.random.random_integers(0, high=2**30, size=5), dtype=np.uint32),
+                                   'u64' : Series([2**58, 2**59, 2**60, 2**61, 2**62], dtype=np.uint64)},
+                                  index=np.arange(5))
+            _maybe_remove(store, 'uints')
+            store.append('uints', uint_data)
+            tm.assert_frame_equal(store['uints'], uint_data)
+
+            # uints - test storage of uints in indexable columns
+            _maybe_remove(store, 'uints')
+            store.append('uints', uint_data, data_columns=['u08','u16','u32']) # 64-bit indices not yet supported
+            tm.assert_frame_equal(store['uints'], uint_data)
+
     def test_append_some_nans(self):
 
         with ensure_clean(self.path) as store:
