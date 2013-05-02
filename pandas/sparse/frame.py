@@ -8,7 +8,7 @@ with float64 data
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import _pickle_array, _unpickle_array, _try_sort
+from pandas.core.common import _unpickle_array, _try_sort
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 from pandas.core.series import Series
@@ -16,11 +16,9 @@ from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
-import pandas.core.datetools as datetools
 
 from pandas.sparse.series import SparseSeries
 from pandas.util.decorators import Appender
-import pandas.lib as lib
 
 
 class _SparseMockBlockManager(object):
@@ -713,8 +711,8 @@ class SparseDataFrame(DataFrame):
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         if isinstance(other, Series):
-            if not (other.name is not None):
-                raise AssertionError()
+            if other.name is None:
+                raise AssertionError('Cannot join series with no name')
 
             other = SparseDataFrame({other.name: other},
                                     default_fill_value=self.default_fill_value)

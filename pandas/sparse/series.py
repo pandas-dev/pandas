@@ -110,8 +110,11 @@ class SparseSeries(SparseArray, Series):
             if isinstance(data, SparseSeries) and index is None:
                 index = data.index
             elif index is not None:
-                if not (len(index) == len(data)):
-                    raise AssertionError()
+                if len(index) != len(data):
+                    raise AssertionError('Passed index and data must have the '
+                                         'same length, len(data) == {0}, '
+                                         'len(index) == '
+                                         '{1}'.format(len(data), len(index)))
 
             sparse_index = data.sp_index
             values = np.asarray(data)
@@ -129,8 +132,14 @@ class SparseSeries(SparseArray, Series):
                                                    fill_value=fill_value)
             else:
                 values = data
-                if not (len(values) == sparse_index.npoints):
-                    raise AssertionError()
+                if len(values) != sparse_index.npoints:
+                    raise AssertionError('length of input must the same as the'
+                                         ' length of the given index, '
+                                         'len(values) == {0}, '
+                                         'sparse_index.npoints'
+                                         ' == '
+                                         '{1}'.format(len(values),
+                                                      sparse_index.npoints))
         else:
             if index is None:
                 raise Exception('must pass index!')
@@ -449,7 +458,7 @@ class SparseSeries(SparseArray, Series):
         reindexed : SparseSeries
         """
         if not (isinstance(new_index, splib.SparseIndex)):
-            raise AssertionError()
+            raise AssertionError('new index must be a SparseIndex')
 
         new_values = self.sp_index.to_int_index().reindex(self.sp_values,
                                                           self.fill_value,
