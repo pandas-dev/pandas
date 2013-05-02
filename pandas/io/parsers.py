@@ -254,7 +254,8 @@ _parser_defaults = {
     'verbose': False,
     'encoding': None,
     'squeeze': False,
-    'compression': None
+    'compression': None,
+    'mangle_dupe_cols': True,
 }
 
 
@@ -340,7 +341,9 @@ def _make_parser_function(name, sep=','):
 
                  verbose=False,
                  encoding=None,
-                 squeeze=False):
+                 squeeze=False,
+                 mangle_dupe_cols=True
+                 ):
 
         # Alias sep -> delimiter.
         if delimiter is None:
@@ -396,7 +399,9 @@ def _make_parser_function(name, sep=','):
                     warn_bad_lines=warn_bad_lines,
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
-                    buffer_lines=buffer_lines)
+                    buffer_lines=buffer_lines,
+                    mangle_dupe_cols=mangle_dupe_cols
+            )
 
         return _read(filepath_or_buffer, kwds)
 
@@ -1142,6 +1147,7 @@ class PythonParser(ParserBase):
         self.skipinitialspace = kwds['skipinitialspace']
         self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
+        self.mangle_dupe_cols = kwds.get('mangle_dupe_cols',True)
 
         self.has_index_names = False
         if 'has_index_names' in kwds:
@@ -1323,12 +1329,13 @@ class PythonParser(ParserBase):
                 else:
                     columns.append(c)
 
-            counts = {}
-            for i, col in enumerate(columns):
-                cur_count = counts.get(col, 0)
-                if cur_count > 0:
-                    columns[i] = '%s.%d' % (col, cur_count)
-                counts[col] = cur_count + 1
+            if self.mangle_dupe_cols:
+                counts = {}
+                for i, col in enumerate(columns):
+                    cur_count = counts.get(col, 0)
+                    if cur_count > 0:
+                        columns[i] = '%s.%d' % (col, cur_count)
+                    counts[col] = cur_count + 1
 
             self._clear_buffer()
 
