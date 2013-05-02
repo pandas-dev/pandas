@@ -46,6 +46,9 @@ pandas 0.11.1
     then numpy threshold print options. (GH3426_, GH3466_)
   - Added mangle_dupe_cols option to read_table/csv, allowing users
     to control legacy behaviour re dupe cols (A, A.1, A.2 vs A, A ) (GH3468_)
+    Note: The default value will change in 0.12 to the "no mangle" behaviour,
+    If your code relies on this behaviour, explicitly specify mangle_dupe_cols=True
+    in your calls.
 
 **Bug Fixes**
 
