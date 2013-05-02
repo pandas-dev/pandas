@@ -1012,8 +1012,8 @@ class BinGrouper(Grouper):
                 yield label, data[start:edge]
                 start = edge
 
-            if edge < len(data):
-                yield self.binlabels[-1], data[edge:]
+            if start < len(data):
+                yield self.binlabels[-1], data[start:]
         else:
             start = 0
             for edge, label in izip(self.bins, self.binlabels):
@@ -1022,8 +1022,8 @@ class BinGrouper(Grouper):
                 start = edge
 
             n = len(data.axes[axis])
-            if edge < n:
-                inds = range(edge, n)
+            if start < n:
+                inds = range(start, n)
                 yield self.binlabels[-1], data.take(inds, axis=axis)
 
     def apply(self, f, data, axis=0, keep_internal=False):

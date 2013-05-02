@@ -2434,6 +2434,16 @@ class TestGroupBy(unittest.TestCase):
         # don't die
         no_toes = df_grouped.apply(lambda x: noddy(x.value, x.weight ))
 
+    def test_groupby_with_empty(self):
+        import pandas as pd
+        index = pd.DatetimeIndex(())
+        data = ()
+        series = pd.Series(data, index)
+        grouper = pd.tseries.resample.TimeGrouper('D')
+        grouped = series.groupby(grouper)
+        assert next(iter(grouped), None) is None
+
+
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())
 
