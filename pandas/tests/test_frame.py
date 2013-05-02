@@ -4973,17 +4973,33 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         with ensure_clean() as filename:
             df.to_csv(filename) # single dtype, fine
+            result = read_csv(filename,index_col=0)
+            result.columns = df.columns
+            assert_frame_equal(result,df)
 
-        df_float  = DataFrame(np.random.randn(1000, 30),dtype='float64')
-        df_int    = DataFrame(np.random.randn(1000, 30),dtype='int64')
-        df_bool   = DataFrame(True,index=df_float.index,columns=df_float.columns)
-        df_object = DataFrame('foo',index=df_float.index,columns=df_float.columns)
-        df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
-        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
+        df_float  = DataFrame(np.random.randn(1000, 3),dtype='float64')
+        df_int    = DataFrame(np.random.randn(1000, 3),dtype='int64')
+        df_bool   = DataFrame(True,index=df_float.index,columns=range(3))
+        df_object = DataFrame('foo',index=df_float.index,columns=range(3))
+        df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=range(3))
+        df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1, ignore_index=True)
 
-        #### this raises because we have duplicate column names across dtypes ####
+        cols = []
+        for i in range(5):
+            cols.extend([0,1,2])
+        df.columns = cols
+
+        from pandas import to_datetime
         with ensure_clean() as filename:
-            self.assertRaises(Exception, df.to_csv, filename)
+            df.to_csv(filename)
+            result = read_csv(filename,index_col=0)
+          
+            # date cols
+            for i in ['0.4','1.4','2.4']:
+                 result[i] = to_datetime(result[i])
+
+            result.columns = df.columns
+            assert_frame_equal(result,df)
 
         # GH3457
         from pandas.util.testing import makeCustomDataframe as mkdf
@@ -9246,7 +9262,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df_dt     = DataFrame(Timestamp('20010101'),index=df_float.index,columns=df_float.columns)
         df        = pan.concat([ df_float, df_int, df_bool, df_object, df_dt ], axis=1)
 
-        result = df._data.set_ref_locs()
+        result = df._data._set_ref_locs()
         self.assert_(len(result) == len(df.columns))
 
         # testing iget

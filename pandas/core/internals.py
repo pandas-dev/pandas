@@ -65,6 +65,11 @@ class Block(object):
             self._ref_locs = indexer
         return self._ref_locs
 
+    def set_ref_locs(self, placement):
+        """ explicity set the ref_locs indexer, only necessary for duplicate indicies """
+        if placement is not None:
+            self._ref_locs = np.array(placement,dtype='int64')
+
     def set_ref_items(self, ref_items, maybe_rename=True):
         """
         If maybe_rename=True, need to set the items for this guy
@@ -883,7 +888,7 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
-    __slots__ = ['axes', 'blocks', '_known_consolidated', '_is_consolidated', '_ref_locs']
+    __slots__ = ['axes', 'blocks', '_known_consolidated', '_is_consolidated', '_ref_locs', '_items_map']
 
     def __init__(self, blocks, axes, do_integrity_check=True):
         self.axes = [_ensure_index(ax) for ax in axes]
@@ -900,6 +905,10 @@ class BlockManager(object):
             self._verify_integrity()
 
         self._consolidate_check()
+
+        # we have a duplicate items index, setup the block maps
+        if not self.items.is_unique:
+            self._set_ref_locs(do_refs=True)
 
     @classmethod
     def make_empty(self):
@@ -924,76 +933,135 @@ class BlockManager(object):
 
         if axis == 0:
 
-            # we have a non-unique index, so setup the ref_locs
-            if not cur_axis.is_unique:
-                self.set_ref_locs(cur_axis)
+            # set/reset ref_locs based on the current index
+            # and map the new index if needed
+            self._set_ref_locs(labels=cur_axis)
 
             # take via ref_locs
             for block in self.blocks:
                 block.set_ref_items(self.items, maybe_rename=True)
 
-    def set_ref_locs(self, labels = None):
-        # if we have a non-unique index on this axis, set the indexers
-        # we need to set an absolute indexer for the blocks
-        # return the indexer if we are not unique
+            # set/reset ref_locs based on the new index
+            self._set_ref_locs(labels=value, do_refs=True)
+
+    def _set_ref_locs(self, labels=None, do_refs=False):
+        """
+        if we have a non-unique index on this axis, set the indexers
+        we need to set an absolute indexer for the blocks
+        return the indexer if we are not unique
+        
+        labels : the (new) labels for this manager
+        ref    : boolean, whether to set the labels (one a 1-1 mapping)
+
+        """
+
+        im = None
         if labels is None:
             labels = self.items
+        else:
+            _ensure_index(labels)
 
-        if labels.is_unique: 
+        # we are unique, and coming from a unique
+        if labels.is_unique and not do_refs:
+
+            # reset our ref locs
+            self._ref_locs = None
+            for b in self.blocks:
+                b._ref_locs = None
+
             return None
 
-        #### THIS IS POTENTIALLY VERY SLOW #####
+        # we are going to a non-unique index
+        # we have ref_locs on the block at this point
+        #   or if ref_locs are not set, then we must assume a block
+        #   ordering
+        if not labels.is_unique and do_refs:
 
-        # if we are already computed, then we are done
-        rl = getattr(self,'_ref_locs',None)
-        if rl is not None:
+            # create the items map
+            im = getattr(self,'_items_map',None)
+            if im is None:
+
+                im = dict()
+                def maybe_create_block(block):
+                    try:
+                        return d[block]
+                    except:
+                        im[block] = l = [ None ] * len(block.items)
+                    return l
+
+                count_items = 0
+                for block in self.blocks:
+
+                    # if we have a duplicate index but
+                    # _ref_locs have not been set....then
+                    # have to assume ordered blocks are passed
+                    num_items = len(block.items)
+                    try:
+                        rl = block.ref_locs
+                    except:
+                        rl = np.arange(num_items) + count_items
+
+                    m = maybe_create_block(block)
+                    for i, item in enumerate(block.items):
+                        m[i] = rl[i]
+                    count_items += num_items
+
+                self._items_map = im
+
+            # create the _ref_loc map here
+            rl = np.empty(len(labels),dtype=object)
+            for block, items in im.items():
+                for i, loc in enumerate(items):
+                    rl[loc] = (block,i)
+            self._ref_locs = rl
             return rl
 
-        blocks = self.blocks
+        # return our cached _ref_locs (or will compute again 
+        # when we recreate the block manager if needed
+        return getattr(self,'_ref_locs',None)
 
-        # initialize
-        blockmap = dict()
-        for b in blocks:
-            arr = np.empty(len(b.items),dtype='int64')
-            arr.fill(-1)
-            b._ref_locs = arr
+    def get_items_map(self):
+        """ 
+        return an inverted ref_loc map for an item index
+        block -> item (in that block) location -> column location
+        """
 
-            # add this block to the blockmap for each
-            # of the items in the block
-            for item in b.items:
-               if item not in blockmap:
-                   blockmap[item] = []
-               blockmap[item].append(b)
+        # cache check
+        im = getattr(self,'_items_map',None)
+        if im is not None:
+            return im
+        
+        im = dict()
+        rl = self._set_ref_locs()
 
-        rl = np.empty(len(labels),dtype=object)
-        for i, item in enumerate(labels.values):
-
+        def maybe_create_block(block):
             try:
-                block = blockmap[item].pop(0)
+                return im[block]
             except:
-                raise Exception("not enough items in set_ref_locs")
+                im[block] = l = [ None ] * len(block.items)
+            return l
 
-            indexer = np.arange(len(block.items))
-            mask = (block.items == item) & (block._ref_locs == -1)
-            if not mask.any():
+        # we have a non-duplicative index
+        if rl is None:
 
-                # this case will catch a comparison of a index of tuples
-                mask = np.empty(len(block.items),dtype=bool)
-                mask.fill(False)
-                for j, (bitem, brl) in enumerate(zip(block.items,block._ref_locs)):
-                    mask[j] = bitem == item and brl == -1
+            axis = self.axes[0]
+            for block in self.blocks:
 
-            indices = indexer[mask]
-            if len(indices):
-                idx = indices[0]
-            else:
-                raise Exception("already set too many items in set_ref_locs")
+                m = maybe_create_block(block)
+                for i, item in enumerate(block.items):
+                    m[i] = axis.get_loc(item)
 
-            block._ref_locs[idx] = i
-            rl[i] = (block,idx)
-           
-        self._ref_locs = rl
-        return rl
+
+        # use the ref_locs to construct the map
+        else:
+
+            for i, (block, idx) in enumerate(rl):
+                
+                m = maybe_create_block(block)
+                m[idx] = i
+
+        self._items_map = im
+        return im
 
     # make items read only for now
     def _get_items(self):
@@ -1259,13 +1327,16 @@ class BlockManager(object):
                                   new_items, 
                                   klass=blk.__class__,
                                   fastpath=True)
+                newb.set_ref_locs(blk._ref_locs)
                 new_blocks = [newb]
             else:
                 return self.reindex_items(new_items)
         else:
             new_blocks = self._slice_blocks(slobj, axis)
 
-        return BlockManager(new_blocks, new_axes, do_integrity_check=False)
+        bm = BlockManager(new_blocks, new_axes, do_integrity_check=False)
+        bm._consolidate_inplace()
+        return bm
 
     def _slice_blocks(self, slobj, axis):
         new_blocks = []
@@ -1280,6 +1351,7 @@ class BlockManager(object):
                               block.ref_items, 
                               klass=block.__class__,
                               fastpath=True)
+            newb.set_ref_locs(block._ref_locs)
             new_blocks.append(newb)
         return new_blocks
 
@@ -1463,9 +1535,9 @@ class BlockManager(object):
             return self.get(item)
 
         # compute the duplicative indexer if needed
-        ref_locs = self.set_ref_locs()
+        ref_locs = self._set_ref_locs()
         b, loc = ref_locs[i]
-        return b.values[loc]
+        return b.iget(loc)
 
     def get_scalar(self, tup):
         """
@@ -1904,54 +1976,55 @@ def form_blocks(arrays, names, axes):
     bool_items = []
     object_items = []
     datetime_items = []
-    for k, v in zip(names, arrays):
+    for i, (k, v) in enumerate(zip(names, arrays)):
         if issubclass(v.dtype.type, np.floating):
-            float_items.append((k, v))
+            float_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.complexfloating):
-            complex_items.append((k, v))
+            complex_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.datetime64):
             if v.dtype != _NS_DTYPE:
                 v = tslib.cast_to_nanoseconds(v)
 
             if hasattr(v, 'tz') and v.tz is not None:
-                object_items.append((k, v))
+                object_items.append((i, k, v))
             else:
-                datetime_items.append((k, v))
+                datetime_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.integer):
             if v.dtype == np.uint64:
                 # HACK #2355 definite overflow
                 if (v > 2 ** 63 - 1).any():
-                    object_items.append((k, v))
+                    object_items.append((i, k, v))
                     continue
-            int_items.append((k, v))
+            int_items.append((i, k, v))
         elif v.dtype == np.bool_:
-            bool_items.append((k, v))
+            bool_items.append((i, k, v))
         else:
-            object_items.append((k, v))
+            object_items.append((i, k, v))
 
+    is_unique = items.is_unique
     blocks = []
     if len(float_items):
-        float_blocks = _multi_blockify(float_items, items)
+        float_blocks = _multi_blockify(float_items, items, is_unique=is_unique)
         blocks.extend(float_blocks)
 
     if len(complex_items):
-        complex_blocks = _simple_blockify(complex_items, items, np.complex128)
+        complex_blocks = _simple_blockify(complex_items, items, np.complex128, is_unique=is_unique)
         blocks.extend(complex_blocks)
 
     if len(int_items):
-        int_blocks = _multi_blockify(int_items, items)
+        int_blocks = _multi_blockify(int_items, items, is_unique=is_unique)
         blocks.extend(int_blocks)
 
     if len(datetime_items):
-        datetime_blocks = _simple_blockify(datetime_items, items, _NS_DTYPE)
+        datetime_blocks = _simple_blockify(datetime_items, items, _NS_DTYPE, is_unique=is_unique)
         blocks.extend(datetime_blocks)
 
     if len(bool_items):
-        bool_blocks = _simple_blockify(bool_items, items, np.bool_)
+        bool_blocks = _simple_blockify(bool_items, items, np.bool_, is_unique=is_unique)
         blocks.extend(bool_blocks)
 
     if len(object_items) > 0:
-        object_blocks = _simple_blockify(object_items, items, np.object_)
+        object_blocks = _simple_blockify(object_items, items, np.object_, is_unique=is_unique)
         blocks.extend(object_blocks)
 
     if len(extra_items):
@@ -1959,7 +2032,6 @@ def form_blocks(arrays, names, axes):
 
         # empty items -> dtype object
         block_values = np.empty(shape, dtype=object)
-
         block_values.fill(nan)
 
         na_block = make_block(block_values, extra_items, items)
@@ -1968,28 +2040,32 @@ def form_blocks(arrays, names, axes):
     return blocks
 
 
-def _simple_blockify(tuples, ref_items, dtype):
+def _simple_blockify(tuples, ref_items, dtype, is_unique=True):
     """ return a single array of a block that has a single dtype; if dtype is not None, coerce to this dtype """
-    block_items, values = _stack_arrays(tuples, ref_items, dtype)
+    block_items, values, placement = _stack_arrays(tuples, ref_items, dtype)
 
     # CHECK DTYPE?
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
-    return [ make_block(values, block_items, ref_items) ]
+    block = make_block(values, block_items, ref_items)
+    if not is_unique:
+        block.set_ref_locs(placement)
+    return [ block ]
 
-
-def _multi_blockify(tuples, ref_items, dtype = None):
+def _multi_blockify(tuples, ref_items, dtype = None, is_unique=True):
     """ return an array of blocks that potentially have different dtypes """
 
     # group by dtype
-    grouper = itertools.groupby(tuples, lambda x: x[1].dtype)
+    grouper = itertools.groupby(tuples, lambda x: x[2].dtype)
 
     new_blocks = []
     for dtype, tup_block in grouper:
 
-        block_items, values = _stack_arrays(list(tup_block), ref_items, dtype)
+        block_items, values, placement = _stack_arrays(list(tup_block), ref_items, dtype)
         block = make_block(values, block_items, ref_items)
+        if not is_unique:
+            block.set_ref_locs(placement)
         new_blocks.append(block)
 
     return new_blocks
@@ -2012,7 +2088,7 @@ def _stack_arrays(tuples, ref_items, dtype):
         else:
             return x.shape
 
-    names, arrays = zip(*tuples)
+    placement, names, arrays = zip(*tuples)
 
     first = arrays[0]
     shape = (len(arrays),) + _shape_compat(first)
@@ -2029,7 +2105,7 @@ def _stack_arrays(tuples, ref_items, dtype):
         if len(items) != len(stacked):
             raise Exception("invalid names passed _stack_arrays")
 
-    return items, stacked
+    return items, stacked, placement
 
 
 def _blocks_to_series_dict(blocks, index=None):
