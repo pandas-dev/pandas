@@ -6,7 +6,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
 from pandas.core.index import Index, Int64Index
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
@@ -92,9 +92,6 @@ class TimeSeriesError(Exception):
 
 
 _midnight = time(0, 0)
-_NS_DTYPE = np.dtype('M8[ns]')
-_INT64_DTYPE = np.dtype(np.int64)
-
 
 class DatetimeIndex(Int64Index):
     """
