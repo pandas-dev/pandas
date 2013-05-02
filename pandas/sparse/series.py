@@ -555,8 +555,8 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
-        if not (isinstance(new_index, splib.SparseIndex)):
-            raise AssertionError()
+        if not isinstance(new_index, splib.SparseIndex):
+            raise TypeError('new index must be a SparseIndex')
 
         block = self.block.sparse_reindex(new_index)
         new_data = SingleBlockManager(block, block.ref_items)

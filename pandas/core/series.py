@@ -1299,9 +1299,6 @@ class Series(generic.NDFrame):
                                     dtype=True)
         else:
             result = u('Series([], dtype: %s)') % self.dtype
-
-        if not (isinstance(result, compat.text_type)):
-            raise AssertionError()
         return result
 
     def _tidy_repr(self, max_vals=20):
@@ -1377,7 +1374,9 @@ class Series(generic.NDFrame):
 
         # catch contract violations
         if not isinstance(the_repr, compat.text_type):
-            raise AssertionError("expected unicode string")
+            raise AssertionError("result must be of type unicode, type"
+                                 " of result is {0!r}"
+                                 "".format(the_repr.__class__.__name__))
 
         if buf is None:
             return the_repr
@@ -1397,11 +1396,16 @@ class Series(generic.NDFrame):
         """
 
         formatter = fmt.SeriesFormatter(self, name=name, header=print_header,
-                                        length=length, dtype=dtype, na_rep=na_rep,
+                                        length=length, dtype=dtype,
+                                        na_rep=na_rep,
                                         float_format=float_format)
         result = formatter.to_string()
-        if not (isinstance(result, compat.text_type)):
-            raise AssertionError()
+
+        # TODO: following check prob. not neces.
+        if not isinstance(result, compat.text_type):
+            raise AssertionError("result must be of type unicode, type"
+                                 " of result is {0!r}"
+                                 "".format(result.__class__.__name__))
         return result
 
     def __iter__(self):

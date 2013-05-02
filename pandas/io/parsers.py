@@ -552,8 +552,10 @@ class TextFileReader(object):
 
         # type conversion-related
         if converters is not None:
-            if not (isinstance(converters, dict)):
-                raise AssertionError()
+            if not isinstance(converters, dict):
+                raise TypeError('Type converters must be a dict or'
+                                ' subclass, input was '
+                                'a {0!r}'.format(type(converters).__name__))
         else:
             converters = {}
 
@@ -630,6 +632,7 @@ class TextFileReader(object):
         if size is None:
             size = self.chunksize
         return self.read(nrows=size)
+
 
 def _is_index_col(col):
     return col is not None and col is not False
@@ -1174,6 +1177,7 @@ def TextParser(*args, **kwds):
     kwds['engine'] = 'python'
     return TextFileReader(*args, **kwds)
 
+
 # delimiter=None, dialect=None, names=None, header=0,
 # index_col=None,
 # na_values=None,
@@ -1653,8 +1657,8 @@ class PythonParser(ParserBase):
         if self._implicit_index:
             col_len += len(self.index_col)
 
-        if not ((self.skip_footer >= 0)):
-            raise AssertionError()
+        if self.skip_footer < 0:
+            raise ValueError('skip footer cannot be negative')
 
         if col_len != zip_len and self.index_col is not False:
             i = 0
@@ -1883,6 +1887,7 @@ def _clean_na_values(na_values, keep_default_na=True):
 
     return na_values, na_fvalues
 
+
 def _clean_index_names(columns, index_col):
     if not _is_index_col(index_col):
         return None, columns, index_col
@@ -1941,6 +1946,7 @@ def _floatify_na_values(na_values):
             pass
     return result
 
+
 def _stringify_na_values(na_values):
     """ return a stringified and numeric for these values """
     result = []
@@ -1964,6 +1970,7 @@ def _stringify_na_values(na_values):
         except:
             pass
     return set(result)
+
 
 def _get_na_values(col, na_values, na_fvalues):
     if isinstance(na_values, dict):
@@ -2014,15 +2021,17 @@ class FixedWidthReader(object):
             encoding = get_option('display.encoding')
         self.encoding = encoding
 
-        if not ( isinstance(colspecs, (tuple, list))):
-            raise AssertionError()
+        if not isinstance(colspecs, (tuple, list)):
+            raise TypeError("column specifications must be a list or tuple, "
+                            "input was a %r" % type(colspecs).__name__)
 
         for colspec in colspecs:
-            if not ( isinstance(colspec, (tuple, list)) and
-                       len(colspec) == 2 and
-                       isinstance(colspec[0], int) and
-                       isinstance(colspec[1], int) ):
-                raise AssertionError()
+            if not (isinstance(colspec, (tuple, list)) and
+                    len(colspec) == 2 and
+                    isinstance(colspec[0], int) and
+                    isinstance(colspec[1], int)):
+                raise TypeError('Each column specification must be '
+                                '2 element tuple or list of integers')
 
     def next(self):
         line = next(self.f)

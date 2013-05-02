@@ -60,7 +60,7 @@ def _skip_if_no_scipy():
     try:
         import scipy.stats
     except ImportError:
-        raise nose.SkipTest
+        raise nose.SkipTest("no scipy.stats module")
 
 #---------------------------------------------------------------------
 # DataFrame test cases
@@ -9498,7 +9498,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('sum', np.sum, has_numeric_only=True)
 
     def test_sum_mixed_numeric(self):
-        raise nose.SkipTest
+        raise nose.SkipTest("skipping for now")
         # mixed types
         self._check_stat_op('sum', np.sum, frame = self.mixed_float, has_numeric_only=True)
 
@@ -10910,10 +10910,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(isnull(Y['g']['c']))
 
     def test_index_namedtuple(self):
-        try:
-            from collections import namedtuple
-        except ImportError:
-            raise nose.SkipTest
+        from collections import namedtuple
         IndexType = namedtuple("IndexType", ["a", "b"])
         idx1 = IndexType("foo", "bar")
         idx2 = IndexType("baz", "bof")

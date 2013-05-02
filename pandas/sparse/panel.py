@@ -77,8 +77,9 @@ class SparsePanel(Panel):
                                     default_kind=default_kind)
             frames = new_frames
 
-        if not (isinstance(frames, dict)):
-            raise AssertionError()
+        if not isinstance(frames, dict):
+            raise TypeError('input must be a dict, a %r was passed' %
+                            type(frames).__name__)
 
         self.default_fill_value = fill_value = default_fill_value
         self.default_kind = kind = default_kind
@@ -99,7 +100,7 @@ class SparsePanel(Panel):
         # do we want to fill missing ones?
         for item in items:
             if item not in clean_frames:
-                raise Exception('column %s not found in data' % item)
+                raise ValueError('column %r not found in data' % item)
 
         self._items = items
         self.major_axis = major_axis

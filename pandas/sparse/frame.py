@@ -25,7 +25,6 @@ from pandas.core.internals import BlockManager, create_block_manager_from_arrays
 from pandas.core.generic import NDFrame
 from pandas.sparse.series import SparseSeries, SparseArray
 from pandas.util.decorators import Appender
-import pandas.lib as lib
 
 
 class SparseDataFrame(DataFrame):
@@ -601,20 +600,15 @@ class SparseDataFrame(DataFrame):
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
-        if isinstance(other, Series):
-            if other.name is None:
-                raise ValueError('Other Series must have a name')
-            other = SparseDataFrame({other.name: other},
-                                    default_fill_value=self._default_fill_value)
         if on is not None:
-            raise NotImplementedError
-        else:
-            return self._join_index(other, how, lsuffix, rsuffix)
+            raise NotImplementedError("'on' keyword parameter is not yet "
+                                      "implemented")
+        return self._join_index(other, how, lsuffix, rsuffix)
 
     def _join_index(self, other, how, lsuffix, rsuffix):
         if isinstance(other, Series):
-            if not (other.name is not None):
-                raise AssertionError()
+            if other.name is None:
+                raise ValueError('Other Series must have a name')
 
             other = SparseDataFrame({other.name: other},
                                     default_fill_value=self._default_fill_value)

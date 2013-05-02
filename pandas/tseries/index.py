@@ -309,11 +309,11 @@ class DatetimeIndex(Int64Index):
 
         if tz is not None and inferred_tz is not None:
             if not inferred_tz == tz:
-                raise AssertionError()
+                raise AssertionError("Inferred time zone not equal to passed "
+                                     "time zone")
 
         elif inferred_tz is not None:
             tz = inferred_tz
-
 
         if start is not None:
             if normalize:
@@ -456,16 +456,16 @@ class DatetimeIndex(Int64Index):
             cachedRange = drc[offset]
 
         if start is None:
-            if not (isinstance(end, Timestamp)):
-                raise AssertionError()
+            if not isinstance(end, Timestamp):
+                raise AssertionError('end must be an instance of Timestamp')
 
             end = offset.rollback(end)
 
             endLoc = cachedRange.get_loc(end) + 1
             startLoc = endLoc - periods
         elif end is None:
-            if not (isinstance(start, Timestamp)):
-                raise AssertionError()
+            if not isinstance(start, Timestamp):
+                raise AssertionError('start must be an instance of Timestamp')
 
             start = offset.rollforward(start)
 
@@ -601,14 +601,14 @@ class DatetimeIndex(Int64Index):
             if d.time() != zero_time or d.tzinfo is not None:
                 return [u('%s') % x for x in data]
 
-        values = np.array(data,dtype=object)
+        values = np.array(data, dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
 
         imask = -mask
-        values[imask] = np.array([u('%d-%.2d-%.2d') % (
-                                  dt.year, dt.month, dt.day)
-                                  for dt in values[imask] ])
+        values[imask] = np.array([u('%d-%.2d-%.2d') % (dt.year, dt.month,
+                                                       dt.day)
+                                  for dt in values[imask]])
         return values.tolist()
 
     def isin(self, values):
@@ -1130,7 +1130,6 @@ class DatetimeIndex(Int64Index):
         else:
             raise KeyError
 
-
         stamps = self.asi8
 
         if is_monotonic:
@@ -1147,8 +1146,8 @@ class DatetimeIndex(Int64Index):
 
             return slice(left, right)
 
-        lhs_mask = (stamps>=t1.value) if use_lhs else True
-        rhs_mask = (stamps<=t2.value) if use_rhs else True
+        lhs_mask = (stamps >= t1.value) if use_lhs else True
+        rhs_mask = (stamps <= t2.value) if use_rhs else True
 
         # try to find a the dates
         return (lhs_mask & rhs_mask).nonzero()[0]
@@ -1227,7 +1226,8 @@ class DatetimeIndex(Int64Index):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
         _, parsed, reso = parse_time_string(key, freq)
-        loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
+        loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs,
+                                       use_rhs=use_rhs)
         return loc
 
     def slice_indexer(self, start=None, end=None, step=None):
@@ -1274,12 +1274,13 @@ class DatetimeIndex(Int64Index):
                 # so create an indexer directly
                 try:
                     if start:
-                        start_loc = self._get_string_slice(start,use_rhs=False)
+                        start_loc = self._get_string_slice(start,
+                                                           use_rhs=False)
                     else:
                         start_loc = np.arange(len(self))
 
                     if end:
-                        end_loc = self._get_string_slice(end,use_lhs=False)
+                        end_loc = self._get_string_slice(end, use_lhs=False)
                     else:
                         end_loc = np.arange(len(self))
 

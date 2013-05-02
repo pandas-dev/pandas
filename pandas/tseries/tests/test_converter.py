@@ -11,7 +11,7 @@ from pandas.compat import u
 try:
     import pandas.tseries.converter as converter
 except ImportError:
-    raise nose.SkipTest
+    raise nose.SkipTest("no pandas.tseries.converter, skipping")
 
 
 def test_timtetonum_accepts_unicode():
