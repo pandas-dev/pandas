@@ -58,6 +58,7 @@ pandas 0.11.1
   - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
   - Fix sorting in a frame with a list of columns which contains datetime64[ns] dtypes (GH3461_)
   - DataFrames fetched via FRED now handle '.' as a NaN. (GH3469_)
+  - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
@@ -73,6 +74,7 @@ pandas 0.11.1
 .. _GH3461: https://github.com/pydata/pandas/issues/3461
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
+.. _GH3510: https://github.com/pydata/pandas/issues/3510
 
 
 pandas 0.11.0
