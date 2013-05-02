@@ -61,8 +61,20 @@ pandas 0.11.1
   - Fix regression in a DataFrame apply with axis=1, objects were not being converted back
     to base dtypes correctly (GH3480_)
   - Fix issue when storing uint dtypes in an HDFStore. (GH3493_)
+  - Non-unique index support clarified (GH3468_)
+
+    - Fix assigning a new index to a duplicate index in a DataFrame would fail (GH3468_)
+    - Fix construction of a DataFrame with a duplicate index
+    - ref_locs support to allow duplicative indices across dtypes,
+      allows iget support to always find the index (even across dtypes) (GH2194_)
+    - applymap on a DataFrame with a non-unique index now works
+      (removed warning) (GH2786_), and fix (GH3230_)
+    - Fix to_csv to handle non-unique columns (GH3495_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
+.. _GH2786: https://github.com/pydata/pandas/issues/2786
+.. _GH2194: https://github.com/pydata/pandas/issues/2194
+.. _GH3230: https://github.com/pydata/pandas/issues/3230
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3480: https://github.com/pydata/pandas/issues/3480
@@ -75,8 +87,10 @@ pandas 0.11.1
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3461: https://github.com/pydata/pandas/issues/3461
+.. _GH3468: https://github.com/pydata/pandas/issues/3468
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
+.. _GH3495: https://github.com/pydata/pandas/issues/3495
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
 
 

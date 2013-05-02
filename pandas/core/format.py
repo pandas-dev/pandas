@@ -820,21 +820,7 @@ class CSVFormatter(object):
         self.blocks = self.obj._data.blocks
         ncols = sum(len(b.items) for b in self.blocks)
         self.data =[None] * ncols
-
-        if self.obj.columns.is_unique:
-            self.colname_map = dict((k,i) for i,k in  enumerate(self.obj.columns))
-        else:
-            ks = [set(x.items) for x in self.blocks]
-            u = len(reduce(lambda a,x: a.union(x),ks,set()))
-            t = sum(map(len,ks))
-            if u != t:
-                if len(set(self.cols)) != len(self.cols):
-                    raise NotImplementedError("duplicate columns with differing dtypes are unsupported")
-            else:
-                # if columns are not unique and we acces this,
-                # we're doing it wrong
-                pass
-
+        self.column_map = self.obj._data.get_items_map()
 
         if chunksize is None:
             chunksize = (100000/ (len(self.cols) or 1)) or 1
@@ -1034,18 +1020,13 @@ class CSVFormatter(object):
 
         # create the data for a chunk
         slicer = slice(start_i,end_i)
-        if self.obj.columns.is_unique:
-            for i in range(len(self.blocks)):
-                b = self.blocks[i]
-                d = b.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
-                for j, k in enumerate(b.items):
-                    # self.data is a preallocated list
-                    self.data[self.colname_map[k]] = d[j]
-        else:
-            # self.obj should contain a proper view of the dataframes
-            # with the specified ordering of cols if cols was specified
-            for i in range(len(self.obj.columns)):
-                self.data[i] = self.obj.icol(i).values[slicer].tolist()
+        for i in range(len(self.blocks)):
+            b = self.blocks[i]
+            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
+            for i, item in enumerate(b.items):
+
+                # self.data is a preallocated list
+                self.data[self.column_map[b][i]] = d[i]
 
         ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep, float_format=self.float_format)
 

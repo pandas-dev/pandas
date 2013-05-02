@@ -278,7 +278,7 @@ class Index(np.ndarray):
     def is_lexsorted_for_tuple(self, tup):
         return True
 
-    @cache_readonly
+    @cache_readonly(allow_setting=True)
     def is_unique(self):
         return self._engine.is_unique
 
