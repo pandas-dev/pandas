@@ -1156,6 +1156,7 @@ def _default_index(n):
     values = np.arange(n, dtype=np.int64)
     result = values.view(Int64Index)
     result.name = None
+    result.is_unique = True
     return result
 
 

@@ -268,7 +268,7 @@ class TestBlockManager(unittest.TestCase):
             b.ref_items = items
 
         mgr = BlockManager(blocks, [items, np.arange(N)])
-        self.assertRaises(Exception, mgr.iget, 1)
+        mgr.iget(1)
 
     def test_contains(self):
         self.assert_('a' in self.mgr)
