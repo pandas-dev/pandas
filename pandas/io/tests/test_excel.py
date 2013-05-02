@@ -41,6 +41,9 @@ from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
 def _skip_if_no_xlrd():
     try:
         import xlrd
+        ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
+        if ver < (0, 9):
+            raise nose.SkipTest('xlrd not installed, skipping')
     except ImportError:
         raise nose.SkipTest('xlrd not installed, skipping')
 
@@ -215,6 +218,7 @@ class ExcelTests(unittest.TestCase):
         df = xl.parse('Sheet1', index_col=0, parse_dates=True)
 
     def test_xlsx_table(self):
+        _skip_if_no_xlrd()
         _skip_if_no_openpyxl()
 
         pth = os.path.join(self.dirpath, 'test.xlsx')
@@ -294,6 +298,7 @@ class ExcelTests(unittest.TestCase):
 
     def test_excel_roundtrip_xlsx_mixed(self):
         _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
 
         self._check_extension_mixed('xlsx')
 
@@ -314,6 +319,7 @@ class ExcelTests(unittest.TestCase):
 
     def test_excel_roundtrip_xlsx_tsframe(self):
         _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
         self._check_extension_tsframe('xlsx')
 
     def _check_extension_tsframe(self, ext):
@@ -555,6 +561,7 @@ class ExcelTests(unittest.TestCase):
         self._check_excel_multiindex('xls')
 
     def test_to_excel_multiindex_xlsx(self):
+        _skip_if_no_xlrd()
         _skip_if_no_openpyxl()
         self._check_excel_multiindex('xlsx')
 
@@ -587,6 +594,7 @@ class ExcelTests(unittest.TestCase):
 
     def test_to_excel_multiindex_xlsx_dates(self):
         _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
         self._check_excel_multiindex_dates('xlsx')
 
     def _check_excel_multiindex_dates(self, ext):
