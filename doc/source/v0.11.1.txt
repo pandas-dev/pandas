@@ -12,9 +12,12 @@ API changes
 
 Enhancements
 ~~~~~~~~~~~~
+  - pd.read_html() can now parse HTML string, files or urls and return dataframes
+    courtesy of @cpcloud. (GH3477_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
 .. _GH2437: https://github.com/pydata/pandas/issues/2437
+.. _GH3477: https://github.com/pydata/pandas/issues/3477

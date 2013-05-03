@@ -75,6 +75,8 @@ if ( ! $VENV_FILE_AVAILABLE ); then
         pip install $PIP_ARGS xlrd>=0.9.0
         pip install $PIP_ARGS 'http://downloads.sourceforge.net/project/pytseries/scikits.timeseries/0.91.3/scikits.timeseries-0.91.3.tar.gz?r='
         pip install $PIP_ARGS patsy
+        pip install $PIP_ARGS lxml
+        pip install $PIP_ARGS beautifulsoup4
 
         # fool statsmodels into thinking pandas was already installed
         # so it won't refuse to install itself. We want it in the zipped venv

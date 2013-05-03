@@ -50,6 +50,13 @@ File IO
    read_csv
    ExcelFile.parse
 
+.. currentmodule:: pandas.io.html
+
+.. autosummary::
+   :toctree: generated/
+
+   read_html
+
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. currentmodule:: pandas.io.pytables
