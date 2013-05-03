@@ -487,6 +487,10 @@ class PandasObject(object):
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
+    def to_msgpack(self, path_or_buf, **kwargs):
+        from pandas.io import packers
+        return packers.to_msgpack(path_or_buf, self, **kwargs)
+
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():
     PandasObject._create_indexer(_name,_indexer)

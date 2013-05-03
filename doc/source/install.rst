@@ -93,6 +93,7 @@ Optional Dependencies
     version. Version 0.17.1 or higher.
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
+  * `msgpack <http://www.msgpack.org>`__: necessary for msgpack based serialization
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`

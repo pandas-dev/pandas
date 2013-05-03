@@ -15,7 +15,6 @@ import pandas.core.expressions as expressions
 from pandas.tslib import Timestamp
 from pandas.util import py3compat
 
-
 class Block(object):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
