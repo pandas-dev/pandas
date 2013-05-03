@@ -70,6 +70,7 @@ pandas 0.11.1
     - applymap on a DataFrame with a non-unique index now works
       (removed warning) (GH2786_), and fix (GH3230_)
     - Fix to_csv to handle non-unique columns (GH3495_)
+  - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -83,6 +84,7 @@ pandas 0.11.1
 .. _GH3426: https://github.com/pydata/pandas/issues/3426
 .. _GH3466: https://github.com/pydata/pandas/issues/3466
 .. _GH3038: https://github.com/pydata/pandas/issues/3038
+.. _GH3510: https://github.com/pydata/pandas/issues/3510
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
