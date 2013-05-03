@@ -78,6 +78,10 @@ your contribution or address the issue you're having.
 
     Having said that, if you still feel a PEP8 storm is in order, go for it.
 
+### Notes on plotting functions convention
+
+https://groups.google.com/forum/#!topic/pystatsmodels/biNlCvJPNNY/discussion
+
 ###Getting Travis-CI going
 
 Instructions for getting Travis-CI installed are available [here](http://about.travis-ci.org/docs/user/getting-started/). For those users who are new to travis-ci and continuous-integration in particular,
