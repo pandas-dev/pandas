@@ -33,6 +33,7 @@ from pandas.io.parsers import (read_csv, read_table, read_clipboard,
                                read_fwf, to_clipboard, ExcelFile,
                                ExcelWriter)
 from pandas.io.pytables import HDFStore, Term, get_store, read_hdf
+from pandas.io.html import read_html
 from pandas.util.testing import debug
 
 from pandas.tools.describe import value_range
