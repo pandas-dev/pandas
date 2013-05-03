@@ -686,6 +686,35 @@ to unify methods and behaviors. Series formerly subclassed directly from
      s.a = 5
      s
 
+IO Enhancements
+~~~~~~~~~~~~~~~
+
+- ``pd.read_msgpack()`` and ``pd.to_msgpack()`` are now a supported method of serialization
+  of arbitrary pandas (and python objects) in a lightweight portable binary format. :ref:`See the docs<io.msgpack>`
+
+  .. ipython:: python
+
+        df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+        df.to_msgpack('foo.msg')
+        pd.read_msgpack('foo.msg')
+
+        s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
+        pd.to_msgpack('foo.msg', df, s)
+        pd.read_msgpack('foo.msg')
+
+  You can pass ``iterator=True`` to iterator over the unpacked results
+
+  .. ipython:: python
+
+        for o in pd.read_msgpack('foo.msg',iterator=True):
+            print o
+
+  .. ipython:: python
+        :suppress:
+        :okexcept:
+
+        os.remove('foo.msg')
+
 Bug Fixes
 ~~~~~~~~~
 

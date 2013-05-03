@@ -36,6 +36,7 @@ object.
     * ``read_hdf``
     * ``read_sql``
     * ``read_json``
+    * ``read_msgpack``
     * ``read_html``
     * ``read_stata``
     * ``read_clipboard``
@@ -48,6 +49,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * ``to_hdf``
     * ``to_sql``
     * ``to_json``
+    * ``to_msgpack``
     * ``to_html``
     * ``to_stata``
     * ``to_clipboard``
@@ -1731,6 +1733,72 @@ module is installed you can use it as a xlsx writer engine as follows:
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
 .. _io.hdf5:
+
+Serialization
+-------------
+
+msgpack
+~~~~~~~
+
+.. _io.msgpack:
+
+.. versionadded:: 0.11.1
+
+Starting in 0.11.1, pandas is supporting the ``msgpack`` format for 
+object serialization. This is a lightweight portable binary format, similar
+to binary JSON, that is highly space efficient, and provides good performance 
+both on the writing (serialization), and reading (deserialization).
+
+.. warning::
+
+   This is a very new feature of pandas. We intend to provide certain 
+   optimizations in the io of the ``msgpack`` data. We do not intend this
+   format to change (and will be backward compatible if we do).
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+   df.to_msgpack('foo.msg')
+   pd.read_msgpack('foo.msg')
+   s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
+
+You can pass a list of objects and you will receive them back on deserialization.
+
+.. ipython:: python
+
+   pd.to_msgpack('foo.msg', df, 'foo', np.array([1,2,3]), s)
+   pd.read_msgpack('foo.msg')
+
+You can pass ``iterator=True`` to iterate over the unpacked results
+
+.. ipython:: python
+
+   for o in pd.read_msgpack('foo.msg',iterator=True):
+       print o
+
+You can pass ``append=True`` to the writer to append to an existing pack
+
+.. ipython:: python
+
+   df.to_msgpack('foo.msg',append=True)
+   pd.read_msgpack('foo.msg')
+
+Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
+``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
+can pack arbitrary collections of python lists, dicts, scalars, while intermixing
+pandas objects.
+
+.. ipython:: python
+
+   pd.to_msgpack('foo2.msg', { 'dict' : [ { 'df' : df }, { 'string' : 'foo' }, { 'scalar' : 1. }, { 's' : s } ] })
+   pd.read_msgpack('foo2.msg')
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('foo.msg')
+   os.remove('foo2.msg')
 
 HDF5 (PyTables)
 ---------------

@@ -64,17 +64,19 @@ New features
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
-- The new :func:`~pandas.eval` function implements expression evaluation using
-  ``numexpr`` behind the scenes. This results in large speedups for complicated
-  expressions involving large DataFrames/Series.
-- :class:`~pandas.DataFrame` has a new :meth:`~pandas.DataFrame.eval` that
-  evaluates an expression in the context of the ``DataFrame``.
-- A :meth:`~pandas.DataFrame.query` method has been added that allows
-  you to select elements of a ``DataFrame`` using a natural query syntax nearly
-  identical to Python syntax.
-- ``pd.eval`` and friends now evaluate operations involving ``datetime64``
-  objects in Python space because ``numexpr`` cannot handle ``NaT`` values
-  (:issue:`4897`).
+  - The new :func:`~pandas.eval` function implements expression evaluation using
+    ``numexpr`` behind the scenes. This results in large speedups for complicated
+    expressions involving large DataFrames/Series.
+  - :class:`~pandas.DataFrame` has a new :meth:`~pandas.DataFrame.eval` that
+    evaluates an expression in the context of the ``DataFrame``.
+  - A :meth:`~pandas.DataFrame.query` method has been added that allows
+    you to select elements of a ``DataFrame`` using a natural query syntax nearly
+    identical to Python syntax.
+  - ``pd.eval`` and friends now evaluate operations involving ``datetime64``
+    objects in Python space because ``numexpr`` cannot handle ``NaT`` values
+    (:issue:`4897`).
+  - Add msgpack support via ``pd.read_msgpack()`` and ``pd.to_msgpack()/df.to_msgpack()`` for serialization
+     of arbitrary pandas (and python objects) in a lightweight portable binary format (:issue:`686`)
 
 Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

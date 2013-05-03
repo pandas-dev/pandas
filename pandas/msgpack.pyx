@@ -1,5 +1,6 @@
 # coding: utf-8
 #cython: embedsignature=True
+#cython: profile=False
 
 from cpython cimport *
 cdef extern from "Python.h":
@@ -12,6 +13,9 @@ from libc.stdlib cimport *
 from libc.string cimport *
 from libc.limits cimport *
 
+import cython
+import numpy as np
+from numpy cimport *
 
 class UnpackException(Exception):
     pass
@@ -154,6 +158,8 @@ cdef class Packer(object):
     def __dealloc__(self):
         free(self.pk.buf);
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef int _pack(self, object o, int nest_limit=DEFAULT_RECURSE_LIMIT) except -1:
         cdef long long llval
         cdef unsigned long long ullval
@@ -163,6 +169,13 @@ cdef class Packer(object):
         cdef char* rawval
         cdef int ret
         cdef dict d
+        cdef object dtype
+
+        cdef int n,i
+        cdef double f8val
+        cdef int64_t i8val
+        cdef ndarray[float64_t,ndim=1] array_double
+        cdef ndarray[int64_t,ndim=1] array_int
 
         if nest_limit < 0:
             raise PackValueError("recursion limit exceeded.")
@@ -227,6 +240,45 @@ cdef class Packer(object):
                 for v in o:
                     ret = self._pack(v, nest_limit-1)
                     if ret != 0: break
+
+        # ndarray support ONLY (and float64/int64) for now
+        elif isinstance(o, np.ndarray) and not hasattr(o,'values') and (o.dtype == 'float64' or o.dtype == 'int64'): 
+
+            ret = msgpack_pack_map(&self.pk, 5)
+            if ret != 0: return -1
+
+            dtype = o.dtype
+            self.pack_pair('typ',   'ndarray', nest_limit)
+            self.pack_pair('shape', o.shape,   nest_limit)
+            self.pack_pair('ndim',  o.ndim,    nest_limit)
+            self.pack_pair('dtype', dtype.num, nest_limit)
+
+            ret = self._pack('data', nest_limit-1)
+            if ret != 0: return ret
+
+            if dtype == 'float64':
+                array_double = o.ravel()
+                n = len(array_double)
+                ret = msgpack_pack_array(&self.pk, n)
+                if ret != 0: return ret
+
+                for i in range(n):
+
+                   f8val = array_double[i]
+                   ret = msgpack_pack_double(&self.pk, f8val)
+                   if ret != 0: break
+            elif dtype == 'int64':
+                array_int = o.ravel()
+                n = len(array_int)
+                ret = msgpack_pack_array(&self.pk, n)
+                if ret != 0: return ret
+
+                for i in range(n):
+
+                   i8val = array_int[i]
+                   ret = msgpack_pack_long(&self.pk, i8val)
+                   if ret != 0: break
+
         elif self._default:
             o = self._default(o)
             ret = self._pack(o, nest_limit-1)
@@ -299,6 +351,13 @@ cdef class Packer(object):
         """Return buffer content."""
         return PyBytes_FromStringAndSize(self.pk.buf, self.pk.length)
 
+
+    cdef inline pack_pair(self, object k, object v, int nest_limit):
+        ret = self._pack(k, nest_limit-1)
+        if ret != 0: raise Exception("cannot pack : %s" % k)
+        ret = self._pack(v, nest_limit-1)
+        if ret != 0: raise Exception("cannot pack : %s" % v)
+        return ret
 
 def pack(object o, object stream, default=None, encoding='utf-8', unicode_errors='strict'):
     """

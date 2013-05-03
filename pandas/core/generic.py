@@ -805,6 +805,10 @@ class NDFrame(PandasObject):
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
+    def to_msgpack(self, path_or_buf, **kwargs):
+        from pandas.io import packers
+        return packers.to_msgpack(path_or_buf, self, **kwargs)
+
     def to_pickle(self, path):
         """
         Pickle (serialize) object to input file path
