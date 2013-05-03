@@ -1,0 +1,35 @@
+.. _whatsnew_0120:
+
+v0.12.0 (??????)
+----------------
+
+This is a major release from 0.11.1 and includes many new features and
+enhancements along with a large number of bug fixes. There are also a 
+number of important API changes that long-time pandas users should
+pay close attention to.
+
+Enhancements
+~~~~~~~~~~~~
+
+- ``pd.read_msgpack()`` and ``pd.to_msgpack()`` are now a supported method of serialization
+    of arbitrary pandas (and python objects) in a lightweight portable binary format
+
+    .. ipython:: python
+
+          df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+          df.to_msgpack('foo.msg')
+          pd.read_msgpack('foo.msg')
+
+          s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
+          pd.to_msgpack('foo.msg', df, s)
+          pd.read_msgpack('foo.msg')
+
+    .. ipython:: python
+          :suppress:
+          :okexcept:
+
+          os.remove('foo.msg')
+
+See the `full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.

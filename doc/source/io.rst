@@ -981,6 +981,79 @@ one can use the ExcelWriter class, as in the following example:
 
 .. _io.hdf5:
 
+.. _basics.serialize:
+
+Serialization
+-------------
+
+msgpack
+~~~~~~~
+
+Starting in 0.12.0, pandas is supporting the ``msgpack`` format for 
+object serialization. This is a lightweight portable binary format, similar
+to binary JSON, that is highly space efficient, and provides good performance 
+both on the writing (serialization), and reading (deserialization).
+
+.. ipython:: python
+
+   df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+   df.to_msgpack('foo.msg')
+   pd.read_msgpack('foo.msg')
+   s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
+
+You can pass a list of objects and you will receive them back on deserialization.
+
+.. ipython:: python
+
+   pd.to_msgpack('foo.msg', df, 'foo', np.array([1,2,3]), s)
+   pd.read_msgpack('foo.msg')
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('foo.msg')
+
+
+pickling
+~~~~~~~~
+
+All pandas objects are equipped with ``save`` methods which use Python's
+``cPickle`` module to save data structures to disk using the pickle format.
+
+.. ipython:: python
+
+   df
+   df.save('foo.pickle')
+
+The ``load`` function in the ``pandas`` namespace can be used to load any
+pickled pandas object (or any other pickled object) from file:
+
+
+.. ipython:: python
+
+   load('foo.pickle')
+
+There is also a ``save`` function which takes any object as its first argument:
+
+.. ipython:: python
+
+   save(df, 'foo.pickle')
+   load('foo.pickle')
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('foo.pickle')
+
+.. warning::
+
+   Loading pickled data received from untrusted sources can be unsafe.
+
+   See: http://docs.python.org/2.7/library/pickle.html
+
+
 HDF5 (PyTables)
 ---------------
 

@@ -68,7 +68,7 @@ try:
 except:
     _USE_MSGPACK = False
 
-def to_msgpack(path, obj, **kwargs):
+def to_msgpack(path, *args, **kwargs):
     """
     msgpack (serialize) object to input file path
 
@@ -76,18 +76,30 @@ def to_msgpack(path, obj, **kwargs):
     ----------
     path : string
         File path
-    obj : any object
+    args : an object or objects to serialize
+
+    append : boolean whether to append to an existing msgpack
+             (default is False)
     """
     if not _USE_MSGPACK:
         raise Exception("please install msgpack to create msgpack stores!")
-    f = open(path, 'wb')
+
+    append = kwargs.get('append')
+    if append:
+        f = open(path, 'a+b')
+    else:
+        f = open(path, 'wb')
     try:
-        f.write(msgpack.packb(obj))
+        if len(args) == 1:
+            f.write(pack(args[0]))
+        else:
+            for a in args:
+                f.write(pack(a))
     finally:
         f.close()
 
 
-def read_msgpack(path):
+def read_msgpack(path, iterator=False, **kwargs):
     """
     Load msgpack pandas object from the specified
     file path
@@ -96,15 +108,24 @@ def read_msgpack(path):
     ----------
     path : string
         File path
+    iterator : boolean, if True, return an iterator to the unpacker
+               (default is False)
 
     Returns
     -------
     obj : type of object stored in file
+
     """
     if not _USE_MSGPACK:
         raise Exception("please install msgpack to read msgpack stores!")
+    if iterator:
+        return Iterator(path)
+
     with open(path,'rb') as fh:
-        return msgpack.unpackb(fh.read())
+        l = list(unpack(fh))
+        if len(l) == 1:
+            return l[0]
+        return l
 
 dtype_dict = { 'datetime64[ns]'  : np.dtype('M8[ns]'),
                'timedelta64[ns]' : np.dtype('m8[ns]') }
@@ -296,48 +317,29 @@ def decode(obj):
         import pdb; pdb.set_trace()
         return obj
 
-def pack(o, stream, default=encode, 
-         encoding='utf-8', unicode_errors='strict'):
-    """
-    Pack an object and write it to a stream.
-    """
-
-    _packer.pack(o, stream, default=default, 
-                  encoding=encoding,
-                  unicode_errors=unicode_errors)
-def packb(o, default=encode, 
-          encoding='utf-8', unicode_errors='strict', use_single_float=False):
+def pack(o, default=encode, 
+         encoding='utf-8', unicode_errors='strict', use_single_float=False):
     """
     Pack an object and return the packed bytes.
     """
 
-    return _packer.packb(o, default=default, encoding=encoding,
-                          unicode_errors=unicode_errors, 
-                          use_single_float=use_single_float)
+    return Packer(default=default, encoding=encoding,
+           unicode_errors=unicode_errors, 
+           use_single_float=use_single_float).pack(o)
 
-def unpack(stream, object_hook=decode, list_hook=None, use_list=None,
-           encoding='utf-8', unicode_errors='strict', object_pairs_hook=None):
+def unpack(packed, object_hook=decode, 
+           list_hook=None, use_list=False, encoding='utf-8',
+           unicode_errors='strict', object_pairs_hook=None):
     """
-    Unpack a packed object from a stream.
-    """
-
-    return _unpacker.unpack(stream, object_hook=object_hook,
-                           list_hook=list_hook, use_list=use_list, 
-                           encoding=encoding,
-                           unicode_errors=unicode_errors,
-                           object_pairs_hook=object_pairs_hook)
-def unpackb(packed, object_hook=decode, 
-            list_hook=None, use_list=None, encoding='utf-8',
-            unicode_errors='strict', object_pairs_hook=None):
-    """
-    Unpack a packed object.
+    Unpack a packed object, return an iterator
+    Note: packed lists will be returned as tuples
     """
 
-    return _unpacker.unpackb(packed, object_hook=object_hook,
-                            list_hook=list_hook, 
-                            use_list=use_list, encoding=encoding,
-                            unicode_errors=unicode_errors, 
-                            object_pairs_hook=object_pairs_hook)
+    return Unpacker(packed, object_hook=object_hook,
+                    list_hook=list_hook, 
+                    use_list=use_list, encoding=encoding,
+                    unicode_errors=unicode_errors, 
+                    object_pairs_hook=object_pairs_hook)
 
 if _USE_MSGPACK:
 
@@ -352,7 +354,7 @@ if _USE_MSGPACK:
                                          use_single_float=use_single_float)
 
     class Unpacker(_unpacker.Unpacker):
-        def __init__(self, file_like=None, read_size=0, use_list=None,
+        def __init__(self, file_like=None, read_size=0, use_list=False,
                      object_hook=decode,
                      object_pairs_hook=None, list_hook=None, encoding='utf-8',
                      unicode_errors='strict', max_buffer_size=0):
@@ -365,14 +367,21 @@ if _USE_MSGPACK:
                                            encoding=encoding, 
                                            unicode_errors=unicode_errors, 
                                            max_buffer_size=max_buffer_size)
-            
-    setattr(msgpack, 'Packer', Packer)
-    setattr(msgpack, 'Unpacker', Unpacker)
-    setattr(msgpack, 'load', unpack)
-    setattr(msgpack, 'loads', unpackb)
-    setattr(msgpack, 'dump', pack)
-    setattr(msgpack, 'dumps', packb)
-    setattr(msgpack, 'pack', pack)
-    setattr(msgpack, 'packb', packb)
-    setattr(msgpack, 'unpack', unpack)
-    setattr(msgpack, 'unpackb', unpackb)
+
+class Iterator(object):
+    """ manage the unpacking iteration,
+        close the file on completion """
+
+    def __init__(self, path, **kwargs):
+        self.path = path
+        self.kwargs = kwargs
+
+    def __iter__(self):
+
+        try:
+            fh   = open(self.path,'rb')
+            unpacker = unpack(fh)
+            for o in unpacker:
+                yield o
+        finally:
+            fh.close()

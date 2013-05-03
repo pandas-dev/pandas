@@ -1,10 +1,9 @@
-.. _whatsnew_0120:
+.. _whatsnew_0111:
 
-v0.12.0 (??)
+v0.11.1 (??)
 ------------------------
 
-This is a major release from 0.11.0 and includes many new features and
-enhancements along with a large number of bug fixes.
+This is a minor release from 0.11.0 and include a small number of enhances and bug fixes.
 
 API changes
 ~~~~~~~~~~~
@@ -12,7 +11,7 @@ API changes
 
 Enhancements
 ~~~~~~~~~~~~
-  - pd.read_html() can now parse HTML string, files or urls and return dataframes
+  - ``pd.read_html()`` can now parse HTML string, files or urls and return dataframes
     courtesy of @cpcloud. (GH3477_)
 
 See the `full release notes

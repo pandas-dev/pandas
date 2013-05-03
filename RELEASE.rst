@@ -32,6 +32,8 @@ pandas 0.11.1
 
   - pd.read_html() can now parse HTML string, files or urls and return dataframes
     courtesy of @cpcloud. (GH3477_)
+  - ``pd.read_msgpack()`` and ``pd.to_msgpack()`` are now a supported method of serialization
+    of arbitrary pandas (and python objects) in a lightweight portable binary format (GH686_)
 
 **Improvements to existing features**
 
@@ -75,6 +77,7 @@ pandas 0.11.1
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
+.. _GH686: https://github.com/pydata/pandas/issues/686
 .. _GH2194: https://github.com/pydata/pandas/issues/2194
 .. _GH3230: https://github.com/pydata/pandas/issues/3230
 .. _GH3251: https://github.com/pydata/pandas/issues/3251

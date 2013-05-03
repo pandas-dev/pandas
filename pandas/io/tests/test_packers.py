@@ -26,6 +26,19 @@ if not _USE_MSGPACK:
 
 _multiprocess_can_split_ = False
 
+def check_arbitrary(a, b):
+
+    if isinstance(a,(list,tuple)) and isinstance(b,(list,tuple)):
+        assert(len(a) == len(b))
+        for a_, b_ in zip(a,b):
+            check_arbitrary(a_,b_)
+    elif isinstance(a,DataFrame):
+        assert_frame_equal(a,b)
+    elif isinstance(a,Series):
+        assert_series_equal(a,b)
+    else:
+        assert(a == b)
+
 class Test(unittest.TestCase):
 
     def setUp(self):
@@ -241,13 +254,24 @@ class TestFrame(Test):
         for k in self.d.keys():
             assert_frame_equal(self.d[k],i_rec[k])
 
+        l = tuple([ self.d['float'], self.d['float'].A, self.d['float'].B, None ])
+        l_rec = self.encode_decode(l)
+        check_arbitrary(l,l_rec)
+
+        # this is an oddity in that packed lists will be returned as tuples
         l = [ self.d['float'], self.d['float'].A, self.d['float'].B, None ]
         l_rec = self.encode_decode(l)
-        self.assert_(len(l) == len(l_rec))
-        assert_frame_equal(l[0],l_rec[0])
-        assert_series_equal(l[1],l_rec[1])
-        assert_series_equal(l[2],l_rec[2])
-        self.assert_(l[3] == l_rec[3])
+        self.assert_(isinstance(l_rec,tuple))
+        check_arbitrary(l,l_rec)
+
+    def test_iterator(self):
+
+        l = [ self.d['float'], self.d['float'].A, self.d['float'].B, None ]
+
+        with ensure_clean(self.path) as path:
+            to_msgpack(path,*l)
+            for i, packed in enumerate(read_msgpack(path, iterator=True)):
+                check_arbitrary(packed,l[i])
 
 def _create_sp_series():
 
