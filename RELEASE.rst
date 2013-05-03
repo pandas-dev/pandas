@@ -30,7 +30,8 @@ pandas 0.11.1
 
 **New features**
 
-  -
+  - pd.read_html() can now parse HTML string, files or urls and return dataframes
+    courtesy of @cpcloud. (GH3477_)
 
 **Improvements to existing features**
 
@@ -88,6 +89,7 @@ pandas 0.11.1
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
+.. _GH3477: https://github.com/pydata/pandas/issues/3457
 .. _GH3461: https://github.com/pydata/pandas/issues/3461
 .. _GH3468: https://github.com/pydata/pandas/issues/3468
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
