@@ -24,6 +24,13 @@ Enhancements
           pd.to_msgpack('foo.msg', df, s)
           pd.read_msgpack('foo.msg')
 
+    You can pass ``iterator=True`` to iterator over the unpacked results
+
+    .. ipython:: python
+
+          for o in pd.read_msgpack('foo.msg',iterator=True):
+              print o
+
     .. ipython:: python
           :suppress:
           :okexcept:

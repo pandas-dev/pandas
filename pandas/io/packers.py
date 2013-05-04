@@ -57,6 +57,7 @@ from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.index import Int64Index, _ensure_index
 import pandas.core.common as com
+from pandas.core.generic import NDFrame
 from pandas.core.common import needs_i8_conversion
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
@@ -162,6 +163,7 @@ def encode(obj):
     Data encoder
     """
         
+    tobj = type(obj)
     if isinstance(obj, Index):
         if isinstance(obj, PeriodIndex):
             return {'typ' : 'period_index',
@@ -191,7 +193,15 @@ def encode(obj):
                     'data': obj.tolist() }
     elif isinstance(obj, Series):
         if isinstance(obj, SparseSeries):
-            import pdb; pdb.set_trace()
+            d = {'typ' : 'sparse_series',
+                 'klass' : obj.__class__.__name__,
+                 'dtype': obj.dtype.name,
+                 'index' : obj.index,
+                 'sp_index' : obj.sp_index,
+                 'sp_values' : convert(obj.sp_values)}
+            for f in ['name','fill_value','kind']:
+                d[f] = getattr(obj,f,None)
+            return d
         else:
             return {'typ' : 'series',
                     'klass' : obj.__class__.__name__,
@@ -199,9 +209,23 @@ def encode(obj):
                     'index' : obj.index,
                     'dtype': obj.dtype.name,
                     'data': convert(obj.values) }
-    elif isinstance(obj, DataFrame):
+    elif issubclass(tobj, NDFrame):
         if isinstance(obj, SparseDataFrame):
-            import pdb; pdb.set_trace()
+            d = {'typ' : 'sparse_dataframe',
+                 'klass' : obj.__class__.__name__,
+                 'columns' : obj.columns }
+            for f in ['default_fill_value','default_kind']:
+                d[f] = getattr(obj,f,None)
+            d['data'] = dict([ (name,ss) for name,ss in obj.iteritems() ])
+            return d
+        elif isinstance(obj, SparsePanel):
+            d = {'typ' : 'sparse_panel',
+                 'klass' : obj.__class__.__name__,
+                 'items' : obj.items }
+            for f in ['default_fill_value','default_kind']:
+                d[f] = getattr(obj,f,None)
+            d['data'] = dict([ (name,df) for name,df in obj.iteritems() ])
+            return d
         else:
 
             data = obj._data
@@ -209,7 +233,7 @@ def encode(obj):
                 data = data.consolidate()
 
            # the block manager
-            return {'typ' : 'dataframe',
+            return {'typ' : 'block_manager',
                     'klass'  : obj.__class__.__name__,
                     'axes'   : data.axes,
                     'blocks' : [ { 'items'  : b.items, 
@@ -237,6 +261,17 @@ def encode(obj):
         return {'typ' : 'period',
                 'ordinal' : obj.ordinal,
                 'freq' : obj.freq }
+    elif isinstance(obj, BlockIndex):
+        return { 'typ' : 'block_index',
+                 'klass' : obj.__class__.__name__,
+                 'blocs' : obj.blocs,
+                 'blengths' : obj.blengths,
+                 'length' : obj.length }
+    elif isinstance(obj, IntIndex):
+        return { 'typ' : 'int_index',
+                 'klass' : obj.__class__.__name__,
+                 'indices' : obj.indices,
+                 'length' : obj.length }
     elif isinstance(obj, np.ndarray):
         return {'typ' : 'ndarray',
                 'shape': obj.shape,
@@ -288,7 +323,7 @@ def decode(obj):
         dtype = dtype_for(obj['dtype'])
         index = obj['index']
         return globals()[obj['klass']](obj['data'],index=index,dtype=dtype,name=obj['name'])
-    elif typ == 'dataframe':
+    elif typ == 'block_manager':
         axes = obj['axes']
 
         def create_block(b):
@@ -300,6 +335,20 @@ def decode(obj):
     elif typ == 'datetime':
         import pdb; pdb.set_trace()
         return datetime.fromtimestamp(obj['data'])
+    elif typ == 'sparse_series':
+        dtype = dtype_for(obj['dtype'])
+        return globals()[obj['klass']](np.array(obj['sp_values'],dtype=dtype),sparse_index=obj['sp_index'],
+                                       index=obj['index'],fill_value=obj['fill_value'],kind=obj['kind'],name=obj['name'])
+    elif typ == 'sparse_dataframe':
+        return globals()[obj['klass']](obj['data'],
+                                       columns=obj['columns'],default_fill_value=obj['default_fill_value'],default_kind=obj['default_kind'])
+    elif typ == 'sparse_panel':
+        return globals()[obj['klass']](obj['data'],
+                                       items=obj['items'],default_fill_value=obj['default_fill_value'],default_kind=obj['default_kind'])
+    elif typ == 'block_index':
+        return globals()[obj['klass']](obj['length'],obj['blocs'],obj['blengths'])
+    elif typ == 'int_index':
+        return globals()[obj['klass']](obj['length'],obj['indices'])
     elif typ == 'ndarray':
         return np.array(obj['data'],
                         dtype=np.typeDict[obj['dtype']],

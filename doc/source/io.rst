@@ -1008,6 +1008,21 @@ You can pass a list of objects and you will receive them back on deserialization
    pd.to_msgpack('foo.msg', df, 'foo', np.array([1,2,3]), s)
    pd.read_msgpack('foo.msg')
 
+You can pass ``iterator=True`` to iterator over the unpacked results
+
+.. ipython:: python
+
+   for o in pd.read_msgpack('foo.msg',iterator=True):
+       print o
+
+
+You can pass ``append=True`` to the writer to append to an existing pack
+
+.. ipython:: python
+
+   df.to_msgpack('foo.msg',append=True)
+   pd.read_msgpack('foo.msg')
+
 .. ipython:: python
    :suppress:
    :okexcept:
