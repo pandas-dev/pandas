@@ -746,8 +746,8 @@ class DataFrame(NDFrame):
                 self.info(buf=buf, verbose=verbose)
                 info = buf.getvalue()
                 info = info.replace('&', r'&amp;')
-                info = info.replace('<', r'&lt')
-                info = info.replace('>', r'&gt')
+                info = info.replace('<', r'&lt;')
+                info = info.replace('>', r'&gt;')
                 return ('<pre>\n' + info + '\n</pre>')
         else:
             return None
