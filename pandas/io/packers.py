@@ -40,12 +40,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import time
 import re
 import copy
 import itertools
 import warnings
+from dateutil.parser import parse
 
 import numpy as np
 from pandas import (
@@ -128,8 +129,12 @@ def read_msgpack(path, iterator=False, **kwargs):
             return l[0]
         return l
 
-dtype_dict = { 'datetime64[ns]'  : np.dtype('M8[ns]'),
-               'timedelta64[ns]' : np.dtype('m8[ns]') }
+dtype_dict = { 21 : np.dtype('M8[ns]'),
+               u'datetime64[ns]' : np.dtype('M8[ns]'),
+               u'datetime64[us]' : np.dtype('M8[us]'),
+               22 : np.dtype('m8[ns]'),
+               u'timedelta64[ns]' : np.dtype('m8[ns]'),
+               u'timedelta64[us]' : np.dtype('m8[us]') }
 
 def dtype_for(t):
     if t in dtype_dict:
@@ -169,13 +174,13 @@ def encode(obj):
             return {'typ' : 'period_index',
                     'klass' : obj.__class__.__name__,
                     'name' : getattr(obj,'name',None),
-                    'dtype': obj.dtype.name,
+                    'dtype': obj.dtype.num,
                     'data': obj.tolist() }
         elif isinstance(obj, DatetimeIndex):
             return {'typ' : 'datetime_index',
                     'klass' : obj.__class__.__name__,
                     'name' : getattr(obj,'name',None),
-                    'dtype': obj.dtype.name,
+                    'dtype': obj.dtype.num,
                     'data': obj.values.view('i8').tolist(),
                     'freq' : obj.freqstr,
                     'tz'   : obj.tz}
@@ -183,19 +188,19 @@ def encode(obj):
             return {'typ' : 'multi_index',
                     'klass' : obj.__class__.__name__,
                     'names' : getattr(obj,'names',None),
-                    'dtype': obj.dtype.name,
+                    'dtype': obj.dtype.num,
                     'data': obj.tolist() }
         else:
             return {'typ' : 'index',
                     'klass' : obj.__class__.__name__,
                     'name' : getattr(obj,'name',None),
-                    'dtype': obj.dtype.name,
+                    'dtype': obj.dtype.num,
                     'data': obj.tolist() }
     elif isinstance(obj, Series):
         if isinstance(obj, SparseSeries):
             d = {'typ' : 'sparse_series',
                  'klass' : obj.__class__.__name__,
-                 'dtype': obj.dtype.name,
+                 'dtype': obj.dtype.num,
                  'index' : obj.index,
                  'sp_index' : obj.sp_index,
                  'sp_values' : convert(obj.sp_values)}
@@ -207,7 +212,7 @@ def encode(obj):
                     'klass' : obj.__class__.__name__,
                     'name' : getattr(obj,'name',None),
                     'index' : obj.index,
-                    'dtype': obj.dtype.name,
+                    'dtype': obj.dtype.num,
                     'data': convert(obj.values) }
     elif issubclass(tobj, NDFrame):
         if isinstance(obj, SparseDataFrame):
@@ -239,11 +244,11 @@ def encode(obj):
                     'blocks' : [ { 'items'  : b.items, 
                                    'values' : convert(b.values), 
                                    'shape'  : b.values.shape,
-                                   'dtype'  : b.dtype.name,
+                                   'dtype'  : b.dtype.num,
                                    'klass' : b.__class__.__name__ 
                                    } for b in data.blocks ] }
 
-    elif isinstance(obj, datetime):
+    elif isinstance(obj, (datetime,date,timedelta)):
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
@@ -255,8 +260,16 @@ def encode(obj):
                     'value': obj.value,
                     'offset' : offset,
                     'tz' : tz}
-        return { 'typ' : 'datetime',
-                 'data' : obj.isoformat() }
+        elif isinstance(obj, timedelta):
+            return { 'typ' : 'timedelta',
+                     'data' : (obj.days,obj.seconds,obj.microseconds) }
+        elif isinstance(obj, datetime):
+            return { 'typ' : 'datetime',
+                     'data' : obj.isoformat() }
+        elif isinstance(obj, date):
+            return { 'typ' : 'date',
+                     'data' : obj.isoformat() }
+        raise Exception("cannot encode this datetimelike object: %s" % obj)
     elif isinstance(obj, Period):
         return {'typ' : 'period',
                 'ordinal' : obj.ordinal,
@@ -276,8 +289,11 @@ def encode(obj):
         return {'typ' : 'ndarray',
                 'shape': obj.shape,
                 'ndim': obj.ndim,
-                'dtype': obj.dtype.name,
+                'dtype': obj.dtype.num,
                 'data': convert(obj)}
+    elif isinstance(obj, np.timedelta64):
+        return { 'typ' : 'np_timedelta64',
+                 'data' : obj.view('i8') }
     elif isinstance(obj, np.number):
         if np.iscomplexobj(obj):
             return {'typ' : 'np_scalar',
@@ -293,9 +309,8 @@ def encode(obj):
         return {'typ' : 'np_complex',
                 'real': obj.real.__repr__(),
                 'imag': obj.imag.__repr__()}
-    else:
-        import pdb; pdb.set_trace()
-        return obj
+
+    return obj
 
 def decode(obj):
     """
@@ -333,8 +348,11 @@ def decode(obj):
         blocks = [ create_block(b) for b in obj['blocks'] ]
         return globals()[obj['klass']](BlockManager(blocks, axes))
     elif typ == 'datetime':
-        import pdb; pdb.set_trace()
-        return datetime.fromtimestamp(obj['data'])
+        return parse(obj['data'])
+    elif typ == 'date':
+        return parse(obj['data']).date()
+    elif typ == 'timedelta':
+        return timedelta(*obj['data'])
     elif typ == 'sparse_series':
         dtype = dtype_for(obj['dtype'])
         return globals()[obj['klass']](np.array(obj['sp_values'],dtype=dtype),sparse_index=obj['sp_index'],
@@ -353,17 +371,22 @@ def decode(obj):
         return np.array(obj['data'],
                         dtype=np.typeDict[obj['dtype']],
                         ndmin=obj['ndim']).reshape(obj['shape'])
+    elif typ == 'np_timedelta64':
+        return np.timedelta64(obj['data'])
     elif typ == 'np_scalar':
         if obj.get('sub_typ') == 'np_complex':
             return c2f(obj['real'], obj['imag'], obj['dtype'])
         else:
-            return np.typeDict[obj['dtype']](obj['data'])
+            dtype = dtype_for(obj['dtype'])
+            try:
+                return dtype(obj['data'])
+            except:
+                return dtype.type(obj['data'])
     elif typ == 'np_complex':
         return complex(obj['real']+'+'+obj['imag']+'j')
     elif isinstance(obj, (dict,list,set)):
         return obj
     else:
-        import pdb; pdb.set_trace()
         return obj
 
 def pack(o, default=encode, 

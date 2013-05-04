@@ -155,6 +155,22 @@ class TestBasic(Test):
             i_rec = self.encode_decode(i)
             self.assert_(i == i_rec)
 
+    def test_datetimes(self):
+
+        for i in [ datetime.datetime(2013,1,1), datetime.datetime(2013,1,1,5,1),
+                   datetime.date(2013,1,1), np.datetime64('2013-01-05 2:15') ]:
+            i_rec = self.encode_decode(i)
+            self.assert_(i == i_rec)
+
+    def test_timedeltas(self):
+
+        for i in [ datetime.timedelta(days=1),
+                   datetime.timedelta(days=1,seconds=10),
+                   np.timedelta64(1000000) ]:
+            i_rec = self.encode_decode(i)
+            self.assert_(i == i_rec)
+
+
 class TestIndex(Test):
 
     def setUp(self):
