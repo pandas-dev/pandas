@@ -57,6 +57,7 @@ pandas 0.11.1
     support. Should provide python3 support (for reading) which has been
     lacking. (GH3164_)
   - Addressed handling of dupe columns in df.to_csv new and old (GH3454_, GH3457_)
+  - Allow unioning of date ranges sharing a timezone (GH3491_)
   - Fix to_csv issue when having a large number of rows and ``NaT`` in some
     columns (GH3437_)
   - ``.loc`` was not raising when passed an integer list (GH3449_)
@@ -87,6 +88,7 @@ pandas 0.11.1
 .. _GH3480: https://github.com/pydata/pandas/issues/3480
 .. _GH3454: https://github.com/pydata/pandas/issues/3454
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
+.. _GH3491: https://github.com/pydata/pandas/issues/3491
 .. _GH3426: https://github.com/pydata/pandas/issues/3426
 .. _GH3466: https://github.com/pydata/pandas/issues/3466
 .. _GH3038: https://github.com/pydata/pandas/issues/3038
