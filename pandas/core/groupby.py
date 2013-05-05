@@ -169,7 +169,8 @@ class GroupBy(object):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True):
+                 sort=True, group_keys=True,
+                 win=None,offset=None,fill=None):
         self._selection = selection
 
         if isinstance(obj, NDFrame):
@@ -192,7 +193,7 @@ class GroupBy(object):
 
         if grouper is None:
             grouper, exclusions = _get_grouper(obj, keys, axis=axis,
-                                               level=level, sort=sort)
+                                               level=level, sort=sort,offset=offset,fill=fill)
 
         self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
@@ -1126,7 +1127,7 @@ class Grouping(object):
       * groups : dict of {group -> label_list}
     """
     def __init__(self, index, grouper=None, name=None, level=None,
-                 sort=True):
+                 sort=True,offset=None,fill=None):
 
         self.name = name
         self.level = level
@@ -1200,7 +1201,55 @@ class Grouping(object):
 
             # no level passed
             if not isinstance(self.grouper, np.ndarray):
-                self.grouper = self.index.map(self.grouper)
+
+                # TODO: handle tuple of functions
+                if callable(self.grouper):
+                    nargs =self.grouper.func_code.co_argcount
+                    if nargs > 1: # else, just use index.map
+                        if offset is None:
+                            offset =0
+                        elif not isinstance(offset,int):
+                            raise ValueError("illegal offset, should pos/neg offset")
+
+                        def windowed(v,win,offset,fill=None):
+                            if not ( abs(offset) < win):
+                                raise ValueError("! offset < win")
+                            offset = offset % win
+                            lpad = offset
+                            rpad = win-offset-1
+                            if not ( lpad < win):
+                                raise ValueError("! lpad < win")
+
+                            res = [fill]*lpad +v[:win-lpad].tolist()
+                            i = win-lpad
+                            while i < len(v):
+                                yield res
+                                res = res[1:] + [v[i]]
+                                i+=1
+
+                            for j in range(rpad):
+                                yield res
+                                res = res[1:] + [fill]
+                                i+=1
+                            yield res
+                        def wrap(f,acc_seed=0):
+                            def inner(*args):
+                                f.__globals__['_'] = holder[0]
+                                holder[0] = f(*args)
+                                return holder[0]
+
+                            holder =[acc_seed]
+                            return inner
+
+                        tups = windowed(self.index,nargs,offset,fill)
+                        wrapped = wrap(self.grouper)
+                        self.grouper = map(lambda x: wrapped(*x), tups)
+
+                    else:
+                        self.grouper = self.index.map(self.grouper)
+                else:
+                    self.grouper = self.index.map(self.grouper)
+
                 if not (hasattr(self.grouper,"__len__") and \
                    len(self.grouper) == len(self.index)):
                     errmsg = "Grouper result violates len(labels) == len(data)\n"
@@ -1256,7 +1305,8 @@ class Grouping(object):
         return self._groups
 
 
-def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
+def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
+                 offset=None,fill=None):
     group_axis = obj._get_axis(axis)
 
     if level is not None:
@@ -1323,7 +1373,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             errmsg = "Categorical grouper must have len(grouper) == len(data)"
             raise AssertionError(errmsg)
 
-        ping = Grouping(group_axis, gpr, name=name, level=level, sort=sort)
+        ping = Grouping(group_axis, gpr, name=name, level=level, sort=sort,offset=offset,fill=fill)
+
         groupings.append(ping)
 
     if len(groupings) == 0:
