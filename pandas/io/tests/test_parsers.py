@@ -589,14 +589,21 @@ d,,f
         tm.assert_frame_equal(result, expected)
 
     def test_duplicate_columns(self):
-        data = """A,A,B,B,B
-1,2,3,4,5
-6,7,8,9,10
-11,12,13,14,15
-"""
-        df = self.read_table(StringIO(data), sep=',')
-        self.assert_(np.array_equal(df.columns,
-                                    ['A', 'A.1', 'B', 'B.1', 'B.2']))
+        for engine in ['python', 'c']:
+            data = """A,A,B,B,B
+    1,2,3,4,5
+    6,7,8,9,10
+    11,12,13,14,15
+    """
+            # check default beahviour
+            df = self.read_table(StringIO(data), sep=',',engine=engine)
+            self.assertEqual(list(df.columns), ['A', 'A.1', 'B', 'B.1', 'B.2'])
+
+            df = self.read_table(StringIO(data), sep=',',engine=engine,mangle_dupe_cols=False)
+            self.assertEqual(list(df.columns), ['A', 'A', 'B', 'B', 'B'])
+
+            df = self.read_table(StringIO(data), sep=',',engine=engine,mangle_dupe_cols=True)
+            self.assertEqual(list(df.columns), ['A', 'A.1', 'B', 'B.1', 'B.2'])
 
     def test_csv_mixed_type(self):
         data = """A,B,C
