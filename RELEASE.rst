@@ -45,6 +45,11 @@ pandas 0.11.1
     **KeyError** if **key** is not a valid store object.
   - The repr() for (Multi)Index now obeys display.max_seq_items rather
     then numpy threshold print options. (GH3426_, GH3466_)
+  - Added mangle_dupe_cols option to read_table/csv, allowing users
+    to control legacy behaviour re dupe cols (A, A.1, A.2 vs A, A ) (GH3468_)
+    Note: The default value will change in 0.12 to the "no mangle" behaviour,
+    If your code relies on this behaviour, explicitly specify mangle_dupe_cols=True
+    in your calls.
 
 **Bug Fixes**
 
@@ -87,6 +92,7 @@ pandas 0.11.1
 .. _GH3038: https://github.com/pydata/pandas/issues/3038
 .. _GH3510: https://github.com/pydata/pandas/issues/3510
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
+.. _GH3468: https://github.com/pydata/pandas/issues/3468
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3477: https://github.com/pydata/pandas/issues/3457

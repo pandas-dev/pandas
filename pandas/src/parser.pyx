@@ -249,6 +249,7 @@ cdef class TextReader:
         object dtype
         object encoding
         object compression
+        object mangle_dupe_cols
         set noconvert, usecols
 
     def __cinit__(self, source,
@@ -298,10 +299,13 @@ cdef class TextReader:
                   buffer_lines=None,
                   skiprows=None,
                   skip_footer=0,
-                  verbose=False):
+                  verbose=False,
+                  mangle_dupe_cols=True):
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
+
+        self.mangle_dupe_cols=mangle_dupe_cols
 
         # For timekeeping
         self.clocks = []
@@ -571,8 +575,9 @@ cdef class TextReader:
                 if name == '':
                     name = 'Unnamed: %d' % i
 
+
                 count = counts.get(name, 0)
-                if count > 0:
+                if count > 0 and self.mangle_dupe_cols:
                     header.append('%s.%d' % (name, count))
                 else:
                     header.append(name)
