@@ -212,6 +212,9 @@ The :ref:`Plotting <visualization>` docs.
 `Setting x-axis major and minor labels
 <http://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
 
+`Plotting multiple charts in an ipython notebook
+<http://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
+
 Data In/Out
 -----------
 
