@@ -32,6 +32,7 @@ pandas 0.11.1
 
   - pd.read_html() can now parse HTML string, files or urls and return dataframes
     courtesy of @cpcloud. (GH3477_)
+  - Support for reading Amazon S3 files. (GH3504_)
 
 **Improvements to existing features**
 
