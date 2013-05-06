@@ -78,6 +78,7 @@ pandas 0.11.1
       (removed warning) (GH2786_), and fix (GH3230_)
     - Fix to_csv to handle non-unique columns (GH3495_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
+  - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -103,6 +104,7 @@ pandas 0.11.1
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
 .. _GH3495: https://github.com/pydata/pandas/issues/3495
+.. _GH3492: https://github.com/pydata/pandas/issues/3492
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
 
 
