@@ -124,8 +124,7 @@ class _NDFrameIndexer(object):
                 values = data.values
                 if np.prod(values.shape):
                     result, changed = com._maybe_upcast_indexer(values,plane_indexer,v,dtype=getattr(data,'dtype',None))
-                    if changed:
-                        self.obj[item] = result
+                    self.obj[item] = result
 
             labels = item_labels[het_idx]
 

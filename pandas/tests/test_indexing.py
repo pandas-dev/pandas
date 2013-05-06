@@ -784,6 +784,21 @@ class TestIndexing(unittest.TestCase):
 
         assert_frame_equal(df,result)
 
+    def test_indexing_mixed_frame_bug(self):
+
+        # GH3492
+        df=DataFrame({'a':{1:'aaa',2:'bbb',3:'ccc'},'b':{1:111,2:222,3:333}})
+
+        # this works, new column is created correctly
+        df['test']=df['a'].apply(lambda x: '_' if x=='aaa' else x)
+
+        # this does not work, ie column test is not changed
+        idx=df['test']=='_'
+        temp=df.ix[idx,'a'].apply(lambda x: '-----' if x=='aaa' else x)
+        df.ix[idx,'test']=temp
+        self.assert_(df.iloc[0,2] == '-----')
+
+        #if I look at df, then element [0,2] equals '_'. If instead I type df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I get '_'.
 
 if __name__ == '__main__':
     import nose
