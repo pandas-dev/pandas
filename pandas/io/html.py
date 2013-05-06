@@ -16,6 +16,8 @@ try:
 except ImportError:
     import_module = __import__
 
+import numpy as np
+
 from pandas import DataFrame, MultiIndex
 from pandas.io.parsers import _is_url
 
@@ -78,8 +80,34 @@ def _get_skiprows_iter(skiprows):
         raise TypeError('{0} is not a valid type for skipping'
                         ' rows'.format(type(skiprows)))
 
-    def _parse_columns(self, row):
-        return row.xpath('.//td|.//th')
+
+def _read(io):
+    """Try to read from a url, file or string.
+
+    Parameters
+    ----------
+    io : str, unicode, or file-like
+
+    Returns
+    -------
+    raw_text : str
+    """
+    if _is_url(io):
+        try:
+            with contextlib.closing(urllib2.urlopen(io)) as url:
+                raw_text = url.read()
+        except urllib2.URLError:
+            raise ValueError('Invalid URL: "{0}"'.format(io))
+    elif hasattr(io, 'read'):
+        raw_text = io.read()
+    elif os.path.isfile(io):
+        with open(io) as f:
+            raw_text = f.read()
+    elif isinstance(io, basestring):
+        raw_text = io
+    else:
+        raise ValueError("Cannot read object of type '{0}'".format(type(io)))
+    return raw_text
 
 
 class _HtmlFrameParser(object):
@@ -114,9 +142,12 @@ class _HtmlFrameParser(object):
     To subclass this class effectively you must override the following methods:
         * :func:`_build_doc`
         * :func:`_text_getter`
-        * :func:`_parse_columns`
-        * :func:`_parse_table`
-        * :func:`_parse_rows`
+        * :func:`_parse_td`
+        * :func:`_parse_tables`
+        * :func:`_parse_tr`
+        * :func:`_parse_thead`
+        * :func:`_parse_tbody`
+        * :func:`_parse_tfoot`
     See each method's respective documentation for details on their
     functionality.
     """
@@ -125,33 +156,11 @@ class _HtmlFrameParser(object):
         self.match = match
         self.attrs = attrs
 
-    def parse_rows(self):
-        """Return a list of list of each table's rows.
-
-        Returns
-        -------
-        row_list : list of list of node-like
-            A list of each table's rows, which are DOM nodes (usually <th> or
-            <tr> elements).
-        """
+    def parse_tables(self):
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
-        assert tables, 'No tables found'
-        return (self._parse_rows(table) for table in tables)
+        return (self._build_table(table) for table in tables)
 
-    def parse_raw_data(self):
-        """Return a list of the raw data from each table.
-
-        Returns
-        -------
-        data : list of list of lists of str or unicode
-            Each table's data is contained in a list of lists of str or
-            unicode.
-        """
-        return [self._parse_raw_data(rows, self._text_getter,
-                                     self._parse_columns)
-                for rows in self.parse_rows()]
-
-    def _parse_raw_data(self, rows, text_getter, column_finder):
+    def _parse_raw_data(self, rows):
         """Parse the raw data into a list of lists.
 
         Parameters
@@ -177,23 +186,8 @@ class _HtmlFrameParser(object):
         -------
         data : list of list of strings
         """
-        # callable is back in Python 3.2
-        assert callable(text_getter), '"text_getter" must be callable'
-        assert callable(column_finder), '"column_finder" must be callable'
-
-        data = []
-
-        for row in rows:
-            if _remove_whitespace(text_getter(row)):
-                col = []
-
-                for el in column_finder(row):
-                    t = _remove_whitespace(text_getter(el))
-
-                    if t:
-                        col.append(t)
-                data.append(col)
-
+        data = [[_remove_whitespace(self._text_getter(col)) for col in
+                 self._parse_td(row)] for row in rows]
         return data
 
     def _text_getter(self, obj):
@@ -211,8 +205,8 @@ class _HtmlFrameParser(object):
         """
         raise NotImplementedError
 
-    def _parse_columns(self, obj):
-        """Return the column elements from a row element.
+    def _parse_td(self, obj):
+        """Return the td elements from a row element.
 
         Parameters
         ----------
@@ -252,7 +246,7 @@ class _HtmlFrameParser(object):
         """
         raise NotImplementedError
 
-    def _parse_rows(self, table):
+    def _parse_tr(self, table):
         """Return the list of row elements from the parsed table element.
 
         Parameters
@@ -267,6 +261,51 @@ class _HtmlFrameParser(object):
         """
         raise NotImplementedError
 
+    def _parse_thead(self, table):
+        """Return the header of a table.
+
+        Parameters
+        ----------
+        table : node-like
+            A table element that contains row elements.
+
+        Returns
+        -------
+        thead : node-like
+            A <thead>...</thead> element.
+        """
+        raise NotImplementedError
+
+    def _parse_tbody(self, table):
+        """Return the body of the table.
+
+        Parameters
+        ----------
+        table : node-like
+            A table element that contains row elements.
+
+        Returns
+        -------
+        tbody : node-like
+            A <tbody>...</tbody> element.
+        """
+        raise NotImplementedError
+
+    def _parse_tfoot(self, table):
+        """Return the footer of the table if any.
+
+        Parameters
+        ----------
+        table : node-like
+            A table element that contains row elements.
+
+        Returns
+        -------
+        tfoot : node-like
+            A <tfoot>...</tfoot> element.
+        """
+        raise NotImplementedError
+
     def _build_doc(self):
         """Return a tree-like object that can be used to iterate over the DOM.
 
@@ -276,8 +315,37 @@ class _HtmlFrameParser(object):
         """
         raise NotImplementedError
 
+    def _build_table(self, table):
+        header = self._parse_raw_thead(table)
+        body = self._parse_raw_tbody(table)
+        footer = self._parse_raw_tfoot(table)
+        return header, body, footer
 
-class _BeautifulSoupFrameParser(_HtmlFrameParser):
+    def _parse_raw_thead(self, table):
+        thead = self._parse_thead(table)
+        res = []
+        if thead:
+            res = map(self._text_getter, self._parse_th(thead[0]))
+        return np.array(res).squeeze() if res and len(res) == 1 else res
+
+    def _parse_raw_tfoot(self, table):
+        tfoot = self._parse_tfoot(table)
+        res = []
+        if tfoot:
+            res = map(self._text_getter, self._parse_td(tfoot[0]))
+        return np.array(res).squeeze() if res and len(res) == 1 else res
+
+    def _parse_raw_tbody(self, table):
+        tbody = self._parse_tbody(table)
+
+        try:
+            res = self._parse_tr(tbody[0])
+        except IndexError:
+            res = self._parse_tr(table)
+        return self._parse_raw_data(res)
+
+
+class _BeautifulSoupLxmlFrameParser(_HtmlFrameParser):
     """HTML to DataFrame parser that uses BeautifulSoup under the hood.
 
     See Also
@@ -291,48 +359,68 @@ class _BeautifulSoupFrameParser(_HtmlFrameParser):
     :class:`pandas.io.html._HtmlFrameParser`.
     """
     def __init__(self, *args, **kwargs):
-        super(_BeautifulSoupFrameParser, self).__init__(*args, **kwargs)
+        super(_BeautifulSoupLxmlFrameParser, self).__init__(*args, **kwargs)
+        from bs4 import SoupStrainer
+        self._strainer = SoupStrainer('table')
 
     def _text_getter(self, obj):
         return obj.text
 
-    def _parse_columns(self, row):
+    def _parse_td(self, row):
         return row.find_all(('td', 'th'))
 
-    def _parse_rows(self, table):
-        return table.find_all(('tr', 'thead', 'tfoot'))
+    def _parse_tr(self, element):
+        return element.find_all('tr')
+
+    def _parse_th(self, element):
+        return element.find_all('th')
+
+    def _parse_thead(self, table):
+        return table.find_all('thead')
+
+    def _parse_tbody(self, table):
+        return table.find_all('tbody')
+
+    def _parse_tfoot(self, table):
+        return table.find_all('tfoot')
 
     def _parse_tables(self, doc, match, attrs):
-        tables = doc.find_all('table', attrs=attrs)
-        assert tables, 'No tables found'
+        element_name = self._strainer.name
+        tables = doc.find_all(element_name, attrs=attrs)
+        if not tables:
+            raise AssertionError('No tables found')
 
-        tables = [table for table in tables
-                  if table.find(text=match) is not None]
-        assert tables, "No tables found matching '{0}'".format(match.pattern)
+        mts = [table.find(text=match) for table in tables]
+        matched_tables = [mt for mt in mts if mt is not None]
+        tables = list(set(mt.find_parent(element_name)
+                          for mt in matched_tables))
+
+        if not tables:
+            raise AssertionError("No tables found matching "
+                                 "'{0}'".format(match.pattern))
+        #import ipdb; ipdb.set_trace()
         return tables
 
-    def _build_doc(self):
-        if _is_url(self.io):
-            try:
-                with contextlib.closing(urllib2.urlopen(self.io)) as url:
-                    raw_text = url.read()
-            except urllib2.URLError:
-                raise ValueError('Invalid URL: "{0}"'.format(self.io))
-        elif hasattr(self.io, 'read'):
-            raw_text = self.io.read()
-        elif os.path.isfile(self.io):
-            with open(self.io) as f:
-                raw_text = f.read()
-        elif isinstance(self.io, basestring):
-            raw_text = self.io
-        else:
-            raise ValueError("Cannot read object of"
-                             " type '{0}'".format(type(self.io)))
-        assert raw_text, 'No text parsed from document'
+    def _setup_build_doc(self):
+        raw_text = _read(self.io)
+        if not raw_text:
+            raise AssertionError('No text parsed from document')
+        return raw_text
 
-        from bs4 import BeautifulSoup, SoupStrainer
-        strainer = SoupStrainer('table')
-        return BeautifulSoup(raw_text, parse_only=strainer)
+    def _build_doc(self):
+        from bs4 import BeautifulSoup
+        return BeautifulSoup(self._setup_build_doc(), features='lxml',
+                             parse_only=self._strainer)
+
+
+class _BeautifulSoupHtml5LibFrameParser(_BeautifulSoupLxmlFrameParser):
+    def __init__(self, *args, **kwargs):
+        super(_BeautifulSoupHtml5LibFrameParser, self).__init__(*args,
+                                                                **kwargs)
+
+    def _build_doc(self):
+        from bs4 import BeautifulSoup
+        return BeautifulSoup(self._setup_build_doc(), features='html5lib')
 
 
 def _build_node_xpath_expr(attrs):
@@ -358,6 +446,7 @@ def _build_node_xpath_expr(attrs):
 
 
 _re_namespace = {'re': 'http://exslt.org/regular-expressions'}
+_valid_schemes = 'http', 'file', 'ftp'
 
 
 class _LxmlFrameParser(_HtmlFrameParser):
@@ -370,7 +459,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
     See Also
     --------
     _HtmlFrameParser
-    _BeautifulSoupFrameParser
+    _BeautifulSoupLxmlFrameParser
 
     Notes
     -----
@@ -383,11 +472,12 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def _text_getter(self, obj):
         return obj.text_content()
 
-    def _parse_columns(self, row):
+    def _parse_td(self, row):
         return row.xpath('.//td|.//th')
 
-    def _parse_rows(self, table):
-        return table.xpath('(.//tr|.//thead|.//tfoot)[normalize-space()]')
+    def _parse_tr(self, table):
+        expr = './/tr[normalize-space()]'
+        return table.xpath(expr)
 
     def _parse_tables(self, doc, match, kwargs):
         pattern = match.pattern
@@ -406,42 +496,68 @@ class _LxmlFrameParser(_HtmlFrameParser):
         if kwargs:
             xpath_expr += _build_node_xpath_expr(kwargs)
         tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
-        assert tables, "No tables found matching regex '{0}'".format(pattern)
+        if not tables:
+            raise AssertionError("No tables found matching regex "
+                                 "'{0}'".format(pattern))
         return tables
 
     def _build_doc(self):
         """
         Raises
         ------
-        IOError
-            * If a valid URL is detected, but for some reason cannot be parsed.
-              This is probably due to a faulty or non-existent internet
-              connection.
         ValueError
             * If a URL that lxml cannot parse is passed.
+
+        Exception
+            * Any other ``Exception`` thrown. For example, trying to parse a
+              URL that is syntactically correct on a machine with no internet
+              connection will fail.
 
         See Also
         --------
         pandas.io.html._HtmlFrameParser._build_doc
         """
         from lxml.html import parse, fromstring
+        from lxml.html.clean import clean_html
 
         try:
             # try to parse the input in the simplest way
-            return parse(self.io)
-        except (UnicodeDecodeError, IOError):
-            # something went wrong, check for not-a-url because it's probably a
-            # huge string blob
+            r = parse(self.io)
+        except (UnicodeDecodeError, IOError) as e:
+            # if the input is a blob of html goop
             if not _is_url(self.io):
-                return fromstring(self.io)
-            elif urlparse.urlparse(self.io).scheme not in ('http', 'ftp',
-                                                           'file'):
-                raise ValueError('"{0}" does not have a valid URL'
-                                 ' protocol'.format(self.io))
+                r = fromstring(self.io)
             else:
-                raise IOError('"{0}" is a valid URL, so you probably are not'
-                              ' properly connected to the'
-                              ' internet'.format(self.io))
+                # not a url
+                scheme = urlparse.urlparse(self.io).scheme
+                if scheme not in _valid_schemes:
+                    # lxml can't parse it
+                    msg = ('{0} is not a valid url scheme, valid schemes are '
+                           '{1}').format(scheme, _valid_schemes)
+                    raise ValueError(msg)
+                else:
+                    # something else happened: maybe a faulty connection
+                    raise e
+        return clean_html(r)
+
+    def _parse_tbody(self, table):
+        return table.xpath('.//tbody')
+
+    def _parse_thead(self, table):
+        return table.xpath('.//thead')
+
+    def _parse_tfoot(self, table):
+        return table.xpath('.//tfoot')
+
+    def _parse_raw_thead(self, table):
+        expr = './/thead//th'
+        return [_remove_whitespace(x.text_content()) for x in
+                table.xpath(expr)]
+
+    def _parse_raw_tfoot(self, table):
+        expr = './/tfoot//th'
+        return [_remove_whitespace(x.text_content()) for x in
+                table.xpath(expr)]
 
 
 def _data_to_frame(data, header, index_col, infer_types, skiprows):
@@ -449,7 +565,7 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
 
     Parameters
     ----------
-    data : list of lists of str or unicode
+    data : tuple of lists
         The raw data to be placed into a DataFrame. This is a list of lists of
         strings or unicode. If it helps, it can be thought of as a matrix of
         strings instead.
@@ -491,7 +607,9 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
     -----
     The `data` parameter is guaranteed not to be a list of empty lists.
     """
-    df = DataFrame(data)
+    thead, tbody, tfoot = data
+    columns = thead or None
+    df = DataFrame(tbody, columns=columns)
 
     if skiprows is not None:
         it = _get_skiprows_iter(skiprows)
@@ -530,16 +648,81 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
 
         # drop by default
         df.set_index(cols, inplace=True)
+        if df.index.nlevels == 1:
+            if not (df.index.name or df.index.name is None):
+                df.index.name = None
+        else:
+            names = [name or None for name in df.index.names]
+            df.index = MultiIndex.from_tuples(df.index.values, names=names)
 
     return df
 
 
-_possible_parsers = {'lxml': _LxmlFrameParser,
-                     'bs4': _BeautifulSoupFrameParser}
+_invalid_parsers = {'lxml': _LxmlFrameParser,
+                    'bs4': _BeautifulSoupLxmlFrameParser}
+_valid_parsers = {'html5lib': _BeautifulSoupHtml5LibFrameParser}
+_all_parsers = _valid_parsers.copy()
+_all_parsers.update(_invalid_parsers)
 
 
-def read_html(io, match='.+', flavor='bs4', header=None, index_col=None,
-              skiprows=None, infer_types=True, attrs=None):
+def _parser_dispatch(flavor):
+    """Choose the parser based on the input flavor.
+
+    Parameters
+    ----------
+    flavor : str
+        The type of parser to use. This must be a valid backend.
+
+    Returns
+    -------
+    cls : _HtmlFrameParser subclass
+        The parser class based on the requested input flavor.
+
+    Raises
+    ------
+    AssertionError
+        * If `flavor` is not a valid backend.
+    """
+    valid_parsers = _valid_parsers.keys()
+    if flavor not in valid_parsers:
+        raise AssertionError('"{0}" is not a valid flavor'.format(flavor))
+
+    if flavor == 'bs4':
+        try:
+            import_module('lxml')
+            parser_t = _BeautifulSoupLxmlFrameParser
+        except ImportError:
+            try:
+                import_module('html5lib')
+                parser_t = _BeautifulSoupHtml5LibFrameParser
+            except ImportError:
+                raise ImportError("read_html does not support the native "
+                                  "Python 'html.parser' backend for bs4, "
+                                  "please install either 'lxml' or 'html5lib'")
+    elif flavor == 'html5lib':
+        try:
+            # much better than python's builtin
+            import_module('html5lib')
+            parser_t = _BeautifulSoupHtml5LibFrameParser
+        except ImportError:
+            raise ImportError("html5lib not found please install it")
+    else:
+        parser_t = _LxmlFrameParser
+    return parser_t
+
+
+def _parse(parser, io, match, flavor, header, index_col, skiprows, infer_types,
+           attrs):
+    # bonus: re.compile is idempotent under function iteration so you can pass
+    # a compiled regex to it and it will return itself
+    p = parser(io, re.compile(match), attrs)
+    tables = p.parse_tables()
+    return [_data_to_frame(table, header, index_col, infer_types, skiprows)
+            for table in tables]
+
+
+def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
+              skiprows=None, infer_types=False, attrs=None):
     r"""Read an HTML table into a DataFrame.
 
     Parameters
@@ -547,7 +730,8 @@ def read_html(io, match='.+', flavor='bs4', header=None, index_col=None,
     io : str or file-like
         A string or file like object that can be either a url, a file-like
         object, or a raw string containing HTML.  Note that lxml only accepts
-        the http, ftp and file url protocols.
+        the http, ftp and file url protocols. If you have a URI that starts
+        with ``'https'`` you might removing the ``'s'``.
 
     match : str or regex, optional
         The set of tables containing text matching this regex or string will be
@@ -557,10 +741,10 @@ def read_html(io, match='.+', flavor='bs4', header=None, index_col=None,
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str, {'lxml', 'bs4'}
-        The parsing engine to use under the hood. lxml is faster and bs4
-        (Beautiful Soup 4) is better at parsing nested tags, which are not
-        uncommon when parsing tables. Defaults to 'bs4'.
+    flavor : str, {'html5lib'}
+        The parsing engine to use under the hood. Right now only ``html5lib``
+        is supported because it returns correct output whereas ``lxml`` does
+        not.
 
     header : int or array-like or None, optional
         The row (or rows for a MultiIndex) to use to make the columns headers.
@@ -661,6 +845,7 @@ def read_html(io, match='.+', flavor='bs4', header=None, index_col=None,
 
     Parse some spam infomation from the USDA:
 
+    >>> from pandas import read_html, DataFrame
     >>> url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
     ...        'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
     >>> dfs = read_html(url, match='Water', header=0)
@@ -670,32 +855,16 @@ def read_html(io, match='.+', flavor='bs4', header=None, index_col=None,
 
     You can pass nothing to the `match` argument:
 
+    >>> from pandas import read_html, DataFrame
     >>> url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
     >>> dfs = read_html(url)
     >>> print(len(dfs))  # this will most likely be greater than 1
-
-    Try a different parser:
-
-    >>> url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
-    >>> dfs = read_html(url, 'Florida', flavor='lxml', attrs={'id': 'table'})
-    >>> assert dfs
-    >>> assert isinstance(dfs, list)
-    >>> assert all(map(lambda x: isinstance(x, DataFrame), dfs))
     """
-    # annoying type check here because we don't want to spend time parsing HTML
-    # only to end up failing because of an invalid value of skiprows
-    if isinstance(skiprows, numbers.Integral):
-        assert skiprows >= 0, ('cannot skip rows starting from the end of the '
-                               'data (you passed a negative value)')
-
-    valid_backends = _possible_parsers.keys()
-    assert flavor in valid_backends, ("'{0}' is not a valid backend, the valid"
-                                      " backends are "
-                                      "{1}".format(flavor, valid_backends))
-    parser = _possible_parsers[flavor]
-
-    # bonus: re.compile is idempotent under function iteration so you can pass
-    # a compiled regex to it and it will return itself
-    p = parser(io, re.compile(match), attrs)
-    return [_data_to_frame(data, header, index_col, infer_types, skiprows)
-            for data in p.parse_raw_data()]
+    # Type check here. We don't want to parse only to fail because of an
+    # invalid value of an integer skiprows.
+    if isinstance(skiprows, numbers.Integral) and skiprows < 0:
+        raise AssertionError('cannot skip rows starting from the end of the '
+                             'data (you passed a negative value)')
+    parser = _parser_dispatch(flavor)
+    return _parse(parser, io, match, flavor, header, index_col, skiprows,
+                  infer_types, attrs)

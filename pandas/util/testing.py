@@ -126,16 +126,18 @@ def assert_almost_equal(a, b, check_less_precise = False):
         return assert_dict_equal(a, b)
 
     if isinstance(a, basestring):
-        assert a == b, (a, b)
+        assert a == b, "{0} != {1}".format(a, b)
         return True
 
     if isiterable(a):
         np.testing.assert_(isiterable(b))
-        assert(len(a) == len(b))
+        na, nb = len(a), len(b)
+        assert na == nb, "{0} != {1}".format(na, nb)
+
         if np.array_equal(a, b):
             return True
         else:
-            for i in xrange(len(a)):
+            for i in xrange(na):
                 assert_almost_equal(a[i], b[i], check_less_precise)
         return True
 
@@ -169,7 +171,7 @@ def assert_almost_equal(a, b, check_less_precise = False):
             np.testing.assert_almost_equal(
                 1, a / b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
     else:
-        assert(a == b)
+        assert a == b, "%s != %s" % (a, b)
 
 
 def is_sorted(seq):

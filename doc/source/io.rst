@@ -918,18 +918,18 @@ which, if set to ``True``, will additionally output the length of the Series.
 HTML
 ----
 
-Reading HTML format
+Reading HTML Content
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. _io.read_html:
 
 .. versionadded:: 0.11.1
 
-The toplevel :func:`~pandas.io.parsers.read_html` function can accept an HTML string/file/url
-and will parse HTML tables into pandas DataFrames.
+The toplevel :func:`~pandas.io.parsers.read_html` function can accept an HTML
+string/file/url and will parse HTML tables into list of pandas DataFrames.
 
 
-Writing to HTML format
+Writing to HTML files
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. _io.html:
