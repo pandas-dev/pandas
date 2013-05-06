@@ -70,6 +70,18 @@ try:
 except:
     _USE_MSGPACK = False
 
+import zlib
+
+try:
+    import blosc
+    _BLOSC = True
+except:
+    _BLOSC = False
+
+## until we can pass this into our conversion functions,
+## this is pretty hacky
+compressor = None
+
 def to_msgpack(path, *args, **kwargs):
     """
     msgpack (serialize) object to input file path
@@ -82,10 +94,13 @@ def to_msgpack(path, *args, **kwargs):
 
     append : boolean whether to append to an existing msgpack
              (default is False)
+    compress : type of compressor (zlib or blosc), default to None (no compression)
     """
     if not _USE_MSGPACK:
         raise Exception("please install msgpack to create msgpack stores!")
 
+    global compressor
+    compressor = kwargs.get('compress')
     append = kwargs.get('append')
     if append:
         f = open(path, 'a+b')
@@ -154,14 +169,60 @@ def c2f(r, i, ctype_name):
     ftype = c2f_dict[ctype_name]
     return np.typeDict[ctype_name](ftype(r)+1j*ftype(i))
 
+
 def convert(values):
     """ convert the numpy values to a list """
 
     dtype = values.dtype
     if needs_i8_conversion(dtype):
         values = values.view('i8')
-    return values.ravel().tolist()
+    v = values.ravel()
 
+    if compressor == 'zlib':
+
+        # return string arrays like they are
+        if dtype == np.object_:
+            return v.tolist()
+
+        # convert to a bytes array
+        v = v.tostring()
+        return zlib.compress(v)
+
+    elif compressor == 'blosc' and _BLOSC:
+
+        # return string arrays like they are
+        if dtype == np.object_:
+            return v.tolist()
+
+        # convert to a bytes array
+        v = v.tostring()
+        return blosc.compress(v,typesize=dtype.itemsize)
+
+    # as a list
+    return v.tolist()
+
+def unconvert(values, dtype, compress):
+
+    if dtype == np.object_:
+        return np.array(values,dtype=object)
+
+    if compress == 'zlib':
+
+        values = zlib.decompress(values)
+        return np.frombuffer(values,dtype=dtype)
+
+    elif compress == 'blosc':
+
+        if not _BLOSC:
+            raise Exception("cannot uncompress w/o blosc")
+
+        # decompress
+        values = blosc.decompress(values)
+
+        return np.frombuffer(values,dtype=dtype)
+
+    # as a list
+    return np.array(values,dtype=dtype)
 
 def encode(obj):
     """
@@ -203,7 +264,8 @@ def encode(obj):
                  'dtype': obj.dtype.num,
                  'index' : obj.index,
                  'sp_index' : obj.sp_index,
-                 'sp_values' : convert(obj.sp_values)}
+                 'sp_values' : convert(obj.sp_values),
+                 'compress' : compressor}
             for f in ['name','fill_value','kind']:
                 d[f] = getattr(obj,f,None)
             return d
@@ -213,7 +275,8 @@ def encode(obj):
                     'name' : getattr(obj,'name',None),
                     'index' : obj.index,
                     'dtype': obj.dtype.num,
-                    'data': convert(obj.values) }
+                    'data': convert(obj.values),
+                    'compress' : compressor}
     elif issubclass(tobj, NDFrame):
         if isinstance(obj, SparseDataFrame):
             d = {'typ' : 'sparse_dataframe',
@@ -245,7 +308,8 @@ def encode(obj):
                                    'values' : convert(b.values), 
                                    'shape'  : b.values.shape,
                                    'dtype'  : b.dtype.num,
-                                   'klass' : b.__class__.__name__ 
+                                   'klass' : b.__class__.__name__,
+                                   'compress' : compressor
                                    } for b in data.blocks ] }
 
     elif isinstance(obj, (datetime,date,timedelta)):
@@ -290,7 +354,8 @@ def encode(obj):
                 'shape': obj.shape,
                 'ndim': obj.ndim,
                 'dtype': obj.dtype.num,
-                'data': convert(obj)}
+                'data': convert(obj),
+                'compress' : compressor }
     elif isinstance(obj, np.timedelta64):
         return { 'typ' : 'np_timedelta64',
                  'data' : obj.view('i8') }
@@ -337,13 +402,13 @@ def decode(obj):
     elif typ == 'series':
         dtype = dtype_for(obj['dtype'])
         index = obj['index']
-        return globals()[obj['klass']](obj['data'],index=index,dtype=dtype,name=obj['name'])
+        return globals()[obj['klass']](unconvert(obj['data'],dtype,obj['compress']),index=index,name=obj['name'])
     elif typ == 'block_manager':
         axes = obj['axes']
 
         def create_block(b):
             dtype = dtype_for(b['dtype'])
-            return make_block(np.array(b['values'],dtype=dtype).reshape(b['shape']),b['items'],axes[0],klass=getattr(internals,b['klass'])) 
+            return make_block(unconvert(b['values'],dtype,b['compress']).reshape(b['shape']),b['items'],axes[0],klass=getattr(internals,b['klass'])) 
 
         blocks = [ create_block(b) for b in obj['blocks'] ]
         return globals()[obj['klass']](BlockManager(blocks, axes))
@@ -355,7 +420,7 @@ def decode(obj):
         return timedelta(*obj['data'])
     elif typ == 'sparse_series':
         dtype = dtype_for(obj['dtype'])
-        return globals()[obj['klass']](np.array(obj['sp_values'],dtype=dtype),sparse_index=obj['sp_index'],
+        return globals()[obj['klass']](unconvert(obj['sp_values'],dtype,obj['compress']),sparse_index=obj['sp_index'],
                                        index=obj['index'],fill_value=obj['fill_value'],kind=obj['kind'],name=obj['name'])
     elif typ == 'sparse_dataframe':
         return globals()[obj['klass']](obj['data'],
@@ -368,9 +433,7 @@ def decode(obj):
     elif typ == 'int_index':
         return globals()[obj['klass']](obj['length'],obj['indices'])
     elif typ == 'ndarray':
-        return np.array(obj['data'],
-                        dtype=np.typeDict[obj['dtype']],
-                        ndmin=obj['ndim']).reshape(obj['shape'])
+        return unconvert(obj['data'],np.typeDict[obj['dtype']],obj['compress']).reshape(obj['shape'])
     elif typ == 'np_timedelta64':
         return np.timedelta64(obj['data'])
     elif typ == 'np_scalar':
@@ -390,7 +453,7 @@ def decode(obj):
         return obj
 
 def pack(o, default=encode, 
-         encoding='utf-8', unicode_errors='strict', use_single_float=False):
+         encoding=None, unicode_errors='strict', use_single_float=False):
     """
     Pack an object and return the packed bytes.
     """
@@ -400,7 +463,7 @@ def pack(o, default=encode,
            use_single_float=use_single_float).pack(o)
 
 def unpack(packed, object_hook=decode, 
-           list_hook=None, use_list=False, encoding='utf-8',
+           list_hook=None, use_list=False, encoding=None,
            unicode_errors='strict', object_pairs_hook=None):
     """
     Unpack a packed object, return an iterator
@@ -417,7 +480,7 @@ if _USE_MSGPACK:
 
     class Packer(_packer.Packer):
         def __init__(self, default=encode, 
-                     encoding='utf-8',
+                     encoding=None,
                      unicode_errors='strict',
                      use_single_float=False):
             super(Packer, self).__init__(default=default, 
@@ -428,7 +491,7 @@ if _USE_MSGPACK:
     class Unpacker(_unpacker.Unpacker):
         def __init__(self, file_like=None, read_size=0, use_list=False,
                      object_hook=decode,
-                     object_pairs_hook=None, list_hook=None, encoding='utf-8',
+                     object_pairs_hook=None, list_hook=None, encoding=None,
                      unicode_errors='strict', max_buffer_size=0):
             super(Unpacker, self).__init__(file_like=file_like, 
                                            read_size=read_size,    
