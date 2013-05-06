@@ -7,6 +7,7 @@ import warnings
 import datetime
 import numpy as np
 
+import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, Index)
 from pandas.io.pytables import HDFStore, get_store, Term, IncompatibilityWarning, PerformanceWarning
@@ -2041,6 +2042,22 @@ class TestHDFStore(unittest.TestCase):
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
+    def test_retain_index_attributes(self):
+
+        # GH 3499, losing frequency info on index recreation
+        df = DataFrame(dict(A = Series(xrange(3), 
+                                       index=date_range('2000-1-1',periods=3,freq='H'))))
+
+        with ensure_clean(self.path) as store:
+            store.put('data', df, table=True)
+
+            result = store.get('data')
+            tm.assert_frame_equal(df,result)
+
+            for attr in ['freq','tz']:
+                for idx in ['index','columns']:
+                    self.assert_(getattr(getattr(df,idx),attr,None) == getattr(getattr(result,idx),attr,None))
+
     def test_panel_select(self):
 
         wp = tm.makePanel()
@@ -2437,6 +2454,16 @@ class TestHDFStore(unittest.TestCase):
         finally:
             safe_close(store)
 
+    def test_legacy_0_11_read(self):
+        # legacy from 0.11
+        try:
+            store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_0.11.h5'), 'r')
+            df = store.select('df')
+            df1 = store.select('df1')
+            mi = store.select('mi')
+        finally:
+            safe_close(store)
+
     def test_copy(self):
 
         def do_copy(f = None, new_f = None, keys = None, propindexes = True, **kwargs):
@@ -2497,14 +2524,22 @@ class TestHDFStore(unittest.TestCase):
     def test_legacy_table_write(self):
         raise nose.SkipTest
 
-        # legacy table types
+        store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_%s.h5' % pandas.__version__), 'a')
+
         df = tm.makeDataFrame()
         wp = tm.makePanel()
 
-        store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table.h5'), 'a')
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['foo', 'bar'])
+        df = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['A', 'B', 'C'])
+        store.append('mi', df)
 
-        self.assertRaises(Exception, store.append, 'df1', df)
-        self.assertRaises(Exception, store.append, 'wp1', wp)
+        df = DataFrame(dict(A = 'foo', B = 'bar'),index=range(10))
+        store.append('df', df, data_columns = ['B'], min_itemsize={'A' : 200 })
 
         store.close()
 

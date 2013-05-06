@@ -943,7 +943,8 @@ class IndexCol(object):
     is_searchable = False
 
     def __init__(self, values=None, kind=None, typ=None, cname=None, itemsize=None,
-                 name=None, axis=None, kind_attr=None, pos=None, **kwargs):
+                 name=None, axis=None, kind_attr=None, pos=None, freq=None, tz=None, 
+                 index_name=None, **kwargs):
         self.values = values
         self.kind = kind
         self.typ = typ
@@ -953,6 +954,9 @@ class IndexCol(object):
         self.kind_attr = kind_attr
         self.axis = axis
         self.pos = pos
+        self.freq = freq
+        self.tz = tz
+        self.index_name = None
         self.table = None
 
         if name is not None:
@@ -1023,7 +1027,22 @@ class IndexCol(object):
             values = values[self.cname]
         except:
             pass
-        self.values = Index(_maybe_convert(values, self.kind))
+
+        kwargs = dict()
+        if self.freq is not None:
+            kwargs['freq'] = self.freq
+        if self.tz is not None:
+            kwargs['tz'] = self.tz
+        if self.name is not None:
+            kwargs['name'] = self.index_name
+        try:
+            self.values = Index(_maybe_convert(values, self.kind), **kwargs)
+        except:
+
+            # if the output freq is different that what we recorded, then infer it
+            if 'freq' in kwargs:
+                kwargs['freq'] = 'infer'
+            self.values = Index(_maybe_convert(values, self.kind), **kwargs)
         return self
 
     def take_data(self):
@@ -1097,6 +1116,30 @@ class IndexCol(object):
             if existing_kind is not None and existing_kind != self.kind:
                 raise TypeError("incompatible kind in col [%s - %s]" %
                                 (existing_kind, self.kind))
+
+    def update_info(self, info):
+        """ set/update the info for this indexable with the key/value
+            if validate is True, then raise if an existing value does not match the value """
+
+        for key in ['freq','tz','name']:
+
+            value = getattr(self,key,None)
+
+            try:
+                idx = info[self.name]
+            except:
+                idx = info[self.name] = dict()
+        
+            existing_value = idx.get(key)
+            if key in idx and existing_value != value:
+                raise ValueError("invalid info for [%s] for [%s]"""
+                                 ", existing_value [%s] conflicts with new value [%s]" % (self.name,
+                                                                                          key,existing_value,value))
+
+            if value is not None or existing_value is not None:
+                idx[key] = value
+
+        return self
 
     def get_attr(self):
         """ set the kind for this colummn """
@@ -2060,6 +2103,7 @@ class Table(Storer):
         self.non_index_axes = []
         self.values_axes    = []
         self.data_columns   = []
+        self.info           = dict()
         self.nan_rep        = None
         self.selection      = None
 
@@ -2173,18 +2217,20 @@ class Table(Storer):
 
     def set_attrs(self):
         """ set our table type & indexables """
-        self.attrs.table_type = self.table_type
-        self.attrs.index_cols = self.index_cols()
-        self.attrs.values_cols = self.values_cols()
+        self.attrs.table_type   = self.table_type
+        self.attrs.index_cols   = self.index_cols()
+        self.attrs.values_cols  = self.values_cols()
         self.attrs.non_index_axes = self.non_index_axes
         self.attrs.data_columns = self.data_columns
-        self.attrs.nan_rep = self.nan_rep
-        self.attrs.levels = self.levels
+        self.attrs.info         = self.info
+        self.attrs.nan_rep      = self.nan_rep
+        self.attrs.levels       = self.levels
 
     def get_attrs(self):
         """ retrieve our attributes """
         self.non_index_axes   = getattr(self.attrs,'non_index_axes',None) or []
         self.data_columns     = getattr(self.attrs,'data_columns',None)   or []
+        self.info             = getattr(self.attrs,'info',None)           or dict()
         self.nan_rep          = getattr(self.attrs,'nan_rep',None)
         self.levels           = getattr(self.attrs,'levels',None)         or []
         t = self.table
@@ -2221,8 +2267,17 @@ class Table(Storer):
             d = self.description
             self._indexables = []
 
+            # info
+            info = getattr(self.attrs,'info',None) or dict()
+
             # index columns
-            self._indexables.extend([IndexCol(name=name, axis=axis, pos=i) for i, (axis, name) in enumerate(self.attrs.index_cols)])
+            def create_index(i, axis, name):
+                kwargs = dict( name=name, axis=axis, pos=i )
+                i = info.get(name)
+                if i is not None and len(i):
+                    kwargs.update(i)
+                return IndexCol(**kwargs)
+            self._indexables.extend([ create_index(i,axis,name) for i, (axis, name) in enumerate(self.attrs.index_cols)])
 
             # values columns
             dc = set(self.data_columns)
@@ -2379,7 +2434,8 @@ class Table(Storer):
             existing_table.infer_axes()
             axes         = [ a.axis for a in existing_table.index_axes]
             data_columns = existing_table.data_columns
-            nan_rep = existing_table.nan_rep
+            nan_rep      = existing_table.nan_rep
+            self.info    = existing_table.info
         else:
             existing_table = None
 
@@ -2421,7 +2477,7 @@ class Table(Storer):
                 self.non_index_axes.append((i, append_axis))
 
         # set axis positions (based on the axes)
-        self.index_axes = [index_axes_map[a].set_pos(j) for j,
+        self.index_axes = [index_axes_map[a].set_pos(j).update_info(self.info) for j,
                            a in enumerate(axes)]
         j = len(self.index_axes)
 
@@ -3042,10 +3098,10 @@ class AppendableNDimTable(AppendablePanelTable):
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
-        return IndexCol(converted, 'datetime64', _tables().Int64Col())
+        return IndexCol(converted, 'datetime64', _tables().Int64Col(), freq=getattr(index,'freq',None), tz=getattr(index,'tz',None))
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
-        return IndexCol(index.values, 'integer', atom)
+        return IndexCol(index.values, 'integer', atom, freq=getattr(index,'freq',None))
 
     if isinstance(index, MultiIndex):
         raise Exception('MultiIndex not supported here!')
