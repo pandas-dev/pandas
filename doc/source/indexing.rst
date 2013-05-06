@@ -14,9 +14,9 @@
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
 
-**************
-Selecting Data
-**************
+***************************
+Indexing and Selecting Data
+***************************
 
 The axis labeling information in pandas objects serves many purposes:
 
