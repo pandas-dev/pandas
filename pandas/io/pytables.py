@@ -42,6 +42,11 @@ incompatibility_doc = """
 where criteria is being ignored as this version [%s] is too old (or not-defined),
 read the file in and write it out to a new file to upgrade (with the copy_to method)
 """
+class FrequencyWarning(Warning): pass
+frequency_doc = """
+the frequency of the existing index is [%s] which conflicts with the new freq [%s],
+resetting the frequency to None
+"""
 class PerformanceWarning(Warning): pass
 performance_doc = """
 your performance may suffer as PyTables will pickle object types that it cannot map
@@ -149,9 +154,12 @@ def get_store(path, mode='a', complevel=None, complib=None,
 
 ### interface to/from ###
 
-def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, **kwargs):
+def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, append=None, **kwargs):
     """ store this object, close it if we opened it """
-    f = lambda store: store.put(key, value, **kwargs)
+    if append:
+        f = lambda store: store.append(key, value, **kwargs)
+    else:
+        f = lambda store: store.put(key, value, **kwargs)
 
     if isinstance(path_or_buf, basestring):
         with get_store(path_or_buf, mode=mode, complevel=complevel, complib=complib) as store:
@@ -941,6 +949,7 @@ class IndexCol(object):
     is_an_indexable = True
     is_data_indexable = True
     is_searchable = False
+    _info_fields = ['freq','tz','name']
 
     def __init__(self, values=None, kind=None, typ=None, cname=None, itemsize=None,
                  name=None, axis=None, kind_attr=None, pos=None, freq=None, tz=None, 
@@ -1121,7 +1130,7 @@ class IndexCol(object):
         """ set/update the info for this indexable with the key/value
             if validate is True, then raise if an existing value does not match the value """
 
-        for key in ['freq','tz','name']:
+        for key in self._info_fields:
 
             value = getattr(self,key,None)
 
@@ -1132,14 +1141,30 @@ class IndexCol(object):
         
             existing_value = idx.get(key)
             if key in idx and existing_value != value:
-                raise ValueError("invalid info for [%s] for [%s]"""
-                                 ", existing_value [%s] conflicts with new value [%s]" % (self.name,
-                                                                                          key,existing_value,value))
 
-            if value is not None or existing_value is not None:
-                idx[key] = value
+                # frequency just warn
+                if key == 'freq':
+                    ws = frequency_doc % (existing_value,value)
+                    warnings.warn(ws, FrequencyWarning)
+
+                    # reset
+                    idx[key] = None
+
+                else:
+                    raise ValueError("invalid info for [%s] for [%s]"""
+                                     ", existing_value [%s] conflicts with new value [%s]" % (self.name,
+                                                                                              key,existing_value,value))
+            else:
+                if value is not None or existing_value is not None:
+                    idx[key] = value
 
         return self
+
+    def set_info(self, info):
+        """ set my state from the passed info """
+        idx = info.get(self.name)
+        if idx is not None:
+            self.__dict__.update(idx)
 
     def get_attr(self):
         """ set the kind for this colummn """
@@ -1180,6 +1205,7 @@ class DataCol(IndexCol):
     is_an_indexable = False
     is_data_indexable = False
     is_searchable = False
+    _info_fields = ['tz']
 
     @classmethod
     def create_for_block(cls, i=None, name=None, cname=None, version=None, **kwargs):
@@ -1249,7 +1275,7 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description,self.cname,None)
 
-    def set_atom(self, block, existing_col, min_itemsize, nan_rep, **kwargs):
+    def set_atom(self, block, existing_col, min_itemsize, nan_rep, info, **kwargs):
         """ create and setup my atom from the block b """
 
         self.values = list(block.items)
@@ -1264,10 +1290,27 @@ class DataCol(IndexCol):
                 "[date] is not implemented as a table column")
         elif inferred_type == 'datetime':
             if getattr(rvalues[0],'tzinfo',None) is not None:
+
+                # if this block has more than one timezone, raise
+                if len(set([r.tzinfo for r in rvalues])) != 1:
+                    raise TypeError(
+                        "too many timezones in this block, create separate data columns")
+
+                # convert this column to datetime64[ns] utc, and save the tz
+                index = DatetimeIndex(rvalues)
+                tz = getattr(index,'tz',None)
+                if tz is None:
+                    raise TypeError(
+                        "invalid timezone specification")
+
+                values = index.tz_convert('UTC').values.view('i8')
+                self.tz = tz
+                self.update_info(info)
+                self.set_atom_datetime64(block, values.reshape(block.values.shape))
+
+            else:
                 raise TypeError(
-                    "timezone support on datetimes is not yet implemented as a table column")
-            raise TypeError(
-                "[datetime] is not implemented as a table column")
+                    "[datetime] is not implemented as a table column")
         elif inferred_type == 'unicode':
             raise TypeError(
                 "[unicode] is not implemented as a table column")
@@ -1347,10 +1390,12 @@ class DataCol(IndexCol):
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
 
-    def set_atom_datetime64(self, block):
+    def set_atom_datetime64(self, block, values = None):
         self.kind = 'datetime64'
         self.typ = self.get_atom_datetime64(block)
-        self.set_data(block.values.view('i8'), 'datetime64')
+        if values is None:
+            values = block.values.view('i8')
+        self.set_data(values, 'datetime64')
 
     @property
     def shape(self):
@@ -1389,7 +1434,18 @@ class DataCol(IndexCol):
 
             # reverse converts
             if self.dtype == 'datetime64':
-                self.data = np.asarray(self.data, dtype='M8[ns]')
+                # recreate the timezone
+                if self.tz is not None:
+
+                    # data should be 2-dim here
+                    # we stored as utc, so just set the tz
+
+                    index = DatetimeIndex(self.data.ravel(),tz='UTC').tz_convert(self.tz)
+                    self.data = np.array(index.tolist(),dtype=object).reshape(self.data.shape)
+
+                else:
+                    self.data = np.asarray(self.data, dtype='M8[ns]')
+
             elif self.dtype == 'date':
                 self.data = np.array(
                     [date.fromtimestamp(v) for v in self.data], dtype=object)
@@ -2267,17 +2323,8 @@ class Table(Storer):
             d = self.description
             self._indexables = []
 
-            # info
-            info = getattr(self.attrs,'info',None) or dict()
-
             # index columns
-            def create_index(i, axis, name):
-                kwargs = dict( name=name, axis=axis, pos=i )
-                i = info.get(name)
-                if i is not None and len(i):
-                    kwargs.update(i)
-                return IndexCol(**kwargs)
-            self._indexables.extend([ create_index(i,axis,name) for i, (axis, name) in enumerate(self.attrs.index_cols)])
+            self._indexables.extend([ IndexCol(name=name,axis=axis,pos=i) for i, (axis, name) in enumerate(self.attrs.index_cols)])
 
             # values columns
             dc = set(self.data_columns)
@@ -2370,6 +2417,7 @@ class Table(Storer):
 
         # convert the data
         for a in self.axes:
+            a.set_info(self.info)
             a.convert(values, nan_rep=self.nan_rep)
 
         return True
@@ -2535,6 +2583,7 @@ class Table(Storer):
                              existing_col=existing_col,
                              min_itemsize=min_itemsize,
                              nan_rep=nan_rep,
+                             info=self.info,
                              **kwargs)
                 col.set_pos(j)
 
@@ -2654,6 +2703,7 @@ class Table(Storer):
 
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
+                a.set_info(self.info)
                 return Series(a.convert(c[:], nan_rep=self.nan_rep).take_data())
 
         raise KeyError("column [%s] not found in the table" % column)
@@ -3365,6 +3415,8 @@ class Term(object):
 
         if self.kind == 'datetime64' or self.kind == 'datetime' :
             v = lib.Timestamp(v)
+            if v.tz is not None:
+                v = v.tz_convert('UTC')
             return [v.value, v]
         elif isinstance(v, datetime) or hasattr(v, 'timetuple') or self.kind == 'date':
             v = time.mktime(v.timetuple())
