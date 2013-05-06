@@ -322,6 +322,9 @@ The :ref:`Timedeltas <timeseries.timedeltas>` docs.
 `Create timedeltas with date differences
 <http://stackoverflow.com/questions/15683588/iterating-through-a-pandas-dataframe>`__
 
+`Adding days to dates in a dataframe
+<http://stackoverflow.com/questions/16385785/add-days-to-dates-in-dataframe>`__
+
 Aliasing Axis Names
 -------------------
 
