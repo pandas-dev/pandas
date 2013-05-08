@@ -236,6 +236,22 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         result = df['2001']['A']
         assert_series_equal(expected,result)
 
+        # GH3546 (not including times on the last day)
+        idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:00', freq='H')
+        ts  = Series(range(len(idx)), index=idx)
+        expected = ts['2013-05']
+        assert_series_equal(expected,ts)
+
+        idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:59', freq='S')
+        ts  = Series(range(len(idx)), index=idx)
+        expected = ts['2013-05']
+        assert_series_equal(expected,ts)
+
+        idx = [ Timestamp('2013-05-31 00:00'), Timestamp(datetime(2013,5,31,23,59,59,999999))]
+        ts  = Series(range(len(idx)), index=idx)
+        expected = ts['2013']
+        assert_series_equal(expected,ts)
+
 def assert_range_equal(left, right):
     assert(left.equals(right))
     assert(left.freq == right.freq)
