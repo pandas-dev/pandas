@@ -913,7 +913,7 @@ class TableIterator(object):
         self.stop  = min(self.nrows,stop)
 
         if chunksize is None:
-            chunksize = 50000
+            chunksize = 100000
 
         self.chunksize = chunksize
 
@@ -2233,6 +2233,10 @@ class Table(Storer):
         return self.storable
 
     @property
+    def dtype(self):
+        return self.table.dtype
+
+    @property
     def description(self):
         return self.table.description
 
@@ -2848,7 +2852,7 @@ class AppendableTable(LegacyTable):
     table_type = 'appendable'
 
     def write(self, obj, axes=None, append=False, complib=None,
-              complevel=None, fletcher32=None, min_itemsize=None, chunksize=50000,
+              complevel=None, fletcher32=None, min_itemsize=None, chunksize=None,
               expectedrows=None, **kwargs):
 
         if not append and self.is_exists:
@@ -2905,18 +2909,26 @@ class AppendableTable(LegacyTable):
             [a.is_searchable for a in self.values_axes]).astype('u1')
         values = [a.take_data() for a in self.values_axes]
 
+        # transpose the values so first dimension is last
+        values = [ v.transpose(np.roll(np.arange(v.ndim),v.ndim-1)) for v in values ]
+
         # write the chunks
+        if chunksize is None:
+            chunksize = 100000
+
         rows = self.nrows_expected
         chunks = int(rows / chunksize) + 1
         for i in xrange(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, rows)
+            if start_i >= end_i:
+                break
 
             self.write_data_chunk(
                 indexes=[a[start_i:end_i] for a in indexes],
                 mask=mask[start_i:end_i],
                 search=search,
-                values=[v[:, start_i:end_i] for v in values])
+                values=[v[start_i:end_i] for v in values])
 
     def write_data_chunk(self, indexes, mask, search, values):
 
@@ -2929,7 +2941,7 @@ class AppendableTable(LegacyTable):
         try:
             func = getattr(lib, "create_hdf_rows_%sd" % self.ndim)
             args = list(indexes)
-            args.extend([mask, search, values])
+            args.extend([self.dtype, mask, search, values])
             rows = func(*args)
         except (Exception), detail:
             raise Exception("cannot create row-data -> %s" % str(detail))
@@ -2939,9 +2951,8 @@ class AppendableTable(LegacyTable):
                 self.table.append(rows)
                 self.table.flush()
         except (Exception), detail:
-            raise Exception(
-                "tables cannot write this data -> %s" % str(detail))
-
+            raise Exception("tables cannot write this data -> %s" % str(detail))
+ 
     def delete(self, where=None, **kwargs):
 
         # delete all rows (and return the nrows)
