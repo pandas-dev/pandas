@@ -1,6 +1,6 @@
-.. _whatsnew_0120:
+.. _whatsnew_0111:
 
-v0.12.0 (??)
+v0.11.1 (??)
 ------------------------
 
 This is a major release from 0.11.0 and includes many new features and
@@ -12,13 +12,21 @@ API changes
 
 Enhancements
 ~~~~~~~~~~~~
-  - pd.read_html() can now parse HTML string, files or urls and return dataframes
+  - ``pd.read_html()`` can now parse HTML string, files or urls and return dataframes
     courtesy of @cpcloud. (GH3477_)
+  - ``HDFStore``
+
+    - will retain index attributes (freq,tz,name) on recreation (GH3499_)
+    - will warn with a FrequencyWarning if you are attempting to append
+      an index with a different frequency than the existing
+    - support datelike columns with a timezone as data_columns (GH2852_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
 .. _GH2437: https://github.com/pydata/pandas/issues/2437
+.. _GH2852: https://github.com/pydata/pandas/issues/2852
 .. _GH3477: https://github.com/pydata/pandas/issues/3477
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
+.. _GH3499: https://github.com/pydata/pandas/issues/3499

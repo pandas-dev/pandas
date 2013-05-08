@@ -38,6 +38,12 @@ pandas 0.11.1
   - Fixed various issues with internal pprinting code, the repr() for various objects
     including TimeStamp and *Index now produces valid python code strings and
     can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
+  - ``HDFStore``
+
+    - will retain index attributes (freq,tz,name) on recreation (GH3499_)
+    - will warn with a FrequencyWarning if you are attempting to append
+      an index with a different frequency than the existing
+    - support datelike columns with a timezone as data_columns (GH2852_)
 
 **API Changes**
 
@@ -89,6 +95,7 @@ pandas 0.11.1
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3480: https://github.com/pydata/pandas/issues/3480
+.. _GH2852: https://github.com/pydata/pandas/issues/2852
 .. _GH3454: https://github.com/pydata/pandas/issues/3454
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3491: https://github.com/pydata/pandas/issues/3491
@@ -105,7 +112,7 @@ pandas 0.11.1
 .. _GH3546: https://github.com/pydata/pandas/issues/3546
 .. _GH3468: https://github.com/pydata/pandas/issues/3468
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
-.. _GH3449: https://github.com/pydata/pandas/issues/3449
+.. _GH3499: https://github.com/pydata/pandas/issues/3499
 .. _GH3495: https://github.com/pydata/pandas/issues/3495
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
