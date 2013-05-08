@@ -43,6 +43,9 @@ class AmbiguousIndexError(PandasError, KeyError):
 
 
 _POSSIBLY_CAST_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]','O','int8','uint8','int16','uint16','int32','uint32','int64','uint64'] ])
+_NS_DTYPE = np.dtype('M8[ns]')
+_TD_DTYPE = np.dtype('m8[ns]')
+_INT64_DTYPE = np.dtype(np.int64)
 
 def isnull(obj):
     '''
@@ -1084,6 +1087,12 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
 
         if is_datetime64 or is_timedelta64:
 
+            # force the dtype if needed
+            if is_datetime64 and dtype != _NS_DTYPE:
+                  raise TypeError("cannot convert datetimelike to dtype [%s]" % dtype)
+            elif is_timedelta64 and dtype != _TD_DTYPE:
+                raise TypeError("cannot convert timedeltalike to dtype [%s]" % dtype)
+
             if np.isscalar(value):
                 if value == tslib.iNaT or isnull(value):
                     value = tslib.iNaT
@@ -1098,7 +1107,8 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                 elif np.prod(value.shape) and value.dtype != dtype:
                     try:
                         if is_datetime64:
-                            value = tslib.array_to_datetime(value, coerce = coerce)
+                            from pandas.tseries.tools import to_datetime
+                            value = to_datetime(value, coerce=coerce).values
                         elif is_timedelta64:
                             value = _possibly_cast_to_timedelta(value)
                     except:
@@ -1119,12 +1129,12 @@ def _possibly_cast_to_datetime(value, dtype, coerce = False):
                 v = [ v ]
             if len(v):
                 inferred_type = lib.infer_dtype(v)
-                if inferred_type == 'datetime':
+                if inferred_type in ['datetime','datetime64']:
                     try:
                         value = tslib.array_to_datetime(np.array(v))
                     except:
                         pass
-                elif inferred_type == 'timedelta':
+                elif inferred_type in ['timedelta','timedelta64']:
                     value = _possibly_cast_to_timedelta(value)
 
     return value
@@ -1515,9 +1525,24 @@ def _astype_nansafe(arr, dtype, copy = True):
     if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)
 
-    if issubclass(arr.dtype.type, np.datetime64):
+    if is_datetime64_dtype(arr):
         if dtype == object:
             return tslib.ints_to_pydatetime(arr.view(np.int64))
+        elif issubclass(dtype.type, np.int):
+            return arr.view(dtype)
+        elif dtype != _NS_DTYPE:
+            raise TypeError("cannot astype a datetimelike from [%s] to [%s]" % (arr.dtype,dtype))
+        return arr.astype(_NS_DTYPE)
+    elif is_timedelta64_dtype(arr):
+        if issubclass(dtype.type, np.int):
+            return arr.view(dtype)
+        elif dtype == object:
+            return arr.astype(object)
+
+        # in py3, timedelta64[ns] are int64
+        elif (py3compat.PY3 and dtype not in [_INT64_DTYPE,_TD_DTYPE]) or (not py3compat.PY3 and dtype != _TD_DTYPE):
+            raise TypeError("cannot astype a timedelta from [%s] to [%s]" % (arr.dtype,dtype))
+        return arr.astype(_TD_DTYPE)
     elif (np.issubdtype(arr.dtype, np.floating) and
           np.issubdtype(dtype, np.integer)):
 
@@ -1721,9 +1746,6 @@ else:
             self.queue.truncate(0)
 
 
-_NS_DTYPE = np.dtype('M8[ns]')
-
-
 def _concat_compat(to_concat, axis=0):
     # filter empty arrays
     to_concat = [x for x in to_concat if x.shape[axis] > 0]
@@ -1750,7 +1772,6 @@ def _to_pydatetime(x):
         x = x.reshape(shape)
 
     return x
-
 
 def _where_compat(mask, arr1, arr2):
     if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:

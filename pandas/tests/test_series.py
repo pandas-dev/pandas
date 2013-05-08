@@ -469,6 +469,27 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(isnull(s[1]) == True)
         self.assert_(s.dtype == 'M8[ns]')
 
+        # GH3416
+        dates = [
+            np.datetime64(datetime(2013, 1, 1)),
+            np.datetime64(datetime(2013, 1, 2)),
+            np.datetime64(datetime(2013, 1, 3)),
+            ]
+        
+        s = Series(dates)
+        self.assert_(s.dtype == 'M8[ns]')
+
+        s.ix[0] = np.nan
+        self.assert_(s.dtype == 'M8[ns]')
+
+        # invalid astypes
+        for t in ['s','D','us','ms']:
+            self.assertRaises(TypeError, s.astype, 'M8[%s]' % t)
+
+        # GH3414 related
+        self.assertRaises(TypeError, lambda x: Series(Series(dates).astype('int')/1000000,dtype='M8[ms]'))
+        self.assertRaises(TypeError, lambda x: Series(dates, dtype='datetime64'))
+
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
@@ -1808,6 +1829,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         td = Series([ timedelta(days=i) for i in range(3) ] + [ np.nan ], dtype='m8[ns]' )
         self.assert_(td.dtype=='timedelta64[ns]')
+
+        # invalid astypes
+        for t in ['s','D','us','ms']:
+            self.assertRaises(TypeError, td.astype, 'm8[%s]' % t)
+
+        # valid astype
+        td.astype('int')
 
         # this is an invalid casting
         self.assertRaises(Exception, Series, [ timedelta(days=i) for i in range(3) ] + [ 'foo' ], dtype='m8[ns]' )

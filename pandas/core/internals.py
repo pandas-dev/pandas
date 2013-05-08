@@ -4,7 +4,7 @@ from datetime import datetime
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import _possibly_downcast_to_dtype, isnull
+from pandas.core.common import _possibly_downcast_to_dtype, isnull, _NS_DTYPE, _TD_DTYPE
 from pandas.core.index import Index, MultiIndex, _ensure_index, _handle_legacy_indexes
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
@@ -739,10 +739,6 @@ class ObjectBlock(Block):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.complexfloating,
                                np.datetime64, np.bool_))
-
-_NS_DTYPE = np.dtype('M8[ns]')
-_TD_DTYPE = np.dtype('m8[ns]')
-
 
 class DatetimeBlock(Block):
     _can_hold_na = True

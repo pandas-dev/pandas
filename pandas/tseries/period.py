@@ -12,7 +12,7 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
 from pandas.util import py3compat
 
 from pandas.lib import Timestamp
@@ -515,10 +515,6 @@ def _period_index_cmp(opname):
 
         return result
     return wrapper
-
-_INT64_DTYPE = np.dtype(np.int64)
-_NS_DTYPE = np.dtype('M8[ns]')
-
 
 class PeriodIndex(Int64Index):
     """
