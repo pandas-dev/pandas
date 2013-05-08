@@ -7,9 +7,12 @@ import warnings
 import datetime
 import numpy as np
 
+import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, Index)
-from pandas.io.pytables import HDFStore, get_store, Term, IncompatibilityWarning, PerformanceWarning
+from pandas.io.pytables import (HDFStore, get_store, Term, 
+                                IncompatibilityWarning, PerformanceWarning,
+                                FrequencyWarning)
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
@@ -1259,15 +1262,47 @@ class TestHDFStore(unittest.TestCase):
             self.assertRaises(TypeError, store.append, 'df_unimplemented', df)
 
     def test_table_append_with_timezones(self):
-        # not implemented yet
 
         with ensure_clean(self.path) as store:
             
-            # check with mixed dtypes
-            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern')),index=range(5))
+            def compare(a,b):
+                tm.assert_frame_equal(a,b)
+                
+                # compare the zones on each element
+                for c in a.columns:
+                    for i in a.index:
+                        a_e = a[c][i]
+                        b_e = b[c][i]
+                        if not (a_e == b_e and a_e.tz == b_e.tz):
+                            raise AssertionError("invalid tz comparsion [%s] [%s]" % (a_e,b_e))
 
-            # timezones not yet supported
+            from datetime import timedelta
+
+            _maybe_remove(store, 'df_tz')
+            df = DataFrame(dict(A = [ Timestamp('20130102 2:00:00',tz='US/Eastern') + timedelta(hours=1)*i for i in range(5) ]))
+            store.append('df_tz',df,data_columns=['A'])
+            compare(store['df_tz'],df)
+
+            # select with tz aware
+            compare(store.select('df_tz',where=Term('A','>=',df.A[3])),df[df.A>=df.A[3]])
+
+            _maybe_remove(store, 'df_tz')
+            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130103',tz='US/Eastern')),index=range(5))
+            store.append('df_tz',df)
+            compare(store['df_tz'],df)
+
+            _maybe_remove(store, 'df_tz')
+            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130102',tz='EET')),index=range(5))
             self.assertRaises(TypeError, store.append, 'df_tz', df)
+
+            # this is ok
+            _maybe_remove(store, 'df_tz')
+            store.append('df_tz',df,data_columns=['A','B'])
+            compare(store['df_tz'],df)
+
+            # can't append with diff timezone
+            df = DataFrame(dict(A = Timestamp('20130102',tz='US/Eastern'), B = Timestamp('20130102',tz='CET')),index=range(5))
+            self.assertRaises(ValueError, store.append, 'df_tz', df)
 
     def test_remove(self):
 
@@ -2041,6 +2076,51 @@ class TestHDFStore(unittest.TestCase):
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
+    def test_retain_index_attributes(self):
+
+        # GH 3499, losing frequency info on index recreation
+        df = DataFrame(dict(A = Series(xrange(3), 
+                                       index=date_range('2000-1-1',periods=3,freq='H'))))
+
+        with ensure_clean(self.path) as store:
+            _maybe_remove(store,'data')
+            store.put('data', df, table=True)
+
+            result = store.get('data')
+            tm.assert_frame_equal(df,result)
+
+            for attr in ['freq','tz']:
+                for idx in ['index','columns']:
+                    self.assert_(getattr(getattr(df,idx),attr,None) == getattr(getattr(result,idx),attr,None))
+
+
+            # try to append a table with a different frequency
+            warnings.filterwarnings('ignore', category=FrequencyWarning)
+            df2 = DataFrame(dict(A = Series(xrange(3), 
+                                            index=date_range('2002-1-1',periods=3,freq='D'))))
+            store.append('data',df2)
+            warnings.filterwarnings('always', category=FrequencyWarning)
+
+            self.assert_(store.get_storer('data').info['index']['freq'] is None)
+
+            # this is ok
+            _maybe_remove(store,'df2')
+            df2 = DataFrame(dict(A = Series(xrange(3), 
+                                            index=[Timestamp('20010101'),Timestamp('20010102'),Timestamp('20020101')])))
+            store.append('df2',df2)
+            df3 = DataFrame(dict(A = Series(xrange(3),index=date_range('2002-1-1',periods=3,freq='D')))) 
+            store.append('df2',df3)
+
+    def test_retain_index_attributes2(self):
+
+        with tm.ensure_clean(self.path) as path:
+            warnings.filterwarnings('ignore', category=FrequencyWarning)
+            df  = DataFrame(dict(A = Series(xrange(3), index=date_range('2000-1-1',periods=3,freq='H'))))
+            df.to_hdf(path,'data',mode='w',append=True)
+            df2 = DataFrame(dict(A = Series(xrange(3), index=date_range('2002-1-1',periods=3,freq='D'))))
+            df2.to_hdf(path,'data',append=True)
+            warnings.filterwarnings('always', category=FrequencyWarning)
+
     def test_panel_select(self):
 
         wp = tm.makePanel()
@@ -2437,6 +2517,16 @@ class TestHDFStore(unittest.TestCase):
         finally:
             safe_close(store)
 
+    def test_legacy_0_11_read(self):
+        # legacy from 0.11
+        try:
+            store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_0.11.h5'), 'r')
+            df = store.select('df')
+            df1 = store.select('df1')
+            mi = store.select('mi')
+        finally:
+            safe_close(store)
+
     def test_copy(self):
 
         def do_copy(f = None, new_f = None, keys = None, propindexes = True, **kwargs):
@@ -2497,14 +2587,22 @@ class TestHDFStore(unittest.TestCase):
     def test_legacy_table_write(self):
         raise nose.SkipTest
 
-        # legacy table types
+        store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_%s.h5' % pandas.__version__), 'a')
+
         df = tm.makeDataFrame()
         wp = tm.makePanel()
 
-        store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table.h5'), 'a')
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['foo', 'bar'])
+        df = DataFrame(np.random.randn(10, 3), index=index,
+                       columns=['A', 'B', 'C'])
+        store.append('mi', df)
 
-        self.assertRaises(Exception, store.append, 'df1', df)
-        self.assertRaises(Exception, store.append, 'wp1', wp)
+        df = DataFrame(dict(A = 'foo', B = 'bar'),index=range(10))
+        store.append('df', df, data_columns = ['B'], min_itemsize={'A' : 200 })
 
         store.close()
 
