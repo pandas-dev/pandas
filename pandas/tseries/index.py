@@ -1075,16 +1075,16 @@ class DatetimeIndex(Int64Index):
 
         if reso == 'year':
             t1 = Timestamp(datetime(parsed.year, 1, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, 12, 31), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, 12, 31, 23, 59, 59, 999999), tz=self.tz)
         elif reso == 'month':
             d = tslib.monthrange(parsed.year, parsed.month)[1]
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, parsed.month, d), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, parsed.month, d, 23, 59, 59, 999999), tz=self.tz)
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, qe, d), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, qe, d, 23, 59, 59, 999999), tz=self.tz)
         elif (reso == 'day' and (self._resolution < Resolution.RESO_DAY or not is_monotonic)):
             st = datetime(parsed.year, parsed.month, parsed.day)
             t1 = Timestamp(st, tz=self.tz)
