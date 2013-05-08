@@ -79,6 +79,8 @@ pandas 0.11.1
     - Fix to_csv to handle non-unique columns (GH3495_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
+  - Fixed bug in selecting month/quarter/year from a series would not select the time element
+    on the last day (GH3546_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -100,6 +102,7 @@ pandas 0.11.1
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3477: https://github.com/pydata/pandas/issues/3457
 .. _GH3461: https://github.com/pydata/pandas/issues/3461
+.. _GH3546: https://github.com/pydata/pandas/issues/3546
 .. _GH3468: https://github.com/pydata/pandas/issues/3468
 .. _GH3448: https://github.com/pydata/pandas/issues/3448
 .. _GH3449: https://github.com/pydata/pandas/issues/3449
