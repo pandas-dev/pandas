@@ -114,6 +114,9 @@ encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
+usecols : array-like, default None
+    Specify a subset of columns to return.
+    This can result in much faster parsing time and lower memory usage.
 
 Returns
 -------
