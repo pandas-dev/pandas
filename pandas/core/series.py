@@ -75,7 +75,7 @@ def _arith_method(op, name):
 
         return result
 
-    def wrapper(self, other):
+    def wrapper(self, other, name=name):
         from pandas.core.frame import DataFrame
         dtype = None
         wrap_results = lambda x: x
@@ -123,6 +123,13 @@ def _arith_method(op, name):
             # 2 datetimes or 2 timedeltas
             if (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and is_datetime_rhs):
 
+                if is_datetime_lhs and name not in ['__sub__']:
+                    raise TypeError("can only operate on a datetimes for subtraction, "
+                                    "but the operator [%s] was passed" % name)
+                elif is_timedelta_lhs and name not in ['__add__','__sub__']:
+                    raise TypeError("can only operate on a timedeltas for "
+                                    "addition and subtraction, but the operator [%s] was passed" % name)
+
                 dtype = 'timedelta64[ns]'
 
                 # we may have to convert to object unfortunately here
@@ -135,6 +142,10 @@ def _arith_method(op, name):
 
             # datetime and timedelta
             elif (is_timedelta_lhs and is_datetime_rhs) or (is_timedelta_rhs and is_datetime_lhs):
+
+                if name not in ['__add__','__sub__']:
+                    raise TypeError("can only operate on a timedelta and a datetime for "
+                                    "addition and subtraction, but the operator [%s] was passed" % name)
                 dtype = 'M8[ns]'
 
             else:

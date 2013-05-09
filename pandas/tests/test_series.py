@@ -1889,25 +1889,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result,expected)
         self.assert_(result.dtype=='m8[ns]')
 
-        result = df['A'] + datetime(2001,1,1)
-        expected = Series([timedelta(days=26663+i) for i in range(3)])
-        assert_series_equal(result,expected)
-        self.assert_(result.dtype=='m8[ns]')
-
         d = datetime(2001,1,1,3,4)
         resulta = df['A'] - d
         self.assert_(resulta.dtype=='m8[ns]')
 
-        resultb = df['A'] + d
-        self.assert_(resultb.dtype=='m8[ns]')
-
         # roundtrip
         resultb = resulta + d
         assert_series_equal(df['A'],resultb)
-
-        # timedelta on lhs
-        result = resultb + d
-        self.assert_(result.dtype=='m8[ns]')
 
         # timedeltas on rhs
         td = timedelta(days=1)
@@ -1931,6 +1919,42 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(result.dtype=='m8[ns]')
         assert_series_equal(result,expected)
 
+    def test_operators_datetimelike(self):
+
+        ### timedelta64 ###
+        td1 = Series([timedelta(minutes=5,seconds=3)]*3)
+        td2 = timedelta(minutes=5,seconds=4)
+        for op in ['__mul__','__floordiv__','__truediv__','__div__','__pow__']:
+            op = getattr(td1,op,None)
+            if op is not None:
+                self.assertRaises(TypeError, op, td2)
+        td1 + td2
+        td1 - td2
+
+        ### datetime64 ###
+        dt1 = Series([Timestamp('20111230'),Timestamp('20120101'),Timestamp('20120103')])
+        dt2 = Series([Timestamp('20111231'),Timestamp('20120102'),Timestamp('20120104')])
+        for op in ['__add__','__mul__','__floordiv__','__truediv__','__div__','__pow__']:
+            op = getattr(dt1,op,None)
+            if op is not None:
+                self.assertRaises(TypeError, op, dt2)
+        dt1 - dt2
+
+        ### datetime64 with timetimedelta ###
+        for op in ['__mul__','__floordiv__','__truediv__','__div__','__pow__']:
+            op = getattr(dt1,op,None)
+            if op is not None:
+                self.assertRaises(TypeError, op, td1)
+        dt1 + td1
+        dt1 - td1
+
+        ### timetimedelta with datetime64 ###
+        for op in ['__mul__','__floordiv__','__truediv__','__div__','__pow__']:
+            op = getattr(td1,op,None)
+            if op is not None:
+                self.assertRaises(TypeError, op, dt1)
+        td1 + dt1
+        td1 - dt1
 
     def test_timedelta64_functions(self):
 
