@@ -94,6 +94,8 @@ pandas 0.11.1
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
     on the last day (GH3546_)
   - Properly convert np.datetime64 objects in a Series (GH3416_)
+  - Raise a TypeError on invalid datetime/timedelta operations
+    e.g. add datetimes, multiple timedelta x datetime
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
