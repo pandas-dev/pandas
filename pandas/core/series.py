@@ -933,10 +933,9 @@ class Series(pa.Array, generic.PandasObject):
         return self._constructor(casted, index=self.index, name=self.name,
                                  dtype=casted.dtype)
 
-    def convert_objects(self, convert_dates=True, convert_numeric=True):
+    def convert_objects(self, convert_dates=True, convert_numeric=True, copy=True):
         """
         Attempt to infer better dtype
-        Always return a copy
 
         Parameters
         ----------
@@ -946,6 +945,8 @@ class Series(pa.Array, generic.PandasObject):
         convert_numeric : boolean, default True
             if True attempt to coerce to numbers (including strings),
             non-convertibles get NaN
+        copy : boolean, default True
+            if True return a copy even if not object dtype
 
         Returns
         -------
@@ -955,7 +956,7 @@ class Series(pa.Array, generic.PandasObject):
             return Series(com._possibly_convert_objects(self.values,
                 convert_dates=convert_dates, convert_numeric=convert_numeric),
                 index=self.index, name=self.name)
-        return self.copy()
+        return self.copy() if copy else self
 
     def repeat(self, reps):
         """
