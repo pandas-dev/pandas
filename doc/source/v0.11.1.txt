@@ -3,8 +3,7 @@
 v0.11.1 (??)
 ------------------------
 
-This is a major release from 0.11.0 and includes many new features and
-enhancements along with a large number of bug fixes.
+This is a minor release from 0.11.0 and include a small number of enhances and bug fixes.
 
 API changes
 ~~~~~~~~~~~
