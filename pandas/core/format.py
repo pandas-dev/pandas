@@ -736,7 +736,7 @@ class HTMLFormatter(TableFormatter):
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(ncols))
                 self.write_tr(row, indent, self.indent_delta, tags=None,
-                              nindex_levels=len(frame.index.nlevels))
+                              nindex_levels=frame.index.nlevels)
 
 
 def _get_level_lengths(levels):
