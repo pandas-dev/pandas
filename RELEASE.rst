@@ -41,8 +41,9 @@ pandas 0.11.1
   - ``HDFStore``
 
     - will retain index attributes (freq,tz,name) on recreation (GH3499_)
-    - will warn with a FrequencyWarning if you are attempting to append
-      an index with a different frequency than the existing
+    - will warn with a AttributeConflictWarning if you are attempting to append
+      an index with a different frequency than the existing, or attempting
+      to append an index with a different name than the existing
     - support datelike columns with a timezone as data_columns (GH2852_)
     - table writing performance improvements.
 

@@ -10,9 +10,9 @@ import numpy as np
 import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, Index)
-from pandas.io.pytables import (HDFStore, get_store, Term, 
+from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf, 
                                 IncompatibilityWarning, PerformanceWarning,
-                                FrequencyWarning)
+                                AttributeConflictWarning)
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
@@ -109,8 +109,6 @@ class TestHDFStore(unittest.TestCase):
 
         try:
 
-            from pandas import read_hdf
-        
             def roundtrip(key, obj,**kwargs):
                 obj.to_hdf(self.path, key,**kwargs)
                 return read_hdf(self.path, key)
@@ -2089,17 +2087,17 @@ class TestHDFStore(unittest.TestCase):
             result = store.get('data')
             tm.assert_frame_equal(df,result)
 
-            for attr in ['freq','tz']:
+            for attr in ['freq','tz','name']:
                 for idx in ['index','columns']:
                     self.assert_(getattr(getattr(df,idx),attr,None) == getattr(getattr(result,idx),attr,None))
 
 
             # try to append a table with a different frequency
-            warnings.filterwarnings('ignore', category=FrequencyWarning)
+            warnings.filterwarnings('ignore', category=AttributeConflictWarning)
             df2 = DataFrame(dict(A = Series(xrange(3), 
                                             index=date_range('2002-1-1',periods=3,freq='D'))))
             store.append('data',df2)
-            warnings.filterwarnings('always', category=FrequencyWarning)
+            warnings.filterwarnings('always', category=AttributeConflictWarning)
 
             self.assert_(store.get_storer('data').info['index']['freq'] is None)
 
@@ -2114,12 +2112,27 @@ class TestHDFStore(unittest.TestCase):
     def test_retain_index_attributes2(self):
 
         with tm.ensure_clean(self.path) as path:
-            warnings.filterwarnings('ignore', category=FrequencyWarning)
+
+            warnings.filterwarnings('ignore', category=AttributeConflictWarning)
+
             df  = DataFrame(dict(A = Series(xrange(3), index=date_range('2000-1-1',periods=3,freq='H'))))
             df.to_hdf(path,'data',mode='w',append=True)
             df2 = DataFrame(dict(A = Series(xrange(3), index=date_range('2002-1-1',periods=3,freq='D'))))
             df2.to_hdf(path,'data',append=True)
-            warnings.filterwarnings('always', category=FrequencyWarning)
+
+            idx = date_range('2000-1-1',periods=3,freq='H')
+            idx.name = 'foo'
+            df  = DataFrame(dict(A = Series(xrange(3), index=idx)))
+            df.to_hdf(path,'data',mode='w',append=True)
+            self.assert_(read_hdf(path,'data').index.name == 'foo')
+
+            idx2 = date_range('2001-1-1',periods=3,freq='H')
+            idx2.name = 'bar'
+            df2 = DataFrame(dict(A = Series(xrange(3), index=idx2)))
+            df2.to_hdf(path,'data',append=True)
+            self.assert_(read_hdf(path,'data').index.name is None)
+
+            warnings.filterwarnings('always', category=AttributeConflictWarning)
 
     def test_panel_select(self):
 
