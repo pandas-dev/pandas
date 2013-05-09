@@ -96,6 +96,7 @@ pandas 0.11.1
   - Properly convert np.datetime64 objects in a Series (GH3416_)
   - Raise a TypeError on invalid datetime/timedelta operations
     e.g. add datetimes, multiple timedelta x datetime
+  - Fix ``.diff`` on datelike and timedelta operations (GH3100_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -108,6 +109,7 @@ pandas 0.11.1
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3480: https://github.com/pydata/pandas/issues/3480
 .. _GH2852: https://github.com/pydata/pandas/issues/2852
+.. _GH3100: https://github.com/pydata/pandas/issues/3100
 .. _GH3454: https://github.com/pydata/pandas/issues/3454
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3491: https://github.com/pydata/pandas/issues/3491

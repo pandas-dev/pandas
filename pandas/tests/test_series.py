@@ -4039,6 +4039,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         xp = self.ts - self.ts
         assert_series_equal(rs, xp)
 
+        # datetime diff (GH3100)
+        s  = Series(date_range('20130102',periods=5))
+        rs = s-s.shift(1)
+        xp = s.diff()
+        assert_series_equal(rs, xp)
+
+        # timedelta diff
+        nrs = rs-rs.shift(1)
+        nxp = xp.diff()
+        assert_series_equal(nrs, nxp)
+
     def test_pct_change(self):
         rs = self.ts.pct_change(fill_method=None)
         assert_series_equal(rs, self.ts / self.ts.shift(1) - 1)
