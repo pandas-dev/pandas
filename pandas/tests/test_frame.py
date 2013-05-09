@@ -7889,6 +7889,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame({ 'A' : [1,2,3,5,3,7.], 'B' : [np.nan,2,3,4,6,8] })
         assert_frame_equal(result,expected)
 
+        # GH3552, return object dtype with bools
+        df1 = DataFrame([[np.nan, 3.,True], [-4.6, np.nan, True], [np.nan, 7., False]])
+        df2 = DataFrame([[-42.6, np.nan, True], [-5., 1.6, False]], index=[1, 2])
+
+        result = df1.combine_first(df2)[2]
+        expected = Series([True,True,False])
+        assert_series_equal(result,expected) 
+
     def test_update(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],

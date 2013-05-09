@@ -38,6 +38,7 @@ pandas 0.11.1
   - Fixed various issues with internal pprinting code, the repr() for various objects
     including TimeStamp and *Index now produces valid python code strings and
     can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
+  - ``convert_objects`` now accepts a ``copy`` parameter (defaults to ``True``)
   - ``HDFStore``
 
     - will retain index attributes (freq,tz,name) on recreation (GH3499_)
@@ -97,6 +98,7 @@ pandas 0.11.1
   - Raise a TypeError on invalid datetime/timedelta operations
     e.g. add datetimes, multiple timedelta x datetime
   - Fix ``.diff`` on datelike and timedelta operations (GH3100_)
+  - ``combine_first`` not returning the same dtype in cases where it can (GH3552_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -129,6 +131,7 @@ pandas 0.11.1
 .. _GH3499: https://github.com/pydata/pandas/issues/3499
 .. _GH3495: https://github.com/pydata/pandas/issues/3495
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
+.. _GH3552: https://github.com/pydata/pandas/issues/3552
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
 
 
