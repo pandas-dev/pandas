@@ -1627,21 +1627,23 @@ class DataFrame(NDFrame):
     def dtypes(self):
         return self.apply(lambda x: x.dtype)
 
-    def convert_objects(self, convert_dates=True, convert_numeric=False):
+    def convert_objects(self, convert_dates=True, convert_numeric=False, copy=True):
         """
         Attempt to infer better dtype for object columns
-        Always returns a copy (even if no object columns)
 
         Parameters
         ----------
         convert_dates : if True, attempt to soft convert_dates, if 'coerce', force conversion (and non-convertibles get NaT)
         convert_numeric : if True attempt to coerce to numerbers (including strings), non-convertibles get NaN
+        copy : boolean, return a copy if True (True by default)
 
         Returns
         -------
         converted : DataFrame
         """
-        return self._constructor(self._data.convert(convert_dates=convert_dates, convert_numeric=convert_numeric))
+        return self._constructor(self._data.convert(convert_dates=convert_dates, 
+                                                    convert_numeric=convert_numeric, 
+                                                    copy=copy))
 
     #----------------------------------------------------------------------
     # properties for index and columns
@@ -3735,7 +3737,10 @@ class DataFrame(NDFrame):
 
             result[col] = arr
 
-        return self._constructor(result, index=new_index, columns=new_columns)
+        # convert_objects just in case
+        return self._constructor(result, 
+                                 index=new_index, 
+                                 columns=new_columns).convert_objects(copy=False)
 
     def combine_first(self, other):
         """
@@ -4210,7 +4215,7 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects()
+            result = result.convert_objects(copy=False)
 
             return result
         else:
