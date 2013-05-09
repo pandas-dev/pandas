@@ -617,9 +617,18 @@ _diff_special = {
 
 
 def diff(arr, n, axis=0):
+    """ difference of n between self,
+        analagoust to s-s.shift(n) """
+
     n = int(n)
     dtype = arr.dtype
-    if issubclass(dtype.type, np.integer):
+    na = np.nan
+
+    if is_timedelta64_dtype(arr) or is_datetime64_dtype(arr):
+        dtype = 'timedelta64[ns]'
+        arr = arr.view('i8')
+        na = tslib.iNaT
+    elif issubclass(dtype.type, np.integer):
         dtype = np.float64
     elif issubclass(dtype.type, np.bool_):
         dtype = np.object_
@@ -628,7 +637,7 @@ def diff(arr, n, axis=0):
 
     na_indexer = [slice(None)] * arr.ndim
     na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
-    out_arr[tuple(na_indexer)] = np.nan
+    out_arr[tuple(na_indexer)] = na
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
         f = _diff_special[arr.dtype.name]
@@ -642,7 +651,24 @@ def diff(arr, n, axis=0):
         lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)
         lag_indexer = tuple(lag_indexer)
 
-        out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
+        # need to make sure that we account for na for datelike/timedelta
+        # we don't actually want to subtract these i8 numbers
+        if dtype == 'timedelta64[ns]':
+            res = arr[res_indexer]
+            lag = arr[lag_indexer]
+
+            mask = (arr[res_indexer] == na) | (arr[lag_indexer] == na)
+            if mask.any():
+                res = res.copy()
+                res[mask] = 0
+                lag = lag.copy()
+                lag[mask] = 0
+
+            result = res-lag
+            result[mask] = na
+            out_arr[res_indexer] = result
+        else:
+            out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     return out_arr
 
