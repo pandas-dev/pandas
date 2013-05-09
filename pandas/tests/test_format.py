@@ -435,6 +435,114 @@ class TestDataFrameFormatting(unittest.TestCase):
 </table>"""
         self.assertEqual(xp, rs)
 
+    def test_to_html_multiindex_sparsify_false_multi_sparse(self):
+        with option_context('display.multi_sparse', False):
+            index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
+                                              names=['foo', None])
+
+            df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
+
+            result = df.to_html()
+            expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <th>0</th>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <th>1</th>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <th>0</th>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <th>1</th>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+            self.assertEquals(result, expected)
+
+            df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
+                           columns=index[::2], index=index)
+
+            result = df.to_html()
+            expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>foo</th>
+      <th>0</th>
+      <th>1</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+      <th>0</th>
+      <th>0</th>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <th>0</th>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <th>1</th>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <th>0</th>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <th>1</th>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+            self.assertEquals(result, expected)
+
     def test_to_html_multiindex_sparsify(self):
         index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
                                           names=['foo', None])
