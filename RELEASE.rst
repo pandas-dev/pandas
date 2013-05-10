@@ -43,7 +43,7 @@ pandas 0.11.1
   - ``HDFStore``
 
     - will retain index attributes (freq,tz,name) on recreation (GH3499_)
-    - will warn with a AttributeConflictWarning if you are attempting to append
+    - will warn with a ``AttributeConflictWarning`` if you are attempting to append
       an index with a different frequency than the existing, or attempting
       to append an index with a different name than the existing
     - support datelike columns with a timezone as data_columns (GH2852_)
@@ -51,8 +51,8 @@ pandas 0.11.1
 
 **API Changes**
 
-  - When removing an object from a store, **store.remove(key)**, raises
-    **KeyError** if **key** is not a valid store object.
+  - When removing an object from a ``HDFStore``, ``remove(key)`` raises
+    ``KeyError`` if the key is not a valid store object.
   - The repr() for (Multi)Index now obeys display.max_seq_items rather
     then numpy threshold print options. (GH3426_, GH3466_)
   - Added mangle_dupe_cols option to read_table/csv, allowing users
@@ -76,8 +76,6 @@ pandas 0.11.1
     columns (GH3437_)
   - ``.loc`` was not raising when passed an integer list (GH3449_)
   - Unordered time series selection was misbehaving when using label slicing (GH3448_)
-  - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
-  - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
   - Fix sorting in a frame with a list of columns which contains datetime64[ns] dtypes (GH3461_)
   - DataFrames fetched via FRED now handle '.' as a NaN. (GH3469_)
   - Fix regression in a DataFrame apply with axis=1, objects were not being converted back
@@ -92,13 +90,15 @@ pandas 0.11.1
     - applymap on a DataFrame with a non-unique index now works
       (removed warning) (GH2786_), and fix (GH3230_)
     - Fix to_csv to handle non-unique columns (GH3495_)
+    - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
+    - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
     on the last day (GH3546_)
   - Fixed a couple of MultiIndex rendering bugs in df.to_html() (GH3547_, GH3553_)
   - Properly convert np.datetime64 objects in a Series (GH3416_)
-  - Raise a TypeError on invalid datetime/timedelta operations
+  - Raise a ``TypeError`` on invalid datetime/timedelta operations
     e.g. add datetimes, multiple timedelta x datetime
   - Fix ``.diff`` on datelike and timedelta operations (GH3100_)
   - ``combine_first`` not returning the same dtype in cases where it can (GH3552_)
