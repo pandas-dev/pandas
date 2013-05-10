@@ -1616,6 +1616,83 @@ class TestPeriodIndex(TestCase):
         ts = Series(np.random.randn(len(index)), index=index)
         repr(ts)
 
+    def test_period_index_unicode(self):
+        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 9)
+        assert_equal(pi, eval(unicode(pi)))
+
+        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 4 * 9)
+        assert_equal(pi, eval(unicode(pi)))
+
+        pi = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 12 * 9)
+        assert_equal(pi, eval(unicode(pi)))
+
+        start = Period('02-Apr-2005', 'B')
+        i1 = PeriodIndex(start=start, periods=20)
+        assert_equal(len(i1), 20)
+        assert_equal(i1.freq, start.freq)
+        assert_equal(i1[0], start)
+        assert_equal(i1, eval(unicode(i1)))
+
+        end_intv = Period('2006-12-31', 'W')
+        i1 = PeriodIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), 10)
+        assert_equal(i1.freq, end_intv.freq)
+        assert_equal(i1[-1], end_intv)
+        assert_equal(i1, eval(unicode(i1)))
+
+        end_intv = Period('2006-12-31', '1w')
+        i2 = PeriodIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), len(i2))
+        self.assert_((i1 == i2).all())
+        assert_equal(i1.freq, i2.freq)
+        assert_equal(i1, eval(unicode(i1)))
+        assert_equal(i2, eval(unicode(i2)))
+
+        end_intv = Period('2006-12-31', ('w', 1))
+        i2 = PeriodIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), len(i2))
+        self.assert_((i1 == i2).all())
+        assert_equal(i1.freq, i2.freq)
+        assert_equal(i1, eval(unicode(i1)))
+        assert_equal(i2, eval(unicode(i2)))
+
+        try:
+            PeriodIndex(start=start, end=end_intv)
+            raise AssertionError('Cannot allow mixed freq for start and end')
+        except ValueError:
+            pass
+
+        end_intv = Period('2005-05-01', 'B')
+        i1 = PeriodIndex(start=start, end=end_intv)
+        assert_equal(i1, eval(unicode(i1)))
+
+        try:
+            PeriodIndex(start=start)
+            raise AssertionError(
+                'Must specify periods if missing start or end')
+        except ValueError:
+            pass
+
+        # infer freq from first element
+        i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
+        assert_equal(len(i2), 2)
+        assert_equal(i2[0], end_intv)
+        assert_equal(i2, eval(unicode(i2)))
+
+        i2 = PeriodIndex(np.array([end_intv, Period('2005-05-05', 'B')]))
+        assert_equal(len(i2), 2)
+        assert_equal(i2[0], end_intv)
+        assert_equal(i2, eval(unicode(i2)))
+
+        # Mixed freq should fail
+        vals = [end_intv, Period('2006-12-31', 'w')]
+        self.assertRaises(ValueError, PeriodIndex, vals)
+        vals = np.array(vals)
+        self.assertRaises(ValueError, PeriodIndex, vals)
+
     def test_frame_index_to_string(self):
         index = PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')
         frame = DataFrame(np.random.randn(3, 4), index=index)
