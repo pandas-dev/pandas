@@ -68,7 +68,6 @@ Dependencies
   - `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
   - `python-dateutil <http://labix.org/python-dateutil>`__ 1.5 or higher
   - `pytz <http://pytz.sourceforge.net/>`__
-
      - Needed for time zone support with ``date_range``
 
 Highly Recommended Dependencies
