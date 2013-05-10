@@ -835,7 +835,6 @@ containing the data in each row:
       ...:     print '%s\n%s' % (row_index, row)
       ...:
 
-
 For instance, a contrived way to transpose the dataframe would be:
 
 .. ipython:: python
@@ -846,6 +845,18 @@ For instance, a contrived way to transpose the dataframe would be:
 
    df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
    print df2_t
+
+.. note::
+
+   ``iterrows`` does **not** preserve dtypes across the rows (dtypes are
+   preserved across columns for DataFrames). For example,
+
+    .. ipython:: python
+
+      df = DataFrame([[1, 1.0]], columns=['x', 'y'])
+      row = next(df.iterrows())[1]
+      print row['x'].dtype
+      print df['x'].dtype
 
 itertuples
 ~~~~~~~~~~
