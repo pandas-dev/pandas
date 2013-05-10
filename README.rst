@@ -90,6 +90,7 @@ Optional dependencies
      * openpyxl version 1.6.1 or higher, for writing .xlsx files
      * xlrd >= 0.9.0
      * Needed for Excel I/O
+  * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
 
 
 Installation from sources

@@ -34,7 +34,7 @@ into chunks.
 Parameters
 ----------
 filepath_or_buffer : string or file handle / StringIO. The string could be
-    a URL. Valid URL schemes include http, ftp, and file. For file URLs, a host
+    a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
     is expected. For instance, a local file could be
     file ://localhost/path/to/table.csv
 %s
@@ -188,6 +188,12 @@ def _is_url(url):
     except:
         return False
 
+def _is_s3_url(url):
+    """ Check for an s3 url """
+    try:
+        return urlparse.urlparse(url).scheme == 's3'
+    except:
+        return False
 
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
@@ -196,17 +202,32 @@ def _read(filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
-    if isinstance(filepath_or_buffer, basestring) and _is_url(filepath_or_buffer):
-        from urllib2 import urlopen
-        filepath_or_buffer = urlopen(filepath_or_buffer)
-        if py3compat.PY3:  # pragma: no cover
-            if encoding:
-                errors = 'strict'
-            else:
-                errors = 'replace'
-                encoding = 'utf-8'
-            bytes = filepath_or_buffer.read()
-            filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
+    if isinstance(filepath_or_buffer, basestring):
+        if _is_url(filepath_or_buffer):
+            from urllib2 import urlopen
+            filepath_or_buffer = urlopen(filepath_or_buffer)
+            if py3compat.PY3:  # pragma: no cover
+                if encoding:
+                    errors = 'strict'
+                else:
+                    errors = 'replace'
+                    encoding = 'utf-8'
+                bytes = filepath_or_buffer.read()
+                filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
+
+        if _is_s3_url(filepath_or_buffer):
+            try:
+                import boto
+            except:
+                raise ImportError("boto is required to handle s3 files")
+            # Assuming AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+            # are environment variables
+            parsed_url = urlparse.urlparse(filepath_or_buffer)
+            conn = boto.connect_s3()
+            b = conn.get_bucket(parsed_url.netloc)
+            k = boto.s3.key.Key(b)
+            k.key = parsed_url.path
+            filepath_or_buffer = StringIO(k.get_contents_as_string())
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
