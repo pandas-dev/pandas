@@ -37,7 +37,7 @@ pandas 0.11.1
 
   - Fixed various issues with internal pprinting code, the repr() for various objects
     including TimeStamp and *Index now produces valid python code strings and
-    can be used to recreate the object, (GH3038_), (GH3379_), (GH3251_)
+    can be used to recreate the object, (GH3038_, GH3379_, GH3251_, GH3460_)
   - ``convert_objects`` now accepts a ``copy`` parameter (defaults to ``True``)
   - ``HDFStore``
 
@@ -127,6 +127,7 @@ pandas 0.11.1
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3477: https://github.com/pydata/pandas/issues/3457
+.. _GH3460: https://github.com/pydata/pandas/issues/3460
 .. _GH3461: https://github.com/pydata/pandas/issues/3461
 .. _GH3546: https://github.com/pydata/pandas/issues/3546
 .. _GH3468: https://github.com/pydata/pandas/issues/3468
