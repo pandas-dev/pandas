@@ -65,41 +65,46 @@ And via ``easy_install`` or ``pip``::
 Dependencies
 ============
 
-  * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
-  * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5 or higher
-  * `pytz <http://pytz.sourceforge.net/>`__
-     * Needed for time zone support with ``date_range``
+  - `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
+  - `python-dateutil <http://labix.org/python-dateutil>`__ 1.5 or higher
+  - `pytz <http://pytz.sourceforge.net/>`__
+
+     - Needed for time zone support with ``date_range``
 
 Highly Recommended Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  * `numexpr <http://code.google.com/p/numexpr/>`__: to accelerate some expression evaluation operations
-     also required by `PyTables`
-  * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: to accelerate certain numerical operations
+  - `numexpr <http://code.google.com/p/numexpr/>`__
+
+     - Needed to accelerate some expression evaluation operations
+     - Required by `PyTables`
+  - `bottleneck <http://berkeleyanalytics.com/bottleneck>`__
+
+     - Needed to accelerate certain numerical operations
 
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-  * `Cython <http://www.cython.org>`__: Only necessary to build development
-     version. Version 0.17.1 or higher.
-  * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
-  * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
-  * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-  * `statsmodels <http://statsmodels.sourceforge.net/>`__
-     * Needed for parts of :mod:`pandas.stats`
-  * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
+  - `Cython <http://www.cython.org>`__: Only necessary to build development version. Version 0.17.1 or higher.
+  - `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
+  - `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
+  - `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
+  - `statsmodels <http://statsmodels.sourceforge.net/>`__
 
-     * openpyxl version 1.6.1 or higher, for writing .xlsx files
-     * xlrd >= 0.9.0
-     * Needed for Excel I/O
-  * `lxml <http://lxml.de>`__, or `Beautiful Soup 4 <http://www.crummy.com/software/BeautifulSoup>`__: for reading HTML tables
+     - Needed for parts of :mod:`pandas.stats`
+  - `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
 
-     * The differences between lxml and Beautiful Soup 4 are mostly speed (lxml
+     - openpyxl version 1.6.1 or higher, for writing .xlsx files
+     - xlrd >= 0.9.0
+     - Needed for Excel I/O
+  - `lxml <http://lxml.de>`__, or `Beautiful Soup 4 <http://www.crummy.com/software/BeautifulSoup>`__: for reading HTML tables
+
+     - The differences between lxml and Beautiful Soup 4 are mostly speed (lxml
        is faster), however sometimes Beautiful Soup returns what you might
        intuitively expect. Both backends are implemented, so try them both to
        see which one you like. They should return very similar results.
-     * Note that lxml requires Cython to build successfully
-  * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
+     - Note that lxml requires Cython to build successfully
+  - `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
 
 
 Installation from sources
