@@ -20,7 +20,7 @@ Cookbook
 ********
 
 This is a respository for *short and sweet* examples and links for useful pandas recipes.
-We encourage users to add to this documentation. 
+We encourage users to add to this documentation.
 
 This is a great *First Pull Request* (to add interesting links and/or put short code inline
 for existing links)
@@ -276,7 +276,7 @@ The :ref:`HDFStores <io.hdf5>` docs
 `Merging on-disk tables with millions of rows
 <http://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
 
-Deduplicating a large store by chunks, essentially a recusive reduction operation. Shows a function for taking in data from 
+Deduplicating a large store by chunks, essentially a recusive reduction operation. Shows a function for taking in data from
 csv file and creating a store by chunks, with date parsing as well.
 `See here
 <http://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__
@@ -345,5 +345,5 @@ To globally provide aliases for axis names, one can define these 2 functions:
 
    set_axis_alias(DataFrame,'columns', 'myaxis2')
    df2 = DataFrame(randn(3,2),columns=['c1','c2'],index=['i1','i2','i3'])
-   df2.sum(axis='myaxis2') 
+   df2.sum(axis='myaxis2')
    clear_axis_alias(DataFrame,'columns', 'myaxis2')
