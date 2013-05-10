@@ -1812,6 +1812,11 @@ def _where_compat(mask, arr1, arr2):
 
     return np.where(mask, arr1, arr2)
 
+def sentinal_factory():
+    class Sentinal(object):
+        pass
+
+    return Sentinal()
 
 def in_interactive_session():
     """ check if we're running in an interactive shell

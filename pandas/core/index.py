@@ -1700,9 +1700,15 @@ class MultiIndex(Index):
             sparsify = get_option("display.multi_sparse")
 
         if sparsify:
+            sentinal = ''
+            # GH3547
+            # use value of sparsify as sentinal,  unless it's an obvious "Truthey" value
+            if sparsify not in [True,1]:
+                sentinal = sparsify
             # little bit of a kludge job for #1217
             result_levels = _sparsify(result_levels,
-                                      start=int(names))
+                                      start=int(names),
+                                      sentinal=sentinal)
 
         if adjoin:
             return com.adjoin(space, *result_levels).split('\n')
@@ -2631,7 +2637,7 @@ class MultiIndex(Index):
 
 # For utility purposes
 
-def _sparsify(label_list, start=0):
+def _sparsify(label_list, start=0,sentinal=''):
     pivoted = zip(*label_list)
     k = len(label_list)
 
@@ -2648,7 +2654,7 @@ def _sparsify(label_list, start=0):
                 break
 
             if p == t:
-                sparse_cur.append('')
+                sparse_cur.append(sentinal)
             else:
                 sparse_cur.extend(cur[i:])
                 result.append(sparse_cur)

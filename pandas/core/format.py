@@ -610,9 +610,11 @@ class HTMLFormatter(TableFormatter):
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="%d" halign="left"'
 
-            levels = self.columns.format(sparsify=True, adjoin=False,
+            # GH3547
+            sentinal = com.sentinal_factory()
+            levels = self.columns.format(sparsify=sentinal, adjoin=False,
                                          names=False)
-            level_lengths = _get_level_lengths(levels)
+            level_lengths = _get_level_lengths(levels,sentinal)
 
             row_levels = self.frame.index.nlevels
 
@@ -703,9 +705,11 @@ class HTMLFormatter(TableFormatter):
         idx_values = zip(*idx_values)
 
         if self.fmt.sparsify:
-            levels = frame.index.format(sparsify=True, adjoin=False,
-                                        names=False)
-            level_lengths = _get_level_lengths(levels)
+
+            # GH3547
+            sentinal = com.sentinal_factory()
+            levels = frame.index.format(sparsify=sentinal, adjoin=False,  names=False)
+            level_lengths = _get_level_lengths(levels,sentinal)
 
             for i in range(len(frame)):
                 row = []
@@ -738,15 +742,14 @@ class HTMLFormatter(TableFormatter):
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
 
-
-def _get_level_lengths(levels):
+def _get_level_lengths(levels,sentinal=''):
     from itertools import groupby
 
     def _make_grouper():
         record = {'count': 0}
 
         def grouper(x):
-            if x != '':
+            if x != sentinal:
                 record['count'] += 1
             return record['count']
         return grouper
