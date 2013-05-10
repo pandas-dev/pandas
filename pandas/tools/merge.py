@@ -888,6 +888,11 @@ class _Concatenator(object):
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
                  ignore_index=False, verify_integrity=False):
+        if not isinstance(objs, (tuple, list, dict)):
+            raise AssertionError('first argument must be a list of pandas '
+                                 'objects, you passed an object of type '
+                                 '"{0}"'.format(type(objs).__name__))
+
         if join == 'outer':
             self.intersect = False
         elif join == 'inner':

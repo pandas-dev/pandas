@@ -13,7 +13,8 @@ from pandas import *
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 assert_almost_equal, rands)
+                                 assert_almost_equal, rands,
+                                 makeCustomDataframe as mkdf)
 import pandas.algos as algos
 import pandas.util.testing as tm
 
@@ -1688,6 +1689,11 @@ class TestConcatenate(unittest.TestCase):
 
         result = concat([s1, s2], axis=1, ignore_index=True)
         self.assertTrue(np.array_equal(result.columns, [0, 1]))
+
+    def test_concat_invalid_first_argument(self):
+        df1 = mkdf(10, 2)
+        df2 = mkdf(10, 2)
+        self.assertRaises(AssertionError, concat, df1, df2)
 
 class TestOrderedMerge(unittest.TestCase):
 
