@@ -1105,7 +1105,9 @@ class PeriodIndex(Int64Index):
     def __unicode__(self):
         output = self.__class__.__name__
         output += u'('
-        output += '[{0}]'.format(', '.join(map("u'{0}'".format, self)))
+        prefix = '' if py3compat.PY3 else 'u'
+        mapper = "{0}'{{0}}'".format(prefix)
+        output += '[{0}]'.format(', '.join(map(mapper.format, self)))
         output += ", freq='{0}'".format(self.freq)
         output += ')'
         return output
