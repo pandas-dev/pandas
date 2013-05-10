@@ -267,8 +267,37 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
+    def get_indexer_non_unique(self, targets):
+        """ return an indexer suitable for takng from a non unique index
+            return the labels in the same order ast the target """
 
+        cdef:
+            ndarray values
+            ndarray[int64_t] result
+            object v, val
+            int count = 0
+            Py_ssize_t i, j, n
 
+        self._ensure_mapping_populated()
+        values = self._get_index_values()
+        n = len(values)
+        n_t = len(targets)
+        result = np.empty(n, dtype=np.int64)
+
+        for i in range(n_t):
+            val = util.get_value_at(targets, i)
+
+            for j in range(n):
+                v = util.get_value_at(values, j)
+
+                if v == val:
+                   result[count] = j
+                   count += 1
+
+        if count == 0:
+            raise KeyError
+
+        return result[0:count]
 
 cdef class Int64Engine(IndexEngine):
 

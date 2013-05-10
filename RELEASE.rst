@@ -148,6 +148,7 @@ pandas 0.11.1
 .. _GH3552: https://github.com/pydata/pandas/issues/3552
 .. _GH3562: https://github.com/pydata/pandas/issues/3562
 .. _GH3586: https://github.com/pydata/pandas/issues/3586
+.. _GH3561: https://github.com/pydata/pandas/issues/3561
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
 .. _GH3579: https://github.com/pydata/pandas/issues/3579
 .. _GH3593: https://github.com/pydata/pandas/issues/3593

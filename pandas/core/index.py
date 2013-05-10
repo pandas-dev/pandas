@@ -859,6 +859,19 @@ class Index(np.ndarray):
 
         return com._ensure_platform_int(indexer)
 
+    def get_indexer_non_unique(self, target, **kwargs):
+        """ return an indexer suitable for takng from a non unique index
+            return the labels in the same order ast the target,
+            target must be an iterable """
+        target = _ensure_index(target)
+        pself, ptarget = self._possibly_promote(target)
+        if pself is not self or ptarget is not target:
+            return pself.get_indexer_non_unique(ptarget)
+
+        if self.is_all_dates:
+            return Index(Index(self.asi8)._engine.get_indexer_non_unique(target.asi8))
+        return Index(self._engine.get_indexer_non_unique(target.values))
+
     def _possibly_promote(self, other):
         # A hack, but it works
         from pandas.tseries.index import DatetimeIndex
