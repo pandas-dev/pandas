@@ -1102,6 +1102,23 @@ class PeriodIndex(Int64Index):
         output += 'length: %d' % len(self)
         return output
 
+    def __unicode__(self):
+        output = self.__class__.__name__
+        output += u'('
+        output += '[{0}]'.format(', '.join(map("u'{0}'".format, self)))
+        output += ", freq='{0}'".format(self.freq)
+        output += ')'
+        return output
+
+    def __bytes__(self):
+        encoding = com.get_option('display.encoding')
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __str__(self):
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
     def take(self, indices, axis=None):
         """
         Analogous to ndarray.take
