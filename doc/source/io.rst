@@ -40,8 +40,9 @@ for some advanced strategies
 
 They can take a number of arguments:
 
-  - ``filepath_or_buffer``: Either a string path to a file, or any object with a
-    ``read`` method (such as an open file or ``StringIO``).
+  - ``filepath_or_buffer``: Either a string path to a file, url
+    (including http, ftp, and s3 locations), or any object with a ``read``
+    method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some
     cases by "sniffing." The separator may be specified as a regular
