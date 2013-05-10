@@ -364,6 +364,13 @@ class TestDataFrameFormatting(unittest.TestCase):
         check_with_width(df, 30)
         check_with_width(df, 50)
 
+    def test_to_html_with_empty_string_label(self):
+        # GH3547, to_html regards empty string labels as repeated labels
+        data = {'c1': ['a', 'b'], 'c2': ['a', ''], 'data': [1, 2]}
+        df = DataFrame(data).set_index(['c1', 'c2'])
+        res = df.to_html()
+        self.assertTrue("rowspan" not in res)
+
     def test_to_html_unicode(self):
         # it works!
         df = DataFrame({u'\u03c3': np.arange(10.)})
