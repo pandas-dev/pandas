@@ -1960,7 +1960,8 @@ def form_blocks(arrays, names, axes):
     items = axes[0]
 
     if len(arrays) < len(items):
-        extra_items = items - Index(names)
+        nn = set(names)
+        extra_items = Index([ i for i in items if i not in nn ])
     else:
         extra_items = []
 
