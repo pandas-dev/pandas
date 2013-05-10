@@ -94,6 +94,7 @@ pandas 0.11.1
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
     on the last day (GH3546_)
+  - Fixed a couple of MultiIndex rendering bugs in df.to_html() (GH3547_, GH3553_)
   - Properly convert np.datetime64 objects in a Series (GH3416_)
   - Raise a TypeError on invalid datetime/timedelta operations
     e.g. add datetimes, multiple timedelta x datetime
@@ -119,6 +120,8 @@ pandas 0.11.1
 .. _GH3466: https://github.com/pydata/pandas/issues/3466
 .. _GH3038: https://github.com/pydata/pandas/issues/3038
 .. _GH3510: https://github.com/pydata/pandas/issues/3510
+.. _GH3547: https://github.com/pydata/pandas/issues/3547
+.. _GH3553: https://github.com/pydata/pandas/issues/3553
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
 .. _GH3468: https://github.com/pydata/pandas/issues/3468
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
