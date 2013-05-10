@@ -90,6 +90,12 @@ Optional dependencies
      * openpyxl version 1.6.1 or higher, for writing .xlsx files
      * xlrd >= 0.9.0
      * Needed for Excel I/O
+  * `lxml <http://lxml.de>`__, or `Beautiful Soup 4 <http://www.crummy.com/software/BeautifulSoup>`__: for reading HTML tables
+     * The differences between lxml and Beautiful Soup 4 are mostly speed (lxml
+       is faster), however sometimes Beautiful Soup returns what you might
+       intuitively expect. Both backends are implemented, so try them both to
+       see which one you like. They should return very similar results.
+     * Note that lxml requires Cython to build successfully
   * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
 
 
