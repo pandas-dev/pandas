@@ -873,6 +873,17 @@ The Series object also has a ``to_string`` method, but with only the ``buf``,
 which, if set to ``True``, will additionally output the length of the Series.
 
 
+Reading HTML format
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. _io.read_html:
+
+.. versionadded:: 0.11.1
+
+The toplevel :func:`~pandas.io.parsers.read_html` function can accept an HTML string/file/url
+and will parse HTML tables into pandas DataFrames.
+
+
 Writing to HTML format
 ~~~~~~~~~~~~~~~~~~~~~~
 
