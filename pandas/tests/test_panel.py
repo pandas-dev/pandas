@@ -1140,6 +1140,30 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         expected = self.panel.swapaxes('items', 'minor')
         assert_panel_equal(result, expected)
 
+        # test kwargs
+        result = self.panel.transpose(items='minor', major='major',
+                                      minor='items')
+        expected = self.panel.swapaxes('items', 'minor')
+        assert_panel_equal(result, expected)
+
+        # text mixture of args
+        result = self.panel.transpose('minor', major='major', minor='items')
+        expected = self.panel.swapaxes('items', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose('minor', 'major', minor='items')
+        expected = self.panel.swapaxes('items', 'minor')
+        assert_panel_equal(result, expected)
+
+        ## test bad aliases
+        # test ambiguous aliases
+        self.assertRaises(AssertionError, self.panel.transpose, 'minor',
+                          maj='major', majo='items')
+
+        # test invalid kwargs
+        self.assertRaises(KeyError, self.panel.transpose, 'minor',
+                          maj='major', minor='items')
+
         result = self.panel.transpose(2, 1, 0)
         assert_panel_equal(result, expected)
 

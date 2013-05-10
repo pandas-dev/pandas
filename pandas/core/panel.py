@@ -1166,16 +1166,35 @@ class Panel(NDFrame):
         -------
         y : Panel (new object)
         """
-
         # construct the args
         args = list(args)
+        aliases = tuple(kwargs.iterkeys())
+
         for a in self._AXIS_ORDERS:
             if not a in kwargs:
-                try:
-                    kwargs[a] = args.pop(0)
-                except (IndexError):
-                    raise ValueError(
-                        "not enough arguments specified to transpose!")
+                where = map(a.startswith, aliases)
+
+                if any(where):
+                    if sum(where) != 1:
+                        raise AssertionError(
+                            'Ambiguous parameter aliases "{0}" passed, valid '
+                            'parameter aliases are '
+                            '{1}'.format([n for n, m in zip(aliases, where)
+                                          if m], self._AXIS_ALIASES))
+
+                    k = aliases[where.index(True)]
+
+                    try:
+                        kwargs[self._AXIS_ALIASES[k]] = kwargs.pop(k)
+                    except KeyError:
+                        raise KeyError('Invalid parameter alias '
+                                       '"{0}"'.format(k))
+                else:
+                    try:
+                        kwargs[a] = args.pop(0)
+                    except IndexError:
+                        raise ValueError(
+                            "not enough arguments specified to transpose!")
 
         axes = [self._get_axis_number(kwargs[a]) for a in self._AXIS_ORDERS]
 
