@@ -3518,6 +3518,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         results = df2_obj.get_dtype_counts()
         expected = Series({ 'datetime64[ns]' : 1, 'int64' : 1 })
 
+    def test_from_records_empty(self):
+        # 3562
+        result = DataFrame.from_records([], columns=['a','b','c'])
+        expected = DataFrame(columns=['a','b','c'])
+        assert_frame_equal(result, expected)
+
+        result = DataFrame.from_records([], columns=['a','b','b'])
+        expected = DataFrame(columns=['a','b','b'])
+        assert_frame_equal(result, expected)
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10, 10))
         df.to_records()

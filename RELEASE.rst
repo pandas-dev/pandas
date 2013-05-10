@@ -77,6 +77,7 @@ pandas 0.11.1
   - ``.loc`` was not raising when passed an integer list (GH3449_)
   - Unordered time series selection was misbehaving when using label slicing (GH3448_)
   - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
+  - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
   - Fix sorting in a frame with a list of columns which contains datetime64[ns] dtypes (GH3461_)
   - DataFrames fetched via FRED now handle '.' as a NaN. (GH3469_)
   - Fix regression in a DataFrame apply with axis=1, objects were not being converted back
@@ -137,6 +138,7 @@ pandas 0.11.1
 .. _GH3495: https://github.com/pydata/pandas/issues/3495
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
 .. _GH3552: https://github.com/pydata/pandas/issues/3552
+.. _GH3562: https://github.com/pydata/pandas/issues/3562
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
 
 
