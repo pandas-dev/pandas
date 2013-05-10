@@ -91,6 +91,7 @@ pandas 0.11.1
       (removed warning) (GH2786_), and fix (GH3230_)
     - Fix to_csv to handle non-unique columns (GH3495_)
     - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
+      and handle missing elements like unique indices (GH3561_)
     - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)

@@ -4676,7 +4676,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     if df.columns.is_unique:
                         rs_c.columns = cols
                     else:
-                        rs_c.columns = df.columns.take(df.columns.get_indexer_non_unique(cols))
+                        indexer, missing = df.columns.get_indexer_non_unique(cols)
+                        rs_c.columns = df.columns.take(indexer)
 
                     for c in cols:
                        obj_df = df[c]

@@ -416,6 +416,25 @@ def dicts_to_array(list dicts, list columns):
 
     return result
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def combine_from_indexers(ndarray a, ndarray[int64_t] a_indexer,
+                          ndarray b, ndarray[int64_t] b_indexer):
+    cdef:
+        Py_ssize_t i, n_a, n_b
+        ndarray result
+
+    n_a = len(a)
+    n_b = len(b)
+    result = np.empty(n_a+n_b,dtype=object)
+
+    for i in range(n_a):
+        result[a_indexer[i]] = a[i]
+    for i in range(n_b):
+        result[b_indexer[i]] = b[i]
+
+    return result
+
 
 def fast_zip(list ndarrays):
     '''
