@@ -878,7 +878,10 @@ Reading HTML format
 
 .. _io.read_html:
 
-There is a :func:`~pandas.io.parsers.read_html` reading an HTML file and parsing the contained table(s) into a list of DataFrames.
+.. versionadded:: 0.11.1
+
+The toplevel :func:`~pandas.io.parsers.read_html` function can accept an HTML string/file/url
+and will parse HTML tables into pandas DataFrames.
 
 
 Writing to HTML format
