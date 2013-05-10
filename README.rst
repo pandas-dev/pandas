@@ -72,25 +72,28 @@ Dependencies
 
 Highly Recommended Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
   * `numexpr <http://code.google.com/p/numexpr/>`__: to accelerate some expression evaluation operations
-       also required by `PyTables`
+     also required by `PyTables`
   * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: to accelerate certain numerical operations
 
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `Cython <http://www.cython.org>`__: Only necessary to build development
-    version. Version 0.17.1 or higher.
+     version. Version 0.17.1 or higher.
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   * `statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`
   * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
+
      * openpyxl version 1.6.1 or higher, for writing .xlsx files
      * xlrd >= 0.9.0
      * Needed for Excel I/O
   * `lxml <http://lxml.de>`__, or `Beautiful Soup 4 <http://www.crummy.com/software/BeautifulSoup>`__: for reading HTML tables
+
      * The differences between lxml and Beautiful Soup 4 are mostly speed (lxml
        is faster), however sometimes Beautiful Soup returns what you might
        intuitively expect. Both backends are implemented, so try them both to
