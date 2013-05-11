@@ -677,10 +677,8 @@ class TextFileReader(object):
         if self.options.get('as_recarray'):
             return ret
 
-        index, columns, col_dict = ret
-
         # May alter columns / col_dict
-        # index, columns, col_dict = self._create_index(col_dict, columns)
+        index, columns, col_dict = self._create_index(ret)
 
         df = DataFrame(col_dict, columns=columns, index=index)
 
@@ -688,8 +686,9 @@ class TextFileReader(object):
             return df[df.columns[0]]
         return df
 
-    def _create_index(self, col_dict, columns):
-        pass
+    def _create_index(self, ret):
+        index, columns, col_dict = ret
+        return index, columns, col_dict
 
     def get_chunk(self, size=None):
         if size is None:
@@ -709,6 +708,7 @@ class ParserBase(object):
 
         self.index_col = kwds.pop('index_col', None)
         self.index_names = None
+        self.col_names = None
 
         self.parse_dates = kwds.pop('parse_dates', False)
         self.date_parser = kwds.pop('date_parser', None)
@@ -942,7 +942,32 @@ class CParserWrapper(ParserBase):
         if self._reader.header is None:
             self.names = None
         else:
-            self.names = list(self._reader.header)
+            if len(self._reader.header) > 1:
+                # the names are the tuples of the header that are not the index cols
+                # 0 is the name of the index, assuming index_col is a list of column
+                # numbers 
+                if (self._reader.leading_cols == 0 and
+                    _is_index_col(self.index_col)):
+                    ic = self.index_col
+                    if not isinstance(ic, (list,tuple,np.ndarray)):
+                        ic = [ ic ]
+                    sic = set(ic)
+
+                    header = list(self._reader.header)
+                    index_names = header.pop(-1) 
+                    self.index_names = [ index_names[i] for i in ic ]
+                    field_count = len(header[0])
+
+                    def extract(r):
+                        return tuple([ r[i] for i in range(field_count) if i not in sic ])
+
+                    self.names = ic + zip(*[ extract(r) for r in header ])
+                    self.col_names = [ r[0] if len(r[0]) else None for r in header ]
+                    passed_names = True
+                else:
+                    raise Exception("must have an index_col when have a multi-index specified")
+            else:
+                self.names = list(self._reader.header[0])
 
         if self.names is None:
             if self.prefix:
@@ -958,12 +983,14 @@ class CParserWrapper(ParserBase):
 
         if not self._has_complex_date_col:
             if (self._reader.leading_cols == 0 and
-                    _is_index_col(self.index_col)):
+                _is_index_col(self.index_col)):
 
                 self._name_processed = True
-                (self.index_names, self.names,
-                 self.index_col) = _clean_index_names(self.names,
-                                                      self.index_col)
+                (index_names, self.names, 
+                 self.index_col) = _clean_index_names(self.names, self.index_col)
+
+                if self.index_names is None:
+                    self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
                 self.index_names = [None] * len(self.index_names)
@@ -1051,6 +1078,10 @@ class CParserWrapper(ParserBase):
             names, data = self._do_date_conversions(names, data)
             index = self._make_index(data, alldata, names)
 
+        # possibly create a column mi here
+        if all([ isinstance(c,tuple) for c in names]):
+            names = MultiIndex.from_tuples(names,names=self.col_names)
+
         return index, names, data
 
     def _filter_usecols(self, names):
@@ -1061,7 +1092,7 @@ class CParserWrapper(ParserBase):
         return names
 
     def _get_index_names(self):
-        names = list(self._reader.header)
+        names = list(self._reader.header[0])
         idx_names = None
 
         if self._reader.leading_cols == 0 and self.index_col is not None:

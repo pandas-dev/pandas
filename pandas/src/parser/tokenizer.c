@@ -463,7 +463,7 @@ static int end_line(parser_t *self) {
 
     /* printf("Line: %d, Fields: %d, Ex-fields: %d\n", self->lines, fields, ex_fields); */
 
-    if (!(self->lines <= self->header + 1)
+    if (!(self->lines <= self->header_end + 1)
         && (self->expected_fields < 0 && fields > ex_fields)) {
         // increment file line count
         self->file_lines++;
@@ -498,7 +498,7 @@ static int end_line(parser_t *self) {
     }
     else {
         /* missing trailing delimiters */
-        if ((self->lines >= self->header + 1) && fields < ex_fields) {
+        if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
 
             /* Might overrun the buffer when closing fields */
             if (make_stream_space(self, ex_fields - fields) < 0) {

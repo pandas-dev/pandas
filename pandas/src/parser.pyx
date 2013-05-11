@@ -143,6 +143,8 @@ cdef extern from "parser/tokenizer.h":
         char thousands
 
         int header # Boolean: 1: has header, 0: no header
+        int header_start # header row start
+        int header_end # header row end
 
         void *skipset
         int skip_footer
@@ -242,7 +244,7 @@ cdef class TextReader:
         object na_values, true_values, false_values
         object memory_map
         object as_recarray
-        object header, names
+        object header, names, header_start, header_end
         object low_memory
         object skiprows
         object compact_ints, use_unsigned
@@ -256,6 +258,8 @@ cdef class TextReader:
                   delimiter=b',',
 
                   header=0,
+                  header_start=0,
+                  header_end=0,
                   names=None,
 
                   memory_map=False,
@@ -435,11 +439,28 @@ cdef class TextReader:
         # TODO: no header vs. header is not the first row
         if header is None:
             # sentinel value
+            self.parser.header_start = -1
+            self.parser.header_end = -1
             self.parser.header = -1
             self.parser_start = 0
+            self.header = []
         else:
-            self.parser.header = header
-            self.parser_start = header + 1
+            if isinstance(header, list) and len(header):
+                # need to artifically skip the final line
+                # which is still a header line
+                header.append(header[-1]+1)
+
+                self.parser.header_start = header[0]
+                self.parser.header_end = header[-1]
+                self.parser.header = header[0]
+                self.parser_start = header[-1] + 1
+                self.header = header
+            else:
+                self.parser.header_start = header
+                self.parser.header_end = header
+                self.parser.header = header
+                self.parser_start = header + 1
+                self.header = [ header ]
 
         self.names = names
         self.header, self.table_width = self._get_header()
@@ -534,8 +555,10 @@ cdef class TextReader:
                           ' got %s type' % type(source))
 
     cdef _get_header(self):
+        # header is now a list of lists, so field_count should use header[0]
+
         cdef:
-            size_t i, start, data_line, field_count, passed_count
+            size_t i, start, data_line, field_count, passed_count, hr
             char *word
             object name
             int status
@@ -544,49 +567,53 @@ cdef class TextReader:
 
         header = []
 
-        if self.parser.header >= 0:
+        if self.parser.header_start >= 0:
+
             # Header is in the file
+            for hr in self.header:
 
-            if self.parser.lines < self.parser.header + 1:
-                self._tokenize_rows(self.parser.header + 2)
+                this_header = []
 
-            # e.g., if header=3 and file only has 2 lines
-            if self.parser.lines < self.parser.header + 1:
-                raise CParserError('Passed header=%d but only %d lines in file'
-                                   % (self.parser.header, self.parser.lines))
+                if self.parser.lines < hr + 1:
+                    self._tokenize_rows(hr + 2)
 
-            field_count = self.parser.line_fields[self.parser.header]
-            start = self.parser.line_start[self.parser.header]
+                # e.g., if header=3 and file only has 2 lines
+                if self.parser.lines < hr + 1:
+                    raise CParserError('Passed header=%d but only %d lines in file'
+                                       % (self.parser.header, self.parser.lines))
 
-            # TODO: Py3 vs. Py2
-            counts = {}
-            for i in range(field_count):
-                word = self.parser.words[start + i]
+                field_count = self.parser.line_fields[hr]
+                start = self.parser.line_start[hr]
 
-                if self.c_encoding == NULL and not PY3:
-                    name = PyBytes_FromString(word)
-                else:
-                    if self.c_encoding == NULL or self.c_encoding == b'utf-8':
-                        name = PyUnicode_FromString(word)
+                # TODO: Py3 vs. Py2
+                counts = {}
+                for i in range(field_count):
+                    word = self.parser.words[start + i]
+
+                    if self.c_encoding == NULL and not PY3:
+                        name = PyBytes_FromString(word)
                     else:
-                        name = PyUnicode_Decode(word, strlen(word),
-                                                self.c_encoding, errors)
+                        if self.c_encoding == NULL or self.c_encoding == b'utf-8':
+                            name = PyUnicode_FromString(word)
+                        else:
+                            name = PyUnicode_Decode(word, strlen(word),
+                                                    self.c_encoding, errors)
 
-                if name == '':
-                    name = 'Unnamed: %d' % i
+                    if name == '':
+                        name = 'Unnamed: %d' % i
 
+                    count = counts.get(name, 0)
+                    if count > 0 and self.mangle_dupe_cols:
+                        this_header.append('%s.%d' % (name, count))
+                    else:
+                        this_header.append(name)
+                    counts[name] = count + 1
 
-                count = counts.get(name, 0)
-                if count > 0 and self.mangle_dupe_cols:
-                    header.append('%s.%d' % (name, count))
-                else:
-                    header.append(name)
-                counts[name] = count + 1
-
-            data_line = self.parser.header + 1
+                data_line = hr + 1
+                header.append(this_header)
 
             if self.names is not None:
-                header = self.names
+                header = [ self.names ]
 
         elif self.names is not None:
             # Enforce this unless usecols
@@ -597,11 +624,11 @@ cdef class TextReader:
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
 
-            header = self.names
+            header = [ self.names ]
             data_line = 0
 
             if self.parser.lines < 1:
-                field_count = len(header)
+                field_count = len(header[0])
             else:
                 field_count = self.parser.line_fields[data_line]
         else:
@@ -613,7 +640,7 @@ cdef class TextReader:
 
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
-            field_count = len(header)
+            field_count = len(header[0])
         else: # not self.has_usecols:
 
             field_count = self.parser.line_fields[data_line]
@@ -622,7 +649,7 @@ cdef class TextReader:
             if self.names is not None:
                 field_count = max(field_count, len(self.names))
 
-            passed_count = len(header)
+            passed_count = len(header[0])
 
             # if passed_count > field_count:
             #     raise CParserError('Column names have %d fields, '
@@ -1038,10 +1065,10 @@ cdef class TextReader:
             if self.header is not None:
                 j = i - self.leading_cols
                 # hack for #2442
-                if j == len(self.header):
+                if j == len(self.header[0]):
                     return j
                 else:
-                    return self.header[j]
+                    return self.header[0][j]
             else:
                 return None
 

@@ -963,48 +963,49 @@ class CSVFormatter(object):
         encoded_labels = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
-        if has_aliases or self.header:
+        if not (has_aliases or self.header):
+            return
 
-            if self.index:
-                # should write something for index label
-                if index_label is not False:
-                    if index_label is None:
-                        if isinstance(obj.index, MultiIndex):
-                            index_label = []
-                            for i, name in enumerate(obj.index.names):
-                                if name is None:
-                                    name = ''
-                                index_label.append(name)
-                        else:
-                            index_label = obj.index.name
-                            if index_label is None:
-                                index_label = ['']
-                            else:
-                                index_label = [index_label]
-                    elif not isinstance(index_label, (list, tuple, np.ndarray)):
-                        # given a string for a DF with Index
-                        index_label = [index_label]
-
-                    encoded_labels = list(index_label)
-                else:
-                    encoded_labels = []
-
-                if has_aliases:
-                    if len(header) != len(cols):
-                        raise ValueError(('Writing %d cols but got %d aliases'
-                                          % (len(cols), len(header))))
+        if self.index:
+            # should write something for index label
+            if index_label is not False:
+                if index_label is None:
+                    if isinstance(obj.index, MultiIndex):
+                        index_label = []
+                        for i, name in enumerate(obj.index.names):
+                            if name is None:
+                                name = ''
+                            index_label.append(name)
                     else:
-                        write_cols = header
-                else:
-                    write_cols = cols
+                        index_label = obj.index.name
+                        if index_label is None:
+                            index_label = ['']
+                        else:
+                            index_label = [index_label]
+                elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                    # given a string for a DF with Index
+                    index_label = [index_label]
 
-                if not has_mi_columns:
-                    encoded_labels += list(write_cols)
-
+                encoded_labels = list(index_label)
             else:
+                encoded_labels = []
 
-                if not has_mi_columns:
-                    encoded_labels += list(cols)
+            if has_aliases:
+                if len(header) != len(cols):
+                    raise ValueError(('Writing %d cols but got %d aliases'
+                                      % (len(cols), len(header))))
+                else:
+                    write_cols = header
+            else:
+                write_cols = cols
+
+            if not has_mi_columns:
+                encoded_labels += list(write_cols)
+
+        else:
+
+            if not has_mi_columns:
+                encoded_labels += list(cols)
 
         # write out the mi
         if has_mi_columns:

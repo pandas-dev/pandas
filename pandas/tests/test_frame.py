@@ -4996,13 +4996,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
              self.tsframe.index = old_index  # needed if setUP becomes classmethod
 
         with ensure_clean(pname) as path:
-            # column & index are mi
-            import pdb; pdb.set_trace()
+            # GH3571, GH1651, GH3141
+
+            # column & index are multi-iindex
             df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
             df.to_csv(path)
+            result = read_csv(path,header=[0,1,2,3],index_col=[0,1])
+            assert_frame_equal(df,result)
 
-            result = pd.read_csv(path,header=[0,1,2,3],index_col=[0,1])
-
+            # column is mi
+            df = mkdf(5,3,r_idx_nlevels=1,c_idx_nlevels=4)
+            df.to_csv(path)
+            result = read_csv(path,header=[0,1,2,3],index_col=0)
+            assert_frame_equal(df,result)
 
         with ensure_clean(pname) as path:
             # empty
