@@ -1789,6 +1789,9 @@ def _to_structured_array(dict columns, object names):
 
     if names is None:
         names = ['%d' % i for i in range(len(columns))]
+    else:
+        # single line header
+        names = names[0]
 
     dt = np.dtype([(str(name), columns[i].dtype)
                    for i, name in enumerate(names)])

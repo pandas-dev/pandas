@@ -57,7 +57,10 @@ They can take a number of arguments:
     specified, data types will be inferred.
   - ``header``: row number to use as the column names, and the start of the
     data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
-    pass ``header=0`` to be able to replace existing names.
+    pass ``header=0`` to be able to replace existing names. The header can be
+    a list of integers that specify row locations for a multi-index on the columns
+    E.g. [0,1,3]. Interveaning rows that are not specified will be skipped.
+    (E.g. 2 in this example are skipped)
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
   - ``index_col``: column number, column name, or list of column numbers/names,
@@ -252,6 +255,21 @@ If the header is in a row other than the first, pass the row number to
 
     data = 'skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9'
     pd.read_csv(StringIO(data), header=1)
+
+.. _io.multi_index_columns:
+
+Specifying a multi-index columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By specifying list of row locations for the ``header`` argument, you
+can read in a multi-index for the columns. Specifying non-consecutive
+rows will skip the interveaing rows. The ``index_col`` must also be
+specified.
+
+.. ipython:: python
+
+    data = 'C0,C_l0_g0,C_l0_g1\nC1,C_l1_g0,C_l1_g1\nR0,,\nR_l0_g0,R0C0,R0C1\nR_l0_g1,R1C0,R1C1\nR_l0_g2,R2C0,R2C1\n'
+    pd.read_csv(StringIO(data), header=[0,1], index_col=[0])
 
 .. _io.usecols:
 

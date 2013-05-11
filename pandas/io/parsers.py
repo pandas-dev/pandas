@@ -52,9 +52,11 @@ compression : {'gzip', 'bz2', None}, default None
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
-header : int, default 0 if names parameter not specified, otherwise None
+header : int, default 0 if names parameter not specified,
     Row to use for the column labels of the parsed DataFrame. Specify None if
-    there is no header row.
+    there is no header row. Can be a list of integers that specify row
+    locations for a multi-index on the columns E.g. [0,1,3]. Interveaning
+    rows that are not specified (E.g. 2 in this example are skipped)
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
@@ -531,6 +533,16 @@ class TextFileReader(object):
         if kwds.get('header', 'infer') == 'infer':
             kwds['header'] = 0 if kwds.get('names') is None else None
 
+        # validate header options for mi
+        h = kwds['header']
+        if isinstance(h,(list,tuple,np.ndarray)):
+            if kwds.get('index_col') is None:
+                raise Exception("must have an index_col when have a "
+                                "multi-index header is specified")
+            if kwds.get('as_recarray'):
+                raise Exception("cannot specify as_recarray when "
+                                "specifying a multi-index header")
+
         self.orig_options = kwds
 
         # miscellanea
@@ -965,7 +977,8 @@ class CParserWrapper(ParserBase):
                     self.col_names = [ r[0] if len(r[0]) else None for r in header ]
                     passed_names = True
                 else:
-                    raise Exception("must have an index_col when have a multi-index specified")
+                    raise Exception("must have an index_col when have a multi-index "
+                                    "header is specified")
             else:
                 self.names = list(self._reader.header[0])
 
@@ -1381,6 +1394,9 @@ class PythonParser(ParserBase):
         names = self.names
 
         if self.header is not None:
+            if isinstance(self.header,(list,tuple,np.ndarray)):
+                raise Exception("PythonParser does not support a multi-index header")
+
             if len(self.buf) > 0:
                 line = self.buf[0]
             else:
