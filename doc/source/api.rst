@@ -465,6 +465,7 @@ Missing data handling
 
    DataFrame.dropna
    DataFrame.fillna
+   DataFrame.replace
 
 Reshaping, sorting, transposing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -492,7 +493,6 @@ Combining / joining / merging
    DataFrame.append
    DataFrame.join
    DataFrame.merge
-   DataFrame.replace
    DataFrame.update
 
 Time series-related

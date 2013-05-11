@@ -334,6 +334,133 @@ missing and interpolate over them:
 
    ser.replace([1, 2, 3], method='pad')
 
+String/Regular Expression Replacement
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+
+   Python strings prefixed with the ``r`` character such as ``r'hello world'``
+   are so-called "raw" strings. They have different semantics regarding
+   backslashes than strings without this prefix. Backslashes in raw strings
+   will be interpreted as an escaped backslash, e.g., ``r'\' == '\\'``. You
+   should `read about them
+   <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`_
+   if this is unclear.
+
+Replace the '.' with ``nan`` (str -> str)
+
+.. ipython:: python
+
+   from numpy.random import rand, randn
+   from numpy import nan
+   from pandas import DataFrame
+   d = {'a': range(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
+   df = DataFrame(d)
+   df.replace('.', nan)
+
+Now do it with a regular expression that removes surrounding whitespace
+(regex -> regex)
+
+.. ipython:: python
+
+   df.replace(r'\s*\.\s*', nan, regex=True)
+
+Replace a few different values (list -> list)
+
+.. ipython:: python
+
+   df.replace(['a', '.'], ['b', nan])
+
+list of regex -> list of regex
+
+.. ipython:: python
+
+   df.replace([r'\.', r'(a)'], ['dot', '\1stuff'], regex=True)
+
+Only search in column ``'b'`` (dict -> dict)
+
+.. ipython:: python
+
+   df.replace({'b': '.'}, {'b': nan})
+
+Same as the previous example, but use a regular expression for
+searching instead (dict of regex -> dict)
+
+.. ipython:: python
+
+   df.replace({'b': r'\s*\.\s*'}, {'b': nan}, regex=True)
+
+You can pass nested dictionaries of regular expressions that use ``regex=True``
+
+.. ipython:: python
+
+   df.replace({'b': {'b': r''}}, regex=True)
+
+or you can pass the nested dictionary like so
+
+.. ipython:: python
+
+   df.replace(regex={'b': {'b': r'\s*\.\s*'}})
+
+You can also use the group of a regular expression match when replacing (dict
+of regex -> dict of regex), this works for lists as well
+
+.. ipython:: python
+
+   df.replace({'b': r'\s*(\.)\s*'}, {'b': r'\1ty'}, regex=True)
+
+You can pass a list of regular expressions, of which those that match
+will be replaced with a scalar (list of regex -> regex)
+
+.. ipython:: python
+
+   df.replace([r'\s*\.\*', r'a|b'], nan, regex=True)
+
+All of the regular expression examples can also be passed with the
+``to_replace`` argument as the ``regex`` argument. In this case the ``value``
+argument must be passed explicity by name or ``regex`` must be a nested
+dictionary. The previous example, in this case, would then be
+
+.. ipython:: python
+
+   df.replace(regex=[r'\s*\.\*', r'a|b'], value=nan)
+
+This can be convenient if you do not want to pass ``regex=True`` every time you
+want to use a regular expression.
+
+.. note::
+
+   Anywhere in the above ``replace`` examples that you see a regular expression
+   a compiled regular expression is valid as well.
+
+Numeric Replacement
+^^^^^^^^^^^^^^^^^^^
+
+Similiar to ``DataFrame.fillna``
+
+.. ipython:: python
+
+   from numpy.random import rand, randn
+   from numpy import nan
+   from pandas import DataFrame
+   from pandas.util.testing import assert_frame_equal
+   df = DataFrame(randn(10, 2))
+   df[rand(df.shape[0]) > 0.5] = 1.5
+   df.replace(1.5, nan)
+
+Replacing more than one value via lists works as well
+
+.. ipython:: python
+
+   df00 = df.values[0, 0]
+   df.replace([1.5, df00], [nan, 'a'])
+   df[1].dtype
+
+You can also operate on the DataFrame in place
+
+.. ipython:: python
+
+   df.replace(1.5, nan, inplace=True)
 
 Missing data casting rules and indexing
 ---------------------------------------
