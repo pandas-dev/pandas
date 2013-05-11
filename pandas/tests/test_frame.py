@@ -4962,6 +4962,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame.index = new_index
 
         with ensure_clean(pname) as path:
+
              frame.to_csv(path, header=False)
              frame.to_csv(path, cols=['A', 'B'])
 
@@ -4973,7 +4974,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
              self.assertEqual(frame.index.names, df.index.names)
              self.frame.index = old_index  # needed if setUP becomes a classmethod
 
-              # try multiindex with dates
+             # try multiindex with dates
              tsframe = self.tsframe
              old_index = tsframe.index
              new_index = [old_index, np.arange(len(old_index))]
@@ -4993,6 +4994,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
              recons = DataFrame.from_csv(path, index_col=None)
              assert_almost_equal(recons.values, self.tsframe.values)
              self.tsframe.index = old_index  # needed if setUP becomes classmethod
+
+        with ensure_clean(pname) as path:
+            # column & index are mi
+            import pdb; pdb.set_trace()
+            df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
+            df.to_csv(path)
+
+            result = pd.read_csv(path,header=[0,1,2,3],index_col=[0,1])
+
 
         with ensure_clean(pname) as path:
             # empty

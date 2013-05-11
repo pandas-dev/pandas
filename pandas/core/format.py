@@ -959,9 +959,12 @@ class CSVFormatter(object):
         index_label = self.index_label
         cols = self.cols
         header = self.header
+        has_mi_columns = isinstance(obj.columns, MultiIndex)
+        encoded_labels = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
         if has_aliases or self.header:
+
             if self.index:
                 # should write something for index label
                 if index_label is not False:
@@ -994,12 +997,40 @@ class CSVFormatter(object):
                         write_cols = header
                 else:
                     write_cols = cols
-                encoded_cols = list(write_cols)
 
-                writer.writerow(encoded_labels + encoded_cols)
+                if not has_mi_columns:
+                    encoded_labels += list(write_cols)
+
             else:
-                encoded_cols = list(cols)
-                writer.writerow(encoded_cols)
+
+                if not has_mi_columns:
+                    encoded_labels += list(cols)
+
+        # write out the mi
+        if has_mi_columns:
+            columns = obj.columns
+
+            # write out the names for each level, then ALL of the values for each level
+            for i in range(columns.nlevels):
+
+                # name is the first column
+                col_line = [ columns.names[i] ]
+
+                # skipp len labels-1
+                if self.index and isinstance(index_label,list) and len(index_label)>1:
+                    col_line.extend([ '' ] * (len(index_label)-1))
+
+                for j in range(len(columns)):
+                    col_line.append(columns.levels[i][j])
+
+                writer.writerow(col_line)
+
+            # add blanks for the columns, so that we
+            # have consistent seps
+            encoded_labels.extend([ '' ] * len(columns))
+
+        # write out the index label line
+        writer.writerow(encoded_labels)
 
     def _save(self):
 
