@@ -1516,6 +1516,18 @@ class Series(pa.Array, generic.PandasObject):
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def min(self, axis=None, out=None, skipna=True, level=None):
+        """
+        Notes
+        -----
+        This method returns the minimum of the values in the Series. If you
+        want the *index* of the minimum, use ``Series.idxmin``. This is the
+        equivalent of the ``numpy.ndarray`` method ``argmin``.
+
+        See Also
+        --------
+        Series.idxmin
+        DataFrame.idxmin
+        """
         if level is not None:
             return self._agg_by_level('min', level=level, skipna=skipna)
         return nanops.nanmin(self.values, skipna=skipna)
@@ -1524,6 +1536,18 @@ class Series(pa.Array, generic.PandasObject):
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def max(self, axis=None, out=None, skipna=True, level=None):
+        """
+        Notes
+        -----
+        This method returns the maximum of the values in the Series. If you
+        want the *index* of the maximum, use ``Series.idxmax``. This is the
+        equivalent of the ``numpy.ndarray`` method ``argmax``.
+
+        See Also
+        --------
+        Series.idxmax
+        DataFrame.idxmax
+        """
         if level is not None:
             return self._agg_by_level('max', level=level, skipna=skipna)
         return nanops.nanmax(self.values, skipna=skipna)
@@ -1592,6 +1616,14 @@ class Series(pa.Array, generic.PandasObject):
         Returns
         -------
         idxmin : Index of minimum of values
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmin``.
+
+        See Also
+        --------
+        DataFrame.idxmin
         """
         i = nanops.nanargmin(self.values, skipna=skipna)
         if i == -1:
@@ -1610,6 +1642,14 @@ class Series(pa.Array, generic.PandasObject):
         Returns
         -------
         idxmax : Index of minimum of values
+
+        Notes
+        -----
+        This method is the Series version of ``ndarray.argmax``.
+
+        See Also
+        --------
+        DataFrame.idxmax
         """
         i = nanops.nanargmax(self.values, skipna=skipna)
         if i == -1:
