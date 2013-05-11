@@ -62,6 +62,7 @@ API changes
     ``df.iloc[mask]`` will raise a ``ValueError``
 
 
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -158,6 +159,11 @@ Enhancements
   - ``pd.melt()`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame.
 
+  - Plotting functions now raise a ``TypeError`` before trying to plot anything
+    if the associated objects have have a ``dtype`` of ``object`` (GH1818_).
+    This happens before any drawing takes place which elimnates any spurious
+    plots from showing up.
+
 Bug Fixes
 ~~~~~~~~~
 
@@ -227,3 +233,4 @@ on GitHub for a complete list.
 .. _GH3605: https://github.com/pydata/pandas/issues/3605
 .. _GH3606: https://github.com/pydata/pandas/issues/3606
 .. _GH3656: https://github.com/pydata/pandas/issues/3656
+.. _GH1818: https://github.com/pydata/pandas/issues/1818

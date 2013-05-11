@@ -87,18 +87,14 @@ class TestTSPlot(unittest.TestCase):
 
         idx = date_range('1/1/1987', freq='A', periods=3)
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]}, idx)
-        self.assertRaises(Exception, df.plot)
 
         plt.close('all')
         ax = df.plot(raise_on_error=False) # it works
         self.assert_(len(ax.get_lines()) == 1) #B was plotted
 
         plt.close('all')
-        self.assertRaises(Exception, df.A.plot)
 
-        plt.close('all')
-        ax = df['A'].plot(raise_on_error=False) # it works
-        self.assert_(len(ax.get_lines()) == 0)
+        self.assertRaises(TypeError, df['A'].plot)
 
     @slow
     def test_tsplot(self):

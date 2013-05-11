@@ -67,6 +67,10 @@ pandas 0.11.1
     to specify custom column names of the returned DataFrame (GH3649_),
     thanks @hoechenberger
   - ``read_html`` no longer performs hard date conversion
+  - Plotting functions now raise a ``TypeError`` before trying to plot anything
+    if the associated objects have have a dtype of ``object`` (GH1818_). This
+    happens before any drawing takes place which elimnates any spurious plots
+    from showing up.
 
 **API Changes**
 
@@ -227,6 +231,7 @@ pandas 0.11.1
 .. _GH3659: https://github.com/pydata/pandas/issues/3659
 .. _GH3649: https://github.com/pydata/pandas/issues/3649
 .. _Gh3616: https://github.com/pydata/pandas/issues/3616
+.. _GH1818: https://github.com/pydata/pandas/issues/1818
 
 pandas 0.11.0
 =============

@@ -1,6 +1,5 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-from itertools import izip
 import datetime
 import warnings
 import re
@@ -875,7 +874,27 @@ class MPLPlot(object):
         return (len(self.data.columns), 1)
 
     def _compute_plot_data(self):
-        pass
+        try:
+            # might be a frame
+            numeric_data = self.data._get_numeric_data()
+        except AttributeError:
+            # a series, but no object dtypes allowed!
+            if self.data.dtype == np.object_:
+                raise TypeError('invalid dtype for plotting, please cast to a '
+                                'numeric dtype explicitly if you want to plot')
+
+            numeric_data = self.data
+
+        try:
+            is_empty = numeric_data.empty
+        except AttributeError:
+            is_empty = not len(numeric_data)
+
+        # no empty frames or series allowed
+        if is_empty:
+            raise TypeError('No numeric data to plot')
+
+        self.data = numeric_data
 
     def _make_plot(self):
         raise NotImplementedError
@@ -1204,7 +1223,7 @@ class LinePlot(MPLPlot):
                     else:
                         msg = msg + ('\nConsider setting raise_on_error=False'
                                      'to suppress')
-                        raise Exception(msg)
+                        raise TypeError(msg)
 
             self._make_legend(lines, labels)
 
@@ -1238,7 +1257,7 @@ class LinePlot(MPLPlot):
                 else:
                     msg = msg + ('\nConsider setting raise_on_error=False'
                                  'to suppress')
-                    raise Exception(msg)
+                    raise TypeError(msg)
 
         if isinstance(data, Series):
             ax = self._get_ax(0)  # self.axes[0]
@@ -1610,8 +1629,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         If not passed, uses gca()
     style : string, default matplotlib default
         matplotlib line style to use
-    grid : matplot grid
-    legend: matplot legende
+    grid : matplotlib grid
+    legend: matplotlib legend
     logx : boolean, default False
         For line plots, use log scaling on x axis
     logy : boolean, default False
@@ -1633,6 +1652,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         klass = BarPlot
     elif kind == 'kde':
         klass = KdePlot
+    else:
+        raise ValueError('Invalid chart type given %s' % kind)
 
     """
     If no axis is specified, we check whether there are existing figures.
