@@ -250,6 +250,11 @@ class CleanCommand(Command):
             for f in files:
                 if f in self._clean_exclude:
                     continue
+
+                # XXX
+                if 'ujson' in f:
+                    continue
+
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
                                                '.pyo',
                                                '.pyd', '.c', '.orig'):
@@ -457,6 +462,21 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
             root, _ = os.path.splitext(ext.sources[0])
             ext.sources[0] = root + suffix
 
+ujson_ext = Extension('pandas.json',
+                      depends=['pandas/src/ujson/lib/ultrajson.h'],
+                      sources=['pandas/src/ujson/python/ujson.c',
+                               'pandas/src/ujson/python/objToJSON.c',
+                               'pandas/src/ujson/python/JSONtoObj.c',
+                               'pandas/src/ujson/lib/ultrajsonenc.c',
+                               'pandas/src/ujson/lib/ultrajsondec.c',
+                               'pandas/src/datetime/np_datetime.c',
+                               'pandas/src/datetime/np_datetime_strings.c'],
+                      include_dirs=['pandas/src/ujson/python',
+                                    'pandas/src/ujson/lib'] + common_include)
+
+
+extensions.append(ujson_ext)
+
 
 if _have_setuptools:
     setuptools_kwargs["test_suite"] = "nose.collector"
@@ -485,6 +505,7 @@ setup(name=DISTNAME,
                 'pandas.tseries',
                 'pandas.tseries.tests',
                 'pandas.io.tests',
+                'pandas.io.tests.test_json',
                 'pandas.stats.tests',
                 ],
       package_data={'pandas.io': ['tests/data/legacy_hdf/*.h5',
