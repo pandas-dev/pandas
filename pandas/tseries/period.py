@@ -1125,6 +1125,7 @@ class PeriodIndex(Int64Index):
         """
         Analogous to ndarray.take
         """
+        indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
         taken = taken.view(PeriodIndex)
         taken.freq = self.freq

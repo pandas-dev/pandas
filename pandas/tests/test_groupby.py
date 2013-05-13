@@ -318,6 +318,15 @@ class TestGroupBy(unittest.TestCase):
         rs = df.groupby(level=0).sum()
         self.assert_(isinstance(rs.index, PeriodIndex))
 
+        # GH 3579
+        index = period_range(start='1999-01', periods=5, freq='M')
+        s1 = Series(np.random.rand(len(index)), index=index)
+        s2 = Series(np.random.rand(len(index)), index=index)
+        series = [('s1', s1), ('s2',s2)]
+        df = DataFrame.from_items(series)
+        grouped = df.groupby(df.index.month)
+        list(grouped)
+
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
