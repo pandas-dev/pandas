@@ -1099,6 +1099,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assertRaises(ValueError, self.panel.fillna)
         self.assertRaises(ValueError, self.panel.fillna, 5, method='ffill')
 
+        self.assertRaises(TypeError, self.panel.fillna, [1, 2])
+        self.assertRaises(TypeError, self.panel.fillna, (1, 2))
+
     def test_ffill_bfill(self):
         assert_panel_equal(self.panel.ffill(),
                            self.panel.fillna(method='ffill'))

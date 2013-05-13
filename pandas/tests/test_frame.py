@@ -6039,6 +6039,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         except ValueError, inst:
             self.assert_('ffil' in str(inst))
 
+    def test_fillna_invalid_value(self):
+        # list
+        self.assertRaises(TypeError, self.frame.fillna, [1, 2])
+        # tuple
+        self.assertRaises(TypeError, self.frame.fillna, (1, 2))
+
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
