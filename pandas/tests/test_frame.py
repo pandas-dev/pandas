@@ -4755,9 +4755,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None,
                      dupe_col=False):
 
+               header = 0
+               if cnlvl:
+                    header = range(cnlvl)
+
                with ensure_clean(path) as path:
                     df.to_csv(path,encoding='utf8',chunksize=chunksize)
-                    recons = DataFrame.from_csv(path,parse_dates=False)
+                    recons = DataFrame.from_csv(path,header=header,parse_dates=False)
 
                def _to_uni(x):
                    if not isinstance(x,unicode):
@@ -4772,16 +4776,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                    ix=MultiIndex.from_arrays([list(recons.index)]+delta_lvl)
                    recons.index = ix
                    recons = recons.iloc[:,rnlvl-1:]
-
-               if cnlvl:
-                   def stuple_to_tuple(x):
-                       import re
-                       x = x.split(",")
-                       x = map(lambda x: re.sub("[\'\"\s\(\)]","",x),x)
-                       return x
-
-                   cols=MultiIndex.from_tuples(map(stuple_to_tuple,recons.columns))
-                   recons.columns = cols
 
                type_map = dict(i='i',f='f',s='O',u='O',dt='O',p='O')
                if r_dtype:
@@ -4826,7 +4820,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         df.columns = np.array(df.columns,dtype=c_dtype )
 
                assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
-
 
         N = 100
         chunksize=1000

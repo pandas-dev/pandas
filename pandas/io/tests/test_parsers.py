@@ -1012,9 +1012,10 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
 
-        # python-engine
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
-                          index_col=[0,1], engine='python')
+        # basic test with both engines
+        for engine in ['c','python']:
+            df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], engine=engine)
+            tm.assert_frame_equal(df, expected)
 
         # must specify index_col
         self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3])
