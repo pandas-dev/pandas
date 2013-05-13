@@ -127,6 +127,11 @@ na_filter: boolean, default True
 usecols : array-like
     Return a subset of the columns.
     Results in much faster parsing time and lower memory usage.
+mangle_dup_columns: boolean, default True
+    Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'
+multi_index_columns_compat: boolean, default False
+    Leave a list of tuples on columns as is (default is to convert to
+    a Multi Index on the columns)
 
 Returns
 -------
@@ -294,6 +299,7 @@ _parser_defaults = {
     'squeeze': False,
     'compression': None,
     'mangle_dupe_cols': True,
+    'multi_index_columns_compat':False,
 }
 
 
@@ -380,7 +386,8 @@ def _make_parser_function(name, sep=','):
                  verbose=False,
                  encoding=None,
                  squeeze=False,
-                 mangle_dupe_cols=True
+                 mangle_dupe_cols=True,
+                 multi_index_columns_compat=False,
                  ):
 
         # Alias sep -> delimiter.
@@ -438,7 +445,7 @@ def _make_parser_function(name, sep=','):
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
                     buffer_lines=buffer_lines,
-                    mangle_dupe_cols=mangle_dupe_cols
+                    mangle_dupe_cols=mangle_dupe_cols,
             )
 
         return _read(filepath_or_buffer, kwds)
@@ -730,6 +737,7 @@ class ParserBase(object):
         self.na_values = kwds.get('na_values')
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
+        self.multi_index_columns_compat = kwds.get('multi_index_columns_compat',False)
 
         self._date_conv = _make_date_converter(date_parser=self.date_parser,
                                                dayfirst=self.dayfirst)
@@ -786,7 +794,8 @@ class ParserBase(object):
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
-        if len(columns) and not isinstance(columns, MultiIndex) and all([ isinstance(c,tuple) for c in columns]):
+        if not self.multi_index_columns_compat and len(columns) and not isinstance(
+            columns, MultiIndex) and all([ isinstance(c,tuple) for c in columns]):
             columns = MultiIndex.from_tuples(columns,names=col_names)
         return columns
 
@@ -1430,12 +1439,14 @@ class PythonParser(ParserBase):
 
             # we have a mi columns, so read and extra line
             if isinstance(header,(list,tuple,np.ndarray)):
+                have_mi_columns = True
                 header = list(header) + [header[-1]+1]
             else:
+                have_mi_columns = False
                 header = [ header ]
 
             columns = []
-            for hr in header:
+            for level, hr in enumerate(header):
 
                 if len(self.buf) > 0:
                     line = self.buf[0]
@@ -1448,7 +1459,10 @@ class PythonParser(ParserBase):
                 this_columns = []
                 for i, c in enumerate(line):
                     if c == '':
-                        this_columns.append('Unnamed: %d' % i)
+                        if have_mi_columns:
+                            this_columns.append('Unnamed: %d_level_%d' % (i,level))
+                        else:
+                            this_columns.append('Unnamed: %d' % i)
                     else:
                         this_columns.append(c)
 

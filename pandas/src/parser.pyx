@@ -232,7 +232,7 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object file_handle
-        bint factorize, na_filter, verbose, has_usecols
+        bint factorize, na_filter, verbose, has_usecols, has_mi_columns
         int parser_start
         list clocks
         char *c_encoding
@@ -252,6 +252,7 @@ cdef class TextReader:
         object encoding
         object compression
         object mangle_dupe_cols
+        object multi_index_columns_compat
         set noconvert, usecols
 
     def __cinit__(self, source,
@@ -304,12 +305,14 @@ cdef class TextReader:
                   skiprows=None,
                   skip_footer=0,
                   verbose=False,
-                  mangle_dupe_cols=True):
+                  mangle_dupe_cols=True,
+                  multi_index_columns_compat=False):
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
         self.mangle_dupe_cols=mangle_dupe_cols
+        self.multi_index_columns_compat=multi_index_columns_compat
 
         # For timekeeping
         self.clocks = []
@@ -437,6 +440,7 @@ cdef class TextReader:
         self.leading_cols = 0
 
         # TODO: no header vs. header is not the first row
+        self.has_mi_columns = 0
         if header is None:
             # sentinel value
             self.parser.header_start = -1
@@ -454,6 +458,7 @@ cdef class TextReader:
                 self.parser.header_end = header[-1]
                 self.parser.header = header[0]
                 self.parser_start = header[-1] + 1
+                self.has_mi_columns = 1
                 self.header = header
             else:
                 self.parser.header_start = header
@@ -570,7 +575,7 @@ cdef class TextReader:
         if self.parser.header_start >= 0:
 
             # Header is in the file
-            for hr in self.header:
+            for level, hr in enumerate(self.header):
 
                 this_header = []
 
@@ -600,7 +605,10 @@ cdef class TextReader:
                                                     self.c_encoding, errors)
 
                     if name == '':
-                        name = 'Unnamed: %d' % i
+                        if self.has_mi_columns:
+                            name = 'Unnamed: %d_level_%d' % (i,level)
+                        else:
+                            name = 'Unnamed: %d' % i
 
                     count = counts.get(name, 0)
                     if count > 0 and self.mangle_dupe_cols:

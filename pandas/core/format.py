@@ -772,9 +772,10 @@ def _get_level_lengths(levels,sentinal=''):
 class CSVFormatter(object):
 
     def __init__(self, obj, path_or_buf, sep=",", na_rep='', float_format=None,
-               cols=None, header=True, index=True, index_label=None,
-               mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n', chunksize=None, engine=None):
+                 cols=None, header=True, index=True, index_label=None,
+                 mode='w', nanRep=None, encoding=None, quoting=None,
+                 line_terminator='\n', chunksize=None, engine=None,
+                 multi_index_columns_compat=False):
 
         self.engine = engine  # remove for 0.12
 
@@ -803,6 +804,7 @@ class CSVFormatter(object):
             msg= "columns.is_unique == False not supported with engine='python'"
             raise NotImplementedError(msg)
 
+        self.multi_index_columns_compat=multi_index_columns_compat
         if cols is not None:
             if isinstance(cols,Index):
                 cols = cols.to_native_types(na_rep=na_rep,float_format=float_format)
@@ -959,7 +961,8 @@ class CSVFormatter(object):
         index_label = self.index_label
         cols = self.cols
         header = self.header
-        has_mi_columns = isinstance(obj.columns, MultiIndex)
+        has_mi_columns = isinstance(obj.columns, MultiIndex
+                                    ) and not self.multi_index_columns_compat
         encoded_labels = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))

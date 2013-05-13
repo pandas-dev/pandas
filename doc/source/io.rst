@@ -115,6 +115,10 @@ They can take a number of arguments:
   - ``error_bad_lines``: if False then any lines causing an error will be skipped :ref:`bad lines <io.bad_lines>`
   - ``usecols``: a subset of columns to return, results in much faster parsing 
     time and lower memory usage.
+  - ``mangle_dup_columns``: boolean, default True, then duplicate columns will be specified 
+    as 'X.0'...'X.N', rather than 'X'...'X'
+  - ``multi_index_columns_compat``: boolean, default False, leave a list of tuples on columns
+    as is (default is to convert to a Multi Index on the columns)
 
 .. ipython:: python
    :suppress:
@@ -270,6 +274,9 @@ specified.
 
     data = 'C0,C_l0_g0,C_l0_g1\nC1,C_l1_g0,C_l1_g1\nR0,,\nR_l0_g0,R0C0,R0C1\nR_l0_g1,R1C0,R1C1\nR_l0_g2,R2C0,R2C1\n'
     pd.read_csv(StringIO(data), header=[0,1], index_col=[0])
+
+You can pass ``multi_index_columns_compat=True`` to preserve the pre-0.12 behavior of
+not converting a list of tuples in the columns to a Multi Index.
 
 .. _io.usecols:
 

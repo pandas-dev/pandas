@@ -4991,7 +4991,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         with ensure_clean(pname) as path:
             # GH3571, GH1651, GH3141
 
-            # column & index are multi-iindex
+            # column & index are multi-index
             df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
             df.to_csv(path)
             result = read_csv(path,header=[0,1,2,3],index_col=[0,1])
@@ -5001,6 +5001,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             df = mkdf(5,3,r_idx_nlevels=1,c_idx_nlevels=4)
             df.to_csv(path)
             result = read_csv(path,header=[0,1,2,3],index_col=0)
+            assert_frame_equal(df,result)
+
+            # dup column names?
+            df = mkdf(5,3,r_idx_nlevels=3,c_idx_nlevels=4)
+            df.to_csv(path)
+            result = read_csv(path,header=[0,1,2,3],index_col=[0,1])
+            result.columns = ['R2','A','B','C']
+            new_result = result.reset_index().set_index(['R0','R1','R2'])
+            new_result.columns = df.columns
+            assert_frame_equal(df,new_result)
+
+            # column & index are multi-index (compatibility)
+            df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
+            df.to_csv(path,multi_index_columns_compat=True)
+            result = read_csv(path,header=0,index_col=[0,1],multi_index_columns_compat=True)
+            result.columns = df.columns
             assert_frame_equal(df,result)
 
         with ensure_clean(pname) as path:

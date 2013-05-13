@@ -1391,7 +1391,8 @@ class DataFrame(NDFrame):
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n', chunksize=None,**kwds):
+               line_terminator='\n', chunksize=None,
+               multi_index_columns_compat=False, **kwds):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1429,6 +1430,9 @@ class DataFrame(NDFrame):
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
         chunksize : rows to write at a time
+        multi_index_columns_compat : boolean, default False
+            write multi_index columns as a list of tuples (if True)
+            or new (expanded format)m if False)
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1445,7 +1449,8 @@ class DataFrame(NDFrame):
                                          float_format=float_format, cols=cols,
                                          header=header, index=index,
                                          index_label=index_label,mode=mode,
-                                         chunksize=chunksize,engine=kwds.get("engine") )
+                                         chunksize=chunksize,engine=kwds.get("engine"),
+                                         multi_index_columns_compat=multi_index_columns_compat)
             formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
