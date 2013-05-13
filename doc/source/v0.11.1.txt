@@ -21,6 +21,8 @@ Enhancements
       an index with a different frequency than the existing, or attempting
       to append an index with a different name than the existing
     - support datelike columns with a timezone as data_columns (GH2852_)
+  - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
+    a list or tuple.
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -31,3 +33,4 @@ on GitHub for a complete list.
 .. _GH3477: https://github.com/pydata/pandas/issues/3477
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
 .. _GH3499: https://github.com/pydata/pandas/issues/3499
+.. _GH3435: https://github.com/pydata/pandas/issues/3435

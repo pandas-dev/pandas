@@ -2729,6 +2729,9 @@ class Series(pa.Array, generic.PandasObject):
         -------
         filled : Series
         """
+        if isinstance(value, (list, tuple)):
+            raise TypeError('"value" parameter must be a scalar or dict, but '
+                            'you passed a "{0}"'.format(type(value).__name__))
         if not self._can_hold_na:
             return self.copy() if not inplace else None
 

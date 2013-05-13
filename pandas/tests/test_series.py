@@ -3822,6 +3822,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s.fillna(method='ffill', inplace=True)
         assert_series_equal(s.fillna(method='ffill', inplace=False), s)
 
+    def test_fillna_raise(self):
+        s = Series(np.random.randint(-100, 100, 50))
+        self.assertRaises(TypeError, s.fillna, [1, 2])
+        self.assertRaises(TypeError, s.fillna, (1, 2))
+
 #------------------------------------------------------------------------------
 # TimeSeries-specific
 

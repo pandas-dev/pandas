@@ -3319,7 +3319,7 @@ class DataFrame(NDFrame):
         value : scalar or dict
             Value to use to fill holes (e.g. 0), alternately a dict of values
             specifying which value to use for each column (columns not in the
-            dict will not be filled)
+            dict will not be filled). This value cannot be a list.
         axis : {0, 1}, default 0
             0: fill column-by-column
             1: fill row-by-row
@@ -3341,6 +3341,9 @@ class DataFrame(NDFrame):
         -------
         filled : DataFrame
         """
+        if isinstance(value, (list, tuple)):
+            raise TypeError('"value" parameter must be a scalar or dict, but '
+                            'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
         axis = self._get_axis_number(axis)

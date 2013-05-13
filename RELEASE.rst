@@ -105,6 +105,8 @@ pandas 0.11.1
   - Fixed bug with ``Panel.transpose`` argument aliases (GH3556_)
   - Fixed platform bug in ``PeriodIndex.take`` (GH3579_)
   - Fixed bug in reset_index with ``NaN`` in a multi-index (GH3586_)
+  - ``fillna`` methods now raise a ``TypeError`` when the ``value`` parameter
+    is a ``list`` or ``tuple``.
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -146,6 +148,7 @@ pandas 0.11.1
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
 .. _GH3579: https://github.com/pydata/pandas/issues/3579
 .. _GH3556: https://github.com/pydata/pandas/issues/3556
+.. _GH3435: https://github.com/pydata/pandas/issues/3435
 
 
 pandas 0.11.0

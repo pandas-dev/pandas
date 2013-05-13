@@ -1007,6 +1007,9 @@ class Panel(NDFrame):
         --------
         DataFrame.reindex, DataFrame.asfreq
         """
+        if isinstance(value, (list, tuple)):
+            raise TypeError('"value" parameter must be a scalar or dict, but '
+                            'you passed a "{0}"'.format(type(value).__name__))
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
