@@ -1856,7 +1856,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         v1 = date_range('2012-1-1', periods=3, freq='D')
         v2 = date_range('2012-1-2', periods=3, freq='D')
         rs = Series(v2) - Series(v1)
-        xp = Series(1e9 * 3600 * 24, rs.index).astype('timedelta64[ns]')
+        xp = Series(1e9 * 3600 * 24, rs.index).astype('int64').astype('timedelta64[ns]')
         assert_series_equal(rs, xp)
         self.assert_(rs.dtype=='timedelta64[ns]')
 
