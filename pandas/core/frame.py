@@ -4770,6 +4770,18 @@ class DataFrame(NDFrame):
                   extras='')
     @Appender(_stat_doc)
     def min(self, axis=0, skipna=True, level=None):
+        """
+        Notes
+        -----
+        This method returns the minimum of the values in the DataFrame. If you
+        want the *index* of the minimum, use ``DataFrame.idxmin``. This is the
+        equivalent of the ``numpy.ndarray`` method ``argmin``.
+
+        See Also
+        --------
+        DataFrame.idxmin
+        Series.idxmin
+        """
         if level is not None:
             return self._agg_by_level('min', axis=axis, level=level,
                                       skipna=skipna)
@@ -4780,6 +4792,18 @@ class DataFrame(NDFrame):
                   extras='')
     @Appender(_stat_doc)
     def max(self, axis=0, skipna=True, level=None):
+        """
+        Notes
+        -----
+        This method returns the maximum of the values in the DataFrame. If you
+        want the *index* of the maximum, use ``DataFrame.idxmax``. This is the
+        equivalent of the ``numpy.ndarray`` method ``argmax``.
+
+        See Also
+        --------
+        DataFrame.idxmax
+        Series.idxmax
+        """
         if level is not None:
             return self._agg_by_level('max', axis=axis, level=level,
                                       skipna=skipna)
@@ -4939,6 +4963,14 @@ class DataFrame(NDFrame):
         Returns
         -------
         idxmin : Series
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        See Also
+        --------
+        Series.idxmin
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
@@ -4962,6 +4994,14 @@ class DataFrame(NDFrame):
         Returns
         -------
         idxmax : Series
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmax``.
+
+        See Also
+        --------
+        Series.idxmax
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
