@@ -7907,6 +7907,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series([True,True,False])
         assert_series_equal(result,expected) 
 
+        # GH 3593, converting datetime64[ns] incorrecly
+        df0 = DataFrame({"a":[datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]})
+        df1 = DataFrame({"a":[None, None, None]})
+        df2 = df1.combine_first(df0)
+        assert_frame_equal(df2,df0)
+
+        df2 = df0.combine_first(df1)
+        assert_frame_equal(df2,df0)
+
+        df0 = DataFrame({"a":[datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]})
+        df1 = DataFrame({"a":[datetime(2000, 1, 2), None, None]})
+        df2 = df1.combine_first(df0)
+        result = df0.copy()
+        result.iloc[0,:] = df1.iloc[0,:]
+        assert_frame_equal(df2,result)
+
+        df2 = df0.combine_first(df1)
+        assert_frame_equal(df2,df0)
+
     def test_update(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],

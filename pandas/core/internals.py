@@ -258,14 +258,15 @@ class Block(object):
 
         return blocks
 
-    def astype(self, dtype, copy = True, raise_on_error = True):
+    def astype(self, dtype, copy = True, raise_on_error = True, values = None):
         """
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
         """
         try:
-            newb = make_block(com._astype_nansafe(self.values, dtype, copy = copy),
-                              self.items, self.ref_items, fastpath=True)
+            if values is None:
+                values = com._astype_nansafe(self.values, dtype, copy = copy)
+            newb = make_block(values, self.items, self.ref_items, fastpath=True)
         except:
             if raise_on_error is True:
                 raise
@@ -707,6 +708,15 @@ class ObjectBlock(Block):
     def is_bool(self):
         """ we can be a bool if we have only bool values but are of type object """
         return lib.is_bool_array(self.values.ravel())
+
+    def astype(self, dtype, copy=True, raise_on_error=True, values=None):
+        """ allow astypes to datetime64[ns],timedelta64[ns] with coercion """
+        dtype = np.dtype(dtype)
+        if dtype == _NS_DTYPE or dtype == _TD_DTYPE:
+            values = com._possibly_convert_datetime(self.values,dtype)
+        else:
+            values = None
+        return super(ObjectBlock, self).astype(dtype=dtype,copy=copy,raise_on_error=raise_on_error,values=values)
 
     def convert(self, convert_dates = True, convert_numeric = True, copy = True):
         """ attempt to coerce any object types to better types
