@@ -2808,9 +2808,18 @@ class DataFrame(NDFrame):
         else:
             new_obj = self.copy()
 
-        def _maybe_cast(values):
+        def _maybe_cast(values, labels=None):
+
             if values.dtype == np.object_:
                 values = lib.maybe_convert_objects(values)
+
+            # if we have the labels, extract the values with a mask
+            if labels is not None:
+                mask = labels == -1
+                values = values.take(labels)
+                if mask.any():
+                    values, changed = com._maybe_upcast_putmask(values,mask,np.nan)
+
             return values
 
         new_index = np.arange(len(new_obj))
@@ -2843,9 +2852,9 @@ class DataFrame(NDFrame):
                             col_name = tuple(name_lst)
 
                     # to ndarray and maybe infer different dtype
-                    level_values = _maybe_cast(lev.values)
+                    level_values = _maybe_cast(lev.values, lab)
                     if level is None or i in level:
-                        new_obj.insert(0, col_name, level_values.take(lab))
+                        new_obj.insert(0, col_name, level_values)
 
         elif not drop:
             name = self.index.name
@@ -2865,8 +2874,8 @@ class DataFrame(NDFrame):
                   self.index.tz is not None):
                 values = self.index.asobject
             else:
-                values = self.index.values
-            new_obj.insert(0, name, _maybe_cast(values))
+                values = _maybe_cast(self.index.values)
+            new_obj.insert(0, name, values)
 
         new_obj.index = new_index
         if not inplace:

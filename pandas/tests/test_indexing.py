@@ -799,6 +799,25 @@ class TestIndexing(unittest.TestCase):
         self.assert_(df.iloc[0,2] == '-----')
 
         #if I look at df, then element [0,2] equals '_'. If instead I type df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I get '_'.
+                
+
+    def test_set_index_nan(self):
+
+        # GH 3586
+        df = DataFrame({'PRuid': {17: 'nonQC', 18: 'nonQC', 19: 'nonQC', 20: '10', 21: '11', 22: '12', 23: '13', 
+                                  24: '24', 25: '35', 26: '46', 27: '47', 28: '48', 29: '59', 30: '10'}, 
+                        'QC': {17: 0.0, 18: 0.0, 19: 0.0, 20: nan, 21: nan, 22: nan, 23: nan, 24: 1.0, 25: nan, 
+                               26: nan, 27: nan, 28: nan, 29: nan, 30: nan}, 
+                        'data': {17: 7.9544899999999998, 18: 8.0142609999999994, 19: 7.8591520000000008, 20: 0.86140349999999999, 
+                                 21: 0.87853110000000001, 22: 0.8427041999999999, 23: 0.78587700000000005, 24: 0.73062459999999996,
+                                 25: 0.81668560000000001, 26: 0.81927080000000008, 27: 0.80705009999999999, 28: 0.81440240000000008, 
+                                 29: 0.80140849999999997, 30: 0.81307740000000006}, 
+                        'year': {17: 2006, 18: 2007, 19: 2008, 20: 1985, 21: 1985, 22: 1985, 23: 1985, 
+                                 24: 1985, 25: 1985, 26: 1985, 27: 1985, 28: 1985, 29: 1985, 30: 1986}}).reset_index()
+
+        result = df.set_index(['year','PRuid','QC']).reset_index().reindex(columns=df.columns)
+        assert_frame_equal(result,df)
+
 
 if __name__ == '__main__':
     import nose
