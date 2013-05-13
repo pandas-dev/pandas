@@ -401,6 +401,10 @@ value, ``idxmin`` and ``idxmax`` return the first matching index:
    df3
    df3['A'].idxmin()
 
+.. note::
+
+   ``idxmin`` and ``idxmax`` are called ``argmin`` and ``argmax`` in NumPy.
+
 .. _basics.discretization:
 
 Value counts (histogramming)
