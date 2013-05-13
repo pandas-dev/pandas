@@ -17,7 +17,8 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_promote, _maybe_upcast,
                                 _asarray_tuplesafe, is_integer_dtype,
-                                _infer_dtype_from_scalar, is_list_like)
+                                _infer_dtype_from_scalar, is_list_like,
+                                _NS_DTYPE, _TD_DTYPE)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds
@@ -929,9 +930,13 @@ class Series(pa.Array, generic.PandasObject):
         """
         See numpy.ndarray.astype
         """
-        casted = com._astype_nansafe(self.values, dtype)
-        return self._constructor(casted, index=self.index, name=self.name,
-                                 dtype=casted.dtype)
+        dtype = np.dtype(dtype)
+        if dtype == _NS_DTYPE or dtype == _TD_DTYPE:
+            values = com._possibly_cast_to_datetime(self.values,dtype)
+        else:
+            values = com._astype_nansafe(self.values, dtype)
+        return self._constructor(values, index=self.index, name=self.name,
+                                 dtype=values.dtype)
 
     def convert_objects(self, convert_dates=True, convert_numeric=True, copy=True):
         """

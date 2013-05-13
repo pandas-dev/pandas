@@ -3738,8 +3738,11 @@ class DataFrame(NDFrame):
 
         result = {}
         for col in new_columns:
-            series = this[col].values
-            otherSeries = other[col].values
+            series = this[col]
+            otherSeries = other[col]
+
+            this_dtype = series.dtype
+            other_dtype = otherSeries.dtype
 
             this_mask = isnull(series)
             other_mask = isnull(otherSeries)
@@ -3756,18 +3759,40 @@ class DataFrame(NDFrame):
                 series[this_mask] = fill_value
                 otherSeries[other_mask] = fill_value
 
-            arr = func(series, otherSeries)
+            # if we have different dtypes, possibily promote
+            new_dtype = this_dtype
+            if this_dtype != other_dtype:
+                new_dtype = com._lcd_dtypes(this_dtype,other_dtype)
+                series = series.astype(new_dtype)
+                otherSeries = otherSeries.astype(new_dtype)
+
+            # see if we need to be represented as i8 (datetimelike)
+            # try to keep us at this dtype
+            needs_i8_conversion = com.needs_i8_conversion(new_dtype)
+            if needs_i8_conversion:
+                this_dtype = new_dtype
+                arr = func(series, otherSeries, True)
+            else:
+                arr = func(series, otherSeries)
 
             if do_fill:
                 arr = com.ensure_float(arr)
                 arr[this_mask & other_mask] = NA
+
+            # try to downcast back to the original dtype
+            if needs_i8_conversion:
+                arr = com._possibly_cast_to_datetime(arr, this_dtype)
+            else:
+                arr = com._possibly_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
         # convert_objects just in case
         return self._constructor(result, 
                                  index=new_index, 
-                                 columns=new_columns).convert_objects(copy=False)
+                                 columns=new_columns).convert_objects(
+            convert_dates=True,
+            copy=False)
 
     def combine_first(self, other):
         """
@@ -3788,8 +3813,18 @@ class DataFrame(NDFrame):
         -------
         combined : DataFrame
         """
-        def combiner(x, y):
-            return expressions.where(isnull(x), y, x, raise_on_error=True)
+        def combiner(x, y, needs_i8_conversion=False):
+            x_values = x.values if hasattr(x,'values') else x
+            y_values = y.values if hasattr(y,'values') else y
+            if needs_i8_conversion:
+                mask = isnull(x)
+                x_values = x_values.view('i8')
+                y_values = y_values.view('i8')
+            else:
+                mask = isnull(x_values)
+            
+            return expressions.where(mask, y_values, x_values, raise_on_error=True)
+
         return self.combine(other, combiner, overwrite=False)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,

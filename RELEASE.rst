@@ -104,6 +104,7 @@ pandas 0.11.1
   - ``combine_first`` not returning the same dtype in cases where it can (GH3552_)
   - Fixed bug with ``Panel.transpose`` argument aliases (GH3556_)
   - Fixed platform bug in ``PeriodIndex.take`` (GH3579_)
+  - Fixed bud in incorrect conversion of datetime64[ns] in ``combine_first`` (GH3593_)
   - Fixed bug in reset_index with ``NaN`` in a multi-index (GH3586_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
@@ -145,6 +146,7 @@ pandas 0.11.1
 .. _GH3586: https://github.com/pydata/pandas/issues/3586
 .. _GH3493: https://github.com/pydata/pandas/issues/3493
 .. _GH3579: https://github.com/pydata/pandas/issues/3579
+.. _GH3593: https://github.com/pydata/pandas/issues/3593
 .. _GH3556: https://github.com/pydata/pandas/issues/3556
 
 
