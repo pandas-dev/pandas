@@ -793,13 +793,16 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
             # try to directly set by expanding our array to full
             # length of the boolean
-            om = other[mask]
-            om_at = om.astype(result.dtype)
-            if (om == om_at).all():
-                new_other = result.values.copy()
-                new_other[mask] = om_at
-                result[:] = new_other
-                return result, False
+            try:
+                om = other[mask]
+                om_at = om.astype(result.dtype)
+                if (om == om_at).all():
+                    new_other = result.values.copy()
+                    new_other[mask] = om_at
+                    result[:] = new_other
+                    return result, False
+            except:
+                pass
 
             # we are forced to change the dtype of the result as the input isn't compatible
             r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
@@ -947,6 +950,27 @@ def _lcd_dtypes(a_dtype, b_dtype):
         elif is_integer(b_dtype):
             return np.float64
     return np.object
+
+def _fill_zeros(result, y, fill):
+    """ if we have an integer value (or array in y)
+        and we have 0's, fill them with the fill,
+        return the result """
+
+    if fill is not None:
+        if not isinstance(y, np.ndarray):
+            dtype, value = _infer_dtype_from_scalar(y)
+            y = pa.empty(result.shape,dtype=dtype)
+            y.fill(value)
+
+        if is_integer_dtype(y):
+
+            mask = y.ravel() == 0
+            if mask.any():
+                shape = result.shape
+                result, changed = _maybe_upcast_putmask(result.ravel(),mask,fill)
+                result = result.reshape(shape)
+
+    return result
 
 def _interp_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, mask, limit=None):

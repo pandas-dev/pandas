@@ -1766,6 +1766,49 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_invert(self):
         assert_series_equal(-(self.series < 0), ~(self.series < 0))
 
+    def test_modulo(self):
+
+        # GH3590, modulo as ints
+        p = DataFrame({ 'first' : [3,4,5,8], 'second' : [0,0,0,3] })
+        result = p['first'] % p['second']
+        expected = Series(p['first'].values % p['second'].values,dtype='float64')
+        expected.iloc[0:3] = np.nan
+        assert_series_equal(result,expected)
+
+        result = p['first'] % 0
+        expected = Series(np.nan,index=p.index)
+        assert_series_equal(result,expected)
+
+        p = p.astype('float64')
+        result = p['first'] % p['second']
+        expected = Series(p['first'].values % p['second'].values)
+        assert_series_equal(result,expected)
+
+    def test_div(self):
+
+        # integer div, but deal with the 0's
+        p = DataFrame({ 'first' : [3,4,5,8], 'second' : [0,0,0,3] })
+        result = p['first'] / p['second']
+        expected = Series(p['first'].values / p['second'].values,dtype='float64')
+        expected.iloc[0:3] = np.inf
+        assert_series_equal(result,expected)
+
+        result = p['first'] / 0
+        expected = Series(np.inf,index=p.index)
+        assert_series_equal(result,expected)
+
+        p = p.astype('float64')
+        result = p['first'] / p['second']
+        expected = Series(p['first'].values / p['second'].values)
+        assert_series_equal(result,expected)
+
+        p = DataFrame({ 'first' : [3,4,5,8], 'second' : [1,1,1,1] })
+        result = p['first'] / p['second']
+        if py3compat.PY3:
+            assert_series_equal(result,p['first'].astype('float64'))
+        else:
+            assert_series_equal(result,p['first'])
+
     def test_operators(self):
 
         def _check_op(series, other, op, pos_only=False):
