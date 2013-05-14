@@ -1368,6 +1368,9 @@ incompatible the new object internals are with the ``Index`` functions):
   - ``slice_locs``: returns the "range" to slice between two labels
   - ``get_indexer``: Computes the indexing vector for reindexing / data
     alignment purposes. See the source / docstrings for more on this
+  - ``get_indexer_non_unique``: Computes the indexing vector for reindexing / data
+    alignment purposes when the index is non-unique. See the source / docstrings 
+    for more on this
   - ``reindex``: Does any pre-conversion of the input index then calls
     ``get_indexer``
   - ``union``, ``intersection``: computes the union or intersection of two

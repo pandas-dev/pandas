@@ -267,8 +267,46 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
+    def get_indexer_non_unique(self, targets):
+        """ return an indexer suitable for takng from a non unique index
+            return the labels in the same order ast the target
+            and a missing indexer into the targets (which correspond
+            to the -1 indicies in the results """
 
+        cdef:
+            ndarray values
+            ndarray[int64_t] result, missing
+            object v, val
+            int count = 0, count_missing = 0
+            Py_ssize_t i, j, n, found
 
+        self._ensure_mapping_populated()
+        values = self._get_index_values()
+        n = len(values)
+        n_t = len(targets)
+        result  = np.empty(n+n_t, dtype=np.int64)
+        missing = np.empty(n_t, dtype=np.int64)
+
+        for i in range(n_t):
+            val = util.get_value_at(targets, i)
+            found = 0
+
+            for j in range(n):
+                v = util.get_value_at(values, j)
+
+                if v == val:
+                   result[count] = j
+                   count += 1
+                   found = 1
+
+            # value not found
+            if found == 0:
+                result[count] = -1
+                count += 1
+                missing[count_missing] = i
+                count_missing += 1
+
+        return result[0:count], missing[0:count_missing]
 
 cdef class Int64Engine(IndexEngine):
 
