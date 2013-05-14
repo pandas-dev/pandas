@@ -111,6 +111,12 @@ class TestCategorical(unittest.TestCase):
 
         self.assert_(np.array_equal(com.isnull(cat), labels == -1))
 
+    def test_levels_none(self):
+        factor = Categorical(['a', 'b', 'b', 'a',
+                              'a', 'c', 'c', 'c'])
+        self.assert_(factor.equals(self.factor))
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
