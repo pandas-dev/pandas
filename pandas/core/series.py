@@ -55,14 +55,17 @@ _SHOW_WARNINGS = True
 # Wrapper function for Series arithmetic methods
 
 
-def _arith_method(op, name):
+def _arith_method(op, name, fill_zeros=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
     def na_op(x, y):
         try:
+
             result = op(x, y)
+            result = com._fill_zeros(result,y,fill_zeros)
+
         except TypeError:
             result = pa.empty(len(x), dtype=x.dtype)
             if isinstance(y, pa.Array):
@@ -1258,16 +1261,18 @@ class Series(pa.Array, generic.PandasObject):
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
     __mul__ = _arith_method(operator.mul, '__mul__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__')
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
+    __truediv__ = _arith_method(operator.truediv, '__truediv__', fill_zeros=np.inf)
+    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__', fill_zeros=np.inf)
     __pow__ = _arith_method(operator.pow, '__pow__')
+    __mod__ = _arith_method(operator.mod, '__mod__', fill_zeros=np.nan)
 
     __radd__ = _arith_method(_radd_compat, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__')
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__')
+    __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__', fill_zeros=np.inf)
+    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__', fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
+    __rmod__ = _arith_method(operator.mod, '__mod__', fill_zeros=np.nan)
 
     # comparisons
     __gt__ = _comp_method(operator.gt, '__gt__')
@@ -1301,8 +1306,8 @@ class Series(pa.Array, generic.PandasObject):
 
     # Python 2 division operators
     if not py3compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__')
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__div__')
+        __div__ = _arith_method(operator.div, '__div__', fill_zeros=np.inf)
+        __rdiv__ = _arith_method(lambda x, y: y / x, '__div__', fill_zeros=np.inf)
         __idiv__ = __div__
 
     #----------------------------------------------------------------------

@@ -189,10 +189,12 @@ class DataConflictError(Exception):
 # Factory helper methods
 
 
-def _arith_method(op, name, str_rep = None, default_axis='columns'):
+def _arith_method(op, name, str_rep = None, default_axis='columns', fill_zeros=None):
     def na_op(x, y):
         try:
             result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True)
+            result = com._fill_zeros(result,y,fill_zeros)
+
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
@@ -841,20 +843,23 @@ class DataFrame(NDFrame):
     __sub__ = _arith_method(operator.sub, '__sub__', '-', default_axis=None)
     __mul__ = _arith_method(operator.mul, '__mul__', '*', default_axis=None)
     __truediv__ = _arith_method(operator.truediv, '__truediv__', '/',
-                                default_axis=None)
+                                default_axis=None, fill_zeros=np.inf)
     __floordiv__ = _arith_method(operator.floordiv, '__floordiv__',
-                                 default_axis=None)
+                                 default_axis=None, fill_zeros=np.inf)
     __pow__ = _arith_method(operator.pow, '__pow__', '**', default_axis=None)
+
+    __mod__ = _arith_method(operator.mod, '__mod__', '*', default_axis=None, fill_zeros=np.nan)
 
     __radd__ = _arith_method(_radd_compat, '__radd__', default_axis=None)
     __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
     __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
-                                 default_axis=None)
+                                 default_axis=None, fill_zeros=np.inf)
     __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__',
-                                  default_axis=None)
+                                  default_axis=None, fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
+    __rmod__ = _arith_method(operator.mod, '__rmod__', default_axis=None, fill_zeros=np.nan)
 
     # boolean operators
     __and__ = _arith_method(operator.and_, '__and__', '&')
@@ -863,9 +868,10 @@ class DataFrame(NDFrame):
 
     # Python 2 division methods
     if not py3compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__', '/', default_axis=None)
+        __div__ = _arith_method(operator.div, '__div__', '/', 
+                                default_axis=None, fill_zeros=np.inf)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
-                                 default_axis=None)
+                                 default_axis=None, fill_zeros=np.inf)
 
     def __neg__(self):
         arr = operator.neg(self.values)
