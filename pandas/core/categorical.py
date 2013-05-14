@@ -5,6 +5,7 @@ import numpy as np
 from pandas.core.algorithms import factorize
 from pandas.core.index import Index
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
 
 
 def _cat_compare_op(op):
@@ -175,6 +176,19 @@ class Categorical(object):
 
         return (self.levels.equals(other.levels) and
                 np.array_equal(self.labels, other.labels))
+
+    def describe(self):
+        """
+        Returns a dataframe with frequency and counts by level.
+        """
+        #Hack?
+        grouped = DataFrame(self.labels).groupby(0)
+        counts = grouped.count().values.squeeze()
+        freqs = counts/float(counts.sum())
+        return DataFrame.from_dict(dict(
+                                    counts=counts,
+                                    freqs=freqs,
+                                    levels=self.levels)).set_index('levels')
 
 Factor = Categorical
 
