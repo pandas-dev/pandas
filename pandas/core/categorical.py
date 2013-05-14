@@ -136,3 +136,15 @@ class Categorical(object):
                 np.array_equal(self.labels, other.labels))
 
 Factor = Categorical
+
+class Factor(Categorical):
+    def __init__(self, labels, levels, name=None):
+        from warnings import warn
+        warn("Factor is deprecated. Use Categorical instead", FutureWarning)
+        super(Factor, self).__init__(labels, levels, name)
+
+    @classmethod
+    def from_array(cls, data):
+        from warnings import warn
+        warn("Factor is deprecated. Use Categorical instead", FutureWarning)
+        return super(Factor, cls).from_array(data)
