@@ -190,7 +190,6 @@ class Categorical(object):
                                     freqs=freqs,
                                     levels=self.levels)).set_index('levels')
 
-Factor = Categorical
 
 class Factor(Categorical):
     def __init__(self, labels, levels, name=None):
