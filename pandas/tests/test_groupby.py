@@ -263,14 +263,14 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_return_type(self):
 
-        # GH2893
+        # GH2893, return a reduced type
         df1 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
                          {"val1":2, "val2": 27}, {"val1":2, "val2": 12}])
 
         def func(dataf):
             return dataf["val2"]  - dataf["val2"].mean()
 
-        result = df1.groupby("val1").apply(func)
+        result = df1.groupby("val1", squeeze=True).apply(func)
         self.assert_(isinstance(result,Series))
 
         df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
@@ -278,8 +278,13 @@ class TestGroupBy(unittest.TestCase):
         def func(dataf):
             return dataf["val2"]  - dataf["val2"].mean()
 
-        result = df2.groupby("val1").apply(func)
+        result = df2.groupby("val1", squeeze=True).apply(func)
         self.assert_(isinstance(result,Series))
+
+        # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
+        df = DataFrame([[1,1],[1,1]],columns=['X','Y'])
+        result = df.groupby('X',squeeze=False).count()
+        self.assert_(isinstance(result,DataFrame))
 
     def test_agg_regression1(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
