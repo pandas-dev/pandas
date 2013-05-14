@@ -41,7 +41,7 @@ class Categorical(object):
         to be the unique values of labels.
     name : str, optional
         Name for the Categorical variable. If levels is None, will attempt
-        try to be inferred from labels.
+        to infer from labels.
 
     Returns
     -------
