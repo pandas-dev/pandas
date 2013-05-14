@@ -1730,6 +1730,33 @@ c   1   2   3   4
         self.assertRaises(ValueError, read_fwf, StringIO(data3),
                           colspecs=colspecs, widths=[6, 10, 10, 7])
 
+    def test_fwf_regression(self):
+        # GH 3594
+        #### turns out 'T060' is parsable as a datetime slice!
+
+        tzlist = [1,10,20,30,60,80,100]
+        ntz = len(tzlist)
+        tcolspecs = [16]+[8]*ntz
+        tcolnames = ['SST'] + ["T%03d" % z for z in tzlist[1:]]
+        data = """  2009164202000   9.5403  9.4105  8.6571  7.8372  6.0612  5.8843  5.5192
+  2009164203000   9.5435  9.2010  8.6167  7.8176  6.0804  5.8728  5.4869
+  2009164204000   9.5873  9.1326  8.4694  7.5889  6.0422  5.8526  5.4657
+  2009164205000   9.5810  9.0896  8.4009  7.4652  6.0322  5.8189  5.4379
+  2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
+"""
+
+        df = read_fwf(StringIO(data),
+                      index_col=0,
+                      header=None,
+                      names=tcolnames,
+                      widths=tcolspecs,
+                      parse_dates=True,
+                      date_parser=lambda s: datetime.strptime(s,'%Y%j%H%M%S'))
+
+        for c in df.columns:
+            res = df.loc[:,c]
+            self.assert_(len(res))
+
     def test_verbose_import(self):
         text = """a,b,c,d
 one,1,2,3

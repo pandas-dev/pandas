@@ -44,6 +44,10 @@ class _SparseMockBlockManager(object):
         return [self.sp_frame.columns, self.sp_frame.index]
 
     @property
+    def items(self):
+        return self.sp_frame.columns
+
+    @property
     def blocks(self):
         """ return our series in the column order """
         return [ self.iget(i) for i, c in enumerate(self.sp_frame.columns) ]

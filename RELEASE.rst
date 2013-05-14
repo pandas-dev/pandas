@@ -108,6 +108,8 @@ pandas 0.11.1
   - Fixed bug in reset_index with ``NaN`` in a multi-index (GH3586_)
   - ``fillna`` methods now raise a ``TypeError`` when the ``value`` parameter
     is a ``list`` or ``tuple``.
+  - Fixed bug where a time-series was being selected in preference to an actual column name
+    in a frame (GH3594_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -150,6 +152,7 @@ pandas 0.11.1
 .. _GH3579: https://github.com/pydata/pandas/issues/3579
 .. _GH3593: https://github.com/pydata/pandas/issues/3593
 .. _GH3556: https://github.com/pydata/pandas/issues/3556
+.. _GH3594: https://github.com/pydata/pandas/issues/3594
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
 
 

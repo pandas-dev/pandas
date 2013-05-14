@@ -883,6 +883,10 @@ def _convert_to_index_sliceable(obj, key):
 
     elif isinstance(key, basestring):
 
+        # we are an actual column
+        if key in obj._data.items:
+            return None
+
         # we need a timelike key here
         if idx.is_all_dates:
             try:
