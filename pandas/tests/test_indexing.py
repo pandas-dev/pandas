@@ -784,6 +784,28 @@ class TestIndexing(unittest.TestCase):
 
         assert_frame_equal(df,result)
 
+        # GH 3561, dups not in selected order
+        ind = ['A', 'A', 'B', 'C']
+        df = DataFrame({'test':range(len(ind))}, index=ind)
+        rows = ['C', 'B']
+        res = df.ix[rows]
+        self.assert_(rows == list(res.index))
+
+        res = df.ix[Index(rows)]
+        self.assert_(Index(rows).equals(res.index))
+
+        rows = ['C','B','E']
+        res = df.ix[rows]
+        self.assert_(rows == list(res.index))
+
+        # inconcistent returns for unique/duplicate indices when values are missing
+        df = DataFrame(randn(4,3),index=list('ABCD'))
+        expected = df.ix[['E']]
+
+        dfnu = DataFrame(randn(5,3),index=list('AABCD'))
+        result = dfnu.ix[['E']]
+        assert_frame_equal(result, expected)
+
     def test_indexing_mixed_frame_bug(self):
 
         # GH3492
