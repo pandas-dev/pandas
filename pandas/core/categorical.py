@@ -192,7 +192,7 @@ class Categorical(object):
 
 
 class Factor(Categorical):
-    def __init__(self, labels, levels, name=None):
+    def __init__(self, labels, levels=None, name=None):
         from warnings import warn
         warn("Factor is deprecated. Use Categorical instead", FutureWarning)
         super(Factor, self).__init__(labels, levels, name)
