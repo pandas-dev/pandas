@@ -48,6 +48,7 @@ pandas 0.11.1
       to append an index with a different name than the existing
     - support datelike columns with a timezone as data_columns (GH2852_)
     - table writing performance improvements.
+  - Add modulo operator to Series, DataFrame
 
 **API Changes**
 
@@ -111,6 +112,8 @@ pandas 0.11.1
     is a ``list`` or ``tuple``.
   - Fixed bug where a time-series was being selected in preference to an actual column name
     in a frame (GH3594_)
+  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
+    ``np.nan`` or ``np.inf`` as appropriate (GH3590_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -155,6 +158,7 @@ pandas 0.11.1
 .. _GH3593: https://github.com/pydata/pandas/issues/3593
 .. _GH3556: https://github.com/pydata/pandas/issues/3556
 .. _GH3594: https://github.com/pydata/pandas/issues/3594
+.. _GH3590: https://github.com/pydata/pandas/issues/3590
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
 
 

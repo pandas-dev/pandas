@@ -9,6 +9,17 @@ enhancements along with a large number of bug fixes.
 API changes
 ~~~~~~~~~~~
 
+  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
+    ``np.nan`` or ``np.inf`` as appropriate (GH3590_). This correct a numpy bug that treats ``integer``
+    and ``float`` dtypes differently.
+
+    .. ipython:: python
+
+        p = DataFrame({ 'first' : [3,4,5,8], 'second' : [0,0,0,3] })
+        p % 0
+        p % p
+        p / p
+        p / 0
 
 Enhancements
 ~~~~~~~~~~~~
@@ -33,4 +44,5 @@ on GitHub for a complete list.
 .. _GH3477: https://github.com/pydata/pandas/issues/3477
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
 .. _GH3499: https://github.com/pydata/pandas/issues/3499
+.. _GH3590: https://github.com/pydata/pandas/issues/3590
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
