@@ -32,9 +32,13 @@ class Categorical(object):
     Parameters
     ----------
     labels : ndarray of integers
+        The integer at label `i` is the index of the level for that label.
+        I.e., the level at labels[i] is levels[labels[i]].
+        for which this lab
     levels : Index-like (unique)
-
-    data : array-like
+        The unique levels for each label.
+    name : str, optional
+        Name for the Categorical variable.
 
     Returns
     -------
