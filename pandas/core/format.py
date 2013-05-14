@@ -775,7 +775,7 @@ class CSVFormatter(object):
                  cols=None, header=True, index=True, index_label=None,
                  mode='w', nanRep=None, encoding=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
-                 multi_index_columns_compat=False):
+                 tupleize_cols=True):
 
         self.engine = engine  # remove for 0.12
 
@@ -804,7 +804,15 @@ class CSVFormatter(object):
             msg= "columns.is_unique == False not supported with engine='python'"
             raise NotImplementedError(msg)
 
-        self.multi_index_columns_compat=multi_index_columns_compat
+        self.tupleize_cols = tupleize_cols
+        self.has_mi_columns = isinstance(obj.columns, MultiIndex
+                                         ) and not self.tupleize_cols
+
+        # validate mi options
+        if self.has_mi_columns:
+            if cols is not None:
+                raise Exception("cannot specify cols with a multi_index on the columns")
+
         if cols is not None:
             if isinstance(cols,Index):
                 cols = cols.to_native_types(na_rep=na_rep,float_format=float_format)
@@ -960,9 +968,8 @@ class CSVFormatter(object):
         obj = self.obj
         index_label = self.index_label
         cols = self.cols
+        has_mi_columns = self.has_mi_columns
         header = self.header
-        has_mi_columns = isinstance(obj.columns, MultiIndex
-                                    ) and not self.multi_index_columns_compat
         encoded_labels = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
@@ -1017,15 +1024,17 @@ class CSVFormatter(object):
             # write out the names for each level, then ALL of the values for each level
             for i in range(columns.nlevels):
 
-                # name is the first column
-                col_line = [ columns.names[i] ]
+                # we need at least 1 index column to write our col names
+                col_line = []
+                if self.index:
 
-                # skipp len labels-1
-                if self.index and isinstance(index_label,list) and len(index_label)>1:
-                    col_line.extend([ '' ] * (len(index_label)-1))
+                    # name is the first column
+                    col_line.append( columns.names[i] )
 
-                for j in range(len(columns)):
-                    col_line.append(columns.levels[i][j])
+                    if isinstance(index_label,list) and len(index_label)>1:
+                        col_line.extend([ '' ] * (len(index_label)-1))
+
+                col_line.extend(columns.get_level_values(i))
 
                 writer.writerow(col_line)
 

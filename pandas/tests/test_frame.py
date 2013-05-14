@@ -4755,13 +4755,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         def _do_test(df,path,r_dtype=None,c_dtype=None,rnlvl=None,cnlvl=None,
                      dupe_col=False):
 
-               header = 0
                if cnlvl:
-                    header = range(cnlvl)
-
-               with ensure_clean(path) as path:
-                    df.to_csv(path,encoding='utf8',chunksize=chunksize)
-                    recons = DataFrame.from_csv(path,header=header,parse_dates=False)
+                   header = range(cnlvl)
+                   with ensure_clean(path) as path:
+                        df.to_csv(path,encoding='utf8',chunksize=chunksize,tupleize_cols=False)
+                        recons = DataFrame.from_csv(path,header=range(cnlvl),tupleize_cols=False,parse_dates=False)
+               else:
+                   with ensure_clean(path) as path:
+                       df.to_csv(path,encoding='utf8',chunksize=chunksize)
+                       recons = DataFrame.from_csv(path,header=0,parse_dates=False)
 
                def _to_uni(x):
                    if not isinstance(x,unicode):
@@ -4991,33 +4993,79 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         with ensure_clean(pname) as path:
             # GH3571, GH1651, GH3141
 
+            def _make_frame(names=None):
+                if names is True:
+                    names = ['first','second']
+                return DataFrame(np.random.randint(0,10,size=(3,3)), 
+                                 columns=MultiIndex.from_tuples([('bah', 'foo'), 
+                                                                 ('bah', 'bar'), 
+                                                                 ('ban', 'baz')],
+                                                                names=names))
+
             # column & index are multi-index
             df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
-            df.to_csv(path)
-            result = read_csv(path,header=[0,1,2,3],index_col=[0,1])
+            df.to_csv(path,tupleize_cols=False)
+            result = read_csv(path,header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
             assert_frame_equal(df,result)
 
             # column is mi
             df = mkdf(5,3,r_idx_nlevels=1,c_idx_nlevels=4)
-            df.to_csv(path)
-            result = read_csv(path,header=[0,1,2,3],index_col=0)
+            df.to_csv(path,tupleize_cols=False)
+            result = read_csv(path,header=[0,1,2,3],index_col=0,tupleize_cols=False)
             assert_frame_equal(df,result)
 
             # dup column names?
             df = mkdf(5,3,r_idx_nlevels=3,c_idx_nlevels=4)
-            df.to_csv(path)
-            result = read_csv(path,header=[0,1,2,3],index_col=[0,1])
+            df.to_csv(path,tupleize_cols=False)
+            result = read_csv(path,header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
             result.columns = ['R2','A','B','C']
             new_result = result.reset_index().set_index(['R0','R1','R2'])
             new_result.columns = df.columns
             assert_frame_equal(df,new_result)
 
+            # writing with no index
+            df = _make_frame()
+            df.to_csv(path,tupleize_cols=False,index=False)
+            result = read_csv(path,header=[0,1],tupleize_cols=False)
+            assert_frame_equal(df,result)
+
+            # we lose the names here
+            df = _make_frame(True)
+            df.to_csv(path,tupleize_cols=False,index=False)
+            result = read_csv(path,header=[0,1],tupleize_cols=False)
+            self.assert_(all([ x is None for x in result.columns.names ]))
+            result.columns.names = df.columns.names
+            assert_frame_equal(df,result)
+
+            # whatsnew example
+            df = _make_frame()
+            df.to_csv(path,tupleize_cols=False)
+            result = read_csv(path,header=[0,1],index_col=[0],tupleize_cols=False)
+            assert_frame_equal(df,result)
+
+            df = _make_frame(True)
+            df.to_csv(path,tupleize_cols=False)
+            result = read_csv(path,header=[0,1],index_col=[0],tupleize_cols=False)
+            assert_frame_equal(df,result)
+
             # column & index are multi-index (compatibility)
             df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
-            df.to_csv(path,multi_index_columns_compat=True)
-            result = read_csv(path,header=0,index_col=[0,1],multi_index_columns_compat=True)
+            df.to_csv(path,tupleize_cols=True)
+            result = read_csv(path,header=0,index_col=[0,1],tupleize_cols=True)
             result.columns = df.columns
             assert_frame_equal(df,result)
+
+            # invalid options
+            df = _make_frame(True)
+            df.to_csv(path,tupleize_cols=False)
+
+            # catch invalid headers
+            for i in [3,4,5,6,7]: 
+                 self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=range(i), index_col=0)
+            self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=[0,2], index_col=0)
+
+            # write with cols
+            self.assertRaises(Exception, df.to_csv, path,tupleize_cols=False,cols=['foo','bar'])
 
         with ensure_clean(pname) as path:
             # empty

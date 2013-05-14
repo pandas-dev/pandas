@@ -115,10 +115,10 @@ They can take a number of arguments:
   - ``error_bad_lines``: if False then any lines causing an error will be skipped :ref:`bad lines <io.bad_lines>`
   - ``usecols``: a subset of columns to return, results in much faster parsing 
     time and lower memory usage.
-  - ``mangle_dup_columns``: boolean, default True, then duplicate columns will be specified 
+  - ``mangle_dupe_cols``: boolean, default True, then duplicate columns will be specified 
     as 'X.0'...'X.N', rather than 'X'...'X'
-  - ``multi_index_columns_compat``: boolean, default False, leave a list of tuples on columns
-    as is (default is to convert to a Multi Index on the columns)
+  - ``tupleize_cols``: boolean, default True, if False, convert a list of tuples
+    to a multi-index of columns, otherwise, leave the column index as a list of tuples
 
 .. ipython:: python
    :suppress:
@@ -259,24 +259,6 @@ If the header is in a row other than the first, pass the row number to
 
     data = 'skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9'
     pd.read_csv(StringIO(data), header=1)
-
-.. _io.multi_index_columns:
-
-Specifying a multi-index columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-By specifying list of row locations for the ``header`` argument, you
-can read in a multi-index for the columns. Specifying non-consecutive
-rows will skip the interveaing rows. The ``index_col`` must also be
-specified.
-
-.. ipython:: python
-
-    data = 'C0,C_l0_g0,C_l0_g1\nC1,C_l1_g0,C_l1_g1\nR0,,\nR_l0_g0,R0C0,R0C1\nR_l0_g1,R1C0,R1C1\nR_l0_g2,R2C0,R2C1\n'
-    pd.read_csv(StringIO(data), header=[0,1], index_col=[0])
-
-You can pass ``multi_index_columns_compat=True`` to preserve the pre-0.12 behavior of
-not converting a list of tuples in the columns to a Multi Index.
 
 .. _io.usecols:
 
@@ -787,6 +769,36 @@ column numbers to turn multiple columns into a ``MultiIndex``:
    df
    df.ix[1978]
 
+.. _io.multi_index_columns:
+
+Specifying a multi-index columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By specifying list of row locations for the ``header`` argument, you
+can read in a multi-index for the columns. Specifying non-consecutive
+rows will skip the interveaing rows.
+
+.. ipython:: python
+
+   from pandas.util.testing import makeCustomDataframe as mkdf
+   df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
+   df.to_csv('mi.csv',tupleize_cols=False)
+   print open('mi.csv').read()
+   pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
+
+Note: The default behavior in 0.11.1 remains unchanged (``tupleize_cols=True``),
+but starting with 0.12, the default *to* write and read multi-index columns will be in the new 
+format (``tupleize_cols=False``)
+
+Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
+with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will be *lost*.
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('mi.csv')
+
 .. _io.sniff:
 
 Automatically "sniffing" the delimiter
@@ -870,6 +882,8 @@ function takes a number of arguments. Only the first is required.
   - ``sep`` : Field delimiter for the output file (default ",")
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3
+  - ``tupleize_cols``: boolean, default True, if False, write as a list of tuples,
+    otherwise write in an expanded line format suitable for ``read_csv``
 
 Writing a formatted string
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -900,6 +914,9 @@ The Series object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
 which, if set to ``True``, will additionally output the length of the Series.
 
+
+HTML
+----
 
 Reading HTML format
 ~~~~~~~~~~~~~~~~~~~~~~

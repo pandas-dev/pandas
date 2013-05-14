@@ -1014,20 +1014,30 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 
         # basic test with both engines
         for engine in ['c','python']:
-            df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], engine=engine)
+            df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False,
+                          engine=engine)
             tm.assert_frame_equal(df, expected)
 
-        # must specify index_col
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3])
+        # skipping lines in the header
+        df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False)
+        tm.assert_frame_equal(df, expected)
+
+        #### invalid options ####
 
         # no as_recarray
         self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
-                          index_col=[0,1], as_recarray=True)
+                          index_col=[0,1], as_recarray=True, tupleize_cols=False)
 
-        # skipping lines in the header
-        df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1])
-        tm.assert_frame_equal(df, expected)
-
+        # names
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+                          index_col=[0,1], names=['foo','bar'], tupleize_cols=False)
+        # usecols
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+                          index_col=[0,1], usecols=['foo','bar'], tupleize_cols=False)
+        # non-numeric index_col
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+                          index_col=['foo','bar'], tupleize_cols=False)
+        
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
         no_header = '\n'.join(lines[1:])

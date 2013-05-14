@@ -252,7 +252,7 @@ cdef class TextReader:
         object encoding
         object compression
         object mangle_dupe_cols
-        object multi_index_columns_compat
+        object tupleize_cols
         set noconvert, usecols
 
     def __cinit__(self, source,
@@ -306,13 +306,13 @@ cdef class TextReader:
                   skip_footer=0,
                   verbose=False,
                   mangle_dupe_cols=True,
-                  multi_index_columns_compat=False):
+                  tupleize_cols=True):
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
         self.mangle_dupe_cols=mangle_dupe_cols
-        self.multi_index_columns_compat=multi_index_columns_compat
+        self.tupleize_cols=tupleize_cols
 
         # For timekeeping
         self.clocks = []
@@ -452,6 +452,7 @@ cdef class TextReader:
             if isinstance(header, list) and len(header):
                 # need to artifically skip the final line
                 # which is still a header line
+                header = list(header)
                 header.append(header[-1]+1)
 
                 self.parser.header_start = header[0]
@@ -611,7 +612,7 @@ cdef class TextReader:
                             name = 'Unnamed: %d' % i
 
                     count = counts.get(name, 0)
-                    if count > 0 and self.mangle_dupe_cols:
+                    if count > 0 and self.mangle_dupe_cols and not self.has_mi_columns:
                         this_header.append('%s.%d' % (name, count))
                     else:
                         this_header.append(name)

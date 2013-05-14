@@ -34,6 +34,15 @@ pandas 0.11.1
     courtesy of @cpcloud. (GH3477_)
   - Support for reading Amazon S3 files. (GH3504_)
   - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
+  - Added support for writing in ``to_csv`` and reading in ``read_csv``,
+    multi-index columns. The ``header`` option in ``read_csv`` now accepts a
+    list of the rows from which to read the index. Added the option,
+    ``tupleize_cols`` to provide compatiblity for the pre 0.11.1 behavior of
+    writing and reading multi-index columns via a list of tuples. The default in
+    0.11.1 is to write lists of tuples and *not* interpret list of tuples as a 
+    multi-index column.  
+    Note: The default value will change in 0.12 to make the default *to* write and
+    read multi-index columns in the new format. (GH3571_, GH1651_, GH3141_)
 
 **Improvements to existing features**
 
@@ -180,6 +189,7 @@ pandas 0.11.1
 .. _GH3596: https://github.com/pydata/pandas/issues/3596
 .. _GH3617: https://github.com/pydata/pandas/issues/3617
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
+<<<<<<< HEAD
 .. _GH3611: https://github.com/pydata/pandas/issues/3611
 .. _GH3062: https://github.com/pydata/pandas/issues/3062
 .. _GH3624: https://github.com/pydata/pandas/issues/3624
@@ -187,6 +197,11 @@ pandas 0.11.1
 .. _GH3601: https://github.com/pydata/pandas/issues/3601
 .. _GH3631: https://github.com/pydata/pandas/issues/3631
 .. _GH1512: https://github.com/pydata/pandas/issues/1512
+=======
+.. _GH3571: https://github.com/pydata/pandas/issues/3571
+.. _GH1651: https://github.com/pydata/pandas/issues/1651
+.. _GH3141: https://github.com/pydata/pandas/issues/3141
+>>>>>>> DOC: updated releasenotes, v0.11.1 whatsnew, io.rst
 
 
 pandas 0.11.0

@@ -1250,7 +1250,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0,
-                 parse_dates=True, encoding=None):
+                 parse_dates=True, encoding=None, tupleize_cols=False):
         """
         Read delimited file into DataFrame
 
@@ -1266,6 +1266,9 @@ class DataFrame(NDFrame):
             is used. Different default from read_table
         parse_dates : boolean, default True
             Parse dates. Different default from read_table
+        tupleize_cols : boolean, default True
+            write multi_index columns as a list of tuples (if True)
+            or new (expanded format) if False)
 
         Notes
         -----
@@ -1280,7 +1283,7 @@ class DataFrame(NDFrame):
         from pandas.io.parsers import read_table
         return read_table(path, header=header, sep=sep,
                           parse_dates=parse_dates, index_col=index_col,
-                          encoding=encoding)
+                          encoding=encoding,tupleize_cols=False)
 
     @classmethod
     def from_dta(dta, path, parse_dates=True, convert_categoricals=True, encoding=None, index_col=None):
@@ -1392,7 +1395,7 @@ class DataFrame(NDFrame):
                cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None, quoting=None,
                line_terminator='\n', chunksize=None,
-               multi_index_columns_compat=False, **kwds):
+               tupleize_cols=True, **kwds):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1430,9 +1433,9 @@ class DataFrame(NDFrame):
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
         chunksize : rows to write at a time
-        multi_index_columns_compat : boolean, default False
+        tupleize_cols : boolean, default True
             write multi_index columns as a list of tuples (if True)
-            or new (expanded format)m if False)
+            or new (expanded format) if False)
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -1450,7 +1453,7 @@ class DataFrame(NDFrame):
                                          header=header, index=index,
                                          index_label=index_label,mode=mode,
                                          chunksize=chunksize,engine=kwds.get("engine"),
-                                         multi_index_columns_compat=multi_index_columns_compat)
+                                         tupleize_cols=tupleize_cols)
             formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
