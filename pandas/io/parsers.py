@@ -1715,12 +1715,14 @@ def _clean_na_values(na_values, keep_default_na=True):
     else:
         if not com.is_list_like(na_values):
             na_values = [na_values]
-        na_values = set(list(na_values))
+        na_values = set(_stringify_na_values(na_values))
         if keep_default_na:
             na_values = na_values | _NA_VALUES
 
     return na_values
 
+def _stringify_na_values(na_values):
+    return [ str(x) for x in na_values ]
 
 def _clean_index_names(columns, index_col):
     if not _is_index_col(index_col):
@@ -1771,7 +1773,7 @@ def _get_empty_meta(columns, index_col, index_names):
 def _get_na_values(col, na_values):
     if isinstance(na_values, dict):
         if col in na_values:
-            return set(list(na_values[col]))
+            return set(_stringify_na_values(list(na_values[col])))
         else:
             return _NA_VALUES
     else:
