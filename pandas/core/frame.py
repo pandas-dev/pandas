@@ -1280,6 +1280,35 @@ class DataFrame(NDFrame):
                           parse_dates=parse_dates, index_col=index_col,
                           encoding=encoding)
 
+    @classmethod
+    def from_dta(dta, path, parse_dates=True, convert_categoricals=True, encoding=None, index_col=None):
+        """
+        Read Stata file into DataFrame
+
+        Parameters
+        ----------
+        path : string file path or file handle / StringIO
+        parse_dates : boolean, default True
+            Convert date variables to DataFrame time values
+        convert_categoricals : boolean, default True
+            Read value labels and convert columns to Categorical/Factor variables
+        encoding : string, None or encoding, default None
+            Encoding used to parse the files. Note that Stata doesn't
+            support unicode. None defaults to cp1252.
+        index_col : int or sequence, default None
+            Column to use for index. If a sequence is given, a MultiIndex
+            is used. Different default from read_table
+
+        Notes
+        -----
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        from pandas.io.stata import read_stata
+        return read_stata(path, parse_dates=parse_dates, convert_categoricals=convert_categoricals, encoding=encoding, index=index_col)
+
     def to_sparse(self, fill_value=None, kind='block'):
         """
         Convert to SparseDataFrame

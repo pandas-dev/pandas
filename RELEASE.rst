@@ -33,6 +33,7 @@ pandas 0.11.1
   - pd.read_html() can now parse HTML string, files or urls and return dataframes
     courtesy of @cpcloud. (GH3477_)
   - Support for reading Amazon S3 files. (GH3504_)
+  - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
 
 **Improvements to existing features**
 
@@ -166,6 +167,7 @@ pandas 0.11.1
 .. _GH3610: https://github.com/pydata/pandas/issues/3610
 .. _GH3596: https://github.com/pydata/pandas/issues/3596
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
+.. _GH1512: https://github.com/pydata/pandas/issues/1512
 
 
 pandas 0.11.0
