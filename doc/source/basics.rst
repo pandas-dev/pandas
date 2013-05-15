@@ -857,10 +857,10 @@ For instance, a contrived way to transpose the dataframe would be:
 
     .. ipython:: python
 
-      df = DataFrame([[1, 1.0]], columns=['x', 'y'])
-      row = next(df.iterrows())[1]
+      df_iter = DataFrame([[1, 1.0]], columns=['x', 'y'])
+      row = next(df_iter.iterrows())[1]
       print row['x'].dtype
-      print df['x'].dtype
+      print df_iter['x'].dtype
 
 itertuples
 ~~~~~~~~~~
