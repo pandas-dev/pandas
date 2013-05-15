@@ -1829,3 +1829,44 @@ There are a few other available functions:
 
    For now, writing your DataFrame into a database works only with
    **SQLite**. Moreover, the **index** will currently be **dropped**.
+
+
+Reading from STATA format
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. _io.StataReader:
+
+.. versionadded:: 0.11.1
+
+The class StataReader will read the header of the given dta file at 
+initialization. Its function :func:'~pandas.io.StataReader.data' will 
+read the observations, converting them to a DataFrame which is returned:
+
+.. ipython:: python
+   reader = StataReader(dta_filepath)
+   dataframe = reader.data()
+
+The parameter convert_categoricals indicates wheter value labels should be 
+read and used to create a Categorical variable from them. Value labels can 
+also be retrieved by the function variable_labels, which requires data to be 
+called before.
+The StataReader supports .dta Formats 104, 105, 108, 113-115.
+
+Alternatively, the function :func:'~pandas.io.read_stata' can be used:
+
+.. ipython:: python
+   dataframe = read_stata(dta_filepath)
+
+
+Writing to STATA format
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. _io.StataWriter:
+
+The function :func:'~pandas.io.StataWriter.write_file' will write a DataFrame 
+into a .dta file. The format version of this file is always the latest one, 
+115.
+
+.. ipython:: python
+   writer = StataWriter(filename, dataframe)
+   writer.write_file()
