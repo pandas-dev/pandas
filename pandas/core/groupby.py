@@ -1713,7 +1713,7 @@ class NDFrameGroupBy(GroupBy):
                 result.insert(0, name, values)
             result.index = np.arange(len(result))
 
-        return result
+        return result.convert_objects()
 
     def _aggregate_multiple_funcs(self, arg):
         from pandas.tools.merge import concat
@@ -2054,7 +2054,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return result
+        return result.convert_objects()
 
     def _wrap_agged_blocks(self, blocks):
         obj = self._obj_with_exclusions
@@ -2094,7 +2094,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return result
+        return result.convert_objects()
 
 
 from pandas.tools.plotting import boxplot_frame_groupby
