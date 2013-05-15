@@ -21,6 +21,26 @@ API changes
         p / p
         p / 0
 
+  - Add ``squeeze`` keyword to ``groupby`` to allow reduction from 
+    DataFrame -> Series if groups are unique. This is a Regression from 0.10.1.
+    We are reverting back to the prior behavior. This means groupby will return the 
+    same shaped objects whether the groups are unique or not. revert on (GH2893_) 
+    with (GH3596_).
+
+    .. ipython:: python
+
+        df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
+                         {"val1":1, "val2": 27}, {"val1":1, "val2": 12}])
+        def func(dataf):
+            return dataf["val2"]  - dataf["val2"].mean()
+
+        # squeezing the result frame to a series (because we have unique groups)
+        df2.groupby("val1", squeeze=True).apply(func)
+
+        # no squeezing (the default, and behavior in 0.10.1)
+        df2.groupby("val1").apply(func)
+
+
 Enhancements
 ~~~~~~~~~~~~
   - ``pd.read_html()`` can now parse HTML string, files or urls and return dataframes
@@ -44,5 +64,7 @@ on GitHub for a complete list.
 .. _GH3477: https://github.com/pydata/pandas/issues/3477
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
 .. _GH3499: https://github.com/pydata/pandas/issues/3499
+.. _GH2893: https://github.com/pydata/pandas/issues/2893
+.. _GH3596: https://github.com/pydata/pandas/issues/3596
 .. _GH3590: https://github.com/pydata/pandas/issues/3590
 .. _GH3435: https://github.com/pydata/pandas/issues/3435

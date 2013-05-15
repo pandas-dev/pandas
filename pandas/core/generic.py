@@ -107,7 +107,7 @@ class PandasObject(object):
             return default
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True):
+                group_keys=True, squeeze=False):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns
@@ -131,6 +131,9 @@ class PandasObject(object):
             Sort group keys. Get better performance by turning this off
         group_keys : boolean, default True
             When calling apply, add group keys to index to identify pieces
+        squeeze : boolean, default False
+            reduce the dimensionaility of the return type if possible, otherwise
+            return a consistent type
 
         Examples
         --------
@@ -150,7 +153,8 @@ class PandasObject(object):
         from pandas.core.groupby import groupby
         axis = self._get_axis_number(axis)
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
-                       sort=sort, group_keys=group_keys)
+                       sort=sort, group_keys=group_keys,
+                       squeeze=squeeze)
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
         """
