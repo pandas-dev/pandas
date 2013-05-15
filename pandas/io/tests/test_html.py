@@ -13,22 +13,14 @@ from pandas import DataFrame, MultiIndex
 from pandas.util.testing import assert_frame_equal, network
 
 
-def _skip_if_no_parser():
+def _skip_if_no(module_name):
     try:
-        import_module('lxml')
+        import_module(module_name)
     except ImportError:
-        try:
-            import_module('bs4')
-        except ImportError:
-            raise nose.SkipTest
+        raise nose.SkipTest
 
 
 DATA_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data')
-
-
-def _run_read_html(*args, **kwargs):
-    _skip_if_no_parser()
-    return read_html(*args, **kwargs)
 
 
 def isframe(x):
@@ -53,8 +45,9 @@ class TestLxmlReadHtml(TestCase):
         self.banklist_data = os.path.join(DATA_PATH, 'failed_banklist.html')
 
     def run_read_html(self, *args, **kwargs):
+        _skip_if_no('lxml')
         kwargs['flavor'] = 'lxml'
-        return _run_read_html(*args, **kwargs)
+        return read_html(*args, **kwargs)
 
     @network
     def test_banklist_url(self):
@@ -314,11 +307,12 @@ class TestLxmlReadHtml(TestCase):
 
 def test_invalid_flavor():
     url = 'google.com'
-    nose.tools.assert_raises(AssertionError, _run_read_html, url, 'google',
+    nose.tools.assert_raises(AssertionError, read_html, url, 'google',
                              flavor='not a* valid**++ flaver')
 
 
 class TestBs4ReadHtml(TestLxmlReadHtml):
     def run_read_html(self, *args, **kwargs):
+        _skip_if_no('bs4')
         kwargs['flavor'] = 'bs4'
-        return _run_read_html(*args, **kwargs)
+        return read_html(*args, **kwargs)
