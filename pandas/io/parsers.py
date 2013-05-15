@@ -122,6 +122,9 @@ na_filter: boolean, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
     of reading a large file
+usecols : array-like
+    Return a subset of the columns.
+    Results in much faster parsing time and lower memory usage.
 
 Returns
 -------
