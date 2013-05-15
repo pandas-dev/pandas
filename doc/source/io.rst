@@ -110,6 +110,8 @@ They can take a number of arguments:
   - ``verbose``: show number of NA values inserted in non-numeric columns
   - ``squeeze``: if True then output with only one column is turned into Series
   - ``error_bad_lines``: if False then any lines causing an error will be skipped :ref:`bad lines <io.bad_lines>`
+  - ``usecols``: a subset of columns to return, results in much faster parsing 
+    time and lower memory usage.
 
 .. ipython:: python
    :suppress:
