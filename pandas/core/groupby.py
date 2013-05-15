@@ -169,7 +169,7 @@ class GroupBy(object):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True):
+                 sort=True, group_keys=True, squeeze=False):
         self._selection = selection
 
         if isinstance(obj, NDFrame):
@@ -189,6 +189,7 @@ class GroupBy(object):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
+        self.squeeze = squeeze
 
         if grouper is None:
             grouper, exclusions = _get_grouper(obj, keys, axis=axis,
@@ -1841,15 +1842,22 @@ class NDFrameGroupBy(GroupBy):
                     all_indexed_same = _all_indexes_same([x.index for x in values])
                     singular_series  = len(values) == 1 and applied_index.nlevels == 1
 
-                    # assign the name to this series
-                    if singular_series:
-                        values[0].name = keys[0]
+                    # GH3596
+                    # provide a reduction (Frame -> Series) if groups are unique
+                    if self.squeeze:
 
-                    # GH2893
-                    # we have series in the values array, we want to produce a series:
-                    # if any of the sub-series are not indexed the same
-                    # OR we don't have a multi-index and we have only a single values
-                    if singular_series or not all_indexed_same:
+                        # assign the name to this series
+                        if singular_series:
+                            values[0].name = keys[0]
+
+                            # GH2893
+                            # we have series in the values array, we want to produce a series:
+                            # if any of the sub-series are not indexed the same
+                            # OR we don't have a multi-index and we have only a single values
+                            return self._concat_objects(keys, values,
+                                                        not_indexed_same=not_indexed_same)
+
+                    if not all_indexed_same:
                         return self._concat_objects(keys, values,
                                                     not_indexed_same=not_indexed_same)
                     

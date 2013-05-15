@@ -65,6 +65,9 @@ pandas 0.11.1
     ``timedelta64[ns]`` to ``object/int`` (GH3425_)
   - Do not allow datetimelike/timedeltalike creation except with valid types
     (e.g. cannot pass ``datetime64[ms]``) (GH3423_)
+  - Add ``squeeze`` keyword to ``groupby`` to allow reduction from 
+    DataFrame -> Series if groups are unique. Regression from 0.10.1, 
+    partial revert on (GH2893_) with (GH3596_)
 
 **Bug Fixes**
 
@@ -161,6 +164,7 @@ pandas 0.11.1
 .. _GH3594: https://github.com/pydata/pandas/issues/3594
 .. _GH3590: https://github.com/pydata/pandas/issues/3590
 .. _GH3610: https://github.com/pydata/pandas/issues/3610
+.. _GH3596: https://github.com/pydata/pandas/issues/3596
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
 
 
