@@ -1842,6 +1842,14 @@ class TestGroupBy(unittest.TestCase):
         result = df.apply(lambda x: x, axis=1)
         assert_series_equal(df.get_dtype_counts(), result.get_dtype_counts())
 
+
+        # GH 3610 incorrect dtype conversion with as_index=False
+        df = DataFrame({"c1" : [1,2,6,6,8]})
+        df["c2"] = df.c1/2.0
+        result1 = df.groupby("c2").mean().reset_index().c2
+        result2 = df.groupby("c2", as_index=False).mean().c2
+        assert_series_equal(result1,result2)
+
     def test_groupby_list_infer_array_like(self):
         result = self.df.groupby(list(self.df['A'])).mean()
         expected = self.df.groupby(self.df['A']).mean()
