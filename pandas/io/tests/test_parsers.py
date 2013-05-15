@@ -498,6 +498,17 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
         df = self.read_table(StringIO(good_line_small), sep='\t')
         self.assert_(len(df) == 3)
 
+    def test_non_string_na_values(self):
+        # GH3611, na_values that are not a string are an issue
+        with ensure_clean('__non_string_na_values__.csv') as path:
+            df = DataFrame({'A' : [-999, 2, 3], 'B' : [1.2, -999, 4.5]})
+            df.to_csv(path, sep=' ', index=False)
+            result1 = read_csv(path, sep= ' ', header=0, na_values=['-999.0','-999'])
+            result2 = read_csv(path, sep= ' ', header=0, na_values=[-999,-999.0])
+            result3 = read_csv(path, sep= ' ', header=0, na_values=[-999.0,-999])
+            tm.assert_frame_equal(result1,result2)
+            tm.assert_frame_equal(result2,result3)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row

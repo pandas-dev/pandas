@@ -118,6 +118,8 @@ pandas 0.11.1
   - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
     ``np.nan`` or ``np.inf`` as appropriate (GH3590_)
   - Fix incorrect dtype on groupby with ``as_index=False`` (GH3610_)
+  - Fix ``read_csv`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
+    was failing (GH3611_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -166,6 +168,7 @@ pandas 0.11.1
 .. _GH3610: https://github.com/pydata/pandas/issues/3610
 .. _GH3596: https://github.com/pydata/pandas/issues/3596
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
+.. _GH3611: https://github.com/pydata/pandas/issues/3611
 
 
 pandas 0.11.0
