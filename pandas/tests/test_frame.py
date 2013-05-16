@@ -4939,6 +4939,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(self.frame, recons, check_names=False)  # TODO to_csv drops column name
             assert_frame_equal(np.isinf(self.frame), np.isinf(recons), check_names=False)
 
+    def test_to_csv_no_index(self):
+        # GH 3624, after appending columns, to_csv fails
+        pname = '__tmp_to_csv_no_index__'
+        with ensure_clean(pname) as path:
+            df = DataFrame({'c1':[1,2,3], 'c2':[4,5,6]})
+            df.to_csv(path, index=False)
+            result = read_csv(path)
+            assert_frame_equal(df,result)
+            df['c3'] = [7,8,9]
+            df.to_csv(path, index=False)
+            result = read_csv(path)
+            assert_frame_equal(df,result)
+
     def test_to_csv_multiindex(self):
 
         pname = '__tmp_to_csv_multiindex__'
