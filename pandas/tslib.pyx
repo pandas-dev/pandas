@@ -318,8 +318,10 @@ class Timestamp(_Timestamp):
                         ts.dts.us, ts.tzinfo)
 
 
+_nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
 class NaTType(_NaT):
     """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
+
     def __new__(cls):
         cdef _NaT base
 
@@ -647,8 +649,11 @@ cdef convert_to_tsobject(object ts, object tz):
         obj.value = ts
         pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif util.is_string_object(ts):
-        _string_to_dts(ts, &obj.dts)
-        obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
+        if ts in _nat_strings:
+            obj.value = NPY_NAT
+        else:
+            _string_to_dts(ts, &obj.dts)
+            obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
     elif PyDateTime_Check(ts):
         if tz is not None:
             # sort of a temporary hack
@@ -859,6 +864,10 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             else:
                 try:
                     if len(val) == 0:
+                       iresult[i] = iNaT
+                       continue
+
+                    elif val in _nat_strings:
                        iresult[i] = iNaT
                        continue
 

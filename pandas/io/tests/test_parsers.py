@@ -531,6 +531,28 @@ ignore,this,row
                               skiprows=[1])
         assert_almost_equal(df3.values, expected)
 
+    def test_nat_parse(self):
+
+        # GH 3062
+        df = DataFrame(dict({
+                    'A' : np.asarray(range(10),dtype='float64'), 
+                    'B' : pd.Timestamp('20010101') }))
+        df.iloc[3:6,:] = np.nan
+
+        with ensure_clean('__nat_parse_.csv') as path:
+            df.to_csv(path)
+            result = read_csv(path,index_col=0,parse_dates=['B'])
+            tm.assert_frame_equal(result,df)
+
+            expected = Series(dict( A = 'float64',B = 'datetime64[ns]'))
+            tm.assert_series_equal(expected,result.dtypes)
+
+            # test with NaT for the nan_rep
+            # we don't have a method to specif the Datetime na_rep (it defaults to '')
+            df.to_csv(path)
+            result = read_csv(path,index_col=0,parse_dates=['B'])
+            tm.assert_frame_equal(result,df)
+
     def test_skiprows_bug(self):
         # GH #505
         text = """#foo,a,b,c
