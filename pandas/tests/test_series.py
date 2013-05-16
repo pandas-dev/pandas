@@ -1878,10 +1878,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             self.assertRaises(TypeError, td.astype, 'm8[%s]' % t)
 
         # valid astype
-        td.astype('int')
+        td.astype('int64')
 
         # this is an invalid casting
         self.assertRaises(Exception, Series, [ timedelta(days=i) for i in range(3) ] + [ 'foo' ], dtype='m8[ns]' )
+        self.assertRaises(TypeError, td.astype, 'int32')
 
         # leave as object here
         td = Series([ timedelta(days=i) for i in range(3) ] + [ 'foo' ])

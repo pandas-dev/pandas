@@ -1612,13 +1612,13 @@ def _astype_nansafe(arr, dtype, copy = True):
     if is_datetime64_dtype(arr):
         if dtype == object:
             return tslib.ints_to_pydatetime(arr.view(np.int64))
-        elif issubclass(dtype.type, np.int):
+        elif dtype == np.int64:
             return arr.view(dtype)
         elif dtype != _NS_DTYPE:
             raise TypeError("cannot astype a datetimelike from [%s] to [%s]" % (arr.dtype,dtype))
         return arr.astype(_NS_DTYPE)
     elif is_timedelta64_dtype(arr):
-        if issubclass(dtype.type, np.int):
+        if dtype == np.int64:
             return arr.view(dtype)
         elif dtype == object:
             return arr.astype(object)
