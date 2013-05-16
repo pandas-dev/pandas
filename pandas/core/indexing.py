@@ -322,6 +322,7 @@ class _NDFrameIndexer(object):
                 keyarr = _asarray_tuplesafe(key)
 
             if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
+                keyarr = com._ensure_platform_int(keyarr)
                 return labels.take(keyarr)
 
             return keyarr
@@ -466,10 +467,11 @@ class _NDFrameIndexer(object):
                 if len(missing):
                     l = np.arange(len(indexer))
 
+                    missing = com._ensure_platform_int(missing)
                     missing_labels = keyarr.take(missing)
-                    missing_labels_indexer = l[~check]
+                    missing_labels_indexer = com._ensure_int64(l[~check])
                     cur_labels = result._get_axis(axis).values
-                    cur_labels_indexer = l[check]
+                    cur_labels_indexer = com._ensure_int64(l[check])
                     new_labels = lib.combine_from_indexers(cur_labels, cur_labels_indexer,
                                                            missing_labels, missing_labels_indexer)
                     result = result.reindex_axis(new_labels,axis=axis)
