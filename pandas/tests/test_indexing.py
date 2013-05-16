@@ -840,6 +840,19 @@ class TestIndexing(unittest.TestCase):
         result = df.set_index(['year','PRuid','QC']).reset_index().reindex(columns=df.columns)
         assert_frame_equal(result,df)
 
+    def test_iloc_panel_issue(self):
+
+        # GH 3617
+        p = Panel(randn(4, 4, 4))
+
+        self.assert_(p.iloc[:3, :3, :3].shape == (3,3,3))
+        self.assert_(p.iloc[1, :3, :3].shape == (3,3))
+        self.assert_(p.iloc[:3, 1, :3].shape == (3,3))
+        self.assert_(p.iloc[:3, :3, 1].shape == (3,3))
+        self.assert_(p.iloc[1, 1, :3].shape == (3,))
+        self.assert_(p.iloc[1, :3, 1].shape == (3,))
+        self.assert_(p.iloc[:3, 1, 1].shape == (3,))
+      
 
 if __name__ == '__main__':
     import nose

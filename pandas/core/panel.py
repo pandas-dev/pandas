@@ -326,7 +326,7 @@ class Panel(NDFrame):
 
     @property
     def shape(self):
-        return [len(getattr(self, a)) for a in self._AXIS_ORDERS]
+        return tuple([len(getattr(self, a)) for a in self._AXIS_ORDERS])
 
     @classmethod
     def from_dict(cls, data, intersect=False, orient='items', dtype=None):
