@@ -120,6 +120,7 @@ pandas 0.11.1
   - Fix incorrect dtype on groupby with ``as_index=False`` (GH3610_)
   - Fix ``read_csv`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
     was failing (GH3611_)
+  - Fix indexing issue in ndim >= 3 with ``iloc`` (GH3617_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -167,6 +168,7 @@ pandas 0.11.1
 .. _GH3590: https://github.com/pydata/pandas/issues/3590
 .. _GH3610: https://github.com/pydata/pandas/issues/3610
 .. _GH3596: https://github.com/pydata/pandas/issues/3596
+.. _GH3617: https://github.com/pydata/pandas/issues/3617
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
 .. _GH3611: https://github.com/pydata/pandas/issues/3611
 
