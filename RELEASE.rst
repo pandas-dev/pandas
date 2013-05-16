@@ -124,6 +124,7 @@ pandas 0.11.1
   - Fix indexing issue in ndim >= 3 with ``iloc`` (GH3617_)
   - Correctly parse date columns with embedded (nan/NaT) into datetime64[ns] dtype in ``read_csv``
     when ``parse_dates`` is specified (GH3062_)
+  - Fix not consolidating before to_csv (GH3624_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -175,6 +176,7 @@ pandas 0.11.1
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
 .. _GH3611: https://github.com/pydata/pandas/issues/3611
 .. _GH3062: https://github.com/pydata/pandas/issues/3062
+.. _GH3624: https://github.com/pydata/pandas/issues/3624
 .. _GH1512: https://github.com/pydata/pandas/issues/1512
 
 
