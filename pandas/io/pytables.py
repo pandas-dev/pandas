@@ -50,7 +50,7 @@ resetting the attribute to None
 class PerformanceWarning(Warning): pass
 performance_doc = """
 your performance may suffer as PyTables will pickle object types that it cannot map
-directly to c-types [inferred_type->%s,key->%s]
+directly to c-types [inferred_type->%s,key->%s] [items->%s]
 """
 
 # map object types
@@ -1861,7 +1861,7 @@ class GenericStorer(Storer):
         getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         getattr(self.group, key)._v_attrs.shape = value.shape
         
-    def write_array(self, key, value):
+    def write_array(self, key, value, items=None):
         if key in self.group:
             self._handle.removeNode(self.group, key)
 
@@ -1904,7 +1904,11 @@ class GenericStorer(Storer):
             elif inferred_type == 'string':
                 pass
             else:
-                ws = performance_doc % (inferred_type,key)
+                try:
+                    items = list(items)
+                except:
+                    pass
+                ws = performance_doc % (inferred_type,key,items)
                 warnings.warn(ws, PerformanceWarning)
 
             vlarr = self._handle.createVLArray(self.group, key,
@@ -2115,7 +2119,7 @@ class BlockManagerStorer(GenericStorer):
         for i in range(nblocks):
             blk = data.blocks[i]
             # I have no idea why, but writing values before items fixed #2299
-            self.write_array('block%d_values' % i, blk.values)
+            self.write_array('block%d_values' % i, blk.values, items=blk.items)
             self.write_index('block%d_items' % i, blk.items)
 
 class FrameStorer(BlockManagerStorer):
