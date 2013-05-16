@@ -777,6 +777,8 @@ class CSVFormatter(object):
                line_terminator='\n', chunksize=None, engine=None):
 
         self.engine = engine  # remove for 0.12
+
+        obj._consolidate_inplace()
         self.obj = obj
 
         self.path_or_buf = path_or_buf
