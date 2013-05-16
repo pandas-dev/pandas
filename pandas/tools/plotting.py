@@ -947,8 +947,8 @@ class MPLPlot(object):
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
-                index = index.to_timestamp().order()
-                x = index._mpl_repr()
+                self.data = self.data.reindex(index=index.order())
+                x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
                 """
                 Matplotlib supports numeric values or datetime objects as
@@ -958,7 +958,8 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             elif is_datetype:
-                x = index.order()._mpl_repr()
+                self.data = self.data.reindex(index=index.order())
+                x = self.data.index._mpl_repr()
             else:
                 self._need_to_set_index = True
                 x = range(len(index))
