@@ -138,14 +138,14 @@ class _NDFrameIndexer(object):
                         # align to
                         if item in value:
                             v = value[item]
-                            v = v.reindex(self.obj[item].reindex(v.index).dropna().index)
+                            v = v.reindex(self.obj[item].index & v.index)
                             setter(item, v.values)
                         else:
                             setter(item, np.nan)
 
                 # we have an equal len ndarray
-                elif isinstance(value, np.ndarray) and value.ndim > 1:
-                    if len(labels) != len(value):
+                elif isinstance(value, np.ndarray) and value.ndim == 2:
+                    if len(labels) != value.shape[1]:
                         raise ValueError('Must have equal len keys and value when'
                                          ' setting with an ndarray')
 
