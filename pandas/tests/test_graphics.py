@@ -677,7 +677,7 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_unordered_ts(self):
-        df = DataFrame(np.random.randn(3, 1),
+        df = DataFrame(np.array([3.0, 2.0, 1.0]),
                        index=[date(2012, 10, 1),
                               date(2012, 9, 1),
                               date(2012, 8, 1)],
@@ -685,6 +685,8 @@ class TestDataFramePlots(unittest.TestCase):
         ax = df.plot()
         xticks = ax.lines[0].get_xdata()
         self.assert_(xticks[0] < xticks[1])
+        ydata = ax.lines[0].get_ydata()
+        self.assert_(np.all(ydata == np.array([1.0, 2.0, 3.0])))
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
