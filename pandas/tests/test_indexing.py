@@ -874,10 +874,20 @@ class TestIndexing(unittest.TestCase):
                               'col1':Series([0,1,4,6,8,10],dtype='float64'),
                               'col2':[12,7,16,np.nan,20,22]})
         
+
+        # frame on rhs
         df2.ix[mask, cols]= dft.ix[mask, cols]
         assert_frame_equal(df2,expected)
         df2.ix[mask, cols]= dft.ix[mask, cols]
         assert_frame_equal(df2,expected)
+
+        # with an ndarray on rhs
+        df2 = df.copy()
+        df2.ix[mask, cols]= dft.ix[mask, cols].values
+        assert_frame_equal(df2,expected)
+        df2.ix[mask, cols]= dft.ix[mask, cols].values
+        assert_frame_equal(df2,expected)
+
 
 if __name__ == '__main__':
     import nose
