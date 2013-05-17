@@ -1833,8 +1833,27 @@ There are a few other available functions:
    **SQLite**. Moreover, the **index** will currently be **dropped**.
 
 
+STATA Format
+------------
+
+Writing to STATA format
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _io.StataWriter:
+
+The function :func:'~pandas.io.StataWriter.write_file' will write a DataFrame 
+into a .dta file. The format version of this file is always the latest one, 
+115.
+
+.. ipython:: python
+
+   from pandas.io.stata import StataWriter
+   df = DataFrame(randn(10,2),columns=list('AB'))
+   writer = StataWriter('stata.dta',df)
+   writer.write_file()
+
 Reading from STATA format
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _io.StataReader:
 
@@ -1845,30 +1864,22 @@ initialization. Its function :func:'~pandas.io.StataReader.data' will
 read the observations, converting them to a DataFrame which is returned:
 
 .. ipython:: python
-   reader = StataReader(dta_filepath)
-   dataframe = reader.data()
+
+   from pandas.io.stata import StataReader
+   reader = StataReader('stata.dta')
+   reader.data()
 
 The parameter convert_categoricals indicates wheter value labels should be 
 read and used to create a Categorical variable from them. Value labels can 
 also be retrieved by the function variable_labels, which requires data to be 
 called before.
+
 The StataReader supports .dta Formats 104, 105, 108, 113-115.
 
-Alternatively, the function :func:'~pandas.io.read_stata' can be used:
+Alternatively, the function :func:'~pandas.io.read_stata' can be used
 
 .. ipython:: python
-   dataframe = read_stata(dta_filepath)
+   :suppress:
 
-
-Writing to STATA format
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. _io.StataWriter:
-
-The function :func:'~pandas.io.StataWriter.write_file' will write a DataFrame 
-into a .dta file. The format version of this file is always the latest one, 
-115.
-
-.. ipython:: python
-   writer = StataWriter(filename, dataframe)
-   writer.write_file()
+   import os
+   os.remove('stata.dta')

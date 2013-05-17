@@ -57,7 +57,7 @@ Enhancements
   - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs
-    and the generated documentation for the method for more details.
+    :ref:`Replacing via String Expression <missing_data.replace_expression>`
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker

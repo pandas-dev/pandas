@@ -334,8 +334,10 @@ missing and interpolate over them:
 
    ser.replace([1, 2, 3], method='pad')
 
+.. _missing_data.replace_expression:
+
 String/Regular Expression Replacement
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
 
@@ -350,10 +352,14 @@ String/Regular Expression Replacement
 Replace the '.' with ``nan`` (str -> str)
 
 .. ipython:: python
+   :suppress:
 
    from numpy.random import rand, randn
-   from numpy import nan
+   nan = np.nan
    from pandas import DataFrame
+
+.. ipython:: python
+
    d = {'a': range(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
    df = DataFrame(d)
    df.replace('.', nan)
@@ -434,16 +440,20 @@ want to use a regular expression.
    a compiled regular expression is valid as well.
 
 Numeric Replacement
-^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~
 
 Similiar to ``DataFrame.fillna``
 
 .. ipython:: python
+   :suppress:
 
    from numpy.random import rand, randn
    from numpy import nan
    from pandas import DataFrame
    from pandas.util.testing import assert_frame_equal
+
+.. ipython:: python
+
    df = DataFrame(randn(10, 2))
    df[rand(df.shape[0]) > 0.5] = 1.5
    df.replace(1.5, nan)
