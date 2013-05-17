@@ -68,7 +68,6 @@ three types of multi-axis indexing.
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
   - A slice object with ints ``1:7``
-  - A boolean array
 
   See more at :ref:`Selection by Position <indexing.integer>` 
 
@@ -291,7 +290,6 @@ The ``.iloc`` attribute is the primary access method. The following are valid in
 - An integer e.g. ``5``
 - A list or array of integers ``[4, 3, 0]``
 - A slice object with ints ``1:7``
-- A boolean array
 
 .. ipython:: python
 
@@ -328,12 +326,6 @@ Select via integer list
 .. ipython:: python
 
    df1.iloc[[1,3,5],[1,3]]
-
-Select via boolean array
-
-.. ipython:: python
-
-   df1.iloc[:,df1.iloc[0]>0]
 
 For slicing rows explicitly (equiv to deprecated ``df.irow(slice(1,3))``).
 

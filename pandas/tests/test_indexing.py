@@ -888,6 +888,60 @@ class TestIndexing(unittest.TestCase):
         df2.ix[mask, cols]= dft.ix[mask, cols].values
         assert_frame_equal(df2,expected)
 
+    def test_iloc_mask(self):
+
+        # GH 3631, iloc with a mask (of a series) should raise
+        df = DataFrame(range(5), list('ABCDE'), columns=['a'])
+        mask = (df.a%2 == 0)
+        self.assertRaises(ValueError, df.iloc.__getitem__, tuple([mask]))
+        mask.index = range(len(mask))
+        self.assertRaises(ValueError, df.iloc.__getitem__, tuple([mask]))
+
+        # ndarray ok
+        result = df.iloc[np.array([True] * len(mask),dtype=bool)]
+        assert_frame_equal(result,df)
+
+        # the possibilities
+        locs = np.arange(4)
+        nums = 2**locs
+        reps = map(bin, nums)
+        df = DataFrame({'locs':locs, 'nums':nums}, reps)
+
+        expected = {
+            (None,'')     : '0b1100',
+            (None,'.loc')  : '0b1100',
+            (None,'.iloc') : '0b1100',
+            ('index','')  : '0b11',
+            ('index','.loc')  : '0b11',
+            ('index','.iloc') : 'iLocation based boolean indexing cannot use an indexable as a mask',
+            ('locs','')      : 'Unalignable boolean Series key provided',
+            ('locs','.loc')   : 'Unalignable boolean Series key provided',
+            ('locs','.iloc')  : 'iLocation based boolean indexing cannot use an indexable as a mask',
+            }
+
+        import warnings
+        warnings.filterwarnings(action='ignore', category=UserWarning)
+        result = dict()
+        for idx in [None, 'index', 'locs']:
+            mask = (df.nums>2).values
+            if idx:
+                mask = Series(mask, list(reversed(getattr(df, idx))))
+            for method in ['', '.loc', '.iloc']:
+                try:
+                    if method:
+                        accessor = getattr(df, method[1:])
+                    else:
+                        accessor = df
+                    ans = str(bin(accessor[mask]['nums'].sum()))
+                except Exception, e:
+                    ans = str(e)
+
+                key = tuple([idx,method])
+                r = expected.get(key)
+                if r != ans:
+                    raise AssertionError("[%s] does not match [%s], received [%s]" %
+                                         (key,ans,r))
+        warnings.filterwarnings(action='always', category=UserWarning)
 
 if __name__ == '__main__':
     import nose

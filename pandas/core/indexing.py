@@ -775,7 +775,12 @@ class _iLocIndexer(_LocationIndexer):
     _exception   = IndexError
 
     def _has_valid_type(self, key, axis):
-        return isinstance(key, slice) or com.is_integer(key) or com._is_bool_indexer(key) or _is_list_like(key)
+        if com._is_bool_indexer(key):
+            if hasattr(key,'index') and isinstance(key.index,Index):
+                raise ValueError("iLocation based boolean indexing cannot use an indexable as a mask")
+            return True
+
+        return isinstance(key, slice) or com.is_integer(key) or _is_list_like(key)
 
     def _getitem_tuple(self, tup):
 
@@ -811,9 +816,11 @@ class _iLocIndexer(_LocationIndexer):
     def _getitem_axis(self, key, axis=0):
 
         if isinstance(key, slice):
+            self._has_valid_type(key,axis)
             return self._get_slice_axis(key, axis=axis)
 
         elif com._is_bool_indexer(key):
+            self._has_valid_type(key,axis)
             return self._getbool_axis(key, axis=axis)
 
         # a single integer or a list of integers
