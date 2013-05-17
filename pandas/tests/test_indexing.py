@@ -853,6 +853,31 @@ class TestIndexing(unittest.TestCase):
         self.assert_(p.iloc[1, :3, 1].shape == (3,))
         self.assert_(p.iloc[:3, 1, 1].shape == (3,))
       
+    def test_multi_assign(self):
+
+        # GH 3626, an assignement of a sub-df to a df
+        df = DataFrame({'FC':['a','b','a','b','a','b'],
+                        'PF':[0,0,0,0,1,1],
+                        'col1':range(6),
+                        'col2':range(6,12)})
+        df.ix[1,0]=np.nan
+        df2 = df.copy()
+
+        mask=~df2.FC.isnull()
+        cols=['col1', 'col2']
+
+        dft = df2 * 2
+        dft.ix[3,3] = np.nan
+
+        expected = DataFrame({'FC':['a',np.nan,'a','b','a','b'],
+                              'PF':[0,0,0,0,1,1],
+                              'col1':Series([0,1,4,6,8,10],dtype='float64'),
+                              'col2':[12,7,16,np.nan,20,22]})
+        
+        df2.ix[mask, cols]= dft.ix[mask, cols]
+        assert_frame_equal(df2,expected)
+        df2.ix[mask, cols]= dft.ix[mask, cols]
+        assert_frame_equal(df2,expected)
 
 if __name__ == '__main__':
     import nose
