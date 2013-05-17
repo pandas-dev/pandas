@@ -406,7 +406,7 @@ or you can pass the nested dictionary like so
 
 .. ipython:: python
 
-   df.replace(regex={'b': {'b': r'\s*\.\s*'}})
+   df.replace(regex={'b': {r'\s*\.\s*': nan}})
 
 You can also use the group of a regular expression match when replacing (dict
 of regex -> dict of regex), this works for lists as well
@@ -420,7 +420,7 @@ will be replaced with a scalar (list of regex -> regex)
 
 .. ipython:: python
 
-   df.replace([r'\s*\.\*', r'a|b'], nan, regex=True)
+   df.replace([r'\s*\.\s*', r'a|b'], nan, regex=True)
 
 All of the regular expression examples can also be passed with the
 ``to_replace`` argument as the ``regex`` argument. In this case the ``value``
@@ -429,7 +429,7 @@ dictionary. The previous example, in this case, would then be
 
 .. ipython:: python
 
-   df.replace(regex=[r'\s*\.\*', r'a|b'], value=nan)
+   df.replace(regex=[r'\s*\.\s*', r'a|b'], value=nan)
 
 This can be convenient if you do not want to pass ``regex=True`` every time you
 want to use a regular expression.

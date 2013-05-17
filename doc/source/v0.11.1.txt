@@ -59,6 +59,24 @@ Enhancements
     ``Series`` with object dtype. See the examples section in the regular docs
     :ref:`Replacing via String Expression <missing_data.replace_expression>`
 
+    For example you can do
+
+    .. ipython :: python
+
+        df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
+        df.replace(regex=r'\s*\.\s*', value=nan)
+
+    to replace all occurrences of the string ``'.'`` with zero or more
+    instances of surrounding whitespace with ``NaN``.
+
+    Regular string replacement still works as expected. For example, you can do
+
+    .. ipython :: python
+
+        df.replace('.', nan)
+
+    to replace all occurrences of the string ``'.'`` with ``NaN``.
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
