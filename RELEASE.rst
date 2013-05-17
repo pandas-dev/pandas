@@ -50,6 +50,7 @@ pandas 0.11.1
     - support datelike columns with a timezone as data_columns (GH2852_)
     - table writing performance improvements.
   - Add modulo operator to Series, DataFrame
+  - Add ``date`` method to DatetimeIndex
 
 **API Changes**
 
@@ -287,7 +288,7 @@ pandas 0.11.0
     on rhs (GH3216_)
   - Treat boolean values as integers (values 1 and 0) for numeric
     operations. (GH2641_)
-  - Add ``time()`` method to DatetimeIndex (GH3180_)
+  - Add ``time`` method to DatetimeIndex (GH3180_)
   - Return NA when using Series.str[...] for values that are not long enough
     (GH3223_)
   - Display cursor coordinate information in time-series plots (GH1670_)

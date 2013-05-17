@@ -1847,6 +1847,12 @@ class TestDatetimeIndex(unittest.TestCase):
         expected = [t.time() for t in rng]
         self.assert_((result == expected).all())
 
+    def test_date(self):
+        rng = pd.date_range('1/1/2000', freq='12H', periods=10)
+        result = pd.Index(rng).date
+        expected = [t.date() for t in rng]
+        self.assert_((result == expected).all())
+
 
 class TestLegacySupport(unittest.TestCase):
     _multiprocess_can_split_ = True
