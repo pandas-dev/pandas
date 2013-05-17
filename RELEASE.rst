@@ -43,6 +43,7 @@ pandas 0.11.1
     multi-index column.  
     Note: The default value will change in 0.12 to make the default *to* write and
     read multi-index columns in the new format. (GH3571_, GH1651_, GH3141_)
+  - Add iterator to ``Series.str`` (GH3638_)
 
 **Improvements to existing features**
 
@@ -199,7 +200,7 @@ pandas 0.11.1
 .. _GH3571: https://github.com/pydata/pandas/issues/3571
 .. _GH1651: https://github.com/pydata/pandas/issues/1651
 .. _GH3141: https://github.com/pydata/pandas/issues/3141
-
+.. _GH3638: https://github.com/pydata/pandas/issues/3638
 
 pandas 0.11.0
 =============

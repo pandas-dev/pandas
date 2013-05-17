@@ -80,6 +80,27 @@ Enhancements
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs
     :ref:`Replacing via String Expression <missing_data.replace_expression>`
+  - ``Series.str`` now supports iteration (GH3638_). You can iterate over the
+    individual elements of each string in the ``Series``. Each iteration yields
+    yields a ``Series`` with either a single character at each index of the
+    original ``Series`` or ``NaN``. For example,
+
+    .. ipython:: python
+
+        strs = 'go', 'bow', 'joe', 'slow'
+        ds = Series(strs)
+
+        for s in ds.str:
+            print s
+
+        s
+        s.dropna().values.item() == 'w'
+
+    The last element yielded by the iterator will be a ``Series`` containing
+    the last element of the longest string in the ``Series`` with all other
+    elements being ``NaN``. Here since ``'wikitravel'`` is the longest string
+    and there are no other strings with the same length ``'l'`` is the only
+    non-null string in the yielded ``Series``.
 
   - Multi-index column support for reading and writing csvs
 
@@ -133,3 +154,4 @@ on GitHub for a complete list.
 .. _GH3571: https://github.com/pydata/pandas/issues/3571
 .. _GH1651: https://github.com/pydata/pandas/issues/1651
 .. _GH3141: https://github.com/pydata/pandas/issues/3141
+.. _GH3638: https://github.com/pydata/pandas/issues/3638
