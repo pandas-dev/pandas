@@ -1319,11 +1319,18 @@ class DatetimeIndex(Int64Index):
     @property
     def time(self):
         """
-        Returns array of datetime.time. The time of the day
+        Returns numpy array of datetime.time. The time part of the Timestamps.
         """
         # can't call self.map() which tries to treat func as ufunc
         # and causes recursion warnings on python 2.6
-        return _algos.arrmap_object(self.asobject, lambda x:x.time())
+        return _algos.arrmap_object(self.asobject, lambda x: x.time())
+
+    @property
+    def date(self):
+        """
+        Returns numpy array of datetime.date. The date part of the Timestamps.
+        """
+        return _algos.arrmap_object(self.asobject, lambda x: x.date())
 
 
     def normalize(self):
