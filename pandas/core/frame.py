@@ -17,6 +17,7 @@ from StringIO import StringIO
 import operator
 import sys
 import collections
+import itertools
 
 from numpy import nan as NA
 import numpy as np
@@ -32,7 +33,8 @@ from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
                                   _maybe_convert_indices)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
-                                   create_block_manager_from_blocks)
+                                   create_block_manager_from_blocks,
+                                   _re_compilable)
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -3431,17 +3433,46 @@ class DataFrame(NDFrame):
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit)
 
-    def replace(self, to_replace, value=None, method='pad', axis=0,
-                inplace=False, limit=None):
-        """
-        Replace values given in 'to_replace' with 'value' or using 'method'
+    def replace(self, to_replace=None, value=None, method='pad', axis=0,
+                inplace=False, limit=None, regex=False, infer_types=False):
+        """Replace values given in 'to_replace' with 'value' or using 'method'.
 
         Parameters
         ----------
-        value : scalar or dict, default None
+        to_replace : str, regex, list, dict, Series, numeric, or None
+            * str or regex:
+                - str: string exactly matching `to_replace` will be replaced
+                  with `value`
+                - regex: regexs matching `to_replace` will be replaced with
+                  `value`
+            * list of str, regex, or numeric:
+                - First, if `to_replace` and `value` are both lists, they
+                  **must** be the same length.
+                - Second, if ``regex=True`` then all of the strings in **both**
+                  lists will be interpreted as regexs otherwise they will match
+                  directly. This doesn't matter much for `value` since there
+                  are only a few possible substitution regexes you can use.
+                - str and regex rules apply as above.
+            * dict:
+                - Nested dictionaries, e.g., {'a': {'b': nan}}, are read as
+                  follows: look in column 'a' for the value 'b' and replace it
+                  with nan. You can nest regular expressions as well. Note that
+                  column names (the top-level dictionary keys in a nested
+                  dictionary) **cannot** be regular expressions.
+                - Keys map to column names and values map to substitution
+                  values. You can treat this as a special case of passing two
+                  lists except that you are specifying the column to search in.
+            * None:
+                - This means that the ``regex`` argument must be a string,
+                  compiled regular expression, or list, dict, ndarray or Series
+                  of such elements. If `value` is also ``None`` then this
+                  **must** be a nested dictionary or ``Series``.
+            See the examples section for examples of each of these.
+        value : scalar, dict, list, str, regex, default None
             Value to use to fill holes (e.g. 0), alternately a dict of values
             specifying which value to use for each column (columns not in the
-            dict will not be filled)
+            dict will not be filled). Regular expressions, strings and lists or
+            dicts of such objects are also allowed.
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
@@ -3456,23 +3487,91 @@ class DataFrame(NDFrame):
             a reference to the filled object, which is self if inplace=True
         limit : int, default None
             Maximum size gap to forward or backward fill
+        regex : bool or same types as `to_replace`, default False
+            Whether to interpret `to_replace` and/or `value` as regular
+            expressions. If this is ``True`` then `to_replace` *must* be a
+            string. Otherwise, `to_replace` must be ``None`` because this
+            parameter will be interpreted as a regular expression or a list,
+            dict, or array of regular expressions.
+        infer_types : bool, default True
+            If ``True`` attempt to convert object blocks to a better dtype.
 
         See also
         --------
-        reindex, asfreq
+        reindex, asfreq, fillna, interpolate
 
         Returns
         -------
         filled : DataFrame
+
+        Raises
+        ------
+        AssertionError
+            * If `regex` is not a ``bool`` and `to_replace` is not ``None``.
+        TypeError
+            * If `to_replace` is a ``dict`` and `value` is not a ``list``,
+              ``dict``, ``ndarray``, or ``Series``
+            * If `to_replace` is ``None`` and `regex` is not compilable into a
+              regular expression or is a list, dict, ndarray, or Series.
+        ValueError
+            * If `to_replace` and `value` are ``list`` s or ``ndarray`` s, but
+              they are not the same length.
+
+        Notes
+        -----
+        * Regex substitution is performed under the hood with ``re.sub``. The
+          rules for substitution for ``re.sub`` are the same.
+        * Regular expressions will only substitute on strings, meaning you
+          cannot provide, for example, a regular expression matching floating
+          point numbers and expect the columns in your frame that have a
+          numeric dtype to be matched. However, if those floating point numbers
+          *are* strings, then you can do this.
+        * This method has *a lot* of options. You are encouraged to experiment
+          and play with this method to gain intuition about how it works.
         """
+        if not isinstance(regex, bool) and to_replace is not None:
+            raise AssertionError("'to_replace' must be 'None' if 'regex' is "
+                                 "not a bool")
         self._consolidate_inplace()
 
         axis = self._get_axis_number(axis)
+        method = com._clean_fill_method(method)
 
         if value is None:
-            return self._interpolate(to_replace, method, axis, inplace, limit)
+            if not isinstance(to_replace, (dict, Series)):
+                if not isinstance(regex, (dict, Series)):
+                    raise TypeError('If "to_replace" and "value" are both None'
+                                    ' then regex must be a mapping')
+                to_replace = regex
+                regex = True
+
+            items = to_replace.items()
+            keys, values = itertools.izip(*items)
+
+            are_mappings = [isinstance(v, (dict, Series)) for v in values]
+
+            if any(are_mappings):
+                if not all(are_mappings):
+                    raise TypeError("If a nested mapping is passed, all values"
+                                    " of the top level mapping must be "
+                                    "mappings")
+                # passed a nested dict/Series
+                to_rep_dict = {}
+                value_dict = {}
+
+                for k, v in items:
+                    to_rep_dict[k] = v.keys()
+                    value_dict[k] = v.values()
+
+                to_replace, value = to_rep_dict, value_dict
+            else:
+                to_replace, value = keys, values
+
+            return self.replace(to_replace, value, method=method, axis=axis,
+                                inplace=inplace, limit=limit, regex=regex,
+                                infer_types=infer_types)
         else:
-            if len(self.columns) == 0:
+            if not len(self.columns):
                 return self
 
             new_data = self._data
@@ -3483,17 +3582,20 @@ class DataFrame(NDFrame):
                         if c in value and c in self:
                             new_data = new_data.replace(src, value[c],
                                                         filter=[ c ],
-                                                        inplace=inplace)
+                                                        inplace=inplace,
+                                                        regex=regex)
 
-                elif not isinstance(value, (list, np.ndarray)):
+                elif not isinstance(value, (list, np.ndarray)):  # {'A': NA} -> 0
                     new_data = self._data
                     for k, src in to_replace.iteritems():
                         if k in self:
                             new_data = new_data.replace(src, value,
                                                         filter = [ k ],
-                                                        inplace=inplace)
+                                                        inplace=inplace,
+                                                        regex=regex)
                 else:
-                    raise ValueError('Fill value must be scalar or dict or Series')
+                    raise TypeError('Fill value must be scalar, dict, or '
+                                    'Series')
 
             elif isinstance(to_replace, (list, np.ndarray)):
                 # [NA, ''] -> [0, 'missing']
@@ -3504,63 +3606,93 @@ class DataFrame(NDFrame):
                                          (len(to_replace), len(value)))
 
                     new_data = self._data.replace_list(to_replace, value,
-                                                       inplace=inplace)
+                                                       inplace=inplace,
+                                                       regex=regex)
 
                 else:  # [NA, ''] -> 0
                     new_data = self._data.replace(to_replace, value,
-                                                  inplace=inplace)
-
+                                                  inplace=inplace, regex=regex)
+            elif to_replace is None:
+                if not (_re_compilable(regex) or
+                        isinstance(regex, (list, dict, np.ndarray, Series))):
+                    raise TypeError("'regex' must be a string or a compiled "
+                                    "regular expression or a list or dict of "
+                                    "strings or regular expressions, you "
+                                    "passed a {0}".format(type(regex)))
+                return self.replace(regex, value, method=method, axis=axis,
+                                    inplace=inplace, limit=limit, regex=True,
+                                    infer_types=infer_types)
             else:
 
                 # dest iterable dict-like
                 if isinstance(value, (dict, Series)):  # NA -> {'A' : 0, 'B' : -1}
-
                     new_data = self._data
+
                     for k, v in value.iteritems():
                         if k in self:
                             new_data = new_data.replace(to_replace, v,
                                                         filter=[ k ],
-                                                        inplace=inplace)
+                                                        inplace=inplace,
+                                                        regex=regex)
 
                 elif not isinstance(value, (list, np.ndarray)):  # NA -> 0
                     new_data = self._data.replace(to_replace, value,
-                                                  inplace=inplace)
+                                                  inplace=inplace, regex=regex)
                 else:
-                    raise ValueError('Invalid to_replace type: %s' %
-                                     type(to_replace))  # pragma: no cover
+                    raise TypeError('Invalid "to_replace" type: '
+                                    '{0}'.format(type(to_replace)))  # pragma: no cover
 
+        if infer_types:
+            new_data = new_data.convert()
 
         if inplace:
             self._data = new_data
         else:
             return self._constructor(new_data)
 
-    def _interpolate(self, to_replace, method, axis, inplace, limit):
+    def interpolate(self, to_replace, method='pad', axis=0, inplace=False,
+                    limit=None):
+        """Interpolate values according to different methods.
+
+        Parameters
+        ----------
+        to_replace : dict, Series
+        method : str
+        axis : int
+        inplace : bool
+        limit : int, default None
+
+        Returns
+        -------
+        frame : interpolated
+
+        See Also
+        --------
+        reindex, replace, fillna
+        """
         if self._is_mixed_type and axis == 1:
             return self.T.replace(to_replace, method=method, limit=limit).T
 
         method = com._clean_fill_method(method)
 
         if isinstance(to_replace, (dict, Series)):
-            if axis == 1:
-                return self.T.replace(to_replace, method=method,
-                                      limit=limit).T
-
-            rs = self if inplace else self.copy()
-            for k, v in to_replace.iteritems():
-                if k in rs:
-                    rs[k].replace(v, method=method, limit=limit,
-                                  inplace=True)
-            return rs if not inplace else None
-
+            if axis == 0:
+                return self.replace(to_replace, method=method, inplace=inplace,
+                                    limit=limit, axis=axis)
+            elif axis == 1:
+                obj = self.T
+                if inplace:
+                    obj.replace(to_replace, method=method, limit=limit,
+                                inplace=inplace, axis=0)
+                    return obj.T
+                return obj.replace(to_replace, method=method, limit=limit,
+                                   inplace=inplace, axis=0).T
+            else:
+                raise ValueError('Invalid value for axis')
         else:
-
-            new_data = self._data.interpolate(method  = method,
-                                              axis    = axis,
-                                              limit   = limit,
-                                              inplace = inplace,
-                                              missing = to_replace,
-                                              coerce  = False)
+            new_data = self._data.interpolate(method=method, axis=axis,
+                                              limit=limit, inplace=inplace,
+                                              missing=to_replace, coerce=False)
 
             if inplace:
                 self._data = new_data

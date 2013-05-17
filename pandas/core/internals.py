@@ -1,5 +1,7 @@
 import itertools
+import re
 from datetime import datetime
+import collections
 
 from numpy import nan
 import numpy as np
@@ -14,6 +16,10 @@ import pandas.core.expressions as expressions
 
 from pandas.tslib import Timestamp
 from pandas.util import py3compat
+
+
+def _re_compilable(ex):
+    return isinstance(ex, (basestring, re._pattern_type))
 
 
 class Block(object):
@@ -318,9 +324,12 @@ class Block(object):
         values[mask] = na_rep
         return values.tolist()
 
-    def replace(self, to_replace, value, inplace=False, filter=None):
-        """ replace the to_replace value with value, possible to create new blocks here
-            this is just a call to putmask """
+    def replace(self, to_replace, value, inplace=False, filter=None,
+                regex=False):
+        """ replace the to_replace value with value, possible to create new
+        blocks here this is just a call to putmask. regex is not used here.
+        It is used in ObjectBlocks.  It is here for API
+        compatibility."""
         mask = com.mask_missing(self.values, to_replace)
         if filter is not None:
             for i, item in enumerate(self.items):
@@ -750,6 +759,101 @@ class ObjectBlock(Block):
                               (np.integer, np.floating, np.complexfloating,
                                np.datetime64, np.bool_))
 
+    def replace(self, to_replace, value, inplace=False, filter=None,
+                regex=False):
+        blk = [self]
+        to_rep_is_list = (isinstance(to_replace, collections.Iterable) and not
+                          isinstance(to_replace, basestring))
+        value_is_list = (isinstance(value, collections.Iterable) and not
+                         isinstance(to_replace, basestring))
+        both_lists = to_rep_is_list and value_is_list
+        either_list = to_rep_is_list or value_is_list
+
+        if not either_list and not regex:
+            blk = super(ObjectBlock, self).replace(to_replace, value,
+                                                   inplace=inplace,
+                                                   filter=filter, regex=regex)
+        elif both_lists and regex:
+            for to_rep, v in itertools.izip(to_replace, value):
+                blk[0], = blk[0]._replace_single(to_rep, v, inplace=inplace,
+                                                 filter=filter, regex=regex)
+        elif to_rep_is_list and regex:
+            for to_rep in to_replace:
+                blk[0], = blk[0]._replace_single(to_rep, value,
+                                                 inplace=inplace,
+                                                 filter=filter, regex=regex)
+        else:
+            blk[0], = blk[0]._replace_single(to_replace, value,
+                                             inplace=inplace, filter=filter,
+                                             regex=regex)
+        return blk
+
+    def _replace_single(self, to_replace, value, inplace=False, filter=None,
+                        regex=False):
+        # to_replace is regex compilable
+        to_rep_re = _re_compilable(to_replace)
+
+        # regex is regex compilable
+        regex_re = _re_compilable(regex)
+
+        if to_rep_re and regex_re:
+            raise AssertionError('only one of to_replace and regex can be '
+                                 'regex compilable')
+
+        if regex_re:
+            to_replace = regex
+
+        regex = regex_re or to_rep_re
+
+        # try to get the pattern attribute (compiled re) or it's a string
+        try:
+            pattern = to_replace.pattern
+        except AttributeError:
+            pattern = to_replace
+
+        # if the pattern is not empty and to_replace is either a string or a
+        # regex
+        if regex and pattern:
+            rx = re.compile(to_replace)
+        else:
+            # if the thing to replace is not a string or compiled regex call
+            # the superclass method -> to_replace is some kind of object
+            return super(ObjectBlock, self).replace(to_replace, value,
+                                                    inplace=inplace,
+                                                    filter=filter, regex=regex)
+
+        new_values = self.values if inplace else self.values.copy()
+
+        # deal with replacing values with objects (strings) that match but
+        # whose replacement is not a string (numeric, nan, object)
+        if isnull(value) or not isinstance(value, basestring):
+            def re_replacer(s):
+                try:
+                    return value if rx.search(s) is not None else s
+                except TypeError:
+                    return s
+        else:
+            # value is guaranteed to be a string here, s can be either a string
+            # or null if it's null it gets returned
+            def re_replacer(s):
+                try:
+                    return rx.sub(value, s)
+                except TypeError:
+                    return s
+
+        f = np.vectorize(re_replacer, otypes=[self.dtype])
+
+        try:
+            filt = map(self.items.get_loc, filter)
+        except TypeError:
+            filt = slice(None)
+
+        new_values[filt] = f(new_values[filt])
+
+        return [self if inplace else make_block(new_values, self.items,
+                                                self.ref_items, fastpath=True)]
+
+
 class DatetimeBlock(Block):
     _can_hold_na = True
 
@@ -1136,7 +1240,9 @@ class BlockManager(object):
 
         if len(self.items) != tot_items:
             raise AssertionError('Number of manager items must equal union of '
-                                 'block items')
+                                 'block items\n# manager items: {0}, # '
+                                 'tot_items: {1}'.format(len(self.items),
+                                                         tot_items))
 
     def apply(self, f, *args, **kwargs):
         """ iterate over the blocks, collect and create a new block manager
@@ -1203,7 +1309,7 @@ class BlockManager(object):
     def replace(self, *args, **kwargs):
         return self.apply('replace', *args, **kwargs)
 
-    def replace_list(self, src_lst, dest_lst, inplace=False):
+    def replace_list(self, src_lst, dest_lst, inplace=False, regex=False):
         """ do a list replace """
 
         # figure out our mask a-priori to avoid repeated replacements
@@ -1220,16 +1326,20 @@ class BlockManager(object):
             # its possible to get multiple result blocks here
             # replace ALWAYS will return a list
             rb = [ blk if inplace else blk.copy() ]
-            for i, d in enumerate(dest_lst):
+            for i, (s, d) in enumerate(zip(src_lst, dest_lst)):
                 new_rb = []
                 for b in rb:
-                    # get our mask for this element, sized to this
-                    # particular block
-                    m = masks[i][b.ref_locs]
-                    if m.any():
-                        new_rb.extend(b.putmask(m, d, inplace=True))
+                    if b.dtype == np.object_:
+                        new_rb.extend(b.replace(s, d, inplace=inplace,
+                                                regex=regex))
                     else:
-                        new_rb.append(b)
+                        # get our mask for this element, sized to this
+                        # particular block
+                        m = masks[i][b.ref_locs]
+                        if m.any():
+                            new_rb.extend(b.putmask(m, d, inplace=True))
+                        else:
+                            new_rb.append(b)
                 rb = new_rb
             result_blocks.extend(rb)
 
@@ -2164,7 +2274,6 @@ def _interleaved_dtype(blocks):
         return np.dtype('c16')
     else:
         return _lcd_dtype(counts[FloatBlock])
-
 
 def _consolidate(blocks, items):
     """
