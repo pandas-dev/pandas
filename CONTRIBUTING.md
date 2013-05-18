@@ -11,9 +11,22 @@ Please try and follow these guidelines, as this makes it easier for us to accept
 your contribution or address the issue you're having.
 
 - When submitting a bug report:
-  - Please include a short, self-contained python snippet.
-  - Specify the pandas version used. (you can check `pandas.__version__`).
+  - Please include a short, self-contained python snippet reproducing the problem.
+  You can have the code formatted nicely by using [GitHub Flavored Markdown](http://github.github.com/github-flavored-markdown/) :
+
+    ```
+    ```python
+
+    print("I ♥ pandas!")
+
+    ``'
+    ```
+
+  - Specify the pandas (and numpy) version used. (you can check `pandas.__version__`).
   - Explain what the expected behavior was, and what you saw instead.
+  - If the issue seems to involve some of pandas' dependencies such as matplotlib
+    or PyTables, you should include (the relavent parts of) the output of
+    [ci/print_versions.py](https://github.com/pydata/pandas/blob/master/ci/print_versions.py)
 
 - When submitting a Pull Request
   - **Make sure the test suite passes**., and that means on python3 as well.
