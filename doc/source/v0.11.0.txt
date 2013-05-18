@@ -310,7 +310,7 @@ Enhancements
   - DataFrame.from_records now accepts not only dicts but any instance of
     the collections.Mapping ABC.
 
-  - added option `display.with_wmp_style` providing a sleeker visual style
+  - added option `display.mpl_style` providing a sleeker visual style
     for plots. Based on https://gist.github.com/huyng/816622 (GH3075_).
 
   - Treat boolean values as integers (values 1 and 0) for numeric
