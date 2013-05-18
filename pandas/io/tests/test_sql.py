@@ -226,7 +226,8 @@ class TestSQLite(unittest.TestCase):
         mono_df=DataFrame([1 , 2], columns=['c0'])
         sql.write_frame(mono_df, con = self.db, name = 'mono_df')
         # computing the sum via sql
-        the_sum=sum([my_c0[0] for  my_c0 in con.execute("select * from mono_df")])
+        con_x=self.db
+        the_sum=sum([my_c0[0] for  my_c0 in con_x.execute("select * from mono_df")])
         # it should not fail, and gives 3 ( Issue #3628 )
         self.assertEqual(the_sum , 3)
 
