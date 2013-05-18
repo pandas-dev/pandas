@@ -895,7 +895,7 @@ class TestIndexing(unittest.TestCase):
         mask = (df.a%2 == 0)
         self.assertRaises(ValueError, df.iloc.__getitem__, tuple([mask]))
         mask.index = range(len(mask))
-        self.assertRaises(ValueError, df.iloc.__getitem__, tuple([mask]))
+        self.assertRaises(NotImplementedError, df.iloc.__getitem__, tuple([mask]))
 
         # ndarray ok
         result = df.iloc[np.array([True] * len(mask),dtype=bool)]
@@ -916,7 +916,7 @@ class TestIndexing(unittest.TestCase):
             ('index','.iloc') : 'iLocation based boolean indexing cannot use an indexable as a mask',
             ('locs','')      : 'Unalignable boolean Series key provided',
             ('locs','.loc')   : 'Unalignable boolean Series key provided',
-            ('locs','.iloc')  : 'iLocation based boolean indexing cannot use an indexable as a mask',
+            ('locs','.iloc')  : 'iLocation based boolean indexing on an integer type is not available',
             }
 
         import warnings
