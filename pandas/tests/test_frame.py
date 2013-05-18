@@ -5037,6 +5037,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             result.columns.names = df.columns.names
             assert_frame_equal(df,result)
 
+            # tupleize_cols=True and index=False
+            df = _make_frame(True)
+            df.to_csv(path,tupleize_cols=True,index=False)
+            result = read_csv(path,header=0,tupleize_cols=True,index_col=None)
+            result.columns = df.columns
+            assert_frame_equal(df,result)
+
             # whatsnew example
             df = _make_frame()
             df.to_csv(path,tupleize_cols=False)
@@ -5060,6 +5067,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             df.to_csv(path,tupleize_cols=False)
 
             # catch invalid headers
+            try:
+                read_csv(path,tupleize_cols=False,header=range(3),index_col=0)
+            except (Exception), detail:
+                if not str(detail).startswith('Passed header=[0,1,2] are too many rows for this multi_index of columns'):
+                    raise AssertionError("failure in read_csv header=range(3)")
+
+            try:
+                read_csv(path,tupleize_cols=False,header=range(7),index_col=0)  
+            except (Exception), detail:
+                if not str(detail).startswith('Passed header=[0,1,2,3,4,5,6], len of 7, but only 6 lines in file'):
+                    raise AssertionError("failure in read_csv header=range(7)")
+
             for i in [3,4,5,6,7]: 
                  self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=range(i), index_col=0)
             self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=[0,2], index_col=0)

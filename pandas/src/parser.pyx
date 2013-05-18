@@ -244,7 +244,7 @@ cdef class TextReader:
         object na_values, true_values, false_values
         object memory_map
         object as_recarray
-        object header, names, header_start, header_end
+        object header, orig_header, names, header_start, header_end
         object low_memory
         object skiprows
         object compact_ints, use_unsigned
@@ -441,6 +441,7 @@ cdef class TextReader:
 
         # TODO: no header vs. header is not the first row
         self.has_mi_columns = 0
+        self.orig_header = header
         if header is None:
             # sentinel value
             self.parser.header_start = -1
@@ -585,8 +586,11 @@ cdef class TextReader:
 
                 # e.g., if header=3 and file only has 2 lines
                 if self.parser.lines < hr + 1:
-                    raise CParserError('Passed header=%d but only %d lines in file'
-                                       % (self.parser.header, self.parser.lines))
+                    msg = self.orig_header
+                    if isinstance(msg,list):
+                           msg = "[%s], len of %d," % (','.join([ str(m) for m in msg ]),len(msg))
+                    raise CParserError('Passed header=%s but only %d lines in file'
+                                       % (msg, self.parser.lines))
 
                 field_count = self.parser.line_fields[hr]
                 start = self.parser.line_start[hr]

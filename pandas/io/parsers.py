@@ -809,8 +809,8 @@ class ParserBase(object):
         # if we find 'Unnamed' all of a single level, then our header was too long
         for n in range(len(columns[0])):
             if all([ 'Unnamed' in c[n] for c in columns ]):
-                raise Exception("Passed header=[%s] are too many rows for this "
-                                "multi_index of columns" % ','.join([ str(x) for x in self.header ]))
+                raise _parser.CParserError("Passed header=[%s] are too many rows for this "
+                                           "multi_index of columns" % ','.join([ str(x) for x in self.header ]))
 
         # clean the column names (if we have an index_col)
         if len(ic):
