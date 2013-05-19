@@ -1043,6 +1043,7 @@ class _Concatenator(object):
                                 'DataFrames')
             return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
+
             offsets = np.r_[0, np.cumsum([len(x._data.axes[0]) for
                                           x in self.objs])]
             indexer = np.concatenate([offsets[i] + b.ref_locs
@@ -1052,12 +1053,21 @@ class _Concatenator(object):
                 concat_items = indexer
             else:
                 concat_items = self.new_axes[0].take(indexer)
-
+                
             if self.ignore_index:
                 ref_items = self._get_fresh_axis()
                 return make_block(concat_values, concat_items, ref_items)
 
-            return make_block(concat_values, concat_items, self.new_axes[0])
+            block = make_block(concat_values, concat_items, self.new_axes[0])
+
+            # we need to set the ref_locs in this block so we have the mapping
+            # as we now have a non-unique index across dtypes, and we need to
+            # map the column location to the block location
+            # GH3602
+            if not self.new_axes[0].is_unique:
+                block._ref_locs = indexer
+
+            return block
 
     def _concat_single_item(self, objs, item):
         all_values = []

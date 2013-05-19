@@ -1682,6 +1682,20 @@ class TestConcatenate(unittest.TestCase):
         expected.columns=['same name', 'same name']
         assert_frame_equal(result, expected)
 
+    def test_concat_bug_3602(self):
+
+        # GH 3602, duplicate columns
+        df1 = DataFrame({'firmNo' : [0,0,0,0], 'stringvar' : ['rrr', 'rrr', 'rrr', 'rrr'], 'prc' : [6,6,6,6] })
+        df2 = DataFrame({'misc' : [1,2,3,4], 'prc' : [6,6,6,6], 'C' : [9,10,11,12]})
+        expected = DataFrame([[0,6,'rrr',9,1,6],
+                              [0,6,'rrr',10,2,6],
+                              [0,6,'rrr',11,3,6],
+                              [0,6,'rrr',12,4,6]])
+        expected.columns = ['firmNo','prc','stringvar','C','misc','prc']
+
+        result = concat([df1,df2],axis=1)
+        assert_frame_equal(result,expected)
+
     def test_concat_series_axis1_same_names_ignore_index(self):
         dates = date_range('01-Jan-2013', '01-Jan-2014', freq='MS')[0:-1]
         s1 = Series(randn(len(dates)), index=dates, name='value')
