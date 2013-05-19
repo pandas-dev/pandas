@@ -5,7 +5,7 @@ SQL-style merge routines
 import itertools
 import numpy as np
 
-from pandas.core.categorical import Factor
+from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import get_group_index
@@ -1200,7 +1200,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            levels = [Factor.from_array(zp).levels for zp in zipped]
+            levels = [Categorical.from_array(zp).levels for zp in zipped]
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
@@ -1238,7 +1238,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             label_list.extend(concat_index.labels)
         else:
-            factor = Factor.from_array(concat_index)
+            factor = Categorical.from_array(concat_index)
             levels.append(factor.levels)
             label_list.append(factor.labels)
 
