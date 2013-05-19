@@ -219,6 +219,18 @@ class TestSQLite(unittest.TestCase):
         df = DataFrame({'From':np.ones(5)})
         sql.write_frame(df, con = self.db, name = 'testkeywords')
 
+    def test_onecolumn_of_integer(self):
+        '''
+        a column_of_integers dataframe should transfer well to sql
+        '''
+        mono_df=DataFrame([1 , 2], columns=['c0'])
+        sql.write_frame(mono_df, con = self.db, name = 'mono_df')
+        # computing the sum via sql
+        con_x=self.db
+        the_sum=sum([my_c0[0] for  my_c0 in con_x.execute("select * from mono_df")])
+        # it should not fail, and gives 3 ( Issue #3628 )
+        self.assertEqual(the_sum , 3)
+
 
 class TestMySQL(unittest.TestCase):
 
