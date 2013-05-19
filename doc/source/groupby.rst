@@ -606,8 +606,8 @@ versions of pandas, but users were generally discarding the NA group anyway
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Categorical variables represented as instance of pandas's ``Factor`` class can
-be used as group keys. If so, the order of the levels will be preserved:
+Categorical variables represented as instance of pandas's ``Categorical`` class
+can be used as group keys. If so, the order of the levels will be preserved:
 
 .. ipython:: python
 

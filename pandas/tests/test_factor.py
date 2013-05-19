@@ -9,6 +9,7 @@ import numpy as np
 from pandas.core.api import value_counts
 from pandas.core.categorical import Categorical
 from pandas.core.index import Index, Int64Index, MultiIndex
+from pandas.core.frame import DataFrame
 from pandas.util.testing import assert_almost_equal
 import pandas.core.common as com
 
@@ -110,6 +111,29 @@ class TestCategorical(unittest.TestCase):
         repr(cat)
 
         self.assert_(np.array_equal(com.isnull(cat), labels == -1))
+
+    def test_levels_none(self):
+        factor = Categorical(['a', 'b', 'b', 'a',
+                              'a', 'c', 'c', 'c'])
+        self.assert_(factor.equals(self.factor))
+
+    def test_describe(self):
+        # string type
+        desc = self.factor.describe()
+        expected = DataFrame.from_dict(dict(counts=[3, 2, 3],
+                                            freqs=[3/8., 2/8., 3/8.],
+                                            levels=['a', 'b', 'c'])
+                                            ).set_index('levels')
+        tm.assert_frame_equal(desc, expected)
+
+        # check an integer one
+        desc = Categorical([1,2,3,1,2,3,3,2,1,1,1]).describe()
+        expected = DataFrame.from_dict(dict(counts=[5, 3, 3],
+                                            freqs=[5/11., 3/11., 3/11.],
+                                            levels=[1,2,3]
+                                            )
+                                            ).set_index('levels')
+        tm.assert_frame_equal(desc, expected)
 
 if __name__ == '__main__':
     import nose

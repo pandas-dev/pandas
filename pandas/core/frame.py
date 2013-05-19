@@ -1704,8 +1704,8 @@ class DataFrame(NDFrame):
         -------
         converted : DataFrame
         """
-        return self._constructor(self._data.convert(convert_dates=convert_dates, 
-                                                    convert_numeric=convert_numeric, 
+        return self._constructor(self._data.convert(convert_dates=convert_dates,
+                                                    convert_numeric=convert_numeric,
                                                     copy=copy))
 
     #----------------------------------------------------------------------
@@ -3375,7 +3375,7 @@ class DataFrame(NDFrame):
             a reference to the filled object, which is self if inplace=True
         limit : int, default None
             Maximum size gap to forward or backward fill
-        downcast : dict, default is None, a dict of item->dtype of what to 
+        downcast : dict, default is None, a dict of item->dtype of what to
             downcast if possible
 
         See also
@@ -3425,7 +3425,7 @@ class DataFrame(NDFrame):
                     result[k].fillna(v, inplace=True)
                 return result
             else:
-                new_data = self._data.fillna(value, inplace=inplace, 
+                new_data = self._data.fillna(value, inplace=inplace,
                                              downcast=downcast)
 
         if inplace:
@@ -3966,8 +3966,8 @@ class DataFrame(NDFrame):
             result[col] = arr
 
         # convert_objects just in case
-        return self._constructor(result, 
-                                 index=new_index, 
+        return self._constructor(result,
+                                 index=new_index,
                                  columns=new_columns).convert_objects(
             convert_dates=True,
             copy=False)
@@ -4000,7 +4000,7 @@ class DataFrame(NDFrame):
                 y_values = y_values.view('i8')
             else:
                 mask = isnull(x_values)
-            
+
             return expressions.where(mask, y_values, x_values, raise_on_error=True)
 
         return self.combine(other, combiner, overwrite=False)
@@ -5581,11 +5581,11 @@ def group_agg(values, bounds, f):
 
 def factor_agg(factor, vec, func):
     """
-    Aggregate array based on Factor
+    Aggregate array based on Categorical
 
     Parameters
     ----------
-    factor : Factor
+    factor : Categorical
         length n
     vec : sequence
         length n
@@ -5594,7 +5594,11 @@ def factor_agg(factor, vec, func):
 
     Returns
     -------
-    ndarray corresponding to Factor levels
+    ndarray corresponding to factor levels
+
+    See Also
+    --------
+    pandas.Categorical
     """
     indexer = np.argsort(factor.labels)
     unique_labels = np.arange(len(factor.levels))

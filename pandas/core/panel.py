@@ -10,7 +10,7 @@ from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index,
                                 _infer_dtype_from_scalar,
                                 notnull)
-from pandas.core.categorical import Factor
+from pandas.core.categorical import Categorical
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
 from pandas.core.indexing import _maybe_droplevels, _is_list_like
@@ -82,8 +82,8 @@ def panel_index(time, panels, names=['time', 'panel']):
                 (1962, 'C')], dtype=object)
     """
     time, panels = _ensure_like_indices(time, panels)
-    time_factor = Factor.from_array(time)
-    panel_factor = Factor.from_array(panels)
+    time_factor = Categorical.from_array(time)
+    panel_factor = Categorical.from_array(panels)
 
     labels = [time_factor.labels, panel_factor.labels]
     levels = [time_factor.levels, panel_factor.levels]

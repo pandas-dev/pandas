@@ -61,6 +61,7 @@ pandas 0.11.1
     - table writing performance improvements.
   - Add modulo operator to Series, DataFrame
   - Add ``date`` method to DatetimeIndex
+  - Simplified the API and added a describe method to Categorical
 
 **API Changes**
 

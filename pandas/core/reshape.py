@@ -791,9 +791,9 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     axis : {'major', 'minor'}, default 'minor'
     transform : function, default None
         Function to apply to axis labels first. For example, to
-        get "day of week" dummies in a time series regression 
+        get "day of week" dummies in a time series regression
         you might call::
-            
+
             make_axis_dummies(panel, axis='major',
                               transform=lambda d: d.weekday())
     Returns
@@ -852,6 +852,6 @@ def block2d_to_blocknd(values, items, shape, labels, ref_items=None):
 
 
 def factor_indexer(shape, labels):
-    """ given a tuple of shape and a list of Factor lables, return the expanded label indexer """
+    """ given a tuple of shape and a list of Categorical labels, return the expanded label indexer """
     mult = np.array(shape)[::-1].cumprod()[::-1]
     return com._ensure_platform_int(np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)
