@@ -600,7 +600,8 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     return result
 
 
-def melt(frame, id_vars=None, value_vars=None):
+def melt(frame, id_vars=None, value_vars=None,
+         var_name='variable', value_name='value'):
     """
     "Unpivots" a DataFrame from wide format to long format, optionally leaving
     id variables set
@@ -621,9 +622,16 @@ def melt(frame, id_vars=None, value_vars=None):
 
     >>> melt(df, id_vars=['A'], value_vars=['B'])
     A variable value
-    a B        1
-    b B        3
-    c B        5
+    a        B     1
+    b        B     3
+    c        B     5
+    
+    >>> melt(df, id_vars=['A'], value_vars=['B'],
+    ... var_name='myVarname', value_name='myValname')
+    A myVarname  myValname
+    a         B          1
+    b         B          3
+    c         B          5
     """
     # TODO: what about the existing index?
     if id_vars is not None:
@@ -648,11 +656,11 @@ def melt(frame, id_vars=None, value_vars=None):
     for col in id_vars:
         mdata[col] = np.tile(frame.pop(col).values, K)
 
-    mcolumns = id_vars + ['variable', 'value']
+    mcolumns = id_vars + [var_name, value_name]
 
-    mdata['value'] = frame.values.ravel('F')
-
-    mdata['variable'] = np.asarray(frame.columns).repeat(N)
+    mdata[value_name] = frame.values.ravel('F')
+    mdata[var_name] = np.asarray(frame.columns).repeat(N)
+    
     return DataFrame(mdata, columns=mcolumns)
 
 
