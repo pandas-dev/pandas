@@ -1130,17 +1130,20 @@ class BlockManager(object):
         # when we recreate the block manager if needed
         return getattr(self,'_ref_locs',None)
 
-    def get_items_map(self):
+    def get_items_map(self, use_cached=True):
         """ 
         return an inverted ref_loc map for an item index
         block -> item (in that block) location -> column location
+
+        use_cached : boolean, use the cached items map, or recreate
         """
 
         # cache check
-        im = getattr(self,'_items_map',None)
-        if im is not None:
-            return im
-        
+        if use_cached:
+            im = getattr(self,'_items_map',None)
+            if im is not None:
+                return im
+
         im = dict()
         rl = self._set_ref_locs()
 
