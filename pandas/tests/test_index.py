@@ -10,7 +10,6 @@ import os
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from pandas.core.categorical import Factor
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
