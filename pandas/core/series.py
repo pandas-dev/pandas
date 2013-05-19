@@ -2012,7 +2012,7 @@ class Series(pa.Array, generic.PandasObject):
 
         Parameters
         ----------
-        other : Series or DataFrame 
+        other : Series or DataFrame
 
         Returns
         -------
@@ -2194,7 +2194,7 @@ class Series(pa.Array, generic.PandasObject):
     #----------------------------------------------------------------------
     # Reindexing, sorting
 
-    def sort(self, axis=0, kind='quicksort', order=None):
+    def sort(self, axis=0, kind='quicksort', order=None, ascending=True):
         """
         Sort values and index labels by value, in place. For compatibility with
         ndarray API. No return value
@@ -2206,8 +2206,15 @@ class Series(pa.Array, generic.PandasObject):
             Choice of sorting algorithm. See np.sort for more
             information. 'mergesort' is the only stable algorithm
         order : ignored
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
+
+        See Also
+        --------
+        pandas.Series.order
         """
-        sortedSeries = self.order(na_last=True, kind=kind)
+        sortedSeries = self.order(na_last=True, kind=kind,
+                                  ascending=ascending)
 
         true_base = self
         while true_base.base is not None:
