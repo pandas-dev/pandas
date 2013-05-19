@@ -111,6 +111,7 @@ pandas 0.11.1
     - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
       and handle missing elements like unique indices (GH3561_)
     - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
+    - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
@@ -195,6 +196,7 @@ pandas 0.11.1
 .. _GH3626: https://github.com/pydata/pandas/issues/3626
 .. _GH3601: https://github.com/pydata/pandas/issues/3601
 .. _GH3631: https://github.com/pydata/pandas/issues/3631
+.. _GH3602: https://github.com/pydata/pandas/issues/3602
 .. _GH1512: https://github.com/pydata/pandas/issues/1512
 .. _GH3571: https://github.com/pydata/pandas/issues/3571
 .. _GH1651: https://github.com/pydata/pandas/issues/1651
