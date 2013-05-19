@@ -52,9 +52,11 @@ compression : {'gzip', 'bz2', None}, default None
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
-header : int, default 0 if names parameter not specified, otherwise None
+header : int, default 0 if names parameter not specified,
     Row to use for the column labels of the parsed DataFrame. Specify None if
-    there is no header row.
+    there is no header row. Can be a list of integers that specify row
+    locations for a multi-index on the columns E.g. [0,1,3]. Interveaning
+    rows that are not specified (E.g. 2 in this example are skipped)
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
@@ -125,6 +127,11 @@ na_filter: boolean, default True
 usecols : array-like
     Return a subset of the columns.
     Results in much faster parsing time and lower memory usage.
+mangle_dupe_cols: boolean, default True
+    Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'
+tupleize_cols: boolean, default False
+    Leave a list of tuples on columns as is (default is to convert to
+    a Multi Index on the columns)
 
 Returns
 -------
@@ -292,6 +299,7 @@ _parser_defaults = {
     'squeeze': False,
     'compression': None,
     'mangle_dupe_cols': True,
+    'tupleize_cols':True,
 }
 
 
@@ -378,7 +386,8 @@ def _make_parser_function(name, sep=','):
                  verbose=False,
                  encoding=None,
                  squeeze=False,
-                 mangle_dupe_cols=True
+                 mangle_dupe_cols=True,
+                 tupleize_cols=True,
                  ):
 
         # Alias sep -> delimiter.
@@ -436,7 +445,8 @@ def _make_parser_function(name, sep=','):
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
                     buffer_lines=buffer_lines,
-                    mangle_dupe_cols=mangle_dupe_cols
+                    mangle_dupe_cols=mangle_dupe_cols,
+                    tupleize_cols=tupleize_cols,
             )
 
         return _read(filepath_or_buffer, kwds)
@@ -677,10 +687,8 @@ class TextFileReader(object):
         if self.options.get('as_recarray'):
             return ret
 
-        index, columns, col_dict = ret
-
         # May alter columns / col_dict
-        # index, columns, col_dict = self._create_index(col_dict, columns)
+        index, columns, col_dict = self._create_index(ret)
 
         df = DataFrame(col_dict, columns=columns, index=index)
 
@@ -688,8 +696,9 @@ class TextFileReader(object):
             return df[df.columns[0]]
         return df
 
-    def _create_index(self, col_dict, columns):
-        pass
+    def _create_index(self, ret):
+        index, columns, col_dict = ret
+        return index, columns, col_dict
 
     def get_chunk(self, size=None):
         if size is None:
@@ -709,6 +718,7 @@ class ParserBase(object):
 
         self.index_col = kwds.pop('index_col', None)
         self.index_names = None
+        self.col_names = None
 
         self.parse_dates = kwds.pop('parse_dates', False)
         self.date_parser = kwds.pop('date_parser', None)
@@ -718,10 +728,31 @@ class ParserBase(object):
         self.na_values = kwds.get('na_values')
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
+        self.tupleize_cols = kwds.get('tupleize_cols',True)
 
         self._date_conv = _make_date_converter(date_parser=self.date_parser,
                                                dayfirst=self.dayfirst)
 
+        # validate header options for mi
+        self.header = kwds.get('header')
+        if isinstance(self.header,(list,tuple,np.ndarray)):
+            if kwds.get('as_recarray'):
+                raise Exception("cannot specify as_recarray when "
+                                "specifying a multi-index header")
+            if kwds.get('usecols'):
+                raise Exception("cannot specify usecols when "
+                                "specifying a multi-index header")
+            if kwds.get('names'):
+                raise Exception("cannot specify names when "
+                                "specifying a multi-index header")
+
+            # validate index_col that only contains integers
+            if self.index_col is not None:
+                if not (isinstance(self.index_col,(list,tuple,np.ndarray)) and all(
+                        [ com.is_integer(i) for i in self.index_col ]) or com.is_integer(self.index_col)):
+                    raise Exception("index_col must only contain row numbers "
+                                    "when specifying a multi-index header")
+                
         self._name_processed = False
 
     @property
@@ -743,7 +774,62 @@ class ParserBase(object):
             else:
                 return (j in self.parse_dates) or (name in self.parse_dates)
 
-    def _make_index(self, data, alldata, columns):
+
+    def _extract_multi_indexer_columns(self, header, index_names, col_names, passed_names=False):
+        """ extract and return the names, index_names, col_names
+            header is a list-of-lists returned from the parsers """
+        if len(header) < 2:
+            return header[0], index_names, col_names, passed_names
+
+        # the names are the tuples of the header that are not the index cols
+        # 0 is the name of the index, assuming index_col is a list of column
+        # numbers 
+        ic = self.index_col
+        if ic is None:
+            ic = []
+
+        if not isinstance(ic, (list,tuple,np.ndarray)):
+            ic = [ ic ]
+        sic = set(ic)
+
+        orig_header = list(header)
+
+        # clean the index_names
+        index_names = header.pop(-1) 
+        (index_names, names, 
+         index_col) = _clean_index_names(index_names, self.index_col)
+
+        # extract the columns
+        field_count = len(header[0])
+        def extract(r):
+            return tuple([ r[i] for i in range(field_count) if i not in sic ])
+        columns = zip(*[ extract(r) for r in header ])
+        names = ic + columns
+
+        # if we find 'Unnamed' all of a single level, then our header was too long
+        for n in range(len(columns[0])):
+            if all([ 'Unnamed' in c[n] for c in columns ]):
+                raise _parser.CParserError("Passed header=[%s] are too many rows for this "
+                                           "multi_index of columns" % ','.join([ str(x) for x in self.header ]))
+
+        # clean the column names (if we have an index_col)
+        if len(ic):
+            col_names = [ r[0] if len(r[0]) and 'Unnamed' not in r[0] else None for r in header ]
+        else:
+            col_names = [ None ] * len(header)
+
+        passed_names = True
+
+        return names, index_names, col_names, passed_names
+
+    def _maybe_make_multi_index_columns(self, columns, col_names=None):
+        # possibly create a column mi here
+        if not self.tupleize_cols and len(columns) and not isinstance(
+            columns, MultiIndex) and all([ isinstance(c,tuple) for c in columns]):
+            columns = MultiIndex.from_tuples(columns,names=col_names)
+        return columns
+
+    def _make_index(self, data, alldata, columns, indexnamerow=False):
         if not _is_index_col(self.index_col) or len(self.index_col) == 0:
             index = None
 
@@ -760,7 +846,15 @@ class ParserBase(object):
             index = self._get_complex_date_index(data, columns)
             index = self._agg_index(index, try_parse_dates=False)
 
-        return index
+        # add names for the index 
+        if indexnamerow:
+            coffset = len(indexnamerow) - len(columns)
+            index.names = indexnamerow[:coffset]
+
+        # maybe create a mi on the columns
+        columns = self._maybe_make_multi_index_columns(columns, self.col_names)
+
+        return index, columns
 
     _implicit_index = False
 
@@ -942,7 +1036,12 @@ class CParserWrapper(ParserBase):
         if self._reader.header is None:
             self.names = None
         else:
-            self.names = list(self._reader.header)
+            if len(self._reader.header) > 1:
+                # we have a multi index in the columns
+                self.names, self.index_names, self.col_names, passed_names = self._extract_multi_indexer_columns(
+                    self._reader.header, self.index_names, self.col_names, passed_names)
+            else:
+                self.names = list(self._reader.header[0])
 
         if self.names is None:
             if self.prefix:
@@ -958,12 +1057,14 @@ class CParserWrapper(ParserBase):
 
         if not self._has_complex_date_col:
             if (self._reader.leading_cols == 0 and
-                    _is_index_col(self.index_col)):
+                _is_index_col(self.index_col)):
 
                 self._name_processed = True
-                (self.index_names, self.names,
-                 self.index_col) = _clean_index_names(self.names,
-                                                      self.index_col)
+                (index_names, self.names, 
+                 self.index_col) = _clean_index_names(self.names, self.index_col)
+
+                if self.index_names is None:
+                    self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
                 self.index_names = [None] * len(self.index_names)
@@ -1049,7 +1150,10 @@ class CParserWrapper(ParserBase):
             data = dict((k, v) for k, (i, v) in zip(names, data))
 
             names, data = self._do_date_conversions(names, data)
-            index = self._make_index(data, alldata, names)
+            index, names = self._make_index(data, alldata, names)
+
+        # maybe create a mi on the columns
+        names = self._maybe_make_multi_index_columns(names, self.col_names)
 
         return index, names, data
 
@@ -1061,7 +1165,7 @@ class CParserWrapper(ParserBase):
         return names
 
     def _get_index_names(self):
-        names = list(self._reader.header)
+        names = list(self._reader.header[0])
         idx_names = None
 
         if self._reader.leading_cols == 0 and self.index_col is not None:
@@ -1169,7 +1273,6 @@ class PythonParser(ParserBase):
             raise Exception("usecols not supported with engine='python'"
                             " or multicharacter separators (yet).")
 
-        self.header = kwds['header']
         self.encoding = kwds['encoding']
         self.compression = kwds['compression']
         self.skiprows = kwds['skiprows']
@@ -1208,6 +1311,13 @@ class PythonParser(ParserBase):
             self.data = f
         self.columns = self._infer_columns()
 
+        # we are processing a multi index column
+        if len(self.columns) > 1:
+            self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(
+                self.columns, self.index_names, self.col_names)
+        else:
+            self.columns = self.columns[0]
+
         # get popped off for index
         self.orig_names = list(self.columns)
 
@@ -1215,9 +1325,11 @@ class PythonParser(ParserBase):
         # multiple date column thing turning into a real spaghetti factory
 
         if not self._has_complex_date_col:
-            (self.index_names,
+            (index_names,
              self.orig_names, _) = self._get_index_name(self.columns)
             self._name_processed = True
+            if self.index_names is None:
+                self.index_names = index_names
         self._first_chunk = True
 
     def _make_reader(self, f):
@@ -1321,10 +1433,7 @@ class PythonParser(ParserBase):
         columns, data = self._do_date_conversions(self.columns, data)
 
         data = self._convert_data(data)
-        index = self._make_index(data, alldata, columns)
-        if indexnamerow:
-            coffset = len(indexnamerow) - len(columns)
-            index.names = indexnamerow[:coffset]
+        index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
 
@@ -1350,36 +1459,58 @@ class PythonParser(ParserBase):
         names = self.names
 
         if self.header is not None:
-            if len(self.buf) > 0:
-                line = self.buf[0]
-            else:
-                line = self._next_line()
+            header = self.header
 
-            while self.pos <= self.header:
-                line = self._next_line()
+            # we have a mi columns, so read and extra line
+            if isinstance(header,(list,tuple,np.ndarray)):
+                have_mi_columns = True
+                header = list(header) + [header[-1]+1]
+            else:
+                have_mi_columns = False
+                header = [ header ]
 
             columns = []
-            for i, c in enumerate(line):
-                if c == '':
-                    columns.append('Unnamed: %d' % i)
-                else:
-                    columns.append(c)
+            for level, hr in enumerate(header):
 
-            if self.mangle_dupe_cols:
-                counts = {}
-                for i, col in enumerate(columns):
-                    cur_count = counts.get(col, 0)
-                    if cur_count > 0:
-                        columns[i] = '%s.%d' % (col, cur_count)
-                    counts[col] = cur_count + 1
+                if len(self.buf) > 0:
+                    line = self.buf[0]
+                else:
+                    line = self._next_line()
+
+                while self.pos <= hr:
+                    line = self._next_line()
+
+                this_columns = []
+                for i, c in enumerate(line):
+                    if c == '':
+                        if have_mi_columns:
+                            this_columns.append('Unnamed: %d_level_%d' % (i,level))
+                        else:
+                            this_columns.append('Unnamed: %d' % i)
+                    else:
+                        this_columns.append(c)
+
+                if not have_mi_columns:
+                    if self.mangle_dupe_cols:
+                        counts = {}
+                        for i, col in enumerate(this_columns):
+                            cur_count = counts.get(col, 0)
+                            if cur_count > 0:
+                                this_columns[i] = '%s.%d' % (col, cur_count)
+                            counts[col] = cur_count + 1
+        
+                columns.append(this_columns)
 
             self._clear_buffer()
 
             if names is not None:
-                if len(names) != len(columns):
+                if len(names) != len(columns[0]):
                     raise Exception('Number of passed names did not match '
                                     'number of header fields in the file')
-                columns = names
+                if len(columns) > 1:
+                    raise Exception('Cannot pass names with multi-index columns')
+                columns = [ names ]
+
         else:
             if len(self.buf) > 0:
                 line = self.buf[0]
@@ -1389,11 +1520,11 @@ class PythonParser(ParserBase):
             ncols = len(line)
             if not names:
                 if self.prefix:
-                    columns = ['X%d' % i for i in range(ncols)]
+                    columns = [ ['X%d' % i for i in range(ncols)] ]
                 else:
-                    columns = range(ncols)
+                    columns = [ range(ncols) ]
             else:
-                columns = names
+                columns = [ names ]
 
         return columns
 

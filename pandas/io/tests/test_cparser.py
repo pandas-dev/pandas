@@ -179,7 +179,7 @@ class TestCParser(unittest.TestCase):
         reader = TextReader(StringIO(data), delimiter=',', header=2,
                             as_recarray=True)
         header = reader.header
-        expected = ['a', 'b', 'c']
+        expected = [['a', 'b', 'c']]
         self.assertEquals(header, expected)
 
         recs = reader.read()

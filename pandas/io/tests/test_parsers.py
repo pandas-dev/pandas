@@ -20,6 +20,7 @@ from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
+                                 makeCustomDataframe as mkdf,
                                  network,
                                  ensure_clean)
 import pandas.util.testing as tm
@@ -994,6 +995,49 @@ baz,12,13,14,15
         expected = self.read_csv(StringIO(data2), header=0, index_col=0)
         tm.assert_frame_equal(df, expected)
 
+    def test_header_multi_index(self):
+        expected = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
+
+        data = """\
+C0,,C_l0_g0,C_l0_g1,C_l0_g2
+
+C1,,C_l1_g0,C_l1_g1,C_l1_g2
+C2,,C_l2_g0,C_l2_g1,C_l2_g2
+C3,,C_l3_g0,C_l3_g1,C_l3_g2
+R0,R1,,,
+R_l0_g0,R_l1_g0,R0C0,R0C1,R0C2
+R_l0_g1,R_l1_g1,R1C0,R1C1,R1C2
+R_l0_g2,R_l1_g2,R2C0,R2C1,R2C2
+R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
+R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
+"""
+
+        # basic test with both engines
+        for engine in ['c','python']:
+            df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False,
+                          engine=engine)
+            tm.assert_frame_equal(df, expected)
+
+        # skipping lines in the header
+        df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False)
+        tm.assert_frame_equal(df, expected)
+
+        #### invalid options ####
+
+        # no as_recarray
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+                          index_col=[0,1], as_recarray=True, tupleize_cols=False)
+
+        # names
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+                          index_col=[0,1], names=['foo','bar'], tupleize_cols=False)
+        # usecols
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+                          index_col=[0,1], usecols=['foo','bar'], tupleize_cols=False)
+        # non-numeric index_col
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+                          index_col=['foo','bar'], tupleize_cols=False)
+        
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
         no_header = '\n'.join(lines[1:])
