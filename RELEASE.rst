@@ -70,6 +70,9 @@ pandas 0.11.1
   - Add ``squeeze`` keyword to ``groupby`` to allow reduction from 
     DataFrame -> Series if groups are unique. Regression from 0.10.1, 
     partial revert on (GH2893_) with (GH3596_)
+  - Raise on ``iloc`` when boolean indexing with a label based indexer mask
+    e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
+    is purely positional based, the labels on the Series are not alignable (GH3631_)
 
 **Bug Fixes**
 
@@ -182,6 +185,7 @@ pandas 0.11.1
 .. _GH3624: https://github.com/pydata/pandas/issues/3624
 .. _GH3626: https://github.com/pydata/pandas/issues/3626
 .. _GH3601: https://github.com/pydata/pandas/issues/3601
+.. _GH3631: https://github.com/pydata/pandas/issues/3631
 .. _GH1512: https://github.com/pydata/pandas/issues/1512
 
 
