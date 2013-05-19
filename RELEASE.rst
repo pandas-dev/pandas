@@ -189,7 +189,6 @@ pandas 0.11.1
 .. _GH3596: https://github.com/pydata/pandas/issues/3596
 .. _GH3617: https://github.com/pydata/pandas/issues/3617
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
-<<<<<<< HEAD
 .. _GH3611: https://github.com/pydata/pandas/issues/3611
 .. _GH3062: https://github.com/pydata/pandas/issues/3062
 .. _GH3624: https://github.com/pydata/pandas/issues/3624
@@ -197,11 +196,9 @@ pandas 0.11.1
 .. _GH3601: https://github.com/pydata/pandas/issues/3601
 .. _GH3631: https://github.com/pydata/pandas/issues/3631
 .. _GH1512: https://github.com/pydata/pandas/issues/1512
-=======
 .. _GH3571: https://github.com/pydata/pandas/issues/3571
 .. _GH1651: https://github.com/pydata/pandas/issues/1651
 .. _GH3141: https://github.com/pydata/pandas/issues/3141
->>>>>>> DOC: updated releasenotes, v0.11.1 whatsnew, io.rst
 
 
 pandas 0.11.0

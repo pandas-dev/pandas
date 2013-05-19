@@ -52,6 +52,9 @@ The :ref:`indexing <indexing>` docs.
 <http://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
     ``~`` can be used to take the complement of a boolean array
 
+`Efficiently creating columns using applymap
+<http://stackoverflow.com/questions/16575868/efficiently-creating-additional-columns-in-a-pandas-dataframe-using-map>`__
+
 .. _cookbook.multi_index:
 
 MultiIndexing
@@ -220,8 +223,14 @@ The :ref:`Plotting <visualization>` docs.
 `Plotting multiple charts in an ipython notebook
 <http://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
 
+`Creating a multi-line plot
+<http://stackoverflow.com/questions/16568964/make-a-multiline-plot-from-csv-file-in-matplotlib>`__
+
 Data In/Out
 -----------
+
+`Performance comparison of SQL vs HDF5
+<http://stackoverflow.com/questions/16628329/hdf5-and-sqlite-concurrency-compression-i-o-performance>`__
 
 .. _cookbook.csv:
 
