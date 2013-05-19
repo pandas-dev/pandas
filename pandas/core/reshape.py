@@ -10,12 +10,12 @@ from pandas.core.frame import DataFrame
 
 from pandas.core.categorical import Categorical
 from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
-                                _maybe_upcast)
+                                _maybe_upcast, isnull)
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
 import pandas.algos as algos
-
+from pandas import lib
 
 from pandas.core.index import MultiIndex, Index
 
@@ -67,7 +67,14 @@ class _Unstacker(object):
         self.index = index
         self.level = self.index._get_level_number(level)
 
-        self.new_index_levels = list(index.levels)
+        levels = index.levels
+        labels = index.labels
+        def _make_index(lev,lab):
+            i = lev.__class__(_make_index_array_level(lev.values,lab))
+            i.name = lev.name
+            return i
+
+        self.new_index_levels = list([ _make_index(lev,lab) for lev,lab in zip(levels,labels) ])
         self.new_index_names = list(index.names)
 
         self.removed_name = self.new_index_names.pop(self.level)
@@ -140,6 +147,19 @@ class _Unstacker(object):
                 values = com.take_nd(values, inds, axis=1)
                 columns = columns[inds]
 
+        # we might have a missing index
+        if len(index) != values.shape[0]:
+            mask = isnull(index)
+            if mask.any():
+                l = np.arange(len(index))
+                values, orig_values = np.empty((len(index),values.shape[1])), values
+                values.fill(np.nan)
+                values_indexer = com._ensure_int64(l[~mask])
+                for i, j in enumerate(values_indexer):
+                    values[j] = orig_values[i]
+            else:
+                index = index.take(self.unique_groups)
+        
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
@@ -201,11 +221,13 @@ class _Unstacker(object):
     def get_new_index(self):
         result_labels = []
         for cur in self.sorted_labels[:-1]:
-            result_labels.append(cur.take(self.compressor))
+            labels = cur.take(self.compressor)
+            labels = _make_index_array_level(labels,cur)
+            result_labels.append(labels)
 
         # construct the new index
         if len(self.new_index_levels) == 1:
-            new_index = self.new_index_levels[0].take(self.unique_groups)
+            new_index = self.new_index_levels[0]
             new_index.name = self.new_index_names[0]
         else:
             new_index = MultiIndex(levels=self.new_index_levels,
@@ -214,6 +236,26 @@ class _Unstacker(object):
 
         return new_index
 
+
+def _make_index_array_level(lev,lab):
+    """ create the combined index array, preserving nans, return an array """
+    mask = lab == -1
+    if not mask.any():
+        return lev
+
+    l = np.arange(len(lab))
+    mask_labels  = np.empty(len(mask[mask]),dtype=object)
+    mask_labels.fill(np.nan)
+    mask_indexer = com._ensure_int64(l[mask])
+
+    labels = lev
+    labels_indexer = com._ensure_int64(l[~mask])
+
+    new_labels = np.empty(tuple([len(lab)]),dtype=object)
+    new_labels[labels_indexer] = labels
+    new_labels[mask_indexer]   = mask_labels
+
+    return new_labels
 
 def _unstack_multiple(data, clocs):
     if len(clocs) == 0:

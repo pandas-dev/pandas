@@ -469,11 +469,14 @@ class _NDFrameIndexer(object):
 
                     missing = com._ensure_platform_int(missing)
                     missing_labels = keyarr.take(missing)
-                    missing_labels_indexer = com._ensure_int64(l[~check])
+                    missing_indexer = com._ensure_int64(l[~check])
                     cur_labels = result._get_axis(axis).values
-                    cur_labels_indexer = com._ensure_int64(l[check])
-                    new_labels = lib.combine_from_indexers(cur_labels, cur_labels_indexer,
-                                                           missing_labels, missing_labels_indexer)
+                    cur_indexer = com._ensure_int64(l[check])
+
+                    new_labels = np.empty(tuple([len(indexer)]),dtype=object)
+                    new_labels[cur_indexer] = cur_labels
+                    new_labels[missing_indexer]    = missing_labels
+
                     result = result.reindex_axis(new_labels,axis=axis)
 
                 return result
