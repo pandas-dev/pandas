@@ -609,8 +609,10 @@ def melt(frame, id_vars=None, value_vars=None,
     Parameters
     ----------
     frame : DataFrame
-    id_vars :
-    value_vars :
+    id_vars : tuple, list, or ndarray
+    value_vars : tuple, list, or ndarray
+    var_name : scalar
+    value_name : scalar
 
     Examples
     --------
