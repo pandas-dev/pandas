@@ -142,6 +142,8 @@ pandas 0.11.1
   - Fix not consolidating before to_csv (GH3624_)
   - Fix alignment issue when setitem in a DataFrame with a piece of a DataFrame (GH3626_)
   - Fix plotting of unordered DatetimeIndex (GH3601_)
+  - ``sql.write_frame`` failing when writing a single column to sqlite (GH3628_),
+    thanks to @stonebig
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -202,6 +204,7 @@ pandas 0.11.1
 .. _GH3571: https://github.com/pydata/pandas/issues/3571
 .. _GH1651: https://github.com/pydata/pandas/issues/1651
 .. _GH3141: https://github.com/pydata/pandas/issues/3141
+.. _GH3628: https://github.com/pydata/pandas/issues/3628
 .. _GH3638: https://github.com/pydata/pandas/issues/3638
 
 pandas 0.11.0
