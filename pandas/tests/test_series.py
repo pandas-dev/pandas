@@ -475,7 +475,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             np.datetime64(datetime(2013, 1, 2)),
             np.datetime64(datetime(2013, 1, 3)),
             ]
-        
+
         s = Series(dates)
         self.assert_(s.dtype == 'M8[ns]')
 
@@ -1162,7 +1162,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             s = Series(np.arange(10), dtype=dtype)
             mask = s < 5
             values = [2.5,3.5,4.5,5.5,6.5]
-            s[mask] = values 
+            s[mask] = values
             expected = Series(values + range(5,10), dtype='float64')
             assert_series_equal(s, expected)
             self.assertEquals(s.dtype, expected.dtype)
@@ -2591,7 +2591,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series(np.dot(a.values, b.values),
                              index=['1', '2', '3'])
         assert_series_equal(result, expected)
-        
+
         #Check index alignment
         b2 = b.reindex(index=reversed(b.index))
         result = a.dot(b)
@@ -2722,6 +2722,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assert_(np.array_equal(ts, self.ts.order()))
         self.assert_(np.array_equal(ts.index, self.ts.order().index))
+
+        ts.sort(ascending=False)
+        self.assert_(np.array_equal(ts, self.ts.order(ascending=False)))
+        self.assert_(np.array_equal(ts.index,
+                                    self.ts.order(ascending=False).index))
 
     def test_sort_index(self):
         import random
