@@ -228,7 +228,11 @@ def _write_sqlite(frame, table, names, cur):
     wildcards = ','.join(['?'] * len(names))
     insert_query = 'INSERT INTO %s (%s) VALUES (%s)' % (
         table, col_names, wildcards)
-    data = [tuple(x) for x in frame.values]
+    # pandas types are badly handled if there is only 1 column ( Issue #3628 )
+    if   not len(frame.columns  )==1 :
+        data = [tuple(x) for x in frame.values]
+    else :
+        data = [tuple(x) for x in frame.values.tolist()]
     cur.executemany(insert_query, data)
 
 def _write_mysql(frame, table, names, cur):
