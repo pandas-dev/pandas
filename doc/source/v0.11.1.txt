@@ -64,6 +64,7 @@ API changes
 
 Enhancements
 ~~~~~~~~~~~~
+
   - ``pd.read_html()`` can now parse HTML string, files or urls and return dataframes
     courtesy of @cpcloud. (GH3477_)
   - ``HDFStore``
@@ -114,10 +115,37 @@ Enhancements
        import os
        os.remove('mi.csv')
 
+Bug Fixes
+~~~~~~~~~
+
+  - Non-unique index support clarified (GH3468_).
+
+    - Fix assigning a new index to a duplicate index in a DataFrame would fail (GH3468_)
+    - Fix construction of a DataFrame with a duplicate index
+    - ref_locs support to allow duplicative indices across dtypes,
+      allows iget support to always find the index (even across dtypes) (GH2194_)
+    - applymap on a DataFrame with a non-unique index now works
+      (removed warning) (GH2786_), and fix (GH3230_)
+    - Fix to_csv to handle non-unique columns (GH3495_)
+    - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
+      and handle missing elements like unique indices (GH3561_)
+    - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
+    - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
+.. _GH3468: https://github.com/pydata/pandas/issues/3468
+.. _GH2194: https://github.com/pydata/pandas/issues/2194
+.. _GH2786: https://github.com/pydata/pandas/issues/2786
+.. _GH3230: https://github.com/pydata/pandas/issues/3230
+.. _GH3495: https://github.com/pydata/pandas/issues/3495
+.. _GH3455: https://github.com/pydata/pandas/issues/3455
+.. _GH3457: https://github.com/pydata/pandas/issues/3457
+.. _GH3561: https://github.com/pydata/pandas/issues/3561
+.. _GH3562: https://github.com/pydata/pandas/issues/3562
+.. _GH3602: https://github.com/pydata/pandas/issues/3602
 .. _GH2437: https://github.com/pydata/pandas/issues/2437
 .. _GH2852: https://github.com/pydata/pandas/issues/2852
 .. _GH3477: https://github.com/pydata/pandas/issues/3477
