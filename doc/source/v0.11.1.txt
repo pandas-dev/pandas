@@ -3,7 +3,7 @@
 v0.11.1 (??)
 ------------------------
 
-This is a major release from 0.11.0 and includes many new features and
+This is a minor release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
 API changes
@@ -77,7 +77,9 @@ Enhancements
 
   - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
     a list or tuple.
+
   - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
+
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs
     :ref:`Replacing via String Expression <missing_data.replace_expression>`
