@@ -48,6 +48,7 @@ pandas 0.11.1
       to append an index with a different name than the existing
     - support datelike columns with a timezone as data_columns (GH2852_)
     - table writing performance improvements.
+  - Simplified the API and added a describe method to Categorical
 
 **API Changes**
 
