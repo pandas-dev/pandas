@@ -101,8 +101,8 @@ Enhancements
 
     The last element yielded by the iterator will be a ``Series`` containing
     the last element of the longest string in the ``Series`` with all other
-    elements being ``NaN``. Here since ``'wikitravel'`` is the longest string
-    and there are no other strings with the same length ``'l'`` is the only
+    elements being ``NaN``. Here since ``'slow`` is the longest string
+    and there are no other strings with the same length ``'w'`` is the only
     non-null string in the yielded ``Series``.
 
   - Multi-index column support for reading and writing csvs
