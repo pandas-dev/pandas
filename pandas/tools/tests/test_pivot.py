@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
@@ -127,6 +127,17 @@ class TestPivotTable(unittest.TestCase):
         means = f(np.mean)
         stds = f(np.std)
         expected = concat([means, stds], keys=['mean', 'std'], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_index_with_nan(self):
+        # GH 3588
+        nan = np.nan
+        df = DataFrame({"a":['R1', 'R2', nan, 'R4'], 'b':["C1", "C2", "C3" , "C4"], "c":[10, 15, nan , 20]})
+        result = df.pivot('a','b','c')
+        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan], 
+                              [nan,nan,nan,nan],[nan,nan,15,20]],
+                             index = Index(['R1','R2',nan,'R4'],name='a'),
+                             columns = Index(['C1','C2','C3','C4'],name='b'))
         tm.assert_frame_equal(result, expected)
 
     def test_margins(self):

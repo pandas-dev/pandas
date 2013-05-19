@@ -144,6 +144,7 @@ pandas 0.11.1
   - Fix plotting of unordered DatetimeIndex (GH3601_)
   - ``sql.write_frame`` failing when writing a single column to sqlite (GH3628_),
     thanks to @stonebig
+  - Fix pivoting with ``nan`` in the index (GH3558_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -194,6 +195,7 @@ pandas 0.11.1
 .. _GH3617: https://github.com/pydata/pandas/issues/3617
 .. _GH3435: https://github.com/pydata/pandas/issues/3435
 .. _GH3611: https://github.com/pydata/pandas/issues/3611
+.. _GH3558: https://github.com/pydata/pandas/issues/3558
 .. _GH3062: https://github.com/pydata/pandas/issues/3062
 .. _GH3624: https://github.com/pydata/pandas/issues/3624
 .. _GH3626: https://github.com/pydata/pandas/issues/3626
