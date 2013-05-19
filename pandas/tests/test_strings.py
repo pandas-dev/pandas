@@ -349,6 +349,13 @@ class TestStringMethods(unittest.TestCase):
         exp = Series([u'foobarBAD', NA])
         tm.assert_series_equal(result, exp)
 
+        #flags + unicode
+        values = Series(["abcd,\xc3\xa0".decode("utf-8")])
+        exp = Series(["abcd, \xc3\xa0".decode("utf-8")])
+        result = values.str.replace("(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
+        tm.assert_series_equal(result, exp)
+
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
