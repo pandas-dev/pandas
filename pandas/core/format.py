@@ -772,9 +772,10 @@ def _get_level_lengths(levels,sentinal=''):
 class CSVFormatter(object):
 
     def __init__(self, obj, path_or_buf, sep=",", na_rep='', float_format=None,
-               cols=None, header=True, index=True, index_label=None,
-               mode='w', nanRep=None, encoding=None, quoting=None,
-               line_terminator='\n', chunksize=None, engine=None):
+                 cols=None, header=True, index=True, index_label=None,
+                 mode='w', nanRep=None, encoding=None, quoting=None,
+                 line_terminator='\n', chunksize=None, engine=None,
+                 tupleize_cols=True):
 
         self.engine = engine  # remove for 0.12
 
@@ -802,6 +803,15 @@ class CSVFormatter(object):
         if not self.obj.columns.is_unique and engine == 'python':
             msg= "columns.is_unique == False not supported with engine='python'"
             raise NotImplementedError(msg)
+
+        self.tupleize_cols = tupleize_cols
+        self.has_mi_columns = isinstance(obj.columns, MultiIndex
+                                         ) and not self.tupleize_cols
+
+        # validate mi options
+        if self.has_mi_columns:
+            if cols is not None:
+                raise Exception("cannot specify cols with a multi_index on the columns")
 
         if cols is not None:
             if isinstance(cols,Index):
@@ -958,48 +968,82 @@ class CSVFormatter(object):
         obj = self.obj
         index_label = self.index_label
         cols = self.cols
+        has_mi_columns = self.has_mi_columns
         header = self.header
+        encoded_labels = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray))
-        if has_aliases or self.header:
-            if self.index:
-                # should write something for index label
-                if index_label is not False:
-                    if index_label is None:
-                        if isinstance(obj.index, MultiIndex):
-                            index_label = []
-                            for i, name in enumerate(obj.index.names):
-                                if name is None:
-                                    name = ''
-                                index_label.append(name)
-                        else:
-                            index_label = obj.index.name
-                            if index_label is None:
-                                index_label = ['']
-                            else:
-                                index_label = [index_label]
-                    elif not isinstance(index_label, (list, tuple, np.ndarray)):
-                        # given a string for a DF with Index
-                        index_label = [index_label]
+        if not (has_aliases or self.header):
+            return
 
-                    encoded_labels = list(index_label)
-                else:
-                    encoded_labels = []
-
-                if has_aliases:
-                    if len(header) != len(cols):
-                        raise ValueError(('Writing %d cols but got %d aliases'
-                                          % (len(cols), len(header))))
+        if self.index:
+            # should write something for index label
+            if index_label is not False:
+                if index_label is None:
+                    if isinstance(obj.index, MultiIndex):
+                        index_label = []
+                        for i, name in enumerate(obj.index.names):
+                            if name is None:
+                                name = ''
+                            index_label.append(name)
                     else:
-                        write_cols = header
-                else:
-                    write_cols = cols
-                encoded_cols = list(write_cols)
+                        index_label = obj.index.name
+                        if index_label is None:
+                            index_label = ['']
+                        else:
+                            index_label = [index_label]
+                elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                    # given a string for a DF with Index
+                    index_label = [index_label]
 
-                writer.writerow(encoded_labels + encoded_cols)
+                encoded_labels = list(index_label)
             else:
-                encoded_cols = list(cols)
-                writer.writerow(encoded_cols)
+                encoded_labels = []
+
+            if has_aliases:
+                if len(header) != len(cols):
+                    raise ValueError(('Writing %d cols but got %d aliases'
+                                      % (len(cols), len(header))))
+                else:
+                    write_cols = header
+            else:
+                write_cols = cols
+
+            if not has_mi_columns:
+                encoded_labels += list(write_cols)
+
+        else:
+
+            if not has_mi_columns:
+                encoded_labels += list(cols)
+
+        # write out the mi
+        if has_mi_columns:
+            columns = obj.columns
+
+            # write out the names for each level, then ALL of the values for each level
+            for i in range(columns.nlevels):
+
+                # we need at least 1 index column to write our col names
+                col_line = []
+                if self.index:
+
+                    # name is the first column
+                    col_line.append( columns.names[i] )
+
+                    if isinstance(index_label,list) and len(index_label)>1:
+                        col_line.extend([ '' ] * (len(index_label)-1))
+
+                col_line.extend(columns.get_level_values(i))
+
+                writer.writerow(col_line)
+
+            # add blanks for the columns, so that we
+            # have consistent seps
+            encoded_labels.extend([ '' ] * len(columns))
+
+        # write out the index label line
+        writer.writerow(encoded_labels)
 
     def _save(self):
 
