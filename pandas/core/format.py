@@ -778,8 +778,6 @@ class CSVFormatter(object):
                  tupleize_cols=True):
 
         self.engine = engine  # remove for 0.12
-
-        obj._consolidate_inplace()
         self.obj = obj
 
         self.path_or_buf = path_or_buf
@@ -835,7 +833,7 @@ class CSVFormatter(object):
         self.blocks = self.obj._data.blocks
         ncols = sum(len(b.items) for b in self.blocks)
         self.data =[None] * ncols
-        self.column_map = self.obj._data.get_items_map()
+        self.column_map = self.obj._data.get_items_map(use_cached=False)
 
         if chunksize is None:
             chunksize = (100000/ (len(self.cols) or 1)) or 1

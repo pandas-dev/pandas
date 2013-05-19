@@ -4942,7 +4942,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             df.to_csv(path, index=False)
             result = read_csv(path)
             assert_frame_equal(df,result)
-            df['c3'] = [7,8,9]
+            df['c3'] = Series([7,8,9],dtype='int64')
             df.to_csv(path, index=False)
             result = read_csv(path)
             assert_frame_equal(df,result)
@@ -5000,7 +5000,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                  columns=MultiIndex.from_tuples([('bah', 'foo'), 
                                                                  ('bah', 'bar'), 
                                                                  ('ban', 'baz')],
-                                                                names=names))
+                                                                names=names),
+                                 dtype='int64')
 
             # column & index are multi-index
             df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
