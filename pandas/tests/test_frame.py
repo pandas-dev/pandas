@@ -6653,12 +6653,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         dfmix = DataFrame(mix)
         res = dfmix.replace({'b': {r'\s*\.\s*': nan}}, regex=True)
         res2 = dfmix.copy()
+        res4 = dfmix.copy()
         res2.replace({'b': {r'\s*\.\s*': nan}}, inplace=True, regex=True)
-        print res2
+        res3 = dfmix.replace(regex={'b': {r'\s*\.\s*': nan}})
+        res4.replace(regex={'b': {r'\s*\.\s*': nan}}, inplace=True)
         expec = DataFrame({'a': mix['a'], 'b': ['a', 'b', nan, nan], 'c':
                            mix['c']})
         assert_frame_equal(res, expec)
         assert_frame_equal(res2, expec)
+        assert_frame_equal(res3, expec)
+        assert_frame_equal(res4, expec)
 
     def test_regex_replace_list_to_scalar(self):
         mix = {'a': range(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}

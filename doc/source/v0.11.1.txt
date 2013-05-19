@@ -155,6 +155,24 @@ Bug Fixes
     - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
     - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
 
+    For example you can do
+
+    .. ipython :: python
+
+        df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
+        df.replace(regex=r'\s*\.\s*', value=nan)
+
+    to replace all occurrences of the string ``'.'`` with zero or more
+    instances of surrounding whitespace with ``NaN``.
+
+    Regular string replacement still works as expected. For example, you can do
+
+    .. ipython :: python
+
+        df.replace('.', nan)
+
+    to replace all occurrences of the string ``'.'`` with ``NaN``.
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
