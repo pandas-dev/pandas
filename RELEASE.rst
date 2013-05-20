@@ -30,8 +30,9 @@ pandas 0.11.1
 
 **New features**
 
-  - pd.read_html() can now parse HTML string, files or urls and return dataframes
-    courtesy of @cpcloud. (GH3477_)
+  - ``pandas.read_html()`` can now parse HTML strings, files or urls and
+    returns a list of ``DataFrame`` s courtesy of @cpcloud. (GH3477_, GH3605_,
+    GH3606_)
   - Support for reading Amazon S3 files. (GH3504_)
   - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
   - Added support for writing in ``to_csv`` and reading in ``read_csv``,
@@ -48,7 +49,7 @@ pandas 0.11.1
 **Improvements to existing features**
 
   - Fixed various issues with internal pprinting code, the repr() for various objects
-    including TimeStamp and *Index now produces valid python code strings and
+    including TimeStamp and Index now produces valid python code strings and
     can be used to recreate the object, (GH3038_, GH3379_, GH3251_, GH3460_)
   - ``convert_objects`` now accepts a ``copy`` parameter (defaults to ``True``)
   - ``HDFStore``
@@ -146,6 +147,9 @@ pandas 0.11.1
   - ``sql.write_frame`` failing when writing a single column to sqlite (GH3628_),
     thanks to @stonebig
   - Fix pivoting with ``nan`` in the index (GH3558_)
+  - Fix running of bs4 tests when it is not installed (GH3605_)
+  - Fix parsing of html table (GH3606_)
+  - ``read_html()`` now only allows a single backend: ``html5lib`` (GH3616_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -209,6 +213,9 @@ pandas 0.11.1
 .. _GH3141: https://github.com/pydata/pandas/issues/3141
 .. _GH3628: https://github.com/pydata/pandas/issues/3628
 .. _GH3638: https://github.com/pydata/pandas/issues/3638
+.. _GH3605: https://github.com/pydata/pandas/issues/3605
+.. _GH3606: https://github.com/pydata/pandas/issues/3606
+.. _Gh3616: https://github.com/pydata/pandas/issues/3616
 
 pandas 0.11.0
 =============

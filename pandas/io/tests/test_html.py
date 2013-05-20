@@ -2,33 +2,48 @@ import os
 import re
 from cStringIO import StringIO
 from unittest import TestCase
+import collections
+import numbers
+from urllib2 import urlopen
+from contextlib import closing
+import warnings
 
 import nose
 
 import numpy as np
+from numpy.random import rand
 from numpy.testing.decorators import slow
 
-from pandas.io.html import read_html, import_module
-from pandas import DataFrame, MultiIndex
-from pandas.util.testing import assert_frame_equal, network
+from pandas.io.html import read_html, import_module, _parse, _LxmlFrameParser
+from pandas.io.html import _BeautifulSoupHtml5LibFrameParser
+from pandas.io.html import _BeautifulSoupLxmlFrameParser, _remove_whitespace
+from pandas import DataFrame, MultiIndex, read_csv, Timestamp
+from pandas.util.testing import assert_frame_equal, network, get_data_path
+from pandas.util.testing import makeCustomDataframe as mkdf
 
 
-def _skip_if_no_parser():
+def _have_module(module_name):
     try:
-        import_module('lxml')
+        import_module(module_name)
+        return True
     except ImportError:
-        try:
-            import_module('bs4')
-        except ImportError:
+        return False
+
+
+def _skip_if_no(module_name):
+    if not _have_module(module_name):
+        raise nose.SkipTest
+
+
+def _skip_if_none(module_names):
+    if isinstance(module_names, basestring):
+        _skip_if_no(module_names)
+    else:
+        if not any(_have_module(module_name) for module_name in module_names):
             raise nose.SkipTest
 
 
-DATA_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data')
-
-
-def _run_read_html(*args, **kwargs):
-    _skip_if_no_parser()
-    return read_html(*args, **kwargs)
+DATA_PATH = get_data_path()
 
 
 def isframe(x):
@@ -47,14 +62,36 @@ def assert_framelist_equal(list1, list2):
         assert not frame_i.empty, 'frames are both empty'
 
 
+def _run_read_html(parser, io, match='.+', flavor='bs4', header=None,
+                   index_col=None, skiprows=None, infer_types=False,
+                   attrs=None):
+    if isinstance(skiprows, numbers.Integral) and skiprows < 0:
+        raise AssertionError('cannot skip rows starting from the end of the '
+                             'data (you passed a negative value)')
+    return _parse(parser, io, match, flavor, header, index_col, skiprows,
+                  infer_types, attrs)
+
+
 class TestLxmlReadHtml(TestCase):
+    def test_to_html_compat(self):
+        df = mkdf(4, 3, data_gen_f=lambda *args: rand(), c_idx_names=False,
+                  r_idx_names=False).applymap('{0:.3f}'.format)
+        out = df.to_html()
+        res = self.run_read_html(out, attrs={'class': 'dataframe'},
+                                 index_col=0)[0]
+        print df.dtypes
+        print res.dtypes
+        assert_frame_equal(res, df)
+
     def setUp(self):
         self.spam_data = os.path.join(DATA_PATH, 'spam.html')
-        self.banklist_data = os.path.join(DATA_PATH, 'failed_banklist.html')
+        self.banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
     def run_read_html(self, *args, **kwargs):
         kwargs['flavor'] = 'lxml'
-        return _run_read_html(*args, **kwargs)
+        _skip_if_no('lxml')
+        parser = _LxmlFrameParser
+        return _run_read_html(parser, *args, **kwargs)
 
     @network
     def test_banklist_url(self):
@@ -85,13 +122,31 @@ class TestLxmlReadHtml(TestCase):
 
     @slow
     def test_banklist_header(self):
+        def try_remove_ws(x):
+            try:
+                return _remove_whitespace(x)
+            except AttributeError:
+                return x
+
         df = self.run_read_html(self.banklist_data, 'Metcalf',
-                                attrs={'id': 'table'}, header=0, skiprows=1)[0]
-        self.assertFalse(df.empty)
-        cols = ['Bank Name', 'City', 'State', 'CERT #',
-                'Acquiring Institution', 'Closing Date', 'Updated Date']
-        self.assertListEqual(df.columns.values.tolist(), cols)
-        self.assertEqual(df.shape[0], 499)
+                                attrs={'id': 'table'}, infer_types=False)[0]
+        ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
+                                converters={'Closing Date': Timestamp,
+                                            'Updated Date': Timestamp})
+        self.assertNotEqual(df.shape, ground_truth.shape)
+        self.assertRaises(AssertionError, assert_frame_equal, df,
+                          ground_truth.applymap(try_remove_ws))
+
+    @slow
+    def test_gold_canyon(self):
+        gc = 'Gold Canyon'
+        with open(self.banklist_data, 'r') as f:
+            raw_text = f.read()
+
+        self.assertIn(gc, raw_text)
+        df = self.run_read_html(self.banklist_data, 'Gold Canyon',
+                                attrs={'id': 'table'}, infer_types=False)[0]
+        self.assertNotIn(gc, df.to_string())
 
     def test_spam(self):
         df1 = self.run_read_html(self.spam_data, '.*Water.*',
@@ -99,8 +154,10 @@ class TestLxmlReadHtml(TestCase):
         df2 = self.run_read_html(self.spam_data, 'Unit', infer_types=False)
 
         assert_framelist_equal(df1, df2)
+        print df1[0]
 
-        self.assertEqual(df1[0].ix[0, 0], 'Nutrient')
+        self.assertEqual(df1[0].ix[0, 0], 'Proximates')
+        self.assertEqual(df1[0].columns[0], 'Nutrient')
 
     def test_spam_no_match(self):
         dfs = self.run_read_html(self.spam_data)
@@ -113,8 +170,9 @@ class TestLxmlReadHtml(TestCase):
             self.assertIsInstance(df, DataFrame)
 
     def test_spam_header(self):
-        df = self.run_read_html(self.spam_data, '.*Water.*', header=0)[0]
-        self.assertEqual(df.columns[0], 'Nutrient')
+        df = self.run_read_html(self.spam_data, '.*Water.*', header=0)
+        df = self.run_read_html(self.spam_data, '.*Water.*', header=1)[0]
+        self.assertEqual(df.columns[0], 'Water')
         self.assertFalse(df.empty)
 
     def test_skiprows_int(self):
@@ -179,26 +237,20 @@ class TestLxmlReadHtml(TestCase):
         df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0)
         assert_framelist_equal(df1, df2)
 
-    def test_header(self):
-        df1 = self.run_read_html(self.spam_data, '.*Water.*', header=0)
-        df2 = self.run_read_html(self.spam_data, 'Unit', header=0)
-        assert_framelist_equal(df1, df2)
-        self.assertEqual(df1[0].columns[0], 'Nutrient')
-
     def test_header_and_index(self):
-        df1 = self.run_read_html(self.spam_data, '.*Water.*', header=0,
+        df1 = self.run_read_html(self.spam_data, '.*Water.*', header=1,
                                  index_col=0)
-        df2 = self.run_read_html(self.spam_data, 'Unit', header=0, index_col=0)
+        df2 = self.run_read_html(self.spam_data, 'Unit', header=1, index_col=0)
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self):
-        df1 = self.run_read_html(self.spam_data, '.*Water.*', header=0,
-                                 index_col=0, infer_types=False)
-        df2 = self.run_read_html(self.spam_data, 'Unit', header=0, index_col=0,
+        df1 = self.run_read_html(self.spam_data, '.*Water.*', index_col=0,
+                                 infer_types=False)
+        df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0,
                                  infer_types=False)
         assert_framelist_equal(df1, df2)
 
-        df2 = self.run_read_html(self.spam_data, 'Unit', header=0, index_col=0,
+        df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0,
                                  infer_types=True)
 
         self.assertRaises(AssertionError, assert_framelist_equal, df1, df2)
@@ -304,21 +356,137 @@ class TestLxmlReadHtml(TestCase):
 
     @slow
     def test_multiple_matches(self):
-        url = self.banklist_data
-        dfs = self.run_read_html(url, match=r'Florida')
-        self.assertIsInstance(dfs, list)
+        url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
+        dfs = self.run_read_html(url, match='Python',
+                                 attrs={'class': 'wikitable'})
         self.assertGreater(len(dfs), 1)
-        for df in dfs:
-            self.assertIsInstance(df, DataFrame)
+
+    @network
+    def test_pythonxy_plugins_table(self):
+        url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
+        dfs = self.run_read_html(url, match='Python',
+                                 attrs={'class': 'wikitable'})
+        zz = [df.iloc[0, 0] for df in dfs]
+        self.assertListEqual(sorted(zz), sorted(['Python', 'SciTE']))
 
 
 def test_invalid_flavor():
     url = 'google.com'
-    nose.tools.assert_raises(AssertionError, _run_read_html, url, 'google',
+    nose.tools.assert_raises(AssertionError, read_html, url, 'google',
                              flavor='not a* valid**++ flaver')
 
 
-class TestBs4ReadHtml(TestLxmlReadHtml):
+@slow
+class TestBs4LxmlParser(TestLxmlReadHtml):
+    def test(self):
+        pass
+
     def run_read_html(self, *args, **kwargs):
         kwargs['flavor'] = 'bs4'
-        return _run_read_html(*args, **kwargs)
+        _skip_if_no('lxml')
+        parser = _BeautifulSoupLxmlFrameParser
+        return _run_read_html(parser, *args, **kwargs)
+
+
+@slow
+class TestBs4Html5LibParser(TestBs4LxmlParser):
+    def test(self):
+        pass
+
+    def run_read_html(self, *args, **kwargs):
+        kwargs['flavor'] = 'bs4'
+        _skip_if_no('html5lib')
+        parser = _BeautifulSoupHtml5LibFrameParser
+        return _run_read_html(parser, *args, **kwargs)
+
+    @slow
+    def test_banklist_header(self):
+        def try_remove_ws(x):
+            try:
+                return _remove_whitespace(x)
+            except AttributeError:
+                return x
+
+        df = self.run_read_html(self.banklist_data, 'Metcalf',
+                                attrs={'id': 'table'}, infer_types=True)[0]
+        ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
+                                converters={'Updated Date': Timestamp,
+                                            'Closing Date': Timestamp})
+        # these will not
+        self.assertTupleEqual(df.shape, ground_truth.shape)
+        old = ['First Vietnamese American Bank In Vietnamese',
+               'Westernbank Puerto Rico En Espanol',
+               'R-G Premier Bank of Puerto Rico En Espanol',
+               'Eurobank En Espanol', 'Sanderson State Bank En Espanol',
+               'Washington Mutual Bank (Including its subsidiary Washington '
+               'Mutual Bank FSB)',
+               'Silver State Bank En Espanol',
+               'AmTrade International BankEn Espanol',
+               'Hamilton Bank, NA En Espanol',
+               'The Citizens Savings BankPioneer Community Bank, Inc.']
+        new = ['First Vietnamese American Bank', 'Westernbank Puerto Rico',
+               'R-G Premier Bank of Puerto Rico', 'Eurobank',
+               'Sanderson State Bank', 'Washington Mutual Bank',
+               'Silver State Bank', 'AmTrade International Bank',
+               'Hamilton Bank, NA', 'The Citizens Savings Bank']
+        dfnew = df.applymap(try_remove_ws).replace(old, new)
+        gtnew = ground_truth.applymap(try_remove_ws)
+        assert_frame_equal(dfnew, gtnew)
+
+    @slow
+    def test_gold_canyon(self):
+        gc = 'Gold Canyon'
+        with open(self.banklist_data, 'r') as f:
+            raw_text = f.read()
+
+        self.assertIn(gc, raw_text)
+        df = self.run_read_html(self.banklist_data, 'Gold Canyon',
+                                attrs={'id': 'table'}, infer_types=False)[0]
+        self.assertIn(gc, df.to_string())
+
+
+def get_elements_from_url(url, flavor, element='table'):
+    _skip_if_no('bs4')
+    _skip_if_no(flavor)
+    from bs4 import BeautifulSoup, SoupStrainer
+    strainer = SoupStrainer(element)
+    with closing(urlopen(url)) as f:
+        soup = BeautifulSoup(f, features=flavor, parse_only=strainer)
+    return soup.find_all(element)
+
+
+@slow
+def test_bs4_finds_tables():
+    url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
+           'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
+    flavors = 'lxml', 'html5lib'
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore')
+
+        for flavor in flavors:
+            assert get_elements_from_url(url, flavor, 'table')
+
+
+def get_lxml_elements(url, element):
+
+    _skip_if_no('lxml')
+    from lxml.html import parse
+    doc = parse(url)
+    return doc.xpath('.//{0}'.format(element))
+
+
+@slow
+def test_lxml_finds_tables():
+    url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
+           'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
+    assert get_lxml_elements(url, 'table')
+
+
+@slow
+def test_lxml_finds_tbody():
+    url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
+           'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
+    assert get_lxml_elements(url, 'tbody')
+
+
+    
