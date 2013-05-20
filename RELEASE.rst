@@ -367,8 +367,6 @@ pandas 0.11.0
     when invalid shapes are passed
   - Don't suppress TypeError in GroupBy.agg (GH3238_)
   - Methods return None when inplace=True (GH1893_)
-  - HTML repr output for dataframs is once again controlled by the option
-    `display.notebook_repr_html`, and on by default.
   - ``HDFStore``
 
      - added the method ``select_column`` to select a single column from a table as a Series.
@@ -382,7 +380,7 @@ pandas 0.11.0
     very wide output will now be output as "expand_repr" style wrapped output.
   - Various defaults for options (including display.max_rows) have been revised,
     after a brief survey concluded they were wrong for everyone. Now at w=80,h=60.
-  - HTML repr output for dataframes is once again controlled by the option
+  - HTML repr output in IPython qtconsole is once again controlled by the option
     `display.notebook_repr_html`, and on by default.
 
 **Bug Fixes**
