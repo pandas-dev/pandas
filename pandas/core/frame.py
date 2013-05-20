@@ -621,19 +621,26 @@ class DataFrame(NDFrame):
             max_rows = max_rows or height +1
             return len(self) <= min(max_rows, height)
 
-    def _repr_fits_horizontal_(self):
+    def _repr_fits_horizontal_(self,ignore_width=False):
         """
         Check if full repr fits in horizontal boundaries imposed by the display
         options width and max_columns. In case off non-interactive session, no
         boundaries apply.
+
+        ignore_width is here so ipnb+HTML output can behave the way
+        users expect. display.max_columns remains in effect.
+        GH3541, GH3573
         """
+
+        # everytime you add an if-clause here, god slaughters a kitten.
+        # please. think of the kittens.
         width, height = fmt.get_console_size()
         max_columns = get_option("display.max_columns")
         nb_columns = len(self.columns)
 
         # exceed max columns
         if ((max_columns and nb_columns > max_columns) or
-            (width and nb_columns > (width // 2))):
+            ((not ignore_width) and width and nb_columns > (width // 2))):
             return False
 
         if width is None:
@@ -655,7 +662,12 @@ class DataFrame(NDFrame):
         d.to_string(buf=buf)
         value = buf.getvalue()
         repr_width = max([len(l) for l in value.split('\n')])
-        return repr_width <= width
+
+        # special case ipnb+HTML repr
+        if not ignore_width:
+            return repr_width <= width
+        else:
+            return True
 
     def __str__(self):
         """
@@ -731,12 +743,16 @@ class DataFrame(NDFrame):
         Return a html representation for a particular DataFrame.
         Mainly for IPython notebook.
         """
+        # ipnb in html repr mode allows scrolling
+        # users strongly prefer to h-scroll a wide HTML table in the browser
+        # then to get a summary view. GH3541, GH3573
+        ipnbh = com.in_ipnb() and get_option('display.notebook_repr_html')
 
         if get_option("display.notebook_repr_html"):
             fits_vertical = self._repr_fits_vertical_()
             fits_horizontal = False
             if fits_vertical:
-                fits_horizontal = self._repr_fits_horizontal_()
+                fits_horizontal = self._repr_fits_horizontal_(ignore_width=ipnbh)
 
             if fits_horizontal and fits_vertical:
                 return ('<div style="max-height:1000px;'
