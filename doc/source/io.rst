@@ -100,10 +100,10 @@ They can take a number of arguments:
     Currently line commenting is not supported.
   - ``nrows``: Number of rows to read out of the file. Useful to only read a
     small portion of a large file
-  - ``iterator``: If True, return a ``TextParser`` to enable reading a file
+  - ``iterator``: If True, return a ``TextFileReader`` to enable reading a file
     into memory piece by piece
   - ``chunksize``: An number of rows to be used to "chunk" a file into
-    pieces. Will cause an ``TextParser`` object to be returned. More on this
+    pieces. Will cause an ``TextFileReader`` object to be returned. More on this
     below in the section on :ref:`iterating and chunking <io.chunking>`
   - ``skip_footer``: number of lines to skip at bottom of file (default 0)
   - ``converters``: a dictionary of functions for converting values in certain
@@ -837,7 +837,7 @@ rather than reading the entire file into memory, such as the following:
 
 
 By specifiying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
-value will be an iterable object of type ``TextParser``:
+value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
@@ -848,7 +848,7 @@ value will be an iterable object of type ``TextParser``:
        print chunk
 
 
-Specifying ``iterator=True`` will also return the ``TextParser`` object:
+Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 

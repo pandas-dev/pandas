@@ -104,9 +104,9 @@ decimal : str, default '.'
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
-    Return TextParser object
+    Return TextFileReader object
 chunksize : int, default None
-    Return TextParser object for iteration
+    Return TextFileReader object for iteration
 skipfooter : int, default 0
     Number of line at bottom of file to skip
 converters : dict. optional
