@@ -2603,8 +2603,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertEquals(a.dot(b['2'].values), expected['2'])
 
         #Check series argument
-        self.assertEquals(a.dot(b['1']), expected['1'])
-        self.assertEquals(a.dot(b2['1']), expected['1'])
+        assert_almost_equal(a.dot(b['1']), expected['1'])
+        assert_almost_equal(a.dot(b2['1']), expected['1'])
 
         self.assertRaises(Exception, a.dot, a.values[:3])
         self.assertRaises(ValueError, a.dot, b.T)
