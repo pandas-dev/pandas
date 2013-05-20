@@ -1219,13 +1219,39 @@ class Index(np.ndarray):
         -----
         This function assumes that the data is sorted, so use at your own peril
         """
+
+        is_unique = self.is_unique
         if start is None:
-            start_slice = 0
+            if is_unique:
+                start_slice = 0
+            else:
+                start_slice = np.arange(len(self))
         else:
             try:
                 start_slice = self.get_loc(start)
-                if isinstance(start_slice, slice):
+                
+                if not is_unique:
+
+                    # get_loc will return a boolean array for non_uniques
+                    # if we are not monotonic
+                    if isinstance(start_slice,np.ndarray):
+                        if not self.is_monotonic:
+                            raise KeyError("cannot peform a slice operation "
+                                           "on a non-unique non-monotonic index")
+                        start_slice = np.arange(len(self))[start_slice]
+
+                    # select all in the slice + all the rest of the entries
+                    # to the right
+                    elif isinstance(start_slice, slice):
+                        ss = np.arange(start_slice.stop,len(self))
+                        start_slice = np.arange(len(self))[start_slice]
+                        start_slice = (Index(ss) | Index(start_slice)).values
+                    else:
+                        start_slice = np.arange(start_slice,len(self))
+
+                elif isinstance(start_slice, slice):
                     start_slice = start_slice.start
+
             except KeyError:
                 if self.is_monotonic:
                     start_slice = self.searchsorted(start, side='left')
@@ -1233,19 +1259,51 @@ class Index(np.ndarray):
                     raise
 
         if end is None:
-            end_slice = len(self)
+            if is_unique:
+                end_slice = len(self)
+            else:
+                end_slice = np.arange(len(self))
         else:
             try:
                 end_slice = self.get_loc(end)
-                if isinstance(end_slice, slice):
+
+                if not is_unique:
+
+                    # get_loc will return a boolean array for non_uniques
+                    if isinstance(end_slice,np.ndarray):
+                        if not self.is_monotonic:
+                            raise KeyError("cannot perform a slice operation "
+                                           "on a non-unique non-monotonic index")
+                        end_slice = np.arange(len(self))[end_slice]
+                        
+                    # select all in the slice + all to the left of the entries
+                    elif isinstance(end_slice, slice):
+                        es = np.arange(0,end_slice.start)
+                        end_slice = np.arange(len(self))[end_slice]
+                        end_slice = (Index(es) | Index(end_slice)).values
+                    else:
+                        end_slice = np.arange(0,end_slice+1)
+
+                elif isinstance(end_slice, slice):
                     end_slice = end_slice.stop
                 else:
                     end_slice += 1
+
             except KeyError:
                 if self.is_monotonic:
                     end_slice = self.searchsorted(end, side='right')
                 else:
                     raise
+
+        if not is_unique:
+            # see if we can convert back to and edge slice
+            if len(start_slice) == len(end_slice) and (start_slice == end_slice).all():
+                start_slice, end_slice = start_slice[0], start_slice[-1]+1
+            # partial slice
+            elif (len(start_slice) == start_slice[-1]-start_slice[0]+1) and (
+                len(end_slice) == end_slice[-1]-end_slice[0]+1):
+                res = (Index(start_slice) & Index(end_slice)).values
+                start_slice, end_slice = res[0],res[-1]+1
 
         return start_slice, end_slice
 
