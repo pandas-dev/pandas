@@ -126,13 +126,13 @@ def assert_almost_equal(a, b, check_less_precise = False):
         return assert_dict_equal(a, b)
 
     if isinstance(a, basestring):
-        assert a == b, "{0} != {1}".format(a, b)
+        assert a == b, "%s != %s" % (a, b)
         return True
 
     if isiterable(a):
         np.testing.assert_(isiterable(b))
         na, nb = len(a), len(b)
-        assert na == nb, "{0} != {1}".format(na, nb)
+        assert na == nb, "%s != %s" % (na, nb)
 
         if np.array_equal(a, b):
             return True
@@ -154,8 +154,6 @@ def assert_almost_equal(a, b, check_less_precise = False):
         if check_less_precise:
             dtype_a = np.dtype(type(a))
             dtype_b = np.dtype(type(b))
-            if dtype_a.kind == 'i' and dtype_b == 'i':
-                pass
             if dtype_a.kind == 'f' and dtype_b == 'f':
                 if dtype_a.itemsize <= 4 and dtype_b.itemsize <= 4:
                     decimal = 3

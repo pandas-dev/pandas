@@ -2,7 +2,6 @@ import os
 import re
 from cStringIO import StringIO
 from unittest import TestCase
-import collections
 import numbers
 from urllib2 import urlopen
 from contextlib import closing
@@ -408,7 +407,7 @@ class TestBs4Html5LibParser(TestBs4LxmlParser):
                 return x
 
         df = self.run_read_html(self.banklist_data, 'Metcalf',
-                                attrs={'id': 'table'}, infer_types=True)[0]
+                                attrs={'id': 'table'})[0]
         ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
@@ -431,7 +430,9 @@ class TestBs4Html5LibParser(TestBs4LxmlParser):
                'Hamilton Bank, NA', 'The Citizens Savings Bank']
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
-        assert_frame_equal(dfnew, gtnew)
+        converted = dfnew.convert_objects(convert_numeric=True)
+        assert_frame_equal(converted.convert_objects(convert_dates='coerce'),
+                           gtnew)
 
     @slow
     def test_gold_canyon(self):
@@ -487,6 +488,3 @@ def test_lxml_finds_tbody():
     url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
            'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
     assert get_lxml_elements(url, 'tbody')
-
-
-    

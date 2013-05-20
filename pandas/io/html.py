@@ -721,7 +721,7 @@ def _parse(parser, io, match, flavor, header, index_col, skiprows, infer_types,
 
 
 def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
-              skiprows=None, infer_types=False, attrs=None):
+              skiprows=None, infer_types=True, attrs=None):
     r"""Read an HTML table into a DataFrame.
 
     Parameters

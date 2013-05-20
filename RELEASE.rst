@@ -66,6 +66,7 @@ pandas 0.11.1
   - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name`` 
     to specify custom column names of the returned DataFrame (GH3649_),
     thanks @hoechenberger
+  - ``read_html`` no longer performs hard date conversion
 
 **API Changes**
 
