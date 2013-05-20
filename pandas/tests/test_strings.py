@@ -350,8 +350,8 @@ class TestStringMethods(unittest.TestCase):
         tm.assert_series_equal(result, exp)
 
         #flags + unicode
-        values = Series(["abcd,\xc3\xa0".decode("utf-8")])
-        exp = Series(["abcd, \xc3\xa0".decode("utf-8")])
+        values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
+        exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
         result = values.str.replace("(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
         tm.assert_series_equal(result, exp)
 
