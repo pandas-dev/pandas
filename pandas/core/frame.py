@@ -605,21 +605,10 @@ class DataFrame(NDFrame):
 
     def _repr_fits_vertical_(self):
         """
-        Check if full repr fits in vertical boundaries imposed by the display
-        options height and max_rows.  In case of non-interactive session,
-        no boundaries apply.
+        Check length against max_rows.
         """
-        width, height = fmt.get_console_size()
         max_rows = get_option("display.max_rows")
-
-        if height is None and max_rows is None:
-            return True
-
-        else:
-            # min of two, where one may be None
-            height = height or max_rows +1
-            max_rows = max_rows or height +1
-            return len(self) <= min(max_rows, height)
+        return len(self) <= max_rows
 
     def _repr_fits_horizontal_(self,ignore_width=False):
         """
@@ -632,8 +621,6 @@ class DataFrame(NDFrame):
         GH3541, GH3573
         """
 
-        # everytime you add an if-clause here, god slaughters a kitten.
-        # please. think of the kittens.
         width, height = fmt.get_console_size()
         max_columns = get_option("display.max_columns")
         nb_columns = len(self.columns)
@@ -643,31 +630,37 @@ class DataFrame(NDFrame):
             ((not ignore_width) and width and nb_columns > (width // 2))):
             return False
 
-        if width is None:
-            # no sense finding width of repr if no width set
+        if (ignore_width  # used by repr_html under IPython notebook
+            or not com.in_interactive_session()): # scripts ignore terminal dims
             return True
 
+        if (get_option('display.width') is not None or
+            com.in_ipython_frontend()):
+            # check at least the column row for excessive width
+            max_rows = 1
+        else:
+            max_rows = get_option("display.max_rows")
+
+        # when auto-detecting, so width=None and not in ipython front end
+        # check whether repr fits horizontal by actualy checking
+        # the width of the rendered repr
         buf = StringIO()
 
         # only care about the stuff we'll actually print out
         # and to_string on entire frame may be expensive
         d = self
-        max_rows = get_option("display.max_rows")
-        if not (height is None and max_rows is None):
+
+        if not (max_rows is None): # unlimited rows
             # min of two, where one may be None
-            height = height or max_rows +1
-            max_rows = max_rows or height +1
-            d=d.iloc[:min(max_rows, height,len(d))]
+            d=d.iloc[:min(max_rows,len(d))]
+        else:
+            return True
 
         d.to_string(buf=buf)
         value = buf.getvalue()
         repr_width = max([len(l) for l in value.split('\n')])
 
-        # special case ipnb+HTML repr
-        if not ignore_width:
-            return repr_width <= width
-        else:
-            return True
+        return repr_width < width
 
     def __str__(self):
         """
@@ -709,14 +702,11 @@ class DataFrame(NDFrame):
         if fits_vertical and fits_horizontal:
             self.to_string(buf=buf)
         else:
-            width, height = fmt.get_console_size()
-            max_rows = get_option("display.max_rows") or height
-            # expand_repr basically takes the extrac columns that don't
-            # fit the width, and creates a new page, which increases
-            # the effective row count. check number of cols agaibst
-            # max rows to catch wrapping. that would exceed max_rows.
-            if (get_option("display.expand_frame_repr") and fits_vertical and
-                len(self.columns) < max_rows):
+            width, _ = fmt.get_console_size()
+            max_rows = get_option("display.max_rows")
+            if (get_option("display.expand_frame_repr")
+                and fits_vertical):
+                # and len(self.columns) < max_rows)
                 self.to_string(buf=buf, line_width=width)
             else:
                 max_info_rows = get_option('display.max_info_rows')
@@ -892,7 +882,7 @@ class DataFrame(NDFrame):
 
     # Python 2 division methods
     if not py3compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__', '/', 
+        __div__ = _arith_method(operator.div, '__div__', '/',
                                 default_axis=None, fill_zeros=np.inf)
         __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
                                  default_axis=None, fill_zeros=np.inf)

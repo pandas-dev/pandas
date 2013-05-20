@@ -1702,7 +1702,7 @@ def detect_console_encoding():
 def get_console_size():
     """Return console size as tuple = (width, height).
 
-    May return (None,None) in some cases.
+    Returns (None,None) in non-interactive session.
     """
     display_width = get_option('display.width')
     display_height = get_option('display.height')
