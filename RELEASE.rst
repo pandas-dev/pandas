@@ -48,6 +48,8 @@ pandas 0.11.1
   - Add iterator to ``Series.str`` (GH3638_)
   - ``pd.set_option()`` now allows N option, value pairs (GH3667_).
   - Added keyword parameters for different types of scatter_matrix subplots
+  - A ``filter`` method on grouped Series or DataFrames returns a subset of
+    the original (GH3680_, GH919_)
 
 **Improvements to existing features**
 

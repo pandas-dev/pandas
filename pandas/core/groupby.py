@@ -1558,6 +1558,42 @@ class SeriesGroupBy(GroupBy):
         result = _possibly_downcast_to_dtype(result, dtype)
         return self.obj.__class__(result,index=self.obj.index,name=self.obj.name)
 
+    def filter(self, func, dropna=True, *args, **kwargs):
+        """
+        Return a copy of a Series excluding elements from groups that
+        do not satisfy the boolean criterion specified by func.
+
+        Parameters
+        ----------
+        func : function
+            To apply to each group. Should return True or False.
+        dropna : Drop groups that do not pass the filter. True by default;
+            if False, groups that evaluate False are filled with NaNs.
+
+        Example
+        -------
+        >>> grouped.filter(lambda x: x.mean() > 0)
+
+        Returns
+        -------
+        filtered : Series
+        """
+        if isinstance(func, basestring):
+            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
+        else:
+            wrapper = lambda x: func(x, *args, **kwargs)
+
+        indexers = [self.obj.index.get_indexer(group.index) \
+                    if wrapper(group) else [] for _ , group in self]
+
+        if len(indexers) == 0:
+            filtered = self.obj.take([]) # because np.concatenate would fail
+        else:
+            filtered = self.obj.take(np.concatenate(indexers))
+        if dropna:
+            return filtered
+        else:
+            return filtered.reindex(self.obj.index) # Fill with NaNs.
 
 class NDFrameGroupBy(GroupBy):
 
@@ -1928,47 +1964,22 @@ class NDFrameGroupBy(GroupBy):
 
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
-
-        if isinstance(func, basestring):
-            fast_path = lambda group: getattr(group, func)(*args, **kwargs)
-            slow_path = lambda group: group.apply(lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis)
-        else:
-            fast_path = lambda group: func(group, *args, **kwargs)
-            slow_path = lambda group: group.apply(lambda x: func(x, *args, **kwargs), axis=self.axis)
+        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
         path = None
         for name, group in gen:
             object.__setattr__(group, 'name', name)
 
-            # decide on a fast path
             if path is None:
-
-                path = slow_path
+                # Try slow path and fast path.
                 try:
-                    res  = slow_path(group)
-
-                    # if we make it here, test if we can use the fast path
-                    try:
-                        res_fast = fast_path(group)
-
-                        # compare that we get the same results
-                        if res.shape == res_fast.shape:
-                            res_r = res.values.ravel()
-                            res_fast_r = res_fast.values.ravel()
-                            mask = notnull(res_r)
-                            if (res_r[mask] == res_fast_r[mask]).all():
-                                path = fast_path
-
-                    except:
-                        pass
+                    path, res = self._choose_path(fast_path, slow_path, group)
                 except TypeError:
                     return self._transform_item_by_item(obj, fast_path)
                 except Exception:  # pragma: no cover
                     res  = fast_path(group)
                     path = fast_path
-
             else:
-
                 res = path(group)
 
             # broadcasting
@@ -1987,6 +1998,35 @@ class NDFrameGroupBy(GroupBy):
                               axis=self.axis, verify_integrity=False)
         concatenated.sort_index(inplace=True)
         return concatenated
+
+    def _define_paths(self, func, *args, **kwargs):
+        if isinstance(func, basestring):
+            fast_path = lambda group: getattr(group, func)(*args, **kwargs)
+            slow_path = lambda group: group.apply(lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis)
+        else:
+            fast_path = lambda group: func(group, *args, **kwargs)
+            slow_path = lambda group: group.apply(lambda x: func(x, *args, **kwargs), axis=self.axis)
+        return fast_path, slow_path 
+
+    def _choose_path(self, fast_path, slow_path, group):
+        path = slow_path
+        res  = slow_path(group)
+
+        # if we make it here, test if we can use the fast path
+        try:
+            res_fast = fast_path(group)
+
+            # compare that we get the same results
+            if res.shape == res_fast.shape:
+                res_r = res.values.ravel()
+                res_fast_r = res_fast.values.ravel()
+                mask = notnull(res_r)
+            if (res_r[mask] == res_fast_r[mask]).all():
+                path = fast_path
+
+        except:
+            pass
+        return path, res
 
     def _transform_item_by_item(self, obj, wrapper):
         # iterate through columns
@@ -2007,6 +2047,63 @@ class NDFrameGroupBy(GroupBy):
             columns = columns.take(inds)
 
         return DataFrame(output, index=obj.index, columns=columns)
+
+    def filter(self, func, dropna=True, *args, **kwargs):
+        """
+        Return a copy of a DataFrame excluding elements from groups that
+        do not satisfy the boolean criterion specified by func.
+
+        Parameters
+        ----------
+        f : function
+            Function to apply to each subframe. Should return True or False.
+        dropna : Drop groups that do not pass the filter. True by default;
+            if False, groups that evaluate False are filled with NaNs.
+
+        Note
+        ----
+        Each subframe is endowed the attribute 'name' in case you need to know
+        which group you are working on.
+
+        Example
+        --------
+        >>> grouped = df.groupby(lambda x: mapping[x])
+        >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)
+        """
+        from pandas.tools.merge import concat
+
+        indexers = []
+
+        obj = self._obj_with_exclusions
+        gen = self.grouper.get_iterator(obj, axis=self.axis)
+
+        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
+
+        path = None
+        for name, group in gen:
+            object.__setattr__(group, 'name', name)
+
+            if path is None:
+                # Try slow path and fast path.
+                try:
+                    path, res = self._choose_path(fast_path, slow_path, group)
+                except Exception:  # pragma: no cover
+                    res  = fast_path(group)
+                    path = fast_path
+            else:
+                res = path(group)
+
+            if res:
+                indexers.append(self.obj.index.get_indexer(group.index))
+
+        if len(indexers) == 0:
+            filtered = self.obj.take([]) # because np.concatenate would fail
+        else:
+            filtered = self.obj.take(np.concatenate(indexers))
+        if dropna:
+            return filtered
+        else:
+            return filtered.reindex(self.obj.index) # Fill with NaNs.
 
 
 class DataFrameGroupBy(NDFrameGroupBy):
