@@ -748,6 +748,12 @@ class DataFrame(NDFrame):
         # then to get a summary view. GH3541, GH3573
         ipnbh = com.in_ipnb() and get_option('display.notebook_repr_html')
 
+        # qtconsole doesn't report it's line width, and also
+        # behaves badly when outputting an HTML table
+        # that doesn't fit the window, so disable it.
+        if com.in_qtconsole():
+            raise ValueError('Disable HTML output in QtConsole')
+
         if get_option("display.notebook_repr_html"):
             fits_vertical = self._repr_fits_vertical_()
             fits_horizontal = False
