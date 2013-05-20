@@ -77,7 +77,6 @@ if ( ! $VENV_FILE_AVAILABLE ); then
         pip install $PIP_ARGS patsy
         pip install $PIP_ARGS lxml
         pip install $PIP_ARGS beautifulsoup4
-        pip install $PIP_ARGS html5lib
 
         # fool statsmodels into thinking pandas was already installed
         # so it won't refuse to install itself. We want it in the zipped venv
