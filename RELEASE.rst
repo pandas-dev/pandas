@@ -30,7 +30,7 @@ pandas 0.11.1
 
 **New features**
 
-  - ``pandas.read_html()`` can now parse HTML strings, files or urls and
+  - ``pd.read_html()`` can now parse HTML strings, files or urls and
     returns a list of ``DataFrame`` s courtesy of @cpcloud. (GH3477_, GH3605_,
     GH3606_)
   - Support for reading Amazon S3 files. (GH3504_)
@@ -91,7 +91,6 @@ pandas 0.11.1
   - Fixed an esoteric excel reading bug, xlrd>= 0.9.0 now required for excel
     support. Should provide python3 support (for reading) which has been
     lacking. (GH3164_)
-  - Addressed handling of dupe columns in df.to_csv new and old (GH3454_, GH3457_)
   - Allow unioning of date ranges sharing a timezone (GH3491_)
   - Fix to_csv issue when having a large number of rows and ``NaT`` in some
     columns (GH3437_)
@@ -104,6 +103,7 @@ pandas 0.11.1
   - Fix issue when storing uint dtypes in an HDFStore. (GH3493_)
   - Non-unique index support clarified (GH3468_)
 
+    - Addressed handling of dupe columns in df.to_csv new and old (GH3454_, GH3457_)
     - Fix assigning a new index to a duplicate index in a DataFrame would fail (GH3468_)
     - Fix construction of a DataFrame with a duplicate index
     - ref_locs support to allow duplicative indices across dtypes,

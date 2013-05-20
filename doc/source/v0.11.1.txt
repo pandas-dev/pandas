@@ -64,27 +64,11 @@ API changes
 
 Enhancements
 ~~~~~~~~~~~~
+
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
-    DataFrames
-    courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_)
-  - ``read_html()`` (GH3616_)
-    - now works with only a *single* parser backend, that is:
-      - BeautifulSoup4 + html5lib
-    - does *not* and will never support using the html parsing library
-      included with Python as a parser backend
-    - is a bit smarter about the parent table elements of matched text: if
-      multiple matches are found then only the *unique* parents of the result
-      are returned (uniqueness is determined using ``set``).
-    - no longer tries to guess about what you want to do with empty table cells
-    - argument ``infer_types`` now defaults to ``False``.
-    - now returns DataFrames whose default column index is the elements of
-      ``<thead>`` elements in the HTML soup, if any exist.
-    - considers all ``<th>`` and ``<td>`` elements inside of ``<thead>``
-      elements.
-    - tests are now correctly skipped if the proper libraries are not
-      installed.
-    - tests now include a ground-truth csv file from the FDIC failed bank list
-      data set.
+    DataFrames, courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_, GH3616_).
+    It works with a *single* parser backend: BeautifulSoup4 + html5lib
+
   - ``HDFStore``
 
     - will retain index attributes (freq,tz,name) on recreation (GH3499_)
