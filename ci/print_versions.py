@@ -103,4 +103,23 @@ try:
 except:
     print("sqlalchemy: Not installed")
 
+try:
+    import lxml
+    from lxml import etree
+    print("lxml: %s" % etree.__version__)
+except:
+    print("lxml: Not installed")
+
+try:
+    import bs4
+    print("bs4: %s" % bs4.__version__)
+except:
+    print("bs4: Not installed")
+
+try:
+    import html5lib
+    print("html5lib: %s" % html5lib.__version__)
+except:
+    print("html5lib: Not installed")
+
 print("\n")
