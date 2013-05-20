@@ -40,8 +40,8 @@ pandas 0.11.1
     list of the rows from which to read the index. Added the option,
     ``tupleize_cols`` to provide compatiblity for the pre 0.11.1 behavior of
     writing and reading multi-index columns via a list of tuples. The default in
-    0.11.1 is to write lists of tuples and *not* interpret list of tuples as a 
-    multi-index column.  
+    0.11.1 is to write lists of tuples and *not* interpret list of tuples as a
+    multi-index column.
     Note: The default value will change in 0.12 to make the default *to* write and
     read multi-index columns in the new format. (GH3571_, GH1651_, GH3141_)
   - Add iterator to ``Series.str`` (GH3638_)
@@ -79,8 +79,8 @@ pandas 0.11.1
     ``timedelta64[ns]`` to ``object/int`` (GH3425_)
   - Do not allow datetimelike/timedeltalike creation except with valid types
     (e.g. cannot pass ``datetime64[ms]``) (GH3423_)
-  - Add ``squeeze`` keyword to ``groupby`` to allow reduction from 
-    DataFrame -> Series if groups are unique. Regression from 0.10.1, 
+  - Add ``squeeze`` keyword to ``groupby`` to allow reduction from
+    DataFrame -> Series if groups are unique. Regression from 0.10.1,
     partial revert on (GH2893_) with (GH3596_)
   - Raise on ``iloc`` when boolean indexing with a label based indexer mask
     e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
@@ -134,11 +134,12 @@ pandas 0.11.1
     is a ``list`` or ``tuple``.
   - Fixed bug where a time-series was being selected in preference to an actual column name
     in a frame (GH3594_)
-  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
+  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
     ``np.nan`` or ``np.inf`` as appropriate (GH3590_)
   - Fix incorrect dtype on groupby with ``as_index=False`` (GH3610_)
   - Fix ``read_csv`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
     was failing (GH3611_)
+  - Disable HTML output in qtconsole again. (GH3657_)
   - Fix indexing issue in ndim >= 3 with ``iloc`` (GH3617_)
   - Correctly parse date columns with embedded (nan/NaT) into datetime64[ns] dtype in ``read_csv``
     when ``parse_dates`` is specified (GH3062_)
