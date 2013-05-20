@@ -759,6 +759,7 @@ class _LocIndexer(_LocationIndexer):
         labels = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
+            self._has_valid_type(key,axis)
             return self._get_slice_axis(key, axis=axis)
         elif com._is_bool_indexer(key):
             return self._getbool_axis(key, axis=axis)
