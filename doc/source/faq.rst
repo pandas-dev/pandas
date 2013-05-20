@@ -22,6 +22,38 @@ Frequently Asked Questions (FAQ)
    plt.close('all')
    options.display.mpl_style='default'
 
+
+.. _ref-repr-control:
+
+How do I control the way my DataFrame is displayed?
+-------------------------------------------
+
+Pandas users rely on a variety of environments for using pandas: scripts, terminal,
+IPython qtconsole/ notebook, (IDLE, spyder, etc').
+Each environment has it's own capabilities and limitations: HTML support,
+horizontal scrolling, auto-detection of width/height.
+To appropriately address all these environments, the display behavior is controlled
+by several options, which you're encouraged to tweak to suit your setup.
+
+As of 0.11.0, the relavent options are all under the `display` namespace,
+(e.g. display.width, display.height, etc'):
+- notebook_repr_html: if True, IPython frontends with HTML support will display
+  dataframes as HTML tables when possible.
+- expand_repr (default True):  when the frame width cannot fit within the screen,
+  the output will be broken into multiple pages to accomedate. This applies to
+  textual (as opposed to HTML) display only.
+- max_columns: max dataframe columns to display. a wider frame will trigger
+  a summary view, unless `expand_repr` is True and HTML output is disabled.
+- max_rows: max dataframe rows display. a longer frame will trigger a summary view.
+- width: width of display screen in characters. When using a terminal, setting this to None
+  will trigger auto-detection of terminal width.
+- height: height of display screen. When using a terminal, setting this to None
+  will trigger auto-detection of terminal height.
+
+IPython users can use the IPython startup file to import pandas and set these
+options automatically when starting up.
+
+
 .. _ref-monkey-patching:
 
 Adding Features to your Pandas Installation
