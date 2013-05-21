@@ -22,8 +22,8 @@ _multiprocess_can_split_ = True
 
 def test_melt():
     df = tm.makeTimeDataFrame()[:10]
-    df['id1'] = (df['A'] > 0).astype(int)
-    df['id2'] = (df['B'] > 0).astype(int)
+    df['id1'] = (df['A'] > 0).astype(np.int64)
+    df['id2'] = (df['B'] > 0).astype(np.int64)
 
     var_name = 'var'
     value_name = 'val'
