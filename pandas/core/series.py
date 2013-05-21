@@ -456,7 +456,7 @@ class Series(pa.Array, generic.PandasObject):
                 if isinstance(data, OrderedDict):
                     index = Index(data)
                 else:
-                    index = Index(sorted(data))
+                    index = Index(np.sort(data.keys()))
             try:
                 if isinstance(index, DatetimeIndex):
                     # coerce back to datetime objects for lookup
