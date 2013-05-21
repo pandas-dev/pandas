@@ -146,7 +146,8 @@ pandas 0.11.1
   - Correctly parse date columns with embedded (nan/NaT) into datetime64[ns] dtype in ``read_csv``
     when ``parse_dates`` is specified (GH3062_)
   - Fix not consolidating before to_csv (GH3624_)
-  - Fix alignment issue when setitem in a DataFrame with a piece of a DataFrame (GH3626_)
+  - Fix alignment issue when setitem in a DataFrame with a piece of a DataFrame (GH3626_) or
+    a mixed DataFrame and a Series (GH3668_)
   - Fix plotting of unordered DatetimeIndex (GH3601_)
   - ``sql.write_frame`` failing when writing a single column to sqlite (GH3628_),
     thanks to @stonebig
@@ -217,6 +218,7 @@ pandas 0.11.1
 .. _GH3141: https://github.com/pydata/pandas/issues/3141
 .. _GH3628: https://github.com/pydata/pandas/issues/3628
 .. _GH3638: https://github.com/pydata/pandas/issues/3638
+.. _GH3668: https://github.com/pydata/pandas/issues/3668
 .. _GH3605: https://github.com/pydata/pandas/issues/3605
 .. _GH3606: https://github.com/pydata/pandas/issues/3606
 .. _GH3659: https://github.com/pydata/pandas/issues/3659
