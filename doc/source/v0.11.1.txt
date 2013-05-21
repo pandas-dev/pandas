@@ -68,6 +68,21 @@ Enhancements
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
     DataFrames, courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_, GH3616_).
     It works with a *single* parser backend: BeautifulSoup4 + html5lib
+    - You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
+
+    .. ipython :: python
+
+        df = DataFrame({'a': range(3), 'b': list('abc')})
+        print df
+        html = df.to_html()
+        alist = pd.read_html(html, infer_types=True, index_col=0)
+        print df == alist[0]
+
+    Note that ``alist`` here is a Python ``list`` so ``pd.read_html()`` and
+    ``DataFrame.to_html()`` are not inverses.
+
+    - ``pd.read_html()`` no longer performs hard conversion of date strings
+      (GH3656_).
 
   - ``HDFStore``
 
@@ -211,3 +226,4 @@ on GitHub for a complete list.
 .. _GH3616: https://github.com/pydata/pandas/issues/3616
 .. _GH3605: https://github.com/pydata/pandas/issues/3605
 .. _GH3606: https://github.com/pydata/pandas/issues/3606
+.. _GH3656: https://github.com/pydata/pandas/issues/3656
