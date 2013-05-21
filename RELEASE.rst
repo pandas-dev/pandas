@@ -102,6 +102,8 @@ pandas 0.11.1
     GH3675_, GH3676_).
   - Deprecated display.height, display.width is now only a formatting option
     does not control triggering of summary, similar to < 0.11.0.
+  - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
+    to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
 
 **Bug Fixes**
 
@@ -133,6 +135,7 @@ pandas 0.11.1
     - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
     - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
     - Non-unique indexing with a slice via ``loc`` and friends fixed (GH3659_)
+    - Allow insert/delete to non-unique columns (GH3679_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
@@ -242,6 +245,8 @@ pandas 0.11.1
 .. _GH3606: https://github.com/pydata/pandas/issues/3606
 .. _GH3659: https://github.com/pydata/pandas/issues/3659
 .. _GH3649: https://github.com/pydata/pandas/issues/3649
+.. _GH3679: https://github.com/pydata/pandas/issues/3679
+.. _Gh3616: https://github.com/pydata/pandas/issues/3616
 .. _GH1818: https://github.com/pydata/pandas/issues/1818
 .. _GH3572: https://github.com/pydata/pandas/issues/3572
 .. _GH3582: https://github.com/pydata/pandas/issues/3582

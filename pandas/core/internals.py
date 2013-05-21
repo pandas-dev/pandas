@@ -71,6 +71,10 @@ class Block(object):
             self._ref_locs = indexer
         return self._ref_locs
 
+    def reset_ref_locs(self):
+        """ reset the block ref_locs """
+        self._ref_locs = np.empty(len(self.items),dtype='int64')
+
     def set_ref_locs(self, placement):
         """ explicity set the ref_locs indexer, only necessary for duplicate indicies """
         if placement is not None:
@@ -129,7 +133,11 @@ class Block(object):
         values = self.values
         if deep:
             values = values.copy()
-        return make_block(values, self.items, self.ref_items, klass=self.__class__, fastpath=True)
+        block = make_block(values, self.items, self.ref_items, klass=self.__class__, fastpath=True)
+        ref_locs = getattr(self,'_ref_locs',None)
+        if ref_locs is not None:
+            block.set_ref_locs(ref_locs.copy())
+        return block
 
     def merge(self, other):
         if not self.ref_items.equals(other.ref_items):
@@ -200,31 +208,6 @@ class Block(object):
         new_items = self.items.delete(loc)
         new_values = np.delete(self.values, loc, 0)
         return make_block(new_values, new_items, self.ref_items, klass=self.__class__, fastpath=True)
-
-    def split_block_at(self, item):
-        """
-        Split block into zero or more blocks around columns with given label,
-        for "deleting" a column without having to copy data by returning views
-        on the original array.
-
-        Returns
-        -------
-        generator of Block
-        """
-        loc = self.items.get_loc(item)
-
-        if type(loc) == slice or type(loc) == int:
-            mask = [True] * len(self)
-            mask[loc] = False
-        else:  # already a mask, inverted
-            mask = -loc
-
-        for s, e in com.split_ranges(mask):
-            yield make_block(self.values[s:e],
-                             self.items[s:e].copy(),
-                             self.ref_items,
-                             klass=self.__class__,
-                             fastpath=True)
 
     def fillna(self, value, inplace=False, downcast=None):
         if not self._can_hold_na:
@@ -1031,11 +1014,11 @@ class BlockManager(object):
     def ndim(self):
         return len(self.axes)
 
-    def set_axis(self, axis, value):
+    def set_axis(self, axis, value, maybe_rename=True):
         cur_axis = self.axes[axis]
         value = _ensure_index(value)
 
-        if len(value) != len(cur_axis):
+        if maybe_rename and len(value) != len(cur_axis):
             raise Exception('Length mismatch (%d vs %d)'
                             % (len(value), len(cur_axis)))
 
@@ -1049,10 +1032,32 @@ class BlockManager(object):
 
             # take via ref_locs
             for block in self.blocks:
-                block.set_ref_items(self.items, maybe_rename=True)
+                block.set_ref_items(self.items, maybe_rename=maybe_rename)
 
             # set/reset ref_locs based on the new index
             self._set_ref_locs(labels=value, do_refs=True)
+
+
+    def _reset_ref_locs(self):
+        """ take the current _ref_locs and reset ref_locs on the blocks
+            to correctly map, ignoring Nones;
+            reset both _items_map and _ref_locs """
+
+        if self.items.is_unique: return
+        
+        # let's reset the ref_locs in individual blocks
+        for b in self.blocks:
+            b.reset_ref_locs()
+
+        # reset the ref_locs on the individual blocks
+        item_count = 0
+        for v in self._ref_locs:
+            if v is not None:
+                block, item_loc = v
+                block._ref_locs[item_loc] = item_count
+                item_count += 1
+        self._ref_locs  = None
+        self._items_map = None
 
     def _set_ref_locs(self, labels=None, do_refs=False):
         """
@@ -1092,13 +1097,6 @@ class BlockManager(object):
             if im is None:
 
                 im = dict()
-                def maybe_create_block(block):
-                    try:
-                        return d[block]
-                    except:
-                        im[block] = l = [ None ] * len(block.items)
-                    return l
-
                 count_items = 0
                 for block in self.blocks:
 
@@ -1111,7 +1109,7 @@ class BlockManager(object):
                     except:
                         rl = np.arange(num_items) + count_items
 
-                    m = maybe_create_block(block)
+                    m = maybe_create_block_in_items_map(im,block)
                     for i, item in enumerate(block.items):
                         m[i] = rl[i]
                     count_items += num_items
@@ -1123,7 +1121,7 @@ class BlockManager(object):
             for block, items in im.items():
                 for i, loc in enumerate(items):
                     rl[loc] = (block,i)
-            self._ref_locs = rl
+            self._ref_locs = rl.tolist()
             return rl
 
         # return our cached _ref_locs (or will compute again 
@@ -1147,20 +1145,13 @@ class BlockManager(object):
         im = dict()
         rl = self._set_ref_locs()
 
-        def maybe_create_block(block):
-            try:
-                return im[block]
-            except:
-                im[block] = l = [ None ] * len(block.items)
-            return l
-
         # we have a non-duplicative index
         if rl is None:
 
             axis = self.axes[0]
             for block in self.blocks:
 
-                m = maybe_create_block(block)
+                m = maybe_create_block_in_items_map(im,block)
                 for i, item in enumerate(block.items):
                     m[i] = axis.get_loc(item)
 
@@ -1170,7 +1161,7 @@ class BlockManager(object):
 
             for i, (block, idx) in enumerate(rl):
                 
-                m = maybe_create_block(block)
+                m = maybe_create_block_in_items_map(im,block)
                 m[idx] = i
 
         self._items_map = im
@@ -1640,7 +1631,15 @@ class BlockManager(object):
 
     def _consolidate_inplace(self):
         if not self.is_consolidated():
+
             self.blocks = _consolidate(self.blocks, self.items)
+
+            # reset our mappings
+            if not self.items.is_unique:
+                self._ref_locs = None
+                self._items_map = None
+                self._set_ref_locs(do_refs=True)
+
             self._is_consolidated = True
             self._known_consolidated = True
 
@@ -1672,17 +1671,36 @@ class BlockManager(object):
         return blk.values[full_loc]
 
     def delete(self, item):
-        i, _ = self._find_block(item)
+
+        is_unique = self.items.is_unique
         loc = self.items.get_loc(item)
 
-        self._delete_from_block(i, item)
-        if com._is_bool_indexer(loc):  # dupe keys may return mask
+        # dupe keys may return mask
+        if com._is_bool_indexer(loc):
             loc = [i for i, v in enumerate(loc) if v]
+        elif isinstance(loc,slice):
+            loc = range(loc.start,loc.stop)
 
+        if isinstance(loc, (list,tuple,np.ndarray)):
+
+            # the blocks are changing each iteration!
+            for l in loc:
+                for i, b in enumerate(self.blocks):
+                    if item in b.items:
+                        self._delete_from_block(i, item)
+    
+        else:
+            i, _ = self._find_block(item)
+            self._delete_from_block(i, item)
+    
+        # _ref_locs, and _items_map are good here
         new_items = self.items.delete(loc)
-
         self.set_items_norename(new_items)
+
         self._known_consolidated = False
+
+        if not is_unique:
+            self._consolidate_inplace()
 
     def set(self, item, value):
         """
@@ -1720,8 +1738,9 @@ class BlockManager(object):
 
         self._known_consolidated = False
 
-    def insert(self, loc, item, value):
-        if item in self.items:
+    def insert(self, loc, item, value, allow_duplicates=False):
+
+        if not allow_duplicates and item in self.items:
             raise Exception('cannot insert %s, already exists' % item)
 
         try:
@@ -1747,20 +1766,71 @@ class BlockManager(object):
         self._known_consolidated = False
 
     def set_items_norename(self, value):
-        value = _ensure_index(value)
-        self.axes[0] = value
-
-        for block in self.blocks:
-            block.set_ref_items(value, maybe_rename=False)
+        self.set_axis(0, value, maybe_rename=False)
 
     def _delete_from_block(self, i, item):
         """
         Delete and maybe remove the whole block
-        """
-        block = self.blocks.pop(i)
-        for b in block.split_block_at(item):
-            self.blocks.append(b)
 
+        Remap the split blocks to there old ranges,
+        so after this function, _ref_locs and _items_map (if used)
+        are correct for the items, None fills holes in _ref_locs
+        """
+        block     = self.blocks.pop(i)
+        ref_locs  = self._set_ref_locs()
+        prev_items_map = self._items_map.pop(block) if ref_locs is not None else None
+
+        # compute the split mask
+        loc = block.items.get_loc(item)
+        if type(loc) == slice or com.is_integer(loc):
+            mask = np.array([True] * len(block))
+            mask[loc] = False
+        else:  # already a mask, inverted
+            mask = -loc
+
+        # split the block
+        counter = 0
+        for s, e in com.split_ranges(mask):
+
+            sblock = make_block(block.values[s:e],
+                                block.items[s:e].copy(),
+                                block.ref_items,
+                                klass=block.__class__,
+                                fastpath=True)
+
+            self.blocks.append(sblock)
+
+            # update the _ref_locs/_items_map
+            if ref_locs is not None:
+
+                # fill the item_map out for this sub-block
+                m = maybe_create_block_in_items_map(self._items_map,sblock)
+                for j, itm in enumerate(sblock.items):
+
+                    # is this item masked (e.g. was deleted)?
+                    while (True):
+
+                        if counter > len(mask) or mask[counter]:
+                            break
+                        else:
+                            counter += 1
+
+                    # find my mapping location
+                    m[j] = prev_items_map[counter]
+                    counter += 1
+
+                # set the ref_locs in this block
+                sblock.set_ref_locs(m)
+
+        # reset the ref_locs to the new structure
+        if ref_locs is not None:
+
+            # items_map is now good, with the original locations
+            self._set_ref_locs(do_refs=True)
+
+            # reset the ref_locs based on the now good block._ref_locs
+            self._reset_ref_locs()
+            
     def _add_new_block(self, item, value, loc=None):
         # Do we care about dtype at the moment?
 
@@ -1771,6 +1841,26 @@ class BlockManager(object):
                                self.items, fastpath=True)
         self.blocks.append(new_block)
 
+        # set ref_locs based on the this new block
+        # and add to the ref/items maps
+        if not self.items.is_unique:
+
+            # insert into the ref_locs at the appropriate location
+            # _ref_locs is already long enough,
+            # but may need to shift elements
+            new_block.set_ref_locs([0])
+
+            # need to shift elements to the right
+            if self._ref_locs[loc] is not None:
+                for i in reversed(range(loc+1,len(self._ref_locs))):
+                    self._ref_locs[i] = self._ref_locs[i-1]
+
+            self._ref_locs[loc] = (new_block, 0)
+            
+            # and reset
+            self._reset_ref_locs()
+            self._set_ref_locs(do_refs=True)
+            
     def _find_block(self, item):
         self._check_have(item)
         for i, block in enumerate(self.blocks):
@@ -2077,6 +2167,15 @@ def create_block_manager_from_arrays(arrays, names, axes):
     except (ValueError):
         construction_error(len(arrays),arrays[0].shape[1:],axes)
 
+def maybe_create_block_in_items_map(im,block):
+    """ create/return the block in an items_map """
+    try:
+        return im[block]
+    except:
+        im[block] = l = [ None ] * len(block.items)
+    return l
+
+
 def form_blocks(arrays, names, axes):
 
     # pre-filter out items if we passed it
@@ -2308,7 +2407,16 @@ def _merge_blocks(blocks, items, dtype=None):
     new_values = _vstack([ b.values for b in blocks ], dtype)
     new_items = blocks[0].items.append([b.items for b in blocks[1:]])
     new_block = make_block(new_values, new_items, items)
-    return new_block.reindex_items_from(items)
+
+    # unique, can reindex
+    if items.is_unique:
+        return new_block.reindex_items_from(items)
+
+    # merge the ref_locs
+    new_ref_locs = [ b._ref_locs for b in blocks ]
+    if all([ x is not None for x in new_ref_locs ]):
+        new_block.set_ref_locs(np.concatenate(new_ref_locs))
+    return new_block    
 
 
 def _block_shape(values, ndim=1, shape=None):

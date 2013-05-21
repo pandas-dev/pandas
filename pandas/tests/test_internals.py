@@ -1,7 +1,7 @@
 # pylint: disable=W0102
 
 import unittest
-
+import nose
 import numpy as np
 
 from pandas import Index, MultiIndex, DataFrame, Series
@@ -173,6 +173,11 @@ class TestBlock(unittest.TestCase):
         self.assertRaises(Exception, self.fblock.delete, 'b')
 
     def test_split_block_at(self):
+
+        # with dup column support this method was taken out
+        # GH3679
+        raise nose.SkipTest
+
         bs = list(self.fblock.split_block_at('a'))
         self.assertEqual(len(bs), 1)
         self.assertTrue(np.array_equal(bs[0].items, ['c', 'e']))

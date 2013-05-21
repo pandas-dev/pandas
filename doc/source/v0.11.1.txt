@@ -71,6 +71,8 @@ API changes
     ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (GH3582_,
     GH3675_, GH3676_)
 
+  - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
+    to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
 
 Enhancements
 ~~~~~~~~~~~~
@@ -209,6 +211,7 @@ Bug Fixes
       and handle missing elements like unique indices (GH3561_)
     - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
     - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
+    - Allow insert/delete to non-unique columns (GH3679_)
 
     For example you can do
 
@@ -270,3 +273,4 @@ on GitHub for a complete list.
 .. _GH3676: https://github.com/pydata/pandas/issues/3676
 .. _GH3675: https://github.com/pydata/pandas/issues/3675
 .. _GH3682: https://github.com/pydata/pandas/issues/3682
+.. _GH3679: https://github.com/pydata/pandas/issues/3679

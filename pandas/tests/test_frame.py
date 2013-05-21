@@ -2825,6 +2825,67 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           [('a', [8]), ('a', [5]), ('b', [6])],
                           columns=['b', 'a', 'a'])
 
+
+    def test_column_duplicates_operations(self):
+        df = DataFrame([[1,1,1,5],[1,1,2,5],[2,1,3,5]],columns=['foo','bar','foo','hello'])
+
+        # insert
+        df['string'] = 'bah'
+        expected = DataFrame([[1,1,1,5,'bah'],[1,1,2,5,'bah'],[2,1,3,5,'bah']],columns=['foo','bar','foo','hello','string'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
+        # insert same dtype
+        df['foo2'] = 3
+        expected = DataFrame([[1,1,1,5,'bah',3],[1,1,2,5,'bah',3],[2,1,3,5,'bah',3]],columns=['foo','bar','foo','hello','string','foo2'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
+        # delete (non dup)
+        del df['bar']
+        expected = DataFrame([[1,1,5,'bah',3],[1,2,5,'bah',3],[2,3,5,'bah',3]],columns=['foo','foo','hello','string','foo2'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
+        # try to delete again (its not consolidated)
+        del df['hello']
+        expected = DataFrame([[1,1,'bah',3],[1,2,'bah',3],[2,3,'bah',3]],columns=['foo','foo','string','foo2'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
+        # consolidate
+        df = df.consolidate()
+        expected = DataFrame([[1,1,'bah',3],[1,2,'bah',3],[2,3,'bah',3]],columns=['foo','foo','string','foo2'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
+        # insert
+        df.insert(2,'new_col',5.)
+        expected = DataFrame([[1,1,5.,'bah',3],[1,2,5.,'bah',3],[2,3,5.,'bah',3]],columns=['foo','foo','new_col','string','foo2'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
+        # insert a dup
+        self.assertRaises(Exception, df.insert, 2, 'new_col', 4.)
+        df.insert(2,'new_col',4.,allow_duplicates=True)
+        expected = DataFrame([[1,1,4.,5.,'bah',3],[1,2,4.,5.,'bah',3],[2,3,4.,5.,'bah',3]],columns=['foo','foo','new_col','new_col','string','foo2'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
+        # delete (dup)
+        del df['foo']
+        expected = DataFrame([[4.,5.,'bah',3],[4.,5.,'bah',3],[4.,5.,'bah',3]],columns=['new_col','new_col','string','foo2'])
+        assert_frame_equal(df,expected)
+        df.dtypes
+        str(df)
+
     def test_constructor_single_value(self):
 
         # expecting single value upcasting here
