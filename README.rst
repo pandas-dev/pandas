@@ -95,8 +95,14 @@ Optional dependencies
   - Both `html5lib <https://github.com/html5lib/html5lib-python>`__ **and**
     `Beautiful Soup 4 <http://www.crummy.com/software/BeautifulSoup>`__: for
     reading HTML tables
-     - These can both easily be installed by ``pip install html5lib`` and ``pip
-       install beautifulsoup4``.
+
+    .. warning::
+
+       If you are on a 32-bit machine you need to install an older version of
+       Beautiful Soup. Version 4.0.2 of BeautifulSoup has been tested on Ubuntu
+       12.04.02 32-bit.
+
+    - Any recent version of ``html5lib`` is okay.
   - `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
 
 
