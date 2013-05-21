@@ -3506,7 +3506,7 @@ class DataFrame(NDFrame):
 
         See also
         --------
-        reindex, asfreq, fillna, interpolate
+        reindex, asfreq, fillna
 
         Returns
         -------
@@ -3678,6 +3678,10 @@ class DataFrame(NDFrame):
         --------
         reindex, replace, fillna
         """
+        from warnings import warn
+        warn('DataFrame.interpolate will be removed in v0.12, please use '
+             'either DataFrame.fillna or DataFrame.replace instead',
+             FutureWarning)
         if self._is_mixed_type and axis == 1:
             return self.T.replace(to_replace, method=method, limit=limit).T
 
