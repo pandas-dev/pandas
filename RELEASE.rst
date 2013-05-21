@@ -155,6 +155,8 @@ pandas 0.11.1
   - Fix running of bs4 tests when it is not installed (GH3605_)
   - Fix parsing of html table (GH3606_)
   - ``read_html()`` now only allows a single backend: ``html5lib`` (GH3616_)
+  - ``convert_objects`` with ``convert_dates='coerce'`` was parsing some single-letter strings
+     into today's date
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786

@@ -319,6 +319,7 @@ class Timestamp(_Timestamp):
 
 
 _nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
+_not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
 class NaTType(_NaT):
     """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
 
@@ -876,6 +877,14 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                                                                    &dts)
                     _check_dts_bounds(iresult[i], &dts)
                 except ValueError:
+
+                    # for some reason, dateutil parses some single letter len-1 strings into today's date
+                    if len(val) == 1 and val in _not_datelike_strings:
+                        if coerce:
+                            iresult[i] = iNaT
+                            continue
+                        elif raise_:
+                            raise
                     try:
                         result[i] = parse(val, dayfirst=dayfirst)
                     except Exception:

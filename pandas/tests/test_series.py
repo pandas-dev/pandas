@@ -3509,6 +3509,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         #result = r.convert_objects(convert_dates=True,convert_numeric=False)
         #self.assert_(result.dtype == 'M8[ns]')
 
+        # dateutil parses some single letters into today's value as a date
+        for x in 'abcdefghijklmnopqrstuvwxyz':
+                  s = Series([x])
+                  result = s.convert_objects(convert_dates='coerce')
+                  assert_series_equal(result,s)
+                  s = Series([x.upper()])
+                  result = s.convert_objects(convert_dates='coerce')
+                  assert_series_equal(result,s)
+
     def test_apply_args(self):
         s = Series(['foo,bar'])
 
