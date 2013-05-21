@@ -184,38 +184,40 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
             if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
                 rs = rs[:-1]
 
-            if splits:
-                # check to see if there is split data
-                try:
-                    has_splits = rs.xs('SPLIT')['Dividends'].any()
-                except AttributeError:
-                    has_splits = rs.xs('SPLIT')['Dividends']
-                except KeyError:
-                    # There is no split data
-                    has_splits = False
+            rs.rename(columns={'Dividends': 'Values'}, inplace=True)
+            rs_splits, rs_dividends = DataFrame(), DataFrame()
 
+            # check to see if there is split data
+            try:
+                has_splits = rs.xs('SPLIT')['Values'].any()
+            except AttributeError:
+                has_splits = rs.xs('SPLIT')['Values']
+            except KeyError:
+                # There is no split data
+                has_splits = False
+
+            split_format = splits or has_splits
+
+            if (splits and has_splits and hasattr(rs.xs('SPLIT'), 'pivot')):
                 # Yahoo! Finance returns additional info like 'STARTDATE' and
                 # 'ENDDATE'. This selects only the data we want
-                if (has_splits and hasattr(rs.xs('SPLIT'), 'pivot')):
-                    rs_splits = rs.xs('SPLIT').reset_index()
+                rs_splits = rs.xs('SPLIT').reset_index()
 
                 # If Yahoo! Finance returns one value, the result of '.xs' will
                 # be a Series instead of a DataFrame
-                elif has_splits:
-                    d = {'index': ['SPLIT'], 'Date': [rs.xs('SPLIT')['Date']],
-                         'Dividends': [rs.xs('SPLIT')['Dividends']]}
-                    rs_splits = DataFrame(d)
+            elif (splits and has_splits):
+                d = {'index': ['SPLIT'],
+                     'Date': [rs.xs('SPLIT')['Date']],
+                     'Values': [rs.xs('SPLIT')['Values']]}
 
-                # There is no split data
-                else:
-                    rs_splits = DataFrame()
+                rs_splits = DataFrame(d)
 
-            if splits and dividends:
+            if dividends and split_format:
                 # check to see if there is dividend data
                 try:
-                    has_dividends = rs.xs('DIVIDEND')['Dividends'].any()
+                    has_dividends = rs.xs('DIVIDEND')['Values'].any()
                 except AttributeError:
-                    has_dividends = rs.xs('DIVIDEND')['Dividends']
+                    has_dividends = rs.xs('DIVIDEND')['Values']
                 except KeyError:
                     # There is no dividend data
                     has_dividends = False
@@ -225,24 +227,39 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
                 elif has_dividends:
                     d = {'index': ['DIVIDEND'],
                          'Date': [rs.xs('DIVIDEND')['Date']],
-                         'Dividends': [rs.xs('DIVIDEND')['Dividends']]}
+                         'Values': [rs.xs('DIVIDEND')['Values']]}
 
                     rs_dividends = DataFrame(d)
-                else:
-                    rs_dividends = DataFrame()
 
-                rs = concat([rs_splits, rs_dividends])
-            elif splits:
-                rs = rs_splits
+            elif dividends:
+                # if there are no splits there won't be a 'DIVIDEND' section
+                has_dividends = len(rs) > 0
 
-            if splits and not rs.empty:
+                if has_dividends:
+                    rs_dividends = rs
+
+            # print(rs)
+            rs = concat([rs_splits, rs_dividends])
+            # print(rs_splits)
+            # print(rs_dividends)
+            # print(rs)
+
+            if (split_format and not rs.empty):
                 # Dates in split format are yyyymmdd so convert to yyyy-mm-dd
                 rs.Date = rs.Date.apply(lambda x: str(x))
                 rs.Date = rs.Date.apply(
                     lambda x: '%s-%s-%s' % (x[:4], x[4:6], x[6:]))
 
                 # pivot DataFrame to match format of a normal query
-                rs = rs.pivot(index='Date', columns='index', values='Dividends')
+                rs = rs.pivot(index='Date', columns='index', values='Values')
+
+            if (splits and has_splits):
+                rs.rename(columns={'SPLIT': 'Splits'}, inplace=True)
+
+            if (dividends and has_dividends and split_format):
+                rs.rename(columns={'DIVIDEND': 'Dividends'}, inplace=True)
+            elif (dividends and has_dividends):
+            	rs.rename(columns={'Values': 'Dividends'}, inplace=True)
 
             return rs
 
