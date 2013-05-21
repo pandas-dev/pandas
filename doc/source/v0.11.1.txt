@@ -67,6 +67,9 @@ API changes
     and thus you should cast to an appropriate numeric dtype if you need to
     plot something.
 
+  - ``DataFrame.interpolate()`` is now deprecated. Please use
+    ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (GH3582_,
+    GH3675_, GH3676_)
 
 
 Enhancements
@@ -241,3 +244,6 @@ on GitHub for a complete list.
 .. _GH3656: https://github.com/pydata/pandas/issues/3656
 .. _GH1818: https://github.com/pydata/pandas/issues/1818
 .. _GH3572: https://github.com/pydata/pandas/issues/3572
+.. _GH3582: https://github.com/pydata/pandas/issues/3582
+.. _GH3676: https://github.com/pydata/pandas/issues/3676
+.. _GH3675: https://github.com/pydata/pandas/issues/3675

@@ -96,6 +96,9 @@ pandas 0.11.1
   - The ``raise_on_error`` option to plotting methods is obviated by GH3572_,
     so it is removed. Plots now always raise when data cannot be plotted or the
     object being plotted has a dtype of ``object``.
+  - ``DataFrame.interpolate()`` is now deprecated. Please use
+    ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead (GH3582_,
+    GH3675_, GH3676_).
 
 **Bug Fixes**
 
@@ -233,9 +236,11 @@ pandas 0.11.1
 .. _GH3606: https://github.com/pydata/pandas/issues/3606
 .. _GH3659: https://github.com/pydata/pandas/issues/3659
 .. _GH3649: https://github.com/pydata/pandas/issues/3649
-.. _Gh3616: https://github.com/pydata/pandas/issues/3616
 .. _GH1818: https://github.com/pydata/pandas/issues/1818
 .. _GH3572: https://github.com/pydata/pandas/issues/3572
+.. _GH3582: https://github.com/pydata/pandas/issues/3582
+.. _GH3676: https://github.com/pydata/pandas/issues/3676
+.. _GH3675: https://github.com/pydata/pandas/issues/3675
 
 pandas 0.11.0
 =============
