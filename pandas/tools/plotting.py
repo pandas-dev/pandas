@@ -700,10 +700,8 @@ class MPLPlot(object):
     """
     _default_rot = 0
 
-    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
-                       'raise_on_error']
-    _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
-                      'raise_on_error': True}
+    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog']
+    _attr_defaults = {'logy': False, 'logx': False, 'loglog': False}
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
@@ -1203,27 +1201,17 @@ class LinePlot(MPLPlot):
                 else:
                     args = (ax, x, y, style)
 
-                try:
-                    newline = plotf(*args, **kwds)[0]
-                    lines.append(newline)
-                    leg_label = label
-                    if self.mark_right and self.on_right(i):
-                        leg_label += ' (right)'
-                    labels.append(leg_label)
-                    ax.grid(self.grid)
+                newline = plotf(*args, **kwds)[0]
+                lines.append(newline)
+                leg_label = label
+                if self.mark_right and self.on_right(i):
+                    leg_label += ' (right)'
+                labels.append(leg_label)
+                ax.grid(self.grid)
 
-                    if self._is_datetype():
-                        left, right = _get_xlim(lines)
-                        ax.set_xlim(left, right)
-                except AttributeError as inst: # non-numeric
-                    msg = ('Unable to plot data %s vs index %s,\n'
-                           'error was: %s' % (str(y), str(x), str(inst)))
-                    if not self.raise_on_error:
-                        print msg
-                    else:
-                        msg = msg + ('\nConsider setting raise_on_error=False'
-                                     'to suppress')
-                        raise TypeError(msg)
+                if self._is_datetype():
+                    left, right = _get_xlim(lines)
+                    ax.set_xlim(left, right)
 
             self._make_legend(lines, labels)
 
@@ -1242,22 +1230,12 @@ class LinePlot(MPLPlot):
             return label
 
         def _plot(data, col_num, ax, label, style, **kwds):
-            try:
-                newlines = tsplot(data, plotf, ax=ax, label=label,
-                                  style=style, **kwds)
-                ax.grid(self.grid)
-                lines.append(newlines[0])
-                leg_label = to_leg_label(label, col_num)
-                labels.append(leg_label)
-            except AttributeError as inst: #non-numeric
-                msg = ('Unable to plot %s,\n'
-                       'error was: %s' % (str(data), str(inst)))
-                if not self.raise_on_error:
-                    print msg
-                else:
-                    msg = msg + ('\nConsider setting raise_on_error=False'
-                                 'to suppress')
-                    raise TypeError(msg)
+            newlines = tsplot(data, plotf, ax=ax, label=label,
+                                style=style, **kwds)
+            ax.grid(self.grid)
+            lines.append(newlines[0])
+            leg_label = to_leg_label(label, col_num)
+            labels.append(leg_label)
 
         if isinstance(data, Series):
             ax = self._get_ax(0)  # self.axes[0]

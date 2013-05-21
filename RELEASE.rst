@@ -68,9 +68,9 @@ pandas 0.11.1
     thanks @hoechenberger
   - ``read_html`` no longer performs hard date conversion
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
-    if the associated objects have have a dtype of ``object`` (GH1818_). This
-    happens before any drawing takes place which elimnates any spurious plots
-    from showing up.
+    if the associated objects have have a dtype of ``object`` (GH1818_,
+    GH3572_). This happens before any drawing takes place which elimnates any
+    spurious plots from showing up.
 
 **API Changes**
 
@@ -93,6 +93,9 @@ pandas 0.11.1
   - Raise on ``iloc`` when boolean indexing with a label based indexer mask
     e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
     is purely positional based, the labels on the Series are not alignable (GH3631_)
+  - The ``raise_on_error`` option to plotting methods is obviated by GH3572_,
+    so it is removed. Plots now always raise when data cannot be plotted or the
+    object being plotted has a dtype of ``object``.
 
 **Bug Fixes**
 
@@ -232,6 +235,7 @@ pandas 0.11.1
 .. _GH3649: https://github.com/pydata/pandas/issues/3649
 .. _Gh3616: https://github.com/pydata/pandas/issues/3616
 .. _GH1818: https://github.com/pydata/pandas/issues/1818
+.. _GH3572: https://github.com/pydata/pandas/issues/3572
 
 pandas 0.11.0
 =============

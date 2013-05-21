@@ -61,6 +61,12 @@ API changes
 
     ``df.iloc[mask]`` will raise a ``ValueError``
 
+  - The ``raise_on_error`` argument to plotting functions is removed. Instead,
+    plotting functions raise a ``TypeError`` when the ``dtype`` of the object
+    is ``object`` to remind you to avoid ``object`` arrays whenever possible
+    and thus you should cast to an appropriate numeric dtype if you need to
+    plot something.
+
 
 
 Enhancements
@@ -119,7 +125,7 @@ Enhancements
 
     The last element yielded by the iterator will be a ``Series`` containing
     the last element of the longest string in the ``Series`` with all other
-    elements being ``NaN``. Here since ``'slow`` is the longest string
+    elements being ``NaN``. Here since ``'slow'`` is the longest string
     and there are no other strings with the same length ``'w'`` is the only
     non-null string in the yielded ``Series``.
 
@@ -160,9 +166,9 @@ Enhancements
     to specify custom column names of the returned DataFrame.
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
-    if the associated objects have have a ``dtype`` of ``object`` (GH1818_).
-    This happens before any drawing takes place which elimnates any spurious
-    plots from showing up.
+    if the associated objects have have a ``dtype`` of ``object`` (GH1818_,
+    GH3572_).  This happens before any drawing takes place which elimnates any
+    spurious plots from showing up.
 
 Bug Fixes
 ~~~~~~~~~
@@ -234,3 +240,4 @@ on GitHub for a complete list.
 .. _GH3606: https://github.com/pydata/pandas/issues/3606
 .. _GH3656: https://github.com/pydata/pandas/issues/3656
 .. _GH1818: https://github.com/pydata/pandas/issues/1818
+.. _GH3572: https://github.com/pydata/pandas/issues/3572

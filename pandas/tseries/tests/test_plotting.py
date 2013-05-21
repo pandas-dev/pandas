@@ -89,7 +89,7 @@ class TestTSPlot(unittest.TestCase):
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]}, idx)
 
         plt.close('all')
-        ax = df.plot(raise_on_error=False) # it works
+        ax = df.plot() # it works
         self.assert_(len(ax.get_lines()) == 1) #B was plotted
 
         plt.close('all')
