@@ -140,6 +140,9 @@ Enhancements
        import os
        os.remove('mi.csv')
 
+  - ``pd.melt()`` now accepts the optional parameters ``var_name`` and ``value_name``
+    to specify custom column names of the returned DataFrame.
+
 Bug Fixes
 ~~~~~~~~~
 
