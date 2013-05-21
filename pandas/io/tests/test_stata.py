@@ -141,6 +141,7 @@ class StataTests(unittest.TestCase):
 
         written_and_read_again = self.read_dta(self.dta5)
         tm.assert_frame_equal(written_and_read_again, original)
+        os.remove(self.dta5)
 
     def test_write_dta6(self):
         original = self.read_csv(self.csv3)
@@ -150,6 +151,7 @@ class StataTests(unittest.TestCase):
 
         written_and_read_again = self.read_dta(self.dta6)
         tm.assert_frame_equal(written_and_read_again, original)
+        os.remove(self.dta6)
 
     @nose.tools.nottest
     def test_read_dta7(self):
