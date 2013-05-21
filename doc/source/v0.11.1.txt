@@ -238,6 +238,30 @@ Enhancements
     GH3572_).  This happens before any drawing takes place which elimnates any
     spurious plots from showing up.
 
+  - ``pd.set_option()`` now allows N option, value pairs (GH3667_).
+
+      Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
+      We can set them at the same time:
+
+      .. ipython:: python
+         :suppress:
+
+         pd.core.config.register_option('a.b', 2, 'ay dot bee')
+         pd.core.config.register_option('b.c', 3, 'bee dot cee')
+
+      .. ipython:: python
+
+         pd.get_option('a.b')
+         pd.get_option('b.c')
+         pd.set_option('a.b', 1, 'b.c', 4)
+         pd.get_option('a.b')
+         pd.get_option('b.c')
+
+      You can of course still do it sequentially if you want. You can use up to
+      N arguments here, the only stipulation is that the number of arguments
+      must be even (since if they weren't then that would mean you provided an
+      argument name with no value).
+
 Bug Fixes
 ~~~~~~~~~
 
@@ -305,3 +329,4 @@ on GitHub for a complete list.
 .. _GH3702: https://github.com/pydata/pandas/issues/3702
 .. _GH3691: https://github.com/pydata/pandas/issues/3691
 .. _GH3696: https://github.com/pydata/pandas/issues/3696
+.. _GH3667: https://github.com/pydata/pandas/issues/3667

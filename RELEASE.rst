@@ -46,6 +46,9 @@ pandas 0.11.1
     Note: The default value will change in 0.12 to make the default *to* write and
     read multi-index columns in the new format. (GH3571_, GH1651_, GH3141_)
   - Add iterator to ``Series.str`` (GH3638_)
+  - ``pd.set_option()`` now allows N option, value pairs (GH3667_).
+
+
 
 **Improvements to existing features**
 
@@ -269,6 +272,7 @@ pandas 0.11.1
 .. _GH3702: https://github.com/pydata/pandas/issues/3702
 .. _GH3691: https://github.com/pydata/pandas/issues/3691
 .. _GH3696: https://github.com/pydata/pandas/issues/3696
+.. _GH3667: https://github.com/pydata/pandas/issues/3667
 
 pandas 0.11.0
 =============
