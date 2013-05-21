@@ -400,10 +400,6 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
     pause : int, default 0
         Time, in seconds, to pause between consecutive queries of chunks. If
         single value given for symbol, represents the pause between retries.
-    dividends : boolean, default False
-        Fetch dividends in addition to prices
-    splits : boolean, default False
-        Fetch splits in addition to prices
     adjust_price : bool, default False
         If True, adjusts all prices in hist_data ('Open', 'High', 'Low', 'Close')
         based on 'Adj Close' price. Adds 'Adj_Ratio' column and drops
@@ -412,6 +408,10 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
         If True, includes a simple return index 'Ret_Index' in hist_data.
     chunksize : int, default 25
         Number of symbols to download consecutively before intiating pause.
+    dividends : boolean, default False
+        Fetch dividends instead of prices
+    splits : boolean, default False
+        Fetch splits instead of prices
 
     Returns
     -------
