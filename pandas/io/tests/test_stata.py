@@ -13,12 +13,7 @@ from pandas.core.frame import DataFrame
 from pandas.io.parsers import read_csv
 from pandas.io.stata import read_stata, StataReader, StataWriter
 import pandas.util.testing as tm
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
+from pandas.util.testing import ensure_clean
 
 class StataTests(unittest.TestCase):
 
@@ -136,20 +131,22 @@ class StataTests(unittest.TestCase):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
                              columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
 
-        writer = StataWriter(self.dta5, original, None, False)
-        writer.write_file()
+        with ensure_clean(self.dta5) as path:
+            writer = StataWriter(path, original, None, False)
+            writer.write_file()
 
-        written_and_read_again = self.read_dta(self.dta5)
-        tm.assert_frame_equal(written_and_read_again, original)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again, original)
 
     def test_write_dta6(self):
         original = self.read_csv(self.csv3)
 
-        writer = StataWriter(self.dta6, original, None, False)
-        writer.write_file()
+        with ensure_clean(self.dta6) as path:
+            writer = StataWriter(path, original, None, False)
+            writer.write_file()
 
-        written_and_read_again = self.read_dta(self.dta6)
-        tm.assert_frame_equal(written_and_read_again, original)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again, original)
 
     @nose.tools.nottest
     def test_read_dta7(self):
