@@ -159,7 +159,8 @@ plot_params = _Options()
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', marker='.', **kwds):
+                   diagonal='hist', marker='.', density_kwds={}, hist_kwds={},
+                   **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -174,6 +175,10 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
         either Kernel Density Estimation or Histogram
         plot in the diagonal
     marker : Matplotlib marker type, default '.'
+    hist_kwds : other plotting keyword arguments
+        To be passed to hist function
+    density_kwds : other plotting keyword arguments
+        To be passed to kernel density estimate plot
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
@@ -205,13 +210,13 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
                 # Deal with the diagonal by drawing a histogram there.
                 if diagonal == 'hist':
-                    ax.hist(values)
+                    ax.hist(values, hist_kwds)
                 elif diagonal in ('kde', 'density'):
                     from scipy.stats import gaussian_kde
                     y = values
                     gkde = gaussian_kde(y)
                     ind = np.linspace(y.min(), y.max(), 1000)
-                    ax.plot(ind, gkde.evaluate(ind), **kwds)
+                    ax.plot(ind, gkde.evaluate(ind), **density_kwds)
             else:
                 common = (mask[a] & mask[b]).values
 
@@ -368,16 +373,16 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     """
     Parameters:
     -----------
-    data : DataFrame 
+    data : DataFrame
         Data to be plotted, preferably normalized to (0.0, 1.0)
     class_column : Name of the column containing class names
     ax : matplotlib axes object, default None
     samples : Number of points to plot in each curve
-    
+
     Returns:
     --------
     ax: Matplotlib axis object
-    
+
     """
     from math import sqrt, pi, sin, cos
     import matplotlib.pyplot as plt
@@ -1805,7 +1810,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwarg
     grid : Setting this to True will show the grid
     kwargs : other plotting keyword arguments
         To be passed to scatter function
-    
+
     Returns
     -------
     fig : matplotlib.Figure
@@ -2198,9 +2203,9 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     data : DataFrame, optional
         If secondary_y is a sequence, data is used to select columns.
-     
-    fig_kw : Other keyword arguments to be passed to the figure() call.  
-        Note that all keywords not recognized above will be 
+
+    fig_kw : Other keyword arguments to be passed to the figure() call.
+        Note that all keywords not recognized above will be
         automatically included here.
 
 
