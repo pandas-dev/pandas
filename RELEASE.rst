@@ -63,6 +63,7 @@ pandas 0.11.1
   - Add modulo operator to Series, DataFrame
   - Add ``date`` method to DatetimeIndex
   - Simplified the API and added a describe method to Categorical
+  - Added Faq section on repr display options, to help users customize their setup.
 
 **API Changes**
 
@@ -85,6 +86,8 @@ pandas 0.11.1
   - Raise on ``iloc`` when boolean indexing with a label based indexer mask
     e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
     is purely positional based, the labels on the Series are not alignable (GH3631_)
+  - Deprecated display.height, display.width is now only a formatting option
+    does not control triggering of summary, simuliar to < 0.11.0.
 
 **Bug Fixes**
 
@@ -140,6 +143,7 @@ pandas 0.11.1
   - Fix ``read_csv`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
     was failing (GH3611_)
   - Disable HTML output in qtconsole again. (GH3657_)
+  - Reworked the new repr display logic, which users found confusing. (GH3663_)
   - Fix indexing issue in ndim >= 3 with ``iloc`` (GH3617_)
   - Correctly parse date columns with embedded (nan/NaT) into datetime64[ns] dtype in ``read_csv``
     when ``parse_dates`` is specified (GH3062_)
