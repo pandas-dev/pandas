@@ -851,6 +851,7 @@ def _maybe_upcast_indexer(result, indexer, other, dtype=None):
         return the result and a changed flag
         """
 
+    original_dtype = result.dtype
     def changeit():
         # our type is wrong here, need to upcast
         r, fill_value = _maybe_upcast(result, fill_value=other, dtype=dtype, copy=True)
@@ -861,9 +862,11 @@ def _maybe_upcast_indexer(result, indexer, other, dtype=None):
             # if we hit this then we still have an incompatible type
             r[indexer] = fill_value
 
+        # if we have changed to floats, might want to cast back if we can
+        r = _possibly_downcast_to_dtype(r,original_dtype)
         return r, True
 
-    new_dtype, fill_value = _maybe_promote(result.dtype,other)
+    new_dtype, fill_value = _maybe_promote(original_dtype,other)
     if new_dtype != result.dtype:
         return changeit()
 
