@@ -881,7 +881,7 @@ class TestIndexing(unittest.TestCase):
 
         expected = DataFrame({'FC':['a',np.nan,'a','b','a','b'],
                               'PF':[0,0,0,0,1,1],
-                              'col1':Series([0,1,4,6,8,10],dtype='float64'),
+                              'col1':Series([0,1,4,6,8,10]),
                               'col2':[12,7,16,np.nan,20,22]})
         
 
@@ -897,6 +897,27 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(df2,expected)
         df2.ix[mask, cols]= dft.ix[mask, cols].values
         assert_frame_equal(df2,expected)
+
+    def test_ix_assign_column_mixed(self):
+        # GH #1142
+        df = DataFrame(tm.getSeriesData())
+        df['foo'] = 'bar'
+
+        orig = df.ix[:, 'B'].copy()
+        df.ix[:, 'B'] = df.ix[:, 'B'] + 1
+        assert_series_equal(df.B, orig + 1)
+
+        # GH 3668, mixed frame with series value
+        df = DataFrame({'x':range(10), 'y':range(10,20),'z' : 'bar'})
+        expected = df.copy()
+        expected.ix[0, 'y'] = 1000
+        expected.ix[2, 'y'] = 1200
+        expected.ix[4, 'y'] = 1400
+        expected.ix[6, 'y'] = 1600
+        expected.ix[8, 'y'] = 1800
+
+        df.ix[df.x % 2 == 0, 'y'] = df.ix[df.x % 2 == 0, 'y'] * 100
+        assert_frame_equal(df,expected)
 
     def test_iloc_mask(self):
 

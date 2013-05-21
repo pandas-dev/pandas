@@ -938,12 +938,6 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
-    def test_ix_assign_column_mixed(self):
-        # GH #1142
-        orig = self.mixed_frame.ix[:, 'B'].copy()
-        self.mixed_frame.ix[:, 'B'] = self.mixed_frame.ix[:, 'B'] + 1
-        assert_series_equal(self.mixed_frame.B, orig + 1)
-
     def test_ix_multi_take(self):
         df = DataFrame(np.random.randn(3, 2))
         rs = df.ix[df.index == 0, :]

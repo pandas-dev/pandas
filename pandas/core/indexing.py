@@ -143,7 +143,7 @@ class _NDFrameIndexer(object):
                         else:
                             setter(item, np.nan)
 
-                # we have an equal len ndarray
+                # we have an equal len ndarray to our labels
                 elif isinstance(value, np.ndarray) and value.ndim == 2:
                     if len(labels) != value.shape[1]:
                         raise ValueError('Must have equal len keys and value when'
@@ -153,7 +153,8 @@ class _NDFrameIndexer(object):
                         setter(item, value[:,i])
 
                 # we have an equal len list/ndarray
-                elif len(labels) == 1 and len(self.obj[labels[0]]) == len(value):
+                elif len(labels) == 1 and (
+                    len(self.obj[labels[0]]) == len(value) or len(plane_indexer[0]) == len(value)):
                     setter(labels[0], value)
 
                 # per label values
