@@ -30,7 +30,13 @@ fi;
 #scipy is not included in the cached venv
 if [ x"$FULL_DEPS" == x"true" ] ; then
    # for pytables gets the lib as well
-   sudo apt-get $APT_ARGS install libhdf5-serial-dev;
+   sudo apt-get $APT_ARGS install libhdf5-serial-dev
+
+   if [ ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
+     sudo apt-get $APT_ARGS install python3-bs4
+   elif [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+     sudo apt-get $APT_ARGS install python-bs4
+   fi
 
    if [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
        sudo apt-get $APT_ARGS install python3-scipy
@@ -76,8 +82,13 @@ if ( ! $VENV_FILE_AVAILABLE ); then
         pip install $PIP_ARGS 'http://downloads.sourceforge.net/project/pytseries/scikits.timeseries/0.91.3/scikits.timeseries-0.91.3.tar.gz?r='
         pip install $PIP_ARGS patsy
         pip install $PIP_ARGS lxml
-        pip install $PIP_ARGS beautifulsoup4
+        pip install $PIP_ARGS html5lib
 
+        if [ ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
+          sudo apt-get $APT_ARGS remove python3-lxml
+        elif [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+          sudo apt-get $APT_ARGS remove python-lxml
+        fi
         # fool statsmodels into thinking pandas was already installed
         # so it won't refuse to install itself. We want it in the zipped venv
 
