@@ -35,8 +35,8 @@ horizontal scrolling, auto-detection of width/height.
 To appropriately address all these environments, the display behavior is controlled
 by several options, which you're encouraged to tweak to suit your setup.
 
-As of 0.11.0, the relavent options are all under the `display` namespace,
-(e.g. display.width, display.height, etc'):
+As of 0.11.1, these are the relavent options, all under the `display` namespace,
+(e.g. display.width,  etc'):
 - notebook_repr_html: if True, IPython frontends with HTML support will display
   dataframes as HTML tables when possible.
 - expand_repr (default True):  when the frame width cannot fit within the screen,
@@ -45,10 +45,10 @@ As of 0.11.0, the relavent options are all under the `display` namespace,
 - max_columns: max dataframe columns to display. a wider frame will trigger
   a summary view, unless `expand_repr` is True and HTML output is disabled.
 - max_rows: max dataframe rows display. a longer frame will trigger a summary view.
-- width: width of display screen in characters. When using a terminal, setting this to None
-  will trigger auto-detection of terminal width.
-- height: height of display screen. When using a terminal, setting this to None
-  will trigger auto-detection of terminal height.
+- width: width of display screen in characters, used to determine the width of lines
+  when expand_repr is active,  Setting this to None will trigger auto-detection of terminal
+  width, this only works for proper terminals, not IPython frontends such as ipnb.
+  width is ignored in IPython notebook, since the browser provides horizontal scrolling.
 
 IPython users can use the IPython startup file to import pandas and set these
 options automatically when starting up.
