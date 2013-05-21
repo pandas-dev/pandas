@@ -636,7 +636,6 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
     # must be sequential since dates trump numbers if both args are given
     if infer_types:
         df = df.convert_objects(convert_numeric=True)
-        df = df.convert_objects(convert_dates='coerce')
 
     if index_col is not None:
         cols = df.columns[index_col]
@@ -722,7 +721,7 @@ def _parse(parser, io, match, flavor, header, index_col, skiprows, infer_types,
 
 
 def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
-              skiprows=None, infer_types=False, attrs=None):
+              skiprows=None, infer_types=True, attrs=None):
     r"""Read an HTML table into a DataFrame.
 
     Parameters
