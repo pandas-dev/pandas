@@ -943,6 +943,27 @@ They can be both positive and negative.
     s - datetime(2011,1,1,3,5)
     s + timedelta(minutes=5)
 
+Getting scalar results from a ``timedelta64[ns]`` series
+
+.. ipython:: python
+
+   y = s - s[0]
+   y
+   y.apply(lambda x: x.item().total_seconds())
+   y.apply(lambda x: x.item().days)
+   
+.. note:: 
+
+   These operations are different in numpy 1.6.2 and in numpy >= 1.7. The ``timedelta64[ns]`` scalar
+   type in 1.6.2 is much like a ``datetime.timedelta``, while in 1.7 it is a nanosecond based integer.
+   A future version of pandas will make this transparent.
+
+   These are the equivalent operation to above in numpy >= 1.7
+
+   ``y.apply(lambda x: x.item()/np.timedelta64(1,'s'))``
+
+   ``y.apply(lambda x: x.item()/np.timedelta64(1,'D'))``
+
 Series of timedeltas with ``NaT`` values are supported
 
 .. ipython:: python
