@@ -63,6 +63,9 @@ pandas 0.11.1
   - Add modulo operator to Series, DataFrame
   - Add ``date`` method to DatetimeIndex
   - Simplified the API and added a describe method to Categorical
+  - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name`` 
+    to specify custom column names of the returned DataFrame (GH3649_),
+    thanks @hoechenberger
 
 **API Changes**
 
@@ -217,6 +220,7 @@ pandas 0.11.1
 .. _GH3605: https://github.com/pydata/pandas/issues/3605
 .. _GH3606: https://github.com/pydata/pandas/issues/3606
 .. _GH3659: https://github.com/pydata/pandas/issues/3659
+.. _GH3649: https://github.com/pydata/pandas/issues/3649
 .. _Gh3616: https://github.com/pydata/pandas/issues/3616
 
 pandas 0.11.0
