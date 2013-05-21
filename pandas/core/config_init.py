@@ -120,11 +120,15 @@ pc_expand_repr_doc = """
 
 pc_line_width_doc = """
 : int
-    When printing wide DataFrames, this is the width of each line.
+    Deprecated.
 """
 
 pc_line_width_deprecation_warning = """\
 line_width has been deprecated, use display.width instead (currently both are identical)
+"""
+
+pc_height_deprecation_warning = """\
+height has been deprecated.
 """
 
 pc_width_doc = """
@@ -138,10 +142,7 @@ pc_width_doc = """
 
 pc_height_doc = """
 : int
-    Height of the display in lines. In case python/IPython is running in a
-    terminal this can be set to None and pandas will auto-detect the width.
-    Note that the IPython notebook, IPython qtconsole, or IDLE do not run
-    in a terminal, and hence it is not possible to correctly detect the height.
+    Deprecated.
 """
 
 pc_chop_threshold_doc = """
@@ -244,9 +245,14 @@ with cf.config_prefix('display'):
                        validator=is_instance_factory([type(None), int]))
     # redirected to width, make defval identical
     cf.register_option('line_width', get_default_val('display.width'), pc_line_width_doc)
+
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
                     rkey='display.width')
+
+cf.deprecate_option('display.height',
+                    msg=pc_height_deprecation_warning,
+                    rkey='display.height')
 
 tc_sim_interactive_doc = """
 : boolean

@@ -170,8 +170,9 @@ class TestDataFrameFormatting(unittest.TestCase):
         df_tall = DataFrame('hello', range(30), range(5))
 
         with option_context('mode.sim_interactive', True):
-            with option_context('display.width', 50,
-                                'display.height', 20):
+            with option_context('display.max_columns', 5,
+                                'display.width',20,
+                                'display.max_rows', 20):
                 with option_context('display.expand_frame_repr', True):
                     self.assertFalse(has_info_repr(df_small))
                     self.assertFalse(has_expanded_repr(df_small))
@@ -226,19 +227,21 @@ class TestDataFrameFormatting(unittest.TestCase):
                     # since not exceeding width
                     self.assertFalse(has_expanded_repr(df6))
                     self.assertFalse(has_info_repr(df6))
-                    
+
                 with option_context('display.max_rows', 9,
                                     'display.max_columns', 10):
                     # out vertical bounds can not result in exanded repr
                     self.assertFalse(has_expanded_repr(df10))
                     self.assertTrue(has_info_repr(df10))
 
-            with option_context('display.max_columns', 0,
+            # width=None in terminal, auto detection
+            with option_context('display.max_columns', 100,
                                 'display.max_rows', term_width * 20,
-                                'display.width', 0):
+                                'display.width', None):
                 df = mkframe((term_width // 7) - 2)
                 self.assertFalse(has_expanded_repr(df))
                 df = mkframe((term_width // 7) + 2)
+                print( df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
 
     def test_to_string_repr_unicode(self):
@@ -787,7 +790,8 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
-            df = DataFrame([col(20, 25) for _ in range(10)])
+            max_cols = get_option('display.max_columns')
+            df = DataFrame([col(max_cols+1, 25) for _ in range(10)])
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
             set_option('display.expand_frame_repr', True)
@@ -810,7 +814,8 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_wide_repr_named(self):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
-            df = DataFrame([col(20, 25) for _ in range(10)])
+            max_cols = get_option('display.max_columns')
+            df = DataFrame([col(max_cols+1, 25) for _ in range(10)])
             df.index.name = 'DataFrame Index'
             set_option('display.expand_frame_repr', False)
 
@@ -833,7 +838,8 @@ class TestDataFrameFormatting(unittest.TestCase):
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
             midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
                                                   np.array(col(10, 5))])
-            df = DataFrame([col(20, 25) for _ in range(10)],
+            max_cols = get_option('display.max_columns')
+            df = DataFrame([col(max_cols+1, 25) for _ in range(10)],
                            index=midx)
             df.index.names = ['Level 0', 'Level 1']
             set_option('display.expand_frame_repr', False)
@@ -853,12 +859,13 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_wide_repr_multiindex_cols(self):
         with option_context('mode.sim_interactive', True):
+            max_cols = get_option('display.max_columns')
             col = lambda l, k: [tm.rands(k) for _ in xrange(l)]
             midx = pandas.MultiIndex.from_arrays([np.array(col(10, 5)),
                                                   np.array(col(10, 5))])
-            mcols = pandas.MultiIndex.from_arrays([np.array(col(20, 3)),
-                                                   np.array(col(20, 3))])
-            df = DataFrame([col(20, 25) for _ in range(10)],
+            mcols = pandas.MultiIndex.from_arrays([np.array(col(max_cols+1, 3)),
+                                                   np.array(col(max_cols+1, 3))])
+            df = DataFrame([col(max_cols+1, 25) for _ in range(10)],
                            index=midx, columns=mcols)
             df.index.names = ['Level 0', 'Level 1']
             set_option('display.expand_frame_repr', False)
@@ -876,7 +883,8 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_wide_repr_unicode(self):
         with option_context('mode.sim_interactive', True):
             col = lambda l, k: [tm.randu(k) for _ in xrange(l)]
-            df = DataFrame([col(20, 25) for _ in range(10)])
+            max_cols = get_option('display.max_columns')
+            df = DataFrame([col(max_cols+1, 25) for _ in range(10)])
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
             set_option('display.expand_frame_repr', True)

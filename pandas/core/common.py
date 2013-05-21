@@ -1904,8 +1904,23 @@ def in_qtconsole():
             return True
     except:
         return False
+    return False
 
-def in_ipnb_frontend():
+def in_ipnb():
+    """
+    check if we're inside an IPython Notebook
+    """
+    try:
+        ip = get_ipython()
+        front_end = (ip.config.get('KernelApp',{}).get('parent_appname',"") or
+                         ip.config.get('IPKernelApp',{}).get('parent_appname',""))
+        if 'notebook' in front_end.lower():
+            return True
+    except:
+        return False
+    return False
+
+def in_ipython_frontend():
     """
     check if we're inside an an IPython zmq frontend
     """
