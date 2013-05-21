@@ -187,6 +187,27 @@ class TestSeriesPlots(unittest.TestCase):
         from pandas.tools.plotting import bootstrap_plot
         _check_plot_works(bootstrap_plot, self.ts, size=10)
 
+    @slow
+    def test_all_invalid_plot_data(self):
+        s = Series(list('abcd'))
+        kinds = 'line', 'bar', 'barh', 'kde', 'density'
+
+        for kind in kinds:
+            self.assertRaises(TypeError, s.plot, kind=kind)
+
+    @slow
+    def test_partially_invalid_plot_data(self):
+        s = Series(['a', 'b', 1.0, 2])
+        kinds = 'line', 'bar', 'barh', 'kde', 'density'
+
+        for kind in kinds:
+            self.assertRaises(TypeError, s.plot, kind=kind)
+
+    @slow
+    def test_invalid_kind(self):
+        s = Series([1, 2])
+        self.assertRaises(ValueError, s.plot, kind='aasdf')
+
 
 class TestDataFramePlots(unittest.TestCase):
 
@@ -249,10 +270,8 @@ class TestDataFramePlots(unittest.TestCase):
         plt.close('all')
 
         df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]})
-        ax = df.plot(raise_on_error=False) # it works
+        ax = df.plot()
         self.assert_(len(ax.get_lines()) == 1) #B was plotted
-
-        self.assertRaises(Exception, df.plot)
 
     @slow
     def test_label(self):
@@ -687,6 +706,26 @@ class TestDataFramePlots(unittest.TestCase):
         self.assert_(xticks[0] < xticks[1])
         ydata = ax.lines[0].get_ydata()
         self.assert_(np.all(ydata == np.array([1.0, 2.0, 3.0])))
+
+    @slow
+    def test_all_invalid_plot_data(self):
+        kinds = 'line', 'bar', 'barh', 'kde', 'density'
+        df = DataFrame(list('abcd'))
+        for kind in kinds:
+            self.assertRaises(TypeError, df.plot, kind=kind)
+
+    @slow
+    def test_partially_invalid_plot_data(self):
+        kinds = 'line', 'bar', 'barh', 'kde', 'density'
+        df = DataFrame(np.random.randn(10, 2), dtype=object)
+        df[np.random.rand(df.shape[0]) > 0.5] = 'a'
+        for kind in kinds:
+            self.assertRaises(TypeError, df.plot, kind=kind)
+
+    @slow
+    def test_invalid_kind(self):
+        df = DataFrame(np.random.randn(10, 2))
+        self.assertRaises(ValueError, df.plot, kind='aasdf')
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
