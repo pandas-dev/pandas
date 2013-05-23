@@ -272,8 +272,20 @@ class TestBlockManager(unittest.TestCase):
         for b in blocks:
             b.ref_items = items
 
+        # test trying to create _ref_locs with/o ref_locs set on the blocks
+        self.assertRaises(AssertionError, BlockManager, blocks, [items, np.arange(N)])
+
+        blocks[0].set_ref_locs([0])
+        blocks[1].set_ref_locs([1])
         mgr = BlockManager(blocks, [items, np.arange(N)])
         mgr.iget(1)
+
+        # invalidate the _ref_locs
+        for b in blocks:
+            b._ref_locs = None
+        mgr._ref_locs = None
+        mgr._items_map = None
+        self.assertRaises(AssertionError, mgr._set_ref_locs, do_refs=True)
 
     def test_contains(self):
         self.assert_('a' in self.mgr)

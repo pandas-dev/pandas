@@ -2003,7 +2003,11 @@ class DataFrame(NDFrame):
             return self._getitem_multilevel(key)
         else:
             # get column
-            return self._get_item_cache(key)
+            if self.columns.is_unique:
+                return self._get_item_cache(key)
+
+            # duplicate columns
+            return self._constructor(self._data.get(key))
 
     def _getitem_slice(self, key):
         return self._slice(key, axis=0)
