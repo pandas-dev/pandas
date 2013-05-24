@@ -80,7 +80,7 @@ class Block(object):
         if placement is None:
             self._ref_locs = None
         else:
-            self._ref_locs = np.array(placement,dtype='int64').copy()
+            self._ref_locs = np.array(placement,dtype='int64', copy=True)
 
     def set_ref_items(self, ref_items, maybe_rename=True):
         """
@@ -154,7 +154,8 @@ class Block(object):
             raise AssertionError('axis must be at least 1, got %d' % axis)
         new_values = com.take_nd(self.values, indexer, axis,
                                  fill_value=fill_value, mask_info=mask_info)
-        return make_block(new_values, self.items, self.ref_items, fastpath=True)
+        return make_block(new_values, self.items, self.ref_items, fastpath=True,
+                          placement=self._ref_locs)
 
     def reindex_items_from(self, new_ref_items, copy=True):
         """
@@ -168,6 +169,7 @@ class Block(object):
         reindexed : Block
         """
         new_ref_items, indexer = self.items.reindex(new_ref_items)
+            
         if indexer is None:
             new_items = new_ref_items
             new_values = self.values.copy() if copy else self.values
@@ -1078,25 +1080,25 @@ class BlockManager(object):
 
         """
 
-        im = None
         if labels is None:
             labels = self.items
-        else:
-            _ensure_index(labels)
 
         # we are unique, and coming from a unique
-        if labels.is_unique and not do_refs:
+        is_unique = labels.is_unique
+        if is_unique and not do_refs:
 
-            # reset our ref locs
-            self._ref_locs = None
-            for b in self.blocks:
-                b._ref_locs = None
+            if not self.items.is_unique:
+                
+                # reset our ref locs
+                self._ref_locs = None
+                for b in self.blocks:
+                    b._ref_locs = None
 
             return None
 
         # we are going to a non-unique index
         # we have ref_locs on the block at this point
-        if (not labels.is_unique and do_refs) or do_refs=='force':
+        if (not is_unique and do_refs) or do_refs=='force':
 
             # create the items map
             im = getattr(self,'_items_map',None)
@@ -1972,17 +1974,18 @@ class BlockManager(object):
     def _reindex_indexer_items(self, new_items, indexer, fill_value):
         # TODO: less efficient than I'd like
 
+        is_unique = self.items.is_unique
         item_order = com.take_1d(self.items.values, indexer)
 
         # keep track of what items aren't found anywhere
         mask = np.zeros(len(item_order), dtype=bool)
-
         new_axes = [new_items] + self.axes[1:]
 
         new_blocks = []
         for blk in self.blocks:
             blk_indexer = blk.items.get_indexer(item_order)
             selector = blk_indexer != -1
+
             # update with observed items
             mask |= selector
 
@@ -2142,7 +2145,7 @@ class BlockManager(object):
 
     def rename_items(self, mapper, copydata=True):
         new_items = Index([mapper(x) for x in self.items])
-        new_items.is_unique
+        is_unique = new_items.is_unique
 
         new_blocks = []
         for block in self.blocks:

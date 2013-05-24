@@ -136,6 +136,7 @@ pandas 0.11.1
     - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
     - Non-unique indexing with a slice via ``loc`` and friends fixed (GH3659_)
     - Allow insert/delete to non-unique columns (GH3679_)
+    - Extend ``reindex`` to correctly deal with non-unique indices (GH3679_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element

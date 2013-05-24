@@ -2860,6 +2860,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[1,1,1,5,'bah',3],[1,1,2,5,'bah',3],[2,1,3,5,'bah',3]],columns=['foo','bar','foo','hello','string','foo2'])
         check(df,expected)
 
+        # set (non-dup)
+        df['foo2'] = 4
+        expected = DataFrame([[1,1,1,5,'bah',4],[1,1,2,5,'bah',4],[2,1,3,5,'bah',4]],columns=['foo','bar','foo','hello','string','foo2'])
+        check(df,expected)
+        df['foo2'] = 3
+
         # delete (non dup)
         del df['bar']
         expected = DataFrame([[1,1,5,'bah',3],[1,2,5,'bah',3],[2,3,5,'bah',3]],columns=['foo','foo','hello','string','foo2'])
@@ -2911,6 +2917,33 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         del df['foo']
         expected = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','hello','foo2'])
         check(df,expected)
+
+        # reindex
+        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
+        expected = DataFrame([[1],[1],[1]],columns=['bar'])
+        result = df.reindex(columns=['bar'])
+        check(result,expected)
+
+        result1 = DataFrame([[1],[1],[1]],columns=['bar']).reindex(columns=['bar','foo'])
+        result2 = df.reindex(columns=['bar','foo'])
+        check(result2,result1)
+
+        # drop
+        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
+        df = df.drop(['a'],axis=1)
+        expected = DataFrame([[1],[1],[1]],columns=['bar'])
+        check(df,expected)
+
+    def test_insert_benchmark(self):
+        # from the vb_suite/frame_methods/frame_insert_columns
+        N = 10
+        K = 5
+        df = DataFrame(index=range(N))
+        new_col = np.random.randn(N)
+        for i in range(K):
+            df[i] = new_col
+        expected = DataFrame(np.repeat(new_col,K).reshape(N,K),index=range(N))
+        assert_frame_equal(df,expected)
 
     def test_constructor_single_value(self):
 
