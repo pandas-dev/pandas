@@ -596,7 +596,7 @@ class Panel(NDFrame):
         na_rep : string, default ''
             Missing data representation
         """
-        from pandas.io.parsers import ExcelWriter
+        from pandas.io.excel import ExcelWriter
         writer = ExcelWriter(path)
         for item, df in self.iteritems():
             name = str(item)

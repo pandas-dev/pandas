@@ -9,6 +9,7 @@
    import csv
    from StringIO import StringIO
    import pandas as pd
+   ExcelWriter = pd.ExcelWriter
 
    import numpy as np
    np.random.seed(123456)
@@ -26,6 +27,18 @@
 *******************************
 IO Tools (Text, CSV, HDF5, ...)
 *******************************
+
+The Pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
+object. The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
+
+.. csv-table::
+    :widths: 12, 15, 15, 15, 15
+    :delim: ;
+
+    Reader; ``read_csv``; ``read_excel``; ``read_hdf``; ``read_sql``
+    Writer; ``to_csv``; ``to_excel``; ``to_hdf``; ``to_sql``
+    Reader; ``read_html``; ``read_stata``; ``read_clipboard`` ;
+    Writer; ``to_html``; ``to_stata``; ``to_clipboard`` ;
 
 .. _io.read_csv_table:
 
@@ -971,29 +984,20 @@ And then import the data directly to a DataFrame by calling:
 Excel files
 -----------
 
-The ``ExcelFile`` class can read an Excel 2003 file using the ``xlrd`` Python
+The ``read_excel`` method can read an Excel 2003 file using the ``xlrd`` Python
 module and use the same parsing code as the above to convert tabular data into
 a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
-To use it, create the ``ExcelFile`` object:
-
 .. code-block:: python
 
-   xls = ExcelFile('path_to_file.xls')
-
-Then use the ``parse`` instance method with a sheetname, then use the same
-additional arguments as the parsers above:
-
-.. code-block:: python
-
-   xls.parse('Sheet1', index_col=None, na_values=['NA'])
+   read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 To read sheets from an Excel 2007 file, you can pass a filename with a ``.xlsx``
 extension, in which case the ``openpyxl`` module will be used to read the file.
 
 It is often the case that users will insert columns to do temporary computations
-in Excel and you may not want to read in those columns. `ExcelFile.parse` takes
+in Excel and you may not want to read in those columns. `read_excel` takes
 a `parse_cols` keyword to allow you to specify a subset of columns to parse.
 
 If `parse_cols` is an integer, then it is assumed to indicate the last column
@@ -1001,14 +1005,14 @@ to be parsed.
 
 .. code-block:: python
 
-   xls.parse('Sheet1', parse_cols=2, index_col=None, na_values=['NA'])
+   read_excel('path_to_file.xls', 'Sheet1', parse_cols=2, index_col=None, na_values=['NA'])
 
 If `parse_cols` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   xls.parse('Sheet1', parse_cols=[0, 2, 3], index_col=None, na_values=['NA'])
+   read_excel('path_to_file.xls', Sheet1', parse_cols=[0, 2, 3], index_col=None, na_values=['NA'])
 
 To write a DataFrame object to a sheet of an Excel file, you can use the
 ``to_excel`` instance method.  The arguments are largely the same as ``to_csv``
@@ -1883,16 +1887,13 @@ Writing to STATA format
 
 .. _io.StataWriter:
 
-The function :func:'~pandas.io.StataWriter.write_file' will write a DataFrame 
-into a .dta file. The format version of this file is always the latest one, 
-115.
+The method ``to_stata`` will write a DataFrame into a .dta file. 
+The format version of this file is always the latest one, 115.
 
 .. ipython:: python
 
-   from pandas.io.stata import StataWriter
    df = DataFrame(randn(10,2),columns=list('AB'))
-   writer = StataWriter('stata.dta',df)
-   writer.write_file()
+   df.to_stata('stata.dta')
 
 Reading from STATA format
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1901,24 +1902,21 @@ Reading from STATA format
 
 .. versionadded:: 0.11.1
 
-The class StataReader will read the header of the given dta file at 
-initialization. Its function :func:'~pandas.io.StataReader.data' will 
-read the observations, converting them to a DataFrame which is returned:
+The top-level function ``read_stata`` will read a dta format file
+and return a DataFrame:
 
 .. ipython:: python
 
-   from pandas.io.stata import StataReader
-   reader = StataReader('stata.dta')
-   reader.data()
+   pd.read_stata('stata.dta')
 
-The parameter convert_categoricals indicates wheter value labels should be 
-read and used to create a Categorical variable from them. Value labels can 
-also be retrieved by the function variable_labels, which requires data to be 
-called before.
+Currently the ``index`` is retrieved as a column on read back.
+
+The parameter ``convert_categoricals`` indicates wheter value labels should be 
+read and used to create a ``Categorical`` variable from them. Value labels can 
+also be retrieved by the function ``variable_labels``, which requires data to be 
+called before (see ``pandas.io.stata.StataReader``).
 
 The StataReader supports .dta Formats 104, 105, 108, 113-115.
-
-Alternatively, the function :func:'~pandas.io.read_stata' can be used
 
 .. ipython:: python
    :suppress:

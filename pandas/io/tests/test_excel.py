@@ -17,7 +17,8 @@ import numpy as np
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               ExcelFile, TextFileReader, TextParser)
+                                TextParser, TextFileReader)
+from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal, 
                                  network,
@@ -34,9 +35,6 @@ import pandas.tseries.tools as tools
 from numpy.testing.decorators import slow
 
 from pandas._parser import OverflowError
-
-from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
-
 
 def _skip_if_no_xlrd():
     try:
@@ -275,19 +273,16 @@ class ExcelTests(unittest.TestCase):
 
             # test roundtrip
             self.frame.to_excel(path, 'test1')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0)
+            recons = read_excel(path, 'test1', index_col=0)
             tm.assert_frame_equal(self.frame, recons)
             
             self.frame.to_excel(path, 'test1', index=False)
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=None)
+            recons = read_excel(path, 'test1', index_col=None)
             recons.index = self.frame.index
             tm.assert_frame_equal(self.frame, recons)
             
             self.frame.to_excel(path, 'test1', na_rep='NA')
-            reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0, na_values=['NA'])
+            recons = read_excel(path, 'test1', index_col=0, na_values=['NA'])
             tm.assert_frame_equal(self.frame, recons)
 
     def test_excel_roundtrip_xls_mixed(self):
@@ -668,7 +663,7 @@ class ExcelTests(unittest.TestCase):
                 tm.assert_frame_equal(rs, xp)
 
     def test_to_excel_styleconverter(self):
-        from pandas.io.parsers import CellStyleConverter
+        from pandas.io.excel import CellStyleConverter
 
         try:
             import xlwt

@@ -35,6 +35,7 @@ pandas 0.11.1
     GH3606_)
   - Support for reading Amazon S3 files. (GH3504_)
   - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
+    includes ``to_stata`` DataFrame method, and a ``read_stata`` top-level reader
   - Added support for writing in ``to_csv`` and reading in ``read_csv``,
     multi-index columns. The ``header`` option in ``read_csv`` now accepts a
     list of the rows from which to read the index. Added the option,
@@ -104,6 +105,11 @@ pandas 0.11.1
     does not control triggering of summary, similar to < 0.11.0.
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
     to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
+  - io API changes
+
+    - added ``pandas.io.api`` for i/o imports
+    - removed ``Excel`` support to ``pandas.io.excel``
+    - added top-level ``pd.read_sql`` and ``to_sql`` DataFrame methods
 
 **Bug Fixes**
 

@@ -1300,35 +1300,6 @@ class DataFrame(NDFrame):
                           parse_dates=parse_dates, index_col=index_col,
                           encoding=encoding,tupleize_cols=False)
 
-    @classmethod
-    def from_dta(dta, path, parse_dates=True, convert_categoricals=True, encoding=None, index_col=None):
-        """
-        Read Stata file into DataFrame
-
-        Parameters
-        ----------
-        path : string file path or file handle / StringIO
-        parse_dates : boolean, default True
-            Convert date variables to DataFrame time values
-        convert_categoricals : boolean, default True
-            Read value labels and convert columns to Categorical/Factor variables
-        encoding : string, None or encoding, default None
-            Encoding used to parse the files. Note that Stata doesn't
-            support unicode. None defaults to cp1252.
-        index_col : int or sequence, default None
-            Column to use for index. If a sequence is given, a MultiIndex
-            is used. Different default from read_table
-
-        Notes
-        -----
-
-        Returns
-        -------
-        y : DataFrame
-        """
-        from pandas.io.stata import read_stata
-        return read_stata(path, parse_dates=parse_dates, convert_categoricals=convert_categoricals, encoding=encoding, index=index_col)
-
     def to_sparse(self, fill_value=None, kind='block'):
         """
         Convert to SparseDataFrame
@@ -1510,7 +1481,7 @@ class DataFrame(NDFrame):
         >>> df2.to_excel(writer,'sheet2')
         >>> writer.save()
         """
-        from pandas.io.parsers import ExcelWriter
+        from pandas.io.excel import ExcelWriter
         need_save = False
         if isinstance(excel_writer, basestring):
             excel_writer = ExcelWriter(excel_writer)
@@ -1528,6 +1499,57 @@ class DataFrame(NDFrame):
                                  startrow=startrow, startcol=startcol)
         if need_save:
             excel_writer.save()
+
+    def to_stata(self, fname, convert_dates=None, write_index=True, encoding="latin-1",
+                 byteorder=None):
+        """
+        A class for writing Stata binary dta files from array-like objects
+
+        Parameters
+        ----------
+        fname : file path or buffer
+            Where to save the dta file.
+        convert_dates : dict
+            Dictionary mapping column of datetime types to the stata internal
+            format that you want to use for the dates. Options are
+            'tc', 'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either a
+            number or a name.
+        encoding : str
+            Default is latin-1. Note that Stata does not support unicode.
+        byteorder : str
+            Can be ">", "<", "little", or "big". The default is None which uses
+            `sys.byteorder`
+
+        Examples
+        --------
+        >>> writer = StataWriter('./data_file.dta', data)
+        >>> writer.write_file()
+
+        Or with dates
+
+        >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
+        >>> writer.write_file()
+        """
+        from pandas.io.stata import StataWriter
+        writer = StataWriter(fname,self,convert_dates=convert_dates, encoding=encoding, byteorder=byteorder)
+        writer.write_file()
+        
+    def to_sql(self, name, con, flavor='sqlite', if_exists='fail', **kwargs):
+        """
+        Write records stored in a DataFrame to a SQL database.
+
+        Parameters
+        ----------
+        name: name of SQL table
+        conn: an open SQL database connection object
+        flavor: {'sqlite', 'mysql', 'oracle'}, default 'sqlite'
+        if_exists: {'fail', 'replace', 'append'}, default 'fail'
+            fail: If table exists, do nothing.
+            replace: If table exists, drop it, recreate it, and insert data.
+            append: If table exists, insert data. Create if does not exist.
+        """
+        from pandas.io.sql import write_frame
+        write_frame(self, name, con, flavor=flavor, if_exists=if_exists, **kwargs)
 
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,

@@ -699,8 +699,7 @@ Reading from an excel file
 
 .. ipython:: python
 
-   xls = ExcelFile('foo.xlsx')
-   xls.parse('sheet1', index_col=None, na_values=['NA'])
+   read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
 
 .. ipython:: python
    :suppress:
