@@ -1702,7 +1702,7 @@ def detect_console_encoding():
 def get_console_size():
     """Return console size as tuple = (width, height).
 
-    May return (None,None) in some cases.
+    Returns (None,None) in non-interactive session.
     """
     display_width = get_option('display.width')
     display_height = get_option('display.height')
@@ -1718,7 +1718,7 @@ def get_console_size():
     # Simple. yeah.
 
     if com.in_interactive_session():
-        if com.in_ipnb_frontend():
+        if com.in_ipython_frontend():
             # sane defaults for interactive non-shell terminal
             # match default for width,height in config_init
             from pandas.core.config import get_default_val
