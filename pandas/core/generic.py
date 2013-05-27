@@ -560,6 +560,13 @@ class NDFrame(PandasObject):
         return self._data.as_matrix()
 
     @property
+    def empty(self):
+        return not all(len(ax) > 0 for ax in self.axes)
+
+    def __nonzero__(self):
+        return not self.empty
+
+    @property
     def ndim(self):
         return self._data.ndim
 
