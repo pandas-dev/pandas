@@ -357,7 +357,7 @@ Replace the '.' with ``nan`` (str -> str)
    :suppress:
 
    from numpy.random import rand, randn
-   nan = np.nan
+   from numpy import nan
    from pandas import DataFrame
 
 .. ipython:: python

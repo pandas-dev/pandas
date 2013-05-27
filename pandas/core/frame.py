@@ -1598,6 +1598,7 @@ class DataFrame(NDFrame):
                 classes=None, escape=True):
         """
         to_html-specific options
+
         bold_rows : boolean, default True
             Make the row labels bold in the output
         classes : str or list or tuple, default None
@@ -1605,7 +1606,7 @@ class DataFrame(NDFrame):
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.
 
-        Render a DataFrame to an html table.
+        Render a DataFrame as an HTML table.
         """
 
         import warnings

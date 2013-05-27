@@ -938,8 +938,106 @@ Reading HTML Content
 
 .. versionadded:: 0.11.1
 
-The toplevel :func:`~pandas.io.parsers.read_html` function can accept an HTML
+The toplevel :func:`~pandas.io.read_html` function can accept an HTML
 string/file/url and will parse HTML tables into list of pandas DataFrames.
+Let's look at a few examples.
+
+Read a URL with no options
+
+.. ipython:: python
+
+   url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
+   dfs = read_html(url)
+   dfs
+
+.. note::
+
+   ``read_html`` returns a ``list`` of ``DataFrame`` objects, even if there is
+   only a single table contained in the HTML content
+
+Read a URL and match a table that contains specific text
+
+.. ipython:: python
+
+   match = 'Metcalf Bank'
+   df_list = read_html(url, match=match)
+   len(dfs)
+   dfs[0]
+
+Specify a header row (by default ``<th>`` elements are used to form the column
+index); if specified, the header row is taken from the data minus the parsed
+header elements (``<th>`` elements).
+
+.. ipython:: python
+
+   dfs = read_html(url, header=0)
+   len(dfs)
+   dfs[0]
+
+Specify an index column
+
+.. ipython:: python
+
+   dfs = read_html(url, index_col=0)
+   len(dfs)
+   dfs[0]
+   dfs[0].index.name
+
+Specify a number of rows to skip
+
+.. ipython:: python
+
+   dfs = read_html(url, skiprows=0)
+   len(dfs)
+   dfs[0]
+
+Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
+as well)
+
+.. ipython:: python
+
+   dfs = read_html(url, skiprows=range(2))
+   len(dfs)
+   dfs[0]
+
+Don't infer numeric and date types
+
+.. ipython:: python
+
+   dfs = read_html(url, infer_types=False)
+   len(dfs)
+   dfs[0]
+
+Specify an HTML attribute
+
+.. ipython:: python
+
+   dfs = read_html(url)
+   len(dfs)
+   dfs[0]
+
+Use some combination of the above
+
+.. ipython:: python
+
+   dfs = read_html(url, match='Metcalf Bank', index_col=0)
+   len(dfs)
+   dfs[0]
+
+Read in pandas ``to_html`` output (with some loss of floating point precision)
+
+.. ipython:: python
+
+   df = DataFrame(randn(2, 2))
+   s = df.to_html(float_format='{0:.40g}'.format)
+   dfin = read_html(s, index_col=0)
+   df
+   dfin[0]
+   df.index
+   df.columns
+   dfin[0].index
+   dfin[0].columns
+   np.allclose(df, dfin[0])
 
 
 Writing to HTML files
@@ -947,9 +1045,134 @@ Writing to HTML files
 
 .. _io.html:
 
-DataFrame object has an instance method ``to_html`` which renders the contents
-of the DataFrame as an html table. The function arguments are as in the method
-``to_string`` described above.
+``DataFrame`` objects have an instance method ``to_html`` which renders the
+contents of the ``DataFrame`` as an HTML table. The function arguments are as
+in the method ``to_string`` described above.
+
+.. note::
+
+   Not all of the possible options for ``DataFrame.to_html`` are shown here for
+   brevity's sake. See :func:`~pandas.DataFrame.to_html` for the full set of
+   options.
+
+.. ipython:: python
+   :suppress:
+
+   def write_html(df, filename, *args, **kwargs):
+       static = os.path.abspath(os.path.join('source', '_static'))
+       with open(os.path.join(static, filename + '.html'), 'w') as f:
+           df.to_html(f, *args, **kwargs)
+
+.. ipython:: python
+
+   df = DataFrame(randn(2, 2))
+   df
+   print df.to_html()  # raw html
+
+.. ipython:: python
+   :suppress:
+
+   write_html(df, 'basic')
+
+HTML:
+
+.. raw:: html
+   :file: _static/basic.html
+
+The ``columns`` argument will limit the columns shown
+
+.. ipython:: python
+
+   print df.to_html(columns=[0])
+
+.. ipython:: python
+   :suppress:
+
+   write_html(df, 'columns', columns=[0])
+
+HTML:
+
+.. raw:: html
+   :file: _static/columns.html
+
+``float_format`` takes a Python callable to control the precision of floating
+point values
+
+.. ipython:: python
+
+   print df.to_html(float_format='{0:.10f}'.format)
+
+.. ipython:: python
+   :suppress:
+
+   write_html(df, 'float_format', float_format='{0:.10f}'.format)
+
+HTML:
+
+.. raw:: html
+   :file: _static/float_format.html
+
+``bold_rows`` will make the row labels bold by default, but you can turn that
+off
+
+.. ipython:: python
+
+   print df.to_html(bold_rows=False)
+
+.. ipython:: python
+   :suppress:
+
+   write_html(df, 'nobold', bold_rows=False)
+
+.. raw:: html
+   :file: _static/nobold.html
+
+The ``classes`` argument provides the ability to give the resulting HTML
+table CSS classes. Note that these classes are *appended* to the existing
+``'dataframe'`` class.
+
+.. ipython:: python
+
+   print df.to_html(classes=['awesome_table_class', 'even_more_awesome_class'])
+
+Finally, the ``escape`` argument allows you to control whether the
+"<", ">" and "&" characters escaped in the resulting HTML (by default it is
+``True``). So to get the HTML without escaped characters pass ``escape=False``
+
+.. ipython:: python
+
+   df = DataFrame({'a': list('&<>'), 'b': randn(3)})
+
+
+.. ipython:: python
+   :suppress:
+
+   write_html(df, 'escape')
+   write_html(df, 'noescape', escape=False)
+
+Escaped:
+
+.. ipython:: python
+
+   print df.to_html()
+
+.. raw:: html
+   :file: _static/escape.html
+
+Not escaped:
+
+.. ipython:: python
+
+   print df.to_html(escape=False)
+
+.. raw:: html
+   :file: _static/noescape.html
+
+.. note::
+
+   Some browsers may not show a difference in the rendering of the previous two
+   HTML tables.
+
 
 Clipboard
 ---------
