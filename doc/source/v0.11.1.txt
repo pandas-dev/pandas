@@ -88,6 +88,8 @@ API changes
 
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
     to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
+  - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
+
 
   - IO api
 

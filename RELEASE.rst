@@ -112,6 +112,7 @@ pandas 0.11.1
     - added top-level ``pd.read_sql`` and ``to_sql`` DataFrame methods
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
+  - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
 
 **Bug Fixes**
 
@@ -266,6 +267,8 @@ pandas 0.11.1
 .. _GH3675: https://github.com/pydata/pandas/issues/3675
 .. _GH3682: https://github.com/pydata/pandas/issues/3682
 .. _GH3702: https://github.com/pydata/pandas/issues/3702
+.. _GH3691: https://github.com/pydata/pandas/issues/3691
+.. _GH3696: https://github.com/pydata/pandas/issues/3696
 
 pandas 0.11.0
 =============
