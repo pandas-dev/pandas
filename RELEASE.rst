@@ -179,6 +179,8 @@ pandas 0.11.1
      into today's date
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
   - ``DataFrame.to_csv`` will succeed with the deprecated option ``nanRep``, @tdsmith
+  - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
+    their first argument (GH3702_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -255,6 +257,7 @@ pandas 0.11.1
 .. _GH3676: https://github.com/pydata/pandas/issues/3676
 .. _GH3675: https://github.com/pydata/pandas/issues/3675
 .. _GH3682: https://github.com/pydata/pandas/issues/3682
+.. _GH3702: https://github.com/pydata/pandas/issues/3702
 
 pandas 0.11.0
 =============
