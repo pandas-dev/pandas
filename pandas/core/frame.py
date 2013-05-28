@@ -1455,18 +1455,16 @@ class DataFrame(NDFrame):
                           FutureWarning)
             na_rep = nanRep
 
-
-        else:
-            formatter = fmt.CSVFormatter(self, path_or_buf,
-                                         line_terminator=line_terminator,
-                                         sep=sep, encoding=encoding,
-                                         quoting=quoting,na_rep=na_rep,
-                                         float_format=float_format, cols=cols,
-                                         header=header, index=index,
-                                         index_label=index_label,mode=mode,
-                                         chunksize=chunksize,engine=kwds.get("engine"),
-                                         tupleize_cols=tupleize_cols)
-            formatter.save()
+        formatter = fmt.CSVFormatter(self, path_or_buf,
+                                     line_terminator=line_terminator,
+                                     sep=sep, encoding=encoding,
+                                     quoting=quoting,na_rep=na_rep,
+                                     float_format=float_format, cols=cols,
+                                     header=header, index=index,
+                                     index_label=index_label,mode=mode,
+                                     chunksize=chunksize,engine=kwds.get("engine"),
+                                     tupleize_cols=tupleize_cols)
+        formatter.save()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
