@@ -2000,7 +2000,7 @@ class ExcelFile(object):
         import xlrd # throw an ImportError if we need to
         ver = tuple(map(int,xlrd.__VERSION__.split(".")[:2]))
         if ver < (0, 9):
-            raise ImportError("pandas requires xlrd >= 0.9.0 for excel support")
+            raise ImportError("pandas requires xlrd >= 0.9.0 for excel support, current version "+xlrd.__VERSION__)
 
         self.path_or_buf = path_or_buf
         self.tmpfile = None
