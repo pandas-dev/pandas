@@ -3522,6 +3522,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(columns=['a','b','b'])
         assert_frame_equal(result, expected)
 
+    def test_from_records_empty_with_nonempty_fields_gh3682(self):
+        a = np.array([(1, 2)], dtype=[('id', np.int64), ('value', np.int64)])
+        df = DataFrame.from_records(a, index='id')
+        assert_array_equal(df.index, Index([1], name='id'))
+        self.assertEqual(df.index.name, 'id')
+        assert_array_equal(df.columns, Index(['value']))
+
+        b = np.array([], dtype=[('id', np.int64), ('value', np.int64)])
+        df = DataFrame.from_records(b, index='id')
+        assert_array_equal(df.index, Index([], name='id'))
+        self.assertEqual(df.index.name, 'id')
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10, 10))
         df.to_records()
