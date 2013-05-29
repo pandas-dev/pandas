@@ -208,6 +208,8 @@ Bug Fixes
 
     to replace all occurrences of the string ``'.'`` with ``NaN``.
 
+  - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
@@ -247,3 +249,4 @@ on GitHub for a complete list.
 .. _GH3582: https://github.com/pydata/pandas/issues/3582
 .. _GH3676: https://github.com/pydata/pandas/issues/3676
 .. _GH3675: https://github.com/pydata/pandas/issues/3675
+.. _GH3682: https://github.com/pydata/pandas/issues/3682
