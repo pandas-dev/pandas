@@ -2264,12 +2264,13 @@ class ExcelWriter(object):
     path : string
         Path to xls file
     """
-    def __init__(self, path):
+    def __init__(self, path, encoding = 'ascii'):
         self.use_xlsx = True
+	self.encoding = encoding
         if path.endswith('.xls'):
             self.use_xlsx = False
             import xlwt
-            self.book = xlwt.Workbook()
+            self.book = xlwt.Workbook(encoding = self.encoding)
             self.fm_datetime = xlwt.easyxf(
                 num_format_str='YYYY-MM-DD HH:MM:SS')
             self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
