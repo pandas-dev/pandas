@@ -114,8 +114,8 @@ colheader_justify_doc = """
 pc_expand_repr_doc = """
 : boolean
     Whether to print out the full DataFrame repr for wide DataFrames
-    across multiple lines.
-    If False, the summary representation is shown.
+    across multiple lines, `max_columns` is still respected, but the output will
+    wrap-around across multiple "pages" if it's width exceeds `display.width`.
 """
 
 pc_line_width_doc = """
