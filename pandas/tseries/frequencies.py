@@ -394,9 +394,10 @@ def to_offset(freqstr):
     """
     Return DateOffset object from string representation
 
-    Example
-    -------
-    to_offset('5Min') -> Minute(5)
+    Examples
+    --------
+    >>> to_offset('5Min')
+    Minute(5)
     """
     if freqstr is None:
         return None
@@ -444,8 +445,8 @@ def _base_and_stride(freqstr):
     """
     Return base freq and stride info from string representation
 
-    Example
-    -------
+    Examples
+    --------
     _freq_and_stride('5Min') -> 'Min', 5
     """
     groups = opattern.match(freqstr)
@@ -478,8 +479,8 @@ def get_offset(name):
     """
     Return DateOffset object associated with rule name
 
-    Example
-    -------
+    Examples
+    --------
     get_offset('EOM') --> BMonthEnd(1)
     """
     if name not in _dont_uppercase:
@@ -512,8 +513,8 @@ def get_offset_name(offset):
     """
     Return rule name associated with a DateOffset object
 
-    Example
-    -------
+    Examples
+    --------
     get_offset_name(BMonthEnd(1)) --> 'EOM'
     """
     name = _offset_names.get(offset)

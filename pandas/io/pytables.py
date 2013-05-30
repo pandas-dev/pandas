@@ -386,9 +386,6 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-
-        Optional Parameters
-        -------------------
         where : list of Term (or convertable) objects, optional
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
@@ -421,9 +418,6 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-
-        Optional Parameters
-        -------------------
         where : list of Term (or convertable) objects, optional
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
@@ -551,9 +545,6 @@ class HDFStore(object):
         ----------
         key : string
             Node to remove or delete rows from
-
-        Optional Parameters
-        -------------------
         where : list of Term (or convertable) objects, optional
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
@@ -602,9 +593,6 @@ class HDFStore(object):
         ----------
         key : object
         value : {Series, DataFrame, Panel, Panel4D}
-
-        Optional Parameters
-        -------------------
         data_columns : list of columns to create as data columns, or True to use all columns
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan represenation
@@ -3276,30 +3264,29 @@ def _need_convert(kind):
     return False
 
 class Term(object):
-    """ create a term object that holds a field, op, and value
+    """create a term object that holds a field, op, and value
 
-        Parameters
-        ----------
-        field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
-        op    : a valid op (defaults to '=') (optional)
-                >, >=, <, <=, =, != (not equal) are allowed
-        value : a value or list of values (required)
-        queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
+    Parameters
+    ----------
+    field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
+    op    : a valid op (defaults to '=') (optional)
+            >, >=, <, <=, =, != (not equal) are allowed
+    value : a value or list of values (required)
+    queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
 
-        Returns
-        -------
-        a Term object
+    Returns
+    -------
+    a Term object
 
-        Examples
-        --------
-        Term(dict(field = 'index', op = '>', value = '20121114'))
-        Term('index', '20121114')
-        Term('index', '>', '20121114')
-        Term('index', ['20121114','20121114'])
-        Term('index', datetime(2012,11,14))
-        Term('major_axis>20121114')
-        Term('minor_axis', ['A','B'])
-
+    Examples
+    --------
+    >>> Term(dict(field = 'index', op = '>', value = '20121114'))
+    >>> Term('index', '20121114')
+    >>> Term('index', '>', '20121114')
+    >>> Term('index', ['20121114','20121114'])
+    >>> Term('index', datetime(2012,11,14))
+    >>> Term('major_axis>20121114')
+    >>> Term('minor_axis', ['A','B'])
     """
 
     _ops = ['<=', '<', '>=', '>', '!=', '==', '=']
