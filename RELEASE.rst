@@ -110,6 +110,8 @@ pandas 0.11.1
     - added ``pandas.io.api`` for i/o imports
     - removed ``Excel`` support to ``pandas.io.excel``
     - added top-level ``pd.read_sql`` and ``to_sql`` DataFrame methods
+  - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
+    deprecated
 
 **Bug Fixes**
 

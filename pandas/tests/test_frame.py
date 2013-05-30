@@ -6360,8 +6360,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         res = tsframe.replace(nan, 0, inplace=True)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
-        self.assertRaises(TypeError, self.tsframe.replace, nan, method='pad',
-                          inplace=True)
+        self.assertRaises(TypeError, self.tsframe.replace, nan, inplace=True)
 
         # mixed type
         self.mixed_frame['foo'][5:20] = nan
@@ -6953,21 +6952,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         pass
 
     def test_replace_value_is_none(self):
-        self.assertRaises(TypeError, self.tsframe.replace, nan, method='pad')
+        self.assertRaises(TypeError, self.tsframe.replace, nan)
         orig_value = self.tsframe.iloc[0, 0]
         orig2 = self.tsframe.iloc[1, 0]
 
         self.tsframe.iloc[0, 0] = nan
         self.tsframe.iloc[1, 0] = 1
 
-        result = self.tsframe.replace(to_replace={nan: 0}, method='pad',
-                                      axis=1)
-        expected = self.tsframe.T.replace(
-            to_replace={nan: 0}, method='pad').T
+        result = self.tsframe.replace(to_replace={nan: 0})
+        expected = self.tsframe.T.replace(to_replace={nan: 0}).T
         assert_frame_equal(result, expected)
 
-        result = self.tsframe.replace(to_replace={nan: 0, 1: -1e8},
-                                      method='bfill')
+        result = self.tsframe.replace(to_replace={nan: 0, 1: -1e8})
         tsframe = self.tsframe.copy()
         tsframe.iloc[0, 0] = 0
         tsframe.iloc[1, 0] = -1e8
@@ -7087,25 +7083,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for i in range(len(to_rep)):
             expected.replace(to_rep[i], -1, inplace=True)
         assert_frame_equal(result, expected)
-
-    def test_replace_axis(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
-
-        zero_filled = self.tsframe.replace(nan, 0, axis=1)
-        assert_frame_equal(zero_filled, self.tsframe.fillna(0, axis=1))
-
-        self.assertRaises(TypeError, self.tsframe.replace, method='pad',
-                          axis=1)
-
-        # mixed type
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
-
-        result = self.mixed_frame.replace(np.nan, -1e8, axis=1)
-        expected = self.mixed_frame.fillna(value=-1e8, axis=1)
-        assert_frame_equal(result, expected)
-
 
     def test_replace_limit(self):
         pass
