@@ -667,9 +667,9 @@ should pass the ``escapechar`` option:
 
 Files with Fixed Width Columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-While `read_csv` reads delimited data, the :func:`~pandas.io.parsers.read_fwf`
+While ``read_csv`` reads delimited data, the :func:`~pandas.io.parsers.read_fwf`
 function works with data files that have known and fixed column widths.
-The function parameters to `read_fwf` are largely the same as `read_csv` with
+The function parameters to ``read_fwf`` are largely the same as `read_csv` with
 two extra parameters:
 
   - ``colspecs``: a list of pairs (tuples), giving the extents of the
@@ -2123,23 +2123,30 @@ Writing to STATA format
 
 .. _io.StataWriter:
 
-The method ``to_stata`` will write a DataFrame into a .dta file. 
+The method :func:`~pandas.io.stata.StataWriter.write_file` of
+:class:`~pandas.io.stata.StataWriter` will write a DataFrame into a .dta file.
 The format version of this file is always the latest one, 115.
 
 .. ipython:: python
 
-   df = DataFrame(randn(10,2),columns=list('AB'))
-   df.to_stata('stata.dta')
+   from pandas.io.stata import StataWriter
+   df = DataFrame(randn(10, 2), columns=list('AB'))
+   writer = StataWriter('stata.dta', df)
+   writer.write_file()
 
 Reading from STATA format
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _io.StataReader:
+.. _io.statareader:
 
 .. versionadded:: 0.11.1
 
 The top-level function ``read_stata`` will read a dta format file
 and return a DataFrame:
+The class :class:`~pandas.io.stata.StataReader` will read the header of the
+given dta file at initialization. Its method
+:func:`~pandas.io.stata.StataReader.data` will read the observations,
+converting them to a DataFrame which is returned:
 
 .. ipython:: python
 
@@ -2153,6 +2160,7 @@ also be retrieved by the function ``variable_labels``, which requires data to be
 called before (see ``pandas.io.stata.StataReader``).
 
 The StataReader supports .dta Formats 104, 105, 108, 113-115.
+Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
 
 .. ipython:: python
    :suppress:
