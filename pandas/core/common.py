@@ -48,17 +48,19 @@ _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
 
 def isnull(obj):
-    '''
-    Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
+    """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
 
     Parameters
     ----------
-    arr: ndarray or object value
+    arr : ndarray or object value
+        Object to check for null-ness
 
     Returns
     -------
-    boolean ndarray or boolean
-    '''
+    isnulled : array-like of bool or bool
+        Array or bool indicating whether an object is null or if an array is
+        given which of the element is null.
+    """
     return _isnull(obj)
 
 
@@ -187,18 +189,20 @@ def _isnull_ndarraylike_old(obj):
 
 
 def notnull(obj):
-    '''
-    Replacement for numpy.isfinite / -numpy.isnan which is suitable
-    for use on object arrays.
+    """Replacement for numpy.isfinite / -numpy.isnan which is suitable for use
+    on object arrays.
 
     Parameters
     ----------
-    arr: ndarray or object value
+    arr : ndarray or object value
+        Object to check for *not*-null-ness
 
     Returns
     -------
-    boolean ndarray or boolean
-    '''
+    isnulled : array-like of bool or bool
+        Array or bool indicating whether an object is *not* null or if an array
+        is given which of the element is *not* null.
+    """
     res = isnull(obj)
     if np.isscalar(res):
         return not res

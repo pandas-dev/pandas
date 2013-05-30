@@ -38,9 +38,8 @@ Pickling
    load
    save
 
-File IO
-~~~~~~~
-
+Flat File IO
+^^^^^^^^^^^^
 .. currentmodule:: pandas.io.parsers
 
 .. autosummary::
@@ -62,9 +61,13 @@ File IO
    :toctree: generated/
 
    read_stata
+   read_fwf
+   read_clipboard
 
 .. currentmodule:: pandas.io.html
 
+HTML IO
+^^^^^^^
 .. autosummary::
    :toctree: generated/
 
@@ -80,6 +83,46 @@ SQL
 
    read_sql
 
+Excel IO
+^^^^^^^^
+.. currentmodule:: pandas.io.parsers
+
+.. autosummary::
+   :toctree: generated/
+
+   ExcelFile.parse
+
+SQL IO
+^^^^^^
+.. currentmodule:: pandas.io.sql
+
+.. autosummary::
+   :toctree: generated/
+
+   read_frame
+   write_frame
+
+.. currentmodule:: pandas.io
+
+.. autosummary::
+   :toctree: generated/
+
+   sql
+
+STATA IO
+^^^^^^^^
+.. currentmodule:: pandas.io.stata
+
+.. autosummary::
+   :toctree: generated/
+
+   read_stata
+   StataReader.data
+   StataReader.data_label
+   StataReader.value_labels
+   StataReader.variable_labels
+   StataWriter.write_file
+
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -93,6 +136,17 @@ HDFStore: PyTables (HDF5)
    HDFStore.append
    HDFStore.get
    HDFStore.select
+
+Top-level Missing Data
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.common
+
+.. autosummary::
+   :toctree: generated/
+
+   isnull
+   notnull
 
 Standard moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
