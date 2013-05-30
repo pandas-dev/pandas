@@ -2825,6 +2825,126 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           [('a', [8]), ('a', [5]), ('b', [6])],
                           columns=['b', 'a', 'a'])
 
+
+    def test_column_duplicates_operations(self):
+
+        def check(result, expected=None):
+            if expected is not None:
+                assert_frame_equal(result,expected)
+            result.dtypes
+            str(result)
+
+        # assignment
+        # GH 3687
+        arr = np.random.randn(3, 2)
+        idx = range(2)
+        df = DataFrame(arr, columns=['A', 'A'])
+        df.columns = idx
+        expected = DataFrame(arr,columns=idx)
+        check(df,expected)
+
+        idx = date_range('20130101',periods=4,freq='Q-NOV')
+        df = DataFrame([[1,1,1,5],[1,1,2,5],[2,1,3,5]],columns=['a','a','a','a'])
+        df.columns = idx
+        expected = DataFrame([[1,1,1,5],[1,1,2,5],[2,1,3,5]],columns=idx)
+        check(df,expected)
+
+        # insert
+        df = DataFrame([[1,1,1,5],[1,1,2,5],[2,1,3,5]],columns=['foo','bar','foo','hello'])
+        df['string'] = 'bah'
+        expected = DataFrame([[1,1,1,5,'bah'],[1,1,2,5,'bah'],[2,1,3,5,'bah']],columns=['foo','bar','foo','hello','string'])
+        check(df,expected)
+
+        # insert same dtype
+        df['foo2'] = 3
+        expected = DataFrame([[1,1,1,5,'bah',3],[1,1,2,5,'bah',3],[2,1,3,5,'bah',3]],columns=['foo','bar','foo','hello','string','foo2'])
+        check(df,expected)
+
+        # set (non-dup)
+        df['foo2'] = 4
+        expected = DataFrame([[1,1,1,5,'bah',4],[1,1,2,5,'bah',4],[2,1,3,5,'bah',4]],columns=['foo','bar','foo','hello','string','foo2'])
+        check(df,expected)
+        df['foo2'] = 3
+
+        # delete (non dup)
+        del df['bar']
+        expected = DataFrame([[1,1,5,'bah',3],[1,2,5,'bah',3],[2,3,5,'bah',3]],columns=['foo','foo','hello','string','foo2'])
+        check(df,expected)
+
+        # try to delete again (its not consolidated)
+        del df['hello']
+        expected = DataFrame([[1,1,'bah',3],[1,2,'bah',3],[2,3,'bah',3]],columns=['foo','foo','string','foo2'])
+        check(df,expected)
+
+        # consolidate
+        df = df.consolidate()
+        expected = DataFrame([[1,1,'bah',3],[1,2,'bah',3],[2,3,'bah',3]],columns=['foo','foo','string','foo2'])
+        check(df,expected)
+
+        # insert
+        df.insert(2,'new_col',5.)
+        expected = DataFrame([[1,1,5.,'bah',3],[1,2,5.,'bah',3],[2,3,5.,'bah',3]],columns=['foo','foo','new_col','string','foo2'])
+        check(df,expected)
+
+        # insert a dup
+        self.assertRaises(Exception, df.insert, 2, 'new_col', 4.)
+        df.insert(2,'new_col',4.,allow_duplicates=True)
+        expected = DataFrame([[1,1,4.,5.,'bah',3],[1,2,4.,5.,'bah',3],[2,3,4.,5.,'bah',3]],columns=['foo','foo','new_col','new_col','string','foo2'])
+        check(df,expected)
+
+        # delete (dup)
+        del df['foo']
+        expected = DataFrame([[4.,5.,'bah',3],[4.,5.,'bah',3],[4.,5.,'bah',3]],columns=['new_col','new_col','string','foo2'])
+        assert_frame_equal(df,expected)
+
+        # dup across dtypes
+        df = DataFrame([[1,1,1.,5],[1,1,2.,5],[2,1,3.,5]],columns=['foo','bar','foo','hello'])
+        check(df)
+
+        df['foo2'] = 7.
+        expected = DataFrame([[1,1,1.,5,7.],[1,1,2.,5,7.],[2,1,3.,5,7.]],columns=['foo','bar','foo','hello','foo2'])
+        check(df,expected)
+
+        result = df['foo']
+        expected = DataFrame([[1,1.],[1,2.],[2,3.]],columns=['foo','foo'])
+        check(result,expected)
+
+        # multiple replacements
+        df['foo'] = 'string'
+        expected = DataFrame([['string',1,'string',5,7.],['string',1,'string',5,7.],['string',1,'string',5,7.]],columns=['foo','bar','foo','hello','foo2'])
+        check(df,expected)
+
+        del df['foo']
+        expected = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','hello','foo2'])
+        check(df,expected)
+
+        # reindex
+        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
+        expected = DataFrame([[1],[1],[1]],columns=['bar'])
+        result = df.reindex(columns=['bar'])
+        check(result,expected)
+
+        result1 = DataFrame([[1],[1],[1]],columns=['bar']).reindex(columns=['bar','foo'])
+        result2 = df.reindex(columns=['bar','foo'])
+        check(result2,result1)
+
+        # drop
+        df = DataFrame([[1,5,7.],[1,5,7.],[1,5,7.]],columns=['bar','a','a'])
+        df = df.drop(['a'],axis=1)
+        expected = DataFrame([[1],[1],[1]],columns=['bar'])
+        check(df,expected)
+
+    def test_insert_benchmark(self):
+        # from the vb_suite/frame_methods/frame_insert_columns
+        N = 10
+        K = 5
+        df = DataFrame(index=range(N))
+        new_col = np.random.randn(N)
+        for i in range(K):
+            df[i] = new_col
+        expected = DataFrame(np.repeat(new_col,K).reshape(N,K),index=range(N))
+        assert_frame_equal(df,expected)
+
     def test_constructor_single_value(self):
 
         # expecting single value upcasting here

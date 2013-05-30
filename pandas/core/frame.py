@@ -2003,7 +2003,11 @@ class DataFrame(NDFrame):
             return self._getitem_multilevel(key)
         else:
             # get column
-            return self._get_item_cache(key)
+            if self.columns.is_unique:
+                return self._get_item_cache(key)
+
+            # duplicate columns
+            return self._constructor(self._data.get(key))
 
     def _getitem_slice(self, key):
         return self._slice(key, axis=0)
@@ -2162,10 +2166,10 @@ class DataFrame(NDFrame):
         value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 
-    def insert(self, loc, column, value):
+    def insert(self, loc, column, value, allow_duplicates=False):
         """
-        Insert column into DataFrame at specified location. Raises Exception if
-        column is already contained in the DataFrame
+        Insert column into DataFrame at specified location.
+        if allow_duplicates is False, Raises Exception if column is already contained in the DataFrame
 
         Parameters
         ----------
@@ -2175,7 +2179,7 @@ class DataFrame(NDFrame):
         value : int, Series, or array-like
         """
         value = self._sanitize_column(column, value)
-        self._data.insert(loc, column, value)
+        self._data.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def _sanitize_column(self, key, value):
         # Need to make sure new columns (which go into the BlockManager as new

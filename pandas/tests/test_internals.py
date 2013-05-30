@@ -1,7 +1,7 @@
 # pylint: disable=W0102
 
 import unittest
-
+import nose
 import numpy as np
 
 from pandas import Index, MultiIndex, DataFrame, Series
@@ -173,6 +173,11 @@ class TestBlock(unittest.TestCase):
         self.assertRaises(Exception, self.fblock.delete, 'b')
 
     def test_split_block_at(self):
+
+        # with dup column support this method was taken out
+        # GH3679
+        raise nose.SkipTest
+
         bs = list(self.fblock.split_block_at('a'))
         self.assertEqual(len(bs), 1)
         self.assertTrue(np.array_equal(bs[0].items, ['c', 'e']))
@@ -267,8 +272,20 @@ class TestBlockManager(unittest.TestCase):
         for b in blocks:
             b.ref_items = items
 
+        # test trying to create _ref_locs with/o ref_locs set on the blocks
+        self.assertRaises(AssertionError, BlockManager, blocks, [items, np.arange(N)])
+
+        blocks[0].set_ref_locs([0])
+        blocks[1].set_ref_locs([1])
         mgr = BlockManager(blocks, [items, np.arange(N)])
         mgr.iget(1)
+
+        # invalidate the _ref_locs
+        for b in blocks:
+            b._ref_locs = None
+        mgr._ref_locs = None
+        mgr._items_map = None
+        self.assertRaises(AssertionError, mgr._set_ref_locs, do_refs=True)
 
     def test_contains(self):
         self.assert_('a' in self.mgr)
