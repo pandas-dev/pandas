@@ -781,10 +781,10 @@ def _upcast_blocks(blocks):
     for block in blocks:
         if isinstance(block, IntBlock):
             newb = make_block(block.values.astype(float), block.items,
-                              block.ref_items)
+                              block.ref_items, placement=block._ref_locs)
         elif isinstance(block, BoolBlock):
             newb = make_block(block.values.astype(object), block.items,
-                              block.ref_items)
+                              block.ref_items, placement=block._ref_locs)
         else:
             newb = block
         new_blocks.append(newb)

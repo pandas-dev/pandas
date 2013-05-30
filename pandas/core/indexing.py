@@ -457,7 +457,7 @@ class _NDFrameIndexer(object):
             else:
                 level = None
 
-            if labels.is_unique:
+            if labels.is_unique and Index(keyarr).is_unique:
                 return _reindex(keyarr, level=level)
             else:
                 indexer, missing = labels.get_indexer_non_unique(keyarr)
@@ -991,7 +991,6 @@ class _SeriesIndexer(_NDFrameIndexer):
     def _setitem_with_indexer(self, indexer, value):
         self.obj._set_values(indexer, value)
 
-
 def _check_bool_indexer(ax, key):
     # boolean indexing, need to check that the data are aligned, otherwise
     # disallowed
@@ -1009,7 +1008,6 @@ def _check_bool_indexer(ax, key):
     # object array key, so no check needed here
     result = np.asarray(result, dtype=bool)
     return result
-
 
 def _is_series(obj):
     from pandas.core.series import Series

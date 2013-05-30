@@ -940,8 +940,15 @@ class Index(np.ndarray):
             if self.equals(target):
                 indexer = None
             else:
-                indexer = self.get_indexer(target, method=method,
-                                           limit=limit)
+                if self.is_unique:
+                    indexer = self.get_indexer(target, method=method,
+                                               limit=limit)
+                else:
+                    if method is not None or limit is not None:
+                        raise ValueError("cannot reindex a non-unique index "
+                                         "with a method or limit")
+                    indexer, missing = self.get_indexer_non_unique(target)
+
         return target, indexer
 
     def join(self, other, how='left', level=None, return_indexers=False):
