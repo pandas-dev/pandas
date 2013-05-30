@@ -173,6 +173,7 @@ pandas 0.11.1
   - ``read_html()`` now only allows a single backend: ``html5lib`` (GH3616_)
   - ``convert_objects`` with ``convert_dates='coerce'`` was parsing some single-letter strings
      into today's date
+  - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -246,6 +247,7 @@ pandas 0.11.1
 .. _GH3582: https://github.com/pydata/pandas/issues/3582
 .. _GH3676: https://github.com/pydata/pandas/issues/3676
 .. _GH3675: https://github.com/pydata/pandas/issues/3675
+.. _GH3682: https://github.com/pydata/pandas/issues/3682
 
 pandas 0.11.0
 =============

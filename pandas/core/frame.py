@@ -5756,7 +5756,11 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
 
         return arrays, columns
 
-    if len(data) == 0:
+    if not len(data):
+        if isinstance(data, np.ndarray):
+            columns = data.dtype.names
+            if columns is not None:
+                return [[]] * len(columns), columns
         return [], []  # columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
