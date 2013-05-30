@@ -18,7 +18,7 @@ except ImportError:
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Index, Series, isnull
 from pandas.io.parsers import _is_url
 
 
@@ -398,7 +398,6 @@ class _BeautifulSoupLxmlFrameParser(_HtmlFrameParser):
         if not tables:
             raise AssertionError("No tables found matching "
                                  "'{0}'".format(match.pattern))
-        #import ipdb; ipdb.set_trace()
         return tables
 
     def _setup_build_doc(self):
@@ -560,6 +559,17 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 table.xpath(expr)]
 
 
+def _maybe_convert_index_type(index):
+    try:
+        index = index.astype(int)
+    except (TypeError, ValueError):
+        if not isinstance(index, MultiIndex):
+            s = Series(index, name=index.name)
+            index = Index(s.convert_objects(convert_numeric=True),
+                          name=index.name)
+    return index
+
+
 def _data_to_frame(data, header, index_col, infer_types, skiprows):
     """Parse a BeautifulSoup table into a DataFrame.
 
@@ -620,6 +630,12 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
             raise ValueError('Labels {0} not found when trying to skip'
                              ' rows'.format(it))
 
+    # convert to numbers/dates where possible
+    # must be sequential since dates trump numbers if both args are given
+    if infer_types:
+        df = df.convert_objects(convert_numeric=True)
+        df = df.convert_objects(convert_dates='coerce')
+
     if header is not None:
         header_rows = df.iloc[header]
 
@@ -632,11 +648,6 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
 
         df = df.drop(df.index[header])
 
-    # convert to numbers/dates where possible
-    # must be sequential since dates trump numbers if both args are given
-    if infer_types:
-        df = df.convert_objects(convert_numeric=True)
-
     if index_col is not None:
         cols = df.columns[index_col]
 
@@ -648,11 +659,15 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
         # drop by default
         df.set_index(cols, inplace=True)
         if df.index.nlevels == 1:
-            if not (df.index.name or df.index.name is None):
+            if isnull(df.index.name) or not df.index.name:
                 df.index.name = None
         else:
             names = [name or None for name in df.index.names]
             df.index = MultiIndex.from_tuples(df.index.values, names=names)
+
+    if infer_types:
+        df.index = _maybe_convert_index_type(df.index)
+        df.columns = _maybe_convert_index_type(df.columns)
 
     return df
 
