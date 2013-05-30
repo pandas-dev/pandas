@@ -4726,6 +4726,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertRaises(TypeError, df.__eq__, None)
 
+    def test_to_csv_deprecated_options(self):
+
+        pname = '__tmp_to_csv_deprecated_options__'
+        with ensure_clean(pname) as path:
+
+            self.tsframe[1:3] = np.nan
+            self.tsframe.to_csv(path, nanRep='foo')
+            recons = read_csv(path,index_col=0,parse_dates=[0],na_values=['foo'])
+            assert_frame_equal(self.tsframe, recons)
+
     def test_to_csv_from_csv(self):
 
         pname = '__tmp_to_csv_from_csv__'

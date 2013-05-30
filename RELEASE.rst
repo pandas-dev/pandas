@@ -178,6 +178,7 @@ pandas 0.11.1
   - ``convert_objects`` with ``convert_dates='coerce'`` was parsing some single-letter strings
      into today's date
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
+  - ``DataFrame.to_csv`` will succeed with the deprecated option ``nanRep``, @tdsmith
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
