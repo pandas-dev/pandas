@@ -1222,7 +1222,11 @@ class Series(pa.Array, generic.PandasObject):
         if buf is None:
             return the_repr
         else:
-            print >> buf, the_repr
+            try:
+                buf.write(the_repr)
+            except AttributeError:
+                with open(buf, 'w') as f:
+                    f.write(the_repr)
 
     def _get_repr(self, name=False, print_header=False, length=True, dtype=True,
                   na_rep='NaN', float_format=None):

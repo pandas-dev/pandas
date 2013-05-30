@@ -1216,6 +1216,26 @@ c  10  11  12  13  14\
         frame = DataFrame(index=np.arange(200))
         frame.to_html()
 
+    def test_to_html_filename(self):
+        biggie = DataFrame({'A': randn(200),
+                            'B': tm.makeStringIndex(200)},
+                           index=range(200))
+
+        biggie['A'][:20] = nan
+        biggie['B'][:20] = nan
+        with tm.ensure_clean('test.html') as path:
+            biggie.to_html(path)
+            with open(path, 'r') as f:
+                s = biggie.to_html()
+                s2 = f.read()
+                self.assertEqual(s, s2)
+
+        frame = DataFrame(index=np.arange(200))
+        with tm.ensure_clean('test.html') as path:
+            frame.to_html(path)
+            with open(path, 'r') as f:
+                self.assertEqual(frame.to_html(), f.read())
+
     def test_to_html_with_no_bold(self):
         x = DataFrame({'x': randn(5)})
         ashtml = x.to_html(bold_rows=False)
@@ -1473,6 +1493,13 @@ c  10  11  12  13  14\
         val = df.to_string()
         self.assertTrue("'a': 1" in val)
         self.assertTrue("'b': 2" in val)
+
+    def test_to_latex_filename(self):
+        with tm.ensure_clean('test.tex') as path:
+            self.frame.to_latex(path)
+
+            with open(path, 'r') as f:
+                self.assertEqual(self.frame.to_latex(), f.read())
 
     def test_to_latex(self):
         # it works!
