@@ -9,18 +9,27 @@ enhancements along with a large number of bug fixes.
 API changes
 ~~~~~~~~~~~
 
-  - The I/O api is now much more consistent with the following top-level reading
-    functions available, e.g. ``pd.read_csv``, and the counterpart writers are 
-    available as object methods, e.g. ``df.to_csv``
+  - The I/O API is now much more consistent with a set of top level ``reader`` functions 
+    accessed like ``pd.read_csv()`` that generally return a ``pandas`` object.
 
-    .. csv-table::
-        :widths: 12, 15, 15, 15, 15
-        :delim: ;
+    * ``read_csv``
+    * ``read_excel``
+    * ``read_hdf``
+    * ``read_sql``
+    * ``read_html``
+    * ``read_stata``
+    * ``read_clipboard``
 
-        Read; ``read_csv``; ``read_excel``; ``read_hdf``; ``read_sql``
-        Write; ``to_csv``; ``to_excel``; ``to_hdf``; ``to_sql``
-        Read; ``read_html``; ``read_stata``; ``read_clipboard`` ;
-        Write; ``to_html``; ``to_stata``; ``to_clipboard`` ;
+    The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
+
+    * ``to_csv``
+    * ``to_excel``
+    * ``to_hdf``
+    * ``to_sql``
+    * ``to_html``
+    * ``to_stata``
+    * ``to_clipboard``
+
 
   - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
     ``np.nan`` or ``np.inf`` as appropriate (GH3590_). This correct a numpy bug that treats ``integer``

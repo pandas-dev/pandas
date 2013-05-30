@@ -29,16 +29,25 @@ IO Tools (Text, CSV, HDF5, ...)
 *******************************
 
 The Pandas I/O api is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
-object. The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
+object.
 
-.. csv-table::
-    :widths: 12, 15, 15, 15, 15
-    :delim: ;
+    * ``read_csv``
+    * ``read_excel``
+    * ``read_hdf``
+    * ``read_sql``
+    * ``read_html``
+    * ``read_stata``
+    * ``read_clipboard``
 
-    Reader; ``read_csv``; ``read_excel``; ``read_hdf``; ``read_sql``
-    Writer; ``to_csv``; ``to_excel``; ``to_hdf``; ``to_sql``
-    Reader; ``read_html``; ``read_stata``; ``read_clipboard`` ;
-    Writer; ``to_html``; ``to_stata``; ``to_clipboard`` ;
+The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
+
+    * ``to_csv``
+    * ``to_excel``
+    * ``to_hdf``
+    * ``to_sql``
+    * ``to_html``
+    * ``to_stata``
+    * ``to_clipboard``
 
 .. _io.read_csv_table:
 
