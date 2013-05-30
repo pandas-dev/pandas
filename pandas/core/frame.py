@@ -595,14 +595,6 @@ class DataFrame(NDFrame):
 
     #----------------------------------------------------------------------
     # Class behavior
-
-    @property
-    def empty(self):
-        return not (len(self.columns) > 0 and len(self.index) > 0)
-
-    def __nonzero__(self):
-        raise ValueError("Cannot call bool() on DataFrame.")
-
     def _repr_fits_vertical_(self):
         """
         Check length against max_rows.
