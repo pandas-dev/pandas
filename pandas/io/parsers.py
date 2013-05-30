@@ -1979,3 +1979,19 @@ class FixedWidthFieldParser(PythonParser):
 
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter)
+
+
+from pandas.io import excel
+class ExcelWriter(excel.ExcelWriter):
+    def __init__(self, path):
+        from warnings import warn
+        warn("ExcelWriter can now be imported from: pandas.io.excel", FutureWarning)
+        super(ExcelWriter, self).__init__(path)
+
+class ExcelFile(excel.ExcelFile):
+    def __init__(self, path_or_buf, kind=None, **kwds):
+        from warnings import warn
+        warn("ExcelFile can now be imported from: pandas.io.excel", FutureWarning)
+        super(ExcelFile, self).__init__(path_or_buf, kind=kind, **kwds)
+
+  

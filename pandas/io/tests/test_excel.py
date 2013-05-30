@@ -854,6 +854,23 @@ class ExcelTests(unittest.TestCase):
         self.assertEqual(res.shape, (1, 2))
         self.assertTrue(res.ix[0, 0] is not np.nan)
 
+    def test_deprecated_from_parsers(self):
+
+        # since 0.11.1 changed the import path
+        import warnings
+
+        with warnings.catch_warnings() as w:
+            warnings.filterwarnings(action='ignore', category=FutureWarning)
+
+            _skip_if_no_xlrd()
+            from pandas.io.parsers import ExcelFile as xf
+            xf(self.xls1)
+
+            _skip_if_no_xlwt()
+            with ensure_clean('test.xls') as path:
+                from pandas.io.parsers import ExcelWriter as xw
+                xw(path)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

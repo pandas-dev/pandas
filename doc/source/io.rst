@@ -989,9 +989,22 @@ module and use the same parsing code as the above to convert tabular data into
 a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
-.. code-block:: python
+.. note::
 
-   read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+   The prior method of accessing Excel is now deprecated as of 0.11.1,
+   this will work but will be removed in a future version.
+
+      .. code-block:: python
+
+         from pandas.io.parsers import ExcelFile
+         xls = ExcelFile('path_to_file.xls')
+         xls.parse('Sheet1', index_col=None, na_values=['NA'])
+
+   Replaced by 
+
+     .. code-block:: python
+
+        read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
 To read sheets from an Excel 2007 file, you can pass a filename with a ``.xlsx``
 extension, in which case the ``openpyxl`` module will be used to read the file.

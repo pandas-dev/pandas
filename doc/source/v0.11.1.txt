@@ -90,10 +90,11 @@ API changes
   - IO api
 
     - added top-level function ``read_excel`` to replace the following,
-      however, the original API remains as well
+      The original API is deprecated and will be removed in a future version
 
       .. code-block:: python
 
+         from pandas.io.parsers import ExcelFile
          xls = ExcelFile('path_to_file.xls')
          xls.parse('Sheet1', index_col=None, na_values=['NA'])
 
@@ -101,7 +102,8 @@ API changes
 
       .. code-block:: python
 
-         read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+         import pandas as pd
+         pd.read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
     - added top-level function ``read_sql`` that is equivalent to the following
 
