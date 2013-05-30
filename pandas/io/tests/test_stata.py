@@ -130,23 +130,21 @@ class StataTests(unittest.TestCase):
     def test_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
                              columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
+        original.index.name = 'index'
 
         with ensure_clean(self.dta5) as path:
-            writer = StataWriter(path, original, None, False)
-            writer.write_file()
-
+            original.to_stata(path, None, False)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again, original)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
 
     def test_write_dta6(self):
         original = self.read_csv(self.csv3)
+        original.index.name = 'index'
 
         with ensure_clean(self.dta6) as path:
-            writer = StataWriter(path, original, None, False)
-            writer.write_file()
-
+            original.to_stata(path, None, False)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again, original)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
 
     @nose.tools.nottest
     def test_read_dta7(self):
@@ -184,6 +182,10 @@ class StataTests(unittest.TestCase):
                 decimal=3
             )
 
+    def test_stata_doc_examples(self):
+        with ensure_clean(self.dta5) as path:
+            df = DataFrame(np.random.randn(10,2),columns=list('AB'))
+            df.to_stata('path')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

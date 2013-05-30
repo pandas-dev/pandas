@@ -48,7 +48,20 @@ File IO
 
    read_table
    read_csv
-   ExcelFile.parse
+
+.. currentmodule:: pandas.io.excel
+
+.. autosummary::
+   :toctree: generated/
+
+   read_excel
+
+.. currentmodule:: pandas.io.stata
+
+.. autosummary::
+   :toctree: generated/
+
+   read_stata
 
 .. currentmodule:: pandas.io.html
 
@@ -57,15 +70,29 @@ File IO
 
    read_html
 
+SQL
+~~~
+
+.. currentmodule:: pandas.io.sql
+
+.. autosummary::
+   :toctree: generated/
+
+   read_sql
+
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. currentmodule:: pandas.io.pytables
 
 .. autosummary::
    :toctree: generated/
 
+   read_hdf
    HDFStore.put
+   HDFStore.append
    HDFStore.get
+   HDFStore.select
 
 Standard moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -532,9 +559,11 @@ Serialization / IO / Conversion
    DataFrame.load
    DataFrame.save
    DataFrame.to_csv
+   DataFrame.to_hdf
    DataFrame.to_dict
    DataFrame.to_excel
    DataFrame.to_html
+   DataFrame.to_stata
    DataFrame.to_records
    DataFrame.to_sparse
    DataFrame.to_string

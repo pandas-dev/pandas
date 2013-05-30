@@ -15,7 +15,6 @@ from pandas.core.series import remove_na
 import pandas.core.common as com
 import pandas.core.panel as panelmod
 from pandas.util import py3compat
-from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,

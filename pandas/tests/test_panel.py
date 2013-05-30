@@ -1367,7 +1367,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
             import xlwt
             import xlrd
             import openpyxl
-            from pandas.io.parsers import ExcelFile
+            from pandas.io.excel import ExcelFile
         except ImportError:
             raise nose.SkipTest
 

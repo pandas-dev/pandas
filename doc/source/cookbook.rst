@@ -32,25 +32,25 @@ Selection
 
 The :ref:`indexing <indexing>` docs.
 
-`Boolean Rows Indexing
+Indexing using both row labels and conditionals, see
+`here
 <http://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
-    Indexing using both row labels and conditionals
 
-`Using loc and iloc in selections
+Use loc for label-oriented slicing and iloc positional slicing, see
+`here
 <https://github.com/pydata/pandas/issues/2904>`__
-    Use loc for label-oriented slicing and iloc positional slicing
 
-`Extending a panel along the minor axis
+Extend a panel frame by transposing, adding a new dimension, and transposing back to the original dimensions, see
+`here
 <http://stackoverflow.com/questions/15364050/extending-a-pandas-panel-frame-along-the-minor-axis>`__
-    Extend a panel frame by transposing, adding a new dimension, and transposing back to the original dimensions
 
-`Boolean masking in a panel
+Mask a panel by using ``np.where`` and then reconstructing the panel with the new masked values
+`here
 <http://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
-    Mask a panel by using ``np.where`` and then reconstructing the panel with the new masked values
 
-`Selecting via the complement
+Using ``~`` to take the complement of a boolean array, see
+`here
 <http://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
-    ``~`` can be used to take the complement of a boolean array
 
 `Efficiently creating columns using applymap
 <http://stackoverflow.com/questions/16575868/efficiently-creating-additional-columns-in-a-pandas-dataframe-using-map>`__

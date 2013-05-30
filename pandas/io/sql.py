@@ -167,7 +167,7 @@ def read_frame(sql, con, index_col=None, coerce_float=True, params=None):
     return result
 
 frame_query = read_frame
-
+read_sql = read_frame
 
 def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """

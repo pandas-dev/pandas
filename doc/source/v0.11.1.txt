@@ -6,6 +6,19 @@ v0.11.1 (??)
 This is a minor release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
+The I/O api is now much more consistent with the following top-level reading
+functions available, e.g. ``pd.read_csv``, and the counterpart writers are 
+available as object methods, e.g. ``df.to_csv``
+
+.. csv-table::
+    :widths: 12, 15, 15, 15, 15
+    :delim: ;
+
+    Reader; ``read_csv``; ``read_excel``; ``read_hdf``; ``read_sql``
+    Writer; ``to_csv``; ``to_excel``; ``to_hdf``; ``to_sql``
+    Reader; ``read_html``; ``read_stata``; ``read_clipboard`` ;
+    Writer; ``to_html``; ``to_stata``; ``to_clipboard`` ;
+
 API changes
 ~~~~~~~~~~~
 
@@ -74,6 +87,31 @@ API changes
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
     to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
 
+  - IO api
+
+    - added top-level function ``read_excel`` to replace the following,
+      The original API is deprecated and will be removed in a future version
+
+      .. code-block:: python
+
+         from pandas.io.parsers import ExcelFile
+         xls = ExcelFile('path_to_file.xls')
+         xls.parse('Sheet1', index_col=None, na_values=['NA'])
+
+      With
+
+      .. code-block:: python
+
+         import pandas as pd
+         pd.read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+
+    - added top-level function ``read_sql`` that is equivalent to the following
+
+      .. code-block:: python
+
+         from pandas.io.sql import read_frame
+         read_frame(....)
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -109,6 +147,8 @@ Enhancements
     a list or tuple.
 
   - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
+    accessable via ``read_stata`` top-level function for reading,
+    and ``to_stata`` DataFrame method for writing
 
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs
@@ -218,7 +258,7 @@ Bug Fixes
     .. ipython :: python
 
         df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
-        df.replace(regex=r'\s*\.\s*', value=nan)
+        df.replace(regex=r'\s*\.\s*', value=np.nan)
 
     to replace all occurrences of the string ``'.'`` with zero or more
     instances of surrounding whitespace with ``NaN``.
@@ -227,7 +267,7 @@ Bug Fixes
 
     .. ipython :: python
 
-        df.replace('.', nan)
+        df.replace('.', np.nan)
 
     to replace all occurrences of the string ``'.'`` with ``NaN``.
 
