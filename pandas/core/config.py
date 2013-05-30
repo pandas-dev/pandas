@@ -94,7 +94,7 @@ def _get_option(pat, silent=False):
     return root[k]
 
 
-def _set_option(pat, value, silent=False):
+def _set_single_option(pat, value, silent):
     key = _get_single_key(pat, silent)
 
     o = _get_registered_option(key)
@@ -107,6 +107,40 @@ def _set_option(pat, value, silent=False):
 
     if o.cb:
         o.cb(key)
+
+
+def _set_multiple_options(args, silent):
+    for k, v in zip(args[::2], args[1::2]):
+        _set_single_option(k, v, silent)
+
+
+def _set_option(*args, **kwargs):
+    # must at least 1 arg deal with constraints later
+    nargs = len(args)
+    if not nargs or nargs % 2 != 0:
+        raise AssertionError("Must provide an even number of non-keyword "
+                             "arguments")
+
+    # must be 0 or 1 kwargs
+    nkwargs = len(kwargs)
+    if nkwargs not in (0, 1):
+        raise AssertionError("The can only be 0 or 1 keyword arguments")
+
+    # if 1 kwarg then it must be silent=True or silent=False
+    if nkwargs:
+        k, = kwargs.keys()
+        v, = kwargs.values()
+
+        if k != 'silent':
+            raise ValueError("the only allowed keyword argument is 'silent', "
+                             "you passed '{0}'".format(k))
+        if not isinstance(v, bool):
+            raise TypeError("the type of the keyword argument passed must be "
+                            "bool, you passed a {0}".format(v.__class__))
+
+    # default to false
+    silent = kwargs.get('silent', False)
+    _set_multiple_options(args, silent)
 
 
 def _describe_option(pat='', _print_desc=True):
@@ -186,7 +220,7 @@ class DictWrapper(object):
 # of options, and option descriptions.
 
 
-class CallableDyanmicDoc(object):
+class CallableDynamicDoc(object):
 
     def __init__(self, func, doc_tmpl):
         self.__doc_tmpl__ = doc_tmpl
@@ -301,10 +335,10 @@ None
 
 # bind the functions with their docstrings into a Callable
 # and use that as the functions exposed in pd.api
-get_option = CallableDyanmicDoc(_get_option, _get_option_tmpl)
-set_option = CallableDyanmicDoc(_set_option, _set_option_tmpl)
-reset_option = CallableDyanmicDoc(_reset_option, _reset_option_tmpl)
-describe_option = CallableDyanmicDoc(_describe_option, _describe_option_tmpl)
+get_option = CallableDynamicDoc(_get_option, _get_option_tmpl)
+set_option = CallableDynamicDoc(_set_option, _set_option_tmpl)
+reset_option = CallableDynamicDoc(_reset_option, _reset_option_tmpl)
+describe_option = CallableDynamicDoc(_describe_option, _describe_option_tmpl)
 options = DictWrapper(_global_config)
 
 ######################################################
@@ -505,13 +539,7 @@ def _get_registered_option(key):
     -------
     RegisteredOption (namedtuple) if key is deprecated, None otherwise
     """
-
-    try:
-        d = _registered_options[key]
-    except KeyError:
-        return None
-    else:
-        return d
+    return _registered_options.get(key)
 
 
 def _translate_key(key):
