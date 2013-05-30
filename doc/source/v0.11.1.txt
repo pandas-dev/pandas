@@ -1,26 +1,26 @@
 .. _whatsnew_0111:
 
-v0.11.1 (??)
+v0.11.1 (June ??, 2013)
 ------------------------
 
 This is a minor release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
-The I/O api is now much more consistent with the following top-level reading
-functions available, e.g. ``pd.read_csv``, and the counterpart writers are 
-available as object methods, e.g. ``df.to_csv``
-
-.. csv-table::
-    :widths: 12, 15, 15, 15, 15
-    :delim: ;
-
-    Reader; ``read_csv``; ``read_excel``; ``read_hdf``; ``read_sql``
-    Writer; ``to_csv``; ``to_excel``; ``to_hdf``; ``to_sql``
-    Reader; ``read_html``; ``read_stata``; ``read_clipboard`` ;
-    Writer; ``to_html``; ``to_stata``; ``to_clipboard`` ;
-
 API changes
 ~~~~~~~~~~~
+
+  - The I/O api is now much more consistent with the following top-level reading
+    functions available, e.g. ``pd.read_csv``, and the counterpart writers are 
+    available as object methods, e.g. ``df.to_csv``
+
+    .. csv-table::
+        :widths: 12, 15, 15, 15, 15
+        :delim: ;
+
+        Read; ``read_csv``; ``read_excel``; ``read_hdf``; ``read_sql``
+        Write; ``to_csv``; ``to_excel``; ``to_hdf``; ``to_sql``
+        Read; ``read_html``; ``read_stata``; ``read_clipboard`` ;
+        Write; ``to_html``; ``to_stata``; ``to_clipboard`` ;
 
   - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
     ``np.nan`` or ``np.inf`` as appropriate (GH3590_). This correct a numpy bug that treats ``integer``
@@ -28,7 +28,7 @@ API changes
 
     .. ipython:: python
 
-        p = DataFrame({ 'first' : [3,4,5,8], 'second' : [0,0,0,3] })
+        p = DataFrame({ 'first' : [4,5,8], 'second' : [0,0,3] })
         p % 0
         p % p
         p / p
@@ -37,7 +37,7 @@ API changes
   - Add ``squeeze`` keyword to ``groupby`` to allow reduction from 
     DataFrame -> Series if groups are unique. This is a Regression from 0.10.1.
     We are reverting back to the prior behavior. This means groupby will return the 
-    same shaped objects whether the groups are unique or not. revert on (GH2893_) 
+    same shaped objects whether the groups are unique or not. Revert this issue (GH2893_) 
     with (GH3596_).
 
     .. ipython:: python
@@ -83,6 +83,7 @@ API changes
   - ``DataFrame.interpolate()`` is now deprecated. Please use
     ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (GH3582_,
     GH3675_, GH3676_)
+
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
 
@@ -115,6 +116,9 @@ API changes
          from pandas.io.sql import read_frame
          read_frame(....)
 
+  - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
+    their first argument (GH3702_)
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -122,7 +126,7 @@ Enhancements
     DataFrames, courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_, GH3616_).
     It works with a *single* parser backend: BeautifulSoup4 + html5lib
 
-    - You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
+    You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
     .. ipython :: python
 
@@ -138,18 +142,7 @@ Enhancements
     - ``pd.read_html()`` no longer performs hard conversion of date strings
       (GH3656_).
 
-  - ``HDFStore``
-
-    - will retain index attributes (freq,tz,name) on recreation (GH3499_)
-    - will warn with a AttributeConflictWarning if you are attempting to append
-      an index with a different frequency than the existing, or attempting
-      to append an index with a different name than the existing
-    - support datelike columns with a timezone as data_columns (GH2852_)
-
-  - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
-    a list or tuple.
-
-  - Added module for reading and writing Stata files: pandas.io.stata (GH1512_)
+  - Added module for reading and writing Stata files: ``pandas.io.stata`` (GH1512_)
     accessable via ``read_stata`` top-level function for reading,
     and ``to_stata`` DataFrame method for writing
 
@@ -175,29 +168,7 @@ Enhancements
 
     to replace all occurrences of the string ``'.'`` with ``NaN``.
 
-  - ``Series.str`` now supports iteration (GH3638_). You can iterate over the
-    individual elements of each string in the ``Series``. Each iteration yields
-    yields a ``Series`` with either a single character at each index of the
-    original ``Series`` or ``NaN``. For example,
-
-    .. ipython:: python
-
-        strs = 'go', 'bow', 'joe', 'slow'
-        ds = Series(strs)
-
-        for s in ds.str:
-            print s
-
-        s
-        s.dropna().values.item() == 'w'
-
-    The last element yielded by the iterator will be a ``Series`` containing
-    the last element of the longest string in the ``Series`` with all other
-    elements being ``NaN``. Here since ``'slow'`` is the longest string
-    and there are no other strings with the same length ``'w'`` is the only
-    non-null string in the yielded ``Series``.
-
-  - Multi-index column support for reading and writing csvs
+  - Multi-index column support for reading and writing csv format files
 
     - The ``header`` option in ``read_csv`` now accepts a
       list of the rows from which to read the index.
@@ -233,11 +204,6 @@ Enhancements
   - ``pd.melt()`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame.
 
-  - Plotting functions now raise a ``TypeError`` before trying to plot anything
-    if the associated objects have have a ``dtype`` of ``object`` (GH1818_,
-    GH3572_).  This happens before any drawing takes place which elimnates any
-    spurious plots from showing up.
-
   - ``pd.set_option()`` now allows N option, value pairs (GH3667_).
 
       Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
@@ -257,13 +223,46 @@ Enhancements
          pd.get_option('a.b')
          pd.get_option('b.c')
 
-      You can of course still do it sequentially if you want. You can use up to
-      N arguments here, the only stipulation is that the number of arguments
-      must be even (since if they weren't then that would mean you provided an
-      argument name with no value).
-
 Bug Fixes
 ~~~~~~~~~
+
+  - Plotting functions now raise a ``TypeError`` before trying to plot anything
+    if the associated objects have have a ``dtype`` of ``object`` (GH1818_,
+    GH3572_).  This happens before any drawing takes place which elimnates any
+    spurious plots from showing up.
+
+  - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
+    a list or tuple.
+
+  - ``Series.str`` now supports iteration (GH3638_). You can iterate over the
+    individual elements of each string in the ``Series``. Each iteration yields
+    yields a ``Series`` with either a single character at each index of the
+    original ``Series`` or ``NaN``. For example,
+
+    .. ipython:: python
+
+        strs = 'go', 'bow', 'joe', 'slow'
+        ds = Series(strs)
+
+        for s in ds.str:
+            print s
+
+        s
+        s.dropna().values.item() == 'w'
+
+    The last element yielded by the iterator will be a ``Series`` containing
+    the last element of the longest string in the ``Series`` with all other
+    elements being ``NaN``. Here since ``'slow'`` is the longest string
+    and there are no other strings with the same length ``'w'`` is the only
+    non-null string in the yielded ``Series``.
+
+  - ``HDFStore``
+
+    - will retain index attributes (freq,tz,name) on recreation (GH3499_)
+    - will warn with a ``AttributeConflictWarning`` if you are attempting to append
+      an index with a different frequency than the existing, or attempting
+      to append an index with a different name than the existing
+    - support datelike columns with a timezone as data_columns (GH2852_)
 
   - Non-unique index support clarified (GH3468_).
 
@@ -281,9 +280,6 @@ Bug Fixes
     - Allow insert/delete to non-unique columns (GH3679_)
 
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
-
-  - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
-    their first argument (GH3702_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
