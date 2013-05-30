@@ -183,9 +183,9 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering',
 ]
 
-MAJOR = 1
+MAJOR = 0
 MINOR = 11
-MICRO = 0
+MICRO = 1
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
