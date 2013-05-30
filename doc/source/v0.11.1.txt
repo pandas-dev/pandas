@@ -273,6 +273,9 @@ Bug Fixes
 
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
 
+  - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
+    their first argument (GH3702_)
+
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
@@ -314,3 +317,4 @@ on GitHub for a complete list.
 .. _GH3675: https://github.com/pydata/pandas/issues/3675
 .. _GH3682: https://github.com/pydata/pandas/issues/3682
 .. _GH3679: https://github.com/pydata/pandas/issues/3679
+.. _GH3702: https://github.com/pydata/pandas/issues/3702

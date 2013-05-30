@@ -364,21 +364,31 @@ class DataFrameFormatter(TableFormatter):
             raise AssertionError(('column_format must be str or unicode, not %s'
                                   % type(column_format)))
 
-        self.buf.write('\\begin{tabular}{%s}\n' % column_format)
-        self.buf.write('\\toprule\n')
+        def write(buf, frame, column_format, strcols):
+            buf.write('\\begin{tabular}{%s}\n' % column_format)
+            buf.write('\\toprule\n')
 
-        nlevels = frame.index.nlevels
-        for i, row in enumerate(izip(*strcols)):
-            if i == nlevels:
-                self.buf.write('\\midrule\n')  # End of header
-            crow = [(x.replace('_', '\\_')
-                     .replace('%', '\\%')
-                     .replace('&', '\\&') if x else '{}') for x in row]
-            self.buf.write(' & '.join(crow))
-            self.buf.write(' \\\\\n')
+            nlevels = frame.index.nlevels
+            for i, row in enumerate(izip(*strcols)):
+                if i == nlevels:
+                    buf.write('\\midrule\n')  # End of header
+                crow = [(x.replace('_', '\\_')
+                         .replace('%', '\\%')
+                         .replace('&', '\\&') if x else '{}') for x in row]
+                buf.write(' & '.join(crow))
+                buf.write(' \\\\\n')
 
-        self.buf.write('\\bottomrule\n')
-        self.buf.write('\\end{tabular}\n')
+            buf.write('\\bottomrule\n')
+            buf.write('\\end{tabular}\n')
+
+        if hasattr(self.buf, 'write'):
+            write(self.buf, frame, column_format, strcols)
+        elif isinstance(self.buf, basestring):
+            with open(self.buf, 'w') as f:
+                write(f, frame, column_format, strcols)
+        else:
+            raise TypeError('buf is not a file name and it has no write '
+                            'method')
 
     def _format_col(self, i):
         formatter = self._get_formatter(i)
@@ -392,7 +402,14 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a html table.
         """
         html_renderer = HTMLFormatter(self, classes=classes)
-        html_renderer.write_result(self.buf)
+        if hasattr(self.buf, 'write'):
+            html_renderer.write_result(self.buf)
+        elif isinstance(self.buf, basestring):
+            with open(self.buf, 'w') as f:
+                html_renderer.write_result(f)
+        else:
+            raise TypeError('buf is not a file name and it has no write '
+                            ' method')
 
     def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
@@ -574,7 +591,6 @@ class HTMLFormatter(TableFormatter):
             indent = self._write_body(indent)
 
         self.write('</table>', indent)
-
         _put_lines(buf, self.elements)
 
     def _write_header(self, indent):
