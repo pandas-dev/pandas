@@ -37,9 +37,7 @@ def read_stata(filepath_or_buffer, convert_dates=True, convert_categoricals=True
 
     return reader.data(convert_dates, convert_categoricals, index)
 
-
 _date_formats = ["%tc", "%tC", "%td", "%tw", "%tm", "%tq", "%th", "%ty"]
-
 
 def _stata_elapsed_date_to_datetime(date, fmt):
     """

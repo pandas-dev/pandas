@@ -18,7 +18,7 @@ import numpy as np
 from pandas import DataFrame, Series, Index, isnull, MultiIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               ExcelFile, TextParser)
+                               TextParser)
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network)
 import pandas.lib as lib
