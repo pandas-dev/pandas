@@ -1468,9 +1468,9 @@ class DataFrame(NDFrame):
                                          tupleize_cols=tupleize_cols)
             formatter.save()
 
-    def to_excel(self, excel_writer, encoding = 'ascii', sheet_name='sheet1', na_rep='',
+    def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
                  float_format=None, cols=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0):
+                 index_label=None, startrow=0, startcol=0,  encoding = 'ascii'):
         """
         Write DataFrame to a excel sheet
 
@@ -1513,7 +1513,7 @@ class DataFrame(NDFrame):
         from pandas.io.parsers import ExcelWriter
         need_save = False
         if isinstance(excel_writer, basestring):
-            excel_writer = ExcelWriter(excel_writer, encoding=encoding)
+            excel_writer = ExcelWriter(excel_writer, encoding = encoding)
             need_save = True
 
         formatter = fmt.ExcelFormatter(self,

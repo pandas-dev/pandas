@@ -639,7 +639,11 @@ class ExcelTests(unittest.TestCase):
                                 [12.32, 123123.20, 321321.20]],
                                index=['A', 'B'], columns=['X', 'Y', 'Z'])
                 tm.assert_frame_equal(rs, xp)
-
+    
+    
+    
+    
+    
     def test_to_excel_unicode_filename(self):
         _skip_if_no_excelsuite()
 
@@ -858,7 +862,9 @@ class ExcelTests(unittest.TestCase):
         res = roundtrip(DataFrame([0]), False, None)
         self.assertEqual(res.shape, (1, 2))
         self.assertTrue(res.ix[0, 0] is not np.nan)
+     
 
+    
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

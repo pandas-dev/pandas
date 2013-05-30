@@ -1,0 +1,658 @@
+............................................................../usr/lib64/python2.7/site-packages/numpy/core/numeric.py:1977: UnicodeWarning: Unicode equal comparison failed to convert both arguments to Unicode - interpreting them as being unequal
+  return bool(logical_and.reduce(equal(a1,a2).ravel()))
+/home/antares/pandas/pandas/util/testing.py:129: UnicodeWarning: Unicode equal comparison failed to convert both arguments to Unicode - interpreting them as being unequal
+  assert a == b, "%s != %s" % (a, b)
+E....SSSS.SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS.EEEEEEEEEEEEEEEEEE..EEEEEEEEEEEEEEEEEE.......................................S........................................................................................................................................................................................................................................................................................................SSSSSSSSSSS.................SS...................................................................................................................................................................................S.......................SSSSSSS.........................................F............................................S.......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................S......................................................S.........................................................................................................................................................................................................................................................................................SSS.............................................................................................................................................................................................................................................S............................S.........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................S................................................................................................................................................................................S...S............SSS.........S............SS...........SS.....SSSS..........................................................................................................................S................................................................................................................................................S.................................................................................................................
+======================================================================
+ERROR: test_excel_output_encoding (pandas.io.tests.test_excel_encoding.ExcelTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_excel_encoding.py", line 135, in test_excel_output_encoding
+    tm.assert_frame_equal(original_noascii, saved_noascii)
+  File "/home/antares/pandas/pandas/util/testing.py", line 238, in assert_frame_equal
+    check_less_precise=check_less_precise)
+  File "/home/antares/pandas/pandas/util/testing.py", line 197, in assert_series_equal
+    assert_almost_equal(left.values, right.values, check_less_precise)
+  File "/home/antares/pandas/pandas/util/testing.py", line 141, in assert_almost_equal
+    assert_almost_equal(a[i], b[i], check_less_precise)
+  File "/home/antares/pandas/pandas/util/testing.py", line 129, in assert_almost_equal
+    assert a == b, "%s != %s" % (a, b)
+UnicodeDecodeError: 'ascii' codec can't decode byte 0xc3 in position 1: ordinal not in range(128)
+-------------------- >> begin captured stdout << ---------------------
+    columns    index   values
+0       A\xf1o      A\xf1o   C\xe9firo
+1   Narices   Bald\xedo   Tarugo
+2   B\xfalgaro  Tr\xf3cola  D\xe9spota
+3  Lib\xe9lula   M\xednimo   Cami\xf3n
+4    C\xednico    Bar\xe7a    A\xf1ejo
+5        1\xba  Cig\xfce\xf1a        \xba     columns    index   values
+0       A\xf1o      A\xf1o   C\xe9firo
+1   Narices   Bald\xedo   Tarugo
+2   B\xfalgaro  Tr\xf3cola  D\xe9spota
+3  Lib\xe9lula   M\xednimo   Cami\xf3n
+4    C\xednico    Bar\xe7a    A\xf1ejo
+5        1\xba  Cig\xfce\xf1a        \xba
+
+--------------------- >> end captured stdout << ----------------------
+
+======================================================================
+ERROR: test_bad_url_protocol (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 288, in test_bad_url_protocol
+    '.*Water.*')
+  File "/usr/lib64/python2.7/unittest/case.py", line 471, in assertRaises
+    callableObj(*args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_banklist (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 116, in test_banklist
+    attrs={'id': 'table'})
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_banklist_header (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 131, in test_banklist_header
+    attrs={'id': 'table'}, infer_types=False)[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_banklist_no_match (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 167, in test_banklist_no_match
+    dfs = self.run_read_html(self.banklist_data, attrs={'id': 'table'})
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_banklist_url (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 99, in test_banklist_url
+    attrs={"id": 'table'})
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_file_like (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 279, in test_file_like
+    df1 = self.run_read_html(f, '.*Water.*', infer_types=False)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_file_url (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 294, in test_file_url
+    attrs={'id': 'table'})
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_gold_canyon (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 147, in test_gold_canyon
+    attrs={'id': 'table'}, infer_types=False)[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_header_and_index (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 241, in test_header_and_index
+    index_col=0)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_index (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 235, in test_index
+    df1 = self.run_read_html(self.spam_data, '.*Water.*', index_col=0)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_infer_types (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 247, in test_infer_types
+    infer_types=False)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_invalid_table_attrs (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 304, in test_invalid_table_attrs
+    attrs={'id': 'tasdfable'})
+  File "/usr/lib64/python2.7/unittest/case.py", line 471, in assertRaises
+    callableObj(*args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_multiindex_header (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 312, in test_multiindex_header
+    df = self._bank_data(header=[0, 1])[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 308, in _bank_data
+    attrs={'id': 'table'}, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_multiindex_header_index (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 322, in test_multiindex_header_index
+    df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 308, in _bank_data
+    attrs={'id': 'table'}, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_multiindex_header_index_skiprows (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 333, in test_multiindex_header_index_skiprows
+    df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 308, in _bank_data
+    attrs={'id': 'table'}, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_multiindex_header_skiprows (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 328, in test_multiindex_header_skiprows
+    df = self._bank_data(header=[0, 1], skiprows=1)[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 308, in _bank_data
+    attrs={'id': 'table'}, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_multiindex_index (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 317, in test_multiindex_index
+    df = self._bank_data(index_col=[0, 1])[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 308, in _bank_data
+    attrs={'id': 'table'}, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_multiple_matches (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 360, in test_multiple_matches
+    attrs={'class': 'wikitable'})
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_pythonxy_plugins_table (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 367, in test_pythonxy_plugins_table
+    attrs={'class': 'wikitable'})
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_regex_idempotency (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 341, in test_regex_idempotency
+    attrs={'id': 'table'})
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_int (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 178, in test_skiprows_int
+    df1 = self.run_read_html(self.spam_data, '.*Water.*', skiprows=1)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_invalid (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 232, in test_skiprows_invalid
+    '.*Water.*', skiprows='asdf')
+  File "/usr/lib64/python2.7/unittest/case.py", line 471, in assertRaises
+    callableObj(*args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_list (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 190, in test_skiprows_list
+    df1 = self.run_read_html(self.spam_data, '.*Water.*', skiprows=[1, 2])
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_ndarray (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 225, in test_skiprows_ndarray
+    skiprows=np.arange(2))
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_set (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 197, in test_skiprows_set
+    skiprows=set([1, 2]))
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_slice (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 203, in test_skiprows_slice
+    df1 = self.run_read_html(self.spam_data, '.*Water.*', skiprows=1)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_slice_long (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 217, in test_skiprows_slice_long
+    skiprows=slice(2, 5))
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_slice_short (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 210, in test_skiprows_slice_short
+    skiprows=slice(2))
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_skiprows_xrange (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 184, in test_skiprows_xrange
+    df1 = [self.run_read_html(self.spam_data, '.*Water.*').pop()[2:]]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_spam (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 152, in test_spam
+    infer_types=False)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_spam_header (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 172, in test_spam_header
+    df = self.run_read_html(self.spam_data, '.*Water.*', header=0)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_spam_no_match (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 162, in test_spam_no_match
+    dfs = self.run_read_html(self.spam_data)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_spam_url (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 108, in test_spam_url
+    df1 = self.run_read_html(url, '.*Water.*')
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_string (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 272, in test_string
+    df1 = self.run_read_html(data, '.*Water.*', infer_types=False)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_string_io (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 264, in test_string_io
+    df1 = self.run_read_html(data1, '.*Water.*', infer_types=False)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+ERROR: test_to_html_compat (pandas.io.tests.test_html.TestBs4LxmlParser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 80, in test_to_html_compat
+    index_col=0)[0]
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 387, in run_read_html
+    return _run_read_html(parser, *args, **kwargs)
+  File "/home/antares/pandas/pandas/io/tests/test_html.py", line 71, in _run_read_html
+    infer_types, attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 717, in _parse
+    p = parser(io, re.compile(match), attrs)
+  File "/home/antares/pandas/pandas/io/html.py", line 363, in __init__
+    from bs4 import SoupStrainer
+ImportError: No module named bs4
+
+======================================================================
+FAIL: testWLS (pandas.stats.tests.test_ols.TestOLS)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/antares/pandas/pandas/stats/tests/test_ols.py", line 109, in testWLS
+    self._check_wls(X, Y, weights)
+  File "/home/antares/pandas/pandas/stats/tests/test_ols.py", line 132, in _check_wls
+    self.checkMovingOLS('rolling', x, y, weights=weights)
+  File "/home/antares/pandas/pandas/stats/tests/test_ols.py", line 206, in checkMovingOLS
+    result_index=n)
+  File "/home/antares/pandas/pandas/stats/tests/test_ols.py", line 245, in compare
+    assert_almost_equal(ref, res)
+  File "/home/antares/pandas/pandas/util/testing.py", line 141, in assert_almost_equal
+    assert_almost_equal(a[i], b[i], check_less_precise)
+  File "/home/antares/pandas/pandas/util/testing.py", line 170, in assert_almost_equal
+    1, a / b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
+  File "/usr/lib64/python2.7/site-packages/numpy/testing/utils.py", line 468, in assert_almost_equal
+    raise AssertionError(msg)
+AssertionError: 
+Arrays are not almost equal to 5 decimals expected 0.60439 but got 0.55051
+-------------------- >> begin captured stdout << ---------------------
+Make sure you're using statsmodels 0.5.0.dev-cec4f26 or later.
+
+--------------------- >> end captured stdout << ----------------------
+
+----------------------------------------------------------------------
+Ran 3355 tests in 139.394s
+
+FAILED (SKIP=89, errors=37, failures=1)

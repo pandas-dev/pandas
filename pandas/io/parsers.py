@@ -1996,7 +1996,6 @@ class ExcelFile(object):
     """
     def __init__(self, path_or_buf, kind=None, **kwds):
         self.kind = kind
-
         import xlrd # throw an ImportError if we need to
         ver = tuple(map(int,xlrd.__VERSION__.split(".")[:2]))
         if ver < (0, 9):
@@ -2009,7 +2008,7 @@ class ExcelFile(object):
             self.book = xlrd.open_workbook(path_or_buf)
         else:
             data = path_or_buf.read()
-            self.book = xlrd.open_workbook(file_contents=data)
+            self.book = xlrd.open_workbook(file_contents = data)
 
     def __repr__(self):
         return object.__repr__(self)
