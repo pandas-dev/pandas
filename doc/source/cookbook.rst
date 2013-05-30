@@ -92,6 +92,19 @@ Levels
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
 
+.. _cookbook.missing_data:
+
+Missing Data
+------------
+
+The :ref:`missing data <missing_data>` docs.
+
+Replace
+~~~~~~~
+
+`Using replace with backrefs
+<http://stackoverflow.com/questions/16818871/extracting-value-and-creating-new-column-out-of-it>`__
+
 .. _cookbook.grouping:
 
 Grouping

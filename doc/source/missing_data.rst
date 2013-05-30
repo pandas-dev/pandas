@@ -23,6 +23,8 @@ pandas.
     NumPy will soon be able to provide a native NA type solution (similar to R)
     performant enough to be used in pandas.
 
+See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies
+
 Missing data basics
 -------------------
 

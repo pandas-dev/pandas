@@ -78,6 +78,7 @@ Enhancements
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
     DataFrames, courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_, GH3616_).
     It works with a *single* parser backend: BeautifulSoup4 + html5lib
+
     - You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
     .. ipython :: python
@@ -110,6 +111,25 @@ Enhancements
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs
     :ref:`Replacing via String Expression <missing_data.replace_expression>`
+
+    For example you can do
+
+    .. ipython :: python
+
+        df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
+        df.replace(regex=r'\s*\.\s*', value=nan)
+
+    to replace all occurrences of the string ``'.'`` with zero or more
+    instances of surrounding whitespace with ``NaN``.
+
+    Regular string replacement still works as expected. For example, you can do
+
+    .. ipython :: python
+
+        df.replace('.', nan)
+
+    to replace all occurrences of the string ``'.'`` with ``NaN``.
+
   - ``Series.str`` now supports iteration (GH3638_). You can iterate over the
     individual elements of each string in the ``Series``. Each iteration yields
     yields a ``Series`` with either a single character at each index of the
@@ -189,24 +209,6 @@ Bug Fixes
       and handle missing elements like unique indices (GH3561_)
     - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
     - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
-
-    For example you can do
-
-    .. ipython :: python
-
-        df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
-        df.replace(regex=r'\s*\.\s*', value=nan)
-
-    to replace all occurrences of the string ``'.'`` with zero or more
-    instances of surrounding whitespace with ``NaN``.
-
-    Regular string replacement still works as expected. For example, you can do
-
-    .. ipython :: python
-
-        df.replace('.', nan)
-
-    to replace all occurrences of the string ``'.'`` with ``NaN``.
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
