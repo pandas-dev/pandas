@@ -1376,7 +1376,7 @@ class DataFrame(NDFrame):
                tupleize_cols=True, **kwds):
         """
         Write DataFrame to a comma-separated values (csv) file
-
+        
         Parameters
         ----------
         path_or_buf : string or file handle / StringIO
@@ -1414,6 +1414,7 @@ class DataFrame(NDFrame):
         tupleize_cols : boolean, default True
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
+
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -2421,6 +2422,7 @@ class DataFrame(NDFrame):
         Example
         -------
         values : ndarray
+
         """
         from itertools import izip
 
@@ -3475,7 +3477,8 @@ class DataFrame(NDFrame):
 
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
                 regex=False, infer_types=False, method=None, axis=None):
-        """Replace values given in 'to_replace' with 'value'.
+        """
+        Replace values given in 'to_replace' with 'value'.
 
         Parameters
         ----------
@@ -3561,6 +3564,7 @@ class DataFrame(NDFrame):
           *are* strings, then you can do this.
         * This method has *a lot* of options. You are encouraged to experiment
           and play with this method to gain intuition about how it works.
+
         """
         if not isinstance(regex, bool) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "

@@ -26,7 +26,7 @@ Frequently Asked Questions (FAQ)
 .. _ref-repr-control:
 
 How do I control the way my DataFrame is displayed?
--------------------------------------------
+---------------------------------------------------
 
 Pandas users rely on a variety of environments for using pandas: scripts, terminal,
 IPython qtconsole/ notebook, (IDLE, spyder, etc').

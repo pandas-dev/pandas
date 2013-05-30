@@ -90,7 +90,6 @@ API changes
     to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
   - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
 
-
   - IO api
 
     - added top-level function ``read_excel`` to replace the following,
@@ -163,7 +162,7 @@ Enhancements
     .. ipython :: python
 
         df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
-        df.replace(regex=r'\s*\.\s*', value=nan)
+        df.replace(regex=r'\s*\.\s*', value=np.nan)
 
     to replace all occurrences of the string ``'.'`` with zero or more
     instances of surrounding whitespace with ``NaN``.
@@ -172,7 +171,7 @@ Enhancements
 
     .. ipython :: python
 
-        df.replace('.', nan)
+        df.replace('.', np.nan)
 
     to replace all occurrences of the string ``'.'`` with ``NaN``.
 
@@ -257,24 +256,6 @@ Bug Fixes
     - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
     - Allow insert/delete to non-unique columns (GH3679_)
 
-    For example you can do
-
-    .. ipython :: python
-
-        df = DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
-        df.replace(regex=r'\s*\.\s*', value=np.nan)
-
-    to replace all occurrences of the string ``'.'`` with zero or more
-    instances of surrounding whitespace with ``NaN``.
-
-    Regular string replacement still works as expected. For example, you can do
-
-    .. ipython :: python
-
-        df.replace('.', np.nan)
-
-    to replace all occurrences of the string ``'.'`` with ``NaN``.
-
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
 
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
@@ -322,3 +303,5 @@ on GitHub for a complete list.
 .. _GH3682: https://github.com/pydata/pandas/issues/3682
 .. _GH3679: https://github.com/pydata/pandas/issues/3679
 .. _GH3702: https://github.com/pydata/pandas/issues/3702
+.. _GH3691: https://github.com/pydata/pandas/issues/3691
+.. _GH3696: https://github.com/pydata/pandas/issues/3696

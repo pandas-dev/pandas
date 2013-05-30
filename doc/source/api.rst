@@ -47,6 +47,8 @@ Flat File IO
 
    read_table
    read_csv
+   read_fwf
+   read_clipboard
 
 .. currentmodule:: pandas.io.excel
 
@@ -54,6 +56,7 @@ Flat File IO
    :toctree: generated/
 
    read_excel
+   ExcelFile.parse
 
 .. currentmodule:: pandas.io.stata
 
@@ -61,8 +64,6 @@ Flat File IO
    :toctree: generated/
 
    read_stata
-   read_fwf
-   read_clipboard
 
 .. currentmodule:: pandas.io.html
 
@@ -82,15 +83,6 @@ SQL
    :toctree: generated/
 
    read_sql
-
-Excel IO
-^^^^^^^^
-.. currentmodule:: pandas.io.parsers
-
-.. autosummary::
-   :toctree: generated/
-
-   ExcelFile.parse
 
 SQL IO
 ^^^^^^

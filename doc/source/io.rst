@@ -1052,7 +1052,7 @@ in the method ``to_string`` described above.
 .. note::
 
    Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`~pandas.DataFrame.to_html` for the full set of
+   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the full set of
    options.
 
 .. ipython:: python
