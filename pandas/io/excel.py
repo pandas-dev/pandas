@@ -9,10 +9,6 @@ import datetime
 from itertools import izip
 import numpy as np
 
-from pandas.core.index import Index, MultiIndex
-from pandas.core.frame import DataFrame
-import pandas.core.common as com
-from pandas.util import py3compat
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 import json
@@ -21,8 +17,7 @@ def read_excel(path_or_buf, sheetname, header=0, skiprows=None, skip_footer=0,
                index_col=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None, chunksize=None,
                kind=None, **kwds):
-    """
-    Read Excel table into DataFrame
+    """Read an Excel table into a pandas DataFrame
 
     Parameters
     ----------
@@ -38,23 +33,30 @@ def read_excel(path_or_buf, sheetname, header=0, skiprows=None, skip_footer=0,
         Column to use as the row labels of the DataFrame. Pass None if
         there is no such column
     parse_cols : int or list, default None
-        If None then parse all columns,
-        If int then indicates last column to be parsed
-        If list of ints then indicates list of column numbers to be parsed
-        If string then indicates comma separated list of column names and
-            column ranges (e.g. "A:E" or "A,C,E:F")
+        * If None then parse all columns,
+        * If int then indicates last column to be parsed
+        * If list of ints then indicates list of column numbers to be parsed
+        * If string then indicates comma separated list of column names and
+          column ranges (e.g. "A:E" or "A,C,E:F")
     na_values : list-like, default None
         List of additional strings to recognize as NA/NaN
 
     Returns
     -------
     parsed : DataFrame
+        DataFrame from the passed in Excel file
     """
     return ExcelFile(path_or_buf,kind=kind).parse(sheetname=sheetname,
-                                                  header=0, skiprows=None, skip_footer=0,
-                                                  index_col=None, parse_cols=None, parse_dates=False,
-                                                  date_parser=None, na_values=None, thousands=None, chunksize=None,
-                                                  kind=None, **kwds)
+                                                  header=0, skiprows=None,
+                                                  skip_footer=0,
+                                                  index_col=None,
+                                                  parse_cols=None,
+                                                  parse_dates=False,
+                                                  date_parser=None,
+                                                  na_values=None,
+                                                  thousands=None,
+                                                  chunksize=None, kind=None,
+                                                  **kwds)
 
 class ExcelFile(object):
     """
@@ -90,8 +92,7 @@ class ExcelFile(object):
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
               **kwds):
-        """
-        Read Excel table into DataFrame
+        """Read an Excel table into DataFrame
 
         Parameters
         ----------
@@ -107,17 +108,19 @@ class ExcelFile(object):
             Column to use as the row labels of the DataFrame. Pass None if
             there is no such column
         parse_cols : int or list, default None
-            If None then parse all columns,
-            If int then indicates last column to be parsed
-            If list of ints then indicates list of column numbers to be parsed
-            If string then indicates comma separated list of column names and
-                column ranges (e.g. "A:E" or "A,C,E:F")
+            * If None then parse all columns
+            * If int then indicates last column to be parsed
+            * If list of ints then indicates list of column numbers to be
+              parsed
+            * If string then indicates comma separated list of column names and
+              column ranges (e.g. "A:E" or "A,C,E:F")
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
 
         Returns
         -------
         parsed : DataFrame
+            DataFrame parsed from the Excel file
         """
 
         # has_index_names: boolean, default False

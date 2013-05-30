@@ -1374,9 +1374,8 @@ class DataFrame(NDFrame):
                mode='w', nanRep=None, encoding=None, quoting=None,
                line_terminator='\n', chunksize=None,
                tupleize_cols=True, **kwds):
-        """
-        Write DataFrame to a comma-separated values (csv) file
-        
+        r"""Write DataFrame to a comma-separated values (csv) file
+
         Parameters
         ----------
         path_or_buf : string or file handle / StringIO
@@ -1390,8 +1389,8 @@ class DataFrame(NDFrame):
         cols : sequence, optional
             Columns to write
         header : boolean or list of string, default True
-            Write out column names. If a list of string is given it is
-            assumed to be aliases for the column names
+            Write out column names. If a list of string is given it is assumed
+            to be aliases for the column names
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, or False, default None
@@ -1400,21 +1399,23 @@ class DataFrame(NDFrame):
             sequence should be given if the DataFrame uses MultiIndex.  If
             False do not print fields for index names. Use index_label=False
             for easier importing in R
-        nanRep : deprecated, use na_rep
-        mode : Python write mode, default 'w'
+        nanRep : None
+            deprecated, use na_rep
+        mode : str
+            Python write mode, default 'w'
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
-        line_terminator: string, default '\n'
+        line_terminator : string, default '\\n'
             The newline character or character sequence to use in the output
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
-        chunksize : rows to write at a time
+        chunksize : int or None
+            rows to write at a time
         tupleize_cols : boolean, default True
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
-
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
@@ -2401,27 +2402,31 @@ class DataFrame(NDFrame):
     _xs = xs
 
     def lookup(self, row_labels, col_labels):
-        """
-        Label-based "fancy indexing" function for DataFrame. Given equal-length
-        arrays of row and column labels, return an array of the values
-        corresponding to each (row, col)  pair.
+        """Label-based "fancy indexing" function for DataFrame. Given
+        equal-length arrays of row and column labels, return an array of the
+        values corresponding to each (row, col)  pair.
 
         Parameters
         ----------
         row_labels : sequence
+            The row labels to use for lookup
         col_labels : sequence
+            The column labels to use for lookup
 
         Notes
         -----
         Akin to
 
-        result = []
-        for row, col in zip(row_labels, col_labels):
-            result.append(df.get_value(row, col))
+            .. code-block:: python
 
-        Example
-        -------
+                result = []
+                for row, col in zip(row_labels, col_labels):
+                    result.append(df.get_value(row, col))
+
+        Examples
+        --------
         values : ndarray
+            The found values
 
         """
         from itertools import izip
@@ -3483,12 +3488,16 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         to_replace : str, regex, list, dict, Series, numeric, or None
+
             * str or regex:
+
                 - str: string exactly matching `to_replace` will be replaced
                   with `value`
                 - regex: regexs matching `to_replace` will be replaced with
                   `value`
+
             * list of str, regex, or numeric:
+
                 - First, if `to_replace` and `value` are both lists, they
                   **must** be the same length.
                 - Second, if ``regex=True`` then all of the strings in **both**
@@ -3496,7 +3505,9 @@ class DataFrame(NDFrame):
                   directly. This doesn't matter much for `value` since there
                   are only a few possible substitution regexes you can use.
                 - str and regex rules apply as above.
+
             * dict:
+
                 - Nested dictionaries, e.g., {'a': {'b': nan}}, are read as
                   follows: look in column 'a' for the value 'b' and replace it
                   with nan. You can nest regular expressions as well. Note that
@@ -3505,11 +3516,14 @@ class DataFrame(NDFrame):
                 - Keys map to column names and values map to substitution
                   values. You can treat this as a special case of passing two
                   lists except that you are specifying the column to search in.
+
             * None:
+
                 - This means that the ``regex`` argument must be a string,
                   compiled regular expression, or list, dict, ndarray or Series
                   of such elements. If `value` is also ``None`` then this
                   **must** be a nested dictionary or ``Series``.
+
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
             Value to use to fill holes (e.g. 0), alternately a dict of values

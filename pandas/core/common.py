@@ -1348,8 +1348,8 @@ def iterpairs(seq):
     -------
     iterator returning overlapping pairs of elements
 
-    Example
-    -------
+    Examples
+    --------
     >>> iterpairs([1, 2, 3, 4])
     [(1, 2), (2, 3), (3, 4)
     """

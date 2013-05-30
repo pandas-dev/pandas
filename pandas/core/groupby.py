@@ -1374,8 +1374,8 @@ class SeriesGroupBy(GroupBy):
         -----
         agg is an alias for aggregate. Use it.
 
-        Example
-        -------
+        Examples
+        --------
         >>> series
         bar    1.0
         baz    2.0
@@ -1523,8 +1523,8 @@ class SeriesGroupBy(GroupBy):
         func : function
             To apply to each group. Should return a Series with the same index
 
-        Example
-        -------
+        Examples
+        --------
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
 
         Returns
@@ -1906,7 +1906,7 @@ class NDFrameGroupBy(GroupBy):
         Each subframe is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
-        Example
+        Examples
         --------
         >>> grouped = df.groupby(lambda x: mapping[x])
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
