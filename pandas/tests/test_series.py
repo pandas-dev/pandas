@@ -2600,7 +2600,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # Check ndarray argument
         result = a.dot(b.values)
         self.assertTrue(np.all(result == expected.values))
-        self.assertEquals(a.dot(b['2'].values), expected['2'])
+        assert_almost_equal(a.dot(b['2'].values), expected['2'])
 
         #Check series argument
         assert_almost_equal(a.dot(b['1']), expected['1'])
