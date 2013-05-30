@@ -7,6 +7,96 @@ API Reference
 
 .. _api.functions:
 
+Input/Output
+------------
+
+Pickling
+~~~~~~~~
+
+.. currentmodule:: pandas.core.common
+
+.. autosummary::
+   :toctree: generated/
+
+   load
+   save
+
+Flat File
+~~~~~~~~~
+
+.. currentmodule:: pandas.io.parsers
+
+.. autosummary::
+   :toctree: generated/
+
+   read_table
+   read_csv
+   read_fwf
+   read_clipboard
+
+Excel
+~~~~~
+
+.. currentmodule:: pandas.io.excel
+
+.. autosummary::
+   :toctree: generated/
+
+   read_excel
+   ExcelFile.parse
+
+HTML
+~~~~
+
+.. currentmodule:: pandas.io.html
+
+.. autosummary::
+   :toctree: generated/
+
+   read_html
+
+HDFStore: PyTables (HDF5)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.io.pytables
+
+.. autosummary::
+   :toctree: generated/
+
+   read_hdf
+   HDFStore.put
+   HDFStore.append
+   HDFStore.get
+   HDFStore.select
+
+SQL
+~~~
+.. currentmodule:: pandas.io.sql
+
+.. autosummary::
+   :toctree: generated/
+
+   read_sql
+   read_frame
+   write_frame
+
+
+STATA
+~~~~~
+
+.. currentmodule:: pandas.io.stata
+
+.. autosummary::
+   :toctree: generated/
+
+   read_stata
+   StataReader.data
+   StataReader.data_label
+   StataReader.value_labels
+   StataReader.variable_labels
+   StataWriter.write_file
+
+
 General functions
 -----------------
 
@@ -26,108 +116,6 @@ Data manipulations
 
    merge
    concat
-
-Pickling
-~~~~~~~~
-
-.. currentmodule:: pandas.core.common
-
-.. autosummary::
-   :toctree: generated/
-
-   load
-   save
-
-Flat File IO
-^^^^^^^^^^^^
-.. currentmodule:: pandas.io.parsers
-
-.. autosummary::
-   :toctree: generated/
-
-   read_table
-   read_csv
-   read_fwf
-   read_clipboard
-
-.. currentmodule:: pandas.io.excel
-
-.. autosummary::
-   :toctree: generated/
-
-   read_excel
-   ExcelFile.parse
-
-.. currentmodule:: pandas.io.stata
-
-.. autosummary::
-   :toctree: generated/
-
-   read_stata
-
-.. currentmodule:: pandas.io.html
-
-HTML IO
-^^^^^^^
-.. autosummary::
-   :toctree: generated/
-
-   read_html
-
-SQL
-~~~
-
-.. currentmodule:: pandas.io.sql
-
-.. autosummary::
-   :toctree: generated/
-
-   read_sql
-
-SQL IO
-^^^^^^
-.. currentmodule:: pandas.io.sql
-
-.. autosummary::
-   :toctree: generated/
-
-   read_frame
-   write_frame
-
-.. currentmodule:: pandas.io
-
-.. autosummary::
-   :toctree: generated/
-
-   sql
-
-STATA IO
-^^^^^^^^
-.. currentmodule:: pandas.io.stata
-
-.. autosummary::
-   :toctree: generated/
-
-   read_stata
-   StataReader.data
-   StataReader.data_label
-   StataReader.value_labels
-   StataReader.variable_labels
-   StataWriter.write_file
-
-HDFStore: PyTables (HDF5)
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. currentmodule:: pandas.io.pytables
-
-.. autosummary::
-   :toctree: generated/
-
-   read_hdf
-   HDFStore.put
-   HDFStore.append
-   HDFStore.get
-   HDFStore.select
 
 Top-level Missing Data
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -386,6 +374,7 @@ Serialization / IO / Conversion
    Series.to_dict
    Series.to_sparse
    Series.to_string
+   Series.to_clipboard
 
 .. _api.dataframe:
 
@@ -613,6 +602,7 @@ Serialization / IO / Conversion
    DataFrame.to_records
    DataFrame.to_sparse
    DataFrame.to_string
+   DataFrame.to_clipboard
 
 .. _api.panel:
 
@@ -772,4 +762,5 @@ Serialization / IO / Conversion
    Panel.to_excel
    Panel.to_sparse
    Panel.to_frame
+   Panel.to_clipboard
 

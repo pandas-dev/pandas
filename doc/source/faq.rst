@@ -37,6 +37,7 @@ by several options, which you're encouraged to tweak to suit your setup.
 
 As of 0.11.1, these are the relavent options, all under the `display` namespace,
 (e.g. display.width,  etc'):
+
 - notebook_repr_html: if True, IPython frontends with HTML support will display
   dataframes as HTML tables when possible.
 - expand_repr (default True):  when the frame width cannot fit within the screen,
