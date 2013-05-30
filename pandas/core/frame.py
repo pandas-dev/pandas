@@ -3481,9 +3481,9 @@ class DataFrame(NDFrame):
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit)
 
-    def replace(self, to_replace=None, value=None, method='pad', axis=0,
-                inplace=False, limit=None, regex=False, infer_types=False):
-        """Replace values given in 'to_replace' with 'value' or using 'method'.
+    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
+                regex=False, infer_types=False, method=None, axis=None):
+        """Replace values given in 'to_replace' with 'value'.
 
         Parameters
         ----------
@@ -3521,13 +3521,6 @@ class DataFrame(NDFrame):
             specifying which value to use for each column (columns not in the
             dict will not be filled). Regular expressions, strings and lists or
             dicts of such objects are also allowed.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
-        axis : {0, 1}, default 0
-            0: fill column-by-column
-            1: fill row-by-row
         inplace : boolean, default False
             If True, fill the DataFrame in place. Note: this will modify any
             other views on this DataFrame, like if you took a no-copy slice of
@@ -3580,10 +3573,17 @@ class DataFrame(NDFrame):
         if not isinstance(regex, bool) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
-        self._consolidate_inplace()
+        if method is not None:
+            from warnings import warn
+            warn('the "method" argument is deprecated and will be removed in'
+                 'v0.12; this argument has no effect')
 
-        axis = self._get_axis_number(axis)
-        method = com._clean_fill_method(method)
+        if axis is not None:
+            from warnings import warn
+            warn('the "axis" argument is deprecated and will be removed in'
+                 'v0.12; this argument has no effect')
+
+        self._consolidate_inplace()
 
         if value is None:
             if not isinstance(to_replace, (dict, Series)):
@@ -3615,8 +3615,8 @@ class DataFrame(NDFrame):
             else:
                 to_replace, value = keys, values
 
-            return self.replace(to_replace, value, method=method, axis=axis,
-                                inplace=inplace, limit=limit, regex=regex,
+            return self.replace(to_replace, value, inplace=inplace,
+                                limit=limit, regex=regex,
                                 infer_types=infer_types)
         else:
             if not len(self.columns):
@@ -3629,7 +3629,7 @@ class DataFrame(NDFrame):
                     for c, src in to_replace.iteritems():
                         if c in value and c in self:
                             new_data = new_data.replace(src, value[c],
-                                                        filter=[ c ],
+                                                        filter=[c],
                                                         inplace=inplace,
                                                         regex=regex)
 
@@ -3638,7 +3638,7 @@ class DataFrame(NDFrame):
                     for k, src in to_replace.iteritems():
                         if k in self:
                             new_data = new_data.replace(src, value,
-                                                        filter = [ k ],
+                                                        filter=[k],
                                                         inplace=inplace,
                                                         regex=regex)
                 else:
@@ -3667,9 +3667,8 @@ class DataFrame(NDFrame):
                                     "regular expression or a list or dict of "
                                     "strings or regular expressions, you "
                                     "passed a {0}".format(type(regex)))
-                return self.replace(regex, value, method=method, axis=axis,
-                                    inplace=inplace, limit=limit, regex=True,
-                                    infer_types=infer_types)
+                return self.replace(regex, value, inplace=inplace, limit=limit,
+                                    regex=True, infer_types=infer_types)
             else:
 
                 # dest iterable dict-like
@@ -3679,7 +3678,7 @@ class DataFrame(NDFrame):
                     for k, v in value.iteritems():
                         if k in self:
                             new_data = new_data.replace(to_replace, v,
-                                                        filter=[ k ],
+                                                        filter=[k],
                                                         inplace=inplace,
                                                         regex=regex)
 

@@ -83,6 +83,8 @@ API changes
   - ``DataFrame.interpolate()`` is now deprecated. Please use
     ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (GH3582_,
     GH3675_, GH3676_)
+  - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
+    deprecated
 
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
     to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
