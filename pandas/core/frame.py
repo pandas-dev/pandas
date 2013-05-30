@@ -703,10 +703,13 @@ class DataFrame(NDFrame):
             self.to_string(buf=buf)
         else:
             width, _ = fmt.get_console_size()
-            max_rows = get_option("display.max_rows")
-            if (get_option("display.expand_frame_repr")
-                and fits_vertical):
-                # and len(self.columns) < max_rows)
+            max_columns = get_option("display.max_columns")
+            expand_repr = get_option("display.expand_frame_repr")
+            # within max_cols and max_rows, but cols exceed width
+            # of terminal, then use expand_repr
+            if (fits_vertical and
+                expand_repr and
+                len(self.columns) <= max_columns):
                 self.to_string(buf=buf, line_width=width)
             else:
                 max_info_rows = get_option('display.max_info_rows')
