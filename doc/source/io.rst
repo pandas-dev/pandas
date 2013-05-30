@@ -938,7 +938,7 @@ Reading HTML Content
 
 .. versionadded:: 0.11.1
 
-The toplevel :func:`~pandas.io.read_html` function can accept an HTML
+The toplevel :func:`~pandas.io.html.read_html` function can accept an HTML
 string/file/url and will parse HTML tables into list of pandas DataFrames.
 Let's look at a few examples.
 
