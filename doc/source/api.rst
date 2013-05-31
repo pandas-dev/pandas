@@ -673,6 +673,8 @@ Function application, GroupBy
    Panel.apply
    Panel.groupby
 
+.. _api.panel.stats:
+
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::

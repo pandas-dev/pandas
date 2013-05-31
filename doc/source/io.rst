@@ -2127,26 +2127,26 @@ There are a few other available functions:
 STATA Format
 ------------
 
+.. _io.stata:
+
 Writing to STATA format
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _io.StataWriter:
+.. _io.stata_writer:
 
-The method :func:`~pandas.io.stata.StataWriter.write_file` of
-:class:`~pandas.io.stata.StataWriter` will write a DataFrame into a .dta file.
-The format version of this file is always the latest one, 115.
+The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame 
+into a .dta file. The format version of this file is always the latest one, 115.
 
 .. ipython:: python
 
    from pandas.io.stata import StataWriter
    df = DataFrame(randn(10, 2), columns=list('AB'))
-   writer = StataWriter('stata.dta', df)
-   writer.write_file()
+   df.to_stata('stata.dta')
 
 Reading from STATA format
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _io.statareader:
+.. _io.stata_reader:
 
 .. versionadded:: 0.11.1
 

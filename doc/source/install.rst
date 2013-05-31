@@ -86,6 +86,8 @@ Recommended Dependencies
    if working with large data sets.
 
 
+.. _install.optional_dependencies:
+
 Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 

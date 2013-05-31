@@ -133,7 +133,7 @@ Enhancements
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
     DataFrames, courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_, GH3616_).
-    It works with a *single* parser backend: BeautifulSoup4 + html5lib
+    It works with a *single* parser backend: BeautifulSoup4 + html5lib :ref:`See the docs<io.html>`
 
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
@@ -151,9 +151,14 @@ Enhancements
     - ``pd.read_html()`` no longer performs hard conversion of date strings
       (GH3656_).
 
+    .. warning::
+
+      You may have to install an older version of BeautifulSoup4, 
+      :ref:`See the installation docs<install.optional_dependencies>`
+
   - Added module for reading and writing Stata files: ``pandas.io.stata`` (GH1512_)
     accessable via ``read_stata`` top-level function for reading,
-    and ``to_stata`` DataFrame method for writing
+    and ``to_stata`` DataFrame method for writing, :ref:`See the docs<io.stata>`
 
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs
