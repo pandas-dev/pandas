@@ -75,14 +75,14 @@ Dependencies
 Recommended Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-  * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations. 
+  * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
     ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
     evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
 
 .. note::
 
-   You are highly encouraged to install these libraries, as they provide large speedups, especially 
+   You are highly encouraged to install these libraries, as they provide large speedups, especially
    if working with large data sets.
 
 
@@ -105,9 +105,9 @@ Optional Dependencies
 
     .. warning::
 
-       If you are on a 32-bit machine you need to install an older version of
-       Beautiful Soup. Version 4.0.2 of BeautifulSoup has been tested on Ubuntu
-       12.04.02 32-bit.
+       You need to install an older version of Beautiful Soup:
+           - Version 4.1.3 and 4.0.2 have been confirmed for 64-bit Ubuntu/Debian
+           - Version 4.0.2 have been confirmed for 32-bit Ubuntu
 
     * Any recent version of ``html5lib`` is okay.
 
