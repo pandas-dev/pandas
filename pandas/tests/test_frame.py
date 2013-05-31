@@ -9167,6 +9167,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         f = getattr(frame, name)
 
+        if not ('max' in name or 'min' in name or 'count' in name):
+            df = DataFrame({'b': date_range('1/1/2001', periods=2)})
+            _f = getattr(df, name)
+            print df
+            self.assertFalse(len(_f()))
+
+            df['a'] = range(len(df))
+            self.assert_(len(getattr(df, name)()))
+
         if has_skipna:
             def skipna_wrapper(x):
                 nona = x.dropna().values

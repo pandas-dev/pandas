@@ -128,6 +128,17 @@ API changes
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
     their first argument (GH3702_)
 
+  - Do not allow astypes on ``datetime64[ns]`` except to ``object``, and
+    ``timedelta64[ns]`` to ``object/int`` (GH3425_)
+
+  - The behavior of ``datetime64`` dtypes has changed with respect to certain
+    so-called reduction operations (GH3726_). The following operations now
+    raise a ``TypeError`` when perfomed on a ``Series`` and return an *empty*
+    ``Series`` when performed on a ``DataFrame`` similar to performing these
+    operations on, for example, a ``DataFrame`` of ``slice`` objects:
+
+    - sum, prod, mean, std, var, skew, kurt, corr, and cov
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -345,3 +356,5 @@ on GitHub for a complete list.
 .. _GH3696: https://github.com/pydata/pandas/issues/3696
 .. _GH3667: https://github.com/pydata/pandas/issues/3667
 .. _GH3741: https://github.com/pydata/pandas/issues/3741
+.. _GH3726: https://github.com/pydata/pandas/issues/3726
+.. _GH3425: https://github.com/pydata/pandas/issues/3425
