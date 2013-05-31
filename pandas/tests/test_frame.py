@@ -3936,7 +3936,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         fmt.set_printoptions(max_rows=1000, max_columns=1000)
         repr(self.frame)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display\.')
 
         warnings.filters = warn_filters
 

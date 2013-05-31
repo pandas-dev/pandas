@@ -1376,7 +1376,7 @@ class TestMultiIndex(unittest.TestCase):
         result = self.index.format()
         self.assertEqual(result[1], 'foo  two')
 
-        pd.reset_printoptions()
+        pd.reset_option("^display\.")
 
         warnings.filters = warn_filters
 

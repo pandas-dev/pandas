@@ -81,7 +81,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         fmt.set_eng_float_format(accuracy=0)
         repr(self.frame)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def test_repr_tuples(self):
         buf = StringIO()
@@ -1026,7 +1026,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         assert(df_s == expected)
 
     def test_to_string_float_formatting(self):
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
         fmt.set_printoptions(precision=6, column_space=12,
                              notebook_repr_html=False)
 
@@ -1057,7 +1057,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '1     0.253')
         assert(df_s == expected)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
         self.assertEqual(get_option("display.precision"), 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
@@ -1149,7 +1149,7 @@ c  10  11  12  13  14\
         self.assertEqual(rs, xp)
 
     def test_to_string_left_justify_cols(self):
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string(justify='left')
         expected = ('   x       \n'
@@ -1158,7 +1158,7 @@ c  10  11  12  13  14\
         assert(df_s == expected)
 
     def test_to_string_format_na(self):
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
         df = DataFrame({'A': [np.nan, -1, -2.1234, 3, 4],
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
@@ -1426,7 +1426,7 @@ c  10  11  12  13  14\
         fmt.set_printoptions(notebook_repr_html=False)
         self.frame._repr_html_()
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def test_fake_qtconsole_repr_html(self):
         def get_ipython():
@@ -1441,7 +1441,7 @@ c  10  11  12  13  14\
         repstr = self.frame._repr_html_()
         self.assert_('class' in repstr)  # info fallback
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def test_to_html_with_classes(self):
         df = pandas.DataFrame()
@@ -1751,7 +1751,7 @@ class TestEngFormatter(unittest.TestCase):
                     '3    1E+06')
         self.assertEqual(result, expected)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def compare(self, formatter, input, output):
         formatted_input = formatter(input)
