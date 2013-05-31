@@ -98,9 +98,9 @@ Optional dependencies
 
     .. warning::
 
-       If you are on a 32-bit machine you need to install an older version of
-       Beautiful Soup. Version 4.0.2 of BeautifulSoup has been tested on Ubuntu
-       12.04.02 32-bit.
+       You need to install an older version of Beautiful Soup:
+           - Version 4.1.3 and 4.0.2 have been confirmed for 64-bit Ubuntu/Debian
+           - Version 4.0.2 have been confirmed for 32-bit Ubuntu
 
     - Any recent version of ``html5lib`` is okay.
   - `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
