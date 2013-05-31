@@ -1371,7 +1371,7 @@ class TestMultiIndex(unittest.TestCase):
                                 category=FutureWarning,
                                 module=".*format")
         # #1538
-        pd.set_printoptions(multi_sparse=False)
+        pd.set_option('display.multi_sparse', False)
 
         result = self.index.format()
         self.assertEqual(result[1], 'foo  two')

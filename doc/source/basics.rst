@@ -1369,7 +1369,7 @@ For instance:
 .. ipython:: python
    :suppress:
 
-   reset_printoptions()
+   reset_option('^display\.')
 
 
 The ``set_printoptions`` function has a number of options for controlling how

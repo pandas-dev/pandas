@@ -719,11 +719,11 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_frame_info_encoding(self):
         index = ['\'Til There Was You (1997)',
                  'ldum klaka (Cold Fever) (1994)']
-        fmt.set_printoptions(max_rows=1)
+        fmt.set_option('display.max_rows', 1)
         df = DataFrame(columns=['a', 'b', 'c'], index=index)
         repr(df)
         repr(df.T)
-        fmt.set_printoptions(max_rows=200)
+        fmt.set_option('display.max_rows', 200)
 
     def test_large_frame_repr(self):
         def wrap_rows_options(f):
@@ -1027,8 +1027,8 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_string_float_formatting(self):
         fmt.reset_option('^display.')
-        fmt.set_printoptions(precision=6, column_space=12,
-                             notebook_repr_html=False)
+        fmt.set_option('display.precision', 6, 'display.column_space',
+                       12, 'display.notebook_repr_html', False)
 
         df = DataFrame({'x': [0, 0.25, 3456.000, 12e+45, 1.64e+6,
                               1.7e+8, 1.253456, np.pi, -1e6]})
@@ -1420,10 +1420,10 @@ c  10  11  12  13  14\
     def test_repr_html(self):
         self.frame._repr_html_()
 
-        fmt.set_printoptions(max_rows=1, max_columns=1)
+        fmt.set_option('display.max_rows', 1, 'display.max_columns', 1)
         self.frame._repr_html_()
 
-        fmt.set_printoptions(notebook_repr_html=False)
+        fmt.set_option('display.notebook_repr_html', False)
         self.frame._repr_html_()
 
         fmt.reset_option('^display.')
@@ -1437,7 +1437,7 @@ c  10  11  12  13  14\
         repstr = self.frame._repr_html_()
         self.assert_(repstr is not None)
 
-        fmt.set_printoptions(max_rows=5, max_columns=2)
+        fmt.set_option('display.max_rows', 5, 'display.max_columns', 2)
         repstr = self.frame._repr_html_()
         self.assert_('class' in repstr)  # info fallback
 
