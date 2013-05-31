@@ -1021,9 +1021,9 @@ Specify an HTML attribute
 
 .. ipython:: python
 
-   dfs = read_html(url)
-   len(dfs)
-   dfs[0]
+   dfs1 = read_html(url, attrs={'id': 'table'})
+   dfs2 = read_html(url, attrs={'class': 'sortable'})
+   np.all(dfs1[0] == dfs2[0])
 
 Use some combination of the above
 
