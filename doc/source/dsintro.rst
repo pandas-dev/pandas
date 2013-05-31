@@ -17,7 +17,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-   set_printoptions(precision=4, max_columns=8)
+   set_option('display.precision', 4, 'display.max_columns', 8)
 
 .. ipython:: python
 
@@ -571,7 +571,7 @@ R package):
    :suppress:
 
    # force a summary to be printed
-   set_printoptions(max_rows=5)
+   pd.set_option('display.max_rows', 5)
 
 .. ipython:: python
 
@@ -582,7 +582,7 @@ R package):
    :suppress:
 
    # restore GlobalPrintConfig
-   reset_printoptions()
+   pd.reset_option('^display\.')
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:

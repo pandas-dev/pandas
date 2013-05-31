@@ -991,9 +991,9 @@ Note that how the index is displayed by be controlled using the
 
 .. ipython:: python
 
-   pd.set_printoptions(multi_sparse=False)
+   pd.set_option('display.multi_sparse', False)
    df
-   pd.set_printoptions(multi_sparse=True)
+   pd.set_option('display.multi_sparse', True)
 
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
