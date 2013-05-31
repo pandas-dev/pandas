@@ -1146,8 +1146,9 @@ class Series(pa.Array, generic.PandasObject):
         else:
             result = u'Series([], dtype: %s)' % self.dtype
 
-        if not ( type(result) == unicode):
-            raise AssertionError()
+        if not isinstance(result, unicode):
+            raise AssertionError("result must be of type unicode, type"
+                                 " of result is '{0}'".format(type(result)))
         return result
 
     def __repr__(self):
@@ -1216,9 +1217,9 @@ class Series(pa.Array, generic.PandasObject):
                                   length=length, dtype=dtype, name=name)
 
         # catch contract violations
-        if not  type(the_repr) == unicode:
-            raise AssertionError("expected unicode string")
-
+        if not isinstance(the_repr, unicode):
+            raise AssertionError("result must be of type unicode, type"
+                                 " of result is '{0}'".format(type(the_repr)))
         if buf is None:
             return the_repr
         else:
@@ -1228,19 +1229,21 @@ class Series(pa.Array, generic.PandasObject):
                 with open(buf, 'w') as f:
                     f.write(the_repr)
 
-    def _get_repr(self, name=False, print_header=False, length=True, dtype=True,
-                  na_rep='NaN', float_format=None):
+    def _get_repr(self, name=False, print_header=False, length=True,
+                  dtype=True, na_rep='NaN', float_format=None):
         """
 
         Internal function, should always return unicode string
         """
 
         formatter = fmt.SeriesFormatter(self, name=name, header=print_header,
-                                        length=length, dtype=dtype, na_rep=na_rep,
+                                        length=length, dtype=dtype,
+                                        na_rep=na_rep,
                                         float_format=float_format)
         result = formatter.to_string()
-        if not ( type(result) == unicode):
-            raise AssertionError()
+        if not isinstance(result, unicode):
+            raise AssertionError("result must be of type unicode, type"
+                                 " of result is '{0}'".format(type(result)))
         return result
 
     def __iter__(self):

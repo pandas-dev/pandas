@@ -630,8 +630,10 @@ class TextFileReader(object):
 
         # type conversion-related
         if converters is not None:
-            if not (isinstance(converters, dict)):
-                raise AssertionError()
+            if not isinstance(converters, dict):
+                raise AssertionError('Type converters must be a dict or'
+                                     ' subclass, input was '
+                                     'a {0}'.format(type(converters)))
         else:
             converters = {}
 
@@ -1649,8 +1651,8 @@ class PythonParser(ParserBase):
         if self._implicit_index:
             col_len += len(self.index_col)
 
-        if not ((self.skip_footer >= 0)):
-            raise AssertionError()
+        if self.skip_footer < 0:
+            raise AssertionError('skip footer cannot be negative')
 
         if col_len != zip_len and self.index_col is not False:
             row_num = -1
@@ -1946,15 +1948,18 @@ class FixedWidthReader(object):
         self.filler = filler  # Empty characters between fields.
         self.thousands = thousands
 
-        if not ( isinstance(colspecs, (tuple, list))):
-            raise AssertionError()
+        if not isinstance(colspecs, (tuple, list)):
+            raise AssertionError("column specifications must be a list or"
+                                 " tuple, input was "
+                                 "a {0}".format(type(colspecs)))
 
         for colspec in colspecs:
-            if not ( isinstance(colspec, (tuple, list)) and
-                       len(colspec) == 2 and
-                       isinstance(colspec[0], int) and
-                       isinstance(colspec[1], int) ):
-                raise AssertionError()
+            if not (isinstance(colspec, (tuple, list)) and
+                    len(colspec) == 2 and
+                    isinstance(colspec[0], int) and
+                    isinstance(colspec[1], int)):
+                raise AssertionError('Each column specification must be '
+                                     '2 element tuple or list of integers')
 
     def next(self):
         line = next(self.f)

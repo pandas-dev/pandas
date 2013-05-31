@@ -46,12 +46,14 @@ def _maybe_cast(arr):
 
 
 def _check_columns(cols):
-    if not ((len(cols) > 0)):
-        raise AssertionError()
+    if not len(cols):
+        raise AssertionError("There must be at least 1 column")
 
     N = len(cols[0])
     for c in cols[1:]:
-        if not ((len(c) == N)):
-            raise AssertionError()
+        if len(c) != N:
+            raise AssertionError('All columns must have the same length: '
+                                 '{0}, at least one column has '
+                                 'length {1}'.format(N, len(c)))
 
     return N

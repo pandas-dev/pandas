@@ -710,8 +710,9 @@ class DataFrame(NDFrame):
                 self.info(buf=buf, verbose=verbose)
 
         value = buf.getvalue()
-        if not  type(value) == unicode:
-            raise AssertionError()
+        if not isinstance(value, unicode):
+            raise AssertionError("'{0}' is not of type 'unicode', it has "
+                                 "type '{0}'".format(type(value)))
 
         return value
 

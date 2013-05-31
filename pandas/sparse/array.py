@@ -14,7 +14,6 @@ from pandas.util import py3compat
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
-import pandas.lib as lib
 import pandas.index as _index
 
 
@@ -25,8 +24,8 @@ def _sparse_op_wrap(op, name):
     """
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
-            if not ((len(self) == len(other))):
-                raise AssertionError()
+            if len(self) != len(other):
+                raise AssertionError("Operands must be of the same size")
             if not isinstance(other, SparseArray):
                 other = SparseArray(other, fill_value=self.fill_value)
             return _sparse_array_op(self, other, op, name)
@@ -130,8 +129,10 @@ to sparse
                                                    fill_value=fill_value)
             else:
                 values = data
-                if not ((len(values) == sparse_index.npoints)):
-                    raise AssertionError()
+                if len(values) != sparse_index.npoints:
+                    raise AssertionError("Non array-like type {0} must have"
+                                         " the same length as the"
+                                         " index".format(type(values)))
 
         # Create array, do *not* copy data by default
         if copy:
@@ -277,13 +278,13 @@ to sparse
         -------
         taken : ndarray
         """
-        if not ((axis == 0)):
-            raise AssertionError()
+        if axis:
+            raise AssertionError("axis must be 0, input was {0}".format(axis))
         indices = np.asarray(indices, dtype=int)
 
         n = len(self)
         if (indices < 0).any() or (indices >= n).any():
-            raise Exception('out of bounds access')
+            raise IndexError('out of bounds access')
 
         if self.sp_index.npoints > 0:
             locs = np.array([self.sp_index.lookup(loc) for loc in indices])
@@ -296,10 +297,10 @@ to sparse
         return result
 
     def __setitem__(self, key, value):
-        raise Exception('SparseArray objects are immutable')
+        raise TypeError('SparseArray objects are immutable')
 
     def __setslice__(self, i, j, value):
-        raise Exception('SparseArray objects are immutable')
+        raise TypeError('SparseArray objects are immutable')
 
     def to_dense(self):
         """
@@ -313,7 +314,7 @@ to sparse
         """
         dtype = np.dtype(dtype)
         if dtype is not None and dtype not in (np.float_, float):
-            raise Exception('Can only support floating point data for now')
+            raise TypeError('Can only support floating point data for now')
         return self.copy()
 
     def copy(self, deep=True):

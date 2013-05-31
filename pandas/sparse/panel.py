@@ -72,7 +72,8 @@ class SparsePanel(Panel):
             frames = new_frames
 
         if not (isinstance(frames, dict)):
-            raise AssertionError()
+            raise AssertionError('input must be a dict, a {0} was'
+                                 ' passed'.format(type(frames)))
 
         self.default_fill_value = fill_value = default_fill_value
         self.default_kind = kind = default_kind

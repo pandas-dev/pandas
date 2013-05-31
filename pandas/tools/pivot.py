@@ -2,7 +2,6 @@
 
 from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex
-from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
 import pandas.core.common as com
 import numpy as np
@@ -300,8 +299,8 @@ def _get_names(arrs, names, prefix='row'):
             else:
                 names.append('%s_%d' % (prefix, i))
     else:
-        if not ((len(names) == len(arrs))):
-            raise AssertionError()
+        if len(names) != len(arrs):
+            raise AssertionError('arrays and names must have the same length')
         if not isinstance(names, list):
             names = list(names)
 
