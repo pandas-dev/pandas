@@ -81,7 +81,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         fmt.set_eng_float_format(accuracy=0)
         repr(self.frame)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def test_repr_tuples(self):
         buf = StringIO()
@@ -719,11 +719,11 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_frame_info_encoding(self):
         index = ['\'Til There Was You (1997)',
                  'ldum klaka (Cold Fever) (1994)']
-        fmt.set_printoptions(max_rows=1)
+        fmt.set_option('display.max_rows', 1)
         df = DataFrame(columns=['a', 'b', 'c'], index=index)
         repr(df)
         repr(df.T)
-        fmt.set_printoptions(max_rows=200)
+        fmt.set_option('display.max_rows', 200)
 
     def test_large_frame_repr(self):
         def wrap_rows_options(f):
@@ -1026,9 +1026,9 @@ class TestDataFrameFormatting(unittest.TestCase):
         assert(df_s == expected)
 
     def test_to_string_float_formatting(self):
-        fmt.reset_printoptions()
-        fmt.set_printoptions(precision=6, column_space=12,
-                             notebook_repr_html=False)
+        fmt.reset_option('^display.')
+        fmt.set_option('display.precision', 6, 'display.column_space',
+                       12, 'display.notebook_repr_html', False)
 
         df = DataFrame({'x': [0, 0.25, 3456.000, 12e+45, 1.64e+6,
                               1.7e+8, 1.253456, np.pi, -1e6]})
@@ -1057,7 +1057,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '1     0.253')
         assert(df_s == expected)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
         self.assertEqual(get_option("display.precision"), 7)
 
         df = DataFrame({'x': [1e9, 0.2512]})
@@ -1149,7 +1149,7 @@ c  10  11  12  13  14\
         self.assertEqual(rs, xp)
 
     def test_to_string_left_justify_cols(self):
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string(justify='left')
         expected = ('   x       \n'
@@ -1158,7 +1158,7 @@ c  10  11  12  13  14\
         assert(df_s == expected)
 
     def test_to_string_format_na(self):
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
         df = DataFrame({'A': [np.nan, -1, -2.1234, 3, 4],
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
@@ -1420,13 +1420,13 @@ c  10  11  12  13  14\
     def test_repr_html(self):
         self.frame._repr_html_()
 
-        fmt.set_printoptions(max_rows=1, max_columns=1)
+        fmt.set_option('display.max_rows', 1, 'display.max_columns', 1)
         self.frame._repr_html_()
 
-        fmt.set_printoptions(notebook_repr_html=False)
+        fmt.set_option('display.notebook_repr_html', False)
         self.frame._repr_html_()
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def test_fake_qtconsole_repr_html(self):
         def get_ipython():
@@ -1437,11 +1437,11 @@ c  10  11  12  13  14\
         repstr = self.frame._repr_html_()
         self.assert_(repstr is not None)
 
-        fmt.set_printoptions(max_rows=5, max_columns=2)
+        fmt.set_option('display.max_rows', 5, 'display.max_columns', 2)
         repstr = self.frame._repr_html_()
         self.assert_('class' in repstr)  # info fallback
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def test_to_html_with_classes(self):
         df = pandas.DataFrame()
@@ -1751,7 +1751,7 @@ class TestEngFormatter(unittest.TestCase):
                     '3    1E+06')
         self.assertEqual(result, expected)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display.')
 
     def compare(self, formatter, input, output):
         formatted_input = formatter(input)

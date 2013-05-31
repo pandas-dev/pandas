@@ -3927,16 +3927,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                index=np.arange(50))
         foo = repr(unsortable)
 
-        fmt.set_printoptions(precision=3, column_space=10)
+        fmt.set_option('display.precision', 3, 'display.column_space', 10)
         repr(self.frame)
 
-        fmt.set_printoptions(max_rows=10, max_columns=2)
+        fmt.set_option('display.max_rows', 10, 'display.max_columns', 2)
         repr(self.frame)
 
-        fmt.set_printoptions(max_rows=1000, max_columns=1000)
+        fmt.set_option('display.max_rows', 1000, 'display.max_columns', 1000)
         repr(self.frame)
 
-        fmt.reset_printoptions()
+        fmt.reset_option('^display\.')
 
         warnings.filters = warn_filters
 
