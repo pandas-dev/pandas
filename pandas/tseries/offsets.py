@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import numpy as np
 
 from pandas.tseries.tools import to_datetime
 
@@ -7,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
 
-__all__ = ['Day', 'BusinessDay', 'BDay',
+__all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
@@ -100,7 +101,8 @@ class DateOffset(object):
 
     def _params(self):
         attrs = [(k, v) for k, v in vars(self).iteritems()
-                 if k not in ['kwds', '_offset', 'name', 'normalize']]
+                 if k not in ['kwds', '_offset', 'name', 'normalize',
+                 'busdaycalendar']]
         attrs.extend(self.kwds.items())
         attrs = sorted(set(attrs))
 
@@ -357,6 +359,115 @@ class BusinessDay(CacheableOffset, DateOffset):
     @classmethod
     def onOffset(cls, dt):
         return dt.weekday() < 5
+
+
+class CustomBusinessDay(BusinessDay):
+    """
+    DateOffset subclass representing possibly n business days excluding
+    holidays
+
+    Parameters
+    ----------
+    n : int, default 1
+    offset : timedelta, default timedelta(0)
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+    """
+
+    _cacheable = False
+
+    def __init__(self, n=1, **kwds):
+        # Check we have the required numpy version
+        from distutils.version import LooseVersion
+        if LooseVersion(np.__version__) < '1.7.0':
+            raise ImportError("CustomBusinessDay requires numpy >= 1.7.0. "
+                              "Current version: "+np.__version__)
+
+        self.n = int(n)
+        self.kwds = kwds
+        self.offset = kwds.get('offset', timedelta(0))
+        self.normalize = kwds.get('normalize', False)
+        self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
+
+        holidays = kwds.get('holidays', [])
+        holidays = [self._to_dt64(dt, dtype='datetime64[D]') for dt in
+                    holidays]
+        self.holidays = tuple(sorted(holidays))
+        self.kwds['holidays'] = self.holidays
+        self._set_busdaycalendar()
+
+    def _set_busdaycalendar(self):
+        holidays = np.array(self.holidays, dtype='datetime64[D]')
+        self.busdaycalendar = np.busdaycalendar(holidays=holidays,
+                                                weekmask=self.weekmask)
+
+    def __getstate__(self):
+        """"Return a pickleable state"""
+        state = self.__dict__.copy()
+        del state['busdaycalendar']
+        return state
+
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        self.__dict__ = state
+        self._set_busdaycalendar()
+
+    @property
+    def rule_code(self):
+        return 'C'
+
+    @staticmethod
+    def _to_dt64(dt, dtype='datetime64'):
+        if isinstance(dt, (datetime, basestring)):
+            dt = np.datetime64(dt, dtype=dtype)
+        if isinstance(dt, np.datetime64):
+            dt = dt.astype(dtype)
+        else:
+            raise TypeError('dt must be datestring, datetime or datetime64')
+        return dt
+
+    def apply(self, other):
+        if isinstance(other, datetime):
+            dtype = type(other)
+        elif isinstance(other, np.datetime64):
+            dtype = other.dtype
+        elif isinstance(other, (timedelta, Tick)):
+            return BDay(self.n, offset=self.offset + other,
+                        normalize=self.normalize)
+        else:
+            raise TypeError('Only know how to combine trading day with '
+                            'datetime, datetime64 or timedelta!')
+        dt64 = self._to_dt64(other)
+
+        day64 = dt64.astype('datetime64[D]')
+        time = dt64 - day64
+
+        if self.n<=0:
+            roll = 'forward'
+        else:
+            roll = 'backward'
+
+        result = np.busday_offset(day64, self.n, roll=roll,
+                                  busdaycal=self.busdaycalendar)
+
+        if not self.normalize:
+            result = result + time
+
+        result = result.astype(dtype)
+
+        if self.offset:
+            result = result + self.offset
+
+        return result
+
+    def onOffset(self, dt):
+        day64 = self._to_dt64(dt).astype('datetime64[D]')
+        return np.is_busday(day64, busdaycal=self.busdaycalendar)
 
 
 class MonthEnd(DateOffset, CacheableOffset):
@@ -1169,6 +1280,7 @@ class Nano(Tick):
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
 BMonthBegin = BusinessMonthBegin
+CDay = CustomBusinessDay
 
 
 def _get_firstbday(wkday):

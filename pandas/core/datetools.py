@@ -8,6 +8,12 @@ from dateutil import parser
 day = DateOffset()
 bday = BDay()
 businessDay = bday
+try:
+    cday = CDay()
+    customBusinessDay = CustomBusinessDay()
+except ImportError:
+    # Don't create CustomBusinessDay instances when not available
+    pass
 monthEnd = MonthEnd()
 yearEnd = YearEnd()
 yearBegin = YearBegin()

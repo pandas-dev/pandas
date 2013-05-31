@@ -11,7 +11,7 @@ from pandas.core.index import Index, Int64Index
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
     Resolution, get_reso_string)
-from pandas.tseries.offsets import DateOffset, generate_range, Tick
+from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
@@ -1738,6 +1738,52 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name)
+
+
+def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
+                normalize=True, name=None, **kwargs):
+    """
+    Return a fixed frequency datetime index, with CustomBusinessDay as the
+    default frequency
+
+    Parameters
+    ----------
+    start : string or datetime-like, default None
+        Left bound for generating dates
+    end : string or datetime-like, default None
+        Right bound for generating dates
+    periods : integer or None, default None
+        If None, must specify start and end
+    freq : string or DateOffset, default 'C' (CustomBusinessDay)
+        Frequency strings can have multiples, e.g. '5H'
+    tz : string or None
+        Time zone name for returning localized DatetimeIndex, for example
+        Asia/Beijing
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    name : str, default None
+        Name for the resulting index
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+
+    Notes
+    -----
+    2 of start, end, or periods must be specified
+
+    Returns
+    -------
+    rng : DatetimeIndex
+    """
+
+    if freq=='C':
+        holidays = kwargs.pop('holidays', [])
+        weekmask = kwargs.pop('weekmask', 'Mon Tue Wed Thu Fri')
+        freq = CDay(holidays=holidays, weekmask=weekmask)
+    return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
+                         tz=tz, normalize=normalize, name=name, **kwargs)
 
 
 def _to_m8(key, tz=None):

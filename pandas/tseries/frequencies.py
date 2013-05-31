@@ -114,14 +114,17 @@ def _get_freq_str(base, mult=1):
 # Offset names ("time rules") and related functions
 
 
-from pandas.tseries.offsets import (Day, BDay, Hour, Minute, Second, Milli,
-                                    Week, Micro, MonthEnd, MonthBegin,
-                                    BMonthBegin, BMonthEnd, YearBegin, YearEnd,
-                                    BYearBegin, BYearEnd, QuarterBegin,
-                                    QuarterEnd, BQuarterBegin, BQuarterEnd)
+from pandas.tseries.offsets import (Micro, Milli, Second, Minute, Hour,
+                                    Day, BDay, CDay, Week, MonthBegin,
+                                    MonthEnd, BMonthBegin, BMonthEnd,
+                                    QuarterBegin, QuarterEnd, BQuarterBegin,
+                                    BQuarterEnd, YearBegin, YearEnd,
+                                    BYearBegin, BYearEnd,
+                                    )
 
 _offset_map = {
     'D': Day(),
+    'C': CDay(),
     'B': BDay(),
     'H': Hour(),
     'T': Minute(),
@@ -278,6 +281,7 @@ _offset_to_period_map = {
     'BAS': 'A',
     'MS': 'M',
     'D': 'D',
+    'C': 'C',
     'B': 'B',
     'T': 'T',
     'S': 'S',
@@ -1004,15 +1008,17 @@ def is_subperiod(source, target):
         if _is_quarterly(source):
             return _quarter_months_conform(_get_rule_month(source),
                                            _get_rule_month(target))
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(target):
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif target == 'M':
-        return source in ['D', 'B', 'H', 'T', 'S']
+        return source in ['D', 'C', 'B', 'H', 'T', 'S']
     elif _is_weekly(target):
-        return source in [target, 'D', 'B', 'H', 'T', 'S']
+        return source in [target, 'D', 'C', 'B', 'H', 'T', 'S']
     elif target == 'B':
         return source in ['B', 'H', 'T', 'S']
+    elif target == 'C':
+        return source in ['C', 'H', 'T', 'S']
     elif target == 'D':
         return source in ['D', 'H', 'T', 'S']
     elif target == 'H':
@@ -1055,17 +1061,19 @@ def is_superperiod(source, target):
             smonth = _get_rule_month(source)
             tmonth = _get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(source):
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif source == 'M':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
     elif _is_weekly(source):
-        return target in [source, 'D', 'B', 'H', 'T', 'S']
+        return target in [source, 'D', 'C', 'B', 'H', 'T', 'S']
     elif source == 'B':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
+    elif source == 'C':
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
     elif source == 'D':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
     elif source == 'H':
         return target in ['H', 'T', 'S']
     elif source == 'T':
