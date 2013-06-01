@@ -109,15 +109,12 @@ def _tables():
     global _table_supports_index
     if _table_mod is None:
         import tables
+        from distutils.version import LooseVersion
         _table_mod = tables
 
         # version requirements
-        ver = tables.__version__.split('.')
-        try:
-            if int(ver[0]) >= 2 and int(ver[1][0]) >= 3:
-                _table_supports_index = True
-        except:
-            pass
+        ver = tables.__version__
+        _table_supports_index = LooseVersion(ver) >= '2.3'
 
     return _table_mod
 
