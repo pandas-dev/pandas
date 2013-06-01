@@ -76,6 +76,7 @@ pandas 0.11.1
     GH3572_). This happens before any drawing takes place which elimnates any
     spurious plots from showing up.
   - Added Faq section on repr display options, to help users customize their setup.
+  - ``where`` operations that result in block splitting are much faster (GH3733_)
 
 **API Changes**
 
@@ -116,6 +117,8 @@ pandas 0.11.1
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
   - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
+  - ``as_matrix`` with mixed signed and unsigned dtypes will result in 2 x the lcd of the unsigned
+    as an int, maxing with ``int64``, to avoid precision issues (GH3733_)
 
 **Bug Fixes**
 
@@ -273,6 +276,7 @@ pandas 0.11.1
 .. _GH3691: https://github.com/pydata/pandas/issues/3691
 .. _GH3696: https://github.com/pydata/pandas/issues/3696
 .. _GH3667: https://github.com/pydata/pandas/issues/3667
+.. _GH3733: https://github.com/pydata/pandas/issues/3733
 
 pandas 0.11.0
 =============
