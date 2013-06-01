@@ -560,7 +560,6 @@ if __name__ == '__main__':
             args.base_commit = args.base_pickle.split('-')[0]
         if not args.target_commit:
             print("target_commit not specified, Assuming target_pickle is named <commit>-foo.*")
-            print(args.target_pickle.split('-')[0])
             args.target_commit = args.target_pickle.split('-')[0]
 
     import warnings
