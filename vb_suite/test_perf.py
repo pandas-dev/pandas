@@ -206,16 +206,7 @@ def profile_comparative(benchmarks):
 
         head_res = get_results_df(db, h_head)
         baseline_res = get_results_df(db, h_baseline)
-        ratio = head_res['timing'] / baseline_res['timing']
-        totals = DataFrame({HEAD_COL:head_res['timing'],
-                                BASE_COL:baseline_res['timing'],
-                                'ratio':ratio,
-                                'name':baseline_res.name},
-                                columns=[HEAD_COL, BASE_COL, "ratio", "name"])
-        totals = totals.ix[totals[HEAD_COL] > args.min_duration]
-            # ignore below threshold
-        totals = totals.dropna(
-        ).sort("ratio").set_index('name')  # sort in ascending order
+        totals = prep_totals(baseline_res, head_res)
 
         h_msg =   repo.messages.get(h_head, "")
         b_msg =   repo.messages.get(h_baseline, "")
@@ -230,6 +221,25 @@ def profile_comparative(benchmarks):
         #        print("Disposing of TMP_DIR: %s" % TMP_DIR)
         shutil.rmtree(TMP_DIR)
 
+def prep_totals(head_res, baseline_res):
+    """
+    Each argument should be a dataframe with  'timing' and 'name' columns
+    where name is the name of the vbench.
+
+    returns a 'totals' dataframe, suitable as input for print_report.
+    """
+    head_res, baseline_res = head_res.align(baseline_res)
+    ratio = head_res['timing'] / baseline_res['timing']
+    totals = DataFrame({HEAD_COL:head_res['timing'],
+                        BASE_COL:baseline_res['timing'],
+                        'ratio':ratio,
+                        'name':baseline_res.name},
+                        columns=[HEAD_COL, BASE_COL, "ratio", "name"])
+    totals = totals.ix[totals[HEAD_COL] > args.min_duration]
+    # ignore below threshold
+    totals = totals.dropna(
+    ).sort("ratio").set_index('name')  # sort in ascending order
+    return totals
 
 def profile_head_single(benchmark):
     import gc
