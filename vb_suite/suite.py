@@ -3,27 +3,27 @@ from datetime import datetime
 
 import os
 
-modules = ['attrs_caching',
-           'binary_ops',
-           'ctors',
-           'frame_ctor',
+modules = [#'attrs_caching',
+           #'binary_ops',
+           #'ctors',
+           #'frame_ctor',
            'frame_methods',
-           'groupby',
-           'index_object',
-           'indexing',
-           'io_bench',
-           'hdfstore_bench',
-           'join_merge',
-           'miscellaneous',
-           'panel_ctor',
-           'parser',
-           'reindex',
-           'replace',
-           'sparse',
-           'reshape',
-           'stat_ops',
-           'timeseries']
-
+           #'groupby',
+           #'index_object',
+           #'indexing',
+           #'io_bench',
+           #'hdfstore_bench',
+           #'join_merge',
+           #'miscellaneous',
+           #'panel_ctor',
+           #'parser',
+           #'reindex',
+           #'replace',
+           #'sparse',
+           #'reshape',
+           #'stat_ops',
+           #'timeseries']
+]
 by_module = {}
 benchmarks = []
 

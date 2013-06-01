@@ -177,3 +177,18 @@ df = DataFrame(randn(1,100000))
 """
 
 frame_xs_col = Benchmark('df.xs(50000,axis = 1)', setup)
+
+## masking
+setup = common_setup + """
+data = np.random.randn(1000, 500)
+df = DataFrame(data)
+df = df.where(df > 0) # create nans
+bools = df > 0
+mask = isnull(df)
+"""
+
+mask_bools = Benchmark('bools.mask(mask)', setup,
+                         start_date=datetime(2013,1,1))
+
+mask_floats  = Benchmark('bools.astype(float).mask(mask)', setup,
+                         start_date=datetime(2013,1,1))

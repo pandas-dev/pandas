@@ -558,42 +558,48 @@ class Block(object):
                     result.fill(np.nan)
                     return result
 
-        def create_block(result, items, transpose=True):
+        # see if we can operate on the entire block, or need item-by-item
+        result = func(cond,values,other)
+        if self._can_hold_na:
+
             if not isinstance(result, np.ndarray):
                 raise TypeError('Could not compare [%s] with block values'
                                 % repr(other))
 
-            if transpose and is_transposed:
+            if is_transposed:
                 result = result.T
 
             # try to cast if requested
             if try_cast:
                 result = self._try_cast_result(result)
 
-            return make_block(result, items, self.ref_items)
+            return make_block(result, self.items, self.ref_items)
 
-        # see if we can operate on the entire block, or need item-by-item
-        if not self._can_hold_na:
-            axis = cond.ndim-1
-            result_blocks = []
-            for item in self.items:
-                loc  = self.items.get_loc(item)
-                item = self.items.take([loc])
-                v    = values.take([loc],axis=axis)
-                c    = cond.take([loc],axis=axis)
-                o    = other.take([loc],axis=axis) if hasattr(other,'shape') else other
+        # might need to separate out blocks
+        axis = cond.ndim-1
+        cond = cond.swapaxes(axis,0)
+        mask = np.array([ cond[i].all() for i in enumerate(range(cond.shape[0]))],dtype=bool)
+        result_blocks = []
 
-                result = func(c,v,o)
-                if len(result) == 1:
-                    result = np.repeat(result,self.shape[1:])
+        # can do the mask=true as a single block
+        if mask.any():
+            items = self.items[mask]
+            locs  = self.items.get_indexer(items)
+            slices = [slice(None)] * cond.ndim
+            slices[axis] = locs
+            r = self._try_cast_result(result[slices])
+            result_blocks.append(make_block(r.T, items, self.ref_items))
 
-                result = _block_shape(result,ndim=self.ndim,shape=self.shape[1:])
-                result_blocks.append(create_block(result, item, transpose=False))
+        # and mask=false as a single block
+        if (~mask).any():
+            items = self.items[~mask]
+            locs  = self.items.get_indexer(items)
+            slices = [slice(None)] * cond.ndim
+            slices[axis] = locs
+            r = self._try_cast_result(result[slices])
+            result_blocks.append(make_block(r.T, items, self.ref_items))
 
-            return result_blocks
-        else:
-            result = func(cond,values,other)
-            return create_block(result, self.items)
+        return result_blocks
 
 class NumericBlock(Block):
     is_numeric = True

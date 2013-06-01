@@ -271,6 +271,16 @@ class CheckIndexing(object):
         expected = Series({'float64': 6, 'int32' : 1, 'int64' : 1})
         assert_series_equal(result, expected)
 
+        # where dtype conversions
+        # GH 3733
+        df = DataFrame(data = np.random.randn(1000, 500))
+        df = df.where(df > 0) # create nans
+        bools = df > 0
+        mask = isnull(df)
+        expected = bools.astype(float).mask(mask)
+        result = bools.mask(mask)
+        assert_frame_equal(result,expected)
+
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3, 4))
 
