@@ -104,8 +104,7 @@ parser.add_argument('-N', '--hrepeats',
 parser.add_argument('-a', '--affinity',
                     metavar="a",
                     dest='affinity',
-                    default=1,
-                    type=int,
+                    default=None,
                     help='set processor affinity of processm by default bind to cpu/core #1 only'
                              'requires the "affinity" python module , will raise Warning otherwise'  )
 
@@ -398,18 +397,16 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    try:
-        import affinity
-        affinity.set_process_affinity_mask(0,args.affinity)
-        assert affinity.get_process_affinity_mask(0) == args.affinity
-        print("CPU affinity set to %d" % args.affinity)
-    except ImportError:
-        import warnings
-        print("\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"+
-                      "The 'affinity' module is not available, results may be unreliable\n" +
-                      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"
-            )
-        time.sleep(2)
+    if args.affinity is not None:
+        try:
+            import affinity
+
+            affinity.set_process_affinity_mask(0,args.affinity)
+            assert affinity.get_process_affinity_mask(0) == args.affinity
+            print("CPU affinity set to %d" % args.affinity)
+        except ImportError:
+            print("-a/--afinity specified, but the 'affinity' module is not available, aborting.\n")
+            sys.exit(1)
 
     print("\n")
     prprint("LOG_FILE = %s" % args.log_file)
