@@ -579,25 +579,15 @@ class Block(object):
         axis = cond.ndim-1
         cond = cond.swapaxes(axis,0)
         mask = np.array([ cond[i].all() for i in enumerate(range(cond.shape[0]))],dtype=bool)
+
         result_blocks = []
-
-        # can do the mask=true as a single block
-        if mask.any():
-            items = self.items[mask]
-            locs  = self.items.get_indexer(items)
-            slices = [slice(None)] * cond.ndim
-            slices[axis] = locs
-            r = self._try_cast_result(result[slices])
-            result_blocks.append(make_block(r.T, items, self.ref_items))
-
-        # and mask=false as a single block
-        if (~mask).any():
-            items = self.items[~mask]
-            locs  = self.items.get_indexer(items)
-            slices = [slice(None)] * cond.ndim
-            slices[axis] = locs
-            r = self._try_cast_result(result[slices])
-            result_blocks.append(make_block(r.T, items, self.ref_items))
+        for m in [mask, ~mask]:
+            if m.any():
+                items = self.items[m]
+                slices = [slice(None)] * cond.ndim
+                slices[axis] = self.items.get_indexer(items)
+                r = self._try_cast_result(result[slices])
+                result_blocks.append(make_block(r.T, items, self.ref_items))
 
         return result_blocks
 
@@ -2435,7 +2425,22 @@ def _interleaved_dtype(blocks):
     elif have_bool:
         return np.dtype(bool)
     elif have_int and not have_float and not have_complex:
-        return _lcd_dtype(counts[IntBlock])
+
+        # if we are mixing unsigned and signed, then return
+        # the next biggest int type (if we can)
+        lcd = _lcd_dtype(counts[IntBlock])
+        kinds = set([ i.dtype.kind for i in counts[IntBlock] ])
+        if len(kinds) == 1:
+            return lcd
+
+        if lcd == 'uint64' or lcd == 'int64':
+            return np.dtype('int64')
+
+        # return 1 bigger on the itemsize if unsinged
+        if lcd.kind == 'u':
+            return np.dtype('int%s' % (lcd.itemsize*8*2))
+        return lcd
+    
     elif have_dt64 and not have_float and not have_complex:
         return np.dtype('M8[ns]')
     elif have_complex:
