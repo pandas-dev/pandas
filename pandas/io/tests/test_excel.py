@@ -20,7 +20,7 @@ from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                 TextParser, TextFileReader)
 from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
 from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal, 
+                                 assert_series_equal,
                                  network,
                                  ensure_clean)
 import pandas.util.testing as tm
@@ -34,7 +34,7 @@ import pandas.tseries.tools as tools
 
 from numpy.testing.decorators import slow
 
-from pandas._parser import OverflowError
+from pandas.parser import OverflowError
 
 def _skip_if_no_xlrd():
     try:
@@ -275,12 +275,12 @@ class ExcelTests(unittest.TestCase):
             self.frame.to_excel(path, 'test1')
             recons = read_excel(path, 'test1', index_col=0)
             tm.assert_frame_equal(self.frame, recons)
-            
+
             self.frame.to_excel(path, 'test1', index=False)
             recons = read_excel(path, 'test1', index_col=None)
             recons.index = self.frame.index
             tm.assert_frame_equal(self.frame, recons)
-            
+
             self.frame.to_excel(path, 'test1', na_rep='NA')
             recons = read_excel(path, 'test1', index_col=0, na_values=['NA'])
             tm.assert_frame_equal(self.frame, recons)
@@ -346,7 +346,7 @@ class ExcelTests(unittest.TestCase):
             self.frame.to_excel(path, 'test1', cols=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
-            
+
             # Test np.int64, values read come back as float
             frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)), dtype=np.int64)
             frame.to_excel(path, 'test1')
@@ -372,7 +372,7 @@ class ExcelTests(unittest.TestCase):
             self.frame.to_excel(path, 'test1', cols=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
-            
+
             # Test reading/writing np.bool8, roundtrip only works for xlsx
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
             frame.to_excel(path, 'test1')
@@ -398,7 +398,7 @@ class ExcelTests(unittest.TestCase):
             self.frame.to_excel(path, 'test1', cols=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
-            
+
             # Test writing to separate sheets
             writer = ExcelWriter(path)
             self.frame.to_excel(writer, 'test1')
@@ -412,7 +412,7 @@ class ExcelTests(unittest.TestCase):
             np.testing.assert_equal(2, len(reader.sheet_names))
             np.testing.assert_equal('test1', reader.sheet_names[0])
             np.testing.assert_equal('test2', reader.sheet_names[1])
-            
+
 
     def test_excel_roundtrip_xls_colaliases(self):
         _skip_if_no_excelsuite()
@@ -432,7 +432,7 @@ class ExcelTests(unittest.TestCase):
             self.frame.to_excel(path, 'test1', cols=['A', 'B'])
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
-            
+
             # column aliases
             col_aliases = Index(['AA', 'X', 'Y', 'Z'])
             self.frame2.to_excel(path, 'test1', header=col_aliases)
@@ -441,7 +441,7 @@ class ExcelTests(unittest.TestCase):
             xp = self.frame2.copy()
             xp.columns = col_aliases
             tm.assert_frame_equal(xp, rs)
-            
+
     def test_excel_roundtrip_xls_indexlabels(self):
         _skip_if_no_excelsuite()
         self._check_extension_indexlabels('xls')
@@ -515,7 +515,7 @@ class ExcelTests(unittest.TestCase):
 
             xf = ExcelFile(path)
             result = xf.parse(xf.sheet_names[0], index_col=0)
-            
+
             tm.assert_frame_equal(result, df)
             self.assertEqual(result.index.name, 'foo')
 
@@ -605,7 +605,7 @@ class ExcelTests(unittest.TestCase):
             tsframe.to_excel(path, 'test1', index_label=['time', 'foo'])
             reader = ExcelFile(path)
             recons = reader.parse('test1', index_col=[0, 1])
-            
+
             tm.assert_frame_equal(tsframe, recons, check_names=False)
             self.assertEquals(recons.index.names, ['time', 'foo'])
 
