@@ -303,6 +303,7 @@ class SafeForSparse(object):
         check_op(operator.sub, 'subtract')
         check_op(operator.mul, 'multiply')
         check_op(operator.floordiv, 'floordiv')
+        check_op(operator.truediv, 'truediv')
         if py3compat.PY3:
             check_op(operator.truediv, 'divide')
         else:

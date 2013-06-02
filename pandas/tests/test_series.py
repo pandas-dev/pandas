@@ -1809,6 +1809,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         else:
             assert_series_equal(result,p['first'])
 
+
+    # only matters for Python 2.x, otherwise always truediv
+    def test_truediv(self):
+        arr = np.array([1,2,3,4,5])
+        p = Series(arr)
+        result = p.truediv(2)
+        expected = Series(operator.truediv(arr, 2))
+        assert_series_equal(result, expected)
+
+        arr = np.arange(0,10) * 3
+        p = Series(arr)
+        result = p.truediv(3)
+        expected = Series(operator.truediv(arr, 3))
+        assert_series_equal(result, expected)
+
+
     def test_operators(self):
 
         def _check_op(series, other, op, pos_only=False):
