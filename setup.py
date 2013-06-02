@@ -445,17 +445,6 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[],
                        libraries=libraries)
 
-
-sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix)],
-                        include_dirs=common_include)
-
-
-cppsandbox_ext = Extension('pandas._cppsandbox',
-                           language='c++',
-                           sources=[srcpath('cppsandbox', suffix=suffix)],
-                           include_dirs=[])
-
 extensions.extend([sparse_ext])
 
 # if not ISRELEASED:
