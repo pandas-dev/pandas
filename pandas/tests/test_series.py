@@ -2416,8 +2416,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
-        ops = [Series.add, Series.sub, Series.mul, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul]
+        ops = [Series.add, Series.sub, Series.mul, Series.floordiv, Series.div]
+        equivs = [operator.add, operator.sub, operator.mul, operator.floordiv]
         if py3compat.PY3:
             equivs.append(operator.truediv)
         else:

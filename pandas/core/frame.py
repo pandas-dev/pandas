@@ -840,6 +840,7 @@ class DataFrame(NDFrame):
     mul = _arith_method(operator.mul, 'multiply', '*')
     sub = _arith_method(operator.sub, 'subtract', '-')
     div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
+    floordiv = _arith_method(lambda x, y: x // y, 'floor division', '//')
     pow = _arith_method(operator.pow, 'pow', '**')
 
     radd = _arith_method(_radd_compat, 'radd')

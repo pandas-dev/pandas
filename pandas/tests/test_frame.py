@@ -4282,7 +4282,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(index == frame.index[-6])
 
     def test_arith_flex_frame(self):
-        ops = ['add', 'sub', 'mul', 'div', 'pow']
+        ops = ['add', 'sub', 'mul', 'div', 'pow', 'floordiv']
         aliases = {'div': 'truediv'}
 
         for op in ops:

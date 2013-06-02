@@ -1650,6 +1650,7 @@ Returns
             # Python 3
             cls.divide = cls.div = _panel_arith_method(
                 operator.truediv, 'divide')
+        cls.floordiv = _panel_arith_method(operator.floordiv, 'floor division')
 
         _agg_doc = """
 Return %(desc)s over requested axis
