@@ -196,6 +196,7 @@ pandas 0.11.1
   - ``DataFrame.to_csv`` will succeed with the deprecated option ``nanRep``, @tdsmith
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
     their first argument (GH3702_)
+  - Fix file tokenization error with \r delimiter and quoted fields (GH3453_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -220,6 +221,7 @@ pandas 0.11.1
 .. _GH3553: https://github.com/pydata/pandas/issues/3553
 .. _GH3437: https://github.com/pydata/pandas/issues/3437
 .. _GH3468: https://github.com/pydata/pandas/issues/3468
+.. _GH3453: https://github.com/pydata/pandas/issues/3453
 .. _GH3455: https://github.com/pydata/pandas/issues/3455
 .. _GH3457: https://github.com/pydata/pandas/issues/3457
 .. _GH3477: https://github.com/pydata/pandas/issues/3457

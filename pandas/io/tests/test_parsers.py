@@ -2238,6 +2238,20 @@ No,No,No"""
 
         tm.assert_frame_equal(result, expected)
 
+    def test_tokenize_CR_with_quoting(self):
+        # #3453, this doesn't work with Python parser for some reason
+
+        data = ' a,b,c\r"a,b","e,d","f,f"'
+
+        result = self.read_csv(StringIO(data), header=None)
+        expected = self.read_csv(StringIO(data.replace('\r', '\n')),
+                                 header=None)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data))
+        expected = self.read_csv(StringIO(data.replace('\r', '\n')))
+        tm.assert_frame_equal(result, expected)
+
 
 class TestParseSQL(unittest.TestCase):
 

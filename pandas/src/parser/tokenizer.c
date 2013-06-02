@@ -687,6 +687,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                self->state));
 
         switch(self->state) {
+
         case START_RECORD:
             // start of record
 
@@ -702,6 +703,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             /* normal character - handle as START_FIELD */
             self->state = START_FIELD;
             /* fallthru */
+
         case START_FIELD:
             /* expecting field */
             if (c == '\n') {
@@ -846,6 +848,14 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             }
             break;
 
+        case EAT_COMMENT:
+            if (c == '\n') {
+                END_LINE();
+            } else if (c == '\r') {
+                self->state = EAT_CRNL;
+            }
+            break;
+
         case EAT_CRNL:
             if (c == '\n') {
                 END_LINE();
@@ -854,16 +864,23 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 // Handle \r-delimited files
                 END_LINE_AND_FIELD_STATE(START_FIELD);
             } else {
-                PUSH_CHAR(c);
-                END_LINE_STATE(IN_FIELD);
-            }
-            break;
+                /* \r line terminator */
 
-        case EAT_COMMENT:
-            if (c == '\n') {
-                END_LINE();
-            } else if (c == '\r') {
-                self->state = EAT_CRNL;
+                /* UGH. we don't actually want to consume the token. fix this later */
+                self->stream_len = slen;
+                if (end_line(self) < 0) {
+                    goto parsingerror;
+                }
+                stream = self->stream + self->stream_len;
+                slen = self->stream_len;
+                self->state = START_RECORD;
+
+                /* HACK, let's try this one again */
+                --i; buf--;
+                if (line_limit > 0 && self->lines == start_lines + line_limit) {
+                    goto linelimit;
+                }
+
             }
             break;
 
