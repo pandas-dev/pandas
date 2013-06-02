@@ -47,8 +47,7 @@ pandas 0.11.1
     read multi-index columns in the new format. (GH3571_, GH1651_, GH3141_)
   - Add iterator to ``Series.str`` (GH3638_)
   - ``pd.set_option()`` now allows N option, value pairs (GH3667_).
-
-
+  - Added keyword parameters for different types of scatter_matrix subplots
 
 **Improvements to existing features**
 
