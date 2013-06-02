@@ -839,7 +839,12 @@ class DataFrame(NDFrame):
     add = _arith_method(operator.add, 'add', '+')
     mul = _arith_method(operator.mul, 'multiply', '*')
     sub = _arith_method(operator.sub, 'subtract', '-')
-    div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
+    if not py3compat.PY3:
+        # only need to explicitly cast to float in python 2
+        truediv = div = divide = _arith_method(lambda x, y: x / (y + 0.), 'divide', '/')
+    else:
+        truediv = div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
+    floordiv = _arith_method(lambda x, y: x // y, 'floor division', '//')
     pow = _arith_method(operator.pow, 'pow', '**')
 
     radd = _arith_method(_radd_compat, 'radd')
@@ -876,6 +881,9 @@ class DataFrame(NDFrame):
     __xor__ = _arith_method(operator.xor, '__xor__')
 
     # Python 2 division methods
+    # behaves similarly to numpy when not
+    # using the future import here, making the use
+    # of `div` different than `__div__`
     if not py3compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', '/',
                                 default_axis=None, fill_zeros=np.inf)

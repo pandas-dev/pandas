@@ -1809,6 +1809,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         else:
             assert_series_equal(result,p['first'])
 
+
+    # only matters for Python 2.x, otherwise always truediv
+    def test_truediv(self):
+        arr = np.array([1,2,3,4,5])
+        p = Series(arr)
+        result = p.truediv(2)
+        expected = Series(operator.truediv(arr, 2))
+        assert_series_equal(result, expected)
+
+        arr = np.arange(0,10) * 3
+        p = Series(arr)
+        result = p.truediv(3)
+        expected = Series(operator.truediv(arr, 3))
+        assert_series_equal(result, expected)
+
+
     def test_operators(self):
 
         def _check_op(series, other, op, pos_only=False):
@@ -2416,12 +2432,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
-        ops = [Series.add, Series.sub, Series.mul, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul]
-        if py3compat.PY3:
-            equivs.append(operator.truediv)
-        else:
-            equivs.append(operator.div)
+        ops = [Series.add, Series.sub, Series.mul, Series.floordiv, Series.div]
+        equivs = [operator.add, operator.sub, operator.mul, operator.floordiv, operator.truediv]
         fillvals = [0, 0, 1, 1]
 
         for op, equiv_op, fv in zip(ops, equivs, fillvals):

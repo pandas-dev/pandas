@@ -13,6 +13,7 @@ from contextlib import contextmanager  # contextlib is available since 2.5
 from distutils.version import LooseVersion
 
 from numpy.random import randn
+from numpy.random import randint
 import numpy as np
 
 from pandas.core.common import isnull, _is_sequence
@@ -330,6 +331,11 @@ def getSeriesData():
     index = makeStringIndex(N)
     return dict((c, Series(randn(N), index=index)) for c in getCols(K))
 
+def getIntegerSeriesData():
+    """same as `getSeriesData` but returns random  positive and negative *integers* instead"""
+    index = makeStringIndex(N)
+    maxint = np.iinfo('i').max
+    return dict((c, Series(randint(-maxint, maxint, N), index=index)) for c in getCols(K))
 
 def makeDataFrame():
     data = getSeriesData()

@@ -4191,6 +4191,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result2 = DataFrame(p.values.astype('float64')/0,index=p.index,columns=p.columns).fillna(np.inf)
         assert_frame_equal(result2,expected)
 
+    def test_truediv(self):
+        import operator
+        p = DataFrame(tm.getIntegerSeriesData())
+        result = p.truediv(2)
+        expected = operator.truediv(p, 2)
+        assert_frame_equal(result, expected)
+
+        # set up dataframe divisble by 3
+        p = (p / 10.).astype(int) * 3
+        result = p.truediv(3)
+        expected = operator.truediv(p, 3)
+        assert_frame_equal(result, expected)
+
+        # test out axes
+        result = p.truediv(3, axis=1)
+        assert_frame_equal(result, expected)
+
+
     def test_logical_operators(self):
         import operator
 
@@ -4282,7 +4300,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(index == frame.index[-6])
 
     def test_arith_flex_frame(self):
-        ops = ['add', 'sub', 'mul', 'div', 'pow']
+        ops = ['add', 'sub', 'mul', 'div', 'pow', 'floordiv']
         aliases = {'div': 'truediv'}
 
         for op in ops:
