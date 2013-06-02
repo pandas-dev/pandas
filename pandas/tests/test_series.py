@@ -2433,11 +2433,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
         ops = [Series.add, Series.sub, Series.mul, Series.floordiv, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul, operator.floordiv]
-        if py3compat.PY3:
-            equivs.append(operator.truediv)
-        else:
-            equivs.append(operator.div)
+        equivs = [operator.add, operator.sub, operator.mul, operator.floordiv, operator.truediv]
         fillvals = [0, 0, 1, 1]
 
         for op, equiv_op, fv in zip(ops, equivs, fillvals):
