@@ -271,6 +271,16 @@ class CheckIndexing(object):
         expected = Series({'float64': 6, 'int32' : 1, 'int64' : 1})
         assert_series_equal(result, expected)
 
+        # where dtype conversions
+        # GH 3733
+        df = DataFrame(data = np.random.randn(100, 50))
+        df = df.where(df > 0) # create nans
+        bools = df > 0
+        mask = isnull(df)
+        expected = bools.astype(float).mask(mask)
+        result = bools.mask(mask)
+        assert_frame_equal(result,expected)
+
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3, 4))
 
@@ -7568,8 +7578,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         def _safe_add(df):
             # only add to the numeric items
-            return DataFrame(dict([ (c,s+1) if issubclass(s.dtype.type, (np.integer,np.floating)) else (c,s) for c, s in df.iteritems() ]))
-
+            def is_ok(s):
+                return issubclass(s.dtype.type, (np.integer,np.floating)) and s.dtype != 'uint8'
+            return DataFrame(dict([ (c,s+1) if is_ok(s) else (c,s) for c, s in df.iteritems() ]))
+        
         def _check_get(df, cond, check_dtypes = True):
             other1 = _safe_add(df)
             rs = df.where(cond, other1)
@@ -7605,7 +7617,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         def _check_align(df, cond, other, check_dtypes = True):
             rs = df.where(cond, other)
             for i, k in enumerate(rs.columns):
-                v = rs[k]
+                result = rs[k]
                 d = df[k].values
                 c = cond[k].reindex(df[k].index).fillna(False).values
 
@@ -7613,12 +7625,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     o = other
                 else:
                     if isinstance(other,np.ndarray):
-                        o = Series(other[:,i],index=v.index).values
+                        o = Series(other[:,i],index=result.index).values
                     else:
                         o = other[k].values
 
                 new_values = d if c.all() else np.where(c, d, o)
-                assert_series_equal(v, Series(new_values,index=v.index))
+                expected = Series(new_values,index=result.index)
+
+                # since we can't always have the correct numpy dtype
+                # as numpy doesn't know how to downcast, don't check
+                assert_series_equal(result, expected, check_dtype=False)
 
             # dtypes
             # can't check dtype when other is an ndarray
@@ -9894,14 +9910,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(values.dtype == np.float16)
 
         values = self.mixed_int.as_matrix(['A','B','C','D'])
-        self.assert_(values.dtype == np.uint64)
+        self.assert_(values.dtype == np.int64)
 
         values = self.mixed_int.as_matrix(['A','D'])
         self.assert_(values.dtype == np.int64)
 
         # guess all ints are cast to uints....
         values = self.mixed_int.as_matrix(['A','B','C'])
-        self.assert_(values.dtype == np.uint64)
+        self.assert_(values.dtype == np.int64)
 
         values = self.mixed_int.as_matrix(['A','C'])
         self.assert_(values.dtype == np.int32)

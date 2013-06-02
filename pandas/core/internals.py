@@ -558,42 +558,38 @@ class Block(object):
                     result.fill(np.nan)
                     return result
 
-        def create_block(result, items, transpose=True):
+        # see if we can operate on the entire block, or need item-by-item
+        result = func(cond,values,other)
+        if self._can_hold_na:
+
             if not isinstance(result, np.ndarray):
                 raise TypeError('Could not compare [%s] with block values'
                                 % repr(other))
 
-            if transpose and is_transposed:
+            if is_transposed:
                 result = result.T
 
             # try to cast if requested
             if try_cast:
                 result = self._try_cast_result(result)
 
-            return make_block(result, items, self.ref_items)
+            return make_block(result, self.items, self.ref_items)
 
-        # see if we can operate on the entire block, or need item-by-item
-        if not self._can_hold_na:
-            axis = cond.ndim-1
-            result_blocks = []
-            for item in self.items:
-                loc  = self.items.get_loc(item)
-                item = self.items.take([loc])
-                v    = values.take([loc],axis=axis)
-                c    = cond.take([loc],axis=axis)
-                o    = other.take([loc],axis=axis) if hasattr(other,'shape') else other
+        # might need to separate out blocks
+        axis = cond.ndim-1
+        cond = cond.swapaxes(axis,0)
+        mask = np.array([ cond[i].all() for i in enumerate(range(cond.shape[0]))],dtype=bool)
 
-                result = func(c,v,o)
-                if len(result) == 1:
-                    result = np.repeat(result,self.shape[1:])
+        result_blocks = []
+        for m in [mask, ~mask]:
+            if m.any():
+                items = self.items[m]
+                slices = [slice(None)] * cond.ndim
+                slices[axis] = self.items.get_indexer(items)
+                r = self._try_cast_result(result[slices])
+                result_blocks.append(make_block(r.T, items, self.ref_items))
 
-                result = _block_shape(result,ndim=self.ndim,shape=self.shape[1:])
-                result_blocks.append(create_block(result, item, transpose=False))
-
-            return result_blocks
-        else:
-            result = func(cond,values,other)
-            return create_block(result, self.items)
+        return result_blocks
 
 class NumericBlock(Block):
     is_numeric = True
@@ -2429,7 +2425,22 @@ def _interleaved_dtype(blocks):
     elif have_bool:
         return np.dtype(bool)
     elif have_int and not have_float and not have_complex:
-        return _lcd_dtype(counts[IntBlock])
+
+        # if we are mixing unsigned and signed, then return
+        # the next biggest int type (if we can)
+        lcd = _lcd_dtype(counts[IntBlock])
+        kinds = set([ i.dtype.kind for i in counts[IntBlock] ])
+        if len(kinds) == 1:
+            return lcd
+
+        if lcd == 'uint64' or lcd == 'int64':
+            return np.dtype('int64')
+
+        # return 1 bigger on the itemsize if unsinged
+        if lcd.kind == 'u':
+            return np.dtype('int%s' % (lcd.itemsize*8*2))
+        return lcd
+    
     elif have_dt64 and not have_float and not have_complex:
         return np.dtype('M8[ns]')
     elif have_complex:
