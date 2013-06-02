@@ -23,6 +23,7 @@ import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex, DatetimeIndex, Timestamp, Period)
 from pandas import date_range
+import pandas as pd
 from pandas.io.parsers import read_csv
 
 from pandas.util.testing import (assert_almost_equal,
@@ -4179,7 +4180,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         ### this is technically wrong as the integer portion is coerced to float ###
         expected = DataFrame({ 'first' : Series([1,1,1,1],dtype='float64'), 'second' : Series([np.inf,np.inf,np.inf,1]) })
         assert_frame_equal(result,expected)
-        
+
         result2 = DataFrame(p.values.astype('float64')/p.values,index=p.index,columns=p.columns).fillna(np.inf)
         assert_frame_equal(result2,expected)
 
@@ -4875,7 +4876,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        if isinstance(obj_df,Series):
                            assert_series_equal(obj_df,obj_rs)
                        else:
-                           assert_frame_equal(obj_df,obj_rs,check_names=False) 
+                           assert_frame_equal(obj_df,obj_rs,check_names=False)
 
                 # wrote in the same order
                 else:
@@ -5142,9 +5143,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             def _make_frame(names=None):
                 if names is True:
                     names = ['first','second']
-                return DataFrame(np.random.randint(0,10,size=(3,3)), 
-                                 columns=MultiIndex.from_tuples([('bah', 'foo'), 
-                                                                 ('bah', 'bar'), 
+                return DataFrame(np.random.randint(0,10,size=(3,3)),
+                                 columns=MultiIndex.from_tuples([('bah', 'foo'),
+                                                                 ('bah', 'bar'),
                                                                  ('ban', 'baz')],
                                                                 names=names),
                                  dtype='int64')
@@ -5221,12 +5222,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     raise AssertionError("failure in read_csv header=range(3)")
 
             try:
-                read_csv(path,tupleize_cols=False,header=range(7),index_col=0)  
+                read_csv(path,tupleize_cols=False,header=range(7),index_col=0)
             except (Exception), detail:
                 if not str(detail).startswith('Passed header=[0,1,2,3,4,5,6], len of 7, but only 6 lines in file'):
                     raise AssertionError("failure in read_csv header=range(7)")
 
-            for i in [3,4,5,6,7]: 
+            for i in [3,4,5,6,7]:
                  self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=range(i), index_col=0)
             self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=[0,2], index_col=0)
 
@@ -5320,7 +5321,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         with ensure_clean() as filename:
             df.to_csv(filename)
             result = read_csv(filename,index_col=0)
-          
+
             # date cols
             for i in ['0.4','1.4','2.4']:
                  result[i] = to_datetime(result[i])
@@ -5432,6 +5433,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                     '3,"baz"\n')
 
         self.assertEqual(result, expected)
+
+        # quoting windows line terminators, presents with encoding?
+        # #3503
+        text = 'a,b,c\n1,"test \r\n",3\n'
+        df = pd.read_csv(StringIO(text))
+        buf = StringIO()
+        df.to_csv(buf, encoding='utf-8', index=False)
+        self.assertEqual(buf.getvalue(), text)
 
     def test_to_csv_unicodewriter_quoting(self):
         import csv
@@ -8675,7 +8684,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = df1.combine_first(df2)[2]
         expected = Series([True,True,False])
-        assert_series_equal(result,expected) 
+        assert_series_equal(result,expected)
 
         # GH 3593, converting datetime64[ns] incorrecly
         df0 = DataFrame({"a":[datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]})
@@ -10077,11 +10086,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
              df.iloc[:,i]
 
         # dup columns across dtype GH 2079/2194
-        vals = [[1, -1, 2.], [2, -2, 3.]] 
-        rs = DataFrame(vals, columns=['A', 'A', 'B']) 
-        xp = DataFrame(vals) 
-        xp.columns = ['A', 'A', 'B'] 
-        assert_frame_equal(rs, xp) 
+        vals = [[1, -1, 2.], [2, -2, 3.]]
+        rs = DataFrame(vals, columns=['A', 'A', 'B'])
+        xp = DataFrame(vals)
+        xp.columns = ['A', 'A', 'B']
+        assert_frame_equal(rs, xp)
 
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
