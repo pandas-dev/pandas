@@ -34,7 +34,7 @@ import pandas.tseries.tools as tools
 
 from numpy.testing.decorators import slow
 
-from pandas._parser import OverflowError
+from pandas.parser import OverflowError
 
 
 class ParserTests(object):
@@ -536,7 +536,7 @@ ignore,this,row
 
         # GH 3062
         df = DataFrame(dict({
-                    'A' : np.asarray(range(10),dtype='float64'), 
+                    'A' : np.asarray(range(10),dtype='float64'),
                     'B' : pd.Timestamp('20010101') }))
         df.iloc[3:6,:] = np.nan
 
@@ -1025,19 +1025,19 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         #### invalid options ####
 
         # no as_recarray
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], as_recarray=True, tupleize_cols=False)
 
         # names
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], names=['foo','bar'], tupleize_cols=False)
         # usecols
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=[0,1], usecols=['foo','bar'], tupleize_cols=False)
         # non-numeric index_col
-        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3], 
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
                           index_col=['foo','bar'], tupleize_cols=False)
-        
+
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
         no_header = '\n'.join(lines[1:])

@@ -27,8 +27,8 @@ from pandas.lib import Timestamp
 
 import pandas.util.testing as tm
 
-from pandas._parser import TextReader
-import pandas._parser as parser
+from pandas.parser import TextReader
+import pandas.parser as parser
 
 
 class TestCParser(unittest.TestCase):

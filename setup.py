@@ -286,7 +286,7 @@ class CheckSDist(sdist):
                  'pandas/tslib.pyx',
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
-                 'pandas/src/parser.pyx',
+                 'pandas/parser.pyx',
                  'pandas/src/sparse.pyx']
 
     def initialize_options(self):
@@ -412,6 +412,12 @@ ext_data = dict(
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
            'depends': [srcpath('generated', suffix='.pyx')]},
+    parser=dict(pyxfile='parser',
+                depends=['pandas/src/parser/tokenizer.h',
+                         'pandas/src/parser/io.h',
+                         'pandas/src/numpy_helper.h'],
+                sources=['pandas/src/parser/tokenizer.c',
+                         'pandas/src/parser/io.c'])
 )
 
 extensions = []
@@ -440,16 +446,6 @@ sparse_ext = Extension('pandas._sparse',
                        libraries=libraries)
 
 
-parser_ext = Extension('pandas._parser',
-                       depends=['pandas/src/parser/tokenizer.h',
-                                'pandas/src/parser/io.h',
-                                'pandas/src/numpy_helper.h'],
-                       sources=[srcpath('parser', suffix=suffix),
-                                'pandas/src/parser/tokenizer.c',
-                                'pandas/src/parser/io.c',
-                                ],
-                       include_dirs=common_include)
-
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=common_include)
@@ -460,7 +456,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[])
 
-extensions.extend([sparse_ext, parser_ext])
+extensions.extend([sparse_ext])
 
 # if not ISRELEASED:
 #     extensions.extend([sandbox_ext])

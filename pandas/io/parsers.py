@@ -20,7 +20,7 @@ from pandas.util.decorators import Appender
 
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas._parser as _parser
+import pandas.parser as _parser
 from pandas.tseries.period import Period
 import json
 
@@ -752,7 +752,7 @@ class ParserBase(object):
                         [ com.is_integer(i) for i in self.index_col ]) or com.is_integer(self.index_col)):
                     raise Exception("index_col must only contain row numbers "
                                     "when specifying a multi-index header")
-                
+
         self._name_processed = False
 
     @property
@@ -783,7 +783,7 @@ class ParserBase(object):
 
         # the names are the tuples of the header that are not the index cols
         # 0 is the name of the index, assuming index_col is a list of column
-        # numbers 
+        # numbers
         ic = self.index_col
         if ic is None:
             ic = []
@@ -795,8 +795,8 @@ class ParserBase(object):
         orig_header = list(header)
 
         # clean the index_names
-        index_names = header.pop(-1) 
-        (index_names, names, 
+        index_names = header.pop(-1)
+        (index_names, names,
          index_col) = _clean_index_names(index_names, self.index_col)
 
         # extract the columns
@@ -846,7 +846,7 @@ class ParserBase(object):
             index = self._get_complex_date_index(data, columns)
             index = self._agg_index(index, try_parse_dates=False)
 
-        # add names for the index 
+        # add names for the index
         if indexnamerow:
             coffset = len(indexnamerow) - len(columns)
             index.names = indexnamerow[:coffset]
@@ -1060,7 +1060,7 @@ class CParserWrapper(ParserBase):
                 _is_index_col(self.index_col)):
 
                 self._name_processed = True
-                (index_names, self.names, 
+                (index_names, self.names,
                  self.index_col) = _clean_index_names(self.names, self.index_col)
 
                 if self.index_names is None:
@@ -1498,7 +1498,7 @@ class PythonParser(ParserBase):
                             if cur_count > 0:
                                 this_columns[i] = '%s.%d' % (col, cur_count)
                             counts[col] = cur_count + 1
-        
+
                 columns.append(this_columns)
 
             self._clear_buffer()
@@ -1993,5 +1993,3 @@ class ExcelFile(excel.ExcelFile):
         from warnings import warn
         warn("ExcelFile can now be imported from: pandas.io.excel", FutureWarning)
         super(ExcelFile, self).__init__(path_or_buf, kind=kind, **kwds)
-
-  

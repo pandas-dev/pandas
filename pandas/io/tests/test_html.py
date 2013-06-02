@@ -17,7 +17,10 @@ from pandas.io.html import read_html, import_module, _parse, _LxmlFrameParser
 from pandas.io.html import _BeautifulSoupHtml5LibFrameParser
 from pandas.io.html import _BeautifulSoupLxmlFrameParser, _remove_whitespace
 from pandas import DataFrame, MultiIndex, read_csv, Timestamp
-from pandas.util.testing import assert_frame_equal, network, get_data_path
+from pandas.util.testing import (assert_frame_equal, network,
+                                 get_data_path)
+from numpy.testing.decorators import slow
+
 from pandas.util.testing import makeCustomDataframe as mkdf
 
 
@@ -93,6 +96,7 @@ class TestLxmlReadHtml(TestCase):
         return _run_read_html(parser, *args, **kwargs)
 
     @network
+    @slow
     def test_banklist_url(self):
         url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
         df1 = self.run_read_html(url, 'First Federal Bank of Florida',
@@ -102,6 +106,7 @@ class TestLxmlReadHtml(TestCase):
         assert_framelist_equal(df1, df2)
 
     @network
+    @slow
     def test_spam_url(self):
         url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
                'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
@@ -361,6 +366,7 @@ class TestLxmlReadHtml(TestCase):
         self.assertGreater(len(dfs), 1)
 
     @network
+    @slow
     def test_pythonxy_plugins_table(self):
         url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
         dfs = self.run_read_html(url, match='Python',
