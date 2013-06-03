@@ -474,6 +474,20 @@ class TestHDFStore(unittest.TestCase):
             store.append('uints', uint_data, data_columns=['u08','u16','u32']) # 64-bit indices not yet supported
             tm.assert_frame_equal(store['uints'], uint_data)
 
+    def test_encoding(self):
+        
+        with ensure_clean(self.path) as store:
+            df = DataFrame(dict(A='foo',B='bar'),index=range(5))
+            df.loc[2,'A'] = np.nan
+            df.loc[3,'B'] = np.nan
+            _maybe_remove(store, 'df')
+            store.append('df', df, encoding='ascii')
+            tm.assert_frame_equal(store['df'], df)
+
+            expected = df.reindex(columns=['A'])
+            result = store.select('df',Term('columns=A',encoding='ascii'))
+            tm.assert_frame_equal(result,expected)
+
     def test_append_some_nans(self):
 
         with ensure_clean(self.path) as store:
@@ -556,6 +570,7 @@ class TestHDFStore(unittest.TestCase):
     def test_append_frame_column_oriented(self):
 
         with ensure_clean(self.path) as store:
+            import pdb; pdb.set_trace()
             # column oriented
             df = tm.makeTimeDataFrame()
             _maybe_remove(store, 'df1')

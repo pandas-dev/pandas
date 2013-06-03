@@ -13,7 +13,8 @@ import warnings
 
 import numpy as np
 from pandas import (
-    Series, TimeSeries, DataFrame, Panel, Panel4D, Index, MultiIndex, Int64Index
+    Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
+    MultiIndex, Int64Index, Timestamp
 )
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
@@ -27,6 +28,7 @@ from pandas.core.reshape import block2d_to_blocknd, factor_indexer
 from pandas.core.index import Int64Index, _ensure_index
 import pandas.core.common as com
 from pandas.tools.merge import concat
+from pandas.util import py3compat
 
 import pandas.lib as lib
 import pandas.algos as algos
@@ -36,6 +38,9 @@ from contextlib import contextmanager
 
 # versioning attribute
 _version = '0.10.1'
+
+# PY3 encoding if we don't specify
+_default_encoding = 'UTF-8'
 
 class IncompatibilityWarning(Warning): pass
 incompatibility_doc = """
@@ -56,40 +61,40 @@ directly to c-types [inferred_type->%s,key->%s] [items->%s]
 # map object types
 _TYPE_MAP = {
 
-    Series          : 'series',
-    SparseSeries    : 'sparse_series',
-    TimeSeries      : 'series',
-    DataFrame       : 'frame',
-    SparseDataFrame : 'sparse_frame',
-    Panel           : 'wide',
-    Panel4D         : 'ndim',
-    SparsePanel     : 'sparse_panel'
+    Series          : u'series',
+    SparseSeries    : u'sparse_series',
+    TimeSeries      : u'series',
+    DataFrame       : u'frame',
+    SparseDataFrame : u'sparse_frame',
+    Panel           : u'wide',
+    Panel4D         : u'ndim',
+    SparsePanel     : u'sparse_panel'
 }
 
 # storer class map
 _STORER_MAP = {
-    'TimeSeries'    : 'LegacySeriesStorer',
-    'Series'        : 'LegacySeriesStorer',
-    'DataFrame'     : 'LegacyFrameStorer',
-    'DataMatrix'    : 'LegacyFrameStorer',
-    'series'        : 'SeriesStorer',
-    'sparse_series' : 'SparseSeriesStorer',
-    'frame'         : 'FrameStorer',
-    'sparse_frame'  : 'SparseFrameStorer',
-    'wide'          : 'PanelStorer',
-    'sparse_panel'  : 'SparsePanelStorer',
+    u'TimeSeries'    : 'LegacySeriesStorer',
+    u'Series'        : 'LegacySeriesStorer',
+    u'DataFrame'     : 'LegacyFrameStorer',
+    u'DataMatrix'    : 'LegacyFrameStorer',
+    u'series'        : 'SeriesStorer',
+    u'sparse_series' : 'SparseSeriesStorer',
+    u'frame'         : 'FrameStorer',
+    u'sparse_frame'  : 'SparseFrameStorer',
+    u'wide'          : 'PanelStorer',
+    u'sparse_panel'  : 'SparsePanelStorer',
 }
 
 # table class map
 _TABLE_MAP = {
-    'generic_table'    : 'GenericTable',
-    'appendable_frame'      : 'AppendableFrameTable',
-    'appendable_multiframe' : 'AppendableMultiFrameTable',
-    'appendable_panel' : 'AppendablePanelTable',
-    'appendable_ndim'  : 'AppendableNDimTable',
-    'worm'             : 'WORMTable',
-    'legacy_frame'     : 'LegacyFrameTable',
-    'legacy_panel'     : 'LegacyPanelTable',
+    u'generic_table'    : 'GenericTable',
+    u'appendable_frame'      : 'AppendableFrameTable',
+    u'appendable_multiframe' : 'AppendableMultiFrameTable',
+    u'appendable_panel' : 'AppendablePanelTable',
+    u'appendable_ndim'  : 'AppendableNDimTable',
+    u'worm'             : 'WORMTable',
+    u'legacy_frame'     : 'LegacyFrameTable',
+    u'legacy_panel'     : 'LegacyPanelTable',
 }
 
 # axes map
@@ -201,7 +206,7 @@ class HDFStore(object):
     complevel : int, 1-9, default 0
             If a complib is specified compression will be applied
             where possible
-    complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
+    complib : {'zliu', 'bzip2', 'lzo', 'blosc', None}, default None
             If complevel is > 0 apply compression to objects written
             in the store wherever possible
     fletcher32 : bool, default False
@@ -694,7 +699,7 @@ class HDFStore(object):
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
         _tables()
-        return [ g for g in self._handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != 'table') ]
+        return [ g for g in self._handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != u'table') ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
@@ -772,8 +777,8 @@ class HDFStore(object):
 
                 _tables()
                 if getattr(group,'table',None) or isinstance(group,_table_mod.table.Table):
-                    pt = 'frame_table'
-                    tt = 'generic_table'
+                    pt = u'frame_table'
+                    tt = u'generic_table'
                 else:
                     raise TypeError("cannot create a storer if the object is not existing nor a value are passed")
             else:
@@ -785,10 +790,10 @@ class HDFStore(object):
 
                 # we are actually a table
                 if table or append:
-                    pt += '_table'
+                    pt += u'_table'
 
         # a storer node
-        if 'table' not in pt:
+        if u'table' not in pt:
             try:
                 return globals()[_STORER_MAP[pt]](self, group, **kwargs)
             except:
@@ -800,26 +805,26 @@ class HDFStore(object):
             # if we are a writer, determin the tt
             if value is not None:
 
-                if pt == 'frame_table':
+                if pt == u'frame_table':
                     index = getattr(value,'index',None)
                     if index is not None:
                         if index.nlevels == 1:
-                            tt = 'appendable_frame'
+                            tt = u'appendable_frame'
                         elif index.nlevels > 1:
-                            tt = 'appendable_multiframe'
-                elif pt == 'wide_table':
-                    tt  = 'appendable_panel'
-                elif pt == 'ndim_table':
-                    tt = 'appendable_ndim'
+                            tt = u'appendable_multiframe'
+                elif pt == u'wide_table':
+                    tt  = u'appendable_panel'
+                elif pt == u'ndim_table':
+                    tt = u'appendable_ndim'
 
             else:
                 
                 # distiguish between a frame/table
-                tt = 'legacy_panel'
+                tt = u'legacy_panel'
                 try:
                     fields = group.table._v_attrs.fields
-                    if len(fields) == 1 and fields[0] == 'value':
-                        tt = 'legacy_frame'
+                    if len(fields) == 1 and fields[0] == u'value':
+                        tt = u'legacy_frame'
                 except:
                     pass
 
@@ -892,7 +897,7 @@ class TableIterator(object):
 
     def __init__(self, func, nrows, start=None, stop=None, chunksize=None):
         self.func   = func
-        self.nrows = nrows
+        self.nrows = nrows or 0
         self.start = start or 0
 
         if stop is None:
@@ -1017,7 +1022,7 @@ class IndexCol(object):
         new_self.get_attr()
         return new_self
 
-    def convert(self, values, nan_rep):
+    def convert(self, values, nan_rep, encoding):
         """ set the values from this selection: take = take ownership """
         try:
             values = values[self.cname]
@@ -1032,13 +1037,13 @@ class IndexCol(object):
         if self.index_name is not None:
             kwargs['name'] = self.index_name
         try:
-            self.values = Index(_maybe_convert(values, self.kind), **kwargs)
+            self.values = Index(_maybe_convert(values, self.kind, encoding), **kwargs)
         except:
 
             # if the output freq is different that what we recorded, then infer it
             if 'freq' in kwargs:
                 kwargs['freq'] = 'infer'
-            self.values = Index(_maybe_convert(values, self.kind), **kwargs)
+            self.values = Index(_maybe_convert(values, self.kind, encoding), **kwargs)
         return self
 
     def take_data(self):
@@ -1070,7 +1075,7 @@ class IndexCol(object):
     def maybe_set_size(self, min_itemsize=None, **kwargs):
         """ maybe set a string col itemsize:
                min_itemsize can be an interger or a dict with this columns name with an integer size """
-        if self.kind == 'string':
+        if self.kind == u'string':
 
             if isinstance(min_itemsize, dict):
                 min_itemsize = min_itemsize.get(self.name)
@@ -1090,7 +1095,7 @@ class IndexCol(object):
 
         # validate this column for string truncation (or reset to the max size)
         dtype = getattr(self, 'dtype', None)
-        if self.kind == 'string':
+        if self.kind == u'string':
 
             c = self.col
             if c is not None:
@@ -1169,7 +1174,7 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep):
+    def convert(self, values, nan_rep, encoding):
         """ set the values from this selection: take = take ownership """
         
         self.values = Int64Index(np.arange(self.table.nrows))
@@ -1248,22 +1253,25 @@ class DataCol(IndexCol):
     def set_kind(self):
         # set my kind if we can
         if self.dtype is not None:
-            if self.dtype.startswith('string'):
+            dtype = self.dtype
+            if dtype.startswith(u'string') or dtype.startswith(u'bytes'):
                 self.kind = 'string'
-            elif self.dtype.startswith('float'):
+            elif dtype.startswith(u'float'):
                 self.kind = 'float'
-            elif self.dtype.startswith('int'):
+            elif dtype.startswith(u'int') or dtype.startswith(u'uint'):
                 self.kind = 'integer'
-            elif self.dtype.startswith('date'):
+            elif dtype.startswith(u'date'):
                 self.kind = 'datetime'
-            elif self.dtype.startswith('bool'):
+            elif dtype.startswith(u'bool'):
                 self.kind = 'bool'
+            else:
+                raise AssertionError("cannot interpret dtype of [%s] in [%s]" % (dtype,self))
 
             # set my typ if we need
             if self.typ is None:
                 self.typ = getattr(self.description,self.cname,None)
 
-    def set_atom(self, block, existing_col, min_itemsize, nan_rep, info, **kwargs):
+    def set_atom(self, block, existing_col, min_itemsize, nan_rep, info, encoding=None, **kwargs):
         """ create and setup my atom from the block b """
 
         self.values = list(block.items)
@@ -1306,7 +1314,7 @@ class DataCol(IndexCol):
         # this is basically a catchall; if say a datetime64 has nans then will
         # end up here ###
         elif inferred_type == 'string' or dtype == 'object':
-            self.set_atom_string(block, existing_col, min_itemsize, nan_rep)
+            self.set_atom_string(block, existing_col, min_itemsize, nan_rep, encoding)
         else:
             self.set_atom_data(block)
 
@@ -1315,7 +1323,7 @@ class DataCol(IndexCol):
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
 
-    def set_atom_string(self, block, existing_col, min_itemsize, nan_rep):
+    def set_atom_string(self, block, existing_col, min_itemsize, nan_rep, encoding):
         # fill nan items with myself
         block = block.fillna(nan_rep)
         data  = block.values
@@ -1336,7 +1344,7 @@ class DataCol(IndexCol):
 
 
         # itemsize is the maximum length of a string (along any dimension)
-        itemsize = lib.max_len_string_array(data.ravel())
+        itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
 
         # specified min_itemsize?
         if isinstance(min_itemsize, dict):
@@ -1353,10 +1361,10 @@ class DataCol(IndexCol):
         self.itemsize = itemsize
         self.kind = 'string'
         self.typ = self.get_atom_string(block, itemsize)
-        self.set_data(self.convert_string_data(data, itemsize))
+        self.set_data(self.convert_string_data(data, itemsize, encoding))
 
-    def convert_string_data(self, data, itemsize):
-        return data.astype('S%s' % itemsize)
+    def convert_string_data(self, data, itemsize, encoding):
+        return _convert_string_array(data, encoding, itemsize)
 
     def get_atom_coltype(self):
         """ return the PyTables column class for this column """
@@ -1409,7 +1417,7 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing items dtype"
                                 " in table!")
 
-    def convert(self, values, nan_rep):
+    def convert(self, values, nan_rep, encoding):
         """ set the data from this selection (and convert to the correct dtype if we can) """
         try:
             values = values[self.cname]
@@ -1421,7 +1429,7 @@ class DataCol(IndexCol):
         if self.dtype is not None:
 
             # reverse converts
-            if self.dtype == 'datetime64':
+            if self.dtype == u'datetime64':
                 # recreate the timezone
                 if self.tz is not None:
 
@@ -1434,10 +1442,10 @@ class DataCol(IndexCol):
                 else:
                     self.data = np.asarray(self.data, dtype='M8[ns]')
 
-            elif self.dtype == 'date':
+            elif self.dtype == u'date':
                 self.data = np.array(
                     [date.fromtimestamp(v) for v in self.data], dtype=object)
-            elif self.dtype == 'datetime':
+            elif self.dtype == u'datetime':
                 self.data = np.array(
                     [datetime.fromtimestamp(v) for v in self.data],
                     dtype=object)
@@ -1448,16 +1456,16 @@ class DataCol(IndexCol):
                 except:
                     self.data = self.data.astype('O')
 
-        # convert nans
-        if self.kind == 'string':
-            self.data = lib.array_replace_from_nan_rep(
-                self.data.ravel(), nan_rep).reshape(self.data.shape)
+        # convert nans / decode
+        if self.kind == u'string':
+            self.data = _unconvert_string_array(self.data, nan_rep=nan_rep, encoding=encoding)
+
         return self
 
     def get_attr(self):
         """ get the data for this colummn """
         self.values = getattr(self.attrs, self.kind_attr, None)
-        self.dtype = getattr(self.attrs, self.dtype_attr, None)
+        self.dtype  = getattr(self.attrs, self.dtype_attr, None)
         self.set_kind()
 
     def set_attr(self):
@@ -1473,7 +1481,7 @@ class DataIndexableCol(DataCol):
 
     @property
     def is_searchable(self):
-        return self.kind == 'string'
+        return self.kind == u'string'
 
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize)
@@ -1702,7 +1710,7 @@ class GenericStorer(Storer):
             else:
                 ret = data
 
-            if dtype == 'datetime64':
+            if dtype == u'datetime64':
                 ret = np.array(ret, dtype='M8[ns]')
 
         if transposed:
@@ -1713,13 +1721,13 @@ class GenericStorer(Storer):
     def read_index(self, key):
         variety = getattr(self.attrs, '%s_variety' % key)
 
-        if variety == 'multi':
+        if variety == u'multi':
             return self.read_multi_index(key)
-        elif variety == 'block':
+        elif variety == u'block':
             return self.read_block_index(key)
-        elif variety == 'sparseint':
+        elif variety == u'sparseint':
             return self.read_sparse_intindex(key)
-        elif variety == 'regular':
+        elif variety == u'regular':
             _, index = self.read_index_node(getattr(self.group, key))
             return index
         else:  # pragma: no cover
@@ -1979,7 +1987,7 @@ class SparseSeriesStorer(GenericStorer):
         sp_values = self.read_array('sp_values')
         sp_index = self.read_index('sp_index')
         return SparseSeries(sp_values, index=index, sparse_index=sp_index,
-                            kind=self.kind or 'block', fill_value=self.fill_value,
+                            kind=self.kind or u'block', fill_value=self.fill_value,
                             name=self.name)
 
     def write(self, obj, **kwargs):
@@ -2167,6 +2175,7 @@ class Table(Storer):
         self.data_columns   = []
         self.info           = dict()
         self.nan_rep        = None
+        self.encoding       = None
         self.selection      = None
 
     @property
@@ -2227,7 +2236,7 @@ class Table(Storer):
     @property
     def is_exists(self):
         """ has this table been created """
-        return 'table' in self.group
+        return u'table' in self.group
 
     @property
     def storable(self):
@@ -2293,6 +2302,7 @@ class Table(Storer):
         self.attrs.non_index_axes = self.non_index_axes
         self.attrs.data_columns = self.data_columns
         self.attrs.nan_rep      = self.nan_rep
+        self.attrs.encoding     = self.encoding
         self.attrs.levels       = self.levels
         self.set_info()
 
@@ -2302,6 +2312,7 @@ class Table(Storer):
         self.data_columns     = getattr(self.attrs,'data_columns',None)   or []
         self.info             = getattr(self.attrs,'info',None)           or dict()
         self.nan_rep          = getattr(self.attrs,'nan_rep',None)
+        self.encoding         = getattr(self.attrs,'encoding',None)
         self.levels           = getattr(self.attrs,'levels',None)         or []
         t = self.table
         self.index_axes       = [ a.infer(t) for a in self.indexables if     a.is_an_indexable ]
@@ -2432,7 +2443,7 @@ class Table(Storer):
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
-            a.convert(values, nan_rep=self.nan_rep)
+            a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding)
 
         return True
 
@@ -2464,7 +2475,7 @@ class Table(Storer):
         # return valid columns in the order of our axis
         return [c for c in data_columns if c in axis_labels]
 
-    def create_axes(self, axes, obj, validate=True, nan_rep=None, data_columns=None, min_itemsize=None, **kwargs):
+    def create_axes(self, axes, obj, validate=True, nan_rep=None, data_columns=None, min_itemsize=None, encoding=None, **kwargs):
         """ create and return the axes
               leagcy tables create an indexable column, indexable index, non-indexable fields
 
@@ -2475,6 +2486,7 @@ class Table(Storer):
             validate: validate the obj against an existiing object already written
             min_itemsize: a dict of the min size for a column in bytes
             nan_rep : a values to use for string column nan_rep
+            encoding : the encoding for string values
             data_columns : a list of columns that we want to create separate to allow indexing (or True will force all colummns)
 
         """
@@ -2497,6 +2509,7 @@ class Table(Storer):
             axes         = [ a.axis for a in existing_table.index_axes]
             data_columns = existing_table.data_columns
             nan_rep      = existing_table.nan_rep
+            encoding     = existing_table.encoding
             self.info    = copy.copy(existing_table.info)
         else:
             existing_table = None
@@ -2509,9 +2522,16 @@ class Table(Storer):
         self.non_index_axes = []
         self.data_columns = []
 
+        # encoding
+        if encoding is None:
+            if py3compat.PY3:
+                encoding = _default_encoding
+        self.encoding = encoding
+
         # nan_representation
         if nan_rep is None:
             nan_rep = 'nan'
+            
         self.nan_rep = nan_rep
 
         # create axes to index and non_index
@@ -2521,7 +2541,7 @@ class Table(Storer):
             if i in axes:
                 name = obj._AXIS_NAMES[i]
                 index_axes_map[i] = _convert_index(
-                    a).set_name(name).set_axis(i)
+                    a, self.encoding).set_name(name).set_axis(i)
             else:
 
                 # we might be able to change the axes on the appending data if
@@ -2597,6 +2617,7 @@ class Table(Storer):
                              existing_col=existing_col,
                              min_itemsize=min_itemsize,
                              nan_rep=nan_rep,
+                             encoding=encoding,
                              info=self.info,
                              **kwargs)
                 col.set_pos(j)
@@ -2718,7 +2739,7 @@ class Table(Storer):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                return Series(a.convert(c[:], nan_rep=self.nan_rep).take_data())
+                return Series(a.convert(c[:], nan_rep=self.nan_rep, encoding=self.encoding).take_data())
 
         raise KeyError("column [%s] not found in the table" % column)
 
@@ -2863,14 +2884,15 @@ class AppendableTable(LegacyTable):
 
     def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None, chunksize=None,
-              expectedrows=None, **kwargs):
+              expectedrows=None, encoding=None, **kwargs):
 
         if not append and self.is_exists:
             self._handle.removeNode(self.group, 'table')
 
         # create the axes
         self.create_axes(axes=axes, obj=obj, validate=append,
-                         min_itemsize=min_itemsize, **kwargs)
+                         min_itemsize=min_itemsize, encoding=encoding,
+                         **kwargs)
 
         if not self.is_exists:
 
@@ -3173,7 +3195,7 @@ class AppendableNDimTable(AppendablePanelTable):
     ndim = 4
     obj_type = Panel4D
 
-def _convert_index(index):
+def _convert_index(index, encoding=None):
     index_name = getattr(index,'name',None)
 
     if isinstance(index, DatetimeIndex):
@@ -3213,7 +3235,7 @@ def _convert_index(index):
         # atom = _tables().ObjectAtom()
         # return np.asarray(values, dtype='O'), 'object', atom
 
-        converted = np.array(list(values), dtype=np.str_)
+        converted = _convert_string_array(values, encoding)
         itemsize = converted.dtype.itemsize
         return IndexCol(converted, 'string', _tables().StringCol(itemsize), itemsize=itemsize,
                         index_name=index_name)
@@ -3236,47 +3258,77 @@ def _convert_index(index):
                         index_name=index_name)
 
 def _unconvert_index(data, kind):
-    if kind == 'datetime64':
+    if kind == u'datetime64':
         index = DatetimeIndex(data)
-    elif kind == 'datetime':
+    elif kind == u'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
-    elif kind == 'date':
+    elif kind == u'date':
         index = np.array([date.fromtimestamp(v) for v in data], dtype=object)
-    elif kind in ('string', 'integer', 'float'):
+    elif kind in (u'string', u'integer', u'float'):
         index = np.array(data)
-    elif kind == 'object':
+    elif kind == u'object':
         index = np.array(data[0])
     else:  # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index
 
 def _unconvert_index_legacy(data, kind, legacy=False):
-    if kind == 'datetime':
+    if kind == u'datetime':
         index = lib.time64_to_datetime(data)
-    elif kind in ('string', 'integer'):
+    elif kind in (u'string', u'integer'):
         index = np.array(data, dtype=object)
     else:  # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index
 
-def _maybe_convert(values, val_kind):
+def _convert_string_array(data, encoding, itemsize=None):
+
+    # encode if needed
+    if encoding is not None:
+        f = np.vectorize(lambda x: x.encode(encoding))
+        data = f(data)
+
+    # create the sized dtype
+    if itemsize is None:
+        itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
+
+    data = np.array(data,dtype="S%d" % itemsize)
+    return data
+
+def _unconvert_string_array(data, nan_rep=None, encoding=None):
+    """ deserialize a string array, possibly decoding """
+    shape = data.shape
+    data = np.array(data.ravel(),dtype=object)
+    if encoding is not None:
+        f = np.vectorize(lambda x: x.decode(encoding),otypes=[np.object])
+        data = f(data)
+
+    if nan_rep is None:
+        nan_rep = 'nan'
+            
+    data = lib.string_array_replace_from_nan_rep(data, nan_rep)
+    return data.reshape(shape)
+
+def _maybe_convert(values, val_kind, encoding):
     if _need_convert(val_kind):
-        conv = _get_converter(val_kind)
+        conv = _get_converter(val_kind, encoding)
         # conv = np.frompyfunc(conv, 1, 1)
         values = conv(values)
     return values
 
-def _get_converter(kind):
+def _get_converter(kind, encoding):
     if kind == 'datetime64':
         return lambda x: np.array(x, dtype='M8[ns]')
-    if kind == 'datetime':
+    elif kind == 'datetime':
         return lib.convert_timestamps
+    elif kind == 'string':
+        return lambda x: _unconvert_string_array(x,encoding=encoding)
     else:  # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 
 def _need_convert(kind):
-    if kind in ('datetime', 'datetime64'):
+    if kind in ('datetime', 'datetime64', 'string'):
         return True
     return False
 
@@ -3290,6 +3342,7 @@ class Term(object):
             >, >=, <, <=, =, != (not equal) are allowed
     value : a value or list of values (required)
     queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
+    encoding : an encoding that will encode the query terms
 
     Returns
     -------
@@ -3303,20 +3356,26 @@ class Term(object):
     >>> Term('index', ['20121114','20121114'])
     >>> Term('index', datetime(2012,11,14))
     >>> Term('major_axis>20121114')
-    >>> Term('minor_axis', ['A','B'])
+    >>> Term('minor_axis', ['A','U'])
     """
 
     _ops = ['<=', '<', '>=', '>', '!=', '==', '=']
     _search = re.compile("^\s*(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)\s*$" % '|'.join(_ops))
     _max_selectors = 31
 
-    def __init__(self, field, op=None, value=None, queryables=None):
+    def __init__(self, field, op=None, value=None, queryables=None, encoding=None):
         self.field = None
         self.op = None
         self.value = None
         self.q = queryables or dict()
         self.filter = None
         self.condition = None
+
+        if py3compat.PY3:
+            if encoding is None:
+                encoding = _default_encoding
+
+        self.encoding = encoding
 
         # unpack lists/tuples in field
         while(isinstance(field, (tuple, list))):
@@ -3446,7 +3505,7 @@ class Term(object):
 
                 self.condition = '(%s %s %s)' % (
                     self.field, self.op, values[0][0])
-
+                        
             else:
 
                 raise TypeError("passing a filterable condition to a non-table indexer [%s]" % str(self))
@@ -3454,32 +3513,39 @@ class Term(object):
     def convert_value(self, v):
         """ convert the expression that is in the term to something that is accepted by pytables """
 
-        if self.kind == 'datetime64' or self.kind == 'datetime' :
+        def stringify(value):
+            value = str(value)
+            if self.encoding is not None:
+                value = value.encode(self.encoding)
+            return value
+
+        kind = self.kind
+        if kind == u'datetime64' or kind == u'datetime' :
             v = lib.Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return [v.value, v]
-        elif isinstance(v, datetime) or hasattr(v, 'timetuple') or self.kind == 'date':
+        elif isinstance(v, datetime) or hasattr(v, 'timetuple') or kind == u'date':
             v = time.mktime(v.timetuple())
             return [v, Timestamp(v) ]
-        elif self.kind == 'integer':
+        elif kind == u'integer':
             v = int(float(v))
             return [v, v]
-        elif self.kind == 'float':
+        elif kind == u'float':
             v = float(v)
             return [v, v]
-        elif self.kind == 'bool':
+        elif kind == u'bool':
             if isinstance(v, basestring):
-                v = not str(v).strip().lower() in ["false", "f", "no", "n", "none", "0", "[]", "{}", ""]
+                v = not stringify(v).strip().lower() in [u'false', u'f', u'no', u'n', u'none', u'0', u'[]', u'{}', u'']
             else:
                 v = bool(v)
             return [v, v]
         elif not isinstance(v, basestring):
-            v = str(v)
+            v = stringify(v)
             return [v, v]
 
         # string quoting
-        return ["'" + v + "'", v]
+        return [stringify("'" + v + "'"), stringify(v)]
 
 
 class Coordinates(object):
@@ -3533,6 +3599,8 @@ class Selection(object):
                 conds = [t.condition for t in self.terms if t.condition is not None]
                 if len(conds):
                     self.condition = "(%s)" % ' & '.join(conds)
+                    #if self.table.encoding is not None:
+                    #    self.condition = self.condition.encode(self.table.encoding)
                 self.filter = []
                 for t in self.terms:
                     if t.filter is not None:
@@ -3555,7 +3623,7 @@ class Selection(object):
                     where = [where]
 
         queryables = self.table.queryables()
-        return [Term(c, queryables=queryables) for c in where]
+        return [Term(c, queryables=queryables, encoding=self.table.encoding) for c in where]
 
     def select(self):
         """
