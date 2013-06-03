@@ -81,6 +81,8 @@ pandas 0.11.1
 
   - When removing an object from a ``HDFStore``, ``remove(key)`` raises
     ``KeyError`` if the key is not a valid store object.
+  - In an ``HDFStore``, raise a ``TypeError`` on passing ``where`` or ``columns`` 
+    to select with a Storer; these are invalid parameters at this time
   - The repr() for (Multi)Index now obeys display.max_seq_items rather
     then numpy threshold print options. (GH3426_, GH3466_)
   - Added mangle_dupe_cols option to read_table/csv, allowing users
@@ -197,6 +199,7 @@ pandas 0.11.1
     their first argument (GH3702_)
   - Fix file tokenization error with \r delimiter and quoted fields (GH3453_)
   - Groupby transform with item-by-item not upcasting correctly (GH3740_)
+  - Incorrectly read a HDFStore multi-index Frame witha column specification (GH3748_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -280,6 +283,7 @@ pandas 0.11.1
 .. _GH3667: https://github.com/pydata/pandas/issues/3667
 .. _GH3733: https://github.com/pydata/pandas/issues/3733
 .. _GH3740: https://github.com/pydata/pandas/issues/3740
+.. _GH3748: https://github.com/pydata/pandas/issues/3748
 
 pandas 0.11.0
 =============
