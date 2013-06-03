@@ -1664,6 +1664,12 @@ class GenericStorer(Storer):
             return f
         return klass
 
+    def validate_read(self, kwargs):
+        if kwargs.get('columns') is not None:
+            raise TypeError("cannot pass a column specification when reading a Storer")
+        if kwargs.get('where') is not None:
+            raise TypeError("cannot pass a where specification when reading a Storer")
+
     @property
     def is_exists(self):
         return True
@@ -1921,6 +1927,7 @@ class LegacyStorer(GenericStorer):
 class LegacySeriesStorer(LegacyStorer):
 
     def read(self, **kwargs):
+        self.validate_read(kwargs)
         index = self.read_index_legacy('index')
         values = self.read_array('values')
         return Series(values, index=index)
@@ -1928,6 +1935,7 @@ class LegacySeriesStorer(LegacyStorer):
 class LegacyFrameStorer(LegacyStorer):
 
     def read(self, **kwargs):
+        self.validate_read(kwargs)
         index = self.read_index_legacy('index')
         columns = self.read_index_legacy('columns')
         values = self.read_array('values')
@@ -1945,6 +1953,7 @@ class SeriesStorer(GenericStorer):
             return None
 
     def read(self, **kwargs):
+        self.validate_read(kwargs)
         index = self.read_index('index')
         if len(index) > 0:
             values = self.read_array('values')
@@ -1963,6 +1972,7 @@ class SparseSeriesStorer(GenericStorer):
     attributes = ['name','fill_value','kind']
 
     def read(self, **kwargs):
+        self.validate_read(kwargs)
         index = self.read_index('index')
         sp_values = self.read_array('sp_values')
         sp_index = self.read_index('sp_index')
@@ -1983,6 +1993,7 @@ class SparseFrameStorer(GenericStorer):
     attributes = ['default_kind','default_fill_value']
 
     def read(self, **kwargs):
+        self.validate_read(kwargs)
         columns = self.read_index('columns')
         sdict = {}
         for c in columns:
@@ -2013,6 +2024,7 @@ class SparsePanelStorer(GenericStorer):
     attributes = ['default_kind','default_fill_value']
 
     def read(self, **kwargs):
+        self.validate_read(kwargs)
         items = self.read_index('items')
 
         sdict = {}
@@ -2075,6 +2087,8 @@ class BlockManagerStorer(GenericStorer):
             return None
 
     def read(self, **kwargs):
+        self.validate_read(kwargs)
+
         axes = []
         for i in xrange(self.ndim):
             ax = self.read_index('axis%d' % i)
@@ -3124,8 +3138,12 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         self.levels = obj.index.names
         return super(AppendableMultiFrameTable, self).write(obj=obj.reset_index(), data_columns=data_columns, **kwargs)
 
-    def read(self, *args, **kwargs):
-        df = super(AppendableMultiFrameTable, self).read(*args, **kwargs)
+    def read(self, columns=None, **kwargs):
+        if columns is not None:
+            for n in self.levels:
+                if n not in columns:
+                    columns.insert(0, n)
+        df = super(AppendableMultiFrameTable, self).read(columns=columns, **kwargs)
         df.set_index(self.levels, inplace=True)
         return df
 
