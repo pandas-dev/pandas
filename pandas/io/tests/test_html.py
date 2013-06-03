@@ -417,17 +417,16 @@ class TestBs4Html5LibParser(TestBs4LxmlParser):
         ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
-        # these will not
         self.assertTupleEqual(df.shape, ground_truth.shape)
-        old = ['First Vietnamese American Bank In Vietnamese',
-               'Westernbank Puerto Rico En Espanol',
-               'R-G Premier Bank of Puerto Rico En Espanol',
-               'Eurobank En Espanol', 'Sanderson State Bank En Espanol',
-               'Washington Mutual Bank (Including its subsidiary Washington '
+        old = ['First Vietnamese American BankIn Vietnamese',
+               'Westernbank Puerto RicoEn Espanol',
+               'R-G Premier Bank of Puerto RicoEn Espanol',
+               'EurobankEn Espanol', 'Sanderson State BankEn Espanol',
+               'Washington Mutual Bank(Including its subsidiary Washington '
                'Mutual Bank FSB)',
-               'Silver State Bank En Espanol',
+               'Silver State BankEn Espanol',
                'AmTrade International BankEn Espanol',
-               'Hamilton Bank, NA En Espanol',
+               'Hamilton Bank, NAEn Espanol',
                'The Citizens Savings BankPioneer Community Bank, Inc.']
         new = ['First Vietnamese American Bank', 'Westernbank Puerto Rico',
                'R-G Premier Bank of Puerto Rico', 'Eurobank',
