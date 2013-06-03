@@ -1072,6 +1072,26 @@ class TestHDFStore(unittest.TestCase):
             result = store.select('mi')
             tm.assert_frame_equal(result, df)
 
+            # GH 3748
+            result = store.select('mi',columns=['A','B'])
+            expected = df.reindex(columns=['A','B'])
+            tm.assert_frame_equal(result,expected)
+
+        with tm.ensure_clean('test.hdf') as path:
+            df.to_hdf(path,'df',table=True)
+            result = read_hdf(path,'df',columns=['A','B'])
+            expected = df.reindex(columns=['A','B'])
+            tm.assert_frame_equal(result,expected)
+
+    def test_pass_spec_to_storer(self):
+
+        df = tm.makeDataFrame()
+
+        with ensure_clean(self.path) as store:
+            store.put('df',df)
+            self.assertRaises(TypeError, store.select, 'df', columns=['A'])
+            self.assertRaises(TypeError, store.select, 'df',where=[('columns=A')])
+
     def test_append_misc(self):
 
         with ensure_clean(self.path) as store:
