@@ -616,6 +616,15 @@ class TestGroupBy(unittest.TestCase):
             assert_series_equal(agged, expected, check_dtype=False)
             self.assert_(issubclass(agged.dtype.type, np.dtype(dtype).type))
 
+    def test_groupby_transform_with_int(self):
+
+        # GH 3740, make sure that we might upcast on item-by-item transform
+
+        df = DataFrame(dict(A = [1,1,1,2,2,2], B = 1, C = [1,2,3,1,2,3], D = 'foo'))
+        result = df.groupby('A').transform(lambda x: (x-x.mean())/x.std())
+        expected = DataFrame(dict(B = np.nan, C = [-1,0,1,-1,0,1]))
+        assert_frame_equal(result,expected)
+
     def test_indices_concatenation_order(self):
 
         # GH 2808
