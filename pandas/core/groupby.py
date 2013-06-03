@@ -1532,6 +1532,9 @@ class SeriesGroupBy(GroupBy):
         transformed : Series
         """
         result = self.obj.copy()
+        if hasattr(result,'values'):
+            result = result.values
+        dtype = result.dtype
 
         if isinstance(func, basestring):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
@@ -1539,13 +1542,21 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         for name, group in self:
+
+            group = com.ensure_float(group)
             object.__setattr__(group, 'name', name)
             res = wrapper(group)
-            # result[group.index] = res
             indexer = self.obj.index.get_indexer(group.index)
-            np.put(result, indexer, res)
+            if hasattr(res,'values'):
+                res = res.values
 
-        return result
+            # need to do a safe put here, as the dtype may be different
+            # this needs to be an ndarray
+            result,_ = com._maybe_upcast_indexer(result, indexer, res)
+
+        # downcast if we can (and need)
+        result = _possibly_downcast_to_dtype(result, dtype)
+        return self.obj.__class__(result,index=self.obj.index,name=self.obj.name)
 
 
 class NDFrameGroupBy(GroupBy):

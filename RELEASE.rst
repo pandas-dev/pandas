@@ -196,6 +196,7 @@ pandas 0.11.1
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
     their first argument (GH3702_)
   - Fix file tokenization error with \r delimiter and quoted fields (GH3453_)
+  - Groupby transform with item-by-item not upcasting correctly (GH3740_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -278,6 +279,7 @@ pandas 0.11.1
 .. _GH3696: https://github.com/pydata/pandas/issues/3696
 .. _GH3667: https://github.com/pydata/pandas/issues/3667
 .. _GH3733: https://github.com/pydata/pandas/issues/3733
+.. _GH3740: https://github.com/pydata/pandas/issues/3740
 
 pandas 0.11.0
 =============
