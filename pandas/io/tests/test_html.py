@@ -41,7 +41,7 @@ def _skip_if_none(module_names):
     if isinstance(module_names, basestring):
         _skip_if_no(module_names)
     else:
-        if not any(_have_module(module_name) for module_name in module_names):
+        if not all(_have_module(module_name) for module_name in module_names):
             raise nose.SkipTest
 
 
@@ -388,7 +388,7 @@ class TestBs4LxmlParser(TestLxmlReadHtml):
 
     def run_read_html(self, *args, **kwargs):
         kwargs['flavor'] = 'bs4'
-        _skip_if_no('lxml')
+        _skip_if_none(('lxml', 'bs4'))
         parser = _BeautifulSoupLxmlFrameParser
         return _run_read_html(parser, *args, **kwargs)
 
@@ -400,7 +400,7 @@ class TestBs4Html5LibParser(TestBs4LxmlParser):
 
     def run_read_html(self, *args, **kwargs):
         kwargs['flavor'] = 'bs4'
-        _skip_if_no('html5lib')
+        _skip_if_none(('html5lib', 'bs4'))
         parser = _BeautifulSoupHtml5LibFrameParser
         return _run_read_html(parser, *args, **kwargs)
 
