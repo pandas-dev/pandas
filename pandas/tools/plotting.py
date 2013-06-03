@@ -209,7 +209,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
                 # Deal with the diagonal by drawing a histogram there.
                 if diagonal == 'hist':
-                    ax.hist(values, hist_kwds)
+                    ax.hist(values, **hist_kwds)
                 elif diagonal in ('kde', 'density'):
                     from scipy.stats import gaussian_kde
                     y = values
