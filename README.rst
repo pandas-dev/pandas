@@ -93,18 +93,49 @@ Optional dependencies
      - openpyxl version 1.6.1 or higher, for writing .xlsx files
      - xlrd >= 0.9.0
      - Needed for Excel I/O
-  - Both `html5lib <https://github.com/html5lib/html5lib-python>`__ **and**
-    `Beautiful Soup 4 <http://www.crummy.com/software/BeautifulSoup>`__: for
-    reading HTML tables
+  - `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
+    access.
+  - One of the following combinations of libraries is needed to use the
+    top-level :func:`~pandas.io.html.read_html` function:
+
+    - `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
+      okay.)
+    - `BeautifulSoup4`_ and `lxml`_ 
+    - `BeautifulSoup4`_ and `html5lib`_ and `lxml`_ 
+    - Only `lxml`_, although see :ref:`HTML reading gotchas <html-gotchas>`
+      for reasons as to why you should probably **not** take this approach.
 
     .. warning::
 
-       You need to install an older version of Beautiful Soup:
-           - Version 4.1.3 and 4.0.2 have been confirmed for 64-bit Ubuntu/Debian
-           - Version 4.0.2 have been confirmed for 32-bit Ubuntu
+       - if you install `BeautifulSoup4`_ you must install either
+         `lxml`_ or `html5lib`_ or both.
+         :func:`~pandas.io.html.read_html` will **not** work with *only*
+         `BeautifulSoup4`_ installed.
+       - You are highly encouraged to read :ref:`HTML reading gotchas
+         <html-gotchas>`. It explains issues surrounding the installation and
+         usage of the above three libraries
+       - You may need to install an older version of `BeautifulSoup4`_:
+           - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
+             32-bit Ubuntu/Debian
+       - Additionally, if you're using `Anaconda`_ you should definitely
+         read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
 
-    - Any recent version of ``html5lib`` is okay.
-  - `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3 access.
+    .. note::
+
+       - if you're on a system with ``apt-get`` you can do
+
+         .. code-block:: sh
+
+            sudo apt-get build-dep python-lxml
+
+         to get the necessary dependencies for installation of `lxml`_. This
+         will prevent further headaches down the line.
+
+
+.. _html5lib: https://github.com/html5lib/html5lib-python
+.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
+.. _lxml: http://lxml.de
+.. _Anaconda: https://store.continuum.io/cshop/anaconda
 
 
 Installation from sources
