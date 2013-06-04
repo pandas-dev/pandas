@@ -200,6 +200,7 @@ pandas 0.11.1
   - Fix file tokenization error with \r delimiter and quoted fields (GH3453_)
   - Groupby transform with item-by-item not upcasting correctly (GH3740_)
   - Incorrectly read a HDFStore multi-index Frame witha column specification (GH3748_)
+  - ``read_html`` now correctly skips tests (GH3741_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -284,6 +285,7 @@ pandas 0.11.1
 .. _GH3733: https://github.com/pydata/pandas/issues/3733
 .. _GH3740: https://github.com/pydata/pandas/issues/3740
 .. _GH3748: https://github.com/pydata/pandas/issues/3748
+.. _GH3741: https://github.com/pydata/pandas/issues/3741
 
 pandas 0.11.0
 =============

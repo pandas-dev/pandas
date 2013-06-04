@@ -1,8 +1,12 @@
-Bank Name,City,State,CERT #,Acquiring Institution,Closing Date,Updated Date
-Douglas County Bank,Douglasville,GA,21649,Hamilton State Bank,26-Apr-13,30-Apr-13
-Parkway Bank,Lenoir,NC,57158,"CertusBank, National Association",26-Apr-13,30-Apr-13
-Chipola Community Bank,Marianna,FL,58034,First Federal Bank of Florida,19-Apr-13,23-Apr-13
-Heritage Bank of North Florida,Orange Park,FL,26680,FirstAtlantic Bank,19-Apr-13,23-Apr-13
+Bank Name,City,ST,CERT,Acquiring Institution,Closing Date,Updated Date
+Banks of Wisconsin d/b/a Bank of Kenosha,Kenosha,WI,35386,"North Shore Bank, FSB",31-May-13,31-May-13
+Central Arizona Bank,Scottsdale,AZ,34527,Western State Bank,14-May-13,20-May-13
+Sunrise Bank,Valdosta,GA,58185,Synovus Bank,10-May-13,21-May-13
+Pisgah Community Bank,Asheville,NC,58701,"Capital Bank, N.A.",10-May-13,14-May-13
+Douglas County Bank,Douglasville,GA,21649,Hamilton State Bank,26-Apr-13,16-May-13
+Parkway Bank,Lenoir,NC,57158,"CertusBank, National Association",26-Apr-13,17-May-13
+Chipola Community Bank,Marianna,FL,58034,First Federal Bank of Florida,19-Apr-13,16-May-13
+Heritage Bank of North Florida,Orange Park,FL,26680,FirstAtlantic Bank,19-Apr-13,16-May-13
 First Federal Bank,Lexington,KY,29594,Your Community Bank,19-Apr-13,23-Apr-13
 Gold Canyon Bank,Gold Canyon,AZ,58066,"First Scottsdale Bank, National Association",5-Apr-13,9-Apr-13
 Frontier Bank,LaGrange,GA,16431,HeritageBank of the South,8-Mar-13,26-Mar-13
@@ -36,18 +40,18 @@ Waccamaw Bank,Whiteville,NC,34515,First Community Bank,8-Jun-12,8-Nov-12
 Farmers' and Traders' State Bank,Shabbona,IL,9257,First State Bank,8-Jun-12,10-Oct-12
 Carolina Federal Savings Bank,Charleston,SC,35372,Bank of North Carolina,8-Jun-12,31-Oct-12
 First Capital Bank,Kingfisher,OK,416,F & M Bank,8-Jun-12,10-Oct-12
-"Alabama Trust Bank, National Association",Sylacauga,AL,35224,Southern States Bank,18-May-12,31-Oct-12
+"Alabama Trust Bank, National Association",Sylacauga,AL,35224,Southern States Bank,18-May-12,20-May-13
 "Security Bank, National Association",North Lauderdale,FL,23156,Banesco USA,4-May-12,31-Oct-12
-Palm Desert National Bank,Palm Desert,CA,23632,Pacific Premier Bank,27-Apr-12,31-Aug-12
-Plantation Federal Bank,Pawleys Island,SC,32503,First Federal Bank,27-Apr-12,31-Oct-12
-"Inter Savings Bank, fsb D/B/A InterBank, fsb",Maple Grove,MN,31495,Great Southern Bank,27-Apr-12,17-Oct-12
-HarVest Bank of Maryland,Gaithersburg,MD,57766,Sonabank,27-Apr-12,17-Oct-12
+Palm Desert National Bank,Palm Desert,CA,23632,Pacific Premier Bank,27-Apr-12,17-May-13
+Plantation Federal Bank,Pawleys Island,SC,32503,First Federal Bank,27-Apr-12,17-May-13
+"Inter Savings Bank, fsb D/B/A InterBank, fsb",Maple Grove,MN,31495,Great Southern Bank,27-Apr-12,17-May-13
+HarVest Bank of Maryland,Gaithersburg,MD,57766,Sonabank,27-Apr-12,17-May-13
 Bank of the Eastern Shore,Cambridge,MD,26759,No Acquirer,27-Apr-12,17-Oct-12
-"Fort Lee Federal Savings Bank, FSB",Fort Lee,NJ,35527,Alma Bank,20-Apr-12,31-Aug-12
-Fidelity Bank,Dearborn,MI,33883,The Huntington National Bank,30-Mar-12,9-Aug-12
+"Fort Lee Federal Savings Bank, FSB",Fort Lee,NJ,35527,Alma Bank,20-Apr-12,17-May-13
+Fidelity Bank,Dearborn,MI,33883,The Huntington National Bank,30-Mar-12,16-May-13
 Premier Bank,Wilmette,IL,35419,International Bank of Chicago,23-Mar-12,17-Oct-12
 Covenant Bank & Trust,Rock Spring,GA,58068,"Stearns Bank, N.A.",23-Mar-12,31-Oct-12
-New City Bank ,Chicago,IL,57597,No Acquirer,9-Mar-12,29-Oct-12
+New City Bank,Chicago,IL,57597,No Acquirer,9-Mar-12,29-Oct-12
 Global Commerce Bank,Doraville,GA,34046,Metro City Bank,2-Mar-12,31-Oct-12
 Home Savings of America,Little Falls,MN,29178,No Acquirer,24-Feb-12,17-Dec-12
 Central Bank of Georgia,Ellaville,GA,5687,Ameris Bank,24-Feb-12,9-Aug-12
@@ -55,7 +59,7 @@ SCB Bank,Shelbyville,IN,29761,"First Merchants Bank, National Association",10-Fe
 Charter National Bank and Trust,Hoffman Estates,IL,23187,"Barrington Bank & Trust Company, National Association",10-Feb-12,25-Mar-13
 BankEast,Knoxville,TN,19869,U.S.Bank National Association,27-Jan-12,8-Mar-13
 Patriot Bank Minnesota,Forest Lake,MN,34823,First Resource Bank,27-Jan-12,12-Sep-12
-Tennessee Commerce Bank ,Franklin,TN,35296,Republic Bank & Trust Company,27-Jan-12,20-Nov-12
+Tennessee Commerce Bank,Franklin,TN,35296,Republic Bank & Trust Company,27-Jan-12,20-Nov-12
 First Guaranty Bank and Trust Company of Jacksonville,Jacksonville,FL,16579,"CenterState Bank of Florida, N.A.",27-Jan-12,12-Sep-12
 American Eagle Savings Bank,Boothwyn,PA,31581,"Capital Bank, N.A.",20-Jan-12,25-Jan-13
 The First State Bank,Stockbridge,GA,19252,Hamilton State Bank,20-Jan-12,25-Jan-13
@@ -130,7 +134,7 @@ The Bank of Commerce,Wood Dale,IL,34292,Advantage National Bank Group,25-Mar-11,
 Legacy Bank,Milwaukee,WI,34818,Seaway Bank and Trust Company,11-Mar-11,12-Sep-12
 First National Bank of Davis,Davis,OK,4077,The Pauls Valley National Bank,11-Mar-11,20-Aug-12
 Valley Community Bank,St. Charles,IL,34187,First State Bank,25-Feb-11,12-Sep-12
-"San Luis Trust Bank, FSB ",San Luis Obispo,CA,34783,First California Bank,18-Feb-11,20-Aug-12
+"San Luis Trust Bank, FSB",San Luis Obispo,CA,34783,First California Bank,18-Feb-11,20-Aug-12
 Charter Oak Bank,Napa,CA,57855,Bank of Marin,18-Feb-11,12-Sep-12
 Citizens Bank of Effingham,Springfield,GA,34601,Heritage Bank of the South,18-Feb-11,2-Nov-12
 Habersham Bank,Clarkesville,GA,151,SCBT National Association,18-Feb-11,2-Nov-12
@@ -153,9 +157,9 @@ Oglethorpe Bank,Brunswick,GA,57440,Bank of the Ozarks,14-Jan-11,2-Nov-12
 Legacy Bank,Scottsdale,AZ,57820,Enterprise Bank & Trust,7-Jan-11,12-Sep-12
 First Commercial Bank of Florida,Orlando,FL,34965,First Southern Bank,7-Jan-11,2-Nov-12
 Community National Bank,Lino Lakes,MN,23306,Farmers & Merchants Savings Bank,17-Dec-10,20-Aug-12
-First Southern Bank ,Batesville,AR,58052,Southern Bank,17-Dec-10,20-Aug-12
+First Southern Bank,Batesville,AR,58052,Southern Bank,17-Dec-10,20-Aug-12
 "United Americas Bank, N.A.",Atlanta,GA,35065,State Bank and Trust Company,17-Dec-10,2-Nov-12
-"Appalachian Community Bank, FSB ",McCaysville,GA,58495,Peoples Bank of East Tennessee,17-Dec-10,31-Oct-12
+"Appalachian Community Bank, FSB",McCaysville,GA,58495,Peoples Bank of East Tennessee,17-Dec-10,31-Oct-12
 Chestatee State Bank,Dawsonville,GA,34578,Bank of the Ozarks,17-Dec-10,2-Nov-12
 "The Bank of Miami,N.A.",Coral Gables,FL,19040,1st United Bank,17-Dec-10,2-Nov-12
 Earthstar Bank,Southampton,PA,35561,Polonia Bank,10-Dec-10,20-Aug-12
@@ -195,7 +199,7 @@ Sonoma Valley Bank,Sonoma,CA,27259,Westamerica Bank,20-Aug-10,12-Sep-12
 Los Padres Bank,Solvang,CA,32165,Pacific Western Bank,20-Aug-10,12-Sep-12
 Butte Community Bank,Chico,CA,33219,"Rabobank, N.A.",20-Aug-10,12-Sep-12
 Pacific State Bank,Stockton,CA,27090,"Rabobank, N.A.",20-Aug-10,12-Sep-12
-ShoreBank,Chicago,IL,15640,Urban Partnership Bank,20-Aug-10,12-Sep-12
+ShoreBank,Chicago,IL,15640,Urban Partnership Bank,20-Aug-10,16-May-13
 Imperial Savings and Loan Association,Martinsville,VA,31623,"River Community Bank, N.A.",20-Aug-10,24-Aug-12
 Independent National Bank,Ocala,FL,27344,"CenterState Bank of Florida, N.A.",20-Aug-10,5-Nov-12
 Community National Bank at Bartow,Bartow,FL,25266,"CenterState Bank of Florida, N.A.",20-Aug-10,5-Nov-12
@@ -206,13 +210,13 @@ The Cowlitz Bank,Longview,WA,22643,Heritage Bank,30-Jul-10,22-Aug-12
 Coastal Community Bank,Panama City Beach,FL,9619,Centennial Bank,30-Jul-10,5-Nov-12
 Bayside Savings Bank,Port Saint Joe,FL,57669,Centennial Bank,30-Jul-10,5-Nov-12
 Northwest Bank & Trust,Acworth,GA,57658,State Bank and Trust Company,30-Jul-10,5-Nov-12
-Home Valley Bank ,Cave Junction,OR,23181,South Valley Bank & Trust,23-Jul-10,12-Sep-12
-SouthwestUSA Bank ,Las Vegas,NV,35434,Plaza Bank,23-Jul-10,22-Aug-12
-Community Security Bank ,New Prague,MN,34486,Roundbank,23-Jul-10,12-Sep-12
-Thunder Bank ,Sylvan Grove,KS,10506,The Bennington State Bank,23-Jul-10,13-Sep-12
-Williamsburg First National Bank ,Kingstree,SC,17837,"First Citizens Bank and Trust Company, Inc.",23-Jul-10,5-Nov-12
-Crescent Bank and Trust Company ,Jasper,GA,27559,Renasant Bank,23-Jul-10,5-Nov-12
-Sterling Bank ,Lantana,FL,32536,IBERIABANK,23-Jul-10,5-Nov-12
+Home Valley Bank,Cave Junction,OR,23181,South Valley Bank & Trust,23-Jul-10,12-Sep-12
+SouthwestUSA Bank,Las Vegas,NV,35434,Plaza Bank,23-Jul-10,22-Aug-12
+Community Security Bank,New Prague,MN,34486,Roundbank,23-Jul-10,12-Sep-12
+Thunder Bank,Sylvan Grove,KS,10506,The Bennington State Bank,23-Jul-10,13-Sep-12
+Williamsburg First National Bank,Kingstree,SC,17837,"First Citizens Bank and Trust Company, Inc.",23-Jul-10,5-Nov-12
+Crescent Bank and Trust Company,Jasper,GA,27559,Renasant Bank,23-Jul-10,5-Nov-12
+Sterling Bank,Lantana,FL,32536,IBERIABANK,23-Jul-10,5-Nov-12
 "Mainstreet Savings Bank, FSB",Hastings,MI,28136,Commercial Bank,16-Jul-10,13-Sep-12
 Olde Cypress Community Bank,Clewiston,FL,28864,"CenterState Bank of Florida, N.A.",16-Jul-10,5-Nov-12
 Turnberry Bank,Aventura,FL,32280,NAFH National Bank,16-Jul-10,5-Nov-12
@@ -362,7 +366,7 @@ Brickwell Community Bank,Woodbury,MN,57736,CorTrust Bank N.A.,11-Sep-09,15-Jan-1
 "Corus Bank, N.A.",Chicago,IL,13693,"MB Financial Bank, N.A.",11-Sep-09,21-Aug-12
 First State Bank,Flagstaff,AZ,34875,Sunwest Bank,4-Sep-09,15-Jan-13
 Platinum Community Bank,Rolling Meadows,IL,35030,No Acquirer,4-Sep-09,21-Aug-12
-Vantus Bank,Sioux City,IA,27732,Great Southern Bank,4-Sep-09,21-Aug-12
+Vantus Bank,Sioux City,IN,27732,Great Southern Bank,4-Sep-09,21-Aug-12
 InBank,Oak Forest,IL,20203,"MB Financial Bank, N.A.",4-Sep-09,21-Aug-12
 First Bank of Kansas City,Kansas City,MO,25231,Great American Bank,4-Sep-09,21-Aug-12
 Affinity Bank,Ventura,CA,27197,Pacific Western Bank,28-Aug-09,21-Aug-12
@@ -452,7 +456,7 @@ National Bank of Commerce,Berkeley,IL,19733,Republic Bank of Chicago,16-Jan-09,1
 Sanderson State Bank,Sanderson,TX,11568,The Pecos County State Bank,12-Dec-08,4-Sep-12
 Haven Trust Bank,Duluth,GA,35379,"Branch Banking & Trust Company, (BB&T)",12-Dec-08,16-Aug-12
 First Georgia Community Bank,Jackson,GA,34301,United Bank,5-Dec-08,16-Aug-12
-PFF Bank & Trust ,Pomona,CA,28344,"U.S. Bank, N.A.",21-Nov-08,4-Jan-13
+PFF Bank & Trust,Pomona,CA,28344,"U.S. Bank, N.A.",21-Nov-08,4-Jan-13
 Downey Savings & Loan,Newport Beach,CA,30968,"U.S. Bank, N.A.",21-Nov-08,4-Jan-13
 Community Bank,Loganville,GA,16490,Bank of Essex,21-Nov-08,4-Sep-12
 Security Pacific Bank,Los Angeles,CA,23595,Pacific Western Bank,7-Nov-08,28-Aug-12
