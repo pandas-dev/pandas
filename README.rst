@@ -85,6 +85,7 @@ Optional dependencies
   - `Cython <http://www.cython.org>`__: Only necessary to build development version. Version 0.17.1 or higher.
   - `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   - `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
+     - Not yet supported on python >= 3
   - `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
   - `statsmodels <http://statsmodels.sourceforge.net/>`__
      - Needed for parts of :mod:`pandas.stats`
