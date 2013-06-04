@@ -41,7 +41,7 @@ def _skip_if_none(module_names):
     if isinstance(module_names, basestring):
         _skip_if_no(module_names)
     else:
-        if not any(_have_module(module_name) for module_name in module_names):
+        if not all(_have_module(module_name) for module_name in module_names):
             raise nose.SkipTest
 
 
@@ -388,7 +388,7 @@ class TestBs4LxmlParser(TestLxmlReadHtml):
 
     def run_read_html(self, *args, **kwargs):
         kwargs['flavor'] = 'bs4'
-        _skip_if_no('lxml')
+        _skip_if_none(('lxml', 'bs4'))
         parser = _BeautifulSoupLxmlFrameParser
         return _run_read_html(parser, *args, **kwargs)
 
@@ -400,7 +400,7 @@ class TestBs4Html5LibParser(TestBs4LxmlParser):
 
     def run_read_html(self, *args, **kwargs):
         kwargs['flavor'] = 'bs4'
-        _skip_if_no('html5lib')
+        _skip_if_none(('html5lib', 'bs4'))
         parser = _BeautifulSoupHtml5LibFrameParser
         return _run_read_html(parser, *args, **kwargs)
 
@@ -417,17 +417,16 @@ class TestBs4Html5LibParser(TestBs4LxmlParser):
         ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
-        # these will not
         self.assertTupleEqual(df.shape, ground_truth.shape)
-        old = ['First Vietnamese American Bank In Vietnamese',
-               'Westernbank Puerto Rico En Espanol',
-               'R-G Premier Bank of Puerto Rico En Espanol',
-               'Eurobank En Espanol', 'Sanderson State Bank En Espanol',
-               'Washington Mutual Bank (Including its subsidiary Washington '
+        old = ['First Vietnamese American BankIn Vietnamese',
+               'Westernbank Puerto RicoEn Espanol',
+               'R-G Premier Bank of Puerto RicoEn Espanol',
+               'EurobankEn Espanol', 'Sanderson State BankEn Espanol',
+               'Washington Mutual Bank(Including its subsidiary Washington '
                'Mutual Bank FSB)',
-               'Silver State Bank En Espanol',
+               'Silver State BankEn Espanol',
                'AmTrade International BankEn Espanol',
-               'Hamilton Bank, NA En Espanol',
+               'Hamilton Bank, NAEn Espanol',
                'The Citizens Savings BankPioneer Community Bank, Inc.']
         new = ['First Vietnamese American Bank', 'Westernbank Puerto Rico',
                'R-G Premier Bank of Puerto Rico', 'Eurobank',
