@@ -1054,6 +1054,21 @@ Read in pandas ``to_html`` output (with some loss of floating point precision)
    dfin[0].columns
    np.allclose(df, dfin[0])
 
+``lxml`` will raise an error on a failed parse if that is the only parser you
+provide
+
+.. ipython:: python
+
+   dfs = read_html(url, match='Metcalf Bank', index_col=0, flavor=['lxml'])
+
+However, if you have bs4 and html5lib installed and pass ``None`` or ``['lxml',
+'bs4']`` then the parse will most likely succeed. Note that *as soon as a parse
+succeeds, the function will return*.
+
+.. ipython:: python
+
+   dfs = read_html(url, match='Metcalf Bank', index_col=0, flavor=['lxml', 'bs4'])
+
 
 Writing to HTML files
 ~~~~~~~~~~~~~~~~~~~~~~
