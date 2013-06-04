@@ -1294,6 +1294,13 @@ the high performance HDF5 format using the excellent `PyTables
 <http://www.pytables.org/>`__ library. See the :ref:`cookbook<cookbook.hdf>`
 for some advanced strategies
 
+.. warning::
+
+   ``PyTables`` 3.0.0 was recently released. This enables support for Python 3,
+   however, it has not been integrated into pandas as of yet. (Under Python 2,
+   ``PyTables`` version >= 2.3 is supported).
+    
+
 .. ipython:: python
    :suppress:
    :okexcept:
