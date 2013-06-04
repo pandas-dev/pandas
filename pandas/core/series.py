@@ -425,7 +425,7 @@ class Series(pa.Array, generic.PandasObject):
         dict.
     dtype : numpy.dtype or None
         If None, dtype will be inferred
-    copy : boolean, default False, copyinput data
+    copy : boolean, default False, copy input data
     """
     _AXIS_NUMBERS = {
         'index': 0
