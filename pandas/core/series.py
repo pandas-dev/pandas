@@ -424,9 +424,8 @@ class Series(pa.Array, generic.PandasObject):
         sequence are used, the index will override the keys found in the
         dict.
     dtype : numpy.dtype or None
-        If None, dtype will be inferred copy : boolean, default False Copy
-        input data
-    copy : boolean, default False
+        If None, dtype will be inferred
+    copy : boolean, default False, copyinput data
     """
     _AXIS_NUMBERS = {
         'index': 0
