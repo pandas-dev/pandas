@@ -943,6 +943,12 @@ HTML
 Reading HTML Content
 ~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   We **highly encourage** you to read the :ref:`HTML parsing gotchas
+   <html-gotchas>` regarding the issues surrounding the
+   BeautifulSoup4/html5lib/lxml parsers.
+
 .. _io.read_html:
 
 .. versionadded:: 0.11.1
