@@ -953,12 +953,12 @@ DataFrame to construct a MultiIndex automatically:
    df
 
 All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
-string names for the levels themselves. If no names are provided, some
-arbitrary ones will be assigned:
+string names for the levels themselves. If no names are provided, ``None`` will
+be assigned:
 
 .. ipython:: python
 
-   index.names
+   df.index.names
 
 This index can back any axis of a pandas object, and the number of **levels**
 of the index is up to you:
