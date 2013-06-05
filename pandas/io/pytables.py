@@ -218,7 +218,7 @@ class HDFStore(object):
     complevel : int, 1-9, default 0
             If a complib is specified compression will be applied
             where possible
-    complib : {'zliu', 'bzip2', 'lzo', 'blosc', None}, default None
+    complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
             If complevel is > 0 apply compression to objects written
             in the store wherever possible
     fletcher32 : bool, default False
@@ -711,7 +711,8 @@ class HDFStore(object):
     def groups(self):
         """ return a list of all the top-level nodes (that are not themselves a pandas storage object) """
         _tables()
-        return [ g for g in self._handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != u'table') ]
+        return [ g for g in self._handle.walkNodes() if getattr(g._v_attrs,'pandas_type',None) or getattr(
+            g,'table',None) or (isinstance(g,_table_mod.table.Table) and g._v_name != u'table') ]
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
@@ -731,7 +732,8 @@ class HDFStore(object):
         s.infer_axes()
         return s
 
-    def copy(self, file, mode = 'w', propindexes = True, keys = None, complib = None, complevel = None, fletcher32 = False, overwrite = True):
+    def copy(self, file, mode = 'w', propindexes = True, keys = None, complib = None, complevel = None,
+             fletcher32 = False, overwrite = True):
         """ copy the existing store to a new file, upgrading in place
 
             Parameters
@@ -845,7 +847,8 @@ class HDFStore(object):
         except:
             error('_TABLE_MAP')
 
-    def _write_to_group(self, key, value, index=True, table=False, append=False, complib=None, encoding=None, **kwargs):
+    def _write_to_group(self, key, value, index=True, table=False, append=False,
+                        complib=None, encoding=None, **kwargs):
         group = self.get_node(key)
 
         # remove the node if we are not appending
@@ -870,7 +873,8 @@ class HDFStore(object):
                     group = self._handle.createGroup(path, p)
                 path = new_path
 
-        s = self._create_storer(group, value, table=table, append=append, encoding=encoding, **kwargs)
+        s = self._create_storer(group, value, table=table, append=append,
+                                encoding=encoding, **kwargs)
         if append:
             # raise if we are trying to append to a non-table,
             #       or a table that exists (and we are putting)
