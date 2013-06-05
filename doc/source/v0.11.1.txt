@@ -237,6 +237,9 @@ Enhancements
          pd.get_option('a.b')
          pd.get_option('b.c')
 
+  - Support for ``HDFStore`` (via ``PyTables 3.0.0``) on Python3
+
+
 Bug Fixes
 ~~~~~~~~~
 

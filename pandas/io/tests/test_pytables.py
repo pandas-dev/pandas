@@ -17,6 +17,7 @@ import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
 from pandas import concat, Timestamp
+from pandas.util import py3compat
 
 from numpy.testing.decorators import slow
 
@@ -115,7 +116,7 @@ class TestHDFStore(unittest.TestCase):
             
             o = tm.makeTimeSeries()
             assert_series_equal(o, roundtrip('series',o))
-            
+
             o = tm.makeStringSeries()
             assert_series_equal(o, roundtrip('string_series',o))
             
@@ -474,6 +475,20 @@ class TestHDFStore(unittest.TestCase):
             store.append('uints', uint_data, data_columns=['u08','u16','u32']) # 64-bit indices not yet supported
             tm.assert_frame_equal(store['uints'], uint_data)
 
+    def test_encoding(self):
+        
+        with ensure_clean(self.path) as store:
+            df = DataFrame(dict(A='foo',B='bar'),index=range(5))
+            df.loc[2,'A'] = np.nan
+            df.loc[3,'B'] = np.nan
+            _maybe_remove(store, 'df')
+            store.append('df', df, encoding='ascii')
+            tm.assert_frame_equal(store['df'], df)
+
+            expected = df.reindex(columns=['A'])
+            result = store.select('df',Term('columns=A',encoding='ascii'))
+            tm.assert_frame_equal(result,expected)
+
     def test_append_some_nans(self):
 
         with ensure_clean(self.path) as store:
@@ -556,6 +571,7 @@ class TestHDFStore(unittest.TestCase):
     def test_append_frame_column_oriented(self):
 
         with ensure_clean(self.path) as store:
+
             # column oriented
             df = tm.makeTimeDataFrame()
             _maybe_remove(store, 'df1')
@@ -1261,8 +1277,14 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
 
+            l = [('date', datetime.date(2001, 1, 2))]
+
+            # py3 ok for unicode
+            if not py3compat.PY3:
+                l.append(('unicode', u'\u03c3'))
+    
             ### currently not supported dtypes ####
-            for n, f in [('unicode', u'\u03c3'), ('date', datetime.date(2001, 1, 2))]:
+            for n, f in l:
                 df = tm.makeDataFrame()
                 df[n] = f
                 self.assertRaises(
@@ -2545,6 +2567,7 @@ class TestHDFStore(unittest.TestCase):
         # legacy from 0.10
         try:
             store = HDFStore(tm.get_data_path('legacy_hdf/legacy_0.10.h5'), 'r')
+            str(store)
             for k in store.keys():
                 store.select(k)
         finally:
@@ -2554,6 +2577,7 @@ class TestHDFStore(unittest.TestCase):
         # legacy from 0.11
         try:
             store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_0.11.h5'), 'r')
+            str(store)
             df = store.select('df')
             df1 = store.select('df1')
             mi = store.select('mi')
@@ -2585,24 +2609,25 @@ class TestHDFStore(unittest.TestCase):
 
                 # check indicies & nrows
                 for k in tstore.keys():
-                    if tstore.is_table(k):
+                    if tstore.get_storer(k).is_table:
                         new_t = tstore.get_storer(k)
                         orig_t = store.get_storer(k)
 
                         self.assert_(orig_t.nrows == new_t.nrows)
-                        for a in orig_t.axes:
-                            if a.is_indexed:
-                                self.assert_(new_t[a.name].is_indexed == True)
 
-            except (Exception), detail:
-                pass
+                        # check propindixes
+                        if propindexes:
+                            for a in orig_t.axes:
+                                if a.is_indexed:
+                                    self.assert_(new_t[a.name].is_indexed == True)
+
             finally:
                 safe_close(store)
                 safe_close(tstore)
                 safe_remove(new_f)
 
         do_copy()
-        do_copy(keys = ['df'])
+        do_copy(keys = ['/a','/b','/df1_mixed'])
         do_copy(propindexes = False)
 
         # new table

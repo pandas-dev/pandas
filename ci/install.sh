@@ -69,13 +69,11 @@ if ( ! $VENV_FILE_AVAILABLE ); then
         pip install $PIP_ARGS  cython
 
         if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-            # installed explicitly above, to get the library as well
-        #    sudo apt-get $APT_ARGS install libhdf5-serial-dev;
-            pip install numexpr
-            pip install tables
             pip install $PIP_ARGS xlwt
         fi
 
+        pip install numexpr
+        pip install tables
         pip install $PIP_ARGS matplotlib
         pip install $PIP_ARGS openpyxl
         pip install $PIP_ARGS xlrd>=0.9.0
