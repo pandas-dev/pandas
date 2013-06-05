@@ -3314,8 +3314,8 @@ def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
 def _convert_string_array(data, encoding, itemsize=None):
 
     # encode if needed
-    if encoding is not None:
-        f = np.vectorize(lambda x: x.encode(encoding))
+    if encoding is not None and len(data):
+        f = np.vectorize(lambda x: x.encode(encoding), otypes=[np.object])
         data = f(data)
 
     # create the sized dtype
@@ -3333,7 +3333,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     # guard against a None encoding in PY3 (because of a legacy
     # where the passed encoding is actually None)
     encoding = _ensure_encoding(encoding)
-    if encoding is not None:
+    if encoding is not None and len(data):
         f = np.vectorize(lambda x: x.decode(encoding),otypes=[np.object])
         data = f(data)
 
@@ -3378,7 +3378,6 @@ class Term(object):
     value : a value or list of values (required)
     queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
     encoding : an encoding that will encode the query terms
-    i : my term id number
     
     Returns
     -------
@@ -3399,18 +3398,13 @@ class Term(object):
     _search = re.compile("^\s*(?P<field>\w+)\s*(?P<op>%s)\s*(?P<value>.+)\s*$" % '|'.join(_ops))
     _max_selectors = 31
 
-    def __init__(self, field, op=None, value=None, queryables=None, i=None, encoding=None):
+    def __init__(self, field, op=None, value=None, queryables=None, encoding=None):
         self.field = None
         self.op = None
         self.value = None
         self.q = queryables or dict()
         self.filter = None
-
-        if i is None:
-            i = 0
-        self.i = i
         self.condition = None
-        self.condvars = dict()
         self.encoding = encoding
 
         # unpack lists/tuples in field
@@ -3498,15 +3492,10 @@ class Term(object):
         """ the kind of my field """
         return self.q.get(self.field)
 
-    def generate(self, v, i=None):
-        """ create and return the op string for this TermValue
-            add the variable to condvars """
-        if i is None:
-            i = 0
-
-        cv = "_%s_%s_%s" % (self.field,self.i,i)
-        self.condvars[cv] = v.converted
-        return "(%s %s %s)" % (self.field, self.op, cv)
+    def generate(self, v):
+        """ create and return the op string for this TermValue """
+        val = v.tostring(self.encoding)
+        return "(%s %s %s)" % (self.field, self.op, val)
 
     def eval(self):
         """ set the numexpr expression for this term """
@@ -3534,7 +3523,7 @@ class Term(object):
 
                 # too many values to create the expression?
                 if len(values) <= self._max_selectors:
-                    vs = [ self.generate(v, i) for i, v in enumerate(values) ]
+                    vs = [ self.generate(v) for v in values ]
                     self.condition = "(%s)" % ' | '.join(vs)
 
                 # use a filter after reading
@@ -3600,6 +3589,15 @@ class TermValue(object):
         self.converted = converted
         self.kind = kind
 
+    def tostring(self, encoding):
+        """ quote the string if not encoded
+            else encode and return """
+        if self.kind == u'string':
+            if encoding is not None:
+                return self.converted
+            return '"%s"' % self.converted
+        return self.converted
+
 class Coordinates(object):
     """ holds a returned coordinates list, useful to select the same rows from different tables
 
@@ -3637,7 +3635,6 @@ class Selection(object):
         self.start = start
         self.stop = stop
         self.condition = None
-        self.condvars = dict()
         self.filter = None
         self.terms = None
         self.coordinates = None
@@ -3652,8 +3649,6 @@ class Selection(object):
                 terms = [ t for t in self.terms if t.condition is not None ]
                 if len(terms):
                     self.condition = "(%s)" % ' & '.join([ t.condition for t in terms ])
-                    for t in terms:
-                        self.condvars.update(t.condvars)
                 self.filter = []
                 for t in self.terms:
                     if t.filter is not None:
@@ -3676,14 +3671,14 @@ class Selection(object):
                     where = [where]
 
         queryables = self.table.queryables()
-        return [Term(c, queryables=queryables, i=i, encoding=self.table.encoding) for i, c in enumerate(where)]
+        return [Term(c, queryables=queryables, encoding=self.table.encoding) for c in where]
 
     def select(self):
         """
         generate the selection
         """
         if self.condition is not None:
-            return self.table.table.readWhere(self.condition, condvars=self.condvars, start=self.start, stop=self.stop)
+            return self.table.table.readWhere(self.condition, start=self.start, stop=self.stop)
         elif self.coordinates is not None:
             return self.table.table.readCoordinates(self.coordinates)
         return self.table.table.read(start=self.start, stop=self.stop)
@@ -3695,7 +3690,7 @@ class Selection(object):
         if self.condition is None:
             return np.arange(self.table.nrows)
 
-        return self.table.table.getWhereList(self.condition, condvars=self.condvars, start=self.start, stop=self.stop, sort=True)
+        return self.table.table.getWhereList(self.condition, start=self.start, stop=self.stop, sort=True)
 
 
 ### utilities ###
