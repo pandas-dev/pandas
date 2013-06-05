@@ -522,15 +522,16 @@ class HDFStore(object):
 
         Parameters
         ----------
-        key : object
-        value : {Series, DataFrame, Panel}
-        table : boolean, default False
+        key      : object
+        value    : {Series, DataFrame, Panel}
+        table    : boolean, default False
             Write as a PyTables Table structure which may perform worse but
             allow more flexible operations like searching / selecting subsets
             of the data
-        append : boolean, default False
+        append   : boolean, default False
             For table data structures, append the input data to the existing
             table
+        encoding : default None, provide an encoding for strings
         """
         self._write_to_group(key, value, table=table, append=append, **kwargs)
 
@@ -595,6 +596,7 @@ class HDFStore(object):
         nan_rep      : string to use as string nan represenation
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
+        encoding     : default None, provide an encoding for strings
 
         Notes
         -----
