@@ -13,10 +13,7 @@ from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
 import json
 
-def read_excel(path_or_buf, sheetname, header=0, skiprows=None, skip_footer=0,
-               index_col=None, parse_cols=None, parse_dates=False,
-               date_parser=None, na_values=None, thousands=None, chunksize=None,
-               kind=None, **kwds):
+def read_excel(path_or_buf, sheetname, kind=None, **kwds):
     """Read an Excel table into a pandas DataFrame
 
     Parameters
@@ -47,16 +44,7 @@ def read_excel(path_or_buf, sheetname, header=0, skiprows=None, skip_footer=0,
         DataFrame from the passed in Excel file
     """
     return ExcelFile(path_or_buf,kind=kind).parse(sheetname=sheetname,
-                                                  header=0, skiprows=None,
-                                                  skip_footer=0,
-                                                  index_col=None,
-                                                  parse_cols=None,
-                                                  parse_dates=False,
-                                                  date_parser=None,
-                                                  na_values=None,
-                                                  thousands=None,
-                                                  chunksize=None, kind=None,
-                                                  **kwds)
+                                                  kind=kind, **kwds)
 
 class ExcelFile(object):
     """
