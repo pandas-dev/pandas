@@ -17,6 +17,7 @@ import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
 from pandas import concat, Timestamp
+from pandas.util import py3compat
 
 from numpy.testing.decorators import slow
 
@@ -1276,8 +1277,14 @@ class TestHDFStore(unittest.TestCase):
 
         with ensure_clean(self.path) as store:
 
+            l = [('date', datetime.date(2001, 1, 2))]
+
+            # py3 ok for unicode
+            if not py3compat.PY3:
+                l.append(('unicode', u'\u03c3'))
+    
             ### currently not supported dtypes ####
-            for n, f in [('unicode', u'\u03c3'), ('date', datetime.date(2001, 1, 2))]:
+            for n, f in l:
                 df = tm.makeDataFrame()
                 df[n] = f
                 self.assertRaises(
@@ -2602,24 +2609,25 @@ class TestHDFStore(unittest.TestCase):
 
                 # check indicies & nrows
                 for k in tstore.keys():
-                    if tstore.is_table(k):
+                    if tstore.get_storer(k).is_table:
                         new_t = tstore.get_storer(k)
                         orig_t = store.get_storer(k)
 
                         self.assert_(orig_t.nrows == new_t.nrows)
-                        for a in orig_t.axes:
-                            if a.is_indexed:
-                                self.assert_(new_t[a.name].is_indexed == True)
 
-            except (Exception), detail:
-                pass
+                        # check propindixes
+                        if propindexes:
+                            for a in orig_t.axes:
+                                if a.is_indexed:
+                                    self.assert_(new_t[a.name].is_indexed == True)
+
             finally:
                 safe_close(store)
                 safe_close(tstore)
                 safe_remove(new_f)
 
         do_copy()
-        do_copy(keys = ['df'])
+        do_copy(keys = ['/a','/b','/df1_mixed'])
         do_copy(propindexes = False)
 
         # new table

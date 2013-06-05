@@ -765,9 +765,9 @@ class HDFStore(object):
                     index = False
                     if propindexes:
                         index = [ a.name for a in s.axes if a.is_indexed ]
-                        new_store.append(k,data, index=index, data_columns=getattr(s,'data_columns',None))
+                    new_store.append(k, data, index=index, data_columns=getattr(s,'data_columns',None), encoding=s.encoding)
                 else:
-                    new_store.put(k,data)
+                    new_store.put(k, data, encoding=s.encoding)
 
         return new_store
 
@@ -1043,13 +1043,13 @@ class IndexCol(object):
 
         kwargs = dict()
         if self.freq is not None:
-            kwargs['freq'] = self.freq
+            kwargs['freq'] = _ensure_decoded(self.freq)
         if self.tz is not None:
-            kwargs['tz'] = self.tz
+            kwargs['tz'] = _ensure_decoded(self.tz)
         if self.index_name is not None:
-            kwargs['name'] = self.index_name
+            kwargs['name'] = _ensure_decoded(self.index_name)
         try:
-            self.values = Index(_maybe_convert(values, self.kind, encoding), **kwargs)
+            self.values = Index(_maybe_convert(values, self.kind, self.encoding), **kwargs)
         except:
 
             # if the output freq is different that what we recorded, then infer it
@@ -1706,7 +1706,7 @@ class GenericStorer(Storer):
         """ retrieve our attributes """
         self.encoding = _ensure_encoding(getattr(self.attrs,'encoding',None))
         for n in self.attributes:
-            setattr(self,n,getattr(self.attrs, n, None))
+            setattr(self,n,_ensure_decoded(getattr(self.attrs, n, None)))
 
     def write(self, obj, **kwargs):
         self.set_attrs()
@@ -1847,7 +1847,7 @@ class GenericStorer(Storer):
 
     def read_index_node(self, node):
         data = node[:]
-        kind = node._v_attrs.kind
+        kind = _ensure_decoded(node._v_attrs.kind)
         name = None
 
         if 'name' in node._v_attrs:
@@ -1858,13 +1858,13 @@ class GenericStorer(Storer):
         factory = self._get_index_factory(index_class)
 
         kwargs = {}
-        if 'freq' in node._v_attrs:
+        if u'freq' in node._v_attrs:
             kwargs['freq'] = node._v_attrs['freq']
 
-        if 'tz' in node._v_attrs:
+        if u'tz' in node._v_attrs:
             kwargs['tz'] = node._v_attrs['tz']
 
-        if kind in ('date', 'datetime'):
+        if kind in (u'date', u'datetime'):
             index = factory(_unconvert_index(data, kind, encoding=self.encoding), dtype=object,
                             **kwargs)
         else:
@@ -2077,7 +2077,7 @@ class SparsePanelStorer(GenericStorer):
         self.attrs.default_kind       = obj.default_kind
         self.write_index('items', obj.items)
 
-        for name, sdf in obj.iteritems():
+        for name, sdf in obj.iterkv():
             key = 'sparse_frame_%s' % name
             if key not in self.group._v_children:
                 node = self._handle.createGroup(self.group, key)
@@ -3358,7 +3358,8 @@ def _get_converter(kind, encoding):
         raise ValueError('invalid kind %s' % kind)
 
 def _need_convert(kind):
-    if kind in ('datetime', 'datetime64', 'string'):
+    kind = _ensure_decoded(kind)
+    if kind in (u'datetime', u'datetime64', u'string'):
         return True
     return False
 
@@ -3464,7 +3465,7 @@ class Term(object):
 
         # we have valid conditions
         if self.op in ['>', '>=', '<', '<=']:
-            if hasattr(self.value, '__iter__') and len(self.value) > 1:
+            if hasattr(self.value, '__iter__') and len(self.value) > 1 and not isinstance(self.value,basestring):
                 raise ValueError("an inequality condition cannot have multiple values [%s]" % str(self))
 
         if not is_list_like(self.value):
@@ -3559,7 +3560,7 @@ class Term(object):
                 value = value.encode(self.encoding)
             return value
 
-        kind = self.kind
+        kind = _ensure_decoded(self.kind)
         if kind == u'datetime64' or kind == u'datetime' :
             v = lib.Timestamp(v)
             if v.tz is not None:
@@ -3576,7 +3577,7 @@ class Term(object):
             return TermValue(v,v,kind)
         elif kind == u'bool':
             if isinstance(v, basestring):
-                v = not stringify(v).strip().lower() in [u'false', u'f', u'no', u'n', u'none', u'0', u'[]', u'{}', u'']
+                v = not v.strip().lower() in [u'false', u'f', u'no', u'n', u'none', u'0', u'[]', u'{}', u'']
             else:
                 v = bool(v)
             return TermValue(v,v,kind)
