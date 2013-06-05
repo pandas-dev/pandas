@@ -69,16 +69,17 @@ class TestExpressions(unittest.TestCase):
 
                 for op, op_str in [('add','+'),('sub','-'),('mul','*'),('div','/'),('pow','**')]:
 
-                    op = getattr(operator,op)
-                    result   = expr._can_use_numexpr(op, op_str, f, f, 'evaluate')
-                    self.assert_(result == (not f._is_mixed_type))
+                    op = getattr(operator,op,None)
+                    if op is not None:
+                        result   = expr._can_use_numexpr(op, op_str, f, f, 'evaluate')
+                        self.assert_(result == (not f._is_mixed_type))
 
-                    result   = expr.evaluate(op, op_str, f, f, use_numexpr=True)
-                    expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
-                    assert_array_equal(result,expected.values)
+                        result   = expr.evaluate(op, op_str, f, f, use_numexpr=True)
+                        expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
+                        assert_array_equal(result,expected.values)
                 
-                    result   = expr._can_use_numexpr(op, op_str, f2, f2, 'evaluate')
-                    self.assert_(result == False)
+                        result   = expr._can_use_numexpr(op, op_str, f2, f2, 'evaluate')
+                        self.assert_(result == False)
 
         
         expr.set_use_numexpr(False)
