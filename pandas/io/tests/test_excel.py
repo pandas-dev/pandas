@@ -285,6 +285,15 @@ class ExcelTests(unittest.TestCase):
             recons = read_excel(path, 'test1', index_col=0, na_values=['NA'])
             tm.assert_frame_equal(self.frame, recons)
 
+            # GH 3611
+            self.frame.to_excel(path, 'test1', na_rep='88')
+            recons = read_excel(path, 'test1', index_col=0, na_values=['88'])
+            tm.assert_frame_equal(self.frame, recons)
+
+            self.frame.to_excel(path, 'test1', na_rep='88')
+            recons = read_excel(path, 'test1', index_col=0, na_values=[88,88.0])
+            tm.assert_frame_equal(self.frame, recons)
+
     def test_excel_roundtrip_xls_mixed(self):
         _skip_if_no_xlrd()
         _skip_if_no_xlwt()

@@ -120,6 +120,8 @@ pandas 0.11.1
   - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
   - ``as_matrix`` with mixed signed and unsigned dtypes will result in 2 x the lcd of the unsigned
     as an int, maxing with ``int64``, to avoid precision issues (GH3733_)
+  - ``na_values`` in a list provided to ``read_csv/read_excel`` will match string and numeric versions
+    e.g. ``na_values=['99']`` will match 99 whether the column ends up being int, float, or string (GH3611_)
 
 **Bug Fixes**
 
@@ -174,7 +176,7 @@ pandas 0.11.1
   - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
     ``np.nan`` or ``np.inf`` as appropriate (GH3590_)
   - Fix incorrect dtype on groupby with ``as_index=False`` (GH3610_)
-  - Fix ``read_csv`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
+  - Fix ``read_csv/read_excel`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
     was failing (GH3611_)
   - Disable HTML output in qtconsole again. (GH3657_)
   - Reworked the new repr display logic, which users found confusing. (GH3663_)

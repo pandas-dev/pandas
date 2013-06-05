@@ -373,11 +373,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     for i from 0 <= i < n:
         val = values[i]
 
-        if util.is_float_object(val):
-            floats[i] = complexes[i] = val
-            seen_float = 1
-        elif val in na_values:
+        if val in na_values:
             floats[i] = complexes[i] = nan
+            seen_float = 1
+        elif util.is_float_object(val):
+            floats[i] = complexes[i] = val
             seen_float = 1
         elif val is None:
             floats[i] = complexes[i] = nan

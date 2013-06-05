@@ -1853,7 +1853,20 @@ def _clean_na_values(na_values, keep_default_na=True):
     return na_values
 
 def _stringify_na_values(na_values):
-    return [ str(x) for x in na_values ]
+    """ return a stringified and numeric for these values """
+    result = []
+    for x in na_values:
+        result.append(str(x))
+        result.append(x)
+        try:
+            result.append(float(x))
+        except:
+            pass
+        try:
+            result.append(int(x))
+        except:
+            pass
+    return result
 
 def _clean_index_names(columns, index_col):
     if not _is_index_col(index_col):
