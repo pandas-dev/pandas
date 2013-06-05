@@ -115,7 +115,7 @@ class TestHDFStore(unittest.TestCase):
             
             o = tm.makeTimeSeries()
             assert_series_equal(o, roundtrip('series',o))
-            
+
             o = tm.makeStringSeries()
             assert_series_equal(o, roundtrip('string_series',o))
             
@@ -570,7 +570,7 @@ class TestHDFStore(unittest.TestCase):
     def test_append_frame_column_oriented(self):
 
         with ensure_clean(self.path) as store:
-            import pdb; pdb.set_trace()
+
             # column oriented
             df = tm.makeTimeDataFrame()
             _maybe_remove(store, 'df1')
@@ -2560,6 +2560,7 @@ class TestHDFStore(unittest.TestCase):
         # legacy from 0.10
         try:
             store = HDFStore(tm.get_data_path('legacy_hdf/legacy_0.10.h5'), 'r')
+            str(store)
             for k in store.keys():
                 store.select(k)
         finally:
@@ -2569,6 +2570,7 @@ class TestHDFStore(unittest.TestCase):
         # legacy from 0.11
         try:
             store = HDFStore(tm.get_data_path('legacy_hdf/legacy_table_0.11.h5'), 'r')
+            str(store)
             df = store.select('df')
             df1 = store.select('df1')
             mi = store.select('mi')
