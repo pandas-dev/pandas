@@ -97,6 +97,12 @@ pandas 0.11.1
     in your calls.
   - Do not allow astypes on ``datetime64[ns]`` except to ``object``, and
     ``timedelta64[ns]`` to ``object/int`` (GH3425_)
+  - The behavior of ``datetime64`` dtypes has changed with respect to certain
+    so-called reduction operations (GH3726_). The following operations now
+    raise a ``TypeError`` when perfomed on a ``Series`` and return an *empty*
+    ``Series`` when performed on a ``DataFrame`` similar to performing these
+    operations on, for example, a ``DataFrame`` of ``slice`` objects:
+    - sum, prod, mean, std, var, skew, kurt, corr, and cov
   - Do not allow datetimelike/timedeltalike creation except with valid types
     (e.g. cannot pass ``datetime64[ms]``) (GH3423_)
   - Add ``squeeze`` keyword to ``groupby`` to allow reduction from
@@ -294,6 +300,7 @@ pandas 0.11.1
 .. _GH3748: https://github.com/pydata/pandas/issues/3748
 .. _GH3741: https://github.com/pydata/pandas/issues/3741
 .. _GH3750: https://github.com/pydata/pandas/issues/3750
+.. _GH3726: https://github.com/pydata/pandas/issues/3726
 
 pandas 0.11.0
 =============

@@ -97,21 +97,15 @@ def _arith_method(op, name, fill_zeros=None):
                     values = np.array([values])
                 inferred_type = lib.infer_dtype(values)
                 if inferred_type in set(['datetime64','datetime','date','time']):
-                    if isinstance(values, pa.Array) and com.is_datetime64_dtype(values):
-                        pass
-                    else:
+                    if not (isinstance(values, pa.Array) and com.is_datetime64_dtype(values)):
                         values = tslib.array_to_datetime(values)
                 elif inferred_type in set(['timedelta','timedelta64']):
                     # need to convert timedelta to ns here
                     # safest to convert it to an object arrany to process
-                    if isinstance(values, pa.Array) and com.is_timedelta64_dtype(values):
-                        pass
-                    else:
+                    if not (isinstance(values, pa.Array) and com.is_timedelta64_dtype(values)):
                         values = com._possibly_cast_to_timedelta(values)
                 elif inferred_type in set(['integer']):
-                    if values.dtype == 'timedelta64[ns]':
-                        pass
-                    elif values.dtype.kind == 'm':
+                    if values.dtype.kind == 'm':
                         values = values.astype('timedelta64[ns]')
                 else:
                     values = pa.array(values)
@@ -125,9 +119,9 @@ def _arith_method(op, name, fill_zeros=None):
             is_datetime_rhs  = com.is_datetime64_dtype(rvalues)
 
             # 2 datetimes or 2 timedeltas
-            if (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and is_datetime_rhs):
-
-                if is_datetime_lhs and name not in ['__sub__']:
+            if (is_timedelta_lhs and is_timedelta_rhs) or (is_datetime_lhs and
+                    is_datetime_rhs):
+                if is_datetime_lhs and name != '__sub__':
                     raise TypeError("can only operate on a datetimes for subtraction, "
                                     "but the operator [%s] was passed" % name)
                 elif is_timedelta_lhs and name not in ['__add__','__sub__']:
