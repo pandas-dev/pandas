@@ -487,7 +487,16 @@ class PandasObject(object):
         return rs
 
     def to_hdf(self, path_or_buf, key="data", **kwargs):
-        """ activate the HDFStore """
+        """ 
+        Write to HDF5
+
+        Parameters
+        ----------
+        path_or_buf : string or file handle / StringIO
+            File path
+        key : string
+            Key used to reference the object in the file, default is "data"
+        """
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
