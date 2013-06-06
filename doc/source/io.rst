@@ -1029,7 +1029,7 @@ Specify an HTML attribute
 
    dfs1 = read_html(url, attrs={'id': 'table'})
    dfs2 = read_html(url, attrs={'class': 'sortable'})
-   np.all(dfs1[0] == dfs2[0])
+   np.array_equal(dfs1[0], dfs2[0])
 
 Use some combination of the above
 

@@ -754,19 +754,19 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
     compiled_match = re.compile(match)
 
     # ugly hack because python 3 DELETES the exception variable!
-    retained_exception = None
+    retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
         p = parser(io, compiled_match, attrs)
 
         try:
             tables = p.parse_tables()
-        except Exception as caught_exception:
-            retained_exception = caught_exception
+        except Exception as caught:
+            retained = caught
         else:
             break
     else:
-        raise retained_exception
+        raise retained
 
     return [_data_to_frame(table, header, index_col, infer_types, skiprows)
             for table in tables]
