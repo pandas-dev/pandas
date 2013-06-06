@@ -41,6 +41,12 @@ following:
     - Standardizing data (zscore) within group
     - Filling NAs within groups with a value derived from each group
 
+ - **Filtration**: discard some groups, according to a group-wise computation
+   that evaluates True or False. Some examples:
+
+    - Discarding data that belongs to groups with only a few members
+    - Filtering out data based on the group sum or mean
+
  - Some combination of the above: GroupBy will examine the results of the apply
    step and try to return a sensibly combined result if it doesn't fit into
    either of the above two categories
@@ -488,6 +494,39 @@ and that the transformed data contains no NAs.
    grouped.count() # original has some missing data points
    grouped_trans.count() # counts after transformation
    grouped_trans.size() # Verify non-NA count equals group size
+
+.. _groupby.filter:
+
+Filtration
+----------
+
+The ``filter`` method returns a subset of the original object. Suppose we
+want to take only elements that belong to groups with a group sum greater
+than 2.
+
+.. ipython:: python
+
+   s = Series([1, 1, 2, 3, 3, 3])
+   s.groupby(s).filter(lambda x: x.sum() > 2)
+
+The argument of ``filter`` must a function that, applied to the group as a 
+whole, returns ``True`` or ``False``.
+
+Another useful operation is filtering out elements that belong to groups
+with only a couple members.
+
+.. ipython:: python
+
+   df = DataFrame({'A': arange(8), 'B': list('aabbbbcc')})
+   df.groupby('B').filter(lambda x: len(x) > 2)
+
+Alternatively, instead of dropping the offending groups, we can return a
+like-indexed objects where the groups that do not pass the filter are filled
+with NaNs.
+
+.. ipython:: python
+
+   df.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
 
 .. _groupby.dispatch:
 
