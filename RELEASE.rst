@@ -63,6 +63,7 @@ pandas 0.11.1
       to append an index with a different name than the existing
     - support datelike columns with a timezone as data_columns (GH2852_)
     - table writing performance improvements.
+    - support python3 (via ``PyTables 3.0.0``) (GH3750_)
   - Add modulo operator to Series, DataFrame
   - Add ``date`` method to DatetimeIndex
   - Simplified the API and added a describe method to Categorical
@@ -79,10 +80,14 @@ pandas 0.11.1
 
 **API Changes**
 
-  - When removing an object from a ``HDFStore``, ``remove(key)`` raises
-    ``KeyError`` if the key is not a valid store object.
-  - In an ``HDFStore``, raise a ``TypeError`` on passing ``where`` or ``columns`` 
-    to select with a Storer; these are invalid parameters at this time
+  - ``HDFStore``
+
+    - When removing an object, ``remove(key)`` raises
+      ``KeyError`` if the key is not a valid store object.
+    - raise a ``TypeError`` on passing ``where`` or ``columns`` 
+      to select with a Storer; these are invalid parameters at this time
+    - can now specify an ``encoding`` option to ``append/put`` 
+      to enable alternate encodings (GH3750_)
   - The repr() for (Multi)Index now obeys display.max_seq_items rather
     then numpy threshold print options. (GH3426_, GH3466_)
   - Added mangle_dupe_cols option to read_table/csv, allowing users
@@ -288,6 +293,7 @@ pandas 0.11.1
 .. _GH3740: https://github.com/pydata/pandas/issues/3740
 .. _GH3748: https://github.com/pydata/pandas/issues/3748
 .. _GH3741: https://github.com/pydata/pandas/issues/3741
+.. _GH3750: https://github.com/pydata/pandas/issues/3750
 
 pandas 0.11.0
 =============
