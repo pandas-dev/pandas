@@ -453,3 +453,22 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 .. |Anaconda| replace:: **Anaconda**
 .. _Anaconda: https://store.continuum.io/cshop/anaconda
+
+
+Byte-Ordering Issues
+--------------------
+Occasionally you may have to deal with data that were created on a machine with
+a different byte order than the one on which you are running Python. To deal
+with this issue you should convert the underlying NumPy array to the native
+system byte order *before* passing it to Series/DataFrame/Panel constructors
+using something similar to the following:
+
+.. ipython:: python
+
+   x = np.array(range(10), '>i4') # big endian
+   newx = x.byteswap().newbyteorder() # force native byteorder
+   s = Series(newx)
+
+See `the NumPy documentation on byte order
+<http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+details.
