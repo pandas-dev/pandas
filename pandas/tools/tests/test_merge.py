@@ -1709,6 +1709,9 @@ class TestConcatenate(unittest.TestCase):
         df2 = mkdf(10, 2)
         self.assertRaises(AssertionError, concat, df1, df2)
 
+        # generator ok though
+        concat(DataFrame(np.random.rand(5,5)) for _ in range(3))
+
 class TestOrderedMerge(unittest.TestCase):
 
     def setUp(self):

@@ -214,6 +214,7 @@ pandas 0.11.1
   - Groupby transform with item-by-item not upcasting correctly (GH3740_)
   - Incorrectly read a HDFStore multi-index Frame witha column specification (GH3748_)
   - ``read_html`` now correctly skips tests (GH3741_)
+  - Fix incorrect arguments passed to concat that are not list-like (e.g. concat(df1,df2)) (GH3481_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -225,6 +226,7 @@ pandas 0.11.1
 .. _GH3251: https://github.com/pydata/pandas/issues/3251
 .. _GH3379: https://github.com/pydata/pandas/issues/3379
 .. _GH3480: https://github.com/pydata/pandas/issues/3480
+.. _GH3481: https://github.com/pydata/pandas/issues/3481
 .. _GH2852: https://github.com/pydata/pandas/issues/2852
 .. _GH3100: https://github.com/pydata/pandas/issues/3100
 .. _GH3454: https://github.com/pydata/pandas/issues/3454
