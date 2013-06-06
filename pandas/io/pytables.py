@@ -181,7 +181,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, app
     else:
         f(path_or_buf)
 
-def read_hdf(path_or_buf, key, **kwargs):
+def read_hdf(path_or_buf, key="data", **kwargs):
     """ read from the store, closeit if we opened it """
     f = lambda store: store.select(key, **kwargs)
 

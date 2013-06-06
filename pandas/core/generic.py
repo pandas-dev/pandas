@@ -486,7 +486,7 @@ class PandasObject(object):
             np.putmask(rs.values, mask, np.nan)
         return rs
 
-    def to_hdf(self, path_or_buf, key, **kwargs):
+    def to_hdf(self, path_or_buf, key="data", **kwargs):
         """ activate the HDFStore """
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
