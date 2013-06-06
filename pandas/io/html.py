@@ -7,9 +7,10 @@ import os
 import re
 import numbers
 import urllib2
+import urlparse
 import contextlib
 import collections
-import urlparse
+
 
 try:
     from importlib import import_module
@@ -18,8 +19,32 @@ except ImportError:
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, Index, Series, isnull
+from pandas import DataFrame, MultiIndex, isnull
 from pandas.io.parsers import _is_url
+
+
+try:
+    import_module('bs4')
+except ImportError:
+    _HAS_BS4 = False
+else:
+    _HAS_BS4 = True
+
+
+try:
+    import_module('lxml')
+except ImportError:
+    _HAS_LXML = False
+else:
+    _HAS_LXML = True
+
+
+try:
+    import_module('html5lib')
+except ImportError:
+    _HAS_HTML5LIB = False
+else:
+    _HAS_HTML5LIB = True
 
 
 #############
@@ -345,7 +370,7 @@ class _HtmlFrameParser(object):
         return self._parse_raw_data(res)
 
 
-class _BeautifulSoupLxmlFrameParser(_HtmlFrameParser):
+class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     """HTML to DataFrame parser that uses BeautifulSoup under the hood.
 
     See Also
@@ -359,7 +384,8 @@ class _BeautifulSoupLxmlFrameParser(_HtmlFrameParser):
     :class:`pandas.io.html._HtmlFrameParser`.
     """
     def __init__(self, *args, **kwargs):
-        super(_BeautifulSoupLxmlFrameParser, self).__init__(*args, **kwargs)
+        super(_BeautifulSoupHtml5LibFrameParser, self).__init__(*args,
+                                                                **kwargs)
         from bs4 import SoupStrainer
         self._strainer = SoupStrainer('table')
 
@@ -405,17 +431,6 @@ class _BeautifulSoupLxmlFrameParser(_HtmlFrameParser):
         if not raw_text:
             raise AssertionError('No text parsed from document')
         return raw_text
-
-    def _build_doc(self):
-        from bs4 import BeautifulSoup
-        return BeautifulSoup(self._setup_build_doc(), features='lxml',
-                             parse_only=self._strainer)
-
-
-class _BeautifulSoupHtml5LibFrameParser(_BeautifulSoupLxmlFrameParser):
-    def __init__(self, *args, **kwargs):
-        super(_BeautifulSoupHtml5LibFrameParser, self).__init__(*args,
-                                                                **kwargs)
 
     def _build_doc(self):
         from bs4 import BeautifulSoup
@@ -516,16 +531,27 @@ class _LxmlFrameParser(_HtmlFrameParser):
         --------
         pandas.io.html._HtmlFrameParser._build_doc
         """
-        from lxml.html import parse, fromstring
-        from lxml.html.clean import clean_html
+        from lxml.html import parse, fromstring, HTMLParser
+        from lxml.etree import XMLSyntaxError
+        parser = HTMLParser(recover=False)
 
         try:
             # try to parse the input in the simplest way
-            r = parse(self.io)
-        except (UnicodeDecodeError, IOError) as e:
+            r = parse(self.io, parser=parser)
+
+            try:
+                r = r.getroot()
+            except AttributeError:
+                pass
+        except (UnicodeDecodeError, IOError):
             # if the input is a blob of html goop
             if not _is_url(self.io):
-                r = fromstring(self.io)
+                r = fromstring(self.io, parser=parser)
+
+                try:
+                    r = r.getroot()
+                except AttributeError:
+                    pass
             else:
                 # not a url
                 scheme = urlparse.urlparse(self.io).scheme
@@ -536,8 +562,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
                     raise ValueError(msg)
                 else:
                     # something else happened: maybe a faulty connection
-                    raise e
-        return clean_html(r)
+                    raise
+        else:
+            if not hasattr(r, 'text_content'):
+                raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
+        return r
 
     def _parse_tbody(self, table):
         return table.xpath('.//tbody')
@@ -557,17 +586,6 @@ class _LxmlFrameParser(_HtmlFrameParser):
         expr = './/tfoot//th'
         return [_remove_whitespace(x.text_content()) for x in
                 table.xpath(expr)]
-
-
-def _maybe_convert_index_type(index):
-    try:
-        index = index.astype(int)
-    except (TypeError, ValueError):
-        if not isinstance(index, MultiIndex):
-            s = Series(index, name=index.name)
-            index = Index(s.convert_objects(convert_numeric=True),
-                          name=index.name)
-    return index
 
 
 def _data_to_frame(data, header, index_col, infer_types, skiprows):
@@ -665,18 +683,12 @@ def _data_to_frame(data, header, index_col, infer_types, skiprows):
             names = [name or None for name in df.index.names]
             df.index = MultiIndex.from_tuples(df.index.values, names=names)
 
-    if infer_types:
-        df.index = _maybe_convert_index_type(df.index)
-        df.columns = _maybe_convert_index_type(df.columns)
-
     return df
 
 
-_invalid_parsers = {'lxml': _LxmlFrameParser,
-                    'bs4': _BeautifulSoupLxmlFrameParser}
-_valid_parsers = {'html5lib': _BeautifulSoupHtml5LibFrameParser}
-_all_parsers = _valid_parsers.copy()
-_all_parsers.update(_invalid_parsers)
+_valid_parsers = {'lxml': _LxmlFrameParser, None: _LxmlFrameParser,
+                  'html5lib': _BeautifulSoupHtml5LibFrameParser,
+                  'bs4': _BeautifulSoupHtml5LibFrameParser}
 
 
 def _parser_dispatch(flavor):
@@ -696,46 +708,71 @@ def _parser_dispatch(flavor):
     ------
     AssertionError
         * If `flavor` is not a valid backend.
+    ImportError
+        * If you do not have the requested `flavor`
     """
     valid_parsers = _valid_parsers.keys()
     if flavor not in valid_parsers:
-        raise AssertionError('"{0}" is not a valid flavor'.format(flavor))
+        raise AssertionError('"{0!r}" is not a valid flavor, valid flavors are'
+                             ' {1}'.format(flavor, valid_parsers))
 
-    if flavor == 'bs4':
-        try:
-            import_module('lxml')
-            parser_t = _BeautifulSoupLxmlFrameParser
-        except ImportError:
-            try:
-                import_module('html5lib')
-                parser_t = _BeautifulSoupHtml5LibFrameParser
-            except ImportError:
-                raise ImportError("read_html does not support the native "
-                                  "Python 'html.parser' backend for bs4, "
-                                  "please install either 'lxml' or 'html5lib'")
-    elif flavor == 'html5lib':
-        try:
-            # much better than python's builtin
-            import_module('html5lib')
-            parser_t = _BeautifulSoupHtml5LibFrameParser
-        except ImportError:
+    if flavor in ('bs4', 'html5lib'):
+        if not _HAS_HTML5LIB:
             raise ImportError("html5lib not found please install it")
+        if not _HAS_BS4:
+            raise ImportError("bs4 not found please install it")
     else:
-        parser_t = _LxmlFrameParser
-    return parser_t
+        if not _HAS_LXML:
+            raise ImportError("lxml not found please install it")
+    return _valid_parsers[flavor]
 
 
-def _parse(parser, io, match, flavor, header, index_col, skiprows, infer_types,
-           attrs):
+def _validate_parser_flavor(flavor):
+    if flavor is None:
+        flavor = ['lxml', 'bs4']
+    elif isinstance(flavor, basestring):
+        flavor = [flavor]
+    elif isinstance(flavor, collections.Iterable):
+        if not all(isinstance(flav, basestring) for flav in flavor):
+            raise TypeError('{0} is not an iterable of strings'.format(flavor))
+    else:
+        raise TypeError('{0} is not a valid "flavor"'.format(flavor))
+
+    flavor = list(flavor)
+    valid_flavors = _valid_parsers.keys()
+
+    if not set(flavor) & set(valid_flavors):
+        raise ValueError('{0} is not a valid set of flavors, valid flavors are'
+                         ' {1}'.format(flavor, valid_flavors))
+    return flavor
+
+
+def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
     # bonus: re.compile is idempotent under function iteration so you can pass
     # a compiled regex to it and it will return itself
-    p = parser(io, re.compile(match), attrs)
-    tables = p.parse_tables()
+    flavor = _validate_parser_flavor(flavor)
+    compiled_match = re.compile(match)
+
+    # ugly hack because python 3 DELETES the exception variable!
+    retained_exception = None
+    for flav in flavor:
+        parser = _parser_dispatch(flav)
+        p = parser(io, compiled_match, attrs)
+
+        try:
+            tables = p.parse_tables()
+        except Exception as caught_exception:
+            retained_exception = caught_exception
+        else:
+            break
+    else:
+        raise retained_exception
+
     return [_data_to_frame(table, header, index_col, infer_types, skiprows)
             for table in tables]
 
 
-def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
+def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, infer_types=True, attrs=None):
     r"""Read an HTML table into a DataFrame.
 
@@ -747,7 +784,7 @@ def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
         the http, ftp and file url protocols. If you have a URI that starts
         with ``'https'`` you might removing the ``'s'``.
 
-    match : str or regex, optional
+    match : str or regex, optional, default '.+'
         The set of tables containing text matching this regex or string will be
         returned. Unless the HTML is extremely simple you will probably need to
         pass a non-empty string here. Defaults to '.+' (match any non-empty
@@ -755,23 +792,24 @@ def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str, {'html5lib'}
-        The parsing engine to use under the hood. Right now only ``html5lib``
-        is supported because it returns correct output whereas ``lxml`` does
-        not.
+    flavor : str, container of strings, default ``None``
+        The parsing engine to use under the hood. 'bs4' and 'html5lib' are
+        synonymous with each other, they are both there for backwards
+        compatibility. The default of ``None`` tries to use ``lxml`` to parse
+        and if that fails it falls back on ``bs4`` + ``html5lib``.
 
-    header : int or array-like or None, optional
+    header : int or array-like or None, optional, default ``None``
         The row (or rows for a MultiIndex) to use to make the columns headers.
-        Note that this row will be removed from the data. Defaults to None.
+        Note that this row will be removed from the data.
 
-    index_col : int or array-like or None, optional
+    index_col : int or array-like or None, optional, default ``None``
         The column to use to make the index. Note that this column will be
-        removed from the data. Defaults to None.
+        removed from the data.
 
-    skiprows : int or collections.Container or slice or None, optional
+    skiprows : int or collections.Container or slice or None, optional, default ``None``
         If an integer is given then skip this many rows after parsing the
         column header. If a sequence of integers is given skip those specific
-        rows (0-based). Defaults to None, i.e., no rows are skipped. Note that
+        rows (0-based). Note that
 
         .. code-block:: python
 
@@ -787,16 +825,15 @@ def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
         it is treated as "skip :math:`n` rows", *not* as "skip the
         :math:`n^\textrm{th}` row".
 
-    infer_types : bool, optional
+    infer_types : bool, optional, default ``True``
         Whether to convert numeric types and date-appearing strings to numbers
-        and dates, respectively. Defaults to True.
+        and dates, respectively.
 
-    attrs : dict or None, optional
+    attrs : dict or None, optional, default ``None``
         This is a dictionary of attributes that you can pass to use to identify
         the table in the HTML. These are not checked for validity before being
         passed to lxml or Beautiful Soup. However, these attributes must be
-        valid HTML table attributes to work correctly. Defaults to None. For
-        example,
+        valid HTML table attributes to work correctly. For example,
 
         .. code-block:: python
 
@@ -826,6 +863,9 @@ def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
 
     Notes
     -----
+    Before using this function you should probably read the :ref:`gotchas about
+    the parser libraries that this function uses <html-gotchas>`.
+
     There's as little cleaning of the data as possible due to the heterogeneity
     and general disorder of HTML on the web.
 
@@ -848,37 +888,13 @@ def read_html(io, match='.+', flavor='html5lib', header=None, index_col=None,
 
     Examples
     --------
-    Parse a table from a list of failed banks from the FDIC:
-
-    >>> from pandas import read_html, DataFrame
-    >>> url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
-    >>> dfs = read_html(url, match='Florida', attrs={'id': 'table'})
-    >>> assert dfs  # will not be empty if the call to read_html doesn't fail
-    >>> assert isinstance(dfs, list)  # read_html returns a list of DataFrames
-    >>> assert all(map(lambda x: isinstance(x, DataFrame), dfs))
-
-    Parse some spam infomation from the USDA:
-
-    >>> from pandas import read_html, DataFrame
-    >>> url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
-    ...        'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
-    >>> dfs = read_html(url, match='Water', header=0)
-    >>> assert dfs
-    >>> assert isinstance(dfs, list)
-    >>> assert all(map(lambda x: isinstance(x, DataFrame), dfs))
-
-    You can pass nothing to the `match` argument:
-
-    >>> from pandas import read_html, DataFrame
-    >>> url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
-    >>> dfs = read_html(url)
-    >>> print(len(dfs))  # this will most likely be greater than 1
+    See the :ref:`read_html documentation in the IO section of the docs
+    <io.read_html>` for many examples of reading HTML.
     """
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
         raise AssertionError('cannot skip rows starting from the end of the '
                              'data (you passed a negative value)')
-    parser = _parser_dispatch(flavor)
-    return _parse(parser, io, match, flavor, header, index_col, skiprows,
-                  infer_types, attrs)
+    return _parse(flavor, io, match, header, index_col, skiprows, infer_types,
+                  attrs)

@@ -2,7 +2,6 @@ import os
 import re
 from cStringIO import StringIO
 from unittest import TestCase
-import numbers
 from urllib2 import urlopen
 from contextlib import closing
 import warnings
@@ -13,13 +12,11 @@ import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
 
-from pandas.io.html import read_html, import_module, _parse, _LxmlFrameParser
-from pandas.io.html import _BeautifulSoupHtml5LibFrameParser
-from pandas.io.html import _BeautifulSoupLxmlFrameParser, _remove_whitespace
+from pandas.io.html import read_html, import_module
+from pandas.io.html import _remove_whitespace
 from pandas import DataFrame, MultiIndex, read_csv, Timestamp
 from pandas.util.testing import (assert_frame_equal, network,
                                  get_data_path)
-from numpy.testing.decorators import slow
 
 from pandas.util.testing import makeCustomDataframe as mkdf
 
@@ -37,7 +34,7 @@ def _skip_if_no(module_name):
         raise nose.SkipTest
 
 
-def _skip_if_none(module_names):
+def _skip_if_none_of(module_names):
     if isinstance(module_names, basestring):
         _skip_if_no(module_names)
     else:
@@ -47,12 +44,11 @@ def _skip_if_none(module_names):
 
 DATA_PATH = get_data_path()
 
-
 def isframe(x):
     return isinstance(x, DataFrame)
 
 
-def assert_framelist_equal(list1, list2):
+def assert_framelist_equal(list1, list2, *args, **kwargs):
     assert len(list1) == len(list2), ('lists are not of equal size '
                                       'len(list1) == {0}, '
                                       'len(list2) == {1}'.format(len(list1),
@@ -60,40 +56,39 @@ def assert_framelist_equal(list1, list2):
     assert all(map(lambda x, y: isframe(x) and isframe(y), list1, list2)), \
         'not all list elements are DataFrames'
     for frame_i, frame_j in zip(list1, list2):
-        assert_frame_equal(frame_i, frame_j)
+        assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, 'frames are both empty'
 
 
-def _run_read_html(parser, io, match='.+', flavor='bs4', header=None,
-                   index_col=None, skiprows=None, infer_types=False,
-                   attrs=None):
-    if isinstance(skiprows, numbers.Integral) and skiprows < 0:
-        raise AssertionError('cannot skip rows starting from the end of the '
-                             'data (you passed a negative value)')
-    return _parse(parser, io, match, flavor, header, index_col, skiprows,
-                  infer_types, attrs)
+class TestReadHtmlBase(TestCase):
+    def run_read_html(self, *args, **kwargs):
+        self.try_skip()
+        kwargs['flavor'] = kwargs.get('flavor', self.flavor)
+        return read_html(*args, **kwargs)
 
+    def try_skip(self):
+        _skip_if_none_of(('bs4', 'html5lib'))
 
-class TestLxmlReadHtml(TestCase):
+    def setup_data(self):
+        self.spam_data = os.path.join(DATA_PATH, 'spam.html')
+        self.banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+
+    def setup_flavor(self):
+        self.flavor = 'bs4'
+
+    def setUp(self):
+        self.setup_data()
+        self.setup_flavor()
+
     def test_to_html_compat(self):
         df = mkdf(4, 3, data_gen_f=lambda *args: rand(), c_idx_names=False,
-                  r_idx_names=False).applymap('{0:.3f}'.format)
+                  r_idx_names=False).applymap('{0:.3f}'.format).astype(float)
         out = df.to_html()
         res = self.run_read_html(out, attrs={'class': 'dataframe'},
                                  index_col=0)[0]
         print df.dtypes
         print res.dtypes
         assert_frame_equal(res, df)
-
-    def setUp(self):
-        self.spam_data = os.path.join(DATA_PATH, 'spam.html')
-        self.banklist_data = os.path.join(DATA_PATH, 'banklist.html')
-
-    def run_read_html(self, *args, **kwargs):
-        kwargs['flavor'] = 'lxml'
-        _skip_if_no('lxml')
-        parser = _LxmlFrameParser
-        return _run_read_html(parser, *args, **kwargs)
 
     @network
     @slow
@@ -123,34 +118,6 @@ class TestLxmlReadHtml(TestCase):
                                  attrs={'id': 'table'})
 
         assert_framelist_equal(df1, df2)
-
-    @slow
-    def test_banklist_header(self):
-        def try_remove_ws(x):
-            try:
-                return _remove_whitespace(x)
-            except AttributeError:
-                return x
-
-        df = self.run_read_html(self.banklist_data, 'Metcalf',
-                                attrs={'id': 'table'}, infer_types=False)[0]
-        ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
-                                converters={'Closing Date': Timestamp,
-                                            'Updated Date': Timestamp})
-        self.assertNotEqual(df.shape, ground_truth.shape)
-        self.assertRaises(AssertionError, assert_frame_equal, df,
-                          ground_truth.applymap(try_remove_ws))
-
-    @slow
-    def test_gold_canyon(self):
-        gc = 'Gold Canyon'
-        with open(self.banklist_data, 'r') as f:
-            raw_text = f.read()
-
-        self.assertIn(gc, raw_text)
-        df = self.run_read_html(self.banklist_data, 'Gold Canyon',
-                                attrs={'id': 'table'}, infer_types=False)[0]
-        self.assertNotIn(gc, df.to_string())
 
     def test_spam(self):
         df1 = self.run_read_html(self.spam_data, '.*Water.*',
@@ -241,7 +208,14 @@ class TestLxmlReadHtml(TestCase):
         df2 = self.run_read_html(self.spam_data, 'Unit', index_col=0)
         assert_framelist_equal(df1, df2)
 
-    def test_header_and_index(self):
+    def test_header_and_index_no_types(self):
+        df1 = self.run_read_html(self.spam_data, '.*Water.*', header=1,
+                                 index_col=0, infer_types=False)
+        df2 = self.run_read_html(self.spam_data, 'Unit', header=1, index_col=0,
+                                 infer_types=False)
+        assert_framelist_equal(df1, df2)
+
+    def test_header_and_index_with_types(self):
         df1 = self.run_read_html(self.spam_data, '.*Water.*', header=1,
                                  index_col=0)
         df2 = self.run_read_html(self.spam_data, 'Unit', header=1, index_col=0)
@@ -374,36 +348,6 @@ class TestLxmlReadHtml(TestCase):
         zz = [df.iloc[0, 0] for df in dfs]
         self.assertListEqual(sorted(zz), sorted(['Python', 'SciTE']))
 
-
-def test_invalid_flavor():
-    url = 'google.com'
-    nose.tools.assert_raises(AssertionError, read_html, url, 'google',
-                             flavor='not a* valid**++ flaver')
-
-
-@slow
-class TestBs4LxmlParser(TestLxmlReadHtml):
-    def test(self):
-        pass
-
-    def run_read_html(self, *args, **kwargs):
-        kwargs['flavor'] = 'bs4'
-        _skip_if_none(('lxml', 'bs4'))
-        parser = _BeautifulSoupLxmlFrameParser
-        return _run_read_html(parser, *args, **kwargs)
-
-
-@slow
-class TestBs4Html5LibParser(TestBs4LxmlParser):
-    def test(self):
-        pass
-
-    def run_read_html(self, *args, **kwargs):
-        kwargs['flavor'] = 'bs4'
-        _skip_if_none(('html5lib', 'bs4'))
-        parser = _BeautifulSoupHtml5LibFrameParser
-        return _run_read_html(parser, *args, **kwargs)
-
     @slow
     def test_banklist_header(self):
         def try_remove_ws(x):
@@ -445,19 +389,61 @@ class TestBs4Html5LibParser(TestBs4LxmlParser):
         with open(self.banklist_data, 'r') as f:
             raw_text = f.read()
 
-        self.assertIn(gc, raw_text)
+        self.assert_(gc in raw_text)
         df = self.run_read_html(self.banklist_data, 'Gold Canyon',
                                 attrs={'id': 'table'}, infer_types=False)[0]
         self.assertIn(gc, df.to_string())
 
 
-def get_elements_from_url(url, flavor, element='table'):
-    _skip_if_no('bs4')
-    _skip_if_no(flavor)
+class TestReadHtmlLxml(TestCase):
+    def run_read_html(self, *args, **kwargs):
+        self.flavor = ['lxml']
+        self.try_skip()
+        kwargs['flavor'] = kwargs.get('flavor', self.flavor)
+        return read_html(*args, **kwargs)
+
+    def try_skip(self):
+        _skip_if_no('lxml')
+
+    def test_spam_data_fail(self):
+        from lxml.etree import XMLSyntaxError
+        spam_data = os.path.join(DATA_PATH, 'spam.html')
+        self.assertRaises(XMLSyntaxError, self.run_read_html, spam_data, flavor=['lxml'])
+
+    def test_banklist_data_fail(self):
+        from lxml.etree import XMLSyntaxError
+        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+        self.assertRaises(XMLSyntaxError, self.run_read_html, banklist_data, flavor=['lxml'])
+
+    def test_works_on_valid_markup(self):
+        filename = os.path.join(DATA_PATH, 'valid_markup.html')
+        dfs = self.run_read_html(filename, index_col=0, flavor=['lxml'])
+        self.assertIsInstance(dfs, list)
+        self.assertIsInstance(dfs[0], DataFrame)
+
+    def setUp(self):
+        self.try_skip()
+
+    @slow
+    def test_fallback_success(self):
+        _skip_if_none_of(('bs4', 'html5lib'))
+        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+        self.run_read_html(banklist_data, '.*Water.*', flavor=['lxml',
+                                                               'html5lib'])
+
+
+def test_invalid_flavor():
+    url = 'google.com'
+    nose.tools.assert_raises(ValueError, read_html, url, 'google',
+                             flavor='not a* valid**++ flaver')
+
+
+def get_elements_from_url(url, element='table'):
+    _skip_if_none_of(('bs4', 'html5lib'))
     from bs4 import BeautifulSoup, SoupStrainer
     strainer = SoupStrainer(element)
     with closing(urlopen(url)) as f:
-        soup = BeautifulSoup(f, features=flavor, parse_only=strainer)
+        soup = BeautifulSoup(f, features='html5lib', parse_only=strainer)
     return soup.find_all(element)
 
 
@@ -465,16 +451,12 @@ def get_elements_from_url(url, flavor, element='table'):
 def test_bs4_finds_tables():
     url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
            'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
-    flavors = 'lxml', 'html5lib'
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
-
-        for flavor in flavors:
-            assert get_elements_from_url(url, flavor, 'table')
+        assert get_elements_from_url(url, 'table')
 
 
 def get_lxml_elements(url, element):
-
     _skip_if_no('lxml')
     from lxml.html import parse
     doc = parse(url)
