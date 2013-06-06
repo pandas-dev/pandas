@@ -62,6 +62,12 @@ except:
     print("pytz: Not installed")
 
 try:
+    import bottleneck
+    print("bottleneck: %s" % bottleneck.__version__)
+except:
+    print("bottleneck: Not installed")
+
+try:
     import tables
     print("PyTables: %s" % tables.__version__)
 except:
