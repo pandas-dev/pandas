@@ -760,12 +760,10 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
         try:
             tables = p.parse_tables()
         except Exception as e:
-            succeeded = False
+            pass
         else:
-            succeeded = True
             break
-
-    if not succeeded:
+    else:
         raise e
 
     return [_data_to_frame(table, header, index_col, infer_types, skiprows)
