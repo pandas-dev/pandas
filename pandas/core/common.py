@@ -1,11 +1,6 @@
 """
 Misc tools for implementing data structures
 """
-# XXX: HACK for NumPy 1.5.1 to suppress warnings
-try:
-    import cPickle as pickle
-except ImportError:  # pragma: no cover
-    import pickle
 
 import itertools
 from datetime import datetime
@@ -1668,49 +1663,6 @@ def _all_none(*args):
     return True
 
 
-def save(obj, path):
-    """
-    Pickle (serialize) object to input file path
-
-    Parameters
-    ----------
-    obj : any object
-    path : string
-        File path
-    """
-    f = open(path, 'wb')
-    try:
-        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
-    finally:
-        f.close()
-
-
-def load(path):
-    """
-    Load pickled pandas object (or any other pickled object) from the specified
-    file path
-
-    Warning: Loading pickled data received from untrusted sources can be unsafe.
-    See: http://docs.python.org/2.7/library/pickle.html
-
-    Parameters
-    ----------
-    path : string
-        File path
-
-    Returns
-    -------
-    unpickled : type of object stored in file
-    """
-    try:
-        with open(path,'rb') as fh:
-            return pickle.load(fh)
-    except:
-        if not py3compat.PY3:
-            raise
-        with open(path,'rb') as fh:
-            return pickle.load(fh, encoding='latin1')
-
 class UTF8Recoder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
@@ -2109,3 +2061,40 @@ def console_encode(object, **kwds):
     """
     return pprint_thing_encoded(object,
                                 get_option("display.encoding"))
+
+def load(path):  # TODO remove in 0.12
+    """
+    Load pickled pandas object (or any other pickled object) from the specified
+    file path
+
+    Warning: Loading pickled data received from untrusted sources can be unsafe.
+    See: http://docs.python.org/2.7/library/pickle.html
+
+    Parameters
+    ----------
+    path : string
+        File path
+
+    Returns
+    -------
+    unpickled : type of object stored in file
+    """
+    import warnings
+    warnings.warn("load is deprecated and will be removed in v0.12, use read_pickle", FutureWarning)
+    from pandas.io.pickle import read_pickle
+    return read_pickle(path)
+
+def save(obj, path):  # TODO remove in 0.12
+    '''
+    Pickle (serialize) object to input file path
+
+    Parameters
+    ----------
+    obj : any object
+    path : string
+        File path
+    '''
+    import warnings
+    warnings.warn("save is deprecated and will be removed in v0.12, use obj.to_pickle", FutureWarning)
+    from pandas.io.pickle import to_pickle
+    return to_pickle(obj, path)

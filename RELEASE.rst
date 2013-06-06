@@ -137,6 +137,8 @@ pandas 0.11.1
     - removed ``Excel`` support to ``pandas.io.excel``
     - added top-level ``pd.read_sql`` and ``to_sql`` DataFrame methods
     - removed ``clipboard`` support to ``pandas.io.clipboard``
+    - replace top-level and instance methods ``save`` and ``load`` with top-level ``read_pickle`` and
+    ``to_pickle`` instance method, ``save`` and ``load`` will give deprecation warning until 0.12.  
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
   - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
