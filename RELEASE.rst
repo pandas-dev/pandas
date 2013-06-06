@@ -70,7 +70,6 @@ pandas 0.11.1
   - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame (GH3649_),
     thanks @hoechenberger
-  - ``read_html`` no longer performs hard date conversion
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
     if the associated objects have have a dtype of ``object`` (GH1818_,
     GH3572_). This happens before any drawing takes place which elimnates any
@@ -133,6 +132,9 @@ pandas 0.11.1
     as an int, maxing with ``int64``, to avoid precision issues (GH3733_)
   - ``na_values`` in a list provided to ``read_csv/read_excel`` will match string and numeric versions
     e.g. ``na_values=['99']`` will match 99 whether the column ends up being int, float, or string (GH3611_)
+  - ``read_html`` now defaults to ``None`` when reading, and falls back on
+    ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
+    until success is also valid
 
 **Bug Fixes**
 

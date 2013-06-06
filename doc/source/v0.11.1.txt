@@ -139,6 +139,10 @@ API changes
 
     - sum, prod, mean, std, var, skew, kurt, corr, and cov
 
+  - ``read_html`` now defaults to ``None`` when reading, and falls back on
+    ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
+    until success is also valid
+
 Enhancements
 ~~~~~~~~~~~~
 
