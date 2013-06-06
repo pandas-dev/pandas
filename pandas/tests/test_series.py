@@ -1460,10 +1460,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         with cf.option_context("mode.use_inf_as_null", True):
             assert_almost_equal(s.sum(), s2.sum())
 
-            res = nanops.nansum(arr, axis=1)
-            expected = nanops._nansum(arr, axis=1)
-            assert_almost_equal(res, expected)
-
         res = nanops.nansum(arr, axis=1)
         self.assertTrue(np.isinf(res).all())
 
@@ -1593,6 +1589,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
             # add some NaNs
             self.series[5:15] = np.NaN
+
+
+            # idxmax, idxmin, min, and max are valid for dates
+            if not ('max' in name or 'min' in name):
+                ds = Series(date_range('1/1/2001', periods=10))
+                self.assertRaises(TypeError, f, ds)
 
             # skipna or no
             self.assert_(notnull(f(self.series)))
