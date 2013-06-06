@@ -246,3 +246,22 @@ interval (``'start'`` or ``'end'``) convention:
    data = Series(np.random.randn(50), index=rng)
    resampled = data.resample('A', kind='timestamp', convention='end')
    resampled.index
+
+
+Byte-Ordering Issues
+--------------------
+Occasionally you may have to deal with data that were created on a machine with
+a different byte order than the one on which you are running Python. To deal
+with this issue you should convert the underlying NumPy array to the native
+system byte order *before* passing it to Series/DataFrame/Panel constructors
+using something similar to the following:
+
+.. ipython:: python
+
+   x = np.array(range(10), '>i4') # big endian
+   newx = x.byteswap().newbyteorder() # force native byteorder
+   s = Series(newx)
+
+See `the NumPy documentation on byte order
+<http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+details.
