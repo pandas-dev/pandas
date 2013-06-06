@@ -397,7 +397,7 @@ class TestReadHtmlBase(TestCase):
 
 class TestReadHtmlLxml(TestCase):
     def run_read_html(self, *args, **kwargs):
-        self.flavor = 'lxml'
+        self.flavor = ['lxml']
         self.try_skip()
         kwargs['flavor'] = kwargs.get('flavor', self.flavor)
         return read_html(*args, **kwargs)

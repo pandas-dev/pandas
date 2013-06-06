@@ -753,22 +753,19 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
     flavor = _validate_parser_flavor(flavor)
     compiled_match = re.compile(match)
 
-    succeeded = False
-    while not succeeded and flavor:
-        flav = flavor.pop()
+    for flav in flavor:
         parser = _parser_dispatch(flav)
         p = parser(io, compiled_match, attrs)
 
         try:
             tables = p.parse_tables()
         except Exception as e:
-            pass
+            succeeded = False
         else:
             succeeded = True
+            break
 
     if not succeeded:
-        # all flavors have been tried
-        assert not flavor
         raise e
 
     return [_data_to_frame(table, header, index_col, infer_types, skiprows)
