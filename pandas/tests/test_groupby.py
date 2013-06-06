@@ -2498,6 +2498,155 @@ class TestGroupBy(unittest.TestCase):
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
+    def test_filter_series(self):
+        import pandas as pd
+        s = pd.Series([1, 3, 20, 5, 22, 24, 7])
+        expected_odd = pd.Series([1, 3, 5, 7], index=[0, 1, 3, 6])
+        expected_even = pd.Series([20, 22, 24], index=[2, 4, 5])
+        grouper = s.apply(lambda x: x % 2)
+        grouped = s.groupby(grouper)
+        assert_series_equal(
+            grouped.filter(lambda x: x.mean() < 10), expected_odd)
+        assert_series_equal(
+            grouped.filter(lambda x: x.mean() > 10), expected_even)
+        # Test dropna=False.
+        assert_series_equal(
+            grouped.filter(lambda x: x.mean() < 10, dropna=False),
+            expected_odd.reindex(s.index))
+        assert_series_equal(
+            grouped.filter(lambda x: x.mean() > 10, dropna=False),
+            expected_even.reindex(s.index))
+
+    def test_filter_single_column_df(self):
+        import pandas as pd
+        df = pd.DataFrame([1, 3, 20, 5, 22, 24, 7])
+        expected_odd = pd.DataFrame([1, 3, 5, 7], index=[0, 1, 3, 6])
+        expected_even = pd.DataFrame([20, 22, 24], index=[2, 4, 5])
+        grouper = df[0].apply(lambda x: x % 2)
+        grouped = df.groupby(grouper)
+        assert_frame_equal(
+            grouped.filter(lambda x: x.mean() < 10), expected_odd)
+        assert_frame_equal(
+            grouped.filter(lambda x: x.mean() > 10), expected_even)
+        # Test dropna=False.
+        assert_frame_equal(
+            grouped.filter(lambda x: x.mean() < 10, dropna=False),
+                           expected_odd.reindex(df.index))
+        assert_frame_equal(
+            grouped.filter(lambda x: x.mean() > 10, dropna=False), 
+                           expected_even.reindex(df.index))
+
+    def test_filter_multi_column_df(self):
+        import pandas as pd
+        df = pd.DataFrame({'A': [1, 12, 12, 1], 'B': [1, 1, 1, 1]})
+        grouper = df['A'].apply(lambda x: x % 2)
+        grouped = df.groupby(grouper)
+        expected = pd.DataFrame({'A': [12, 12], 'B': [1, 1]}, index=[1, 2])
+        assert_frame_equal(
+            grouped.filter(lambda x: x['A'].sum() - x['B'].sum() > 10), expected)
+
+    def test_filter_mixed_df(self):
+        import pandas as pd
+        df = pd.DataFrame({'A': [1, 12, 12, 1], 'B': 'a b c d'.split()})
+        grouper = df['A'].apply(lambda x: x % 2)
+        grouped = df.groupby(grouper)
+        expected = pd.DataFrame({'A': [12, 12], 'B': ['b', 'c']}, 
+                                index=[1, 2])
+        assert_frame_equal(
+            grouped.filter(lambda x: x['A'].sum() > 10), expected)
+
+    def test_filter_out_all_groups(self):
+        import pandas as pd
+        s = pd.Series([1, 3, 20, 5, 22, 24, 7])
+        grouper = s.apply(lambda x: x % 2)
+        grouped = s.groupby(grouper)
+        assert_series_equal(
+            grouped.filter(lambda x: x.mean() > 1000), s[[]])
+        df = pd.DataFrame({'A': [1, 12, 12, 1], 'B': 'a b c d'.split()})
+        grouper = df['A'].apply(lambda x: x % 2)
+        grouped = df.groupby(grouper)
+        assert_frame_equal(
+            grouped.filter(lambda x: x['A'].sum() > 1000), df.ix[[]])
+
+    def test_filter_out_no_groups(self):
+        import pandas as pd
+        s = pd.Series([1, 3, 20, 5, 22, 24, 7])
+        grouper = s.apply(lambda x: x % 2)
+        grouped = s.groupby(grouper)
+        filtered = grouped.filter(lambda x: x.mean() > 0)
+        filtered.sort() # was sorted by group
+        s.sort() # was sorted arbitrarily
+        assert_series_equal(filtered, s)
+        df = pd.DataFrame({'A': [1, 12, 12, 1], 'B': 'a b c d'.split()})
+        grouper = df['A'].apply(lambda x: x % 2)
+        grouped = df.groupby(grouper)
+        filtered = grouped.filter(lambda x: x['A'].mean() > 0)
+        assert_frame_equal(filtered.sort(), df)
+
+    def test_filter_condition_raises(self):
+        import pandas as pd
+        def raise_if_sum_is_zero(x):
+            if x.sum() == 0:
+                raise ValueError
+            else:
+                return x.sum() > 0
+        s = pd.Series([-1,0,1,2])
+        grouper = s.apply(lambda x: x % 2)
+        grouped = s.groupby(grouper)
+        self.assertRaises(ValueError, 
+                          lambda: grouped.filter(raise_if_sum_is_zero))
+
+    def test_filter_against_workaround(self):
+        np.random.seed(0)
+        # Series of ints
+        s = Series(np.random.randint(0,100,1000))
+        grouper = s.apply(lambda x: np.round(x, -1))
+        grouped = s.groupby(grouper)
+        f = lambda x: x.mean() > 10
+        old_way = s[grouped.transform(f).astype('bool')]
+        new_way = grouped.filter(f)
+        assert_series_equal(new_way.order(), old_way.order())
+
+        # Series of floats
+        s = 100*Series(np.random.random(1000))
+        grouper = s.apply(lambda x: np.round(x, -1))
+        grouped = s.groupby(grouper)
+        f = lambda x: x.mean() > 10
+        old_way = s[grouped.transform(f).astype('bool')]
+        new_way = grouped.filter(f)
+        assert_series_equal(new_way.order(), old_way.order())
+
+        # Set up DataFrame of ints, floats, strings.
+        from string import ascii_lowercase
+        letters = np.array(list(ascii_lowercase))
+        N = 1000
+        random_letters = letters.take(np.random.randint(0, 26, N))
+        df = DataFrame({'ints': Series(np.random.randint(0, 100, N)),
+                        'floats': N/10*Series(np.random.random(N)),
+                        'letters': Series(random_letters)})
+
+        # Group by ints; filter on floats.
+        grouped = df.groupby('ints')
+        old_way = df[grouped.floats.\
+            transform(lambda x: x.mean() > N/20).astype('bool')]
+        new_way = grouped.filter(lambda x: x['floats'].mean() > N/20)
+        assert_frame_equal(new_way.sort(), old_way.sort())
+
+        # Group by floats (rounded); filter on strings.
+        grouper = df.floats.apply(lambda x: np.round(x, -1))
+        grouped = df.groupby(grouper)
+        old_way = df[grouped.letters.\
+            transform(lambda x: len(x) < N/10).astype('bool')]
+        new_way = grouped.filter(
+            lambda x: len(x.letters) < N/10)
+        assert_frame_equal(new_way.sort(), old_way.sort())
+
+        # Group by strings; filter on ints.
+        grouped = df.groupby('letters')
+        old_way = df[grouped.ints.\
+            transform(lambda x: x.mean() > N/20).astype('bool')]
+        new_way = grouped.filter(lambda x: x['ints'].mean() > N/20)
+        assert_frame_equal(new_way.sort_index(), old_way.sort_index())
 
 def assert_fp_equal(a, b):
     assert((np.abs(a - b) < 1e-12).all())
