@@ -267,8 +267,11 @@ The :ref:`CSV <io.read_csv_table>` docs
 `Dealing with bad lines
 <https://github.com/pydata/pandas/issues/2886>`__
 
+`Dealing with bad lines II
+<http://nipunbatra.wordpress.com/2013/06/06/reading-unclean-data-csv-using-pandas/>`__
+
 `Reading CSV with Unix timestamps and converting to local timezone
-<http://nbviewer.ipython.org/5714493>`__
+<http://nipunbatra.wordpress.com/2013/06/07/pandas-reading-csv-with-unix-timestamps-and-converting-to-local-timezone/>`__
 
 .. _cookbook.sql:
 
