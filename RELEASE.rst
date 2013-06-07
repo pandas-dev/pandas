@@ -1,4 +1,3 @@
-
 =============
 Release Notes
 =============
@@ -78,6 +77,7 @@ pandas 0.11.1
     spurious plots from showing up.
   - Added Faq section on repr display options, to help users customize their setup.
   - ``where`` operations that result in block splitting are much faster (GH3733_)
+  - ``DataReader`` now fetches stock dividend and split info (GH3666_)
 
 **API Changes**
 
@@ -307,6 +307,7 @@ pandas 0.11.1
 .. _GH3741: https://github.com/pydata/pandas/issues/3741
 .. _GH3750: https://github.com/pydata/pandas/issues/3750
 .. _GH3726: https://github.com/pydata/pandas/issues/3726
+.. _GH3666: https://github.com/pydata/pandas/pull/3666
 
 pandas 0.11.0
 =============
