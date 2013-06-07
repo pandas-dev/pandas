@@ -19,7 +19,7 @@ from pandas import (
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
-from pandas.core.common import adjoin, isnull, is_list_like
+from pandas.core.common import adjoin, isnull, is_list_like, PerformanceWarning
 from pandas.core.algorithms import match, unique, factorize
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe, _try_sort
@@ -64,7 +64,7 @@ attribute_conflict_doc = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new [%s],
 resetting the attribute to None
 """
-class PerformanceWarning(Warning): pass
+# for PerformanceWarning
 performance_doc = """
 your performance may suffer as PyTables will pickle object types that it cannot map
 directly to c-types [inferred_type->%s,key->%s] [items->%s]

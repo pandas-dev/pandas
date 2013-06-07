@@ -42,6 +42,10 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
+class PerformanceWarning(Warning):
+    "Baseclass for warnings about performance issues that affect speed, but not functionality."
+    pass
+
 _POSSIBLY_CAST_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]','O','int8','uint8','int16','uint16','int32','uint32','int64','uint64'] ])
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')

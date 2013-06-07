@@ -10,9 +10,11 @@ import numpy as np
 import pandas
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, Index)
+from pandas.core.common import PerformanceWarning
 from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf, 
-                                IncompatibilityWarning, PerformanceWarning,
+                                IncompatibilityWarning,
                                 AttributeConflictWarning)
+from pandas.core.common import PerformanceWarning
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
