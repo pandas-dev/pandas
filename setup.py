@@ -34,9 +34,9 @@ except ImportError:
     _have_setuptools = False
 
 setuptools_kwargs = {}
+min_numpy_ver = '1.6'
 if sys.version_info[0] >= 3:
 
-    min_numpy_ver = 1.6
     if sys.version_info[1] >= 3:  # 3.3 needs numpy 1.7+
         min_numpy_ver = "1.7.0b2"
 
@@ -45,6 +45,7 @@ if sys.version_info[0] >= 3:
                          'install_requires': ['python-dateutil >= 2',
                                               'pytz',
                                               'numpy >= %s' % min_numpy_ver],
+                         'setup_requires': ['numpy >= %s' % min_numpy_ver],
                          'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
                                                      ],
                          }
@@ -53,10 +54,12 @@ if sys.version_info[0] >= 3:
                  "\n$ pip install distribute")
 
 else:
+    min_numpy_ver = '1.6.1'
     setuptools_kwargs = {
         'install_requires': ['python-dateutil',
                              'pytz',
-                             'numpy >= 1.6.1'],
+                             'numpy >= %s' % min_numpy_ver],
+        'setup_requires': ['numpy >= %s' % min_numpy_ver],
         'zip_safe': False,
     }
 
