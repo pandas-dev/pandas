@@ -22,6 +22,18 @@
 Trellis plotting interface
 **************************
 
+.. note::
+
+   The tips data set can be downloaded `here
+   <http://wesmckinney.com/files/tips.csv>`_. Once you download it execute
+
+   .. code-block:: python
+
+      from pandas import read_csv
+      tips_data = read_csv('tips_data.csv')
+
+   from the directory where you downloaded the file.
+
 We import the rplot API:
 
 .. ipython:: python
