@@ -485,6 +485,36 @@ skip
         except Exception, inst:
             self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
+    def test_passing_dtype(self):
+
+        df = DataFrame(np.random.rand(5,2),columns=list('AB'),index=['1A','1B','1C','1D','1E'])
+
+        with ensure_clean('__passing_str_as_dtype__.csv') as path:
+            df.to_csv(path)
+
+            # GH 3795
+            # passing 'str' as the dtype
+            result = pd.read_csv(path, dtype=str, index_col=0)
+            tm.assert_series_equal(result.dtypes,Series({ 'A' : 'object', 'B' : 'object' }))
+
+            # we expect all object columns, so need to convert to test for equivalence
+            result = result.astype(float)
+            tm.assert_frame_equal(result,df)
+
+            # invalid dtype
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'foo', 'B' : 'float64' },
+                              index_col=0)
+
+            # valid but we don't support it (date)
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'datetime64', 'B' : 'float64' },
+                              index_col=0)
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'datetime64', 'B' : 'float64' },
+                              index_col=0, parse_dates=['B'])
+
+            # valid but we don't support it
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'timedelta64', 'B' : 'float64' },
+                              index_col=0)
+
     def test_quoting(self):
         bad_line_small = """printer\tresult\tvariant_name
 Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jacob

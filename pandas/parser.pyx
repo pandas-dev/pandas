@@ -990,20 +990,36 @@ cdef class TextReader:
                                              na_filter, na_hashset)
             return result, na_count
         elif dtype[1] == 'c':
-            raise NotImplementedError
+            raise NotImplementedError("the dtype %s is not supported for parsing" % dtype)
 
         elif dtype[1] == 'S':
             # TODO: na handling
             width = int(dtype[2:])
-            result = _to_fw_string(self.parser, i, start, end, width)
-            return result, 0
+            if width > 0:
+                result = _to_fw_string(self.parser, i, start, end, width)
+                return result, 0
+
+            # treat as a regular string parsing
+            return self._string_convert(i, start, end, na_filter,
+                                       na_hashset)
         elif dtype[1] == 'U':
             width = int(dtype[2:])
-            raise NotImplementedError
+            if width > 0:
+                raise NotImplementedError("the dtype %s is not supported for parsing" % dtype)
+
+            # unicode variable width
+            return self._string_convert(i, start, end, na_filter,
+                                        na_hashset)
+
 
         elif dtype[1] == 'O':
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
+        else:
+            if dtype[1] == 'M':
+                 raise TypeError("the dtype %s is not supported for parsing, "
+                                 "pass this column using parse_dates instead" % dtype)
+            raise TypeError("the dtype %s is not supported for parsing" % dtype)
 
     cdef _string_convert(self, Py_ssize_t i, int start, int end,
                          bint na_filter, kh_str_t *na_hashset):
