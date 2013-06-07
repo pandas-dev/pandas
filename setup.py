@@ -244,7 +244,13 @@ class CleanCommand(Command):
                                'np_datetime_strings.c',
                                'period.c',
                                'tokenizer.c',
-                               'io.c']
+                               'io.c',
+                               'ujson.c',
+                               'objToJSON.c',
+                               'JSONtoObj.c',
+                               'ultrajsonenc.c',
+                               'ultrajsondec.c',
+                               ]
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -472,7 +478,8 @@ ujson_ext = Extension('pandas.json',
                                'pandas/src/datetime/np_datetime.c',
                                'pandas/src/datetime/np_datetime_strings.c'],
                       include_dirs=['pandas/src/ujson/python',
-                                    'pandas/src/ujson/lib'] + common_include)
+                                    'pandas/src/ujson/lib',
+                                    'pandas/src/datetime'] + common_include)
 
 
 extensions.append(ujson_ext)
