@@ -219,6 +219,7 @@ pandas 0.11.1
   - Incorrectly read a HDFStore multi-index Frame witha column specification (GH3748_)
   - ``read_html`` now correctly skips tests (GH3741_)
   - Fix incorrect arguments passed to concat that are not list-like (e.g. concat(df1,df2)) (GH3481_)
+  - Correctly parse when passed the ``dtype=str`` (or other variable-len string dtypes) in ``read_csv`` (GH3795_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -307,6 +308,7 @@ pandas 0.11.1
 .. _GH3741: https://github.com/pydata/pandas/issues/3741
 .. _GH3750: https://github.com/pydata/pandas/issues/3750
 .. _GH3726: https://github.com/pydata/pandas/issues/3726
+.. _GH3795: https://github.com/pydata/pandas/issues/3795
 
 pandas 0.11.0
 =============
