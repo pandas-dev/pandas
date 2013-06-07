@@ -495,6 +495,38 @@ class PandasObject(object):
         from pandas.io import clipboard
         clipboard.to_clipboard(self)
 
+    def to_json(self, orient=None, double_precision=10,
+                force_ascii=True):
+        """
+        Convert the object to a JSON string.
+
+        Note NaN's and None will be converted to null and datetime objects
+        will be converted to UNIX timestamps.
+
+        Parameters
+        ----------
+        orient : {'split', 'records', 'index', 'columns', 'values'},
+            default is 'index' for Series, 'columns' for DataFrame
+
+            The format of the JSON string
+            split : dict like
+                {index -> [index], columns -> [columns], data -> [values]}
+            records : list like [{column -> value}, ... , {column -> value}]
+            index : dict like {index -> {column -> value}}
+            columns : dict like {column -> {index -> value}}
+            values : just the values array
+        double_precision : The number of decimal places to use when encoding
+            floating point values, default 10.
+        force_ascii : force encoded string to be ASCII, default True.
+
+        Returns
+        -------
+        result : JSON compatible string
+        """
+        from pandas.io import json
+        return json.to_json(self, orient=orient, double_precision=double_precision,
+                            force_ascii=force_ascii)
+
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():
     PandasObject._create_indexer(_name,_indexer)

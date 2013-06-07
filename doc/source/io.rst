@@ -35,6 +35,7 @@ object.
     * ``read_excel``
     * ``read_hdf``
     * ``read_sql``
+    * ``read_json``
     * ``read_html``
     * ``read_stata``
     * ``read_clipboard``
@@ -45,6 +46,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * ``to_excel``
     * ``to_hdf``
     * ``to_sql``
+    * ``to_json``
     * ``to_html``
     * ``to_stata``
     * ``to_clipboard``
@@ -936,6 +938,30 @@ The Series object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
 which, if set to ``True``, will additionally output the length of the Series.
 
+
+
+JSON
+----
+
+Read and write ``JSON`` format files.
+
+.. _io.json:
+
+Writing JSON
+~~~~~~~~~~~~
+
+.. ipython:: python
+
+   df = DataFrame(randn(10, 2), columns=list('AB'))
+   s = df.to_json()
+   s
+
+Reading JSON
+~~~~~~~~~~~~
+
+.. ipython:: python
+
+   pd.read_json(s)
 
 HTML
 ----
@@ -2193,7 +2219,6 @@ into a .dta file. The format version of this file is always the latest one, 115.
 
 .. ipython:: python
 
-   from pandas.io.stata import StataWriter
    df = DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 

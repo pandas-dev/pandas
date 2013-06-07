@@ -1,3 +1,4 @@
+
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -11,6 +12,7 @@ import numpy as np
 
 from pandas import Series, DataFrame, DatetimeIndex
 import pandas as pd
+read_json = pd.read_json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal)
@@ -55,8 +57,8 @@ class TestPandasObjects(unittest.TestCase):
         def _check_orient(df, orient, dtype=None, numpy=True):
             df = df.sort()
             dfjson = df.to_json(orient=orient)
-            unser = DataFrame.from_json(dfjson, orient=orient, dtype=dtype,
-                                        numpy=numpy)
+            unser = read_json(dfjson, orient=orient, dtype=dtype,
+                              numpy=numpy)
             unser = unser.sort()
             if df.index.dtype.type == np.datetime64:
                 unser.index = DatetimeIndex(unser.index.values.astype('i8'))
@@ -136,50 +138,50 @@ class TestPandasObjects(unittest.TestCase):
         _check_orient(df.transpose().transpose(), "index")
 
     def test_frame_from_json_bad_data(self):
-        self.assertRaises(ValueError, DataFrame.from_json, '{"key":b:a:d}')
+        self.assertRaises(ValueError, read_json, '{"key":b:a:d}')
 
         # too few indices
         json = ('{"columns":["A","B"],'
                 '"index":["2","3"],'
                 '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
-        self.assertRaises(ValueError, DataFrame.from_json, json,
+        self.assertRaises(ValueError, read_json, json,
                           orient="split")
 
         # too many columns
         json = ('{"columns":["A","B","C"],'
                 '"index":["1","2","3"],'
                 '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
-        self.assertRaises(AssertionError, DataFrame.from_json, json,
+        self.assertRaises(AssertionError, read_json, json,
                           orient="split")
 
         # bad key
         json = ('{"badkey":["A","B"],'
                 '"index":["2","3"],'
                 '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
-        self.assertRaises(TypeError, DataFrame.from_json, json,
+        self.assertRaises(TypeError, read_json, json,
                           orient="split")
 
     def test_frame_from_json_nones(self):
         df = DataFrame([[1, 2], [4, 5, 6]])
-        unser = DataFrame.from_json(df.to_json())
+        unser = read_json(df.to_json())
         self.assert_(np.isnan(unser['2'][0]))
 
         df = DataFrame([['1', '2'], ['4', '5', '6']])
-        unser = DataFrame.from_json(df.to_json())
+        unser = read_json(df.to_json())
         self.assert_(unser['2'][0] is None)
 
-        unser = DataFrame.from_json(df.to_json(), numpy=False)
+        unser = read_json(df.to_json(), numpy=False)
         self.assert_(unser['2'][0] is None)
 
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
         df[2][0] = np.inf
-        unser = DataFrame.from_json(df.to_json())
+        unser = read_json(df.to_json())
         self.assert_(np.isnan(unser['2'][0]))
 
         df[2][0] = np.NINF
-        unser = DataFrame.from_json(df.to_json())
+        unser = read_json(df.to_json())
         self.assert_(np.isnan(unser['2'][0]))
 
     def test_frame_to_json_except(self):
@@ -190,8 +192,8 @@ class TestPandasObjects(unittest.TestCase):
 
         def _check_orient(series, orient, dtype=None, numpy=True):
             series = series.sort_index()
-            unser = Series.from_json(series.to_json(orient=orient),
-                                     orient=orient, numpy=numpy, dtype=dtype)
+            unser = read_json(series.to_json(orient=orient), typ='series',
+                              orient=orient, numpy=numpy, dtype=dtype)
             unser = unser.sort_index()
             if series.index.dtype.type == np.datetime64:
                 unser.index = DatetimeIndex(unser.index.values.astype('i8'))
@@ -238,3 +240,17 @@ class TestPandasObjects(unittest.TestCase):
     def test_series_to_json_except(self):
         s = Series([1, 2, 3])
         self.assertRaises(ValueError, s.to_json, orient="garbage")
+
+    def test_typ(self):
+
+        s = Series(range(6), index=['a','b','c','d','e','f'])
+        result = read_json(s.to_json(),typ=None)
+        assert_series_equal(result,s)
+
+    def test_reconstruction_index(self):
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6]])
+        result = read_json(df.to_json())
+
+        # the index is serialized as strings....correct?
+        #assert_frame_equal(result,df)
