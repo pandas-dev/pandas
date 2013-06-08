@@ -15,8 +15,9 @@ import pandas as pd
 read_json = pd.read_json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 assert_series_equal)
+                                 assert_series_equal, network)
 import pandas.util.testing as tm
+from numpy.testing.decorators import slow
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -56,7 +57,7 @@ class TestPandasObjects(unittest.TestCase):
 
         def _check_orient(df, orient, dtype=None, numpy=True):
             df = df.sort()
-            dfjson = df.to_json(orient=orient)
+            dfjson = df.to_json(None, orient=orient)
             unser = read_json(dfjson, orient=orient, dtype=dtype,
                               numpy=numpy)
             unser = unser.sort()
@@ -93,8 +94,8 @@ class TestPandasObjects(unittest.TestCase):
 
         # basic
         _check_all_orients(self.frame)
-        self.assertEqual(self.frame.to_json(),
-                         self.frame.to_json(orient="columns"))
+        self.assertEqual(self.frame.to_json(None).read(),
+                         self.frame.to_json(None,orient="columns").read())
 
         _check_all_orients(self.intframe, dtype=self.intframe.values.dtype)
 
@@ -138,61 +139,61 @@ class TestPandasObjects(unittest.TestCase):
         _check_orient(df.transpose().transpose(), "index")
 
     def test_frame_from_json_bad_data(self):
-        self.assertRaises(ValueError, read_json, '{"key":b:a:d}')
+        self.assertRaises(ValueError, read_json, StringIO('{"key":b:a:d}'))
 
         # too few indices
-        json = ('{"columns":["A","B"],'
-                '"index":["2","3"],'
-                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+        json = StringIO('{"columns":["A","B"],'
+                        '"index":["2","3"],'
+                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
         self.assertRaises(ValueError, read_json, json,
                           orient="split")
 
         # too many columns
-        json = ('{"columns":["A","B","C"],'
-                '"index":["1","2","3"],'
-                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+        json = StringIO('{"columns":["A","B","C"],'
+                        '"index":["1","2","3"],'
+                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
         self.assertRaises(AssertionError, read_json, json,
                           orient="split")
 
         # bad key
-        json = ('{"badkey":["A","B"],'
-                '"index":["2","3"],'
-                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+        json = StringIO('{"badkey":["A","B"],'
+                        '"index":["2","3"],'
+                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
         self.assertRaises(TypeError, read_json, json,
                           orient="split")
 
     def test_frame_from_json_nones(self):
         df = DataFrame([[1, 2], [4, 5, 6]])
-        unser = read_json(df.to_json())
+        unser = read_json(df.to_json(None))
         self.assert_(np.isnan(unser['2'][0]))
 
         df = DataFrame([['1', '2'], ['4', '5', '6']])
-        unser = read_json(df.to_json())
+        unser = read_json(df.to_json(None))
         self.assert_(unser['2'][0] is None)
 
-        unser = read_json(df.to_json(), numpy=False)
+        unser = read_json(df.to_json(None), numpy=False)
         self.assert_(unser['2'][0] is None)
 
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
         df[2][0] = np.inf
-        unser = read_json(df.to_json())
+        unser = read_json(df.to_json(None))
         self.assert_(np.isnan(unser['2'][0]))
 
         df[2][0] = np.NINF
-        unser = read_json(df.to_json())
+        unser = read_json(df.to_json(None))
         self.assert_(np.isnan(unser['2'][0]))
 
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
-        self.assertRaises(ValueError, df.to_json, orient="garbage")
+        self.assertRaises(ValueError, df.to_json, None, orient="garbage")
 
     def test_series_from_json_to_json(self):
 
         def _check_orient(series, orient, dtype=None, numpy=True):
             series = series.sort_index()
-            unser = read_json(series.to_json(orient=orient), typ='series',
+            unser = read_json(series.to_json(None,orient=orient), typ='series',
                               orient=orient, numpy=numpy, dtype=dtype)
             unser = unser.sort_index()
             if series.index.dtype.type == np.datetime64:
@@ -222,8 +223,8 @@ class TestPandasObjects(unittest.TestCase):
 
         # basic
         _check_all_orients(self.series)
-        self.assertEqual(self.series.to_json(),
-                         self.series.to_json(orient="index"))
+        self.assertEqual(self.series.to_json(None).read(),
+                         self.series.to_json(None,orient="index").read())
 
         objSeries = Series([str(d) for d in self.objSeries],
                            index=self.objSeries.index,
@@ -239,18 +240,35 @@ class TestPandasObjects(unittest.TestCase):
 
     def test_series_to_json_except(self):
         s = Series([1, 2, 3])
-        self.assertRaises(ValueError, s.to_json, orient="garbage")
+        self.assertRaises(ValueError, s.to_json, None, orient="garbage")
 
     def test_typ(self):
 
         s = Series(range(6), index=['a','b','c','d','e','f'])
-        result = read_json(s.to_json(),typ=None)
+        result = read_json(s.to_json(None),typ=None)
         assert_series_equal(result,s)
 
     def test_reconstruction_index(self):
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
-        result = read_json(df.to_json())
+        result = read_json(df.to_json(None))
 
         # the index is serialized as strings....correct?
         #assert_frame_equal(result,df)
+
+    @network
+    @slow
+    def test_url(self):
+        import urllib2
+        try:
+            # HTTP(S)
+            url = 'https://api.github.com/repos/pydata/pandas/issues?per_page=5'
+            result = read_json(url)
+            #print result
+            
+            url = 'http://search.twitter.com/search.json?q=pandas%20python'
+            result = read_json(url)
+            #print result
+            
+        except urllib2.URLError:
+            raise nose.SkipTest

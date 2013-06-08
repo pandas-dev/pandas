@@ -23,7 +23,6 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
 from pandas.tseries.period import Period
-import json
 
 
 class DateConversionError(Exception):

@@ -1,6 +1,8 @@
 
 # pylint: disable-msg=E1101,W0613,W0603
 from pandas import Series, DataFrame
+from pandas.io.common import get_filepath_or_buffer
+from StringIO import StringIO
 
 import pandas.json as _json
 loads = _json.loads
@@ -8,16 +10,18 @@ dumps = _json.dumps
 
 ### interface to/from ###
 
-def to_json(obj, orient=None, double_precision=10,
+def to_json(path_or_buf, obj, orient=None, double_precision=10,
             force_ascii=True):
         """
-        Convert the object to a JSON string.
+        Convert the object to a JSON string
 
         Note NaN's and None will be converted to null and datetime objects
         will be converted to UNIX timestamps.
 
         Parameters
         ----------
+        path_or_buf : the pathname or buffer to write the output
+            if this is None, return a StringIO of the converted string
         orient : {'split', 'records', 'index', 'columns', 'values'},
             default is 'index' for Series, 'columns' for DataFrame
 
@@ -34,7 +38,9 @@ def to_json(obj, orient=None, double_precision=10,
 
         Returns
         -------
-        result : JSON compatible string
+        result : a JSON compatible string written to the path_or_buf;
+                 if the path_or_buf is none, return a StringIO of the result
+
         """
         
         if orient is None:
@@ -43,16 +49,27 @@ def to_json(obj, orient=None, double_precision=10,
             elif isinstance(obj, DataFrame):
                 orient = 'columns'
 
-        return dumps(obj, orient=orient, double_precision=double_precision,
-                     ensure_ascii=force_ascii)
+        s = dumps(obj, orient=orient, double_precision=double_precision,
+                          ensure_ascii=force_ascii)
+        if isinstance(path_or_buf, basestring):
+            with open(path_or_buf,'w') as fh:
+                fh.write(s)
+        elif path_or_buf is None:
+            return StringIO(s)
+        else:
+            path_or_buf.write(s)
 
-def read_json(json, typ='frame', orient=None, dtype=None, numpy=True):
+def read_json(filepath_or_buffer=None, json=None, typ='frame', orient=None, dtype=None, numpy=True):
     """
     Convert JSON string to pandas object
 
     Parameters
     ----------
-    json : The JSON string to parse.
+    filepath_or_buffer : a VALID JSON StringIO or file handle / StringIO. The string could be
+        a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
+        is expected. For instance, a local file could be
+        file ://localhost/path/to/table.json
+    json : a VALID JSON string, optional, used if filepath_or_buffer is not provided
     typ : type of object to recover (series or frame), default 'frame'
     orient : {'split', 'records', 'index'}, default 'index'
         The format of the JSON string
@@ -68,6 +85,16 @@ def read_json(json, typ='frame', orient=None, dtype=None, numpy=True):
     -------
     result : Series or DataFrame
     """
+
+    if json is None:
+        filepath_or_buffer,_ = get_filepath_or_buffer(filepath_or_buffer)
+        if isinstance(filepath_or_buffer, basestring):
+                with open(filepath_or_buffer,'r') as fh:
+                        json = fh.read()
+        elif hasattr(filepath_or_buffer, 'read'):
+                json = filepath_or_buffer.read()
+        else:
+                json = filepath_or_buffer
 
     obj = None
     if typ == 'frame':

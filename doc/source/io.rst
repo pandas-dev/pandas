@@ -939,7 +939,6 @@ The Series object also has a ``to_string`` method, but with only the ``buf``,
 which, if set to ``True``, will additionally output the length of the Series.
 
 
-
 JSON
 ----
 
@@ -953,6 +952,8 @@ Writing JSON
 A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
 with optional parameters:
 
+- path_or_buf : the pathname or buffer to write the output
+  This can be ``None`` in which case a ``StringIO`` converted string is returned
 - orient : The format of the JSON string, default is ``index`` for ``Series``, ``columns`` for ``DataFrame``
 
   * split   : dict like {index -> [index], columns -> [columns], data -> [values]}
@@ -969,8 +970,8 @@ Note NaN's and None will be converted to null and datetime objects will be conve
 .. ipython:: python
 
    df = DataFrame(randn(10, 2), columns=list('AB'))
-   s = df.to_json()
-   s
+   json = df.to_json(None)
+   json.getvalue()
 
 Reading JSON
 ~~~~~~~~~~~~
@@ -979,7 +980,11 @@ Reading a JSON string to pandas object can take a number of parameters.
 The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
 is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 
-- json   : The JSON string to parse.
+- filepath_or_buffer : a **VALID** JSON string or file handle / StringIO. The string could be
+  a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
+  is expected. For instance, a local file could be
+  file ://localhost/path/to/table.json
+- json : a VALID JSON string, optional, used if filepath_or_buffer is not provided
 - typ    : type of object to recover (series or frame), default 'frame'
 - orient : The format of the JSON string, one of the following
 
@@ -993,9 +998,17 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
 not parsable.
 
+Reading from a JSON string
+
 .. ipython:: python
 
-   pd.read_json(s)
+   pd.read_json(json='{"0":{"0":1,"1":3},"1":{"0":2,"1":4}}')
+
+Reading from a StringIO
+
+.. ipython:: python
+
+   pd.read_json(json)
 
 HTML
 ----
