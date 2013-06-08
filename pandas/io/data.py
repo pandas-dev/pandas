@@ -246,18 +246,12 @@ def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
 
     start, end = _sanitize_dates(start, end)
 
-    yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
+    google_URL = 'http://www.google.com/finance/historical?'
 
-    url = yahoo_URL + 's=%s' % sym + \
-        '&a=%s' % (start.month - 1) + \
-        '&b=%s' % start.day + \
-        '&c=%s' % start.year + \
-        '&d=%s' % (end.month - 1) + \
-        '&e=%s' % end.day + \
-        '&f=%s' % end.year + \
-        '&g=d' + \
-        '&ignore=.csv'
-
+    # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
+    url = google_URL + urllib.urlencode({"q": sym, \
+        "startdate": start.strftime('%b %d, %Y'), \
+        "enddate": end.strftime('%b %d, %Y'), "output": "csv" })
     for _ in range(retry_count):
         resp = urllib2.urlopen(url)
         if resp.code == 200:
@@ -265,16 +259,11 @@ def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
             rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
                           parse_dates=True)[::-1]
 
-            # Yahoo! Finance sometimes does this awesome thing where they
-            # return 2 rows for the most recent business day
-            if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
-                rs = rs[:-1]
-
             return rs
 
         time.sleep(pause)
 
-    raise Exception("after %d tries, Yahoo did not "
+    raise Exception("after %d tries, Google did not "
                     "return a 200 for url %s" % (pause, url))
 
 
@@ -448,11 +437,10 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
     return hist_data
 
 def get_data_google(symbols=None, start=None, end=None, retry_count=3, pause=0,
-                   adjust_price=False, ret_index=False, chunksize=25,
-                   **kwargs):
+                   chunksize=25, **kwargs):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
-    range, start to end. To avoid being penalized by Yahoo! Finance servers,
+    range, start to end. To avoid being penalized by Google Finance servers,
     pauses between downloading 'chunks' of symbols can be specified.
 
     Parameters
@@ -470,12 +458,6 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3, pause=0,
     pause : int, default 0
         Time, in seconds, to pause between consecutive queries of chunks. If
         single value given for symbol, represents the pause between retries.
-    adjust_price : bool, default False
-        If True, adjusts all prices in hist_data ('Open', 'High', 'Low', 'Close')
-        based on 'Adj Close' price. Adds 'Adj_Ratio' column and drops
-        'Adj Close'.
-    ret_index : bool, default False
-        If True, includes a simple return index 'Ret_Index' in hist_data.
     chunksize : int, default 25
         Number of symbols to download consecutively before intiating pause.
 
@@ -518,11 +500,6 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3, pause=0,
             hist_data = dl_mult_symbols(symbols)
         except TypeError:
             hist_data = dl_mult_symbols(Series(symbols))
-
-    if(ret_index):
-        hist_data['Ret_Index'] = _calc_return_index(hist_data['Adj Close'])
-    if(adjust_price):
-        hist_data = _adjust_prices(hist_data)
 
     return hist_data
 
