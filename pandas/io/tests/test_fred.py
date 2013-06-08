@@ -29,7 +29,7 @@ class TestFred(unittest.TestCase):
         try:
             self.assertEquals(
                 web.DataReader("GDP", "fred", start, end)['GDP'].tail(1),
-                16010.2)
+                16004.5)
 
             self.assertRaises(
                 Exception,
