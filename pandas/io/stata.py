@@ -21,7 +21,8 @@ from pandas.core.categorical import Categorical
 import datetime
 from pandas.util import py3compat
 from pandas import isnull
-from pandas.io.parsers import _parser_params, _is_url, Appender
+from pandas.io.parsers import _parser_params, Appender
+from pandas.io.common import get_filepath_or_buffer
 
 
 _read_stata_doc = """
@@ -288,18 +289,12 @@ class StataReader(StataParser):
         self._missing_values = False
         self._data_read = False
         self._value_labels_read = False
-        if isinstance(path_or_buf, str) and _is_url(path_or_buf):
-            from urllib.request import urlopen
-            path_or_buf = urlopen(path_or_buf)
-            if py3compat.PY3:  # pragma: no cover
-                if self._encoding:
-                    errors = 'strict'
-                else:
-                    errors = 'replace'
-                    self._encoding = 'cp1252'
-                bytes = path_or_buf.read()
-                self.path_or_buf = StringIO(self._decode_bytes(bytes, errors))
-        elif type(path_or_buf) is str:
+        if isinstance(path_or_buf, str):
+            path_or_buf, encoding = get_filepath_or_buffer(path_or_buf, encoding='cp1252')
+            if encoding is not None:
+                self._encoding = encoding
+
+        if type(path_or_buf) is str:
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
             self.path_or_buf = path_or_buf

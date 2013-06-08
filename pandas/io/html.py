@@ -20,7 +20,7 @@ except ImportError:
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
-from pandas.io.parsers import _is_url
+from pandas.io.common import _is_url
 
 
 try:
