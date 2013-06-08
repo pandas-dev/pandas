@@ -22,6 +22,18 @@
 Trellis plotting interface
 **************************
 
+.. note::
+
+   The tips data set can be downloaded `here
+   <http://wesmckinney.com/files/tips.csv>`_. Once you download it execute
+
+   .. code-block:: python
+
+      from pandas import read_csv
+      tips_data = read_csv('tips.csv')
+
+   from the directory where you downloaded the file.
+
 We import the rplot API:
 
 .. ipython:: python
@@ -38,7 +50,7 @@ RPlot is a flexible API for producing Trellis plots. These plots allow you to ar
 
    plt.figure()
 
-   plot = rplot.RPlot(tips_data, x='totbill', y='tip')
+   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
    plot.add(rplot.TrellisGrid(['sex', 'smoker']))
    plot.add(rplot.GeomHistogram())
 
@@ -51,7 +63,7 @@ In the example above, data from the tips data set is arranged by the attributes 
 
    plt.figure()
 
-   plot = rplot.RPlot(tips_data, x='totbill', y='tip')
+   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
    plot.add(rplot.TrellisGrid(['sex', 'smoker']))
    plot.add(rplot.GeomDensity())
 
@@ -64,7 +76,7 @@ Example above is the same as previous except the plot is set to kernel density e
 
    plt.figure()
 
-   plot = rplot.RPlot(tips_data, x='totbill', y='tip')
+   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
    plot.add(rplot.TrellisGrid(['sex', 'smoker']))
    plot.add(rplot.GeomScatter())
    plot.add(rplot.GeomPolyFit(degree=2))
@@ -78,7 +90,7 @@ The plot above shows that it is possible to have two or more plots for the same 
 
    plt.figure()
 
-   plot = rplot.RPlot(tips_data, x='totbill', y='tip')
+   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
    plot.add(rplot.TrellisGrid(['sex', 'smoker']))
    plot.add(rplot.GeomScatter())
    plot.add(rplot.GeomDensity2D())
@@ -92,7 +104,7 @@ Above is a similar plot but with 2D kernel desnity estimation plot superimposed.
 
    plt.figure()
 
-   plot = rplot.RPlot(tips_data, x='totbill', y='tip')
+   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
    plot.add(rplot.TrellisGrid(['sex', '.']))
    plot.add(rplot.GeomHistogram())
 
@@ -105,7 +117,7 @@ It is possible to only use one attribute for grouping data. The example above on
 
    plt.figure()
 
-   plot = rplot.RPlot(tips_data, x='totbill', y='tip')
+   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
    plot.add(rplot.TrellisGrid(['.', 'smoker']))
    plot.add(rplot.GeomHistogram())
 
@@ -118,11 +130,11 @@ If the first grouping attribute is not specified the plots will be arranged in a
 
    plt.figure()
 
-   plot = rplot.RPlot(tips_data, x='totbill', y='tip')
+   plot = rplot.RPlot(tips_data, x='total_bill', y='tip')
    plot.add(rplot.TrellisGrid(['.', 'smoker']))
    plot.add(rplot.GeomHistogram())
 
-   plot = rplot.RPlot(tips_data, x='tip', y='totbill')
+   plot = rplot.RPlot(tips_data, x='tip', y='total_bill')
    plot.add(rplot.TrellisGrid(['sex', 'smoker']))
    plot.add(rplot.GeomPoint(size=80.0, colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'), alpha=1.0))
 
