@@ -2,8 +2,6 @@ import unittest
 import nose
 from datetime import datetime
 
-from pandas.util.py3compat import StringIO, BytesIO
-
 import pandas as pd
 import pandas.io.data as web
 from pandas.util.testing import (network, assert_frame_equal,
