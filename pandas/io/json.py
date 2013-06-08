@@ -36,6 +36,7 @@ def to_json(obj, orient=None, double_precision=10,
         -------
         result : JSON compatible string
         """
+        
         if orient is None:
             if isinstance(obj, Series):
                 orient = 'index'
@@ -60,7 +61,7 @@ def read_json(json, typ='frame', orient=None, dtype=None, numpy=True):
         records : list like [value, ... , value]
         index : dict like {index -> value}
     dtype : dtype of the resulting Series
-    nupmpy: direct decoding to numpy arrays. default True but falls back
+    numpy: direct decoding to numpy arrays. default True but falls back
         to standard decoding if a problem occurs.
 
     Returns

@@ -949,6 +949,22 @@ Read and write ``JSON`` format files.
 
 Writing JSON
 ~~~~~~~~~~~~
+ 
+A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
+with optional parameters:
+
+- orient : The format of the JSON string, default is ``index`` for ``Series``, ``columns`` for ``DataFrame``
+
+  * split   : dict like {index -> [index], columns -> [columns], data -> [values]}
+  * records : list like [{column -> value}, ... , {column -> value}]
+  * index   : dict like {index -> {column -> value}}
+  * columns : dict like {column -> {index -> value}}
+  * values  : just the values array
+
+- double_precision : The number of decimal places to use when encoding floating point values, default 10.
+- force_ascii : force encoded string to be ASCII, default True.
+
+Note NaN's and None will be converted to null and datetime objects will be converted to UNIX timestamps.
 
 .. ipython:: python
 
@@ -958,6 +974,24 @@ Writing JSON
 
 Reading JSON
 ~~~~~~~~~~~~
+
+Reading a JSON string to pandas object can take a number of parameters.
+The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
+is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
+
+- json   : The JSON string to parse.
+- typ    : type of object to recover (series or frame), default 'frame'
+- orient : The format of the JSON string, one of the following
+
+  * split : dict like {index -> [index], name -> name, data -> [values]}
+  * records : list like [value, ... , value]
+  * index : dict like {index -> value}
+
+- dtype : dtype of the resulting Series
+- numpy : direct decoding to numpy arrays. default True but falls back to standard decoding if a problem occurs.
+
+The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
+not parsable.
 
 .. ipython:: python
 
