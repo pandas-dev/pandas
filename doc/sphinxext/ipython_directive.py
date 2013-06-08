@@ -64,15 +64,8 @@ import re
 import sys
 import tempfile
 
-# To keep compatibility with various python versions
-try:
-    from hashlib import md5
-except ImportError:
-    from md5 import md5
-
 # Third-party
 import matplotlib
-import sphinx
 from docutils.parsers.rst import directives
 from docutils import nodes
 from sphinx.util.compat import Directive
@@ -84,7 +77,6 @@ from IPython import Config, InteractiveShell
 from IPython.core.profiledir import ProfileDir
 from IPython.utils import io
 
-from pdb import set_trace
 
 #-----------------------------------------------------------------------------
 # Globals
@@ -205,6 +197,7 @@ class EmbeddedSphinxShell(object):
         config.InteractiveShell.autocall = False
         config.InteractiveShell.autoindent = False
         config.InteractiveShell.colors = 'NoColor'
+        config.InteractiveShell.cache_size = 0
 
         # create a profile so instance history isn't saved
         tmp_profile_dir = tempfile.mkdtemp(prefix='profile_')
