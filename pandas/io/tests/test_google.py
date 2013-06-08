@@ -42,9 +42,8 @@ class TestGoogle(unittest.TestCase):
     @slow
     @network
     def test_get_quote(self):
-        df = web.get_quote_google(pd.Series(['GOOG', 'AAPL', 'GOOG']))
-        assert_series_equal(df.ix[0], df.ix[2])
-
+        self.assertRaises(NotImplementedError,
+                lambda: web.get_quote_google(pd.Series(['GOOG', 'AAPL', 'GOOG'])))
 
     @slow
     @network
