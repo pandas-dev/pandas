@@ -4,7 +4,6 @@ Module contains tools for processing files into DataFrames or other objects
 from StringIO import StringIO
 import re
 from itertools import izip
-import urlparse
 import csv
 
 import numpy as np
@@ -15,6 +14,7 @@ import datetime
 import pandas.core.common as com
 from pandas.util import py3compat
 from pandas.io.date_converters import generic_parser
+from pandas.io.common import get_filepath_or_buffer
 
 from pandas.util.decorators import Appender
 
@@ -176,35 +176,6 @@ fields if it is not spaces (e.g., '~').
 """ % (_parser_params % _fwf_widths)
 
 
-_VALID_URLS = set(urlparse.uses_relative + urlparse.uses_netloc +
-                  urlparse.uses_params)
-_VALID_URLS.discard('')
-
-
-def _is_url(url):
-    """Check to see if a URL has a valid protocol.
-
-    Parameters
-    ----------
-    url : str or unicode
-
-    Returns
-    -------
-    isurl : bool
-        If `url` has a valid protocol return True otherwise False.
-    """
-    try:
-        return urlparse.urlparse(url).scheme in _VALID_URLS
-    except:
-        return False
-
-def _is_s3_url(url):
-    """ Check for an s3 url """
-    try:
-        return urlparse.urlparse(url).scheme == 's3'
-    except:
-        return False
-
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
     encoding = kwds.get('encoding', None)
@@ -212,32 +183,7 @@ def _read(filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
-    if isinstance(filepath_or_buffer, basestring):
-        if _is_url(filepath_or_buffer):
-            from urllib2 import urlopen
-            filepath_or_buffer = urlopen(filepath_or_buffer)
-            if py3compat.PY3:  # pragma: no cover
-                if encoding:
-                    errors = 'strict'
-                else:
-                    errors = 'replace'
-                    encoding = 'utf-8'
-                bytes = filepath_or_buffer.read()
-                filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
-
-        if _is_s3_url(filepath_or_buffer):
-            try:
-                import boto
-            except:
-                raise ImportError("boto is required to handle s3 files")
-            # Assuming AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-            # are environment variables
-            parsed_url = urlparse.urlparse(filepath_or_buffer)
-            conn = boto.connect_s3()
-            b = conn.get_bucket(parsed_url.netloc)
-            k = boto.s3.key.Key(b)
-            k.key = parsed_url.path
-            filepath_or_buffer = StringIO(k.get_contents_as_string())
+    filepath_or_buffer, _ = get_filepath_or_buffer(filepath_or_buffer)
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):

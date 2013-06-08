@@ -185,7 +185,7 @@ class StataTests(unittest.TestCase):
     def test_stata_doc_examples(self):
         with ensure_clean(self.dta5) as path:
             df = DataFrame(np.random.randn(10,2),columns=list('AB'))
-            df.to_stata('path')
+            df.to_stata(path)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
