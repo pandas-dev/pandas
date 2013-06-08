@@ -930,89 +930,103 @@ They can be both positive and negative.
 
 .. ipython:: python
 
-    from datetime import datetime, timedelta
-    s  = Series(date_range('2012-1-1', periods=3, freq='D'))
-    td = Series([ timedelta(days=i) for i in range(3) ])
-    df = DataFrame(dict(A = s, B = td))
-    df
-    df['C'] = df['A'] + df['B']
-    df
-    df.dtypes
+   from datetime import datetime, timedelta
+   s  = Series(date_range('2012-1-1', periods=3, freq='D'))
+   td = Series([ timedelta(days=i) for i in range(3) ])
+   df = DataFrame(dict(A = s, B = td))
+   df
+   df['C'] = df['A'] + df['B']
+   df
+   df.dtypes
 
-    s - s.max()
-    s - datetime(2011,1,1,3,5)
-    s + timedelta(minutes=5)
+   s - s.max()
+   s - datetime(2011,1,1,3,5)
+   s + timedelta(minutes=5)
 
 Getting scalar results from a ``timedelta64[ns]`` series
+
+.. ipython:: python
+   :suppress:
+
+   from distutils.version import LooseVersion
 
 .. ipython:: python
 
    y = s - s[0]
    y
-   y.apply(lambda x: x.item().total_seconds())
-   y.apply(lambda x: x.item().days)
-   
-.. note:: 
 
-   These operations are different in numpy 1.6.2 and in numpy >= 1.7. The ``timedelta64[ns]`` scalar
-   type in 1.6.2 is much like a ``datetime.timedelta``, while in 1.7 it is a nanosecond based integer.
-   A future version of pandas will make this transparent.
+   if LooseVersion(np.__version__) <= '1.6.2':
+       y.apply(lambda x: x.item().total_seconds())
+       y.apply(lambda x: x.item().days)
+   else:
+       y.apply(lambda x: x / np.timedelta64(1, 's'))
+       y.apply(lambda x: x / np.timedelta64(1, 'D'))
 
-   These are the equivalent operation to above in numpy >= 1.7
+.. note::
 
-   ``y.apply(lambda x: x.item()/np.timedelta64(1,'s'))``
+   As you can see from the conditional statement above, these operations are
+   different in numpy 1.6.2 and in numpy >= 1.7. The ``timedelta64[ns]`` scalar
+   type in 1.6.2 is much like a ``datetime.timedelta``, while in 1.7 it is a
+   nanosecond based integer.  A future version of pandas will make this
+   transparent.
 
-   ``y.apply(lambda x: x.item()/np.timedelta64(1,'D'))``
+.. note::
+
+   In numpy >= 1.7 dividing a ``timedelta64`` array by another ``timedelta64``
+   array will yield an array with dtype ``np.float64``.
 
 Series of timedeltas with ``NaT`` values are supported
 
 .. ipython:: python
 
-    y = s - s.shift()
-    y
+   y = s - s.shift()
+   y
+
 The can be set to ``NaT`` using ``np.nan`` analagously to datetimes
 
 .. ipython:: python
 
-    y[1] = np.nan
-    y
+   y[1] = np.nan
+   y
 
 Operands can also appear in a reversed order (a singluar object operated with a Series)
 
 .. ipython:: python
 
-    s.max() - s
-    datetime(2011,1,1,3,5) - s
-    timedelta(minutes=5) + s
+   s.max() - s
+   datetime(2011,1,1,3,5) - s
+   timedelta(minutes=5) + s
 
 Some timedelta numeric like operations are supported.
 
 .. ipython:: python
 
-    td - timedelta(minutes=5,seconds=5,microseconds=5)
+   td - timedelta(minutes=5, seconds=5, microseconds=5)
 
 ``min, max`` and the corresponding ``idxmin, idxmax`` operations are support on frames
 
 .. ipython:: python
 
-    df = DataFrame(dict(A = s - Timestamp('20120101')-timedelta(minutes=5,seconds=5),
-                        B = s - Series(date_range('2012-1-2', periods=3, freq='D'))))
-    df
+   A = s - Timestamp('20120101') - timedelta(minutes=5, seconds=5)
+   B = s - Series(date_range('2012-1-2', periods=3, freq='D'))
 
+   df = DataFrame(dict(A=A, B=B))
+   df
 
-    df.min()
-    df.min(axis=1)
+   df.min()
+   df.min(axis=1)
 
-    df.idxmin()
-    df.idxmax()
+   df.idxmin()
+   df.idxmax()
 
-``min, max`` operations are support on series, these return a single element ``timedelta64[ns]`` Series (this avoids
-having to deal with numpy timedelta64 issues). ``idxmin, idxmax`` are supported as well.
+``min, max`` operations are support on series, these return a single element
+``timedelta64[ns]`` Series (this avoids having to deal with numpy timedelta64
+issues). ``idxmin, idxmax`` are supported as well.
 
 .. ipython:: python
 
-    df.min().max()
-    df.min(axis=1).min()
+   df.min().max()
+   df.min(axis=1).min()
 
-    df.min().idxmax()
-    df.min(axis=1).idxmin()
+   df.min().idxmax()
+   df.min(axis=1).idxmin()
