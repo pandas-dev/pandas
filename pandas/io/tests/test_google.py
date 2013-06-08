@@ -4,9 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 import pandas.io.data as web
-from pandas.util.testing import (network, assert_frame_equal,
-                                 assert_series_equal,
-                                 assert_almost_equal)
+from pandas.util.testing import (network, assert_series_equal)
 from numpy.testing.decorators import slow
 
 import urllib2
