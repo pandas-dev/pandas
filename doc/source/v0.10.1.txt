@@ -69,7 +69,7 @@ Retrieving unique values in an indexable or data column.
 
    import warnings
    with warnings.catch_warnings():
-       warnings.simplefilter('ignore', category=DeprecationWarning)
+       warnings.simplefilter('ignore', category=UserWarning)
        store.unique('df','index')
        store.unique('df','string')
 

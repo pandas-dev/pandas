@@ -5,14 +5,14 @@
    :suppress:
 
    import numpy as np
+   from numpy.random import randn, rand, randint
    np.random.seed(123456)
-   from pandas import *
+   from pandas import DataFrame, Series, date_range, options
    import pandas.util.testing as tm
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
-   options.display.mpl_style='default'
+   options.display.mpl_style = 'default'
 
 ************************
 Plotting with matplotlib
@@ -60,8 +60,7 @@ On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
 
 .. ipython:: python
 
-   df = DataFrame(randn(1000, 4), index=ts.index,
-                  columns=['A', 'B', 'C', 'D'])
+   df = DataFrame(randn(1000, 4), index=ts.index, columns=list('ABCD'))
    df = df.cumsum()
 
    @savefig frame_plot_basic.png width=6in
@@ -101,7 +100,7 @@ You can plot one column versus another using the `x` and `y` keywords in
 
    plt.figure()
 
-   df3 = DataFrame(np.random.randn(1000, 2), columns=['B', 'C']).cumsum()
+   df3 = DataFrame(randn(1000, 2), columns=['B', 'C']).cumsum()
    df3['A'] = Series(range(len(df)))
 
    @savefig df_plot_xy.png width=6in
@@ -169,7 +168,7 @@ Here is the default behavior, notice how the x-axis tick labelling is performed:
    df.A.plot()
 
 
-Using the ``x_compat`` parameter, you can suppress this bevahior:
+Using the ``x_compat`` parameter, you can suppress this behavior:
 
 .. ipython:: python
 
@@ -201,6 +200,15 @@ Targeting different subplots
 You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
 
 .. ipython:: python
+   :suppress:
+
+   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
+   ts = ts.cumsum()
+
+   df = DataFrame(randn(1000, 4), index=ts.index, columns=list('ABCD'))
+   df = df.cumsum()
+
+.. ipython:: python
 
    fig, axes = plt.subplots(nrows=2, ncols=2)
    df['A'].plot(ax=axes[0,0]); axes[0,0].set_title('A')
@@ -209,6 +217,7 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
 
    @savefig series_plot_multi.png width=6in
    df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
+
 
 .. _visualization.other:
 
@@ -239,7 +248,7 @@ bar plot:
 
 .. ipython:: python
 
-   df2 = DataFrame(np.random.rand(10, 4), columns=['a', 'b', 'c', 'd'])
+   df2 = DataFrame(rand(10, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig bar_plot_multi_ex.png width=5in
    df2.plot(kind='bar');
@@ -298,10 +307,10 @@ New since 0.10.0, the ``by`` keyword can be specified to plot grouped histograms
 
 .. ipython:: python
 
-   data = Series(np.random.randn(1000))
+   data = Series(randn(1000))
 
    @savefig grouped_hist.png width=6in
-   data.hist(by=np.random.randint(0, 4, 1000))
+   data.hist(by=randint(0, 4, 1000))
 
 
 .. _visualization.box:
@@ -317,7 +326,7 @@ a uniform random variable on [0,1).
 
 .. ipython:: python
 
-   df = DataFrame(np.random.rand(10,5))
+   df = DataFrame(rand(10,5))
    plt.figure();
 
    @savefig box_plot_ex.png width=6in
@@ -328,7 +337,7 @@ groupings.  For instance,
 
 .. ipython:: python
 
-   df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+   df = DataFrame(rand(10,2), columns=['Col1', 'Col2'] )
    df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
 
    plt.figure();
@@ -341,7 +350,7 @@ columns:
 
 .. ipython:: python
 
-   df = DataFrame(np.random.rand(10,3), columns=['Col1', 'Col2', 'Col3'])
+   df = DataFrame(rand(10,3), columns=['Col1', 'Col2', 'Col3'])
    df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
    df['Y'] = Series(['A','B','A','B','A','B','A','B','A','B'])
 
@@ -361,7 +370,7 @@ Scatter plot matrix
 .. ipython:: python
 
    from pandas.tools.plotting import scatter_matrix
-   df = DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
+   df = DataFrame(randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig scatter_matrix_kde.png width=6in
    scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
@@ -378,7 +387,7 @@ setting `kind='kde'`:
 
 .. ipython:: python
 
-   ser = Series(np.random.randn(1000))
+   ser = Series(randn(1000))
 
    @savefig kde_plot.png width=6in
    ser.plot(kind='kde')
@@ -444,7 +453,7 @@ implies that the underlying data are not random.
 
    plt.figure()
 
-   data = Series(0.1 * np.random.random(1000) +
+   data = Series(0.1 * rand(1000) +
       0.9 * np.sin(np.linspace(-99 * np.pi, 99 * np.pi, num=1000)))
 
    @savefig lag_plot.png width=6in
@@ -467,7 +476,7 @@ confidence band.
 
    plt.figure()
 
-   data = Series(0.7 * np.random.random(1000) +
+   data = Series(0.7 * rand(1000) +
       0.3 * np.sin(np.linspace(-9 * np.pi, 9 * np.pi, num=1000)))
 
    @savefig autocorrelation_plot.png width=6in
@@ -488,7 +497,7 @@ are what constitutes the bootstrap plot.
 
    from pandas.tools.plotting import bootstrap_plot
 
-   data = Series(np.random.random(1000))
+   data = Series(rand(1000))
 
    @savefig bootstrap_plot.png width=6in
    bootstrap_plot(data, size=50, samples=500, color='grey')
