@@ -188,7 +188,7 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
 def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
                     pause=0, **kwargs):
     """
-    Get historical data for the given name from yahoo.
+    Get historical data for the given name from google.
     Date format is datetime
 
     Returns a DataFrame.
