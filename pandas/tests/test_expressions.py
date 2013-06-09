@@ -48,10 +48,12 @@ class TestExpressions(unittest.TestCase):
     def tearDown(self):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
+    #TODO: add test for Panel
+    #TODO: add tests for binary operations
     @nose.tools.nottest
     def run_arithmetic_test(self, df, assert_func, check_dtype=False):
         expr._MIN_ELEMENTS = 0
-        operations = ['add', 'sub', 'mul', 'truediv']
+        operations = ['add', 'sub', 'mul','mod','truediv','floordiv','pow']
         if not py3compat.PY3:
             operations.append('div')
         for arith in operations:
