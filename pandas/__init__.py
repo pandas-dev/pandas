@@ -75,7 +75,7 @@ import pandas.tseries.api as tseries_api
 import pandas.io.api as io_api
 __all__ = ["debug", "value_range", "merge", "concat", "ordered_merge",
         "pivot_table", "crosstab", "scatter_matrix", "plot_params",
-        "cut", "qcut", "melt"]
+        "cut", "qcut", "melt", "np"]
 __all__.extend(core_api.__all__)
 __all__.extend(sparse_api.__all__)
 __all__.extend(stats_api.__all__)
