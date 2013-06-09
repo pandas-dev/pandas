@@ -82,6 +82,9 @@ pandas 0.11.1
   - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
   - DatetimeIndexes no longer try to convert mixed-integer indexes during join
     operations (GH3877_)
+  - Add ``unit`` keyword to ``Timestamp`` and ``to_datetime`` to enable passing of
+    integers or floats that are in an epoch unit of ``s, ms, us, ns``
+    (e.g. unix timestamps or epoch ``s``, with fracional seconds allowed) (GH3540_)
 
 **API Changes**
 
@@ -264,6 +267,7 @@ pandas 0.11.1
 .. _GH3499: https://github.com/pydata/pandas/issues/3499
 .. _GH3495: https://github.com/pydata/pandas/issues/3495
 .. _GH3492: https://github.com/pydata/pandas/issues/3492
+.. _GH3540: https://github.com/pydata/pandas/issues/3540
 .. _GH3552: https://github.com/pydata/pandas/issues/3552
 .. _GH3562: https://github.com/pydata/pandas/issues/3562
 .. _GH3586: https://github.com/pydata/pandas/issues/3586
