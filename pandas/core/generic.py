@@ -495,8 +495,8 @@ class PandasObject(object):
         from pandas.io import clipboard
         clipboard.to_clipboard(self)
 
-    def to_json(self, path_or_buf=None, orient=None, double_precision=10,
-                force_ascii=True):
+    def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
+                double_precision=10, force_ascii=True):
         """
         Convert the object to a JSON string.
 
@@ -517,6 +517,8 @@ class PandasObject(object):
             index : dict like {index -> {column -> value}}
             columns : dict like {column -> {index -> value}}
             values : just the values array
+        date_format : type of date conversion (epoch = epoch milliseconds, iso = ISO8601),
+            default is epoch
         double_precision : The number of decimal places to use when encoding
             floating point values, default 10.
         force_ascii : force encoded string to be ASCII, default True.
@@ -529,8 +531,8 @@ class PandasObject(object):
         """
 
         from pandas.io import json
-        return json.to_json(path_or_buf=path_or_buf, obj=self, orient=orient, double_precision=double_precision,
-                            force_ascii=force_ascii)
+        return json.to_json(path_or_buf=path_or_buf, obj=self, orient=orient, date_format=date_format,
+                            double_precision=double_precision, force_ascii=force_ascii)
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():

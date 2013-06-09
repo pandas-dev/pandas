@@ -32,7 +32,6 @@ _tsframe = DataFrame(_tsd)
 
 _mixed_frame = _frame.copy()
 
-
 class TestPandasObjects(unittest.TestCase):
 
     def setUp(self):
@@ -266,13 +265,19 @@ class TestPandasObjects(unittest.TestCase):
 
     def test_axis_dates(self):
 
-        # axis conversion
+        # frame
         json = self.tsframe.to_json()
         result = read_json(json)
         assert_frame_equal(result,self.tsframe)
 
+        # series
+        json = self.ts.to_json()
+        result = read_json(json,typ='series')
+        assert_series_equal(result,self.ts)
+
     def test_parse_dates(self):
 
+        # frame
         df = self.tsframe.copy()
         df['date'] = Timestamp('20130101')
 
@@ -284,6 +289,30 @@ class TestPandasObjects(unittest.TestCase):
         json = df.to_json()
         result = read_json(json,parse_dates=True)
         assert_frame_equal(result,df)
+
+        # series
+        ts = Series(Timestamp('20130101'),index=self.ts.index)
+        json = ts.to_json()
+        result = read_json(json,typ='series',parse_dates=True)
+        assert_series_equal(result,ts)
+
+    def test_date_format(self):
+        
+        df = self.tsframe.copy()
+        df['date'] = Timestamp('20130101')
+        df_orig = df.copy()
+
+        json = df.to_json(date_format='iso')
+        result = read_json(json,parse_dates=True)
+        assert_frame_equal(result,df_orig)
+
+        # make sure that we did in fact copy
+        assert_frame_equal(df,df_orig)
+
+        ts = Series(Timestamp('20130101'),index=self.ts.index)
+        json = ts.to_json(date_format='iso')
+        result = read_json(json,typ='series',parse_dates=True)
+        assert_series_equal(result,ts)
 
     @network
     @slow

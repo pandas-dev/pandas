@@ -962,15 +962,25 @@ with optional parameters:
   * columns : dict like {column -> {index -> value}}
   * values  : just the values array
 
+- date_format : type of date conversion (epoch = epoch milliseconds, iso = ISO8601), default is epoch
 - double_precision : The number of decimal places to use when encoding floating point values, default 10.
 - force_ascii : force encoded string to be ASCII, default True.
 
-Note NaN's and None will be converted to null and datetime objects will be converted to UNIX timestamps.
+Note NaN's and None will be converted to null and datetime objects will be converted based on the date_format parameter
 
 .. ipython:: python
 
    dfj = DataFrame(randn(5, 2), columns=list('AB'))
    json = dfj.to_json()
+   json
+
+Writing in iso date format
+
+.. ipython:: python
+
+   dfd = DataFrame(randn(5, 2), columns=list('AB'))
+   dfd['date'] = Timestamp('20130101')
+   json = dfd.to_json(date_format='iso')
    json
 
 Writing to a file, with a date index and a date column
@@ -1003,7 +1013,7 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 
 - dtype : dtype of the resulting object
 - numpy : direct decoding to numpy arrays. default True but falls back to standard decoding if a problem occurs.
-- parse_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
+- parse_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is False
 - keep_default_dates : boolean, default True. If parsing dates, then parse the default datelike columns
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
