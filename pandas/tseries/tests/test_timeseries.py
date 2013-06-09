@@ -2718,10 +2718,17 @@ class TestTimestamp(unittest.TestCase):
         check(val/1000000L,unit='ms')
         check(val/1000000000L,unit='s')
 
-        # get chopped
-        check((val+500000)/1000000000L,unit='s')
-        check((val+500000000)/1000000000L,unit='s')
-        check((val+500000)/1000000L,unit='ms')
+        # using truediv, so these are like floats
+        if py3compat.PY3:
+            check((val+500000)/1000000000L,unit='s',us=500)
+            check((val+500000000)/1000000000L,unit='s',us=500000)
+            check((val+500000)/1000000L,unit='ms',us=500)
+
+        # get chopped in py2
+        else:
+            check((val+500000)/1000000000L,unit='s')
+            check((val+500000000)/1000000000L,unit='s')
+            check((val+500000)/1000000L,unit='ms')
 
         # ok
         check((val+500000)/1000L,unit='us',us=500)

@@ -50,7 +50,7 @@ def _maybe_get_tz(tz):
 
 
 def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
-                format=None, coerce=False, unit=None):
+                format=None, coerce=False, unit='ns'):
     """
     Convert argument to datetime
 
@@ -70,7 +70,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         strftime to parse time, eg "%d/%m/%Y"
     coerce : force errors to NaT (False by default)
     unit : unit of the arg (s,ms,us,ns) denote the unit in epoch
-        (e.g. a unix timestamp)
+        (e.g. a unix timestamp), which is an integer/float number
 
     Returns
     -------

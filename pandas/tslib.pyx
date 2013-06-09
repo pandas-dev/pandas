@@ -1254,7 +1254,6 @@ cdef inline _get_datetime64_nanos(object val):
 cdef inline int64_t cast_from_unit(object unit, object ts):
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
-    p = 0
     if unit == 's':
         m = 1000000000L
         p = 6
@@ -1266,6 +1265,7 @@ cdef inline int64_t cast_from_unit(object unit, object ts):
         p = 0
     else:
         m = 1L
+        p = 0
 
     # just give me the unit back
     if ts is None:
