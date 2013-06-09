@@ -12,7 +12,6 @@ import urllib2
 
 class TestGoogle(unittest.TestCase):
 
-    @slow
     @network
     def test_google(self):
         # asserts that google is minimally working and that it throws
@@ -39,13 +38,11 @@ class TestGoogle(unittest.TestCase):
                 raise
 
 
-    @slow
     @network
     def test_get_quote(self):
         self.assertRaises(NotImplementedError,
                 lambda: web.get_quote_google(pd.Series(['GOOG', 'AAPL', 'GOOG'])))
 
-    @slow
     @network
     def test_get_data(self):
         import numpy as np
