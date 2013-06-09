@@ -5,6 +5,7 @@ from StringIO import StringIO
 import re
 from itertools import izip
 import csv
+from warnings import warn
 
 import numpy as np
 
@@ -425,35 +426,6 @@ def read_fwf(filepath_or_buffer, colspecs=None, widths=None, **kwds):
     kwds['colspecs'] = colspecs
     kwds['engine'] = 'python-fwf'
     return _read(filepath_or_buffer, kwds)
-
-
-def read_clipboard(**kwargs):  # pragma: no cover
-    """
-    Read text from clipboard and pass to read_table. See read_table for the
-    full argument list
-
-    Returns
-    -------
-    parsed : DataFrame
-    """
-    from pandas.util.clipboard import clipboard_get
-    text = clipboard_get()
-    return read_table(StringIO(text), **kwargs)
-
-
-def to_clipboard(obj):  # pragma: no cover
-    """
-    Attempt to write text representation of object to the system clipboard
-
-    Notes
-    -----
-    Requirements for your platform
-      - Linux: xsel command line tool
-      - Windows: Python win32 extensions
-      - OS X:
-    """
-    from pandas.util.clipboard import clipboard_set
-    clipboard_set(str(obj))
 
 
 # common NA values
@@ -1940,15 +1912,25 @@ class FixedWidthFieldParser(PythonParser):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter)
 
 
+##### deprecations in 0.11.1 #####
+##### remove in 0.12         #####
+
+from pandas.io import clipboard
+def read_clipboard(**kwargs):
+    warn("read_clipboard is now a top-level accessible via pandas.read_clipboard", FutureWarning)
+    clipboard.read_clipboard(**kwargs)
+
+def to_clipboard(obj):
+    warn("to_clipboard is now an object level method accessible via obj.to_clipboard()", FutureWarning)
+    clipboard.to_clipboard(obj)
+
 from pandas.io import excel
 class ExcelWriter(excel.ExcelWriter):
     def __init__(self, path):
-        from warnings import warn
         warn("ExcelWriter can now be imported from: pandas.io.excel", FutureWarning)
         super(ExcelWriter, self).__init__(path)
 
 class ExcelFile(excel.ExcelFile):
     def __init__(self, path_or_buf, kind=None, **kwds):
-        from warnings import warn
         warn("ExcelFile can now be imported from: pandas.io.excel", FutureWarning)
         super(ExcelFile, self).__init__(path_or_buf, kind=kind, **kwds)

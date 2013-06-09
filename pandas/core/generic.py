@@ -492,8 +492,8 @@ class PandasObject(object):
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
     def to_clipboard(self):
-        from pandas.io import parsers
-        parsers.to_clipboard(self)
+        from pandas.io import clipboard
+        clipboard.to_clipboard(self)
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():
