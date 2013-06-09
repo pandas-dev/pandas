@@ -127,6 +127,7 @@ pandas 0.11.1
     - added ``pandas.io.api`` for i/o imports
     - removed ``Excel`` support to ``pandas.io.excel``
     - added top-level ``pd.read_sql`` and ``to_sql`` DataFrame methods
+    - removed ``clipboard`` support to ``pandas.io.clipboard``
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
   - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
