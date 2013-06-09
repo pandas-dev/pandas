@@ -14,7 +14,6 @@ import urllib2
 
 class TestYahoo(unittest.TestCase):
 
-    @slow
     @network
     def test_yahoo(self):
         # asserts that yahoo is minimally working and that it throws
@@ -41,14 +40,12 @@ class TestYahoo(unittest.TestCase):
                 raise
 
 
-    @slow
     @network
     def test_get_quote(self):
         df = web.get_quote_yahoo(pd.Series(['GOOG', 'AAPL', 'GOOG']))
         assert_series_equal(df.ix[0], df.ix[2])
 
 
-    @slow
     @network
     def test_get_components(self):
 
@@ -69,7 +66,6 @@ class TestYahoo(unittest.TestCase):
         assert 'GOOG' in df.index
         assert 'AMZN' in df.index
 
-    @slow
     @network
     def test_get_data(self):
         import numpy as np
