@@ -495,7 +495,7 @@ class PandasObject(object):
         from pandas.io import clipboard
         clipboard.to_clipboard(self)
 
-    def to_json(self, path_or_buf, orient=None, double_precision=10,
+    def to_json(self, path_or_buf=None, orient=None, double_precision=10,
                 force_ascii=True):
         """
         Convert the object to a JSON string.
@@ -529,7 +529,7 @@ class PandasObject(object):
         """
 
         from pandas.io import json
-        return json.to_json(path_or_buf, self, orient=orient, double_precision=double_precision,
+        return json.to_json(path_or_buf=path_or_buf, obj=self, orient=orient, double_precision=double_precision,
                             force_ascii=force_ascii)
 
 # install the indexerse

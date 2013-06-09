@@ -953,7 +953,7 @@ A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_
 with optional parameters:
 
 - path_or_buf : the pathname or buffer to write the output
-  This can be ``None`` in which case a ``StringIO`` converted string is returned
+  This can be ``None`` in which case a JSON string is returned
 - orient : The format of the JSON string, default is ``index`` for ``Series``, ``columns`` for ``DataFrame``
 
   * split   : dict like {index -> [index], columns -> [columns], data -> [values]}
@@ -969,9 +969,19 @@ Note NaN's and None will be converted to null and datetime objects will be conve
 
 .. ipython:: python
 
-   df = DataFrame(randn(10, 2), columns=list('AB'))
-   json = df.to_json(None)
-   json.getvalue()
+   dfj = DataFrame(randn(5, 2), columns=list('AB'))
+   json = dfj.to_json()
+   json
+
+Writing to a file, with a date index and a date column
+
+.. ipython:: python
+
+   dfj2 = dfj.copy()
+   dfj2['date'] = Timestamp('20130101')
+   dfj2.index = date_range('20130101',periods=5)
+   dfj2.to_json('test.json')
+   open('test.json').read()
 
 Reading JSON
 ~~~~~~~~~~~~
@@ -984,7 +994,6 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
   a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
   is expected. For instance, a local file could be
   file ://localhost/path/to/table.json
-- json : a VALID JSON string, optional, used if filepath_or_buffer is not provided
 - typ    : type of object to recover (series or frame), default 'frame'
 - orient : The format of the JSON string, one of the following
 
@@ -992,8 +1001,10 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
   * records : list like [value, ... , value]
   * index : dict like {index -> value}
 
-- dtype : dtype of the resulting Series
+- dtype : dtype of the resulting object
 - numpy : direct decoding to numpy arrays. default True but falls back to standard decoding if a problem occurs.
+- parse_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
+- keep_default_dates : boolean, default True. If parsing dates, then parse the default datelike columns
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
 not parsable.
@@ -1002,13 +1013,19 @@ Reading from a JSON string
 
 .. ipython:: python
 
-   pd.read_json(json='{"0":{"0":1,"1":3},"1":{"0":2,"1":4}}')
+   pd.read_json(json)
 
-Reading from a StringIO
+Reading from a file, parsing dates
 
 .. ipython:: python
 
-   pd.read_json(json)
+   pd.read_json('test.json',parse_dates=True)
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('test.json')
 
 HTML
 ----
