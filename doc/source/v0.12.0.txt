@@ -96,6 +96,12 @@ API changes
     and thus you should cast to an appropriate numeric dtype if you need to
     plot something.
 
+  - Add ``colormap`` keyword to DataFrame plotting methods. Accepts either a 
+    matplotlib colormap object (ie, matplotlib.cm.jet) or a string name of such 
+    an object (ie, 'jet'). The colormap is sampled to select the color for each 
+    column. Please see :ref:`visualization.colormaps` for more information.
+    (:issue:`3860`)
+
   - ``DataFrame.interpolate()`` is now deprecated. Please use
     ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (:issue:`3582`,
     :issue:`3675`, :issue:`3676`)
