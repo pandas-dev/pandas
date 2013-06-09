@@ -4750,15 +4750,16 @@ class DataFrame(NDFrame):
             mask = np.isfinite(mat)
             for i, ac in enumerate(mat):
                 for j, bc in enumerate(mat):
-                    valid = mask[i] & mask[j]
-                    if valid.sum() < min_periods:
-                        c = NA
-                    elif not valid.all():
-                        c = corrf(ac[valid], bc[valid])
-                    else:
-                        c = corrf(ac, bc)
-                    correl[i, j] = c
-                    correl[j, i] = c
+                    if i <= j:
+                        valid = mask[i] & mask[j]
+                        if valid.sum() < min_periods:
+                            c = NA
+                        elif not valid.all():
+                            c = corrf(ac[valid], bc[valid])
+                        else:
+                            c = corrf(ac, bc)
+                        correl[i, j] = c
+                        correl[j, i] = c
 
         return self._constructor(correl, index=cols, columns=cols)
 
