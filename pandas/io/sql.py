@@ -51,7 +51,7 @@ def execute(sql, con, retry=True, cur=None, params=None):
         except Exception:  # pragma: no cover
             pass
 
-        print 'Error on sql %s' % sql
+        print ('Error on sql %s' % sql)
         raise
 
 
@@ -94,7 +94,7 @@ def tquery(sql, con=None, cur=None, retry=True):
         except Exception, e:
             excName = e.__class__.__name__
             if excName == 'OperationalError':  # pragma: no cover
-                print 'Failed to commit, may need to restart interpreter'
+                print ('Failed to commit, may need to restart interpreter')
             else:
                 raise
 
@@ -128,7 +128,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
 
         traceback.print_exc()
         if retry:
-            print 'Looks like your connection failed, reconnecting...'
+            print ('Looks like your connection failed, reconnecting...')
             return uquery(sql, con, retry=False)
     return result
 

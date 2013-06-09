@@ -73,7 +73,7 @@ def _convert_array(obj):
                             major_axis=name_list[0],
                             minor_axis=name_list[1])
         else:
-            print 'Cannot handle dim=%d' % len(dim)
+            print ('Cannot handle dim=%d' % len(dim))
     else:
         return arr
 

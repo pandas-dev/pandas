@@ -1899,4 +1899,4 @@ if __name__ == '__main__':
                     1134250., 1219550., 855736.85, 1042615.4286,
                     722621.3043, 698167.1818, 803750.])
     fmt = FloatArrayFormatter(arr, digits=7)
-    print fmt.get_result()
+    print (fmt.get_result())
