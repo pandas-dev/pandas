@@ -58,6 +58,10 @@ def DataReader(name, data_source=None, start=None, end=None,
         return get_data_yahoo(symbols=name, start=start, end=end,
                               adjust_price=False, chunk=25,
                               retry_count=retry_count, pause=pause)
+    elif(data_source == "google"):
+        return get_data_google(symbols=name, start=start, end=end,
+                              adjust_price=False, chunk=25,
+                              retry_count=retry_count, pause=pause)
     elif(data_source == "fred"):
         return get_data_fred(name=name, start=start, end=end)
     elif(data_source == "famafrench"):
@@ -132,6 +136,9 @@ def get_quote_yahoo(symbols):
     return DataFrame(data, index=idx)
 
 
+def get_quote_google(symbols):
+    raise NotImplementedError("Google Finance doesn't have this functionality")
+
 def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
                     pause=0, **kwargs):
     """
@@ -175,6 +182,41 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
         time.sleep(pause)
 
     raise Exception("after %d tries, Yahoo did not "
+                    "return a 200 for url %s" % (pause, url))
+
+
+def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
+                    pause=0, **kwargs):
+    """
+    Get historical data for the given name from google.
+    Date format is datetime
+
+    Returns a DataFrame.
+    """
+    if(sym is None):
+        warnings.warn("Need to provide a name.")
+        return None
+
+    start, end = _sanitize_dates(start, end)
+
+    google_URL = 'http://www.google.com/finance/historical?'
+
+    # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
+    url = google_URL + urllib.urlencode({"q": sym, \
+        "startdate": start.strftime('%b %d, %Y'), \
+        "enddate": end.strftime('%b %d, %Y'), "output": "csv" })
+    for _ in range(retry_count):
+        resp = urllib2.urlopen(url)
+        if resp.code == 200:
+            lines = resp.read()
+            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
+                          parse_dates=True)[::-1]
+
+            return rs
+
+        time.sleep(pause)
+
+    raise Exception("after %d tries, Google did not "
                     "return a 200 for url %s" % (pause, url))
 
 
@@ -347,6 +389,72 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
 
     return hist_data
 
+def get_data_google(symbols=None, start=None, end=None, retry_count=3, pause=0,
+                   chunksize=25, **kwargs):
+    """
+    Returns DataFrame/Panel of historical stock prices from symbols, over date
+    range, start to end. To avoid being penalized by Google Finance servers,
+    pauses between downloading 'chunks' of symbols can be specified.
+
+    Parameters
+    ----------
+    symbols : string, array-like object (list, tuple, Series), or DataFrame
+        Single stock symbol (ticker), array-like object of symbols or
+        DataFrame with index containing stock symbols.
+    start : string, (defaults to '1/1/2010')
+        Starting date, timestamp. Parses many different kind of date
+        representations (e.g., 'JAN-01-2010', '1/1/10', 'Jan, 1, 1980')
+    end : string, (defaults to today)
+        Ending date, timestamp. Same format as starting date.
+    retry_count : int, default 3
+        Number of times to retry query request.
+    pause : int, default 0
+        Time, in seconds, to pause between consecutive queries of chunks. If
+        single value given for symbol, represents the pause between retries.
+    chunksize : int, default 25
+        Number of symbols to download consecutively before intiating pause.
+
+    Returns
+    -------
+    hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
+    """
+
+    def dl_mult_symbols(symbols):
+        stocks = {}
+        for sym_group in _in_chunks(symbols, chunksize):
+            for sym in sym_group:
+                try:
+                    stocks[sym] = _get_hist_google(sym, start=start,
+                                                  end=end, **kwargs)
+                except:
+                    warnings.warn('Error with sym: ' + sym + '... skipping.')
+
+            time.sleep(pause)
+
+        return Panel(stocks).swapaxes('items', 'minor')
+
+    if 'name' in kwargs:
+        warnings.warn("Arg 'name' is deprecated, please use 'symbols' instead.",
+                      FutureWarning)
+        symbols = kwargs['name']
+
+    #If a single symbol, (e.g., 'GOOG')
+    if isinstance(symbols, (str, int)):
+        sym = symbols
+        hist_data = _get_hist_google(sym, start=start, end=end)
+    #Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
+    elif isinstance(symbols, DataFrame):
+        try:
+            hist_data = dl_mult_symbols(Series(symbols.index))
+        except ValueError:
+            raise
+    else: #Guess a Series
+        try:
+            hist_data = dl_mult_symbols(symbols)
+        except TypeError:
+            hist_data = dl_mult_symbols(Series(symbols))
+
+    return hist_data
 
 def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
                   end=dt.datetime.today()):
