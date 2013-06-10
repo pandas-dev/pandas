@@ -1,4 +1,5 @@
 """ io on the clipboard """
+from StringIO import StringIO
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -10,6 +11,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
     parsed : DataFrame
     """
     from pandas.util.clipboard import clipboard_get
+    from pandas.io.parsers import table
     text = clipboard_get()
     return read_table(StringIO(text), **kwargs)
 
