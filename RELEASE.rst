@@ -79,6 +79,8 @@ pandas 0.11.1
     spurious plots from showing up.
   - Added Faq section on repr display options, to help users customize their setup.
   - ``where`` operations that result in block splitting are much faster (GH3733_)
+  - ``groupby`` will now warn with a ``PerformanceWarning`` if an aggregate function
+    returns an array or list, instead of raising an error. (GH3788_)
 
 **API Changes**
 
@@ -312,6 +314,7 @@ pandas 0.11.1
 .. _GH3726: https://github.com/pydata/pandas/issues/3726
 .. _GH3795: https://github.com/pydata/pandas/issues/3795
 .. _GH3814: https://github.com/pydata/pandas/issues/3814
+.. _GH3788: https://github.com/pydata/pandas/issues/3788
 
 pandas 0.11.0
 =============
