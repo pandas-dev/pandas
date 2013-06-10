@@ -974,6 +974,23 @@ class TestIndexing(unittest.TestCase):
                                          (key,ans,r))
         warnings.filterwarnings(action='always', category=UserWarning)
 
+    def test_ix_slicing_strings(self):
+        ##GH3836
+        data = {'Classification': ['SA EQUITY CFD', 'bbb', 'SA EQUITY', 'SA SSF', 'aaa'],
+                'Random': [1,2,3,4,5],
+                'X': ['correct', 'wrong','correct', 'correct','wrong']}
+        df = DataFrame(data)
+        x = df[~df.Classification.isin(['SA EQUITY CFD', 'SA EQUITY', 'SA SSF'])]
+        df.ix[x.index,'X'] = df['Classification']
+
+        expected = DataFrame({'Classification': {0: 'SA EQUITY CFD', 1: 'bbb',
+                                                2: 'SA EQUITY', 3: 'SA SSF', 4: 'aaa'},
+                            'Random': {0: 1, 1: 2, 2: 3, 3: 4, 4: 5},
+                            'X': {0: 'correct', 1: 'bbb', 2: 'correct',
+                            3: 'correct', 4: 'aaa'}})  # bug was 4: 'bbb'
+
+        assert_frame_equal(df, expected)
+
     def test_non_unique_loc(self):
         ## GH3659
         ## non-unique indexer with loc slice
