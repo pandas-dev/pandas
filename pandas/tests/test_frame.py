@@ -2510,7 +2510,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             arrays.append(('masked1_' + name,
                            np.ma.masked_array(arr, mask=[False, True])))
         arrays.append(('masked_all', np.ma.masked_all((2,))))
-        arrays.append(('masked_none', np.ma.masked_all((2,))))
+        arrays.append(('masked_none',
+                       np.ma.masked_array([1.0, 2.5], mask=False)))
 
         # call assert_frame_equal for all selections of 3 arrays
         for comb in itertools.combinations(arrays, 3):
