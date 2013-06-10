@@ -50,6 +50,7 @@ pandas 0.11.1
   - Added keyword parameters for different types of scatter_matrix subplots
   - A ``filter`` method on grouped Series or DataFrames returns a subset of
     the original (GH3680_, GH919_)
+  - Access to historical Google Finance data in pandas.io.data (GH3814_)
 
 **Improvements to existing features**
 
@@ -85,9 +86,9 @@ pandas 0.11.1
 
     - When removing an object, ``remove(key)`` raises
       ``KeyError`` if the key is not a valid store object.
-    - raise a ``TypeError`` on passing ``where`` or ``columns`` 
+    - raise a ``TypeError`` on passing ``where`` or ``columns``
       to select with a Storer; these are invalid parameters at this time
-    - can now specify an ``encoding`` option to ``append/put`` 
+    - can now specify an ``encoding`` option to ``append/put``
       to enable alternate encodings (GH3750_)
   - The repr() for (Multi)Index now obeys display.max_seq_items rather
     then numpy threshold print options. (GH3426_, GH3466_)
@@ -310,6 +311,7 @@ pandas 0.11.1
 .. _GH3750: https://github.com/pydata/pandas/issues/3750
 .. _GH3726: https://github.com/pydata/pandas/issues/3726
 .. _GH3795: https://github.com/pydata/pandas/issues/3795
+.. _GH3814: https://github.com/pydata/pandas/issues/3814
 
 pandas 0.11.0
 =============
