@@ -953,9 +953,14 @@ Reading HTML Content
 
 .. versionadded:: 0.11.1
 
-The toplevel :func:`~pandas.io.html.read_html` function can accept an HTML
+The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
 string/file/url and will parse HTML tables into list of pandas DataFrames.
 Let's look at a few examples.
+
+.. note::
+
+   ``read_html`` returns a ``list`` of ``DataFrame`` objects, even if there is
+   only a single table contained in the HTML content
 
 Read a URL with no options
 
@@ -967,107 +972,129 @@ Read a URL with no options
 
 .. note::
 
-   ``read_html`` returns a ``list`` of ``DataFrame`` objects, even if there is
-   only a single table contained in the HTML content
+   The data from the above URL changes every Monday so the resulting data above
+   and the data below may be slightly different.
 
-Read a URL and match a table that contains specific text
+Read in the content of the file from the above URL and pass it to ``read_html``
+as a string
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   file_path = os.path.abspath(os.path.join('source', '_static', 'banklist.html'))
 
 .. ipython:: python
 
+   with open(file_path, 'r') as f:
+       dfs = read_html(f.read())
+   dfs
+
+You can even pass in an instance of ``StringIO`` if you so desire
+
+.. ipython:: python
+
+   from cStringIO import StringIO
+
+   with open(file_path, 'r') as f:
+       sio = StringIO(f.read())
+
+   dfs = read_html(sio)
+   dfs
+
+.. note::
+
+   The following examples are not run by the IPython evaluator due to the fact
+   that having so many network-accessing functions slows down the documentation
+   build. If you spot an error or an example that doesn't run, please do not
+   hesitate to report it over on `pandas GitHub issues page
+   <http://www.github.com/pydata/pandas/issues>`__.
+
+
+Read a URL and match a table that contains specific text
+
+.. code-block:: python
+
    match = 'Metcalf Bank'
    df_list = read_html(url, match=match)
-   len(dfs)
-   dfs[0]
 
 Specify a header row (by default ``<th>`` elements are used to form the column
 index); if specified, the header row is taken from the data minus the parsed
 header elements (``<th>`` elements).
 
-.. ipython:: python
+.. code-block:: python
 
    dfs = read_html(url, header=0)
-   len(dfs)
-   dfs[0]
 
 Specify an index column
 
-.. ipython:: python
+.. code-block:: python
 
    dfs = read_html(url, index_col=0)
-   len(dfs)
-   dfs[0]
-   dfs[0].index.name
 
 Specify a number of rows to skip
 
-.. ipython:: python
+.. code-block:: python
 
    dfs = read_html(url, skiprows=0)
-   len(dfs)
-   dfs[0]
 
 Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
 as well)
 
-.. ipython:: python
+.. code-block:: python
 
    dfs = read_html(url, skiprows=range(2))
-   len(dfs)
-   dfs[0]
 
 Don't infer numeric and date types
 
-.. ipython:: python
+.. code-block:: python
 
    dfs = read_html(url, infer_types=False)
-   len(dfs)
-   dfs[0]
 
 Specify an HTML attribute
 
-.. ipython:: python
+.. code-block:: python
 
    dfs1 = read_html(url, attrs={'id': 'table'})
    dfs2 = read_html(url, attrs={'class': 'sortable'})
-   np.array_equal(dfs1[0], dfs2[0])
+   print np.array_equal(dfs1[0], dfs2[0])  # Should be True
 
 Use some combination of the above
 
-.. ipython:: python
+.. code-block:: python
 
    dfs = read_html(url, match='Metcalf Bank', index_col=0)
-   len(dfs)
-   dfs[0]
 
 Read in pandas ``to_html`` output (with some loss of floating point precision)
 
-.. ipython:: python
+.. code-block:: python
 
    df = DataFrame(randn(2, 2))
    s = df.to_html(float_format='{0:.40g}'.format)
    dfin = read_html(s, index_col=0)
-   df
-   dfin[0]
-   df.index
-   df.columns
-   dfin[0].index
-   dfin[0].columns
-   np.allclose(df, dfin[0])
 
-``lxml`` will raise an error on a failed parse if that is the only parser you
-provide
+The ``lxml`` backend will raise an error on a failed parse if that is the only
+parser you provide (if you only have a single parser you can provide just a
+string, but it is considered good practice to pass a list with one string if,
+for example, the function expects a sequence of strings)
 
-.. ipython:: python
+.. code-block:: python
 
-   dfs = read_html(url, match='Metcalf Bank', index_col=0, flavor=['lxml'])
+   dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml'])
+
+or
+
+.. code-block:: python
+
+   dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor='lxml')
 
 However, if you have bs4 and html5lib installed and pass ``None`` or ``['lxml',
 'bs4']`` then the parse will most likely succeed. Note that *as soon as a parse
 succeeds, the function will return*.
 
-.. ipython:: python
+.. code-block:: python
 
-   dfs = read_html(url, match='Metcalf Bank', index_col=0, flavor=['lxml', 'bs4'])
+   dfs = read_html(url, 'Metcalf Bank', index_col=0, flavor=['lxml', 'bs4'])
 
 
 Writing to HTML files
@@ -1082,8 +1109,8 @@ in the method ``to_string`` described above.
 .. note::
 
    Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the full set of
-   options.
+   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
+   full set of options.
 
 .. ipython:: python
    :suppress:
