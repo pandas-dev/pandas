@@ -540,6 +540,15 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
             tm.assert_frame_equal(result1,result2)
             tm.assert_frame_equal(result2,result3)
 
+            result4 = read_csv(path, sep= ' ', header=0, na_values=['-999.0'])
+            result5 = read_csv(path, sep= ' ', header=0, na_values=['-999'])
+            result6 = read_csv(path, sep= ' ', header=0, na_values=[-999.0])
+            result7 = read_csv(path, sep= ' ', header=0, na_values=[-999])
+            tm.assert_frame_equal(result4,result3)
+            tm.assert_frame_equal(result5,result3)
+            tm.assert_frame_equal(result6,result3)
+            tm.assert_frame_equal(result7,result3)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row

@@ -1777,7 +1777,13 @@ def _stringify_na_values(na_values):
         result.append(str(x))
         result.append(x)
         try:
-            result.append(float(x))
+            v = float(x)
+
+            # we are like 999 here
+            if v == int(v):
+                v = int(v)
+                result.append("%s.0" % v)
+                result.append(str(v))
         except:
             pass
         try:
