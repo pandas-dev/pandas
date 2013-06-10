@@ -51,6 +51,7 @@ pandas 0.11.1
   - A ``filter`` method on grouped Series or DataFrames returns a subset of
     the original (GH3680_, GH919_)
   - Access to historical Google Finance data in pandas.io.data (GH3814_)
+  - Add pandas.msgpack submodule
 
 **Improvements to existing features**
 
