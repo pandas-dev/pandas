@@ -57,7 +57,7 @@ cdef extern from "src/headers/math.h":
     double fabs(double)
     int signbit(double)
 
-from . import lib
+from pandas import lib
 
 include "skiplist.pyx"
 

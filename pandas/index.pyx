@@ -15,8 +15,8 @@ import numpy as np
 
 cimport tslib
 from hashtable cimport *
-from . import algos, tslib, hashtable as _hash
-from .tslib import Timestamp
+from pandas import algos, tslib, hashtable as _hash
+from pandas.tslib import Timestamp
 
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)
@@ -34,7 +34,7 @@ try:
     import pytz
     UTC = pytz.utc
     have_pytz = True
-except:
+except ImportError:
     have_pytz = False
 
 PyDateTime_IMPORT
@@ -42,8 +42,6 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
 
-#     int PyList_Check(object)
-#     int PyTuple_Check(object)
 
 cdef inline is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
