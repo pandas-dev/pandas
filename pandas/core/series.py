@@ -3180,14 +3180,15 @@ class Series(pa.Array, generic.PandasObject):
         invalid = isnull(values)
         valid = -invalid
 
-        firstIndex = valid.argmax()
-        valid = valid[firstIndex:]
-        invalid = invalid[firstIndex:]
-        inds = inds[firstIndex:]
-
         result = values.copy()
-        result[firstIndex:][invalid] = np.interp(inds[invalid], inds[valid],
-                                                 values[firstIndex:][valid])
+        if valid.any():
+            firstIndex = valid.argmax()
+            valid = valid[firstIndex:]
+            invalid = invalid[firstIndex:]
+            inds = inds[firstIndex:]
+
+            result[firstIndex:][invalid] = np.interp(
+                inds[invalid], inds[valid], values[firstIndex:][valid])
 
         return Series(result, index=self.index, name=self.name)
 

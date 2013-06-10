@@ -4063,6 +4063,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # try time interpolation on a non-TimeSeries
         self.assertRaises(Exception, self.series.interpolate, method='time')
 
+    def test_interpolate_corners(self):
+        s = Series([np.nan, np.nan])
+        assert_series_equal(s.interpolate(), s)
+
+        s = Series([]).interpolate()
+        assert_series_equal(s.interpolate(), s)
+
     def test_interpolate_index_values(self):
         s = Series(np.nan, index=np.sort(np.random.rand(30)))
         s[::3] = np.random.randn(10)
