@@ -539,6 +539,20 @@ class TestBlockManager(unittest.TestCase):
         except KeyError:
             pass  # this is the expected exception
 
+class TestTopLevelImports(object):
+    def test_pandas_imports_all__all__(self):
+        # import these so we can add them to __all__
+        import pandas.core.api as core_api
+        import pandas.sparse.api as sparse_api
+        import pandas.stats.api as stats_api
+        import pandas.tseries.api as tseries_api
+        import pandas.io.api as io_api
+        import pandas
+        missing = []
+        for api in (core_api, sparse_api, stats_api, tseries_api, io_api):
+            missing.extend([attr for attr in api.__all__ if not hasattr(pandas, attr)])
+        assert not missing, "Expected pandas to import all `__all__` from api files. Missing: %r" % missing
+
 if __name__ == '__main__':
     # unittest.main()
     import nose
