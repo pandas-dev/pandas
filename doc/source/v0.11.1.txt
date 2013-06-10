@@ -288,6 +288,8 @@ Enhancements
 
        dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
 
+  - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
+
 
 Bug Fixes
 ~~~~~~~~~
@@ -396,3 +398,4 @@ on GitHub for a complete list.
 .. _GH3741: https://github.com/pydata/pandas/issues/3741
 .. _GH3726: https://github.com/pydata/pandas/issues/3726
 .. _GH3425: https://github.com/pydata/pandas/issues/3425
+.. _GH3834: https://github.com/pydata/pandas/issues/3834
