@@ -1260,6 +1260,8 @@ DataFrame into clipboard and reading it back.
 
     obj
 
+We can see that we got the same content back, which we had earlier written to the clipboard.
+
 
 
 
