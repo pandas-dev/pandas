@@ -314,6 +314,29 @@ class TestPandasObjects(unittest.TestCase):
         result = read_json(json,typ='series',parse_dates=True)
         assert_series_equal(result,ts)
 
+    def test_weird_nested_json(self):
+
+        # this used to core dump the parser
+        s = r'''{
+        "status": "success",
+        "data": {
+        "posts": [
+            {
+            "id": 1,
+            "title": "A blog post",
+            "body": "Some useful content"
+            },
+            {
+            "id": 2,
+            "title": "Another blog post",
+            "body": "More content"
+            }
+        ]
+    }
+}'''
+
+        read_json(s)
+
     @network
     @slow
     def test_url(self):

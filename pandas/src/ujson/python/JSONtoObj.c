@@ -10,6 +10,7 @@ typedef struct __PyObjectDecoder
     JSONObjectDecoder dec;
 
     void* npyarr;       // Numpy context buffer
+    void* npyarr_addr;  // Ref to npyarr ptr to track DECREF calls
     npy_intp curdim;    // Current array dimension
 
     PyArray_Descr* dtype;
@@ -67,9 +68,7 @@ void Npy_releaseContext(NpyArrContext* npyarr)
         }
         if (npyarr->dec)
         {
-            // Don't set to null, used to make sure we don't Py_DECREF npyarr
-            // in releaseObject
-            // npyarr->dec->npyarr = NULL;
+            npyarr->dec->npyarr = NULL;
             npyarr->dec->curdim = 0;
         }
         Py_XDECREF(npyarr->labels[0]);
@@ -88,6 +87,7 @@ JSOBJ Object_npyNewArray(void* _decoder)
     {
         // start of array - initialise the context buffer
         npyarr = decoder->npyarr = PyObject_Malloc(sizeof(NpyArrContext));
+        decoder->npyarr_addr = npyarr;
 
         if (!npyarr)
         {
@@ -515,7 +515,7 @@ JSOBJ Object_newDouble(double value)
 static void Object_releaseObject(JSOBJ obj, void* _decoder)
 {
     PyObjectDecoder* decoder = (PyObjectDecoder*) _decoder;
-    if (obj != decoder->npyarr)
+    if (obj != decoder->npyarr_addr)
     {
         Py_XDECREF( ((PyObject *)obj));
     }
@@ -555,11 +555,13 @@ PyObject* JSONToObj(PyObject* self, PyObject *args, PyObject *kwargs)
     pyDecoder.dec = dec;
     pyDecoder.curdim = 0;
     pyDecoder.npyarr = NULL;
+    pyDecoder.npyarr_addr = NULL;
 
     decoder = (JSONObjectDecoder*) &pyDecoder;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iiO&", kwlist, &sarg, &numpy, &labelled, PyArray_DescrConverter2, &dtype))
     {
+        Npy_releaseContext(pyDecoder.npyarr);
         return NULL;
     }
 
