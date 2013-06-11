@@ -20,7 +20,7 @@ except ImportError:
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
-from pandas.io.common import _is_url, _req_url
+from pandas.io.common import _is_url
 
 
 try:
@@ -107,8 +107,7 @@ def _get_skiprows_iter(skiprows):
 
 
 def _read(io):
-    """
-    Try to read from a url, file or string.
+    """Try to read from a url, file or string.
 
     Parameters
     ----------
@@ -119,8 +118,11 @@ def _read(io):
     raw_text : str
     """
     if _is_url(io):
-        _, buf_text = _req_url(io)
-        raw_text = buf_text.read()
+        try:
+            with contextlib.closing(urllib2.urlopen(io)) as url:
+                raw_text = url.read()
+        except urllib2.URLError:
+            raise ValueError('Invalid URL: "{0}"'.format(io))
     elif hasattr(io, 'read'):
         raw_text = io.read()
     elif os.path.isfile(io):
@@ -718,7 +720,7 @@ def _parser_dispatch(flavor):
         if not _HAS_HTML5LIB:
             raise ImportError("html5lib not found please install it")
         if not _HAS_BS4:
-            raise ImportError("bs4 (beautifulsoup4) not found please install it")
+            raise ImportError("bs4 not found please install it")
     else:
         if not _HAS_LXML:
             raise ImportError("lxml not found please install it")
@@ -756,9 +758,10 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types, attrs):
     for flav in flavor:
         parser = _parser_dispatch(flav)
         p = parser(io, compiled_match, attrs)
+
         try:
             tables = p.parse_tables()
-        except ValueError as caught:
+        except Exception as caught:
             retained = caught
         else:
             break

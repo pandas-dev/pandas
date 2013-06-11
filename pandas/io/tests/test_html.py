@@ -263,15 +263,14 @@ class TestReadHtmlBase(TestCase):
         assert_framelist_equal(df1, df2)
 
     def test_bad_url_protocol(self):
-        from urllib2 import URLError
-        self.assertRaises(URLError, self.run_read_html,
-                                'git://github.com', '.*Water.*')
+        self.assertRaises(ValueError, self.run_read_html, 'git://github.com',
+                          '.*Water.*')
 
     @slow
     def test_file_url(self):
         url = self.banklist_data
         dfs = self.run_read_html('file://' + url, 'First',
-                                    attrs={'id': 'table'})
+                                 attrs={'id': 'table'})
         self.assertIsInstance(dfs, list)
         for df in dfs:
             self.assertIsInstance(df, DataFrame)
