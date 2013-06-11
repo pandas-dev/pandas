@@ -297,6 +297,7 @@ def _make_parser_function(name, sep=','):
                  skipfooter=None,
                  skip_footer=0,
                  na_values=None,
+                 na_fvalues=None,
                  true_values=None,
                  false_values=None,
                  delimiter=None,
@@ -359,6 +360,7 @@ def _make_parser_function(name, sep=','):
                     prefix=prefix,
                     skiprows=skiprows,
                     na_values=na_values,
+                    na_fvalues=na_fvalues,
                     true_values=true_values,
                     false_values=false_values,
                     keep_default_na=keep_default_na,
@@ -554,7 +556,7 @@ class TextFileReader(object):
             converters = {}
 
         # Converting values to NA
-        na_values = _clean_na_values(na_values, keep_default_na)
+        na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
@@ -565,6 +567,7 @@ class TextFileReader(object):
         result['names'] = names
         result['converters'] = converters
         result['na_values'] = na_values
+        result['na_fvalues'] = na_fvalues
         result['skiprows'] = skiprows
 
         return result, engine
@@ -644,6 +647,7 @@ class ParserBase(object):
         self.keep_date_col = kwds.pop('keep_date_col', False)
 
         self.na_values = kwds.get('na_values')
+        self.na_fvalues = kwds.get('na_fvalues')
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
         self.tupleize_cols = kwds.get('tupleize_cols',True)
@@ -837,31 +841,34 @@ class ParserBase(object):
                 arr = self._date_conv(arr)
 
             col_na_values = self.na_values
+            col_na_fvalues = self.na_fvalues
 
             if isinstance(self.na_values, dict):
                 col_name = self.index_names[i]
                 if col_name is not None:
-                    col_na_values = _get_na_values(col_name,
-                                                   self.na_values)
-
-            arr, _ = self._convert_types(arr, col_na_values)
+                    col_na_values, col_na_fvalues = _get_na_values(col_name,
+                                                                   self.na_values,
+                                                                   self.na_fvalues)
+                    
+            arr, _ = self._convert_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
 
         index = MultiIndex.from_arrays(arrays, names=self.index_names)
 
         return index
 
-    def _convert_to_ndarrays(self, dct, na_values, verbose=False,
+    def _convert_to_ndarrays(self, dct, na_values, na_fvalues, verbose=False,
                              converters=None):
         result = {}
         for c, values in dct.iteritems():
             conv_f = None if converters is None else converters.get(c, None)
-            col_na_values = _get_na_values(c, na_values)
+            col_na_values, col_na_fvalues = _get_na_values(c, na_values, na_fvalues)
             coerce_type = True
             if conv_f is not None:
                 values = lib.map_infer(values, conv_f)
                 coerce_type = False
-            cvals, na_count = self._convert_types(values, col_na_values,
+            cvals, na_count = self._convert_types(values,
+                                                  set(col_na_values) | col_na_fvalues,
                                                   coerce_type)
             result[c] = cvals
             if verbose and na_count:
@@ -1370,7 +1377,7 @@ class PythonParser(ParserBase):
                 col = self.orig_names[col]
             clean_conv[col] = f
 
-        return self._convert_to_ndarrays(data, self.na_values, self.verbose,
+        return self._convert_to_ndarrays(data, self.na_values, self.na_fvalues, self.verbose,
                                          clean_conv)
 
     def _infer_columns(self):
@@ -1754,43 +1761,26 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
+
     if na_values is None and keep_default_na:
         na_values = _NA_VALUES
+        na_fvalues = set()
     elif isinstance(na_values, dict):
         if keep_default_na:
             for k, v in na_values.iteritems():
                 v = set(list(v)) | _NA_VALUES
                 na_values[k] = v
+        na_fvalues = dict([ (k, _floatify_na_values(v)) for k, v in na_values.items() ])
     else:
         if not com.is_list_like(na_values):
             na_values = [na_values]
-        na_values = set(_stringify_na_values(na_values))
+        na_values = _stringify_na_values(na_values)
         if keep_default_na:
             na_values = na_values | _NA_VALUES
 
-    return na_values
+        na_fvalues = _floatify_na_values(na_values)
 
-def _stringify_na_values(na_values):
-    """ return a stringified and numeric for these values """
-    result = []
-    for x in na_values:
-        result.append(str(x))
-        result.append(x)
-        try:
-            v = float(x)
-
-            # we are like 999 here
-            if v == int(v):
-                v = int(v)
-                result.append("%s.0" % v)
-                result.append(str(v))
-        except:
-            pass
-        try:
-            result.append(int(x))
-        except:
-            pass
-    return result
+    return na_values, na_fvalues
 
 def _clean_index_names(columns, index_col):
     if not _is_index_col(index_col):
@@ -1838,14 +1828,52 @@ def _get_empty_meta(columns, index_col, index_names):
     return index, columns, {}
 
 
-def _get_na_values(col, na_values):
+def _floatify_na_values(na_values):
+    # create float versions of the na_values
+    result = set()
+    for v in na_values:
+        try:
+            v = float(v)
+            if not np.isnan(v):
+                result.add(v)
+        except:
+            pass
+    return result
+
+def _stringify_na_values(na_values):
+    """ return a stringified and numeric for these values """
+    result = []
+    for x in na_values:
+        result.append(str(x))
+        result.append(x)
+        try:
+            v = float(x)
+
+            # we are like 999 here
+            if v == int(v):
+                v = int(v)
+                result.append("%s.0" % v)
+                result.append(str(v))
+
+            result.append(v)
+        except:
+            pass
+        try:
+            result.append(int(x))
+        except:
+            pass
+    return set(result)
+
+def _get_na_values(col, na_values, na_fvalues):
     if isinstance(na_values, dict):
         if col in na_values:
-            return set(_stringify_na_values(list(na_values[col])))
+            values = na_values[col]
+            fvalues = na_fvalues[col]
+            return na_values[col], na_fvalues[col]
         else:
-            return _NA_VALUES
+            return _NA_VALUES, set()
     else:
-        return na_values
+        return na_values, na_fvalues
 
 
 def _get_col_names(colspec, columns):
