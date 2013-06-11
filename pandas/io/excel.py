@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.io.parsers import TextParser
 from pandas.tseries.period import Period
-import json
+from pandas import json
 
 def read_excel(path_or_buf, sheetname, kind=None, **kwds):
     """Read an Excel table into a pandas DataFrame

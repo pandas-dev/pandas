@@ -2,6 +2,7 @@
 
 import urlparse
 from pandas.util import py3compat
+from StringIO import StringIO
 
 _VALID_URLS = set(urlparse.uses_relative + urlparse.uses_netloc +
                   urlparse.uses_params)

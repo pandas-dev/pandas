@@ -45,6 +45,16 @@ Excel
    read_excel
    ExcelFile.parse
 
+JSON
+~~~~
+
+.. currentmodule:: pandas.io.json
+
+.. autosummary::
+   :toctree: generated/
+
+   read_json
+
 HTML
 ~~~~
 
@@ -597,6 +607,7 @@ Serialization / IO / Conversion
    DataFrame.to_hdf
    DataFrame.to_dict
    DataFrame.to_excel
+   DataFrame.to_json
    DataFrame.to_html
    DataFrame.to_stata
    DataFrame.to_records

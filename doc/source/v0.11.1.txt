@@ -16,6 +16,7 @@ API changes
     * ``read_excel``
     * ``read_hdf``
     * ``read_sql``
+    * ``read_json``
     * ``read_html``
     * ``read_stata``
     * ``read_clipboard``
@@ -26,6 +27,7 @@ API changes
     * ``to_excel``
     * ``to_hdf``
     * ``to_sql``
+    * ``to_json``
     * ``to_html``
     * ``to_stata``
     * ``to_clipboard``
@@ -174,6 +176,10 @@ Enhancements
   - Added module for reading and writing Stata files: ``pandas.io.stata`` (GH1512_)
     accessable via ``read_stata`` top-level function for reading,
     and ``to_stata`` DataFrame method for writing, :ref:`See the docs<io.stata>`
+
+  - Added module for reading and writing json format files: ``pandas.io.json``
+    accessable via ``read_json`` top-level function for reading,
+    and ``to_json`` DataFrame method for writing, :ref:`See the docs<io.json>`
 
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs

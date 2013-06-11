@@ -35,6 +35,7 @@ object.
     * ``read_excel``
     * ``read_hdf``
     * ``read_sql``
+    * ``read_json``
     * ``read_html``
     * ``read_stata``
     * ``read_clipboard``
@@ -45,6 +46,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * ``to_excel``
     * ``to_hdf``
     * ``to_sql``
+    * ``to_json``
     * ``to_html``
     * ``to_stata``
     * ``to_clipboard``
@@ -936,6 +938,104 @@ The Series object also has a ``to_string`` method, but with only the ``buf``,
 ``na_rep``, ``float_format`` arguments. There is also a ``length`` argument
 which, if set to ``True``, will additionally output the length of the Series.
 
+
+JSON
+----
+
+Read and write ``JSON`` format files.
+
+.. _io.json:
+
+Writing JSON
+~~~~~~~~~~~~
+ 
+A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
+with optional parameters:
+
+- path_or_buf : the pathname or buffer to write the output
+  This can be ``None`` in which case a JSON string is returned
+- orient : The format of the JSON string, default is ``index`` for ``Series``, ``columns`` for ``DataFrame``
+
+  * split   : dict like {index -> [index], columns -> [columns], data -> [values]}
+  * records : list like [{column -> value}, ... , {column -> value}]
+  * index   : dict like {index -> {column -> value}}
+  * columns : dict like {column -> {index -> value}}
+  * values  : just the values array
+
+- date_format : type of date conversion (epoch = epoch milliseconds, iso = ISO8601), default is epoch
+- double_precision : The number of decimal places to use when encoding floating point values, default 10.
+- force_ascii : force encoded string to be ASCII, default True.
+
+Note NaN's and None will be converted to null and datetime objects will be converted based on the date_format parameter
+
+.. ipython:: python
+
+   dfj = DataFrame(randn(5, 2), columns=list('AB'))
+   json = dfj.to_json()
+   json
+
+Writing in iso date format
+
+.. ipython:: python
+
+   dfd = DataFrame(randn(5, 2), columns=list('AB'))
+   dfd['date'] = Timestamp('20130101')
+   json = dfd.to_json(date_format='iso')
+   json
+
+Writing to a file, with a date index and a date column
+
+.. ipython:: python
+
+   dfj2 = dfj.copy()
+   dfj2['date'] = Timestamp('20130101')
+   dfj2.index = date_range('20130101',periods=5)
+   dfj2.to_json('test.json')
+   open('test.json').read()
+
+Reading JSON
+~~~~~~~~~~~~
+
+Reading a JSON string to pandas object can take a number of parameters.
+The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
+is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
+
+- filepath_or_buffer : a **VALID** JSON string or file handle / StringIO. The string could be
+  a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
+  is expected. For instance, a local file could be
+  file ://localhost/path/to/table.json
+- typ    : type of object to recover (series or frame), default 'frame'
+- orient : The format of the JSON string, one of the following
+
+  * split : dict like {index -> [index], name -> name, data -> [values]}
+  * records : list like [value, ... , value]
+  * index : dict like {index -> value}
+
+- dtype : dtype of the resulting object
+- numpy : direct decoding to numpy arrays. default True but falls back to standard decoding if a problem occurs.
+- parse_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is False
+- keep_default_dates : boolean, default True. If parsing dates, then parse the default datelike columns
+
+The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
+not parsable.
+
+Reading from a JSON string
+
+.. ipython:: python
+
+   pd.read_json(json)
+
+Reading from a file, parsing dates
+
+.. ipython:: python
+
+   pd.read_json('test.json',parse_dates=True)
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('test.json')
 
 HTML
 ----
@@ -2193,7 +2293,6 @@ into a .dta file. The format version of this file is always the latest one, 115.
 
 .. ipython:: python
 
-   from pandas.io.stata import StataWriter
    df = DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
