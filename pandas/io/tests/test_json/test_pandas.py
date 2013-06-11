@@ -8,6 +8,7 @@ import operator
 import os
 import unittest
 
+import nose
 import numpy as np
 
 from pandas import Series, DataFrame, DatetimeIndex, Timestamp
