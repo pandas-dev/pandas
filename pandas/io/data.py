@@ -182,7 +182,7 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
         time.sleep(pause)
 
     raise Exception("after %d tries, Yahoo did not "
-                    "return a 200 for url %s" % (pause, url))
+                    "return a 200 for url %s" % (retry_count, url))
 
 
 def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
@@ -217,7 +217,7 @@ def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
         time.sleep(pause)
 
     raise Exception("after %d tries, Google did not "
-                    "return a 200 for url %s" % (pause, url))
+                    "return a 200 for url %s" % (retry_count, url))
 
 
 def _adjust_prices(hist_data, price_list=['Open', 'High', 'Low', 'Close']):
@@ -369,7 +369,9 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
     #If a single symbol, (e.g., 'GOOG')
     if isinstance(symbols, (str, int)):
         sym = symbols
-        hist_data = _get_hist_yahoo(sym, start=start, end=end)
+        hist_data = _get_hist_yahoo(sym, start=start, end=end,
+                                    retry_count=retry_count,
+                                    pause=pause)
     #Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
         try:
@@ -441,7 +443,9 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3, pause=0,
     #If a single symbol, (e.g., 'GOOG')
     if isinstance(symbols, (str, int)):
         sym = symbols
-        hist_data = _get_hist_google(sym, start=start, end=end)
+        hist_data = _get_hist_google(sym, start=start, end=end,
+                                     retry_count=retry_count,
+                                     pause=pause)
     #Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
         try:
