@@ -492,6 +492,16 @@ class PandasObject(object):
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
     def to_clipboard(self):
+        """
+        Attempt to write text representation of object to the system clipboard
+
+        Notes
+        -----
+        Requirements for your platform
+          - Linux: xclip, or xsel (with gtk or PyQt4 modules)
+          - Windows:
+          - OS X:
+        """
         from pandas.io import clipboard
         clipboard.to_clipboard(self)
 

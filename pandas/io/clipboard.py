@@ -23,8 +23,8 @@ def to_clipboard(obj):  # pragma: no cover
     Notes
     -----
     Requirements for your platform
-      - Linux: xsel command line tool
-      - Windows: Python win32 extensions
+      - Linux: xclip, or xsel (with gtk or PyQt4 modules)
+      - Windows:
       - OS X:
     """
     from pandas.util.clipboard import clipboard_set
