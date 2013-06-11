@@ -231,7 +231,7 @@ cdef class TextReader:
 
     cdef:
         parser_t *parser
-        object file_handle
+        object file_handle, na_fvalues
         bint factorize, na_filter, verbose, has_usecols, has_mi_columns
         int parser_start
         list clocks
@@ -294,6 +294,7 @@ cdef class TextReader:
 
                   na_filter=True,
                   na_values=None,
+                  na_fvalues=None,
                   true_values=None,
                   false_values=None,
 
@@ -391,6 +392,9 @@ cdef class TextReader:
         self.delim_whitespace = delim_whitespace
 
         self.na_values = na_values
+        if na_fvalues is None:
+           na_fvalues = set()
+        self.na_fvalues = na_fvalues
 
         self.true_values = _maybe_encode(true_values)
         self.false_values = _maybe_encode(false_values)
@@ -834,7 +838,7 @@ cdef class TextReader:
             Py_ssize_t i, nused, ncols
             kh_str_t *na_hashset = NULL
             int start, end
-            object name
+            object name, na_flist
             bint na_filter = 0
 
         start = self.parser_start
@@ -863,8 +867,9 @@ cdef class TextReader:
             conv = self._get_converter(i, name)
 
             # XXX
+            na_flist = set()
             if self.na_filter:
-                na_list = self._get_na_list(i, name)
+                na_list, na_flist = self._get_na_list(i, name)
                 if na_list is None:
                     na_filter = 0
                 else:
@@ -880,7 +885,7 @@ cdef class TextReader:
 
             # Should return as the desired dtype (inferred or specified)
             col_res, na_count = self._convert_tokens(i, start, end, name,
-                                                     na_filter, na_hashset)
+                                                     na_filter, na_hashset, na_flist)
 
             if na_filter:
                 self._free_na_set(na_hashset)
@@ -906,7 +911,8 @@ cdef class TextReader:
 
     cdef inline _convert_tokens(self, Py_ssize_t i, int start, int end,
                                 object name, bint na_filter,
-                                kh_str_t *na_hashset):
+                                kh_str_t *na_hashset,
+                                object na_flist):
         cdef:
             object col_dtype = None
 
@@ -930,7 +936,7 @@ cdef class TextReader:
                         col_dtype = np.dtype(col_dtype).str
 
                 return self._convert_with_dtype(col_dtype, i, start, end,
-                                                na_filter, 1, na_hashset)
+                                                na_filter, 1, na_hashset, na_flist)
 
         if i in self.noconvert:
             return self._string_convert(i, start, end, na_filter, na_hashset)
@@ -939,10 +945,10 @@ cdef class TextReader:
             for dt in dtype_cast_order:
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, 0, na_hashset)
+                        dt, i, start, end, na_filter, 0, na_hashset, na_flist)
                 except OverflowError:
                     col_res, na_count = self._convert_with_dtype(
-                        '|O8', i, start, end, na_filter, 0, na_hashset)
+                        '|O8', i, start, end, na_filter, 0, na_hashset, na_flist)
 
                 if col_res is not None:
                     break
@@ -953,7 +959,8 @@ cdef class TextReader:
                              int start, int end,
                              bint na_filter,
                              bint user_dtype,
-                             kh_str_t *na_hashset):
+                             kh_str_t *na_hashset,
+                             object na_flist):
         cdef kh_str_t *true_set, *false_set
 
         if dtype[1] == 'i' or dtype[1] == 'u':
@@ -969,7 +976,7 @@ cdef class TextReader:
 
         elif dtype[1] == 'f':
             result, na_count = _try_double(self.parser, i, start, end,
-                                           na_filter, na_hashset)
+                                           na_filter, na_hashset, na_flist)
 
             if dtype[1:] != 'f8':
                 result = result.astype(dtype)
@@ -1060,7 +1067,7 @@ cdef class TextReader:
 
     cdef _get_na_list(self, i, name):
         if self.na_values is None:
-            return None
+            return None, set()
 
         if isinstance(self.na_values, dict):
             values = None
@@ -1068,18 +1075,23 @@ cdef class TextReader:
                 values = self.na_values[name]
                 if values is not None and not isinstance(values, list):
                     values = list(values)
+                fvalues = self.na_fvalues[name]
+                if fvalues is not None and not isinstance(fvalues, set):
+                    fvalues = set(fvalues)
             else:
                 if i in self.na_values:
-                    return self.na_values[i]
+                    return self.na_values[i], self.na_fvalues[i]
                 else:
-                    return _NA_VALUES
+                    return _NA_VALUES, set()
 
-            return _ensure_encoded(values)
+            return _ensure_encoded(values), fvalues
         else:
             if not isinstance(self.na_values, list):
                 self.na_values = list(self.na_values)
+            if not isinstance(self.na_fvalues, set):
+                self.na_fvalues = set(self.na_fvalues)
 
-            return _ensure_encoded(self.na_values)
+            return _ensure_encoded(self.na_values), self.na_fvalues
 
     cdef _free_na_set(self, kh_str_t *table):
         kh_destroy_str(table)
@@ -1162,8 +1174,6 @@ def _maybe_upcast(arr):
 
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
-
-
 
 cdef _string_box_factorize(parser_t *parser, int col,
                            int line_start, int line_end,
@@ -1357,7 +1367,7 @@ cdef char* cinf = b'inf'
 cdef char* cneginf = b'-inf'
 
 cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
-                 bint na_filter, kh_str_t *na_hashset):
+                 bint na_filter, kh_str_t *na_hashset, object na_flist):
     cdef:
         int error, na_count = 0
         size_t i, lines
@@ -1367,6 +1377,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
         double NA = na_values[np.float64]
         ndarray result
         khiter_t k
+        bint use_na_flist = len(na_flist) > 0
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
@@ -1391,6 +1402,10 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
                         data[0] = NEGINF
                     else:
                         return None, None
+                if use_na_flist:
+                    if data[0] in na_flist:
+                        na_count += 1
+                        data[0] = NA
             data += 1
     else:
         for i in range(lines):
