@@ -561,62 +561,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         series = Series(data, dtype=float)
         self.assert_(series.dtype == np.float64)
 
-    def test_from_json_to_json(self):
-        raise nose.SkipTest
-
-        def _check_orient(series, orient, dtype=None, numpy=True):
-            series = series.sort_index()
-            unser = Series.from_json(series.to_json(orient=orient),
-                                     orient=orient, numpy=numpy, dtype=dtype)
-            unser = unser.sort_index()
-            if series.index.dtype.type == np.datetime64:
-                unser.index = DatetimeIndex(unser.index.values.astype('i8'))
-            if orient == "records" or orient == "values":
-                assert_almost_equal(series.values, unser.values)
-            else:
-                try:
-                    assert_series_equal(series, unser)
-                except:
-                    raise
-                if orient == "split":
-                    self.assert_(series.name == unser.name)
-
-        def _check_all_orients(series, dtype=None):
-            _check_orient(series, "columns", dtype=dtype)
-            _check_orient(series, "records", dtype=dtype)
-            _check_orient(series, "split", dtype=dtype)
-            _check_orient(series, "index", dtype=dtype)
-            _check_orient(series, "values", dtype=dtype)
-
-            _check_orient(series, "columns", dtype=dtype, numpy=False)
-            _check_orient(series, "records", dtype=dtype, numpy=False)
-            _check_orient(series, "split", dtype=dtype, numpy=False)
-            _check_orient(series, "index", dtype=dtype, numpy=False)
-            _check_orient(series, "values", dtype=dtype, numpy=False)
-
-        # basic
-        _check_all_orients(self.series)
-        self.assertEqual(self.series.to_json(),
-                         self.series.to_json(orient="index"))
-
-        objSeries = Series([str(d) for d in self.objSeries],
-                           index=self.objSeries.index,
-                           name=self.objSeries.name)
-        _check_all_orients(objSeries)
-        _check_all_orients(self.empty)
-        _check_all_orients(self.ts)
-
-        # dtype
-        s = Series(range(6), index=['a', 'b', 'c', 'd', 'e', 'f'])
-        _check_all_orients(Series(s, dtype=np.float64), dtype=np.float64)
-        _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
-
-
-    def test_to_json_except(self):
-        raise nose.SkipTest
-        s = Series([1, 2, 3])
-        self.assertRaises(ValueError, s.to_json, orient="garbage")
-
     def test_setindex(self):
         # wrong type
         series = self.series.copy()
