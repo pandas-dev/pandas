@@ -540,6 +540,36 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
             tm.assert_frame_equal(result1,result2)
             tm.assert_frame_equal(result2,result3)
 
+            result4 = read_csv(path, sep= ' ', header=0, na_values=['-999.0'])
+            result5 = read_csv(path, sep= ' ', header=0, na_values=['-999'])
+            result6 = read_csv(path, sep= ' ', header=0, na_values=[-999.0])
+            result7 = read_csv(path, sep= ' ', header=0, na_values=[-999])
+            tm.assert_frame_equal(result4,result3)
+            tm.assert_frame_equal(result5,result3)
+            tm.assert_frame_equal(result6,result3)
+            tm.assert_frame_equal(result7,result3)
+
+            good_compare = result3
+
+            # with an odd float format, so we can't match the string 999.0 exactly,
+            # but need float matching
+            df.to_csv(path, sep=' ', index=False, float_format = '%.3f')
+            result1 = read_csv(path, sep= ' ', header=0, na_values=['-999.0','-999'])
+            result2 = read_csv(path, sep= ' ', header=0, na_values=[-999,-999.0])
+            result3 = read_csv(path, sep= ' ', header=0, na_values=[-999.0,-999])
+            tm.assert_frame_equal(result1,good_compare)
+            tm.assert_frame_equal(result2,good_compare)
+            tm.assert_frame_equal(result3,good_compare)
+
+            result4 = read_csv(path, sep= ' ', header=0, na_values=['-999.0'])
+            result5 = read_csv(path, sep= ' ', header=0, na_values=['-999'])
+            result6 = read_csv(path, sep= ' ', header=0, na_values=[-999.0])
+            result7 = read_csv(path, sep= ' ', header=0, na_values=[-999])
+            tm.assert_frame_equal(result4,good_compare)
+            tm.assert_frame_equal(result5,good_compare)
+            tm.assert_frame_equal(result6,good_compare)
+            tm.assert_frame_equal(result7,good_compare)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row
