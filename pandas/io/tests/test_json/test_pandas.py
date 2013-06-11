@@ -350,6 +350,10 @@ class TestPandasObjects(unittest.TestCase):
             
             url = 'http://search.twitter.com/search.json?q=pandas%20python'
             result = read_json(url)
+
+            # gzip compression
+            url = 'https://api.stackexchange.com/2.1/search?page=1&pagesize=10&order=desc&sort=activity&tagged=pandas&site=stackoverflow'
+            result = pd.read_json(url)
             
         except urllib2.URLError:
             raise nose.SkipTest
