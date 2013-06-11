@@ -239,6 +239,9 @@ The :ref:`Plotting <visualization>` docs.
 `Creating a multi-line plot
 <http://stackoverflow.com/questions/16568964/make-a-multiline-plot-from-csv-file-in-matplotlib>`__
 
+`Plotting a heatmap
+<http://stackoverflow.com/questions/17050202/plot-timeseries-of-histograms-in-python>`__
+
 Data In/Out
 -----------
 
