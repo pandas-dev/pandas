@@ -984,11 +984,11 @@ class _Concatenator(object):
         return blockmaps, reindexed_data
 
     def _get_concatenated_data(self):
-        try:
-            # need to conform to same other (joined) axes for block join
-            blockmaps, rdata = self._prepare_blocks()
-            kinds = _get_all_block_kinds(blockmaps)
+        # need to conform to same other (joined) axes for block join
+        blockmaps, rdata = self._prepare_blocks()
+        kinds = _get_all_block_kinds(blockmaps)
 
+        try:
             new_blocks = []
             for kind in kinds:
                 klass_blocks = [mapping.get(kind) for mapping in blockmaps]
