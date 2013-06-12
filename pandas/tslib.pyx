@@ -640,17 +640,25 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
 
     obj = _TSObject()
 
-    if is_datetime64_object(ts):
+    if ts is None or ts is NaT:
+        obj.value = NPY_NAT
+    elif is_datetime64_object(ts):
         obj.value = _get_datetime64_nanos(ts)
         pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
     elif is_integer_object(ts):
-        ts = ts * cast_from_unit(unit,None)
-        obj.value = ts
-        pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
+        if ts == NPY_NAT:
+            obj.value = NPY_NAT
+        else:
+            ts = ts * cast_from_unit(unit,None)
+            obj.value = ts
+            pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif util.is_float_object(ts):
-        ts = cast_from_unit(unit,ts)
-        obj.value = ts
-        pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
+        if ts != ts or ts == NPY_NAT:
+            obj.value = NPY_NAT
+        else:
+            ts = cast_from_unit(unit,ts)
+            obj.value = ts
+            pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif util.is_string_object(ts):
         if ts in _nat_strings:
             obj.value = NPY_NAT
@@ -864,9 +872,15 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
 
             # if we are coercing, dont' allow integers
             elif util.is_integer_object(val) and not coerce:
-                iresult[i] = val*m
+                if val == iNaT:
+                    iresult[i] = iNaT
+                else:
+                    iresult[i] = val*m
             elif util.is_float_object(val) and not coerce:
-                iresult[i] = cast_from_unit(unit,val)
+                if val != val or val == iNaT:
+                    iresult[i] = iNaT
+                else:
+                    iresult[i] = cast_from_unit(unit,val)
             else:
                 try:
                     if len(val) == 0:
