@@ -724,6 +724,15 @@ class TestIndexing(unittest.TestCase):
         df.sortlevel(inplace=True)
         df.ix[(4.0,2012)]
 
+    def test_ix_weird_slicing(self):
+        ## http://stackoverflow.com/q/17056560/1240268
+        df = DataFrame({'one' : [1, 2, 3, np.nan, np.nan], 'two' : [1, 2, 3, 4, 5]})
+        df.ix[df['one']>1, 'two'] = -df['two']
+
+        expected = DataFrame({'one': {0: 1.0, 1: 2.0, 2: 3.0, 3: nan, 4: nan},
+                              'two': {0: 1, 1: -2, 2: -3, 3: 4, 4: 5}})
+        assert_frame_equal(df, expected)
+
     def test_xs_multiindex(self):
 
         # GH2903
