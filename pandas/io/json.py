@@ -246,7 +246,7 @@ class SeriesParser(Parser):
                                              labelled=True))
                 else:
                     self.obj = Series(loads(json, dtype=dtype, numpy=True))
-            except ValueError:
+            except (ValueError,TypeError):
                 numpy = False
 
         if not numpy:
@@ -296,7 +296,7 @@ class FrameParser(Parser):
                 else:
                     self.obj = DataFrame(*loads(json, dtype=dtype, numpy=True,
                                          labelled=True))
-            except ValueError:
+            except (ValueError,TypeError):
                 numpy = False
 
         if not numpy:

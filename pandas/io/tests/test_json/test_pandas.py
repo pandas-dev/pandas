@@ -340,6 +340,18 @@ class TestPandasObjects(unittest.TestCase):
 
     @network
     @slow
+    def test_round_trip_exception_(self):
+		# GH 3867
+
+        df = pd.read_csv('https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv')
+        s = df.to_json()
+        result = pd.read_json(s)
+        result.index = result.index.astype(int)
+        result = result.reindex(columns=df.columns,index=df.index)
+        assert_frame_equal(result,df)
+
+    @network
+    @slow
     def test_url(self):
         import urllib2
         try:
