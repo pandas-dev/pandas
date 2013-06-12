@@ -8,7 +8,7 @@ from datetime import datetime, date
 from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
-from pandas.core.config import set_option,get_option,config_prefix
+from pandas.core.config import set_option
 
 import numpy as np
 
@@ -28,11 +28,6 @@ class TestSeriesPlots(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import sys
-
-        # if 'IPython' in sys.modules:
-        #     raise nose.SkipTest
-
         try:
             import matplotlib as mpl
             mpl.use('Agg', warn=False)
@@ -150,8 +145,15 @@ class TestSeriesPlots(unittest.TestCase):
     def test_hist(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
-
+        _check_plot_works(self.ts.hist, figsize=(8, 10))
         _check_plot_works(self.ts.hist, by=self.ts.index.month)
+
+    def test_plot_fails_when_ax_differs_from_figure(self):
+        from pylab import figure
+        fig1 = figure()
+        fig2 = figure()
+        ax1 = fig1.add_subplot(111)
+        self.assertRaises(AssertionError, self.ts.hist, ax=ax1, figure=fig2)
 
     @slow
     def test_kde(self):
@@ -258,7 +260,8 @@ class TestDataFramePlots(unittest.TestCase):
                                         (u'\u03b4', 6),
                                         (u'\u03b4', 7)], names=['i0', 'i1'])
         columns = MultiIndex.from_tuples([('bar', u'\u0394'),
-                                        ('bar', u'\u0395')], names=['c0', 'c1'])
+                                        ('bar', u'\u0395')], names=['c0',
+                                                                    'c1'])
         df = DataFrame(np.random.randint(0, 10, (8, 2)),
                        columns=columns,
                        index=index)
@@ -269,9 +272,9 @@ class TestDataFramePlots(unittest.TestCase):
         import matplotlib.pyplot as plt
         plt.close('all')
 
-        df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]})
+        df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]})
         ax = df.plot()
-        self.assert_(len(ax.get_lines()) == 1) #B was plotted
+        self.assert_(len(ax.get_lines()) == 1)  # B was plotted
 
     @slow
     def test_label(self):
@@ -434,21 +437,24 @@ class TestDataFramePlots(unittest.TestCase):
         ax = df.plot(kind='bar', grid=True)
         self.assertEqual(ax.xaxis.get_ticklocs()[0],
                          ax.patches[0].get_x() + ax.patches[0].get_width())
+
     @slow
     def test_bar_log(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
 
-        df = DataFrame({'A': [3] * 5, 'B': range(1,6)}, index=range(5))
-        ax = df.plot(kind='bar', grid=True,log=True)
-        self.assertEqual(ax.yaxis.get_ticklocs()[0],1.0)
+        df = DataFrame({'A': [3] * 5, 'B': range(1, 6)}, index=range(5))
+        ax = df.plot(kind='bar', grid=True, log=True)
+        self.assertEqual(ax.yaxis.get_ticklocs()[0], 1.0)
 
-        p1 = Series([200,500]).plot(log=True,kind='bar')
-        p2 = DataFrame([Series([200,300]),Series([300,500])]).plot(log=True,kind='bar',subplots=True)
+        p1 = Series([200, 500]).plot(log=True, kind='bar')
+        p2 = DataFrame([Series([200, 300]),
+                        Series([300, 500])]).plot(log=True, kind='bar',
+                                                  subplots=True)
 
-        (p1.yaxis.get_ticklocs() == np.array([ 0.625,  1.625]))
-        (p2[0].yaxis.get_ticklocs() == np.array([ 1., 10., 100., 1000.])).all()
-        (p2[1].yaxis.get_ticklocs() == np.array([ 1., 10., 100., 1000.])).all()
+        (p1.yaxis.get_ticklocs() == np.array([0.625, 1.625]))
+        (p2[0].yaxis.get_ticklocs() == np.array([1., 10., 100., 1000.])).all()
+        (p2[1].yaxis.get_ticklocs() == np.array([1., 10., 100., 1000.])).all()
 
     @slow
     def test_boxplot(self):
@@ -507,6 +513,9 @@ class TestDataFramePlots(unittest.TestCase):
 
         # make sure sharex, sharey is handled
         _check_plot_works(df.hist, sharex=True, sharey=True)
+
+        # handle figsize arg
+        _check_plot_works(df.hist, figsize=(8, 10))
 
         # make sure xlabelsize and xrot are handled
         ser = df[0]
@@ -727,6 +736,7 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(10, 2))
         self.assertRaises(ValueError, df.plot, kind='aasdf')
 
+
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
     @classmethod
@@ -786,10 +796,10 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
 
         plt.close('all')
         for i in range(3):
-            ax = Series(np.arange(12) + 1, index=date_range(
-            '1/1/2000', periods=12)).plot()
+            ax = Series(np.arange(12) + 1, index=date_range('1/1/2000',
+                                                            periods=12)).plot()
 
-        line_colors = [ l.get_color() for l in ax.get_lines() ]
+        line_colors = [l.get_color() for l in ax.get_lines()]
         self.assert_(line_colors == ['b', 'g', 'r'])
 
     @slow
@@ -829,7 +839,6 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         self.assertRaises(AttributeError, plotting.grouped_hist, df.A,
                           by=df.C, foo='bar')
 
-
     def test_option_mpl_style(self):
         # just a sanity check
         try:
@@ -845,6 +854,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         except ValueError:
             pass
 
+
 def _check_plot_works(f, *args, **kwargs):
     import matplotlib.pyplot as plt
 
@@ -852,7 +862,7 @@ def _check_plot_works(f, *args, **kwargs):
     plt.clf()
     ax = fig.add_subplot(211)
     ret = f(*args, **kwargs)
-    assert(ret is not None)  # do something more intelligent
+    assert ret is not None  # do something more intelligent
 
     ax = fig.add_subplot(212)
     try:
@@ -865,9 +875,11 @@ def _check_plot_works(f, *args, **kwargs):
     with ensure_clean() as path:
         plt.savefig(path)
 
+
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

@@ -79,6 +79,7 @@ pandas 0.11.1
     spurious plots from showing up.
   - Added Faq section on repr display options, to help users customize their setup.
   - ``where`` operations that result in block splitting are much faster (GH3733_)
+  - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
 
 **API Changes**
 
@@ -312,6 +313,8 @@ pandas 0.11.1
 .. _GH3726: https://github.com/pydata/pandas/issues/3726
 .. _GH3795: https://github.com/pydata/pandas/issues/3795
 .. _GH3814: https://github.com/pydata/pandas/issues/3814
+.. _GH3834: https://github.com/pydata/pandas/issues/3834
+
 
 pandas 0.11.0
 =============
