@@ -658,9 +658,9 @@ def autocorrelation_plot(series, ax=None):
     return ax
 
 
-def grouped_hist(data, column=None, by=None, ax=None, bins=50,
-                 figsize=None, layout=None, sharex=False, sharey=False,
-                 rot=90, grid=True, **kwargs):
+def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
+                 layout=None, sharex=False, sharey=False, rot=90, grid=True,
+                 **kwargs):
     """
     Grouped histogram
 
@@ -1839,10 +1839,9 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwarg
     return fig
 
 
-def hist_frame(
-    data, column=None, by=None, grid=True, xlabelsize=None, xrot=None,
-    ylabelsize=None, yrot=None, ax=None,
-        sharex=False, sharey=False, **kwds):
+def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
+               xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
+               sharey=False, figsize=None, **kwds):
     """
     Draw Histogram the DataFrame's series using matplotlib / pylab.
 
@@ -1866,17 +1865,20 @@ def hist_frame(
     ax : matplotlib axes object, default None
     sharex : bool, if True, the X axis will be shared amongst all subplots.
     sharey : bool, if True, the Y axis will be shared amongst all subplots.
+    figsize : tuple
+        The size of the figure to create in inches by default
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
     if column is not None:
         if not isinstance(column, (list, np.ndarray)):
             column = [column]
-        data = data.ix[:, column]
+        data = data[column]
 
     if by is not None:
 
-        axes = grouped_hist(data, by=by, ax=ax, grid=grid, **kwds)
+        axes = grouped_hist(data, by=by, ax=ax, grid=grid, figsize=figsize,
+                            **kwds)
 
         for ax in axes.ravel():
             if xlabelsize is not None:
@@ -1898,11 +1900,11 @@ def hist_frame(
             rows += 1
         else:
             cols += 1
-    _, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False,
-                        sharex=sharex, sharey=sharey)
+    fig, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False,
+                          sharex=sharex, sharey=sharey, figsize=figsize)
 
     for i, col in enumerate(com._try_sort(data.columns)):
-        ax = axes[i / cols][i % cols]
+        ax = axes[i / cols, i % cols]
         ax.xaxis.set_visible(True)
         ax.yaxis.set_visible(True)
         ax.hist(data[col].dropna().values, **kwds)
@@ -1922,13 +1924,13 @@ def hist_frame(
         ax = axes[j / cols, j % cols]
         ax.set_visible(False)
 
-    ax.get_figure().subplots_adjust(wspace=0.3, hspace=0.3)
+    fig.subplots_adjust(wspace=0.3, hspace=0.3)
 
     return axes
 
 
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
-                xrot=None, ylabelsize=None, yrot=None, **kwds):
+                xrot=None, ylabelsize=None, yrot=None, figsize=None, **kwds):
     """
     Draw histogram of the input series using matplotlib
 
@@ -1948,6 +1950,8 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         If specified changes the y-axis label size
     yrot : float, default None
         rotation of y axis labels
+    figsize : tuple, default None
+        figure size in inches by default
     kwds : keywords
         To be passed to the actual plotting function
 
@@ -1958,16 +1962,22 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     """
     import matplotlib.pyplot as plt
 
+    fig = kwds.setdefault('figure', plt.figure(figsize=figsize))
+
     if by is None:
         if ax is None:
-            ax = plt.gca()
+            ax = fig.add_subplot(111)
+        else:
+            if ax.get_figure() != fig:
+                raise AssertionError('passed axis not bound to passed figure')
         values = self.dropna().values
 
         ax.hist(values, **kwds)
         ax.grid(grid)
         axes = np.array([ax])
     else:
-        axes = grouped_hist(self, by=by, ax=ax, grid=grid, **kwds)
+        axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize,
+                            **kwds)
 
     for ax in axes.ravel():
         if xlabelsize is not None:
