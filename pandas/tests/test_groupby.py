@@ -1,12 +1,13 @@
 import nose
 import unittest
+import warnings
 
 from datetime import datetime
 from numpy import nan
 
 from pandas import bdate_range
 from pandas.core.index import Index, MultiIndex
-from pandas.core.common import rands
+from pandas.core.common import rands, PerformanceWarning
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import GroupByError, SpecificationError, DataError
 from pandas.core.series import Series
@@ -131,8 +132,11 @@ class TestGroupBy(unittest.TestCase):
             self.assertEqual(agged[1], 21)
 
             # corner cases
-            self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
-
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
+                grouped.aggregate(lambda x: x * 2)
+                self.assertEqual(len(w), 1)
+                assert 'aggregate' in str(w[-1].message), "Wrong message: %r" % str(w[-1].message)
 
         for dtype in ['int64','int32','float64','float32']:
             checkit(dtype)
@@ -334,8 +338,29 @@ class TestGroupBy(unittest.TestCase):
 
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
-        self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
-        self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            grouped.agg(lambda x: x.describe())
+            self.assertEqual(len(w), 1)
+            assert 'aggregate' in str(w[-1].message), "Wrong message: %r" % str(w[-1].message)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            grouped.agg(lambda x: x.index[:2])
+            self.assertEqual(len(w), 1)
+            assert 'aggregate' in str(w[-1].message), "Wrong message: %r" % str(w[-1].message)
+
+        # motivating example for #3788
+        df = DataFrame([[1, np.array([10, 20, 30])],
+                    [1, np.array([40, 50, 60])],
+                    [2, np.array([20, 30, 40])]],
+                    columns=['category', 'arraydata'])
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            df.groupby('category').agg(sum)
+            self.assertEqual(len(w), 1)
+            assert 'aggregate' in str(w[-1].message), "Wrong message: %r" % str(w[-1].message)
 
     def test_agg_ser_multi_key(self):
         ser = self.df.C
