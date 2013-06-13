@@ -910,7 +910,8 @@ class DatetimeIndex(Int64Index):
         """
         See Index.join
         """
-        if not isinstance(other, DatetimeIndex) and len(other) > 0:
+        if (not isinstance(other, DatetimeIndex) and len(other) > 0 and
+            other.inferred_type != 'mixed-integer'):
             try:
                 other = DatetimeIndex(other)
             except TypeError:
