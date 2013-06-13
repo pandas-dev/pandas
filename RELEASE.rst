@@ -73,6 +73,8 @@ pandas 0.11.1
   - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame (GH3649_),
     thanks @hoechenberger
+  - clipboard functions use pyperclip (no dependencies on Windows, alternative
+    dependencies offered for Linux) (GH3837_).
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
     if the associated objects have have a dtype of ``object`` (GH1818_,
     GH3572_). This happens before any drawing takes place which elimnates any
