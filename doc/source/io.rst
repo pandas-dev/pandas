@@ -1,4 +1,4 @@
-False.. _io:
+.. _io:
 
 .. currentmodule:: pandas
 
@@ -1247,7 +1247,7 @@ We can see that we got the same content back, which we had earlier written to th
 
 .. note::
 
-   You may need to install xlip or xsel (with gtk or PyQt4 modules) on Linux to use these methods.
+   You may need to install xclip or xsel (with gtk or PyQt4 modules) on Linux to use these methods.
 
 
 
