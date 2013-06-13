@@ -38,6 +38,7 @@ from pandas.util.testing import assert_frame_equal
 import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
+from pandas import concat
 
 from numpy.testing.decorators import slow
 
@@ -171,7 +172,6 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
     def test_indexing_unordered(self):
 
         # GH 2437
-        from pandas import concat
         rng = date_range(start='2011-01-01', end='2011-01-15')
         ts  = Series(randn(len(rng)), index=rng)
         ts2 = concat([ts[0:4],ts[-4:],ts[4:-4]])
@@ -592,6 +592,34 @@ class TestTimeSeries(unittest.TestCase):
             ex_vals = to_datetime(vals.astype('O'))
 
             self.assert_((tmp['dates'].values == ex_vals).all())
+
+    def test_to_datetime_unit(self):
+
+        epoch = 1370745748
+        s = Series([ epoch + t for t in range(20) ])
+        result = to_datetime(s,unit='s')
+        expected = Series([ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ])
+        assert_series_equal(result,expected)
+
+        s = Series([ epoch + t for t in range(20) ]).astype(float)
+        result = to_datetime(s,unit='s')
+        expected = Series([ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ])
+        assert_series_equal(result,expected)
+
+        s = Series([ epoch + t for t in range(20) ] + [iNaT])
+        result = to_datetime(s,unit='s')
+        expected = Series([ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ] + [NaT])
+        assert_series_equal(result,expected)
+
+        s = Series([ epoch + t for t in range(20) ] + [iNaT]).astype(float)
+        result = to_datetime(s,unit='s')
+        expected = Series([ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ] + [NaT])
+        assert_series_equal(result,expected)
+
+        s = concat([Series([ epoch + t for t in range(20) ]).astype(float),Series([np.nan])],ignore_index=True)
+        result = to_datetime(s,unit='s')
+        expected = Series([ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ] + [NaT])
+        assert_series_equal(result,expected)
 
     def test_series_ctor_datetime64(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
@@ -2690,6 +2718,61 @@ class TestTimestamp(unittest.TestCase):
         self.assert_(stamp.month == 1)
         self.assert_(stamp.microsecond == 0)
         self.assert_(stamp.nanosecond == 500)
+
+    def test_unit(self):
+        def check(val,unit=None,s=1,us=0):
+            stamp = Timestamp(val, unit=unit)
+            self.assert_(stamp.year == 2000)
+            self.assert_(stamp.month == 1)
+            self.assert_(stamp.day == 1)
+            self.assert_(stamp.hour == 1)
+            self.assert_(stamp.minute == 1)
+            self.assert_(stamp.second == s)
+            self.assert_(stamp.microsecond == us)
+            self.assert_(stamp.nanosecond == 0)
+
+        val = Timestamp('20000101 01:01:01').value
+
+        check(val)
+        check(val/1000L,unit='us')
+        check(val/1000000L,unit='ms')
+        check(val/1000000000L,unit='s')
+
+        # using truediv, so these are like floats
+        if py3compat.PY3:
+            check((val+500000)/1000000000L,unit='s',us=500)
+            check((val+500000000)/1000000000L,unit='s',us=500000)
+            check((val+500000)/1000000L,unit='ms',us=500)
+
+        # get chopped in py2
+        else:
+            check((val+500000)/1000000000L,unit='s')
+            check((val+500000000)/1000000000L,unit='s')
+            check((val+500000)/1000000L,unit='ms')
+
+        # ok
+        check((val+500000)/1000L,unit='us',us=500)
+        check((val+500000000)/1000000L,unit='ms',us=500000)
+
+        # floats
+        check(val/1000.0 + 5,unit='us',us=5)
+        check(val/1000.0 + 5000,unit='us',us=5000)
+        check(val/1000000.0 + 0.5,unit='ms',us=500)
+        check(val/1000000.0 + 0.005,unit='ms',us=5)
+        check(val/1000000000.0 + 0.5,unit='s',us=500000)
+
+        # nan
+        result = Timestamp(np.nan)
+        self.assert_(result is NaT)
+        
+        result = Timestamp(None)
+        self.assert_(result is NaT)
+        
+        result = Timestamp(iNaT)
+        self.assert_(result is NaT)
+
+        result = Timestamp(NaT)
+        self.assert_(result is NaT)
 
     def test_comparison(self):
         # 5-18-2012 00:00:00.000
