@@ -87,6 +87,7 @@ pandas 0.11.1
   - Add ``unit`` keyword to ``Timestamp`` and ``to_datetime`` to enable passing of
     integers or floats that are in an epoch unit of ``s, ms, us, ns``
     (e.g. unix timestamps or epoch ``s``, with fracional seconds allowed) (GH3540_)
+  - ``DataReader`` now fetches stock dividend and split info (GH3666_)
 
 **API Changes**
 
@@ -327,7 +328,7 @@ pandas 0.11.1
 .. _GH3834: https://github.com/pydata/pandas/issues/3834
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
 .. _GH3877: https://github.com/pydata/pandas/issues/3877
-
+.. _GH3666: https://github.com/pydata/pandas/pull/3666
 
 pandas 0.11.0
 =============
