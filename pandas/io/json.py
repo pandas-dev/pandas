@@ -11,6 +11,7 @@ dumps = _json.dumps
 
 import numpy as np
 from pandas.tslib import iNaT
+import pandas.lib as lib
 
 ### interface to/from ###
 
@@ -86,6 +87,11 @@ class SeriesWriter(Writer):
             self.copy_if_needed()
             self.obj = self._format_to_date(self.obj)
 
+    def _format_bools(self):
+        if self._needs_to_bool(self.obj):
+            self.copy_if_needed()
+            self.obj = self._format_to_bool(self.obj)
+
 class FrameWriter(Writer):
     _default_orient = 'columns'
 
@@ -112,8 +118,8 @@ class FrameWriter(Writer):
                 for c in dtypes.index:
                     self.obj[c] = self._format_to_date(self.obj[c])
 
-def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None, numpy=True,
-              parse_dates=False, keep_default_dates=True):
+def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
+              convert_axes=True, convert_dates=True, keep_default_dates=True, numpy=False):
     """
     Convert JSON string to pandas object
 
@@ -123,20 +129,33 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None, numpy=True
         a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
         is expected. For instance, a local file could be
         file ://localhost/path/to/table.json
-    orient : {'split', 'records', 'index'}, default 'index'
+    orient :
+        Series :
+          default is 'index'
+          allowed values are: {'split','records','index'}
+
+        DataFrame :
+          default is 'columns'
+          allowed values are: {'split','records','index','columns','values'}
+
         The format of the JSON string
-        split : dict like
-            {index -> [index], name -> name, data -> [values]}
-        records : list like [value, ... , value]
-        index : dict like {index -> value}
+          split : dict like {index -> [index], columns -> [columns], data -> [values]}
+          records : list like [{column -> value}, ... , {column -> value}]
+          index : dict like {index -> {column -> value}}
+          columns : dict like {column -> {index -> value}}
+          values : just the values array
+
     typ : type of object to recover (series or frame), default 'frame'
-    dtype : dtype of the resulting object
-    numpy: direct decoding to numpy arrays. default True but falls back
-        to standard decoding if a problem occurs.
-    parse_dates : a list of columns to parse for dates; If True, then try to parse datelike columns
-        default is False
+    dtype : if True, infer dtypes, if a dict of column to dtype, then use those,
+        if False, then don't infer dtypes at all, default is True,
+        apply only to the data
+    convert_axes : boolean, try to convert the axes to the proper dtypes, default is True
+    convert_dates : a list of columns to parse for dates; If True, then try to parse datelike columns
+        default is True
     keep_default_dates : boolean, default True. If parsing dates,
         then parse the default datelike columns
+    numpy: direct decoding to numpy arrays. default is False.Note that the JSON ordering MUST be the same
+        for each term if numpy=True.
 
     Returns
     -------
@@ -157,16 +176,18 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=None, numpy=True
 
     obj = None
     if typ == 'frame':
-        obj = FrameParser(json, orient, dtype, numpy, parse_dates, keep_default_dates).parse()
+        obj = FrameParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy).parse()
 
     if typ == 'series' or obj is None:
-        obj = SeriesParser(json, orient, dtype, numpy, parse_dates, keep_default_dates).parse()
+        if not isinstance(dtype,bool):
+            dtype = dict(data = dtype)
+        obj = SeriesParser(json, orient, dtype, convert_axes, convert_dates, keep_default_dates, numpy).parse()
 
     return obj
 
 class Parser(object):
     
-    def __init__(self, json, orient, dtype, numpy, parse_dates=False, keep_default_dates=False):
+    def __init__(self, json, orient, dtype=True, convert_axes=True, convert_dates=True, keep_default_dates=False, numpy=False):
         self.json = json
 
         if orient is None:
@@ -175,27 +196,100 @@ class Parser(object):
         self.orient = orient
         self.dtype = dtype
 
-        if dtype is not None and orient == "split":
+        if orient == "split":
             numpy = False
 
         self.numpy = numpy
-        self.parse_dates = parse_dates
+        self.convert_axes  = convert_axes
+        self.convert_dates = convert_dates
         self.keep_default_dates = keep_default_dates
         self.obj = None
 
     def parse(self):
-        self._parse()
-        if self.obj is not None:
+
+        # try numpy 
+        numpy = self.numpy
+        if numpy:
+            self._parse_numpy()
+
+        else:
+            self._parse_no_numpy()
+
+        if self.obj is None: return None
+        if self.convert_axes:
             self._convert_axes()
-            if self.parse_dates:
-                self._try_parse_dates()
+        self._try_convert_types()
         return self.obj
 
+    def _convert_axes(self):
+        """ try to convert axes """
+        for axis in self.obj._AXIS_NUMBERS.keys():
+            new_axis, result = self._try_convert_data(axis, self.obj._get_axis(axis), use_dtypes=False, convert_dates=True)
+            if result:
+                setattr(self.obj,axis,new_axis)
 
-    def _try_parse_to_date(self, data):
+    def _try_convert_types(self):
+        raise NotImplementedError
+
+    def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):
+        """ try to parse a ndarray like into a column by inferring dtype """
+
+        # don't try to coerce, unless a force conversion
+        if use_dtypes:
+            if self.dtype is False:
+                return data, False
+            elif self.dtype is True:
+                pass
+
+            else:
+
+                # dtype to force
+                dtype = self.dtype.get(name) if isinstance(self.dtype,dict) else self.dtype
+                if dtype is not None:
+                    try:
+                        dtype = np.dtype(dtype)
+                        return data.astype(dtype), True
+                    except:
+                        return data, False
+
+        if convert_dates:
+            new_data, result = self._try_convert_to_date(data)
+            if result:
+                return new_data, True
+
+        result = False
+
+        if data.dtype == 'object':
+
+            # try float
+            try:
+                data = data.astype('float64')
+                result = True
+            except:
+                pass
+
+        # do't coerce 0-len data
+        if len(data) and (data.dtype == 'float' or data.dtype == 'object'):
+
+            # coerce ints if we can
+            try:
+                new_data = data.astype('int64')
+                if (new_data == data).all():
+                    data = new_data
+                    result = True
+            except:
+                pass
+
+        return data, result
+
+    def _try_convert_to_date(self, data):
         """ try to parse a ndarray like into a date column
             try to coerce object in epoch/iso formats and
-            integer/float in epcoh formats """
+            integer/float in epcoh formats, return a boolean if parsing
+            was successful """
+
+        # no conversion on empty
+        if not len(data): return data, False
 
         new_data = data
         if new_data.dtype == 'object':
@@ -208,7 +302,7 @@ class Parser(object):
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type,np.number):
             if not ((new_data == iNaT) | (new_data > 31536000000000000L)).all():
-                return data
+                return data, False
                 
         try:
             new_data = to_datetime(new_data)
@@ -218,122 +312,102 @@ class Parser(object):
             except:
 
                 # return old, noting more we can do
-                new_data = data
+                return data, False
 
-        return new_data
+        return new_data, True
 
-    def _try_parse_dates(self):
+    def _try_convert_dates(self):
         raise NotImplementedError
 
 class SeriesParser(Parser):
     _default_orient = 'index'
 
-    def _parse(self):
+    def _parse_no_numpy(self):
+    
+        json = self.json
+        orient = self.orient
+        if orient == "split":
+            decoded = dict((str(k), v)
+                           for k, v in loads(json).iteritems())
+            self.obj = Series(dtype=None, **decoded)
+        else:
+            self.obj = Series(loads(json), dtype=None)
+
+    def _parse_numpy(self):
 
         json = self.json
-        dtype = self.dtype
         orient = self.orient
-        numpy = self.numpy
-    
-        if numpy:
-            try:
-                if orient == "split":
-                    decoded = loads(json, dtype=dtype, numpy=True)
-                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
-                    self.obj = Series(**decoded)
-                elif orient == "columns" or orient == "index":
-                    self.obj = Series(*loads(json, dtype=dtype, numpy=True,
-                                             labelled=True))
-                else:
-                    self.obj = Series(loads(json, dtype=dtype, numpy=True))
-            except ValueError:
-                numpy = False
+        if orient == "split":
+            decoded = loads(json, dtype=None, numpy=True)
+            decoded = dict((str(k), v) for k, v in decoded.iteritems())
+            self.obj = Series(**decoded)
+        elif orient == "columns" or orient == "index":
+            self.obj = Series(*loads(json, dtype=None, numpy=True,
+                                     labelled=True))
+        else:
+            self.obj = Series(loads(json, dtype=None, numpy=True))
 
-        if not numpy:
-            if orient == "split":
-                decoded = dict((str(k), v)
-                               for k, v in loads(json).iteritems())
-                self.obj = Series(dtype=dtype, **decoded)
-            else:
-                self.obj = Series(loads(json), dtype=dtype)
-
-    def _convert_axes(self):
-        """ try to axes if they are datelike """
-        try:
-           self.obj.index = self._try_parse_to_date(self.obj.index)
-        except:
-           pass
-
-    def _try_parse_dates(self):
+    def _try_convert_types(self):
         if self.obj is None: return
-
-        if self.parse_dates:
-            self.obj = self._try_parse_to_date(self.obj)
+        obj, result = self._try_convert_data('data', self.obj, convert_dates=self.convert_dates)
+        if result:
+            self.obj = obj
 
 class FrameParser(Parser):
     _default_orient = 'columns'
 
-    def _parse(self):
+    def _parse_numpy(self):
 
         json = self.json
-        dtype = self.dtype
         orient = self.orient
-        numpy = self.numpy
 
-        if numpy:
-            try:
-                if orient == "columns":
-                    args = loads(json, dtype=dtype, numpy=True, labelled=True)
-                    if args:
-                        args = (args[0].T, args[2], args[1])
-                    self.obj = DataFrame(*args)
-                elif orient == "split":
-                    decoded = loads(json, dtype=dtype, numpy=True)
-                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
-                    self.obj = DataFrame(**decoded)
-                elif orient == "values":
-                    self.obj = DataFrame(loads(json, dtype=dtype, numpy=True))
-                else:
-                    self.obj = DataFrame(*loads(json, dtype=dtype, numpy=True,
-                                         labelled=True))
-            except ValueError:
-                numpy = False
-
-        if not numpy:
-            if orient == "columns":
-                self.obj = DataFrame(loads(json), dtype=dtype)
-            elif orient == "split":
-                decoded = dict((str(k), v)
-                               for k, v in loads(json).iteritems())
-                self.obj = DataFrame(dtype=dtype, **decoded)
-            elif orient == "index":
-                self.obj = DataFrame(loads(json), dtype=dtype).T
-            else:
-                self.obj = DataFrame(loads(json), dtype=dtype)
-
-    def _convert_axes(self):
-        """ try to axes if they are datelike """
-        if self.orient == 'columns':
-            axis = 'index'
-        elif self.orient == 'index':
-            axis = 'columns'
+        if orient == "columns":
+            args = loads(json, dtype=None, numpy=True, labelled=True)
+            if args:
+                args = (args[0].T, args[2], args[1])
+            self.obj = DataFrame(*args)
+        elif orient == "split":
+            decoded = loads(json, dtype=None, numpy=True)
+            decoded = dict((str(k), v) for k, v in decoded.iteritems())
+            self.obj = DataFrame(**decoded)
+        elif orient == "values":
+            self.obj = DataFrame(loads(json, dtype=None, numpy=True))
         else:
-            return
+            self.obj = DataFrame(*loads(json, dtype=None, numpy=True, labelled=True))
 
-        try:
-            a = getattr(self.obj,axis)
-            setattr(self.obj,axis,self._try_parse_to_date(a))
-        except:
-            pass
+    def _parse_no_numpy(self):
 
-    def _try_parse_dates(self):
+        json = self.json
+        orient = self.orient
+
+        if orient == "columns":
+            self.obj = DataFrame(loads(json), dtype=None)
+        elif orient == "split":
+            decoded = dict((str(k), v)
+                           for k, v in loads(json).iteritems())
+            self.obj = DataFrame(dtype=None, **decoded)
+        elif orient == "index":
+            self.obj = DataFrame(loads(json), dtype=None).T
+        else:
+            self.obj = DataFrame(loads(json), dtype=None)
+
+    def _try_convert_types(self):
+        if self.obj is None: return
+        if self.convert_dates:
+            self._try_convert_dates()
+        for col in self.obj.columns:
+            new_data, result = self._try_convert_data(col, self.obj[col], convert_dates=False)
+            if result:
+                self.obj[col] = new_data
+
+    def _try_convert_dates(self):
         if self.obj is None: return
 
         # our columns to parse
-        parse_dates = self.parse_dates
-        if parse_dates is True:
-            parse_dates = []
-        parse_dates = set(parse_dates)
+        convert_dates = self.convert_dates
+        if convert_dates is True:
+            convert_dates = []
+        convert_dates = set(convert_dates)
 
         def is_ok(col):
             """ return if this col is ok to try for a date parse """
@@ -348,6 +422,8 @@ class FrameParser(Parser):
             return False
 
 
-        for col, c in self.obj.iteritems():
-            if (self.keep_default_dates and is_ok(col)) or col in parse_dates:
-                self.obj[col] = self._try_parse_to_date(c)
+        for col in self.obj.columns:
+            if (self.keep_default_dates and is_ok(col)) or col in convert_dates:
+                new_data, result = self._try_convert_to_date(self.obj[col])
+                if result:
+                    self.obj[col] = new_data
