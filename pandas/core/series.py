@@ -527,9 +527,6 @@ class Series(pa.Array, generic.PandasObject):
     def _can_hold_na(self):
         return not is_integer_dtype(self.dtype)
 
-    def __hash__(self):
-        raise TypeError('unhashable type')
-
     _index = None
     index = lib.SeriesIndex()
 

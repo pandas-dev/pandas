@@ -225,6 +225,7 @@ pandas 0.11.1
   - Groupby transform with item-by-item not upcasting correctly (GH3740_)
   - Incorrectly read a HDFStore multi-index Frame witha column specification (GH3748_)
   - ``read_html`` now correctly skips tests (GH3741_)
+  - PandasObjects raise TypeError when trying to hash (GH3882_)
   - Fix incorrect arguments passed to concat that are not list-like (e.g. concat(df1,df2)) (GH3481_)
   - Correctly parse when passed the ``dtype=str`` (or other variable-len string dtypes) in ``read_csv`` (GH3795_)
   - ``DataFrame.itertuples()`` now works with frames with duplicate column
