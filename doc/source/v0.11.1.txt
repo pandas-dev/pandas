@@ -348,11 +348,14 @@ Bug Fixes
     - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
     - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
     - Allow insert/delete to non-unique columns (GH3679_)
+    - Non-unique indexing with a slice via ``loc`` and friends fixed (GH3659_)
+    - Allow insert/delete to non-unique columns (GH3679_)
+    - Extend ``reindex`` to correctly deal with non-unique indices (GH3679_)
+    - ``DataFrame.itertuples()`` now works with frames with duplicate column
+      names (GH3873_)
 
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
   - ``read_html`` now correctly skips tests (GH3741_)
-  - ``DataFrame.itertuples()`` now works with frames with duplicate column
-    names (GH3873_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -405,3 +408,5 @@ on GitHub for a complete list.
 .. _GH3834: https://github.com/pydata/pandas/issues/3834
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
 .. _GH3877: https://github.com/pydata/pandas/issues/3877
+.. _GH3659: https://github.com/pydata/pandas/issues/3659
+.. _GH3679: https://github.com/pydata/pandas/issues/3679

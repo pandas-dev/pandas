@@ -1024,6 +1024,19 @@ class TestIndexing(unittest.TestCase):
         expected = DataFrame({'A' : [2,4,5], 'B' : [4,6,7]}, index = [1,1,2])
         assert_frame_equal(result,expected)
 
+    def test_loc_name(self):
+        # GH 3880
+        df = DataFrame([[1, 1], [1, 1]])
+        df.index.name = 'index_name'
+        result = df.iloc[[0, 1]].index.name
+        self.assert_(result == 'index_name')
+
+        result = df.ix[[0, 1]].index.name
+        self.assert_(result == 'index_name')
+
+        result = df.loc[[0, 1]].index.name
+        self.assert_(result == 'index_name')
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
