@@ -3109,6 +3109,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected.sort()
         assert_series_equal(result, expected)
 
+    def test_not_hashable(self):
+        df = pd.DataFrame([1])
+        self.assertRaises(TypeError, hash, df)
+        self.assertRaises(TypeError, hash, self.empty)
+
     def test_timedeltas(self):
 
         df = DataFrame(dict(A = Series(date_range('2012-1-1', periods=3, freq='D')),

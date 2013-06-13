@@ -579,6 +579,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_array_finalize(self):
         pass
 
+    def test_not_hashable(self):
+        s_empty = Series()
+        s = Series([1])
+        self.assertRaises(TypeError, hash, s_empty)
+        self.assertRaises(TypeError, hash, s)
+
     def test_fromValue(self):
 
         nans = Series(np.NaN, index=self.ts.index)
