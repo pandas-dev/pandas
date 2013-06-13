@@ -8,6 +8,7 @@ import pickle
 import unittest
 import nose
 import os
+import sys
 
 import numpy as np
 import pandas.util.testing as tm
@@ -15,6 +16,9 @@ import pandas as pd
 from pandas import Index
 from pandas.sparse.tests import test_sparse
 from pandas.util import py3compat
+
+if sys.byteorder != 'little':
+    raise nose.SkipTest('system byteorder is not little!')
 
 class TestPickle(unittest.TestCase):
     _multiprocess_can_split_ = True
