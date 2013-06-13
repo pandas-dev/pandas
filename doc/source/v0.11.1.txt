@@ -349,6 +349,8 @@ Bug Fixes
 
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
   - ``read_html`` now correctly skips tests (GH3741_)
+  - ``DataFrame.itertuples()`` now works with frames with duplicate column
+    names (GH3873_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -399,3 +401,4 @@ on GitHub for a complete list.
 .. _GH3726: https://github.com/pydata/pandas/issues/3726
 .. _GH3425: https://github.com/pydata/pandas/issues/3425
 .. _GH3834: https://github.com/pydata/pandas/issues/3834
+.. _GH3873: https://github.com/pydata/pandas/issues/3873
