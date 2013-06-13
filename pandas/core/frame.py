@@ -818,7 +818,9 @@ class DataFrame(NDFrame):
         arrays = []
         if index:
             arrays.append(self.index)
-        arrays.extend(self[k] for k in self.columns)
+
+        # use integer indexing because of possible duplicate column names
+        arrays.extend(self.iloc[:, k] for k in xrange(len(self.columns)))
         return izip(*arrays)
 
     iterkv = iteritems
