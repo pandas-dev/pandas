@@ -19,7 +19,7 @@ from pandas.io.parsers import TextParser
 
 
 def DataReader(name, data_source=None, start=None, end=None,
-               retry_count=3, pause=0):
+               retry_count=3, pause=0, dividends=False, splits=False):
     """
     Imports data from a number of online sources.
 
@@ -56,8 +56,9 @@ def DataReader(name, data_source=None, start=None, end=None,
 
     if(data_source == "yahoo"):
         return get_data_yahoo(symbols=name, start=start, end=end,
-                              adjust_price=False, chunk=25,
-                              retry_count=retry_count, pause=pause)
+                             adjust_price=False, chunk=25,
+                             retry_count=retry_count, pause=pause,
+                             dividends=dividends, splits=splits)
     elif(data_source == "google"):
         return get_data_google(symbols=name, start=start, end=end,
                               adjust_price=False, chunk=25,
@@ -140,7 +141,7 @@ def get_quote_google(symbols):
     raise NotImplementedError("Google Finance doesn't have this functionality")
 
 def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
-                    pause=0, **kwargs):
+                    pause=0, dividends=False, splits=False, **kwargs):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
@@ -153,7 +154,13 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
 
     start, end = _sanitize_dates(start, end)
 
-    yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
+    # Yahoo! Finance doesn't show splits with 'table.csv' setting
+    if splits:
+        url_type = 'x'
+    else:
+        url_type = 'table.csv'
+
+    yahoo_URL = 'http://ichart.yahoo.com/%s?' % url_type
 
     url = yahoo_URL + 's=%s' % sym + \
         '&a=%s' % (start.month - 1) + \
@@ -162,7 +169,7 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
         '&d=%s' % (end.month - 1) + \
         '&e=%s' % end.day + \
         '&f=%s' % end.year + \
-        '&g=d' + \
+        '&g=%s' % ('v' if dividends or splits else 'd') + \
         '&ignore=.csv'
 
     for _ in range(retry_count):
@@ -176,6 +183,83 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
             # return 2 rows for the most recent business day
             if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
                 rs = rs[:-1]
+
+            rs.rename(columns={'Dividends': 'Values'}, inplace=True)
+            rs_splits, rs_dividends = DataFrame(), DataFrame()
+
+            # check to see if there is split data
+            try:
+                has_splits = rs.xs('SPLIT')['Values'].any()
+            except AttributeError:
+                has_splits = rs.xs('SPLIT')['Values']
+            except KeyError:
+                # There is no split data
+                has_splits = False
+
+            split_format = splits or has_splits
+
+            if (splits and has_splits and hasattr(rs.xs('SPLIT'), 'pivot')):
+                # Yahoo! Finance returns additional info like 'STARTDATE' and
+                # 'ENDDATE'. This selects only the data we want
+                rs_splits = rs.xs('SPLIT').reset_index()
+
+                # If Yahoo! Finance returns one value, the result of '.xs' will
+                # be a Series instead of a DataFrame
+            elif (splits and has_splits):
+                d = {'index': ['SPLIT'],
+                     'Date': [rs.xs('SPLIT')['Date']],
+                     'Values': [rs.xs('SPLIT')['Values']]}
+
+                rs_splits = DataFrame(d)
+
+            if dividends and split_format:
+                # check to see if there is dividend data
+                try:
+                    has_dividends = rs.xs('DIVIDEND')['Values'].any()
+                except AttributeError:
+                    has_dividends = rs.xs('DIVIDEND')['Values']
+                except KeyError:
+                    # There is no dividend data
+                    has_dividends = False
+
+                if (has_dividends and hasattr(rs.xs('DIVIDEND'), 'pivot')):
+                    rs_dividends = rs.xs('DIVIDEND').reset_index()
+                elif has_dividends:
+                    d = {'index': ['DIVIDEND'],
+                         'Date': [rs.xs('DIVIDEND')['Date']],
+                         'Values': [rs.xs('DIVIDEND')['Values']]}
+
+                    rs_dividends = DataFrame(d)
+
+            elif dividends:
+                # if there are no splits there won't be a 'DIVIDEND' section
+                has_dividends = len(rs) > 0
+
+                if has_dividends:
+                    rs_dividends = rs
+
+            # print(rs)
+            rs = concat([rs_splits, rs_dividends])
+            # print(rs_splits)
+            # print(rs_dividends)
+            # print(rs)
+
+            if (split_format and not rs.empty):
+                # Dates in split format are yyyymmdd so convert to yyyy-mm-dd
+                rs.Date = rs.Date.apply(lambda x: str(x))
+                rs.Date = rs.Date.apply(
+                    lambda x: '%s-%s-%s' % (x[:4], x[4:6], x[6:]))
+
+                # pivot DataFrame to match format of a normal query
+                rs = rs.pivot(index='Date', columns='index', values='Values')
+
+            if (splits and has_splits):
+                rs.rename(columns={'SPLIT': 'Splits'}, inplace=True)
+
+            if (dividends and has_dividends and split_format):
+                rs.rename(columns={'DIVIDEND': 'Dividends'}, inplace=True)
+            elif (dividends and has_dividends):
+            	rs.rename(columns={'Values': 'Dividends'}, inplace=True)
 
             return rs
 
@@ -312,7 +396,7 @@ def get_components_yahoo(idx_sym):
 
 def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
                    adjust_price=False, ret_index=False, chunksize=25,
-                   **kwargs):
+                   dividends=False, splits=False, **kwargs):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
     range, start to end. To avoid being penalized by Yahoo! Finance servers,
@@ -341,6 +425,10 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
         If True, includes a simple return index 'Ret_Index' in hist_data.
     chunksize : int, default 25
         Number of symbols to download consecutively before intiating pause.
+    dividends : boolean, default False
+        Fetch dividends instead of prices
+    splits : boolean, default False
+        Fetch splits instead of prices
 
     Returns
     -------
@@ -352,8 +440,9 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
         for sym_group in _in_chunks(symbols, chunksize):
             for sym in sym_group:
                 try:
-                    stocks[sym] = _get_hist_yahoo(sym, start=start,
-                                                  end=end, **kwargs)
+                    stocks[sym] = _get_hist_yahoo(sym, start=start, end=end,
+                                                  dividends=dividends,
+                                                  splits=splits, **kwargs)
                 except:
                     warnings.warn('Error with sym: ' + sym + '... skipping.')
 
@@ -369,7 +458,9 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
     #If a single symbol, (e.g., 'GOOG')
     if isinstance(symbols, (str, int)):
         sym = symbols
-        hist_data = _get_hist_yahoo(sym, start=start, end=end)
+        hist_data = _get_hist_yahoo(sym, start=start, end=end,
+                                    dividends=dividends, splits=splits,
+                                    **kwargs)
     #Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
     elif isinstance(symbols, DataFrame):
         try:

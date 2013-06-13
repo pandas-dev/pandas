@@ -1,5 +1,5 @@
 Travis is a ci service that's well-integrated with github.
-The following ypes of breakage should be detected
+The following types of breakage should be detected
 by travis builds:
 
 1) Failing tests on any supported version of python.
