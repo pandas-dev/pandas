@@ -80,6 +80,8 @@ pandas 0.11.1
   - Added Faq section on repr display options, to help users customize their setup.
   - ``where`` operations that result in block splitting are much faster (GH3733_)
   - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
+  - DatetimeIndexes no longer try to convert mixed-integer indexes during join
+    operations (GH3877_)
 
 **API Changes**
 
@@ -317,6 +319,7 @@ pandas 0.11.1
 .. _GH3814: https://github.com/pydata/pandas/issues/3814
 .. _GH3834: https://github.com/pydata/pandas/issues/3834
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
+.. _GH3877: https://github.com/pydata/pandas/issues/3877
 
 
 pandas 0.11.0

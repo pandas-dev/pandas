@@ -18,7 +18,6 @@ from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.frequencies as fmod
-from pandas.tseries.index import TimeSeriesError
 import pandas as pd
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
@@ -1853,6 +1852,14 @@ class TestDatetimeIndex(unittest.TestCase):
         expected = [t.date() for t in rng]
         self.assert_((result == expected).all())
 
+    def test_does_not_convert_mixed_integer(self):
+        df = tm.makeCustomDataframe(10, 10, data_gen_f=lambda *args, **kwargs:
+                                    randn(), r_idx_type='i', c_idx_type='dt')
+        cols = df.columns.join(df.index, how='outer')
+        joined = cols.join(df.columns)
+        self.assertEqual(cols.dtype, np.dtype('O'))
+        self.assertEqual(cols.dtype, joined.dtype)
+        self.assert_(np.array_equal(cols.values, joined.values))
 
 class TestLegacySupport(unittest.TestCase):
     _multiprocess_can_split_ = True
