@@ -1,4 +1,4 @@
-.. _io:
+False.. _io:
 
 .. currentmodule:: pandas
 
@@ -1231,10 +1231,6 @@ And then import the data directly to a DataFrame by calling:
 
    clipdf
 
-.. note::
-
-   You may need to install xsel on Linux to be able to read from the clipboard.
-
 The ``to_clipboard`` method can be used to write the contents of a DataFrame to 
 the clipboard. Following which you can paste the clipboard contents into other 
 applications (CTRL-V on many operating systems). Here we illustrate writing a
@@ -1243,24 +1239,15 @@ DataFrame into clipboard and reading it back.
 .. ipython:: python
     
     df=pd.DataFrame(randn(5,3))
-
-.. ipython:: python
-
     df
-
-.. ipython:: python
-
-    df.to_clipboard()  
-
-.. ipython:: python
-
-    obj=pd.read_clipboard()  
+    df.to_clipboard()
+    pd.read_clipboard()
     
-.. ipython:: python
-
-    obj
-
 We can see that we got the same content back, which we had earlier written to the clipboard.
+
+.. note::
+
+   You may need to install xlip or xsel (with gtk or PyQt4 modules) on Linux to use these methods.
 
 
 
