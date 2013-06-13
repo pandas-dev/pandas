@@ -289,6 +289,8 @@ Enhancements
        dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
 
   - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
+  - DatetimeIndexes no longer try to convert mixed-integer indexes during join
+    operations (GH3877_)
 
 
 Bug Fixes
@@ -402,3 +404,4 @@ on GitHub for a complete list.
 .. _GH3425: https://github.com/pydata/pandas/issues/3425
 .. _GH3834: https://github.com/pydata/pandas/issues/3834
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
+.. _GH3877: https://github.com/pydata/pandas/issues/3877
