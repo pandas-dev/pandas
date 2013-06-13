@@ -180,6 +180,8 @@ pandas 0.11.1
     - Non-unique indexing with a slice via ``loc`` and friends fixed (GH3659_)
     - Allow insert/delete to non-unique columns (GH3679_)
     - Extend ``reindex`` to correctly deal with non-unique indices (GH3679_)
+    - ``DataFrame.itertuples()`` now works with frames with duplicate column
+      names (GH3873_)
   - Fixed bug in groupby with empty series referencing a variable before assignment. (GH3510_)
   - Fixed bug in mixed-frame assignment with aligned series (GH3492_)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
@@ -231,8 +233,7 @@ pandas 0.11.1
   - PandasObjects raise TypeError when trying to hash (GH3882_)
   - Fix incorrect arguments passed to concat that are not list-like (e.g. concat(df1,df2)) (GH3481_)
   - Correctly parse when passed the ``dtype=str`` (or other variable-len string dtypes) in ``read_csv`` (GH3795_)
-  - ``DataFrame.itertuples()`` now works with frames with duplicate column
-    names (GH3873_)
+  - Fix index name not propogating when using ``loc/ix`` (GH3880_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -327,6 +328,7 @@ pandas 0.11.1
 .. _GH3834: https://github.com/pydata/pandas/issues/3834
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
 .. _GH3877: https://github.com/pydata/pandas/issues/3877
+.. _GH3880: https://github.com/pydata/pandas/issues/3880
 
 
 pandas 0.11.0

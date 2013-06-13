@@ -7207,6 +7207,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         s = Series(random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
         i = Series(np.arange(10), name='iname')
+
         df = df.reindex(i)
         self.assert_(df.index.name == 'iname')
 

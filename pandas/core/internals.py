@@ -1948,7 +1948,7 @@ class BlockManager(object):
                                      'axis == 0')
             return self.reindex_items(new_axis)
 
-        new_axis, indexer = cur_axis.reindex(new_axis, method)
+        new_axis, indexer = cur_axis.reindex(new_axis, method, copy_if_needed=True)
         return self.reindex_indexer(new_axis, indexer, axis=axis)
 
     def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=np.nan):
@@ -2014,7 +2014,7 @@ class BlockManager(object):
             return data.reindex_items(new_items)
 
         # TODO: this part could be faster (!)
-        new_items, indexer = self.items.reindex(new_items)
+        new_items, indexer = self.items.reindex(new_items, copy_if_needed=True)
         new_axes = [new_items] + self.axes[1:]
 
         # could have so me pathological (MultiIndex) issues here

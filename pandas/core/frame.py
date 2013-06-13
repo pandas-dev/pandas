@@ -2712,14 +2712,14 @@ class DataFrame(NDFrame):
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
                        limit=None):
         new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit)
+                                                limit=limit, copy_if_needed=True)
         return self._reindex_with_indexers(new_index, indexer, None, None,
                                            copy, fill_value)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
                          limit=None):
         new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit)
+                                                    limit=limit, copy_if_needed=True)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
                                            copy, fill_value)
 
