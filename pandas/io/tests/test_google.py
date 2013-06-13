@@ -45,37 +45,44 @@ class TestGoogle(unittest.TestCase):
 
     @network
     def test_get_data(self):
-        import numpy as np
-        df = web.get_data_google('GOOG')
-        print(df.Volume.ix['OCT-08-2010'])
-        assert df.Volume.ix['OCT-08-2010'] == 2863473
+        try:
+            import numpy as np
+            df = web.get_data_google('GOOG')
+            print(df.Volume.ix['OCT-08-2010'])
+            assert df.Volume.ix['OCT-08-2010'] == 2863473
 
-        sl = ['AAPL', 'AMZN', 'GOOG']
-        pan = web.get_data_google(sl, '2012')
-        ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
-        assert ts[0].dayofyear == 96
+            sl = ['AAPL', 'AMZN', 'GOOG']
+            pan = web.get_data_google(sl, '2012')
+            ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
+            assert ts[0].dayofyear == 96
 
-        pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12', 'JAN-31-12')
-        expected = [19.02, 28.23, 25.39]
-        result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
-        assert result == expected
+            pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12', 'JAN-31-12')
+            expected = [19.02, 28.23, 25.39]
+            result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
+            assert result == expected
 
-        # sanity checking
-        t= np.array(result)
-        assert     np.issubdtype(t.dtype, np.floating)
-        assert     t.shape == (3,)
+            # sanity checking
+            t= np.array(result)
+            assert     np.issubdtype(t.dtype, np.floating)
+            assert     t.shape == (3,)
 
-        expected = [[ 18.99,  28.4 ,  25.18],
-                    [ 18.58,  28.31,  25.13],
-                    [ 19.03,  28.16,  25.52],
-                    [ 18.81,  28.82,  25.87]]
-        result = pan.Open.ix['Jan-15-12':'Jan-20-12'][['GE', 'MSFT', 'INTC']].values
-        assert (result == expected).all()
+            expected = [[ 18.99,  28.4 ,  25.18],
+                        [ 18.58,  28.31,  25.13],
+                        [ 19.03,  28.16,  25.52],
+                        [ 18.81,  28.82,  25.87]]
+            result = pan.Open.ix['Jan-15-12':'Jan-20-12'][['GE', 'MSFT', 'INTC']].values
+            assert (result == expected).all()
 
-        # sanity checking
-        t= np.array(pan)
-        assert     np.issubdtype(t.dtype, np.floating)
-
+            # sanity checking
+            t= np.array(pan)
+            assert     np.issubdtype(t.dtype, np.floating)
+        except IOError:
+            try:
+                urllib2.urlopen('http://www.google.com')
+            except IOError:
+                raise nose.SkipTest
+            else:
+                raise
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
