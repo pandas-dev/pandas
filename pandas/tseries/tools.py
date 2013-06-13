@@ -50,7 +50,7 @@ def _maybe_get_tz(tz):
 
 
 def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
-                format=None, coerce=False):
+                format=None, coerce=False, unit='ns'):
     """
     Convert argument to datetime
 
@@ -69,6 +69,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y"
     coerce : force errors to NaT (False by default)
+    unit : unit of the arg (s,ms,us,ns) denote the unit in epoch
+        (e.g. a unix timestamp), which is an integer/float number
 
     Returns
     -------
@@ -86,7 +88,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
             else:
                 result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
                                                  utc=utc, dayfirst=dayfirst,
-                                                 coerce=coerce)
+                                                 coerce=coerce, unit=unit)
             if com.is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz='utc' if utc else None)
             return result

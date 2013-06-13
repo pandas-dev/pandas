@@ -1204,6 +1204,9 @@ class DatetimeIndex(Int64Index):
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError('Cannot mix time and non-time slice keys')
 
+        if isinstance(start, float) or isinstance(end, float):
+            raise TypeError('Cannot index datetime64 with float keys')
+
         return Index.slice_indexer(self, start, end, step)
 
     def slice_locs(self, start=None, end=None):

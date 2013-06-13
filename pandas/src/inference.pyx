@@ -471,7 +471,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen_float = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
-                idatetimes[i] = convert_to_tsobject(val, None).value
+                idatetimes[i] = convert_to_tsobject(val, None, None).value
                 seen_datetime = 1
             else:
                 seen_object = 1
@@ -493,7 +493,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
             if convert_datetime:
                 seen_datetime = 1
-                idatetimes[i] = convert_to_tsobject(val, None).value
+                idatetimes[i] = convert_to_tsobject(val, None, None).value
             else:
                 seen_object = 1
                 break

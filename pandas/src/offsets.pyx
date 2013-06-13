@@ -76,7 +76,7 @@ cdef class _Offset:
     cpdef anchor(self, object start=None):
         if start is not None:
             self.start = start
-        self.ts = convert_to_tsobject(self.start)
+        self.ts = convert_to_tsobject(self.start, None, None)
         self._setup()
 
     cdef _setup(self):
