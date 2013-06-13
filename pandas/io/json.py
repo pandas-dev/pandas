@@ -119,7 +119,7 @@ class FrameWriter(Writer):
                     self.obj[c] = self._format_to_date(self.obj[c])
 
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
-              convert_axes=True, convert_dates=True, keep_default_dates=True, numpy=True):
+              convert_axes=True, convert_dates=True, keep_default_dates=True, numpy=False):
     """
     Convert JSON string to pandas object
 
@@ -129,12 +129,22 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
         is expected. For instance, a local file could be
         file ://localhost/path/to/table.json
-    orient : {'split', 'records', 'index'}, default 'index'
+    orient :
+        Series :
+          default is 'index'
+          allowed values are: {'split','records','index'}
+
+        DataFrame :
+          default is 'columns'
+          allowed values are: {'split','records','index','columns','values'}
+
         The format of the JSON string
-        split : dict like
-            {index -> [index], name -> name, data -> [values]}
-        records : list like [value, ... , value]
-        index : dict like {index -> value}
+          split : dict like {index -> [index], columns -> [columns], data -> [values]}
+          records : list like [{column -> value}, ... , {column -> value}]
+          index : dict like {index -> {column -> value}}
+          columns : dict like {column -> {index -> value}}
+          values : just the values array
+
     typ : type of object to recover (series or frame), default 'frame'
     dtype : if True, infer dtypes, if a dict of column to dtype, then use those,
         if False, then don't infer dtypes at all, default is True,
@@ -144,8 +154,8 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         default is True
     keep_default_dates : boolean, default True. If parsing dates,
         then parse the default datelike columns
-    numpy: direct decoding to numpy arrays. default True but falls back
-        to standard decoding if a problem occurs.
+    numpy: direct decoding to numpy arrays. default is False.Note that the JSON ordering MUST be the same
+        for each term if numpy=True.
 
     Returns
     -------
@@ -177,7 +187,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
 class Parser(object):
     
-    def __init__(self, json, orient, dtype=True, convert_axes=True, convert_dates=True, keep_default_dates=False, numpy=True):
+    def __init__(self, json, orient, dtype=True, convert_axes=True, convert_dates=True, keep_default_dates=False, numpy=False):
         self.json = json
 
         if orient is None:
@@ -196,7 +206,15 @@ class Parser(object):
         self.obj = None
 
     def parse(self):
-        self._parse()
+
+        # try numpy 
+        numpy = self.numpy
+        if numpy:
+            self._parse_numpy()
+
+        else:
+            self._parse_no_numpy()
+
         if self.obj is None: return None
         if self.convert_axes:
             self._convert_axes()
@@ -304,33 +322,30 @@ class Parser(object):
 class SeriesParser(Parser):
     _default_orient = 'index'
 
-    def _parse(self):
+    def _parse_no_numpy(self):
+    
+        json = self.json
+        orient = self.orient
+        if orient == "split":
+            decoded = dict((str(k), v)
+                           for k, v in loads(json).iteritems())
+            self.obj = Series(dtype=None, **decoded)
+        else:
+            self.obj = Series(loads(json), dtype=None)
+
+    def _parse_numpy(self):
 
         json = self.json
         orient = self.orient
-        numpy = self.numpy
-    
-        if numpy:
-            try:
-                if orient == "split":
-                    decoded = loads(json, dtype=None, numpy=True)
-                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
-                    self.obj = Series(**decoded)
-                elif orient == "columns" or orient == "index":
-                    self.obj = Series(*loads(json, dtype=None, numpy=True,
-                                             labelled=True))
-                else:
-                    self.obj = Series(loads(json, dtype=None, numpy=True))
-            except (ValueError,TypeError):
-                numpy = False
-
-        if not numpy:
-            if orient == "split":
-                decoded = dict((str(k), v)
-                               for k, v in loads(json).iteritems())
-                self.obj = Series(dtype=None, **decoded)
-            else:
-                self.obj = Series(loads(json), dtype=None)
+        if orient == "split":
+            decoded = loads(json, dtype=None, numpy=True)
+            decoded = dict((str(k), v) for k, v in decoded.iteritems())
+            self.obj = Series(**decoded)
+        elif orient == "columns" or orient == "index":
+            self.obj = Series(*loads(json, dtype=None, numpy=True,
+                                     labelled=True))
+        else:
+            self.obj = Series(loads(json, dtype=None, numpy=True))
 
     def _try_convert_types(self):
         if self.obj is None: return
@@ -341,42 +356,40 @@ class SeriesParser(Parser):
 class FrameParser(Parser):
     _default_orient = 'columns'
 
-    def _parse(self):
+    def _parse_numpy(self):
 
         json = self.json
         orient = self.orient
-        numpy = self.numpy
 
-        if numpy:
-            try:
-                if orient == "columns":
-                    args = loads(json, dtype=None, numpy=True, labelled=True)
-                    if args:
-                        args = (args[0].T, args[2], args[1])
-                    self.obj = DataFrame(*args)
-                elif orient == "split":
-                    decoded = loads(json, dtype=None, numpy=True)
-                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
-                    self.obj = DataFrame(**decoded)
-                elif orient == "values":
-                    self.obj = DataFrame(loads(json, dtype=None, numpy=True))
-                else:
-                    self.obj = DataFrame(*loads(json, dtype=None, numpy=True,
-                                         labelled=True))
-            except (ValueError,TypeError):
-                numpy = False
+        if orient == "columns":
+            args = loads(json, dtype=None, numpy=True, labelled=True)
+            if args:
+                args = (args[0].T, args[2], args[1])
+            self.obj = DataFrame(*args)
+        elif orient == "split":
+            decoded = loads(json, dtype=None, numpy=True)
+            decoded = dict((str(k), v) for k, v in decoded.iteritems())
+            self.obj = DataFrame(**decoded)
+        elif orient == "values":
+            self.obj = DataFrame(loads(json, dtype=None, numpy=True))
+        else:
+            self.obj = DataFrame(*loads(json, dtype=None, numpy=True, labelled=True))
 
-        if not numpy:
-            if orient == "columns":
-                self.obj = DataFrame(loads(json), dtype=None)
-            elif orient == "split":
-                decoded = dict((str(k), v)
-                               for k, v in loads(json).iteritems())
-                self.obj = DataFrame(dtype=None, **decoded)
-            elif orient == "index":
-                self.obj = DataFrame(loads(json), dtype=None).T
-            else:
-                self.obj = DataFrame(loads(json), dtype=None)
+    def _parse_no_numpy(self):
+
+        json = self.json
+        orient = self.orient
+
+        if orient == "columns":
+            self.obj = DataFrame(loads(json), dtype=None)
+        elif orient == "split":
+            decoded = dict((str(k), v)
+                           for k, v in loads(json).iteritems())
+            self.obj = DataFrame(dtype=None, **decoded)
+        elif orient == "index":
+            self.obj = DataFrame(loads(json), dtype=None).T
+        else:
+            self.obj = DataFrame(loads(json), dtype=None)
 
     def _try_convert_types(self):
         if self.obj is None: return

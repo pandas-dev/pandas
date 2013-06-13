@@ -954,13 +954,21 @@ with optional parameters:
 
 - path_or_buf : the pathname or buffer to write the output
   This can be ``None`` in which case a JSON string is returned
-- orient : The format of the JSON string, default is ``index`` for ``Series``, ``columns`` for ``DataFrame``
+- orient :
 
-  * split   : dict like {index -> [index], columns -> [columns], data -> [values]}
-  * records : list like [{column -> value}, ... , {column -> value}]
-  * index   : dict like {index -> {column -> value}}
-  * columns : dict like {column -> {index -> value}}
-  * values  : just the values array
+  Series :
+    default is 'index', allowed values are: {'split','records','index'}
+
+  DataFrame :
+    default is 'columns', allowed values are: {'split','records','index','columns','values'}
+
+  The format of the JSON string
+
+    * split : dict like {index -> [index], columns -> [columns], data -> [values]}
+    * records : list like [{column -> value}, ... , {column -> value}]
+    * index : dict like {index -> {column -> value}}
+    * columns : dict like {column -> {index -> value}}
+    * values : just the values array
 
 - date_format : type of date conversion (epoch = epoch milliseconds, iso = ISO8601), default is epoch
 - double_precision : The number of decimal places to use when encoding floating point values, default 10.
@@ -1007,17 +1015,28 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
   is expected. For instance, a local file could be
   file ://localhost/path/to/table.json
 - typ    : type of object to recover (series or frame), default 'frame'
-- orient : The format of the JSON string, one of the following
+- orient :
 
-  * split : dict like {index -> [index], name -> name, data -> [values]}
-  * records : list like [value, ... , value]
-  * index : dict like {index -> value}
+  Series :
+    default is 'index', allowed values are: {'split','records','index'}
+
+  DataFrame :
+    default is 'columns', allowed values are: {'split','records','index','columns','values'}
+
+  The format of the JSON string
+
+    * split : dict like {index -> [index], columns -> [columns], data -> [values]}
+    * records : list like [{column -> value}, ... , {column -> value}]
+    * index : dict like {index -> {column -> value}}
+    * columns : dict like {column -> {index -> value}}
+    * values : just the values array
 
 - dtype : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
 - convert_axes : boolean, try to convert the axes to the proper dtypes, default is True
 - convert_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
 - keep_default_dates : boolean, default True. If parsing dates, then parse the default datelike columns
-- numpy: direct decoding to numpy arrays. default True but falls back to standard decoding if a problem occurs.
+- numpy: direct decoding to numpy arrays. default is False;
+  Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
 not parsable.

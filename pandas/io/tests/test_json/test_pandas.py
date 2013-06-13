@@ -56,11 +56,19 @@ class TestPandasObjects(unittest.TestCase):
 
     def test_frame_from_json_to_json(self):
 
-        def _check_orient(df, orient, dtype=None, numpy=True, convert_axes=True, check_dtype=True):
+        def _check_orient(df, orient, dtype=None, numpy=False, convert_axes=True, check_dtype=True, raise_ok=None):
             df = df.sort()
             dfjson = df.to_json(orient=orient)
-            unser = read_json(dfjson, orient=orient, dtype=dtype,
-                              numpy=numpy, convert_axes=convert_axes)
+
+            try:
+                unser = read_json(dfjson, orient=orient, dtype=dtype,
+                                  numpy=numpy, convert_axes=convert_axes)
+            except (Exception), detail:
+                if raise_ok is not None:
+                    if type(detail) == raise_ok:
+                        return
+                    raise
+                    
             unser = unser.sort()
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
@@ -84,7 +92,9 @@ class TestPandasObjects(unittest.TestCase):
                 else:
                     assert_frame_equal(df, unser, check_less_precise=False, check_dtype=check_dtype)
 
-        def _check_all_orients(df, dtype=None, convert_axes=True):
+        def _check_all_orients(df, dtype=None, convert_axes=True, raise_ok=None):
+
+            # numpy=False
             if convert_axes:
                 _check_orient(df, "columns", dtype=dtype)
                 _check_orient(df, "records", dtype=dtype)
@@ -98,18 +108,19 @@ class TestPandasObjects(unittest.TestCase):
             _check_orient(df, "index", dtype=dtype, convert_axes=False)
             _check_orient(df, "values", dtype=dtype ,convert_axes=False)
 
+            # numpy=True and raise_ok might be not None, so ignore the error
             if convert_axes:
-                _check_orient(df, "columns", dtype=dtype, numpy=False)
-                _check_orient(df, "records", dtype=dtype, numpy=False)
-                _check_orient(df, "split", dtype=dtype, numpy=False)
-                _check_orient(df, "index", dtype=dtype, numpy=False)
-                _check_orient(df, "values", dtype=dtype, numpy=False)
+                _check_orient(df, "columns", dtype=dtype, numpy=True, raise_ok=raise_ok)
+                _check_orient(df, "records", dtype=dtype, numpy=True, raise_ok=raise_ok)
+                _check_orient(df, "split", dtype=dtype, numpy=True, raise_ok=raise_ok)
+                _check_orient(df, "index", dtype=dtype, numpy=True, raise_ok=raise_ok)
+                _check_orient(df, "values", dtype=dtype, numpy=True, raise_ok=raise_ok)
 
-            _check_orient(df, "columns", dtype=dtype, numpy=False, convert_axes=False)
-            _check_orient(df, "records", dtype=dtype, numpy=False, convert_axes=False)
-            _check_orient(df, "split", dtype=dtype, numpy=False, convert_axes=False)
-            _check_orient(df, "index", dtype=dtype, numpy=False, convert_axes=False)
-            _check_orient(df, "values", dtype=dtype, numpy=False, convert_axes=False)
+            _check_orient(df, "columns", dtype=dtype, numpy=True, convert_axes=False, raise_ok=raise_ok)
+            _check_orient(df, "records", dtype=dtype, numpy=True, convert_axes=False, raise_ok=raise_ok)
+            _check_orient(df, "split", dtype=dtype, numpy=True, convert_axes=False, raise_ok=raise_ok)
+            _check_orient(df, "index", dtype=dtype, numpy=True, convert_axes=False, raise_ok=raise_ok)
+            _check_orient(df, "values", dtype=dtype, numpy=True, convert_axes=False, raise_ok=raise_ok)
 
         # basic
         _check_all_orients(self.frame)
@@ -131,7 +142,8 @@ class TestPandasObjects(unittest.TestCase):
         _check_all_orients(DataFrame(biggie, dtype=np.float64),
                            dtype=np.float64, convert_axes=False)
         _check_all_orients(DataFrame(biggie, dtype=np.int), dtype=np.int, convert_axes=False)
-        _check_all_orients(DataFrame(biggie, dtype='<U3'), dtype='<U3', convert_axes=False)
+        _check_all_orients(DataFrame(biggie, dtype='<U3'), dtype='<U3', convert_axes=False,
+                           raise_ok=ValueError)
 
         # empty
         _check_all_orients(self.empty_frame)
@@ -223,7 +235,7 @@ class TestPandasObjects(unittest.TestCase):
 
     def test_series_from_json_to_json(self):
 
-        def _check_orient(series, orient, dtype=None, numpy=True):
+        def _check_orient(series, orient, dtype=None, numpy=False):
             series = series.sort_index()
             unser = read_json(series.to_json(orient=orient), typ='series',
                               orient=orient, numpy=numpy, dtype=dtype)
@@ -247,11 +259,11 @@ class TestPandasObjects(unittest.TestCase):
             _check_orient(series, "index", dtype=dtype)
             _check_orient(series, "values", dtype=dtype)
 
-            _check_orient(series, "columns", dtype=dtype, numpy=False)
-            _check_orient(series, "records", dtype=dtype, numpy=False)
-            _check_orient(series, "split", dtype=dtype, numpy=False)
-            _check_orient(series, "index", dtype=dtype, numpy=False)
-            _check_orient(series, "values", dtype=dtype, numpy=False)
+            _check_orient(series, "columns", dtype=dtype, numpy=True)
+            _check_orient(series, "records", dtype=dtype, numpy=True)
+            _check_orient(series, "split", dtype=dtype, numpy=True)
+            _check_orient(series, "index", dtype=dtype, numpy=True)
+            _check_orient(series, "values", dtype=dtype, numpy=True)
 
         # basic
         _check_all_orients(self.series)
@@ -384,12 +396,13 @@ class TestPandasObjects(unittest.TestCase):
         assert_frame_equal(result,result)
 
     def test_misc_example(self):
-        #import pdb; pdb.set_trace()
+
+        # parsing unordered input fails
         result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]',numpy=True)
         expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
         #assert_frame_equal(result,expected)
 
-        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]',numpy=False)
+        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
         expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
         assert_frame_equal(result,expected)
 
