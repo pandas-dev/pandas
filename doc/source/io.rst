@@ -989,6 +989,8 @@ Writing to a file, with a date index and a date column
 
    dfj2 = dfj.copy()
    dfj2['date'] = Timestamp('20130101')
+   dfj2['ints'] = range(5)
+   dfj2['bools'] = True
    dfj2.index = date_range('20130101',periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
@@ -1011,13 +1013,28 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
   * records : list like [value, ... , value]
   * index : dict like {index -> value}
 
-- dtype : dtype of the resulting object
-- numpy : direct decoding to numpy arrays. default True but falls back to standard decoding if a problem occurs.
-- parse_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is False
+- dtype : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
+- convert_axes : boolean, try to convert the axes to the proper dtypes, default is True
+- convert_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
 - keep_default_dates : boolean, default True. If parsing dates, then parse the default datelike columns
+- numpy: direct decoding to numpy arrays. default True but falls back to standard decoding if a problem occurs.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
 not parsable.
+
+The default of ``convert_axes=True``, ``dtype=True``, and ``convert_dates=True`` will try to parse the axes, and all of the data
+into appropriate types, including dates. If you need to override specific dtypes, pass a dict to ``dtype``. ``convert_axes`` should only
+be set to ``False`` if you need to preserve string-like numbers (e.g. '1', '2') in an axes.
+
+.. warning::
+
+   When reading JSON data, automatic coercing into dtypes has some quirks:
+
+     * an index can be in a different order, that is the returned order is not guaranteed to be the same as before serialization
+     * a column that was ``float`` data can safely be converted to ``integer``, e.g. a column of ``1.``
+     * bool columns will be converted to ``integer`` on reconstruction
+
+   Thus there are times where you may want to specify specific dtypes via the ``dtype`` keyword argument.
 
 Reading from a JSON string
 
@@ -1025,11 +1042,40 @@ Reading from a JSON string
 
    pd.read_json(json)
 
-Reading from a file, parsing dates
+Reading from a file
 
 .. ipython:: python
 
-   pd.read_json('test.json',parse_dates=True)
+   pd.read_json('test.json')
+
+Don't convert any data (but still convert axes and dates)
+
+.. ipython:: python
+
+   pd.read_json('test.json',dtype=object).dtypes
+
+Specify how I want to convert data
+
+.. ipython:: python
+
+   pd.read_json('test.json',dtype={'A' : 'float32', 'bools' : 'int8'}).dtypes
+
+I like my string indicies
+
+.. ipython:: python
+
+   si = DataFrame(np.zeros((4, 4)),
+            columns=range(4),
+            index=[str(i) for i in range(4)])
+   si
+   si.index
+   si.columns
+   json = si.to_json()
+   
+   sij = pd.read_json(json,convert_axes=False)
+   sij
+   sij.index
+   sij.columns
 
 .. ipython:: python
    :suppress:
