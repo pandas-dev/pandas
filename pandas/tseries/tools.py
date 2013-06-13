@@ -99,16 +99,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
             except (ValueError, TypeError):
                 raise e
 
-    if arg is None:
-        return arg
-    elif isinstance(arg, datetime):
-        return arg
-    elif isinstance(arg, Series):
-        values = arg.values
-        if not com.is_datetime64_dtype(values):
-            values = _convert_f(values)
-        return Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (np.ndarray, list)):
+    def _convert_listlike(arg):        
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
 
@@ -122,24 +113,23 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                         return DatetimeIndex._simple_new(values, None, tz=tz)
                     except (ValueError, TypeError):
                         raise e
-            return arg
+                return arg
 
-        try:
-            return _convert_f(arg)
-        except ValueError:
-            raise
+        return _convert_f(arg)
+
+    if arg is None:
         return arg
-
-    try:
-        if not arg:
-            return arg
-        default = datetime(1, 1, 1)
-        return parse(arg, dayfirst=dayfirst, default=default)
-    except Exception:
-        if errors == 'raise':
-            raise
+    elif isinstance(arg, datetime):
         return arg
+    elif isinstance(arg, Series):
+        values = arg.values
+        if not com.is_datetime64_dtype(values):
+            values = _convert_f(values)
+        return Series(values, index=arg.index, name=arg.name)
+    elif isinstance(arg, (np.ndarray, list)):
+        return _convert_listlike(arg)
 
+    return _convert_listlike(np.array([ arg ], dtype='O'))[0]
 
 class DateParseError(ValueError):
     pass

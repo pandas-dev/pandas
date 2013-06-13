@@ -159,6 +159,7 @@ pandas 0.11.1
   - ``read_html`` now defaults to ``None`` when reading, and falls back on
     ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
     until success is also valid
+  - more consistency in the to_datetime return types (give string/array of string inputs) (GH3888_)
 
 **Bug Fixes**
 
@@ -355,6 +356,8 @@ pandas 0.11.1
 .. _GH3911: https://github.com/pydata/pandas/issues/3911
 .. _GH3912: https://github.com/pydata/pandas/issues/3912
 .. _GH3764: https://github.com/pydata/pandas/issues/3764
+.. _GH3888: https://github.com/pydata/pandas/issues/3888
+
 
 pandas 0.11.0
 =============
