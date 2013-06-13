@@ -100,7 +100,11 @@ enum PANDAS_FORMAT
 //#define PRINTMARK() fprintf(stderr, "%s: MARK(%d)\n", __FILE__, __LINE__)
 #define PRINTMARK()
 
+#if (PY_VERSION_HEX >= 0x03000000)
 void initObjToJSON(void)
+#else
+int initObjToJSON(void)
+#endif
 {
     PyObject *mod_frame;
     PyDateTime_IMPORT;
