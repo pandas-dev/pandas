@@ -67,14 +67,17 @@ if ( ! $VENV_FILE_AVAILABLE ); then
     if [ x"$FULL_DEPS" == x"true" ]; then
         echo "Installing FULL_DEPS"
         pip install $PIP_ARGS  cython
-        pip install $PIP_ARGS numexpr
 
         if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
             pip install $PIP_ARGS xlwt
             pip install $PIP_ARGS bottleneck
+            pip install $PIP_ARGS numexpr==2.0.1
+            pip install $PIP_ARGS tables==2.3.1
+        else
+            pip install $PIP_ARGS numexpr
+            pip install $PIP_ARGS tables
         fi
 
-        pip install $PIP_ARGS tables
         pip install $PIP_ARGS matplotlib
         pip install $PIP_ARGS openpyxl
         pip install $PIP_ARGS xlrd>=0.9.0
