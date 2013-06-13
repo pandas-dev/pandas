@@ -477,6 +477,9 @@ class TestHDFStore(unittest.TestCase):
 
     def test_encoding(self):
         
+        if sys.byteorder != 'little':
+            raise nose.SkipTest('system byteorder is not little, skipping test_encoding!')
+
         with ensure_clean(self.path) as store:
             df = DataFrame(dict(A='foo',B='bar'),index=range(5))
             df.loc[2,'A'] = np.nan
