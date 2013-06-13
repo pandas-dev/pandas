@@ -46,6 +46,12 @@ class PanelTests(object):
         cumsum = self.panel.cumsum()
         assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
 
+    def not_hashable(self):
+        c_empty = Panel()
+        c = Panel(pd.Panel([[[1]]]))
+        self.assertRaises(TypeError, hash, c_empty)
+        self.assertRaises(TypeError, hash, c)
+
 
 class SafeForLongAndSparse(object):
     _multiprocess_can_split_ = True

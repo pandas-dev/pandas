@@ -785,6 +785,11 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
             major=self.panel4d.major_axis, copy=False)
         self.assert_(result is self.panel4d)
 
+    def test_not_hashable(self):
+        p4D_empty = Panel4D()
+        self.assertRaises(TypeError, hash, p4D_empty)
+        self.assertRaises(TypeError, hash, self.panel4d)
+
     def test_reindex_like(self):
         # reindex_like
         smaller = self.panel4d.reindex(labels=self.panel4d.labels[:-1],

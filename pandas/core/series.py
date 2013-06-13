@@ -528,7 +528,8 @@ class Series(pa.Array, generic.PandasObject):
         return not is_integer_dtype(self.dtype)
 
     def __hash__(self):
-        raise TypeError('unhashable type')
+        raise TypeError('{0!r} objects are mutable, thus they cannot be'
+                              ' hashed'.format(self.__class__.__name__))
 
     _index = None
     index = lib.SeriesIndex()
