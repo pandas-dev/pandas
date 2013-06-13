@@ -383,6 +383,16 @@ class TestPandasObjects(unittest.TestCase):
         result = read_json(json,dtype={'ints' : np.int64, 'bools' : np.bool_})
         assert_frame_equal(result,result)
 
+    def test_misc_example(self):
+        #import pdb; pdb.set_trace()
+        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]',numpy=True)
+        expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
+        #assert_frame_equal(result,expected)
+
+        result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]',numpy=False)
+        expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
+        assert_frame_equal(result,expected)
+
     @network
     @slow
     def test_round_trip_exception_(self):
