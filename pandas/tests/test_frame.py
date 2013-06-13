@@ -3951,6 +3951,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for tup in df.itertuples(index=False):
             self.assert_(isinstance(tup[1], np.integer))
 
+        df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
+        dfaa = df[['a', 'a']]
+        self.assertEqual(list(dfaa.itertuples()), [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
+
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
 
