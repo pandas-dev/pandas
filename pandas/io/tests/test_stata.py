@@ -3,7 +3,7 @@
 from datetime import datetime
 import os
 import unittest
-
+import sys
 import warnings
 import nose
 
@@ -14,6 +14,10 @@ from pandas.io.parsers import read_csv
 from pandas.io.stata import read_stata, StataReader, StataWriter
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
+
+def _skip_if_not_little(name):
+    if sys.byteorder != 'little':
+        raise nose.SkipTest('system byteorder is not little, skipping %s' % name)
 
 class StataTests(unittest.TestCase):
 
@@ -128,6 +132,7 @@ class StataTests(unittest.TestCase):
         tm.assert_frame_equal(parsed, expected)
 
     def test_write_dta5(self):
+        _skip_if_not_little('write_dta5')
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
                              columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
         original.index.name = 'index'
@@ -138,6 +143,7 @@ class StataTests(unittest.TestCase):
             tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
 
     def test_write_dta6(self):
+        _skip_if_not_little('write_dta6')
         original = self.read_csv(self.csv3)
         original.index.name = 'index'
 
