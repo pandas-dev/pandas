@@ -465,7 +465,8 @@ cdef class _Timestamp(datetime):
             elif op == 3:
                 return True
             else:
-                raise TypeError('Cannot compare Timestamp with %s' % str(other))
+                raise TypeError('Cannot compare Timestamp with '
+                                '{0!r}'.format(other.__class__.__name__))
 
         self._assert_tzawareness_compat(other)
 
