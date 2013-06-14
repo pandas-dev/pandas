@@ -110,6 +110,37 @@ scalar values and ``PeriodIndex`` for sequences of spans. Better support for
 irregular intervals with arbitrary start and end points are forth-coming in
 future releases.
 
+
+.. _timeseries.converting:
+
+Converting to Timestamps
+------------------------
+
+To convert a list or Series of datetimes or strings (or a mixture, or NAs),
+you can use the ``to_datetime`` function:
+
+.. ipython:: python
+
+    pd.to_datetime(['Jul 31, 2009', '2010-01-10'])
+
+    pd.to_datetime(['2005/11/23', '2010.12.31''])
+
+If you use dates start with the dayfirst (European style), you can pass
+the dayfirst flag:
+
+.. ipython:: python
+
+    to_datetime(['12-13-2012'], dayfirst=True)
+
+*There is a known bug that this falls back to not dayfirst if there are
+inconsistent date formats.*
+
+Pass ``coerce=True`` to convert data to ``NaT`` (not a time):
+
+.. ipython:: python
+
+    pd.to_datetime(['2009-07-31', 'asd'], coerce=True)
+
 .. _timeseries.daterange:
 
 Generating Ranges of Timestamps
