@@ -746,7 +746,7 @@ class ObjectBlock(Block):
         both_lists = to_rep_is_list and value_is_list
         either_list = to_rep_is_list or value_is_list
 
-        if not either_list and com.is_re_compilable(to_replace):
+        if not either_list and com.is_re(to_replace):
             blk[0], = blk[0]._replace_single(to_replace, value,
                                              inplace=inplace, filter=filter,
                                              regex=True)

@@ -6778,7 +6778,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         ## lists of regexes and values
         # list of [v1, v2, ..., vN] -> [v1, v2, ..., vN]
-        import ipdb; ipdb.set_trace()
         to_replace_res = [r'.', r'e']
         values = [nan, 'crap']
         res = dfobj.replace(to_replace_res, values)
