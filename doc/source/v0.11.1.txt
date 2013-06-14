@@ -289,8 +289,12 @@ Enhancements
        dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
 
   - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
+  
   - DatetimeIndexes no longer try to convert mixed-integer indexes during join
     operations (GH3877_)
+    
+  - Timestamp.min and Timestamp.max now represent valid Timestamp instances instead
+    of the default datetime.min and datetime.max (respectively).
 
 
 Bug Fixes

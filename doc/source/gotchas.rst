@@ -271,9 +271,10 @@ can be represented using a 64-bit integer is limited to approximately 584 years:
 
 .. ipython:: python
 
-   begin = Timestamp(-9223285636854775809L)
+   begin = Timestamp.min
    begin
-   end = Timestamp(np.iinfo(np.int64).max)
+
+   end = Timestamp.max
    end
 
 If you need to represent time series data outside the nanosecond timespan, use

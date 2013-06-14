@@ -69,6 +69,8 @@ pandas 0.11.1
     - support python3 (via ``PyTables 3.0.0``) (GH3750_)
   - Add modulo operator to Series, DataFrame
   - Add ``date`` method to DatetimeIndex
+  - Timestamp.min and Timestamp.max now represent valid Timestamp instances instead
+    of the default datetime.min and datetime.max (respectively).
   - Simplified the API and added a describe method to Categorical
   - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame (GH3649_),
