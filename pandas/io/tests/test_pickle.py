@@ -8,7 +8,6 @@ import pickle
 import unittest
 import nose
 import os
-import sys
 
 import numpy as np
 import pandas.util.testing as tm
@@ -16,9 +15,8 @@ import pandas as pd
 from pandas import Index
 from pandas.sparse.tests import test_sparse
 from pandas.util import py3compat
-
-if sys.byteorder != 'little':
-    raise nose.SkipTest('system byteorder is not little!')
+from pandas.util.decorators import knownfailureif
+from pandas.util.misc import is_little_endian
 
 class TestPickle(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -60,6 +58,7 @@ class TestPickle(unittest.TestCase):
                     comparator = getattr(tm,"assert_%s_equal" % typ)
                     comparator(result,expected)
 
+    @knownfailureif(not is_little_endian(), "known failure of test_read_pickles_0_10_1 on non-little endian")
     def test_read_pickles_0_10_1(self):
 
         pth = tm.get_data_path('legacy_pickle/0.10.1')
@@ -67,6 +66,7 @@ class TestPickle(unittest.TestCase):
             vf = os.path.join(pth,f)
             self.compare(vf)
 
+    @knownfailureif(not is_little_endian(), "known failure of test_read_pickles_0_11_0 on non-little endian")
     def test_read_pickles_0_11_0(self):
 
         pth = tm.get_data_path('legacy_pickle/0.11.0')
