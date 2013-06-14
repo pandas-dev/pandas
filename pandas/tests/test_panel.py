@@ -1381,7 +1381,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
             path = '__tmp__.' + ext
             with ensure_clean(path) as path:
                 self.panel.to_excel(path)
-                reader = ExcelFile(path)
+                try:
+                    reader = ExcelFile(path)
+                except ImportError:
+                    raise nose.SkipTest
+                
                 for item, df in self.panel.iterkv():
                     recdf = reader.parse(str(item), index_col=0)
                     assert_frame_equal(df, recdf)

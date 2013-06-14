@@ -808,11 +808,7 @@ class ExcelTests(unittest.TestCase):
     #         self.assertTrue(ws.cell(maddr).merged)
     #     os.remove(filename)
     def test_excel_010_hemstring(self):
-        try:
-            import xlwt
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest
+        _skip_if_no_excelsuite()
 
         from pandas.util.testing import makeCustomDataframe as mkdf
         # ensure limited functionality in 0.10
