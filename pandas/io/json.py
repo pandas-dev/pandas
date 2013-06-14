@@ -268,6 +268,15 @@ class Parser(object):
             except:
                 pass
 
+        if data.dtype == 'float':
+            
+            # coerce floats to 64
+            try:
+                data = data.astype('float64')
+                result = True
+            except:
+                pass
+
         # do't coerce 0-len data
         if len(data) and (data.dtype == 'float' or data.dtype == 'object'):
 
@@ -277,6 +286,16 @@ class Parser(object):
                 if (new_data == data).all():
                     data = new_data
                     result = True
+            except:
+                pass
+
+        # coerce ints to 64
+        if data.dtype == 'int':
+            
+            # coerce floats to 64
+            try:
+                data = data.astype('int64')
+                result = True
             except:
                 pass
 

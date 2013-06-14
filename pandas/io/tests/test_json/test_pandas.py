@@ -26,7 +26,7 @@ _tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = DataFrame(dict((k, v.astype(int))
+_intframe = DataFrame(dict((k, v.astype(np.int64))
                            for k, v in _seriesd.iteritems()))
 
 _tsframe = DataFrame(_tsd)
@@ -70,6 +70,9 @@ class TestPandasObjects(unittest.TestCase):
                     raise
                     
             unser = unser.sort()
+
+            if dtype is False:
+                check_dtype=False
 
             if not convert_axes and df.index.dtype.type == np.datetime64:
                 unser.index = DatetimeIndex(unser.index.values.astype('i8'))
@@ -288,7 +291,7 @@ class TestPandasObjects(unittest.TestCase):
 
     def test_typ(self):
 
-        s = Series(range(6), index=['a','b','c','d','e','f'])
+        s = Series(range(6), index=['a','b','c','d','e','f'], dtype='int64')
         result = read_json(s.to_json(),typ=None)
         assert_series_equal(result,s)
 

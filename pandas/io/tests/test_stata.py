@@ -3,7 +3,7 @@
 from datetime import datetime
 import os
 import unittest
-
+import sys
 import warnings
 import nose
 
@@ -14,6 +14,8 @@ from pandas.io.parsers import read_csv
 from pandas.io.stata import read_stata, StataReader, StataWriter
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
+from pandas.util.decorators import knownfailureif
+from pandas.util.misc import is_little_endian
 
 class StataTests(unittest.TestCase):
 
@@ -127,6 +129,7 @@ class StataTests(unittest.TestCase):
 
         tm.assert_frame_equal(parsed, expected)
 
+    @knownfailureif(not is_little_endian(), "known failure of test_write_dta5 on non-little endian")
     def test_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
                              columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
@@ -137,6 +140,7 @@ class StataTests(unittest.TestCase):
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
 
+    @knownfailureif(not is_little_endian(), "known failure of test_write_dta6 on non-little endian")
     def test_write_dta6(self):
         original = self.read_csv(self.csv3)
         original.index.name = 'index'
