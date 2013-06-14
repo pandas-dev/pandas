@@ -952,9 +952,9 @@ Writing JSON
 A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
 with optional parameters:
 
-- path_or_buf : the pathname or buffer to write the output
+- ``path_or_buf`` : the pathname or buffer to write the output
   This can be ``None`` in which case a JSON string is returned
-- orient :
+- ``orient`` :
 
   Series :
     default is 'index', allowed values are: {'split','records','index'}
@@ -970,9 +970,9 @@ with optional parameters:
     * columns : dict like {column -> {index -> value}}
     * values : just the values array
 
-- date_format : type of date conversion (epoch = epoch milliseconds, iso = ISO8601), default is epoch
-- double_precision : The number of decimal places to use when encoding floating point values, default 10.
-- force_ascii : force encoded string to be ASCII, default True.
+- ``date_format`` : type of date conversion (epoch = epoch milliseconds, iso = ISO8601), default is epoch
+- ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
+- ``force_ascii`` : force encoded string to be ASCII, default True.
 
 Note NaN's and None will be converted to null and datetime objects will be converted based on the date_format parameter
 
@@ -1010,12 +1010,12 @@ Reading a JSON string to pandas object can take a number of parameters.
 The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
 is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 
-- filepath_or_buffer : a **VALID** JSON string or file handle / StringIO. The string could be
+- ``filepath_or_buffer`` : a **VALID** JSON string or file handle / StringIO. The string could be
   a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host
   is expected. For instance, a local file could be
   file ://localhost/path/to/table.json
-- typ    : type of object to recover (series or frame), default 'frame'
-- orient :
+- ``typ``    : type of object to recover (series or frame), default 'frame'
+- ``orient`` :
 
   Series :
     default is 'index', allowed values are: {'split','records','index'}
@@ -1031,11 +1031,11 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
     * columns : dict like {column -> {index -> value}}
     * values : just the values array
 
-- dtype : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
-- convert_axes : boolean, try to convert the axes to the proper dtypes, default is True
-- convert_dates : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
-- keep_default_dates : boolean, default True. If parsing dates, then parse the default datelike columns
-- numpy: direct decoding to numpy arrays. default is False;
+- ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
+- ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
+- ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse datelike columns, default is True
+- ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default datelike columns
+- ``numpy`` : direct decoding to numpy arrays. default is False;
   Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
@@ -1049,8 +1049,8 @@ be set to ``False`` if you need to preserve string-like numbers (e.g. '1', '2') 
 
    When reading JSON data, automatic coercing into dtypes has some quirks:
 
-     * an index can be in a different order, that is the returned order is not guaranteed to be the same as before serialization
-     * a column that was ``float`` data can safely be converted to ``integer``, e.g. a column of ``1.``
+     * an index can be reconstructed in a different order from serialization, that is, the returned order is not guaranteed to be the same as before serialization
+     * a column that was ``float`` data will be converted to ``integer`` if it can be done safely, e.g. a column of ``1.``
      * bool columns will be converted to ``integer`` on reconstruction
 
    Thus there are times where you may want to specify specific dtypes via the ``dtype`` keyword argument.
