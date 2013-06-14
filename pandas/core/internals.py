@@ -1,13 +1,14 @@
 import itertools
 import re
 from datetime import datetime
-import collections
 
 from numpy import nan
 import numpy as np
 
-from pandas.core.common import _possibly_downcast_to_dtype, isnull, _NS_DTYPE, _TD_DTYPE
-from pandas.core.index import Index, MultiIndex, _ensure_index, _handle_legacy_indexes
+from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
+                                _TD_DTYPE)
+from pandas.core.index import (Index, MultiIndex, _ensure_index,
+                               _handle_legacy_indexes)
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
 import pandas.lib as lib
@@ -16,10 +17,6 @@ import pandas.core.expressions as expressions
 
 from pandas.tslib import Timestamp
 from pandas.util import py3compat
-
-
-def _re_compilable(ex):
-    return isinstance(ex, (basestring, re._pattern_type))
 
 
 class Block(object):
@@ -744,14 +741,16 @@ class ObjectBlock(Block):
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False):
         blk = [self]
-        to_rep_is_list = (isinstance(to_replace, collections.Iterable) and not
-                          isinstance(to_replace, basestring))
-        value_is_list = (isinstance(value, collections.Iterable) and not
-                         isinstance(to_replace, basestring))
+        to_rep_is_list = com.is_list_like(to_replace)
+        value_is_list = com.is_list_like(value)
         both_lists = to_rep_is_list and value_is_list
         either_list = to_rep_is_list or value_is_list
 
-        if not either_list and not regex:
+        if not either_list and com.is_re_compilable(to_replace):
+            blk[0], = blk[0]._replace_single(to_replace, value,
+                                             inplace=inplace, filter=filter,
+                                             regex=True)
+        elif not (either_list or regex):
             blk = super(ObjectBlock, self).replace(to_replace, value,
                                                    inplace=inplace,
                                                    filter=filter, regex=regex)
@@ -773,15 +772,18 @@ class ObjectBlock(Block):
     def _replace_single(self, to_replace, value, inplace=False, filter=None,
                         regex=False):
         # to_replace is regex compilable
-        to_rep_re = _re_compilable(to_replace)
+        to_rep_re = com.is_re_compilable(to_replace)
 
         # regex is regex compilable
-        regex_re = _re_compilable(regex)
+        regex_re = com.is_re_compilable(regex)
 
+        # only one will survive
         if to_rep_re and regex_re:
             raise AssertionError('only one of to_replace and regex can be '
                                  'regex compilable')
 
+        # if regex was passed as something that can be a regex (rather than a
+        # boolean)
         if regex_re:
             to_replace = regex
 
@@ -1668,7 +1670,6 @@ class BlockManager(object):
                 mgr._consolidate_inplace()
                 return mgr
 
-
     def iget(self, i):
         item = self.items[i]
         if self.items.is_unique:
@@ -1970,7 +1971,6 @@ class BlockManager(object):
     def _reindex_indexer_items(self, new_items, indexer, fill_value):
         # TODO: less efficient than I'd like
 
-        is_unique = self.items.is_unique
         item_order = com.take_1d(self.items.values, indexer)
 
         # keep track of what items aren't found anywhere
@@ -2141,7 +2141,6 @@ class BlockManager(object):
 
     def rename_items(self, mapper, copydata=True):
         new_items = Index([mapper(x) for x in self.items])
-        is_unique = new_items.is_unique
 
         new_blocks = []
         for block in self.blocks:

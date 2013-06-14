@@ -33,8 +33,7 @@ from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
                                   _maybe_convert_indices)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
-                                   create_block_manager_from_blocks,
-                                   _re_compilable)
+                                   create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
 import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -3483,7 +3482,7 @@ class DataFrame(NDFrame):
                            limit=limit)
 
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, infer_types=False, method=None, axis=None):
+                regex=False, method=None, axis=None):
         """
         Replace values given in 'to_replace' with 'value'.
 
@@ -3545,8 +3544,6 @@ class DataFrame(NDFrame):
             string. Otherwise, `to_replace` must be ``None`` because this
             parameter will be interpreted as a regular expression or a list,
             dict, or array of regular expressions.
-        infer_types : bool, default True
-            If ``True`` attempt to convert object blocks to a better dtype.
 
         See also
         --------
@@ -3582,7 +3579,7 @@ class DataFrame(NDFrame):
           and play with this method to gain intuition about how it works.
 
         """
-        if not isinstance(regex, bool) and to_replace is not None:
+        if not com.is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
         if method is not None:
@@ -3628,8 +3625,7 @@ class DataFrame(NDFrame):
                 to_replace, value = keys, values
 
             return self.replace(to_replace, value, inplace=inplace,
-                                limit=limit, regex=regex,
-                                infer_types=infer_types)
+                                limit=limit, regex=regex)
         else:
             if not len(self.columns):
                 return self
@@ -3673,14 +3669,14 @@ class DataFrame(NDFrame):
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace, regex=regex)
             elif to_replace is None:
-                if not (_re_compilable(regex) or
+                if not (com.is_re_compilable(regex) or
                         isinstance(regex, (list, dict, np.ndarray, Series))):
                     raise TypeError("'regex' must be a string or a compiled "
                                     "regular expression or a list or dict of "
                                     "strings or regular expressions, you "
                                     "passed a {0}".format(type(regex)))
                 return self.replace(regex, value, inplace=inplace, limit=limit,
-                                    regex=True, infer_types=infer_types)
+                                    regex=True)
             else:
 
                 # dest iterable dict-like
@@ -3701,8 +3697,7 @@ class DataFrame(NDFrame):
                     raise TypeError('Invalid "to_replace" type: '
                                     '{0}'.format(type(to_replace)))  # pragma: no cover
 
-        if infer_types:
-            new_data = new_data.convert()
+        new_data = new_data.convert(copy=not inplace, convert_numeric=False)
 
         if inplace:
             self._data = new_data
