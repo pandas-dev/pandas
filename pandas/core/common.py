@@ -1591,7 +1591,12 @@ def is_re(obj):
 
 
 def is_re_compilable(obj):
-    return is_re(obj) or isinstance(obj, basestring)
+    try:
+        re.compile(obj)
+    except TypeError:
+        return False
+    else:
+        return True
 
 
 def is_list_like(arg):
