@@ -234,8 +234,11 @@ pandas 0.11.1
   - ``read_html`` now correctly skips tests (GH3741_)
   - PandasObjects raise TypeError when trying to hash (GH3882_)
   - Fix incorrect arguments passed to concat that are not list-like (e.g. concat(df1,df2)) (GH3481_)
-  - Correctly parse when passed the ``dtype=str`` (or other variable-len string dtypes) in ``read_csv`` (GH3795_)
+  - Correctly parse when passed the ``dtype=str`` (or other variable-len string dtypes)
+    in ``read_csv`` (GH3795_)
   - Fix index name not propogating when using ``loc/ix`` (GH3880_)
+  - Fix groupby when applying a custom function resulting in a returned DataFrame was 
+    not converting dtypes (GH3911_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -331,6 +334,7 @@ pandas 0.11.1
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
 .. _GH3877: https://github.com/pydata/pandas/issues/3877
 .. _GH3880: https://github.com/pydata/pandas/issues/3880
+.. _GH3911: https://github.com/pydata/pandas/issues/3911
 
 
 pandas 0.11.0
