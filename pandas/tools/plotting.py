@@ -881,12 +881,12 @@ class MPLPlot(object):
             # might be a frame
             numeric_data = self.data._get_numeric_data()
         except AttributeError:
-            # a series, but no object dtypes allowed!
-            if self.data.dtype == np.object_:
-                raise TypeError('invalid dtype for plotting, please cast to a '
-                                'numeric dtype explicitly if you want to plot')
+            # attempt soft conversion
+            numeric_data = self.data.convert_objects()
 
-            numeric_data = self.data
+            # a series, but no object dtypes allowed!
+            if numeric_data.dtype == np.object_:
+                raise TypeError('invalid dtype for plotting')
 
         try:
             is_empty = numeric_data.empty
