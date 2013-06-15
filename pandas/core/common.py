@@ -3,6 +3,7 @@ Misc tools for implementing data structures
 """
 
 import itertools
+import re
 from datetime import datetime
 
 from numpy.lib.format import read_array, write_array
@@ -1585,8 +1586,21 @@ def is_complex_dtype(arr_or_dtype):
     return issubclass(tipo, np.complexfloating)
 
 
+def is_re(obj):
+    return isinstance(obj, re._pattern_type)
+
+
+def is_re_compilable(obj):
+    try:
+        re.compile(obj)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
 def is_list_like(arg):
-    return hasattr(arg, '__iter__') and not isinstance(arg, basestring) or hasattr(arg,'len')
+    return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
 
 def _is_sequence(x):
     try:
