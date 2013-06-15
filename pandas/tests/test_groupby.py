@@ -261,6 +261,20 @@ class TestGroupBy(unittest.TestCase):
         expected = self.mframe.groupby(key.astype('O')).sum()
         assert_frame_equal(result, expected)
 
+        # GH 3911, mixed frame non-conversion
+        df = self.df_mixed_floats.copy()
+        df['value'] = range(len(df))
+
+        def max_value(group):
+            return group.ix[group['value'].idxmax()]
+
+        applied = df.groupby('A').apply(max_value)
+        result = applied.get_dtype_counts()
+        result.sort()
+        expected = Series({ 'object' : 2, 'float64' : 2, 'int64' : 1 })
+        expected.sort()
+        assert_series_equal(result,expected)
+
     def test_groupby_return_type(self):
 
         # GH2893, return a reduced type

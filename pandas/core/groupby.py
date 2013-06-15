@@ -1928,7 +1928,7 @@ class NDFrameGroupBy(GroupBy):
                     return Series(values, index=key_index)
 
                 return DataFrame(stacked_values, index=index,
-                                 columns=columns)
+                                 columns=columns).convert_objects()
 
             else:
                 return Series(values, index=key_index)
