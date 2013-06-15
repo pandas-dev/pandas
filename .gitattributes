@@ -1,0 +1,10 @@
+* text=auto
+# enforce text on certain files
+*.py text
+*.pyx text
+*.pyd text
+*.c text
+*.h text
+*.html text
+*.csv text
+*.json text
