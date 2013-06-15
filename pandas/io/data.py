@@ -16,7 +16,7 @@ from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
 
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.io.parsers import TextParser
-
+from pandas.io.common import _req_url
 
 def DataReader(name, data_source=None, start=None, end=None,
                retry_count=3, pause=0):
@@ -166,10 +166,9 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
         '&ignore=.csv'
 
     for _ in range(retry_count):
-        resp = urllib2.urlopen(url)
-        if resp.code == 200:
-            lines = resp.read()
-            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
+        status_code, buf_text = _req_url(url)
+        if status_code == 200:
+            rs = read_csv(buf_text, index_col=0,
                           parse_dates=True)[::-1]
 
             # Yahoo! Finance sometimes does this awesome thing where they
@@ -206,11 +205,9 @@ def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
         "startdate": start.strftime('%b %d, %Y'), \
         "enddate": end.strftime('%b %d, %Y'), "output": "csv" })
     for _ in range(retry_count):
-        resp = urllib2.urlopen(url)
-        if resp.code == 200:
-            lines = resp.read()
-            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
-                          parse_dates=True)[::-1]
+        status_code, buf_text = _req_url(url)
+        if status_code == 200:
+            rs = read_csv(buf_text, index_col=0, parse_dates=True)[::-1]
 
             return rs
 
@@ -472,8 +469,7 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
 
     fred_URL = "http://research.stlouisfed.org/fred2/series/"
 
-    url = fred_URL + '%s' % name + \
-        '/downloaddata/%s' % name + '.csv'
+    url = '%s%s/downloaddata/%s.csv' % (fred_URL, name, name)
     data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True,
                     header=None, skiprows=1, names=["DATE", name],
                     na_values='.')
