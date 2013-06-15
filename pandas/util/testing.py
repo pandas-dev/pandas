@@ -7,6 +7,7 @@ import random
 import string
 import sys
 import tempfile
+import warnings
 
 from contextlib import contextmanager  # contextlib is available since 2.5
 
@@ -746,3 +747,15 @@ def stdin_encoding(encoding=None):
     sys.stdin = SimpleMock(sys.stdin, "encoding", encoding)
     yield
     sys.stdin = _stdin
+
+
+def assert_warns(warning, f, *args, **kwargs):
+    """
+    From: http://stackoverflow.com/questions/3892218/how-to-test-with-pythons-unittest-that-a-warning-has-been-thrown
+    """
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter('always')
+        f(*args, **kwargs)
+        msg = '{0!r} not raised'.format(warning)
+        assert any(issubclass(item.category, warning)
+                   for item in warning_list), msg

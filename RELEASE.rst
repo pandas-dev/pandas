@@ -77,8 +77,10 @@ pandas 0.11.1
     dependencies offered for Linux) (GH3837_).
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
     if the associated objects have have a dtype of ``object`` (GH1818_,
-    GH3572_). This happens before any drawing takes place which elimnates any
-    spurious plots from showing up.
+    GH3572_, GH3911_, GH3912_), but they will try to convert object arrays to
+    numeric arrays if possible so that you can still plot, for example, an
+    object array with floats. This happens before any drawing takes place which
+    elimnates any spurious plots from showing up.
   - Added Faq section on repr display options, to help users customize their setup.
   - ``where`` operations that result in block splitting are much faster (GH3733_)
   - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
@@ -341,13 +343,13 @@ pandas 0.11.1
 .. _GH3834: https://github.com/pydata/pandas/issues/3834
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
 .. _GH3877: https://github.com/pydata/pandas/issues/3877
+.. _GH3659: https://github.com/pydata/pandas/issues/3659
+.. _GH3679: https://github.com/pydata/pandas/issues/3679
 .. _GH3880: https://github.com/pydata/pandas/issues/3880
-<<<<<<< HEAD
 .. _GH3911: https://github.com/pydata/pandas/issues/3911
-=======
 .. _GH3907: https://github.com/pydata/pandas/issues/3907
->>>>>>> 7b5933247b80174de4ba571e95a1add809dd9d09
-
+.. _GH3911: https://github.com/pydata/pandas/issues/3911
+.. _GH3912: https://github.com/pydata/pandas/issues/3912
 
 pandas 0.11.0
 =============

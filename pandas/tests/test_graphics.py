@@ -10,6 +10,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option
 
+
 import numpy as np
 
 from numpy.testing import assert_array_equal
@@ -198,11 +199,13 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_valid_object_plot(self):
+        from pandas.io.pytables import PerformanceWarning
         s = Series(range(10), dtype=object)
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
 
         for kind in kinds:
-            _check_plot_works(s.plot, kind=kind)
+            tm.assert_warns(PerformanceWarning, _check_plot_works, s.plot,
+                            kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
