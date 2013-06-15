@@ -199,13 +199,12 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_valid_object_plot(self):
-        from pandas.io.pytables import PerformanceWarning
+        from pandas.io.common import PerformanceWarning
         s = Series(range(10), dtype=object)
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
 
         for kind in kinds:
-            tm.assert_warns(PerformanceWarning, _check_plot_works, s.plot,
-                            kind=kind)
+            _check_plot_works(s.plot, kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])

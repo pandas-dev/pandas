@@ -40,7 +40,7 @@ K = 4
 
 def rands(n):
     choices = string.ascii_letters + string.digits
-    return ''.join([random.choice(choices) for _ in xrange(n)])
+    return ''.join(random.choice(choices) for _ in xrange(n))
 
 
 def randu(n):
@@ -749,13 +749,46 @@ def stdin_encoding(encoding=None):
     sys.stdin = _stdin
 
 
-def assert_warns(warning, f, *args, **kwargs):
+@contextmanager
+def assert_produces_warning(expected_warning=Warning, filter_level="always"):
     """
-    From: http://stackoverflow.com/questions/3892218/how-to-test-with-pythons-unittest-that-a-warning-has-been-thrown
+    Context manager for running code that expects to raise (or not raise)
+    warnings.  Checks that code raises the expected warning and only the
+    expected warning. Pass ``False`` or ``None`` to check that it does *not*
+    raise a warning. Defaults to ``exception.Warning``, baseclass of all
+    Warnings. (basically a wrapper around ``warnings.catch_warnings``).
+
+    >>> import warnings
+    >>> with assert_produces_warning():
+    ...     warnings.warn(UserWarning())
+    ...
+    >>> with assert_produces_warning(False):
+    ...     warnings.warn(RuntimeWarning())
+    ...
+    Traceback (most recent call last):
+        ...
+    AssertionError: Caused unexpected warning(s): ['RuntimeWarning'].
+    >>> with assert_produces_warning(UserWarning):
+    ...     warnings.warn(RuntimeWarning())
+    Traceback (most recent call last):
+        ...
+    AssertionError: Did not see expected warning of class 'UserWarning'.
+
+    ..warn:: This is *not* thread-safe.
     """
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter('always')
-        f(*args, **kwargs)
-        msg = '{0!r} not raised'.format(warning)
-        assert any(issubclass(item.category, warning)
-                   for item in warning_list), msg
+    with warnings.catch_warnings(record=True) as w:
+        saw_warning = False
+        warnings.simplefilter(filter_level)
+        yield w
+        extra_warnings = []
+        for actual_warning in w:
+            if (expected_warning and issubclass(actual_warning.category,
+                                                expected_warning)):
+                saw_warning = True
+            else:
+                extra_warnings.append(actual_warning.category.__name__)
+        if expected_warning:
+            assert saw_warning, ("Did not see expected warning of class %r."
+                                 % expected_warning.__name__)
+            assert not extra_warnings, ("Caused unexpected warning(s): %r."
+                                        % extra_warnings)

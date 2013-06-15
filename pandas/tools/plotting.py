@@ -877,25 +877,21 @@ class MPLPlot(object):
         return (len(self.data.columns), 1)
 
     def _compute_plot_data(self):
-        from pandas.io.pytables import PerformanceWarning
         try:
-            # might be a frame
+            # might be an ndframe
             numeric_data = self.data._get_numeric_data()
-        except AttributeError:
+        except AttributeError:  # TODO: rm in 0.12 (series-inherit-ndframe)
             numeric_data = self.data
             orig_dtype = numeric_data.dtype
 
+            # possible object array of numeric data
             if orig_dtype == np.object_:
-                # attempt soft conversion, but raise a perf warning
-                numeric_data = numeric_data.convert_objects()
-                num_data_dtype = numeric_data.dtype
+                numeric_data = numeric_data.convert_objects()  # soft convert
 
-                if num_data_dtype == np.object_:
-                    raise TypeError('No numeric data to plot')
-                else:
-                    warnings.warn('Coerced object dtype to numeric dtype, '
-                                  'you should avoid object dtyped Series if '
-                                  'possible', PerformanceWarning)
+                # still an object dtype so we can't plot it
+                if numeric_data.dtype == np.object_:
+                    raise TypeError('Series has object dtype and cannot be'
+                                    ' converted: no numeric data to plot')
 
         try:
             is_empty = numeric_data.empty
@@ -904,7 +900,8 @@ class MPLPlot(object):
 
         # no empty frames or series allowed
         if is_empty:
-            raise TypeError('No numeric data to plot')
+            raise TypeError('Empty {0!r}: no numeric data to '
+                            'plot'.format(numeric_data.__class__.__name__))
 
         self.data = numeric_data
 
