@@ -9,6 +9,10 @@ _VALID_URLS = set(urlparse.uses_relative + urlparse.uses_netloc +
 _VALID_URLS.discard('')
 
 
+class PerformanceWarning(Warning):
+    pass
+
+
 def _is_url(url):
     """Check to see if a URL has a valid protocol.
 
@@ -26,27 +30,29 @@ def _is_url(url):
     except:
         return False
 
+
 def _is_s3_url(url):
-    """ Check for an s3 url """
+    """Check for an s3 url"""
     try:
         return urlparse.urlparse(url).scheme == 's3'
     except:
         return False
 
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
-    """ if the filepath_or_buffer is a url, translate and return the buffer
-        passthru otherwise
+    """
+    If the filepath_or_buffer is a url, translate and return the buffer
+    passthru otherwise.
 
-        Parameters
-        ----------
-        filepath_or_buffer : a url, filepath, or buffer
-        encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+    Parameters
+    ----------
+    filepath_or_buffer : a url, filepath, or buffer
+    encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
 
-        Returns
-        -------
-        a filepath_or_buffer, the encoding
-        
-        """
+    Returns
+    -------
+    a filepath_or_buffer, the encoding
+    """
 
     if _is_url(filepath_or_buffer):
         from urllib2 import urlopen
