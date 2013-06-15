@@ -39,13 +39,13 @@ class PandasObject(object):
     def save(self, path):  # TODO remove in 0.12
         import warnings
         from pandas.io.pickle import to_pickle
-        warnings.warn("save is deprecated and will be removed in v0.12, use to_pickle", FutureWarning)
+        warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
     def load(self, path):  # TODO remove in 0.12
         import warnings
         from pandas.io.pickle import read_pickle
-        warnings.warn("load is deprecated and will be removed in v0.12, use pd.read_pickle", FutureWarning)
+        warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
         return read_pickle(path)
 
     def __hash__(self):

@@ -2080,7 +2080,7 @@ def load(path):  # TODO remove in 0.12
     unpickled : type of object stored in file
     """
     import warnings
-    warnings.warn("load is deprecated and will be removed in v0.12, use read_pickle", FutureWarning)
+    warnings.warn("load is deprecated, use read_pickle", FutureWarning)
     from pandas.io.pickle import read_pickle
     return read_pickle(path)
 
@@ -2095,6 +2095,6 @@ def save(obj, path):  # TODO remove in 0.12
         File path
     '''
     import warnings
-    warnings.warn("save is deprecated and will be removed in v0.12, use obj.to_pickle", FutureWarning)
+    warnings.warn("save is deprecated, use obj.to_pickle", FutureWarning)
     from pandas.io.pickle import to_pickle
     return to_pickle(obj, path)
