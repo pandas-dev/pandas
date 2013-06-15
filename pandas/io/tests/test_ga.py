@@ -1,26 +1,26 @@
+import os
 import unittest
-import nose
 from datetime import datetime
 
+import nose
 import pandas as pd
-import pandas.core.common as com
 from pandas import DataFrame
 from pandas.util.testing import network, assert_frame_equal
 from numpy.testing.decorators import slow
 
+try:
+    import httplib2
+    from pandas.io.ga import GAnalytics, read_ga
+    from pandas.io.auth import AuthenticationConfigError, reset_token_store
+    from pandas.io import auth
+except ImportError:
+    raise nose.SkipTest
 
 class TestGoogle(unittest.TestCase):
 
     _multiprocess_can_split_ = True
 
     def test_remove_token_store(self):
-        import os
-        try:
-            import pandas.io.auth as auth
-            from pandas.io.ga import reset_token_store
-        except ImportError:
-            raise nose.SkipTest
-
         auth.DEFAULT_TOKEN_FILE = 'test.dat'
         with open(auth.DEFAULT_TOKEN_FILE, 'w') as fh:
             fh.write('test')
@@ -31,13 +31,6 @@ class TestGoogle(unittest.TestCase):
     @slow
     @network
     def test_getdata(self):
-        try:
-            import httplib2
-            from pandas.io.ga import GAnalytics, read_ga
-            from pandas.io.auth import AuthenticationConfigError
-        except ImportError:
-            raise nose.SkipTest
-
         try:
             end_date = datetime.now()
             start_date = end_date - pd.offsets.Day() * 5
@@ -76,24 +69,10 @@ class TestGoogle(unittest.TestCase):
 
         except AuthenticationConfigError:
             raise nose.SkipTest
-        except httplib2.ServerNotFoundError:
-            try:
-                h = httplib2.Http()
-                response, content = h.request("http://www.google.com")
-                raise
-            except httplib2.ServerNotFoundError:
-                raise nose.SkipTest
 
     @slow
     @network
     def test_iterator(self):
-        try:
-            import httplib2
-            from pandas.io.ga import GAnalytics, read_ga
-            from pandas.io.auth import AuthenticationConfigError
-        except ImportError:
-            raise nose.SkipTest
-
         try:
             reader = GAnalytics()
 
@@ -129,13 +108,6 @@ class TestGoogle(unittest.TestCase):
     @slow
     @network
     def test_segment(self):
-        try:
-            import httplib2
-            from pandas.io.ga import GAnalytics, read_ga
-            from pandas.io.auth import AuthenticationConfigError
-        except ImportError:
-            raise nose.SkipTest
-
         try:
             end_date = datetime.now()
             start_date = end_date - pd.offsets.Day() * 5
@@ -186,16 +158,7 @@ class TestGoogle(unittest.TestCase):
 
         except AuthenticationConfigError:
             raise nose.SkipTest
-        except httplib2.ServerNotFoundError:
-            try:
-                h = httplib2.Http()
-                response, content = h.request("http://www.google.com")
-                raise
-            except httplib2.ServerNotFoundError:
-                raise nose.SkipTest
-
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

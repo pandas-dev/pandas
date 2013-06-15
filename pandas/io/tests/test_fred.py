@@ -26,22 +26,14 @@ class TestFred(unittest.TestCase):
         start = datetime(2010, 1, 1)
         end = datetime(2013, 01, 27)
 
-        try:
-            self.assertEquals(
-                web.DataReader("GDP", "fred", start, end)['GDP'].tail(1),
-                16004.5)
+        self.assertEquals(
+            web.DataReader("GDP", "fred", start, end)['GDP'].tail(1),
+            16004.5)
 
-            self.assertRaises(
-                Exception,
-                lambda: web.DataReader("NON EXISTENT SERIES", 'fred',
-                                       start, end))
-        except urllib2.URLError:
-            try:
-                urllib2.urlopen('http://google.com')
-            except urllib2.URLError:
-                raise nose.SkipTest
-            else:
-                raise
+        self.assertRaises(
+            Exception,
+            lambda: web.DataReader("NON EXISTENT SERIES", 'fred',
+                                   start, end))
 
     @slow
     @network
