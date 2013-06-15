@@ -85,7 +85,7 @@ parser.add_argument('-d', '--outdf',
                     metavar="FNAME",
                     dest='outdf',
                     default=None,
-                    help='Name of file to df.save() the result table into. Will overwrite')
+                    help='Name of file to df.to_pickle() the result table into. Will overwrite')
 parser.add_argument('-r', '--regex',
                     metavar="REGEX",
                     dest='regex',
@@ -288,7 +288,7 @@ def report_comparative(head_res,baseline_res):
 
     if args.outdf:
         prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
-        totals.save(args.outdf)
+        totals.to_pickle(args.outdf)
 
 def profile_head_single(benchmark):
     import gc
@@ -364,7 +364,7 @@ def profile_head(benchmarks):
 
     if args.outdf:
         prprint("The results DataFrame was written to '%s'\n" %  args.outdf)
-        DataFrame(results).save(args.outdf)
+        DataFrame(results).to_pickle(args.outdf)
 
 def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
 
@@ -448,8 +448,8 @@ def main():
     np.random.seed(args.seed)
 
     if args.base_pickle and args.target_pickle:
-        baseline_res = prep_pickle_for_total(pd.load(args.base_pickle))
-        target_res = prep_pickle_for_total(pd.load(args.target_pickle))
+        baseline_res = prep_pickle_for_total(pd.read_pickle(args.base_pickle))
+        target_res = prep_pickle_for_total(pd.read_pickle(args.target_pickle))
 
         report_comparative(target_res, baseline_res)
         sys.exit(0)

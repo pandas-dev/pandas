@@ -39,6 +39,7 @@ object.
     * ``read_html``
     * ``read_stata``
     * ``read_clipboard``
+    * ``read_pickle``
 
 The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
@@ -50,6 +51,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * ``to_html``
     * ``to_stata``
     * ``to_clipboard``
+    * ``to_pickle``
 
 .. _io.read_csv_table:
 
@@ -1442,7 +1444,42 @@ We can see that we got the same content back, which we had earlier written to th
    You may need to install xclip or xsel (with gtk or PyQt4 modules) on Linux to use these methods.
 
 
+.. _io.serialize:
 
+Pickling and serialization
+--------------------------
+
+All pandas objects are equipped with ``to_pickle`` methods which use Python's
+``cPickle`` module to save data structures to disk using the pickle format.
+
+.. ipython:: python
+
+   df
+   df.to_pickle('foo.pkl')
+
+The ``read_pickle`` function in the ``pandas`` namespace can be used to load
+any pickled pandas object (or any other pickled object) from file:
+
+
+.. ipython:: python
+
+   read_pickle('foo.pkl')
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('foo.pkl')
+
+.. warning::
+
+   Loading pickled data received from untrusted sources can be unsafe.
+
+   See: http://docs.python.org/2.7/library/pickle.html
+
+.. note::
+
+    These methods were previously ``save`` and ``load``, now deprecated.
 
 .. _io.excel:
 

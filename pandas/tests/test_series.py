@@ -10,6 +10,7 @@ import nose
 from numpy import nan
 import numpy as np
 import numpy.ma as ma
+import pandas as pd
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
@@ -189,8 +190,8 @@ class CheckNameIntegration(object):
     def _pickle_roundtrip_name(self, obj):
 
         with ensure_clean() as path:
-            obj.save(path)
-            unpickled = Series.load(path)
+            obj.to_pickle(path)
+            unpickled = pd.read_pickle(path)
             return unpickled
 
     def test_argsort_preserve_name(self):
@@ -612,8 +613,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def _pickle_roundtrip(self, obj):
 
         with ensure_clean() as path:
-            obj.save(path)
-            unpickled = Series.load(path)
+            obj.to_pickle(path)
+            unpickled = pd.read_pickle(path)
             return unpickled
 
     def test_getitem_get(self):
