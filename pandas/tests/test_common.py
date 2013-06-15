@@ -1,5 +1,6 @@
 from datetime import datetime
 import sys
+import re
 
 import nose
 import unittest
@@ -244,6 +245,18 @@ def test_groupby():
         assert v == expected[k]
 
 
+def test_is_list_like():
+    passes = ([], [1], (1,), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
+              Series([]), Series(['a']).str)
+    fails = (1, '2', object())
+
+    for p in passes:
+        assert com.is_list_like(p)
+
+    for f in fails:
+        assert not com.is_list_like(f)
+
+
 def test_ensure_int32():
     values = np.arange(10, dtype=np.int32)
     result = com._ensure_int32(values)
@@ -287,6 +300,30 @@ def test_ensure_platform_int():
 #         result = com.console_encode(u"\u05d0")
 #         expected = u"\u05d0".encode('utf-8')
 #         assert (result == expected)
+
+
+def test_is_re():
+    passes = re.compile('ad'),
+    fails = 'x', 2, 3, object()
+
+    for p in passes:
+        assert com.is_re(p)
+
+    for f in fails:
+        assert not com.is_re(f)
+
+
+def test_is_recompilable():
+    passes = (r'a', u'x', r'asdf', re.compile('adsf'), ur'\u2233\s*',
+              re.compile(r''))
+    fails = 1, [], object()
+
+    for p in passes:
+        assert com.is_re_compilable(p)
+
+    for f in fails:
+        assert not com.is_re_compilable(f)
+
 
 class TestTake(unittest.TestCase):
 

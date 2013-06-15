@@ -6696,7 +6696,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         res3 = df.copy()
         res2.replace([r'\s*\.\s*', 'a|b'], nan, regex=True, inplace=True)
         res3.replace(regex=[r'\s*\.\s*', 'a|b'], value=nan, inplace=True)
-        expec = DataFrame({'a': mix['a'], 'b': np.array([nan] * 4, object),
+        expec = DataFrame({'a': mix['a'], 'b': np.array([nan] * 4),
                            'c': [nan, nan, nan, 'd']})
         assert_frame_equal(res, expec)
         assert_frame_equal(res2, expec)
@@ -6772,6 +6772,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(index=['a', 'b'])
         assert_frame_equal(df, df.replace(5, 7))
 
+    def test_replace_list(self):
+        obj = {'a': list('ab..'), 'b': list('efgh'), 'c': list('helo')}
+        dfobj = DataFrame(obj)
+
+        ## lists of regexes and values
+        # list of [v1, v2, ..., vN] -> [v1, v2, ..., vN]
+        to_replace_res = [r'.', r'e']
+        values = [nan, 'crap']
+        res = dfobj.replace(to_replace_res, values)
+        expec = DataFrame({'a': ['a', 'b', nan, nan],
+                           'b': ['crap', 'f', 'g', 'h'], 'c': ['h', 'crap',
+                                                               'l', 'o']})
+        assert_frame_equal(res, expec)
+
+        # list of [v1, v2, ..., vN] -> [v1, v2, .., vN]
+        to_replace_res = [r'.', r'f']
+        values = [r'..', r'crap']
+        res = dfobj.replace(to_replace_res, values)
+        expec = DataFrame({'a': ['a', 'b', '..', '..'], 'b': ['e', 'crap', 'g',
+                                                              'h'],
+                           'c': ['h', 'e', 'l', 'o']})
+
+        assert_frame_equal(res, expec)
+
     def test_replace_series_dict(self):
         # from GH 3064
         df = DataFrame({'zero': {'a': 0.0, 'b': 1}, 'one': {'a': 2.0, 'b': 0}})
@@ -6792,9 +6816,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.replace(s, df.mean())
         assert_frame_equal(result, expected)
 
+    def test_replace_convert(self):
+        # gh 3907
+        df = DataFrame([['foo', 'bar', 'bah'], ['bar', 'foo', 'bah']])
+        m = {'foo': 1, 'bar': 2, 'bah': 3}
+        rep = df.replace(m)
+        expec = Series([np.int_, np.int_, np.int_])
+        res = rep.dtypes
+        assert_series_equal(expec, res)
+
     def test_replace_mixed(self):
         self.mixed_frame['foo'][5:20] = nan
         self.mixed_frame['A'][-10:] = nan
+
+        result = self.mixed_frame.replace(np.nan, -18)
+        expected = self.mixed_frame.fillna(value=-18)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result.replace(-18, nan), self.mixed_frame)
 
         result = self.mixed_frame.replace(np.nan, -1e8)
         expected = self.mixed_frame.fillna(value=-1e8)

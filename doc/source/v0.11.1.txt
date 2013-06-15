@@ -98,6 +98,9 @@ API changes
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
 
+  - ``DataFrame.replace`` 's ``infer_types`` parameter is removed and now
+    performs conversion by default. (GH3907_)
+
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
     to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
   - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
@@ -356,6 +359,8 @@ Bug Fixes
 
   - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
   - ``read_html`` now correctly skips tests (GH3741_)
+  - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
+    in the ``to_replace`` argument wasn't working (GH3907_)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -410,3 +415,4 @@ on GitHub for a complete list.
 .. _GH3877: https://github.com/pydata/pandas/issues/3877
 .. _GH3659: https://github.com/pydata/pandas/issues/3659
 .. _GH3679: https://github.com/pydata/pandas/issues/3679
+.. _GH3907: https://github.com/pydata/pandas/issues/3907

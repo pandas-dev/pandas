@@ -127,6 +127,10 @@ pandas 0.11.1
   - ``DataFrame.interpolate()`` is now deprecated. Please use
     ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead (GH3582_,
     GH3675_, GH3676_).
+  - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
+    deprecated
+  - ``DataFrame.replace`` 's ``infer_types`` parameter is removed and now
+    performs conversion by default. (GH3907_)
   - Deprecated display.height, display.width is now only a formatting option
     does not control triggering of summary, similar to < 0.11.0.
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
@@ -139,6 +143,8 @@ pandas 0.11.1
     - removed ``clipboard`` support to ``pandas.io.clipboard``
     - replace top-level and instance methods ``save`` and ``load`` with top-level ``read_pickle`` and
     ``to_pickle`` instance method, ``save`` and ``load`` will give deprecation warning.  
+  - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
+    deprecated
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
   - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
@@ -239,6 +245,8 @@ pandas 0.11.1
   - Fix index name not propogating when using ``loc/ix`` (GH3880_)
   - Fix groupby when applying a custom function resulting in a returned DataFrame was 
     not converting dtypes (GH3911_)
+  - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
+    in the ``to_replace`` argument wasn't working (GH3907_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -334,7 +342,11 @@ pandas 0.11.1
 .. _GH3873: https://github.com/pydata/pandas/issues/3873
 .. _GH3877: https://github.com/pydata/pandas/issues/3877
 .. _GH3880: https://github.com/pydata/pandas/issues/3880
+<<<<<<< HEAD
 .. _GH3911: https://github.com/pydata/pandas/issues/3911
+=======
+.. _GH3907: https://github.com/pydata/pandas/issues/3907
+>>>>>>> 7b5933247b80174de4ba571e95a1add809dd9d09
 
 
 pandas 0.11.0
