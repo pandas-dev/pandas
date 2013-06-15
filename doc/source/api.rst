@@ -13,13 +13,12 @@ Input/Output
 Pickling
 ~~~~~~~~
 
-.. currentmodule:: pandas.core.common
+.. currentmodule:: pandas.io.pickle
 
 .. autosummary::
    :toctree: generated/
 
-   load
-   save
+   read_pickle
 
 Flat File
 ~~~~~~~~~
@@ -378,8 +377,7 @@ Serialization / IO / Conversion
    :toctree: generated/
 
    Series.from_csv
-   Series.load
-   Series.save
+   Series.to_pickle
    Series.to_csv
    Series.to_dict
    Series.to_sparse
@@ -601,8 +599,7 @@ Serialization / IO / Conversion
    DataFrame.from_items
    DataFrame.from_records
    DataFrame.info
-   DataFrame.load
-   DataFrame.save
+   DataFrame.to_pickle
    DataFrame.to_csv
    DataFrame.to_hdf
    DataFrame.to_dict
@@ -770,8 +767,7 @@ Serialization / IO / Conversion
    :toctree: generated/
 
    Panel.from_dict
-   Panel.load
-   Panel.save
+   Panel.to_pickle
    Panel.to_excel
    Panel.to_sparse
    Panel.to_frame

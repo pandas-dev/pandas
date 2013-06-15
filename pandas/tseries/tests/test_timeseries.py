@@ -1945,7 +1945,7 @@ class TestLegacySupport(unittest.TestCase):
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'series_daterange0.pickle')
 
-        result = com.load(filepath)
+        result = pd.read_pickle(filepath)
 
         ex_index = DatetimeIndex([], freq='B')
 

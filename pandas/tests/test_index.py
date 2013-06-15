@@ -1080,7 +1080,7 @@ class TestMultiIndex(unittest.TestCase):
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'mindex_073.pickle')
 
-        obj = com.load(filepath)
+        obj = pd.read_pickle(filepath)
 
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assert_(obj.equals(obj2))

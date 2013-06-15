@@ -9,6 +9,7 @@ import nose
 
 from numpy import nan
 import numpy as np
+import pandas as pd
 dec = np.testing.dec
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
