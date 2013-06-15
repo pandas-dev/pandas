@@ -3,6 +3,7 @@ from __future__ import division
 # pylint: disable-msg=W0402
 
 from datetime import datetime
+from functools import wraps
 import random
 import string
 import sys
@@ -12,6 +13,8 @@ import warnings
 from contextlib import contextmanager  # contextlib is available since 2.5
 
 from distutils.version import LooseVersion
+import urllib2
+import nose
 
 from numpy.random import randn
 import numpy as np
@@ -36,7 +39,7 @@ Panel4D = panel4d.Panel4D
 
 N = 30
 K = 4
-
+_RAISE_NETWORK_ERROR_DEFAULT = False
 
 def rands(n):
     choices = string.ascii_letters + string.digits
@@ -663,18 +666,51 @@ def skip_if_no_package(*args, **kwargs):
 # Additional tags decorators for nose
 #
 
+def optional_args(decorator):
+    """allows a decorator to take optional positional and keyword arguments.
+    Assumes that taking a single, callable, positional argument means that
+    it is decorating a function, i.e. something like this::
 
-def network(t):
+        @my_decorator
+        def function(): pass
+
+    Calls decorator with decorator(f, *args, **kwargs)"""
+    @wraps(decorator)
+    def wrapper(*args, **kwargs):
+        def dec(f):
+            return decorator(f, *args, **kwargs)
+        is_decorating = not kwargs and len(args) == 1 and callable(args[0])
+        if is_decorating:
+            f = args[0]
+            args = []
+            return dec(f)
+        else:
+            return dec
+    return wrapper
+
+@optional_args
+def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
+        error_classes=(IOError,)):
     """
-    Label a test as requiring network connection.
+    Label a test as requiring network connection and skip test if it encounters a ``URLError``.
 
     In some cases it is not possible to assume network presence (e.g. Debian
     build hosts).
+
+    You can pass an optional ``raise_on_error`` argument to the decorator, in
+    which case it will always raise an error even if it's not a subclass of
+    ``error_classes``.
 
     Parameters
     ----------
     t : callable
         The test requiring network connectivity.
+    raise_on_error : bool
+        If True, never catches errors.
+    error_classes : iterable
+        error classes to ignore. If not in ``error_classes``, raises the error.
+        defaults to URLError. Be careful about changing the error classes here,
+        it may result in undefined behavior.
 
     Returns
     -------
@@ -685,19 +721,46 @@ def network(t):
     --------
     A test can be decorated as requiring network like this::
 
-      from pandas.util.testing import *
+      >>> from pandas.util.testing import network
+      >>> import urllib2
+      >>> @network
+      ... def test_network():
+      ...   urllib2.urlopen("rabbit://bonanza.com")
+      ...
+      >>> try:
+      ...   test_network()
+      ... except nose.SkipTest:
+      ...   print "SKIPPING!"
+      ...
+      SKIPPING!
 
-      @network
-      def test_network(self):
-          print 'Fetch the stars from http://'
+    Alternatively, you can use set ``raise_on_error`` in order to get
+    the error to bubble up, e.g.::
+
+      >>> @network(raise_on_error=True)
+      ... def test_network():
+      ...   urllib2.urlopen("complaint://deadparrot.com")
+      ...
+      >>> test_network()
+      Traceback (most recent call last):
+        ...
+      URLError: <urlopen error unknown url type: complaint>
 
     And use ``nosetests -a '!network'`` to exclude running tests requiring
-    network connectivity.
+    network connectivity. ``_RAISE_NETWORK_ERROR_DEFAULT`` in
+    ``pandas/util/testing.py`` sets the default behavior (currently False).
     """
-
     t.network = True
-    return t
-
+    @wraps(t)
+    def network_wrapper(*args, **kwargs):
+        if raise_on_error:
+            return t(*args, **kwargs)
+        else:
+            try:
+                return t(*args, **kwargs)
+            except error_classes as e:
+                raise nose.SkipTest("Skipping test %s" % e)
+    return network_wrapper
 
 class SimpleMock(object):
     """
