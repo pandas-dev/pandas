@@ -12,23 +12,22 @@ import itertools
 import warnings
 
 import numpy as np
-from pandas import (
-    Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
-    MultiIndex, Int64Index, Timestamp
-)
+from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
+                    MultiIndex, Int64Index, Timestamp)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
-from pandas.core.common import adjoin, isnull, is_list_like
-from pandas.core.algorithms import match, unique, factorize
+from pandas.core.common import adjoin, is_list_like
+from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
-from pandas.core.common import _asarray_tuplesafe, _try_sort
+from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_blocknd, factor_indexer
-from pandas.core.index import Int64Index, _ensure_index
+from pandas.core.index import _ensure_index
 import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas.util import py3compat
+from pandas.io.common import PerformanceWarning
 
 import pandas.lib as lib
 import pandas.algos as algos
@@ -42,11 +41,14 @@ _version = '0.10.1'
 # PY3 encoding if we don't specify
 _default_encoding = 'UTF-8'
 
+
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicde """
     if isinstance(s, np.bytes_):
         s = s.decode('UTF-8')
     return s
+
+
 def _ensure_encoding(encoding):
     # set the encoding if we need
     if encoding is None:
@@ -54,20 +56,31 @@ def _ensure_encoding(encoding):
             encoding = _default_encoding
     return encoding
 
-class IncompatibilityWarning(Warning): pass
+
+class IncompatibilityWarning(Warning):
+    pass
+
+
 incompatibility_doc = """
-where criteria is being ignored as this version [%s] is too old (or not-defined),
-read the file in and write it out to a new file to upgrade (with the copy_to method)
+where criteria is being ignored as this version [%s] is too old (or
+not-defined), read the file in and write it out to a new file to upgrade (with
+the copy_to method)
 """
-class AttributeConflictWarning(Warning): pass
+
+
+class AttributeConflictWarning(Warning):
+    pass
+
+
 attribute_conflict_doc = """
-the [%s] attribute of the existing index is [%s] which conflicts with the new [%s],
-resetting the attribute to None
+the [%s] attribute of the existing index is [%s] which conflicts with the new
+[%s], resetting the attribute to None
 """
-class PerformanceWarning(Warning): pass
+
+
 performance_doc = """
-your performance may suffer as PyTables will pickle object types that it cannot map
-directly to c-types [inferred_type->%s,key->%s] [items->%s]
+your performance may suffer as PyTables will pickle object types that it cannot
+map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 """
 
 # map object types

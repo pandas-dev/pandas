@@ -300,9 +300,11 @@ Bug Fixes
 ~~~~~~~~~
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
-    if the associated objects have have a ``dtype`` of ``object`` (GH1818_,
-    GH3572_).  This happens before any drawing takes place which elimnates any
-    spurious plots from showing up.
+    if the associated objects have have a dtype of ``object`` (GH1818_,
+    GH3572_, GH3911_, GH3912_), but they will try to convert object arrays to
+    numeric arrays if possible so that you can still plot, for example, an
+    object array with floats. This happens before any drawing takes place which
+    elimnates any spurious plots from showing up.
 
   - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
     a list or tuple.
@@ -416,3 +418,5 @@ on GitHub for a complete list.
 .. _GH3659: https://github.com/pydata/pandas/issues/3659
 .. _GH3679: https://github.com/pydata/pandas/issues/3679
 .. _GH3907: https://github.com/pydata/pandas/issues/3907
+.. _GH3911: https://github.com/pydata/pandas/issues/3911
+.. _GH3912: https://github.com/pydata/pandas/issues/3912
