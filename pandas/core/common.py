@@ -18,6 +18,7 @@ from datetime import timedelta
 
 from pandas.core.config import get_option
 from pandas.core import array as pa
+import pandas as pd
 
 class PandasError(Exception):
     pass
@@ -1655,6 +1656,29 @@ def _maybe_make_list(obj):
 def is_bool(obj):
     return isinstance(obj, (bool, np.bool_))
 
+
+def is_string(obj):
+    return isinstance(obj, (basestring, np.str_, np.unicode_))
+
+
+def is_series(obj):
+    return isinstance(obj, pd.Series)
+
+
+def is_frame(obj):
+    return isinstance(obj, pd.DataFrame)
+
+
+def is_panel(obj):
+    return isinstance(obj, pd.Panel)
+
+
+def is_pd_obj(obj):
+    return isinstance(obj, pd.core.generic.PandasObject)
+
+
+def is_ndframe(obj):
+    return isinstance(obj, pd.core.generic.NDFrame)
 
 def is_integer(obj):
     return isinstance(obj, (int, long, np.integer))

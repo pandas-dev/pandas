@@ -32,7 +32,6 @@ from pandas.core.index import _ensure_index
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 import pandas.core.common as com
 from pandas.tools.merge import concat
-from pandas import compat
 from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 
@@ -222,9 +221,12 @@ def get_store(path, **kwargs):
 
     Examples
     --------
+    >>> from pandas import DataFrame
+    >>> from numpy.random import randn
+    >>> bar = DataFrame(randn(10, 4))
     >>> with get_store('test.h5') as store:
-    >>>     store['foo'] = bar   # write to HDF5
-    >>>     bar = store['foo']   # retrieve
+    ...     store['foo'] = bar   # write to HDF5
+    ...     bar = store['foo']   # retrieve
     """
     store = None
     try:
@@ -237,7 +239,8 @@ def get_store(path, **kwargs):
 
 # interface to/from ###
 
-def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, append=None, **kwargs):
+def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
+           append=None, **kwargs):
     """ store this object, close it if we opened it """
     if append:
         f = lambda store: store.append(key, value, **kwargs)
@@ -332,6 +335,9 @@ class HDFStore(StringMixin):
 
     Examples
     --------
+    >>> from pandas import DataFrame
+    >>> from numpy.random import randn
+    >>> bar = DataFrame(randn(10, 4))
     >>> store = HDFStore('test.h5')
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
@@ -341,9 +347,9 @@ class HDFStore(StringMixin):
     def __init__(self, path, mode=None, complevel=None, complib=None,
                  fletcher32=False, **kwargs):
         try:
-            import tables as _
+            import tables
         except ImportError:  # pragma: no cover
-            raise Exception('HDFStore requires PyTables')
+            raise ImportError('HDFStore requires PyTables')
 
         self._path = path
         if mode is None:
@@ -523,7 +529,8 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group)
 
-    def select(self, key, where=None, start=None, stop=None, columns=None, iterator=False, chunksize=None, auto_close=False, **kwargs):
+    def select(self, key, where=None, start=None, stop=None, columns=None,
+               iterator=False, chunksize=None, auto_close=False, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -554,17 +561,22 @@ class HDFStore(StringMixin):
 
         # what we are actually going to do for a chunk
         def func(_start, _stop):
-            return s.read(where=where, start=_start, stop=_stop, columns=columns, **kwargs)
+            return s.read(where=where, start=_start, stop=_stop,
+                          columns=columns, **kwargs)
 
         if iterator or chunksize is not None:
             if not s.is_table:
                 raise TypeError(
                     "can only use an iterator or chunksize on a table")
-            return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop, chunksize=chunksize, auto_close=auto_close)
+            return TableIterator(self, func, nrows=s.nrows, start=start,
+                                 stop=stop, chunksize=chunksize,
+                                 auto_close=auto_close)
 
-        return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop, auto_close=auto_close).get_values()
+        return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop,
+                             auto_close=auto_close).get_values()
 
-    def select_as_coordinates(self, key, where=None, start=None, stop=None, **kwargs):
+    def select_as_coordinates(
+            self, key, where=None, start=None, stop=None, **kwargs):
         """
         return the selection as an Index
 
@@ -599,7 +611,9 @@ class HDFStore(StringMixin):
         """
         return self.get_storer(key).read_column(column=column, **kwargs)
 
-    def select_as_multiple(self, keys, where=None, selector=None, columns=None, start=None, stop=None, iterator=False, chunksize=None, auto_close=False, **kwargs):
+    def select_as_multiple(self, keys, where=None, selector=None, columns=None,
+                           start=None, stop=None, iterator=False,
+                           chunksize=None, auto_close=False, **kwargs):
         """ Retrieve pandas objects from multiple tables
 
         Parameters
@@ -624,10 +638,10 @@ class HDFStore(StringMixin):
             return self.select(key=keys, where=where, columns=columns, start=start, stop=stop, iterator=iterator, chunksize=chunksize, **kwargs)
 
         if not isinstance(keys, (list, tuple)):
-            raise Exception("keys must be a list/tuple")
+            raise TypeError("keys must be a list/tuple")
 
-        if len(keys) == 0:
-            raise Exception("keys must have a non-zero length")
+        if not len(keys):
+            raise ValueError("keys must have a non-zero length")
 
         if selector is None:
             selector = keys[0]
@@ -642,7 +656,8 @@ class HDFStore(StringMixin):
                 raise TypeError("Invalid table [%s]" % k)
             if not t.is_table:
                 raise TypeError(
-                    "object [%s] is not a table, and cannot be used in all select as multiple" % t.pathname)
+                    "object [%s] is not a table, and cannot be used in all select as multiple" %
+                    t.pathname)
 
             if nrows is None:
                 nrows = t.nrows
@@ -655,7 +670,7 @@ class HDFStore(StringMixin):
             c = self.select_as_coordinates(
                 selector, where, start=start, stop=stop)
             nrows = len(c)
-        except (Exception) as detail:
+        except Exception:
             raise ValueError("invalid selector [%s]" % selector)
 
         def func(_start, _stop):
@@ -777,8 +792,8 @@ class HDFStore(StringMixin):
         data in the table, so be careful
         """
         if columns is not None:
-            raise Exception(
-                "columns is not a supported keyword in append, try data_columns")
+            raise TypeError("columns is not a supported keyword in append, "
+                            "try data_columns")
 
         if dropna is None:
             dropna = get_option("io.hdf.dropna_table")
@@ -809,8 +824,9 @@ class HDFStore(StringMixin):
 
         """
         if axes is not None:
-            raise Exception(
-                "axes is currently not accepted as a paremter to append_to_multiple; you can create the tables indepdently instead")
+            raise TypeError("axes is currently not accepted as a parameter to"
+                            " append_to_multiple; you can create the "
+                            "tables indepdently instead")
 
         if not isinstance(d, dict):
             raise ValueError(
@@ -876,7 +892,7 @@ class HDFStore(StringMixin):
         # version requirements
         _tables()
         if not _table_supports_index:
-            raise Exception("PyTables >= 2.3 is required for table indexing")
+            raise ValueError("PyTables >= 2.3 is required for table indexing")
 
         s = self.get_storer(key)
         if s is None:
@@ -930,7 +946,11 @@ class HDFStore(StringMixin):
 
         """
         new_store = HDFStore(
-            file, mode=mode, complib=complib, complevel=complevel, fletcher32 = fletcher32)
+            file,
+            mode=mode,
+            complib=complib,
+            complevel=complevel,
+            fletcher32=fletcher32)
         if keys is None:
             keys = list(self.keys())
         if not isinstance(keys, (tuple, list)):
@@ -1142,7 +1162,8 @@ class TableIterator(object):
         kwargs : the passed kwargs
         """
 
-    def __init__(self, store, func, nrows, start=None, stop=None, chunksize=None, auto_close=False):
+    def __init__(self, store, func, nrows, start=None, stop=None,
+                 chunksize=None, auto_close=False):
         self.store = store
         self.func = func
         self.nrows = nrows or 0
@@ -1251,7 +1272,12 @@ class IndexCol(StringMixin):
 
     def __unicode__(self):
         temp = tuple(
-            map(pprint_thing, (self.name, self.cname, self.axis, self.pos, self.kind)))
+            map(pprint_thing,
+                    (self.name,
+                     self.cname,
+                     self.axis,
+                     self.pos,
+                     self.kind)))
         return "name->%s,cname->%s,axis->%s,pos->%s,kind->%s" % temp
 
     def __eq__(self, other):
@@ -1361,9 +1387,7 @@ class IndexCol(StringMixin):
         """ validate this column: return the compared against itemsize """
 
         # validate this column for string truncation (or reset to the max size)
-        dtype = getattr(self, 'dtype', None)
         if _ensure_decoded(self.kind) == u('string'):
-
             c = self.col
             if c is not None:
                 if itemsize is None:
@@ -1467,7 +1491,8 @@ class DataCol(IndexCol):
     _info_fields = ['tz']
 
     @classmethod
-    def create_for_block(cls, i=None, name=None, cname=None, version=None, **kwargs):
+    def create_for_block(
+            cls, i=None, name=None, cname=None, version=None, **kwargs):
         """ return a new datacol with the block i """
 
         if cname is None:
@@ -1487,7 +1512,8 @@ class DataCol(IndexCol):
 
         return cls(name=name, cname=cname, **kwargs)
 
-    def __init__(self, values=None, kind=None, typ=None, cname=None, data=None, block=None, **kwargs):
+    def __init__(self, values=None, kind=None, typ=None,
+                 cname=None, data=None, block=None, **kwargs):
         super(DataCol, self).__init__(
             values=values, kind=kind, typ=typ, cname=cname, **kwargs)
         self.dtype = None
@@ -1540,7 +1566,8 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, existing_col, min_itemsize, nan_rep, info, encoding=None, **kwargs):
+    def set_atom(self, block, existing_col, min_itemsize,
+                 nan_rep, info, encoding=None, **kwargs):
         """ create and setup my atom from the block b """
 
         self.values = list(block.items)
@@ -1596,7 +1623,11 @@ class DataCol(IndexCol):
         # end up here ###
         elif inferred_type == 'string' or dtype == 'object':
             self.set_atom_string(
-                block, existing_col, min_itemsize, nan_rep, encoding)
+                block,
+                existing_col,
+                min_itemsize,
+                nan_rep,
+                encoding)
         else:
             self.set_atom_data(block)
 
@@ -1605,7 +1636,8 @@ class DataCol(IndexCol):
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
 
-    def set_atom_string(self, block, existing_col, min_itemsize, nan_rep, encoding):
+    def set_atom_string(
+            self, block, existing_col, min_itemsize, nan_rep, encoding):
         # fill nan items with myself
         block = block.fillna(nan_rep)[0]
         data = block.values
@@ -1701,13 +1733,13 @@ class DataCol(IndexCol):
             if (existing_fields is not None and
                     existing_fields != list(self.values)):
                 raise ValueError("appended items do not match existing items"
-                                " in table!")
+                                 " in table!")
 
             existing_dtype = getattr(self.attrs, self.dtype_attr, None)
             if (existing_dtype is not None and
                     existing_dtype != self.dtype):
                 raise ValueError("appended items dtype do not match existing items dtype"
-                                " in table!")
+                                 " in table!")
 
     def convert(self, values, nan_rep, encoding):
         """ set the data from this selection (and convert to the correct dtype if we can) """
@@ -1854,6 +1886,9 @@ class Fixed(StringMixin):
                 s = "[%s]" % ','.join([pprint_thing(x) for x in s])
             return "%-12.12s (shape->%s)" % (self.pandas_type, s)
         return self.pandas_type
+
+    def __str__(self):
+        return self.__repr__()
 
     def set_object_info(self):
         """ set my pandas type & version """
@@ -2058,7 +2093,7 @@ class GenericFixed(Fixed):
             _, index = self.read_index_node(getattr(self.group, key))
             return index
         else:  # pragma: no cover
-            raise Exception('unrecognized index variety: %s' % variety)
+            raise TypeError('unrecognized index variety: %s' % variety)
 
     def write_index(self, key, index):
         if isinstance(index, MultiIndex):
@@ -2241,7 +2276,7 @@ class GenericFixed(Fixed):
                 warnings.warn(ws, PerformanceWarning)
 
             vlarr = self._handle.createVLArray(self.group, key,
-                                              _tables().ObjectAtom())
+                                               _tables().ObjectAtom())
             vlarr.append(value)
         elif value.dtype.type == np.datetime64:
             self._handle.createArray(self.group, key, value.view('i8'))
@@ -2381,8 +2416,7 @@ class SparsePanelFixed(GenericFixed):
         sdict = {}
         for name in items:
             key = 'sparse_frame_%s' % name
-            node = getattr(self.group, key)
-            s = SparseFrameFixed(self.parent, getattr(self.group, key))
+            s = SparseFrameStorer(self.parent, getattr(self.group, key))
             s.infer_axes()
             sdict[name] = s.read()
         return SparsePanel(sdict, items=items, default_kind=self.default_kind,
@@ -2574,7 +2608,8 @@ class Table(Fixed):
                     oax = ov[i]
                     if sax != oax:
                         raise ValueError(
-                            "invalid combinate of [%s] on appending data [%s] vs current table [%s]" % (c, sax, oax))
+                            "invalid combinate of [%s] on appending data [%s] vs current table [%s]" %
+                            (c, sax, oax))
 
                 # should never get here
                 raise Exception(
@@ -2706,14 +2741,14 @@ class Table(Fixed):
                 continue
             if k not in q:
                 raise ValueError(
-                    "min_itemsize has the key [%s] which is not an axis or data_column" % k)
+                    "min_itemsize has the key [%s] which is not an axis or data_column" %
+                    k)
 
     @property
     def indexables(self):
         """ create/cache the indexables if they don't exist """
         if self._indexables is None:
 
-            d = self.description
             self._indexables = []
 
             # index columns
@@ -2848,7 +2883,8 @@ class Table(Fixed):
         # return valid columns in the order of our axis
         return [c for c in data_columns if c in axis_labels]
 
-    def create_axes(self, axes, obj, validate=True, nan_rep=None, data_columns=None, min_itemsize=None, **kwargs):
+    def create_axes(self, axes, obj, validate=True, nan_rep=None,
+                    data_columns=None, min_itemsize=None, **kwargs):
         """ create and return the axes
               leagcy tables create an indexable column, indexable index, non-indexable fields
 
@@ -2869,8 +2905,7 @@ class Table(Fixed):
             try:
                 axes = _AXES_MAP[type(obj)]
             except:
-                raise TypeError(
-                    "cannot properly create the storer for: [group->%s,value->%s]" %
+                raise TypeError("cannot properly create the storer for: [group->%s,value->%s]" %
                                 (self.group._v_name, type(obj)))
 
         # map axes to numbers
@@ -2995,8 +3030,7 @@ class Table(Fixed):
                 try:
                     existing_col = existing_table.values_axes[i]
                 except:
-                    raise ValueError(
-                        "Incompatible appended table [%s] with existing table [%s]" %
+                    raise ValueError("Incompatible appended table [%s] with existing table [%s]" %
                                     (blocks, existing_table.values_axes))
             else:
                 existing_col = None
@@ -3070,7 +3104,8 @@ class Table(Fixed):
 
         return obj
 
-    def create_description(self, complib=None, complevel=None, fletcher32=False, expectedrows=None):
+    def create_description(
+            self, complib=None, complevel=None, fletcher32=False, expectedrows=None):
         """ create the description of the table from the axes & values """
 
         # expected rows estimate
@@ -3119,8 +3154,8 @@ class Table(Fixed):
             return False
 
         if where is not None:
-            raise Exception(
-                "read_column does not currently accept a where clause")
+            raise TypeError("read_column does not currently accept a where "
+                            "clause")
 
         # find the axes
         for a in self.axes:
@@ -3128,7 +3163,8 @@ class Table(Fixed):
 
                 if not a.is_data_indexable:
                     raise ValueError(
-                        "column [%s] can not be extracted individually; it is not data indexable" % column)
+                        "column [%s] can not be extracted individually; it is not data indexable" %
+                        column)
 
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
@@ -3174,7 +3210,7 @@ class LegacyTable(Table):
     ndim = 3
 
     def write(self, **kwargs):
-        raise Exception("write operations are not allowed on legacy tables!")
+        raise TypeError("write operations are not allowed on legacy tables!")
 
     def read(self, where=None, columns=None, **kwargs):
         """ we have n indexable columns, with an arbitrary number of data axes """
@@ -3626,9 +3662,9 @@ class GenericTable(AppendableFrameTable):
         self.levels = []
         t = self.table
         self.index_axes = [a.infer(t)
-                                         for a in self.indexables if a.is_an_indexable]
+                           for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a.infer(t)
-                                         for a in self.indexables if not a.is_an_indexable]
+                            for a in self.indexables if not a.is_an_indexable]
         self.data_columns = [a.name for a in self.values_axes]
 
     @property
@@ -3755,7 +3791,7 @@ def _convert_index(index, encoding=None):
                         index_name=index_name)
 
     if isinstance(index, MultiIndex):
-        raise Exception('MultiIndex not supported here!')
+        raise TypeError('MultiIndex not supported here!')
 
     inferred_type = lib.infer_dtype(index)
 
@@ -3904,32 +3940,13 @@ def _need_convert(kind):
     return False
 
 
-class Term(StringMixin):
+class Coordinates(object):
 
-    """create a term object that holds a field, op, and value
+    """ holds a returned coordinates list, useful to select the same rows from different tables
 
-    Parameters
-    ----------
-    field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
-    op    : a valid op (defaults to '=') (optional)
-            >, >=, <, <=, =, != (not equal) are allowed
-    value : a value or list of values (required)
-    queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
-    encoding : an encoding that will encode the query terms
-
-    Returns
-    -------
-    a Term object
-
-    Examples
-    --------
-    >>> Term(dict(field = 'index', op = '>', value = '20121114'))
-    >>> Term('index', '20121114')
-    >>> Term('index', '>', '20121114')
-    >>> Term('index', ['20121114','20121114'])
-    >>> Term('index', datetime(2012,11,14))
-    >>> Term('major_axis>20121114')
-    >>> Term('minor_axis', ['A','U'])
+    coordinates : holds the array of coordinates
+    group       : the source group
+    where       : the source where
     """
 
     _ops = ['<=', '<', '>=', '>', '!=', '==', '=']
@@ -4134,23 +4151,13 @@ class Term(StringMixin):
         return TermValue(v, stringify(v), u('string'))
 
 
-class TermValue(object):
 
-    """ hold a term value the we use to construct a condition/filter """
+    def __len__(self):
+        return len(self.values)
 
-    def __init__(self, value, converted, kind):
-        self.value = value
-        self.converted = converted
-        self.kind = kind
-
-    def tostring(self, encoding):
-        """ quote the string if not encoded
-            else encode and return """
-        if self.kind == u('string'):
-            if encoding is not None:
-                return self.converted
-            return '"%s"' % self.converted
-        return self.converted
+    def __getitem__(self, key):
+        """ return a new coordinates object, sliced by the key """
+        return Coordinates(self.values[key], self.group, self.where)
 
 
 class Selection(object):
