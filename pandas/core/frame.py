@@ -35,7 +35,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
-import pandas.core.expressions as expressions
+import pandas.computation.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
@@ -2652,6 +2652,8 @@ class DataFrame(NDFrame):
             passed MultiIndex level
         limit : int, default None
             Maximum size gap to forward or backward fill
+        fill_value : object, default NA
+            The value to use to fill in missing data.
 
         Examples
         --------
