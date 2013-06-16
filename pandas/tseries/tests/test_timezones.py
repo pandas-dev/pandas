@@ -18,8 +18,9 @@ import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 from pandas.tseries.index import bdate_range, date_range
 import pandas.tseries.tools as tools
+from pytz import NonExistentTimeError
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import assert_series_equal, assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
 
 import pandas.lib as lib
@@ -93,7 +94,8 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
-        self.assertRaises(Exception, rng.tz_localize, 'US/Eastern')
+        # Is this really how it should fail??
+        self.assertRaises(NonExistentTimeError, rng.tz_localize, 'US/Eastern')
 
     def test_timestamp_tz_localize(self):
         stamp = Timestamp('3/11/2012 04:00')
@@ -672,7 +674,7 @@ class TestTimeZones(unittest.TestCase):
         # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         ts = Series(1, index=rng)
-        self.assertRaises(Exception, ts.tz_localize, 'US/Eastern')
+        assertRaisesRegexp(TypeError, 'Already tz-aware', ts.tz_localize, 'US/Eastern')
 
     def test_series_frame_tz_convert(self):
         rng = date_range('1/1/2011', periods=200, freq='D',
@@ -696,7 +698,7 @@ class TestTimeZones(unittest.TestCase):
         # can't convert tz-naive
         rng = date_range('1/1/2011', periods=200, freq='D')
         ts = Series(1, index=rng)
-        self.assertRaises(Exception, ts.tz_convert, 'US/Eastern')
+        assertRaisesRegexp(TypeError, "Cannot convert tz-naive", ts.tz_convert, 'US/Eastern')
 
     def test_join_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
