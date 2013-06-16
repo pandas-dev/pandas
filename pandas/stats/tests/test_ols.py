@@ -692,6 +692,10 @@ class TestPanelOLS(BaseTest):
         self.checkNonPooled(y=self.panel_y, x=self.panel_x)
         self.checkNonPooled(y=self.panel_y, x=self.panel_x,
                             window_type='rolling', window=25, min_periods=10)
+    def testUnknownWindowType(self):
+        self.assertRaisesRegexp(ValueError, "window.*ridiculous",
+                self.checkNonPooled, y=self.panel_y, x=self.panel_x,
+                window_type='ridiculous', window=25, min_periods=10)
 
     def checkNonPooled(self, x, y, **kwds):
         # For now, just check that it doesn't crash
