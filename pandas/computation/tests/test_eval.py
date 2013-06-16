@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import unittest
 import itertools
 from itertools import product
 
@@ -7,12 +8,13 @@ import nose
 from nose.tools import assert_raises, assert_tuple_equal, assert_equal
 from nose.tools import assert_true
 
-from numpy.random import randn
+from numpy.random import randn, rand
 import numpy as np
 from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
 
 import pandas as pd
+from pandas.core import common as com
 from pandas import DataFrame, Series
 from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.computation.engines import (_engines, _align_core,
@@ -85,8 +87,14 @@ def _eval_bin_and_unary(unary, lhs, arith1, rhs):
     return unop(binop(lhs, rhs))
 
 
+def _series_and_2d_ndarray(lhs, rhs):
+    return (com.is_series(lhs) and isinstance(rhs, np.ndarray) and rhs.ndim > 1
+            or com.is_series(rhs) and isinstance(lhs, np.ndarray) and lhs.ndim
+            > 1)
+
+
 # Smoke testing
-class TestBasicEval(object):
+class TestBasicEval(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
@@ -100,10 +108,14 @@ class TestBasicEval(object):
         self.engine = 'numexpr'
 
     def setup_data(self):
+        nan_df = DataFrame(rand(10, 5))
+        nan_df[nan_df > 0.5] = np.nan
         self.lhses = (DataFrame(randn(10, 5)), Series(randn(5)), randn(),
-                      np.float64(randn()))
+                      np.float64(randn()), randn(10, 5), randn(5), np.nan,
+                      Series([1, 2, np.nan, np.nan, 5]), nan_df)
         self.rhses = (DataFrame(randn(10, 5)), Series(randn(5)), randn(),
-                      np.float64(randn()))
+                      np.float64(randn()), randn(10, 5), randn(5), np.nan,
+                      Series([1, 2, np.nan, np.nan, 5]), nan_df)
 
     def setUp(self):
         try:
@@ -163,9 +175,14 @@ class TestBasicEval(object):
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
                                                                 binop=binop,
                                                                 cmp2=cmp2)
-        expected = _eval_from_expr(lhs, cmp1, rhs, binop, cmp2)
-        result = pd.eval(ex, engine=self.engine)
-        assert_array_equal(result, expected)
+        if _series_and_2d_ndarray(lhs, rhs):
+            self.assertRaises(Exception, _eval_from_expr, lhs, cmp1, rhs,
+                              binop, cmp2)
+            self.assertRaises(Exception, pd.eval, ex, engine=self.engine)
+        else:
+            expected = _eval_from_expr(lhs, cmp1, rhs, binop, cmp2)
+            result = pd.eval(ex, engine=self.engine)
+            assert_array_equal(result, expected)
 
     def _create_simple_cmp_op_t(self, lhs, rhs, cmp1):
         ex = 'lhs {0} rhs'.format(cmp1)
@@ -532,6 +549,10 @@ def check_datetime_index_rows_punts_to_python(engine):
 def test_datetime_index_rows_punts_to_python():
     for engine in _engines:
         check_datetime_index_rows_punts_to_python(engine)
+
+
+def check_truediv(engine):
+    s = randn(10)
 
 
 __var_s = randn(10)

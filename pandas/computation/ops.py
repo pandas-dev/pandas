@@ -123,7 +123,7 @@ class BinOp(Op):
         except TypeError:
             left = self.lhs
 
-        # recursve over the right nodes
+        # recurse over the right nodes
         try:
             right = self.rhs(env)
         except TypeError:
@@ -166,6 +166,8 @@ class UnaryOp(Op):
 
     def __call__(self, env):
         operand = self.operand
+
+        # recurse if operand is an Op
         try:
             operand = self.operand(env)
         except TypeError:
