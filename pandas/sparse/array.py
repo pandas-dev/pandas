@@ -261,7 +261,7 @@ to sparse
             loc += n
 
         if loc >= len(self) or loc < 0:
-            raise Exception('Out of bounds access')
+            raise IndexError('out of bounds access')
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
@@ -283,7 +283,7 @@ to sparse
 
         n = len(self)
         if (indices < 0).any() or (indices >= n).any():
-            raise Exception('out of bounds access')
+            raise IndexError('out of bounds access')
 
         if self.sp_index.npoints > 0:
             locs = np.array([self.sp_index.lookup(loc) for loc in indices])
@@ -296,10 +296,10 @@ to sparse
         return result
 
     def __setitem__(self, key, value):
-        raise Exception('SparseArray objects are immutable')
+        raise TypeError('%r object does not support item assignment' % self.__class__.__name__)
 
     def __setslice__(self, i, j, value):
-        raise Exception('SparseArray objects are immutable')
+        raise TypeError('%r object does not support item assignment' % self.__class__.__name__)
 
     def to_dense(self):
         """
@@ -313,7 +313,7 @@ to sparse
         """
         dtype = np.dtype(dtype)
         if dtype is not None and dtype not in (np.float_, float):
-            raise Exception('Can only support floating point data for now')
+            raise TypeError('Can only support floating point data for now')
         return self.copy()
 
     def copy(self, deep=True):
