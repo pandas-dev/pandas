@@ -87,10 +87,6 @@ def _ensure_datetime64(other):
     raise TypeError('%s type object %s' % (type(other), str(other)))
 
 
-class TimeSeriesError(Exception):
-    pass
-
-
 _midnight = time(0, 0)
 
 class DatetimeIndex(Int64Index):
