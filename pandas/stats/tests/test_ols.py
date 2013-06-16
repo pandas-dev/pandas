@@ -19,7 +19,7 @@ from pandas.stats.api import ols
 from pandas.stats.ols import _filter_data
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal, assertRaisesRegexp)
 import pandas.util.testing as tm
 
 from common import BaseTest
@@ -663,7 +663,10 @@ class TestPanelOLS(BaseTest):
     def testRollingWithEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             cluster='entity')
-
+    def testUnknownClusterRaisesValueError(self):
+        assertRaisesRegexp(ValueError, "Unrecognized cluster.*ridiculous",
+                           self.checkMovingOLS, self.panel_x, self.panel_y,
+                                               cluster='ridiculous')
     def testRollingWithTimeEffectsAndEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             time_effects=True, cluster='entity')
