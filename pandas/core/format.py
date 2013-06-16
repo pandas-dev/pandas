@@ -825,7 +825,7 @@ class CSVFormatter(object):
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
-                raise Exception("cannot specify cols with a multi_index on the columns")
+                raise TypeError("cannot specify cols with a multi_index on the columns")
 
         if cols is not None:
             if isinstance(cols,Index):
