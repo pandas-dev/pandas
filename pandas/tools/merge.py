@@ -1039,7 +1039,7 @@ class _Concatenator(object):
         if self.axis > 0:
             # Not safe to remove this check, need to profile
             if not _all_indexes_same([b.items for b in blocks]):
-                raise Exception('dtypes are not consistent throughout '
+                raise TypeError('dtypes are not consistent throughout '
                                 'DataFrames')
             return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
@@ -1184,7 +1184,7 @@ class _Concatenator(object):
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index.get_duplicates()
-                raise Exception('Indexes have overlapping values: %s'
+                raise ValueError('Indexes have overlapping values: %s'
                                 % str(overlap))
 
 
