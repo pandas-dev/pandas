@@ -10,6 +10,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option
 
+
 import numpy as np
 
 from numpy.testing import assert_array_equal
@@ -189,8 +190,7 @@ class TestSeriesPlots(unittest.TestCase):
         from pandas.tools.plotting import bootstrap_plot
         _check_plot_works(bootstrap_plot, self.ts, size=10)
 
-    @slow
-    def test_all_invalid_plot_data(self):
+    def test_invalid_plot_data(self):
         s = Series(list('abcd'))
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
 
@@ -198,6 +198,14 @@ class TestSeriesPlots(unittest.TestCase):
             self.assertRaises(TypeError, s.plot, kind=kind)
 
     @slow
+    def test_valid_object_plot(self):
+        from pandas.io.common import PerformanceWarning
+        s = Series(range(10), dtype=object)
+        kinds = 'line', 'bar', 'barh', 'kde', 'density'
+
+        for kind in kinds:
+            _check_plot_works(s.plot, kind=kind)
+
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
