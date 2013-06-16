@@ -58,7 +58,7 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
     #### define the methods ####
     def __init__(self, *args, **kwargs):
         if not (kwargs.get('data') or len(args)):
-            raise Exception(
+            raise TypeError(
                 "must supply at least a data argument to [%s]" % klass_name)
         if 'copy' not in kwargs:
             kwargs['copy'] = False
