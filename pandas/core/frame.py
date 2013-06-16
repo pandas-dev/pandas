@@ -4711,7 +4711,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson', min_periods=None):
+    def corr(self, method='pearson', min_periods=1):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 

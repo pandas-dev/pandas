@@ -295,6 +295,8 @@ Enhancements
   - DatetimeIndexes no longer try to convert mixed-integer indexes during join
     operations (GH3877_)
 
+  - DataFrame corr method (spearman) is now cythonized.
+
 
 Bug Fixes
 ~~~~~~~~~

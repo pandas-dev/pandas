@@ -1002,7 +1002,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr_spearman(ndarray[float64_t, ndim=2] mat, minp=None):
+def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -1013,9 +1013,6 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, minp=None):
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
 
     N, K = (<object> mat).shape
-
-    if minp is None:
-        minp = 1
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
