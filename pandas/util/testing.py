@@ -17,7 +17,7 @@ from httplib import HTTPException
 from urllib2 import urlopen
 from distutils.version import LooseVersion
 
-from numpy.random import randn
+from numpy.random import randn, rand
 import numpy as np
 
 from pandas.core.common import isnull, _is_sequence
@@ -44,6 +44,9 @@ N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
+
+def randbool(size=(), p=0.5):
+    return rand(*size) <= p
 
 def rands(n):
     choices = string.ascii_letters + string.digits
