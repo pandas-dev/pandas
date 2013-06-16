@@ -368,7 +368,7 @@ class ExcelWriter(object):
         if sheet_name is None:
             sheet_name = self.cur_sheet
         if sheet_name is None:  # pragma: no cover
-            raise Exception('Must pass explicit sheet_name or set '
+            raise TypeError('Must pass explicit sheet_name or set '
                             'cur_sheet property')
         if self.use_xlsx:
             self._writecells_xlsx(cells, sheet_name, startrow, startcol)
