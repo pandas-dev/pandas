@@ -13,7 +13,7 @@ from pandas.util.decorators import cache_readonly, Appender
 from pandas.util.compat import OrderedDict
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas.core.common import _possibly_downcast_to_dtype, notnull
+from pandas.core.common import _possibly_downcast_to_dtype, notnull, is_datetime64_dtype
 
 import pandas.lib as lib
 import pandas.algos as _algos
