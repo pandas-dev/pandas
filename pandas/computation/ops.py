@@ -1,6 +1,7 @@
 import operator as op
 from functools import partial
 
+import numpy as np
 from pandas.util.py3compat import PY3
 
 
@@ -74,9 +75,9 @@ _bool_ops_syms = '&', '|'
 _bool_ops_funcs = op.and_, op.or_
 _bool_ops_dict = dict(zip(_bool_ops_syms, _bool_ops_funcs))
 
-_arith_ops_syms = '+', '-', '*', '/', '**', '//'
+_arith_ops_syms = '+', '-', '*', '/', '**', '//', '%'
 _arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv if PY3 else op.div,
-                    op.pow, op.floordiv)
+                    op.pow, op.floordiv, op.mod)
 _arith_ops_dict = dict(zip(_arith_ops_syms, _arith_ops_funcs))
 
 _binary_ops_dict = {}
@@ -84,6 +85,17 @@ _binary_ops_dict = {}
 for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
+
+def _cast(terms, env, dtype):
+    resolver = partial(_resolve_name, env)
+    updater = partial(_update_name, env)
+    for term in terms:
+        t = resolver(term)
+        try:
+            new_value = t.astype(dtype)
+        except AttributeError:
+            new_value = dtype.type(t)
+        updater(term, t)
 
 class BinOp(Op):
     """Hold a binary operator and its operands
@@ -143,6 +155,12 @@ class BinOp(Op):
                                                                     right))
 
         return res
+
+
+class Mod(BinOp):
+    def __init__(self, lhs, rhs, env=None):
+        super(Mod, self).__init__('%', lhs, rhs)
+        _cast(env, (lhs, rhs), np.float_)
 
 
 _unary_ops_syms = '+', '-', '~'
