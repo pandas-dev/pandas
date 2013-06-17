@@ -432,23 +432,13 @@ class GroupBy(object):
     def _try_cast(self, result, obj):
         """ try to cast the result to our obj original type,
         we may have roundtripped thru object in the mean-time """
-        try:
-            if obj.ndim > 1:
-                dtype = obj.values.dtype
-            else:
-                dtype = obj.dtype
+        if obj.ndim > 1:
+            dtype = obj.values.dtype
+        else:
+            dtype = obj.dtype
 
-            if _is_numeric_dtype(dtype):
-
-                # need to respect a non-number here (e.g. Decimal)
-                if len(result) and issubclass(type(result[0]),(np.number,float,int)):
-                    result = _possibly_downcast_to_dtype(result, dtype)
-
-            elif issubclass(dtype.type, np.datetime64):
-                if is_datetime64_dtype(obj.dtype):
-                    result = result.astype(obj.dtype)
-        except:
-            pass
+        if not np.isscalar(result):
+            result = _possibly_downcast_to_dtype(result, dtype)
 
         return result
 
