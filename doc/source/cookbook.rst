@@ -25,6 +25,22 @@ We encourage users to add to this documentation.
 This is a great *First Pull Request* (to add interesting links and/or put short code inline
 for existing links)
 
+Idioms
+------
+
+.. _cookbook.idioms:
+
+These are some neat pandas ``idioms``
+
+`How to do if-then-else?
+<http://stackoverflow.com/questions/17128302/python-pandas-idiom-for-if-then-else>`__
+
+`How to split a frame with a boolean criterion?
+<http://stackoverflow.com/questions/14957116/how-to-split-a-dataframe-according-to-a-boolean-criterion>`__
+
+`How to select from a frame with complex criteria?
+<http://stackoverflow.com/questions/15315452/selecting-with-complex-criteria-from-pandas-dataframe>`__
+
 .. _cookbook.selection:
 
 Selection
@@ -189,6 +205,9 @@ The :ref:`Resample <timeseries.resampling>` docs.
 `TimeGrouping #2
 <http://stackoverflow.com/questions/14569223/timegrouper-pandas>`__
 
+`Using TimeGrouper and another grouping to create subgroups, then apply a custom function
+<https://github.com/pydata/pandas/issues/3791>`__
+
 `Resampling with custom periods
 <http://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
 
@@ -257,6 +276,9 @@ The :ref:`CSV <io.read_csv_table>` docs
 
 `read_csv in action
 <http://wesmckinney.com/blog/?p=635>`__
+
+`appending to a csv
+<http://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
 
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
