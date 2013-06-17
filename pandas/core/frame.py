@@ -1528,7 +1528,7 @@ class DataFrame(NDFrame):
         from pandas.io.stata import StataWriter
         writer = StataWriter(fname,self,convert_dates=convert_dates, encoding=encoding, byteorder=byteorder)
         writer.write_file()
-        
+
     def to_sql(self, name, con, flavor='sqlite', if_exists='fail', **kwargs):
         """
         Write records stored in a DataFrame to a SQL database.
@@ -4711,7 +4711,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson', min_periods=None):
+    def corr(self, method='pearson', min_periods=1):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 
@@ -4724,7 +4724,7 @@ class DataFrame(NDFrame):
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
-            correlation
+            and spearman correlation
 
         Returns
         -------
@@ -4737,6 +4737,9 @@ class DataFrame(NDFrame):
         if method == 'pearson':
             correl = _algos.nancorr(com._ensure_float64(mat),
                                     minp=min_periods)
+        elif method == 'spearman':
+            correl = _algos.nancorr_spearman(com._ensure_float64(mat),
+                                             minp=min_periods)
         else:
             if min_periods is None:
                 min_periods = 1
