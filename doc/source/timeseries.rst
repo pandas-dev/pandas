@@ -175,7 +175,7 @@ dates outside of those dates if specified.
 .. _timeseries.datetimeindex:
 
 DatetimeIndex
-~~~~~~~~~~~~~
+-------------
 
 One of the main uses for ``DatetimeIndex`` is as an index for pandas objects.
 The ``DatetimeIndex`` class contains many timeseries related optimizations:
@@ -188,49 +188,6 @@ The ``DatetimeIndex`` class contains many timeseries related optimizations:
     very fast (important for fast data alignment)
   - Quick access to date fields via properties such as ``year``, ``month``, etc.
   - Regularization functions like ``snap`` and very fast ``asof`` logic
-
-``DatetimeIndex`` can be used like a regular index and offers all of its
-intelligent functionality like selection, slicing, etc.
-
-.. ipython:: python
-
-   rng = date_range(start, end, freq='BM')
-   ts = Series(randn(len(rng)), index=rng)
-   ts.index
-   ts[:5].index
-   ts[::2].index
-
-You can pass in dates and strings that parses to dates as indexing parameters:
-
-.. ipython:: python
-
-   ts['1/31/2011']
-
-   ts[datetime(2011, 12, 25):]
-
-   ts['10/31/2011':'12/31/2011']
-
-A ``truncate`` convenience function is provided that is equivalent to slicing:
-
-.. ipython:: python
-
-   ts.truncate(before='10/31/2011', after='12/31/2011')
-
-To provide convenience for accessing longer time series, you can also pass in
-the year or year and month as strings:
-
-.. ipython:: python
-
-   ts['2011']
-
-   ts['2011-6']
-
-Even complicated fancy indexing that breaks the DatetimeIndex's frequency
-regularity will result in a ``DatetimeIndex`` (but frequency is lost):
-
-.. ipython:: python
-
-   ts[[0, 2, 6]].index
 
 DatetimeIndex objects has all the basic functionality of regular Index objects
 and a smorgasbord of advanced timeseries-specific methods for easy frequency
@@ -245,6 +202,105 @@ processing.
     methods may have unexpected or incorrect behavior if the dates are
     unsorted. So please be careful.
 
+``DatetimeIndex`` can be used like a regular index and offers all of its
+intelligent functionality like selection, slicing, etc.
+
+.. ipython:: python
+
+   rng = date_range(start, end, freq='BM')
+   ts = Series(randn(len(rng)), index=rng)
+   ts.index
+   ts[:5].index
+   ts[::2].index
+
+Partial String Indexing
+~~~~~~~~~~~~~~~~~~~~~~~
+
+You can pass in dates and strings that parse to dates as indexing parameters:
+
+.. ipython:: python
+
+   ts['1/31/2011']
+
+   ts[datetime(2011, 12, 25):]
+
+   ts['10/31/2011':'12/31/2011']
+
+To provide convenience for accessing longer time series, you can also pass in
+the year or year and month as strings:
+
+.. ipython:: python
+
+   ts['2011']
+
+   ts['2011-6']
+
+This type of slicing will work on a DataFrame with a ``DateTimeIndex`` as well. Since the 
+partial string selection is a form of label slicing, the endpoints **will be** included. This
+would include matching times on an included date. Here's an example:
+
+.. ipython:: python
+
+   dft = DataFrame(randn(100000,1),columns=['A'],index=date_range('20130101',periods=100000,freq='T'))
+   dft
+   dft['2013']
+
+This starts on the very first time in the month, and includes the last date & time for the month
+
+.. ipython:: python
+
+   dft['2013-1':'2013-2']
+
+This specifies a stop time **that includes all of the times on the last day**
+
+.. ipython:: python
+
+   dft['2013-1':'2013-2-28']
+
+This specifies an **exact** stop time (and is not the same as the above)
+
+.. ipython:: python
+
+   dft['2013-1':'2013-2-28 00:00:00']
+
+We are stopping on the included end-point as its part of the index
+
+.. ipython:: python
+
+   dft['2013-1-15':'2013-1-15 12:30:00']
+
+.. warning::
+
+   The following selection will raises a ``KeyError``; otherwise this selection methodology
+   would be inconsistent with other selection methods in pandas (as this is not a *slice*, nor does it
+   resolve to one)
+
+   .. code-block:: python
+
+      dft['2013-1-15 12:30:00']
+
+   To select a single row, use ``.loc``
+
+   .. ipython:: python
+
+      dft.loc['2013-1-15 12:30:00']
+
+
+Truncating & Fancy Indexing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A ``truncate`` convenience function is provided that is equivalent to slicing:
+
+.. ipython:: python
+
+   ts.truncate(before='10/31/2011', after='12/31/2011')
+
+Even complicated fancy indexing that breaks the DatetimeIndex's frequency
+regularity will result in a ``DatetimeIndex`` (but frequency is lost):
+
+.. ipython:: python
+
+   ts[[0, 2, 6]].index
 
 .. _timeseries.offsets:
 
