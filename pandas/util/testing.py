@@ -790,5 +790,5 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always"):
         if expected_warning:
             assert saw_warning, ("Did not see expected warning of class %r."
                                  % expected_warning.__name__)
-            assert not extra_warnings, ("Caused unexpected warning(s): %r."
-                                        % extra_warnings)
+        assert not extra_warnings, ("Caused unexpected warning(s): %r."
+                                    % extra_warnings)
