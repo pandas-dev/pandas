@@ -89,6 +89,7 @@ pandas 0.11.1
   - Add ``unit`` keyword to ``Timestamp`` and ``to_datetime`` to enable passing of
     integers or floats that are in an epoch unit of ``s, ms, us, ns``
     (e.g. unix timestamps or epoch ``s``, with fracional seconds allowed) (GH3540_)
+  - DataFrame corr method (spearman) is now cythonized.
 
 **API Changes**
 
