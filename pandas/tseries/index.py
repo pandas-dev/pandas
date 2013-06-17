@@ -422,13 +422,20 @@ class DatetimeIndex(Int64Index):
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
                       name=None):
+        if start is None and end is None:
+            # I somewhat believe this should never be raised externally and therefore
+            # should be a `PandasError` but whatever...
+            raise TypeError('Must specify either start or end.')
         if start is not None:
             start = Timestamp(start)
         if end is not None:
             end = Timestamp(end)
+        if (start is None or end is None) and periods is None:
+            raise TypeError('Must either specify period or provide both start and end.')
 
         if offset is None:
-            raise TypeError('Must provide a DateOffset!')
+            # This can't happen with external-facing code, therefore PandasError
+            raise TypeError('Must provide offset.')
 
         drc = _daterange_cache
         if offset not in _daterange_cache:
