@@ -539,25 +539,27 @@ class PandasObject(object):
         ----------
         path_or_buf : the path or buffer to write the result string
             if this is None, return a StringIO of the converted string
-        orient :
+        orient : string
 
-            Series :
-              default is 'index'
-              allowed values are: {'split','records','index'}
+            * Series
 
-            DataFrame :
-              default is 'columns'
-              allowed values are: {'split','records','index','columns','values'}
+              - default is 'index'
+              - allowed values are: {'split','records','index'}
 
-            The format of the JSON string
-            split : dict like
-                {index -> [index], columns -> [columns], data -> [values]}
-            records : list like [{column -> value}, ... , {column -> value}]
-            index : dict like {index -> {column -> value}}
-            columns : dict like {column -> {index -> value}}
-            values : just the values array
+            * DataFrame
 
-        date_format : type of date conversion (epoch = epoch milliseconds, iso = ISO8601),
+              - default is 'columns'
+              - allowed values are: {'split','records','index','columns','values'}
+
+            * The format of the JSON string
+
+              - split : dict like {index -> [index], columns -> [columns], data -> [values]}
+              - records : list like [{column -> value}, ... , {column -> value}]
+              - index : dict like {index -> {column -> value}}
+              - columns : dict like {column -> {index -> value}}
+              - values : just the values array
+
+        date_format : type of date conversion (epoch = epoch milliseconds, iso = ISO8601)
             default is epoch
         double_precision : The number of decimal places to use when encoding
             floating point values, default 10.
