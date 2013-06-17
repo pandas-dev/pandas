@@ -3,18 +3,18 @@
 from datetime import datetime
 import os
 import unittest
-import sys
 import warnings
 import nose
 
 import numpy as np
 
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import read_stata, StataReader, StataWriter
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.util.misc import is_little_endian
+
 
 class StataTests(unittest.TestCase):
 
@@ -35,6 +35,7 @@ class StataTests(unittest.TestCase):
         self.csv8 = os.path.join(self.dirpath, 'tbl19-3.csv')
         self.dta9 = os.path.join(self.dirpath, 'lbw.dta')
         self.csv9 = os.path.join(self.dirpath, 'lbw.csv')
+        self.dta10 = os.path.join(self.dirpath, 'stata10.dta')
 
     def read_dta(self, file):
         return read_stata(file, convert_dates=True)
@@ -189,9 +190,24 @@ class StataTests(unittest.TestCase):
                 decimal=3
             )
 
+    def test_read_dta10(self):
+        original = DataFrame(
+            data=
+            [
+                ["string", "object", 1, 1.1, np.datetime64('2003-12-25')]
+            ],
+            columns=['string', 'object', 'integer', 'float', 'datetime'])
+        original["object"] = Series(original["object"], dtype=object)
+        original.index.name = 'index'
+
+        with ensure_clean(self.dta10) as path:
+            original.to_stata(path, {'datetime': 'tc'}, False)
+            written_and_read_again = self.read_dta(path)
+            tm.assert_frame_equal(written_and_read_again.set_index('index'), original)
+
     def test_stata_doc_examples(self):
         with ensure_clean(self.dta5) as path:
-            df = DataFrame(np.random.randn(10,2),columns=list('AB'))
+            df = DataFrame(np.random.randn(10, 2), columns=list('AB'))
             df.to_stata(path)
 
 if __name__ == '__main__':
