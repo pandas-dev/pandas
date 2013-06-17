@@ -1507,7 +1507,7 @@ class DatetimeIndex(Int64Index):
         localized : DatetimeIndex
         """
         if self.tz is not None:
-            raise ValueError("Already tz-aware, use tz_convert to convert.")
+            raise TypeError("Already tz-aware, use tz_convert to convert.")
         tz = tools._maybe_get_tz(tz)
 
         # Convert to UTC
