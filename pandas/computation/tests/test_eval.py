@@ -10,7 +10,7 @@ from nose.tools import assert_true
 
 from numpy.random import randn, rand
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from numpy.testing.decorators import slow
 
 import pandas as pd
@@ -212,7 +212,11 @@ class TestBasicEval(unittest.TestCase):
             if arith1 != '//':
                 expected = _eval_single_bin(lhs, arith1, rhs,
                                             engine_has_neg_frac(self.engine))
-                assert_array_equal(result, expected)
+                # roundoff error with modulus
+                if arith1 == '%':
+                    assert_allclose(result, expected)
+                else:
+                    assert_array_equal(result, expected)
 
             # sanity check on recursive parsing
             try:
@@ -243,7 +247,12 @@ class TestBasicEval(unittest.TestCase):
                     pass
                 if arith1 != '//':
                     expected = self.ne.evaluate('nlhs {0} ghs'.format(arith1))
-                    assert_array_equal(result, expected)
+
+                    # roundoff error with modulus
+                    if arith1 == '%':
+                        assert_allclose(result, expected)
+                    else:
+                        assert_array_equal(result, expected)
 
     def _create_invert_op_t(self, lhs, cmp1, rhs):
         # simple
@@ -549,6 +558,11 @@ def check_datetime_index_rows_punts_to_python(engine):
 def test_datetime_index_rows_punts_to_python():
     for engine in _engines:
         check_datetime_index_rows_punts_to_python(engine)
+
+
+def test_truediv():
+    for engine in _engines:
+        check_truediv(engine)
 
 
 def check_truediv(engine):
