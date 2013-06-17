@@ -251,6 +251,15 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         expected = ts['2013']
         assert_series_equal(expected,ts)
 
+        # GH 3925, indexing with a seconds resolution string / datetime object
+        df = DataFrame(randn(5,5),columns=['open','high','low','close','volume'],index=date_range('2012-01-02 18:01:00',periods=5,tz='US/Central',freq='s'))
+        expected = df.loc[[df.index[2]]]
+        result = df['2012-01-02 18:01:02']
+        self.assert_(result == expected)
+
+        # this is a single date, so will raise
+        self.assertRaises(KeyError, df.__getitem__, df.index[2],)
+
 def assert_range_equal(left, right):
     assert(left.equals(right))
     assert(left.freq == right.freq)

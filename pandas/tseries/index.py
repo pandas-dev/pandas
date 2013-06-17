@@ -1102,6 +1102,13 @@ class DatetimeIndex(Int64Index):
             t1 = Timestamp(st, tz=self.tz)
             t2 = Timestamp(Timestamp(st + offsets.Minute(),
                                      tz=self.tz).value - 1)
+        elif (reso == 'second' and (
+                self._resolution == Resolution.RESO_SEC or not is_monotonic)):
+            st = datetime(parsed.year, parsed.month, parsed.day,
+                          hour=parsed.hour, minute=parsed.minute, second=parsed.second)
+            t1 = Timestamp(st, tz=self.tz)
+            t2 = Timestamp(Timestamp(st + offsets.Second(),
+                                     tz=self.tz).value - 1)
         else:
             raise KeyError
 
@@ -1110,9 +1117,16 @@ class DatetimeIndex(Int64Index):
 
         if is_monotonic:
 
+            # we are out of range
+            if len(stamps) and (
+                (use_lhs and t1.value < stamps[0] and t2.value < stamps[0]) or (
+                (use_rhs and t1.value > stamps[-1] and t2.value > stamps[-1]))):
+                raise KeyError
+
             # a monotonic (sorted) series can be sliced
             left = stamps.searchsorted(t1.value, side='left') if use_lhs else None
             right = stamps.searchsorted(t2.value, side='right') if use_rhs else None
+
             return slice(left, right)
 
         lhs_mask = (stamps>=t1.value) if use_lhs else True
