@@ -955,6 +955,8 @@ Getting scalar results from a ``timedelta64[ns]`` series
    y = s - s[0]
    y
 
+.. code-block:: python
+
    if LooseVersion(np.__version__) <= '1.6.2':
        y.apply(lambda x: x.item().total_seconds())
        y.apply(lambda x: x.item().days)
@@ -982,7 +984,7 @@ Series of timedeltas with ``NaT`` values are supported
    y = s - s.shift()
    y
 
-The can be set to ``NaT`` using ``np.nan`` analagously to datetimes
+Elements can be set to ``NaT`` using ``np.nan`` analagously to datetimes
 
 .. ipython:: python
 
@@ -1003,7 +1005,7 @@ Some timedelta numeric like operations are supported.
 
    td - timedelta(minutes=5, seconds=5, microseconds=5)
 
-``min, max`` and the corresponding ``idxmin, idxmax`` operations are support on frames
+``min, max`` and the corresponding ``idxmin, idxmax`` operations are supported on frames
 
 .. ipython:: python
 
@@ -1019,7 +1021,7 @@ Some timedelta numeric like operations are supported.
    df.idxmin()
    df.idxmax()
 
-``min, max`` operations are support on series, these return a single element
+``min, max`` operations are supported on series; these return a single element
 ``timedelta64[ns]`` Series (this avoids having to deal with numpy timedelta64
 issues). ``idxmin, idxmax`` are supported as well.
 
