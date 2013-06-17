@@ -57,7 +57,7 @@ def eval(expr, engine='numexpr', truediv=True, local_dict=None,
         engine = _maybe_convert_engine(env, engine)
 
         # parse the expression
-        parsed_expr = Expr(expr, engine, truediv)
+        parsed_expr = Expr(expr, engine, env, truediv)
 
         # choose the engine
         eng = _engines[engine]

@@ -1,7 +1,7 @@
 import ast
 from functools import partial
 
-from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops
+from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops, Mod
 from pandas.computation.ops import _cmp_ops_syms, _bool_ops_syms
 from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
 
@@ -15,14 +15,14 @@ class ExprVisitor(ast.NodeVisitor):
     """
     bin_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
     bin_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd', 'BitOr',
-                    'Add', 'Sub', 'Mult', 'Div', 'Pow', 'FloorDiv')
+                    'Add', 'Sub', 'Mult', 'Div', 'Pow', 'FloorDiv', 'Mod')
     bin_op_nodes_map = dict(zip(bin_ops, bin_op_nodes))
 
     unary_ops = _unary_ops_syms
     unary_op_nodes = 'UAdd', 'USub', 'Invert'
     unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
 
-    def __init__(self):
+    def __init__(self, env):
         for bin_op in self.bin_ops:
             setattr(self, 'visit_{0}'.format(self.bin_op_nodes_map[bin_op]),
                     lambda node, bin_op=bin_op: partial(BinOp, bin_op))
@@ -31,6 +31,7 @@ class ExprVisitor(ast.NodeVisitor):
             setattr(self,
                     'visit_{0}'.format(self.unary_op_nodes_map[unary_op]),
                     lambda node, unary_op=unary_op: partial(UnaryOp, unary_op))
+        self.env = env
 
     def visit(self, node):
         if not (isinstance(node, ast.AST) or isinstance(node, basestring)):
@@ -91,15 +92,15 @@ class ExprVisitor(ast.NodeVisitor):
         raise NotImplementedError("attribute access is not yet supported")
 
     def visit_Mod(self, node):
-        raise NotImplementedError("modulo operator not yet supported")
+        return partial(Mod, env=self.env)
 
 
 class Expr(object):
     """Expr object for pandas
     """
-    def __init__(self, expr, engine, truediv):
+    def __init__(self, expr, engine, env, truediv):
         self.expr = expr
-        self._visitor = ExprVisitor()
+        self._visitor = ExprVisitor(env)
         self.terms = self.parse()
         self.engine = engine
         self.truediv = truediv
