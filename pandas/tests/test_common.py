@@ -3,6 +3,7 @@ import sys
 import re
 
 import nose
+from nose.tools import assert_equal
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
@@ -266,6 +267,7 @@ def test_ensure_int32():
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
 
+
 def test_ensure_platform_int():
 
     # verify that when we create certain types of indices
@@ -285,6 +287,29 @@ def test_ensure_platform_int():
 
     pi = com._ensure_platform_int(x)
     assert(pi.dtype == np.int_)
+
+
+def test_pprint_max_seq_items():
+    with cf.option_context('display.max_seq_items', 3):
+        s = 'Int64Index([0, 1, 2, ..., 4], dtype=int64)'
+        res = repr(tm.makeIntIndex(5))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2, ..., 10], dtype=int64)'
+        res = repr(tm.makeIntIndex(11))
+        assert_equal(s, res)
+
+        s = 'Int64Index([0, 1, 2], dtype=int64)'
+        res = repr(tm.makeIntIndex(3))
+        assert_equal(s, res)
+
+    with cf.option_context('display.max_seq_items', 2):
+        df = tm.makeCustomDataframe(2, 3, c_idx_nlevels=2)
+        mi = df.columns
+        s = ("MultiIndex\n[(u'C_l0_g0', u'C_l1_g0'), (u'C_l0_g1', u'C_l1_g1'),"
+             " ..., ('C_l0_g2', 'C_l1_g2')]")
+        res = repr(mi)
+        assert_equal(s, res)
 
 # TODO: fix this broken test
 

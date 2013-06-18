@@ -302,7 +302,7 @@ def makeUnicodeIndex(k):
 
 
 def makeIntIndex(k):
-    return Index(range(k))
+    return Index(np.arange(k))
 
 
 def makeFloatIndex(k):
