@@ -179,21 +179,21 @@ class TestPandasObjects(unittest.TestCase):
         # too few indices
         json = StringIO('{"columns":["A","B"],'
                         '"index":["2","3"],'
-                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
         self.assertRaises(ValueError, read_json, json,
                           orient="split")
 
         # too many columns
         json = StringIO('{"columns":["A","B","C"],'
                         '"index":["1","2","3"],'
-                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
         self.assertRaises(AssertionError, read_json, json,
                           orient="split")
 
         # bad key
         json = StringIO('{"badkey":["A","B"],'
                         '"index":["2","3"],'
-                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+                        '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
         self.assertRaises(TypeError, read_json, json,
                           orient="split")
 
