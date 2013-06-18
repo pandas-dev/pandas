@@ -52,6 +52,32 @@ def _update_names(env, mapping):
         updater(key, value)
 
 
+class Term(object):
+    def __init__(self, value, name, env):
+        self.value = value
+        self.name = name
+        self.env = env
+        self.type = type(value)
+
+    def __iter__(self):
+        yield self.value
+        raise StopIteration
+
+    def __str__(self):
+        return '{0}({1!r})'.format(self.__class__.__name__, self.name)
+
+    __repr__ = __str__
+
+    def update(self, env, value):
+        _update_name(self.env, self.name, value)
+        self.value = value
+
+
+class Constant(Term):
+    def __init__(self, value, env):
+        super(Constant, self).__init__(value, value, env)
+
+
 class Op(object):
     """Hold an operator of unknown arity
     """
@@ -89,13 +115,14 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
 def _cast(terms, env, dtype):
     resolver = partial(_resolve_name, env)
     updater = partial(_update_name, env)
+    dt = np.dtype(dtype)
     for term in terms:
         t = resolver(term)
         try:
-            new_value = t.astype(dtype)
+            new_value = t.astype(dt)
         except AttributeError:
-            new_value = dtype.type(t)
-        updater(term, t)
+            new_value = dt.type(t)
+        updater(term, new_value)
 
 class BinOp(Op):
     """Hold a binary operator and its operands
@@ -160,7 +187,7 @@ class BinOp(Op):
 class Mod(BinOp):
     def __init__(self, lhs, rhs, env=None):
         super(Mod, self).__init__('%', lhs, rhs)
-        _cast(env, (lhs, rhs), np.float_)
+        _cast((lhs, rhs), env, np.float_)
 
 
 _unary_ops_syms = '+', '-', '~'

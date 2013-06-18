@@ -7,6 +7,7 @@ Offer fast expression evaluation thru numexpr
 """
 
 import numpy as np
+import pandas.core.common as com
 
 try:
     import numexpr as ne
@@ -46,13 +47,10 @@ def set_use_numexpr(v=True):
 def set_numexpr_threads(n=None):
     # if we are using numexpr, set the threads to n
     # otherwise reset
-    try:
-        if _NUMEXPR_INSTALLED and _USE_NUMEXPR:
-            if n is None:
-                n = ne.detect_number_of_cores()
-            ne.set_num_threads(n)
-    except:
-        pass
+    if _NUMEXPR_INSTALLED and _USE_NUMEXPR:
+        if n is None:
+            n = ne.detect_number_of_cores()
+        ne.set_num_threads(n)
 
 
 def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
@@ -84,7 +82,8 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
 
     return False
 
-def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False, **eval_kwargs):
+
+def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, **eval_kwargs):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
@@ -94,15 +93,13 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False, **eval_kwargs):
                 a_value = a_value.values
             if hasattr(b_value, 'values'):
                 b_value = b_value.values
-            result = ne.evaluate('a_value %s b_value' % op_str, 
-                                 local_dict={ 'a_value' : a_value, 
-                                              'b_value' : b_value }, 
+            result = ne.evaluate('a_value %s b_value' % op_str,
+                                 local_dict={'a_value': a_value,
+                                             'b_value': b_value},
                                  casting='safe', **eval_kwargs)
-        except (ValueError), detail:
-            if 'unknown type object' in str(detail):
-                pass
-        except (Exception), detail:
-            if raise_on_error:
+        except Exception as detail:
+            if ('unknown type object' not in com.pprint_thing(detail) and
+                raise_on_error):
                 raise
 
     if result is None:
@@ -128,17 +125,15 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
                 a_value = a_value.values
             if hasattr(b_value, 'values'):
                 b_value = b_value.values
-            result = ne.evaluate('where(cond_value,a_value,b_value)',
+            result = ne.evaluate('where(cond_value, a_value, b_value)',
                                  local_dict={'cond_value': cond_value,
                                              'a_value': a_value,
                                              'b_value': b_value},
                                  casting='safe')
-        except (ValueError), detail:
-            if 'unknown type object' in str(detail):
-                pass
-        except (Exception), detail:
-            if raise_on_error:
-                raise TypeError(str(detail))
+        except Exception as detail:
+            if ('unknown type object' not in com.pprint_thing(detail) and
+                raise_on_error):
+                raise
 
     if result is None:
         result = _where_standard(cond, a, b, raise_on_error)
@@ -149,7 +144,9 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
 # turn myself on
 set_use_numexpr(True)
 
-def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True, **eval_kwargs):
+
+def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
+             **eval_kwargs):
     """ evaluate and return the expression of the op on a and b
 
         Parameters
@@ -166,7 +163,8 @@ def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True, **eval_kw
         """
 
     if use_numexpr:
-        return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error, **eval_kwargs)
+        return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error,
+                         **eval_kwargs)
     return _evaluate_standard(op, op_str, a, b, raise_on_error=raise_on_error)
 
 
