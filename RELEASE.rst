@@ -101,6 +101,7 @@ pandas 0.11.1
       to select with a Storer; these are invalid parameters at this time
     - can now specify an ``encoding`` option to ``append/put``
       to enable alternate encodings (GH3750_)
+    - enable support for ``iterator/chunksize`` with ``read_hdf``
   - The repr() for (Multi)Index now obeys display.max_seq_items rather
     then numpy threshold print options. (GH3426_, GH3466_)
   - Added mangle_dupe_cols option to read_table/csv, allowing users

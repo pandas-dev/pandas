@@ -2078,6 +2078,7 @@ class TestHDFStore(unittest.TestCase):
             results = []
             for s in store.select('df',chunksize=100):
                 results.append(s)
+            self.assert_(len(results) == 5)
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -2085,7 +2086,28 @@ class TestHDFStore(unittest.TestCase):
             for s in store.select('df',chunksize=150):
                 results.append(s)
             result = concat(results)
-            tm.assert_frame_equal(expected, result)
+            tm.assert_frame_equal(result, expected)
+
+        with tm.ensure_clean(self.path) as path:
+
+            df = tm.makeTimeDataFrame(500)
+            df.to_hdf(path,'df_non_table')
+            self.assertRaises(TypeError, read_hdf, path,'df_non_table',chunksize=100)
+            self.assertRaises(TypeError, read_hdf, path,'df_non_table',iterator=True)
+
+        with tm.ensure_clean(self.path) as path:
+
+            df = tm.makeTimeDataFrame(500)
+            df.to_hdf(path,'df',table=True)
+
+            results = []
+            for x in read_hdf(path,'df',chunksize=100):
+                results.append(x)
+
+            self.assert_(len(results) == 5)
+            result = concat(results)
+            tm.assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, read_hdf(path,'df'))
 
         # multiple
 

@@ -196,12 +196,27 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, app
 
 def read_hdf(path_or_buf, key, **kwargs):
     """ read from the store, closeit if we opened it """
-    f = lambda store: store.select(key, **kwargs)
+    f = lambda store, auto_close: store.select(key, auto_close=auto_close, **kwargs)
 
     if isinstance(path_or_buf, basestring):
-        with get_store(path_or_buf) as store:
-            return f(store)
-    f(path_or_buf)
+
+        # can't auto open/close if we are using an iterator
+        # so delegate to the iterator
+        store = HDFStore(path_or_buf)
+        try:
+            return f(store, True)
+        except:
+
+            # if there is an error, close the store
+            try:
+                store.close()
+            except:
+                pass
+
+            raise
+
+    # a passed store; user controls open/close
+    f(path_or_buf, False)
     
 class HDFStore(object):
     """
@@ -405,7 +420,7 @@ class HDFStore(object):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group)
 
-    def select(self, key, where=None, start=None, stop=None, columns=None, iterator=False, chunksize=None, **kwargs):
+    def select(self, key, where=None, start=None, stop=None, columns=None, iterator=False, chunksize=None, auto_close=False, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -419,6 +434,7 @@ class HDFStore(object):
         columns : a list of columns that if not None, will limit the return columns
         iterator : boolean, return an iterator, default False
         chunksize : nrows to include in iteration, return an iterator
+        auto_close : boolean, should automatically close the store when finished, default is False
 
         """
         group = self.get_node(key)
@@ -434,9 +450,11 @@ class HDFStore(object):
             return s.read(where=where, start=_start, stop=_stop, columns=columns, **kwargs)
 
         if iterator or chunksize is not None:
-            return TableIterator(func, nrows=s.nrows, start=start, stop=stop, chunksize=chunksize)
+            if not s.is_table:
+                raise TypeError("can only use an iterator or chunksize on a table")
+            return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop, chunksize=chunksize, auto_close=auto_close)
 
-        return TableIterator(func, nrows=s.nrows, start=start, stop=stop).get_values()
+        return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop, auto_close=auto_close).get_values()
 
     def select_as_coordinates(self, key, where=None, start=None, stop=None, **kwargs):
         """
@@ -473,7 +491,7 @@ class HDFStore(object):
         """
         return self.get_storer(key).read_column(column = column, **kwargs)
 
-    def select_as_multiple(self, keys, where=None, selector=None, columns=None, start=None, stop=None, iterator=False, chunksize=None, **kwargs):
+    def select_as_multiple(self, keys, where=None, selector=None, columns=None, start=None, stop=None, iterator=False, chunksize=None, auto_close=False, **kwargs):
         """ Retrieve pandas objects from multiple tables
 
         Parameters
@@ -541,9 +559,9 @@ class HDFStore(object):
             return concat(objs, axis=axis, verify_integrity=True)
 
         if iterator or chunksize is not None:
-            return TableIterator(func, nrows=nrows, start=start, stop=stop, chunksize=chunksize)
+            return TableIterator(self, func, nrows=nrows, start=start, stop=stop, chunksize=chunksize, auto_close=auto_close)
 
-        return TableIterator(func, nrows=nrows, start=start, stop=stop).get_values()
+        return TableIterator(self, func, nrows=nrows, start=start, stop=stop, auto_close=auto_close).get_values()
 
 
     def put(self, key, value, table=None, append=False, **kwargs):
@@ -916,16 +934,20 @@ class TableIterator(object):
         Parameters
         ----------
 
-        func   : the function to get results
+        store : the reference store
+        func  : the function to get results
         nrows : the rows to iterate on
         start : the passed start value (default is None)
-        stop : the passed stop value (default is None)
+        stop  : the passed stop value (default is None)
         chunksize : the passed chunking valeu (default is 50000)
+        auto_close : boolean, automatically close the store at the end of iteration,
+            default is False
         kwargs : the passed kwargs
         """
 
-    def __init__(self, func, nrows, start=None, stop=None, chunksize=None):
-        self.func   = func
+    def __init__(self, store, func, nrows, start=None, stop=None, chunksize=None, auto_close=False):
+        self.store = store
+        self.func  = func
         self.nrows = nrows or 0
         self.start = start or 0
 
@@ -937,6 +959,7 @@ class TableIterator(object):
             chunksize = 100000
 
         self.chunksize = chunksize
+        self.auto_close = auto_close
 
     def __iter__(self):
         current = self.start
@@ -950,9 +973,16 @@ class TableIterator(object):
 
             yield v
 
+        self.close()
+            
+    def close(self):
+        if self.auto_close:
+            self.store.close()
+
     def get_values(self):
-        return self.func(self.start, self.stop)
-        
+        results = self.func(self.start, self.stop)
+        self.close()
+        return results
 
 class IndexCol(object):
     """ an index column description class

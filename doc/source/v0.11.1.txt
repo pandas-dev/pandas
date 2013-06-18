@@ -6,6 +6,11 @@ v0.11.1 (June ??, 2013)
 This is a minor release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
+Highlites include a consistent I/O API naming scheme, routines to read html,
+write multi-indexes to csv files, read & write STATA data files, read & write JSON format
+files, Python 3 support for ``HDFStore``, filtering of groupby expressions via ``filter``, and a 
+revamped ``replace`` routine that accepts regular expressions.
+
 API changes
 ~~~~~~~~~~~
 
@@ -148,8 +153,8 @@ API changes
     ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
     until success is also valid
 
-Enhancements
-~~~~~~~~~~~~
+I/O Enhancements
+~~~~~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
     DataFrames, courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_, GH3616_).
@@ -184,6 +189,60 @@ Enhancements
     accessable via ``read_json`` top-level function for reading,
     and ``to_json`` DataFrame method for writing, :ref:`See the docs<io.json>`
 
+  - Multi-index column support for reading and writing csv format files
+
+    - The ``header`` option in ``read_csv`` now accepts a
+      list of the rows from which to read the index.
+
+    - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
+      ``read_csv``, to provide compatiblity for the pre 0.11.1 behavior of
+      writing and reading multi-index columns via a list of tuples. The default in
+      0.11.1 is to write lists of tuples and *not* interpret list of tuples as a 
+      multi-index column.  
+
+      Note: The default behavior in 0.11.1 remains unchanged, but starting with 0.12,
+      the default *to* write and read multi-index columns will be in the new 
+      format. (GH3571_, GH1651_, GH3141_)
+
+    - If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
+      with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will 
+      be *lost*.
+
+      .. ipython:: python
+
+         from pandas.util.testing import makeCustomDataframe as mkdf
+         df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
+         df.to_csv('mi.csv',tupleize_cols=False)
+         print open('mi.csv').read()
+         pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
+
+      .. ipython:: python
+         :suppress:
+
+         import os
+         os.remove('mi.csv')
+
+  - Support for ``HDFStore`` (via ``PyTables 3.0.0``) on Python3
+
+  - Iterator support via ``read_hdf`` that automatically opens and closes the
+    store when iteration is finished. This is only for *tables*
+
+    .. ipython:: python
+
+         path = 'store_iterator.h5'
+         DataFrame(randn(10,2)).to_hdf(path,'df',table=True)
+         for df in read_hdf(path,'df', chunksize=3):
+            print df
+
+    .. ipython:: python
+         :suppress:
+
+         import os
+         os.remove(path)
+
+Other Enhancements
+~~~~~~~~~~~~~~~~~~
+
   - ``DataFrame.replace()`` now allows regular expressions on contained
     ``Series`` with object dtype. See the examples section in the regular docs
     :ref:`Replacing via String Expression <missing_data.replace_expression>`
@@ -206,39 +265,6 @@ Enhancements
 
     to replace all occurrences of the string ``'.'`` with ``NaN``.
 
-  - Multi-index column support for reading and writing csv format files
-
-    - The ``header`` option in ``read_csv`` now accepts a
-      list of the rows from which to read the index.
-
-    - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
-      ``read_csv``, to provide compatiblity for the pre 0.11.1 behavior of
-      writing and reading multi-index columns via a list of tuples. The default in
-      0.11.1 is to write lists of tuples and *not* interpret list of tuples as a 
-      multi-index column.  
-
-      Note: The default behavior in 0.11.1 remains unchanged, but starting with 0.12,
-      the default *to* write and read multi-index columns will be in the new 
-      format. (GH3571_, GH1651_, GH3141_)
-
-    - If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-      with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will 
-      be *lost*.
-
-    .. ipython:: python
-
-       from pandas.util.testing import makeCustomDataframe as mkdf
-       df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
-       df.to_csv('mi.csv',tupleize_cols=False)
-       print open('mi.csv').read()
-       pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
-
-    .. ipython:: python
-       :suppress:
-
-       import os
-       os.remove('mi.csv')
-
   - ``pd.melt()`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame.
 
@@ -260,8 +286,6 @@ Enhancements
          pd.set_option('a.b', 1, 'b.c', 4)
          pd.get_option('a.b')
          pd.get_option('b.c')
-
-  - Support for ``HDFStore`` (via ``PyTables 3.0.0``) on Python3
 
   - The ``filter`` method for group objects returns a subset of the original 
     object. Suppose we want to take only elements that belong to groups with a 

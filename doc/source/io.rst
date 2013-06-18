@@ -1925,6 +1925,18 @@ The default is 50,000 rows returned in a chunk.
    for df in store.select('df', chunksize=3):
       print df
 
+.. note::
+
+   .. versionadded:: 0.11.1
+
+   You can also use the iterator with ``read_hdf`` which will open, then
+   automatically close the store when finished iterating.
+
+   .. code-block:: python
+
+      for df in read_hdf('store.h5','df', chunsize=3):
+          print df
+
 Note, that the chunksize keyword applies to the **returned** rows. So if you
 are doing a query, then that set will be subdivided and returned in the
 iterator. Keep in mind that if you do not pass a ``where`` selection criteria
