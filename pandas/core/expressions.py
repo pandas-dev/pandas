@@ -51,7 +51,7 @@ def set_numexpr_threads(n = None):
         pass
 
 
-def _evaluate_standard(op, op_str, a, b, raise_on_error=True):
+def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
     """ standard evaluation """
     return op(a,b)
 
@@ -79,7 +79,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
 
     return False
 
-def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False):
+def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False, **eval_kwargs):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, 'evaluate'):
@@ -92,7 +92,7 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False):
             result = ne.evaluate('a_value %s b_value' % op_str, 
                                  local_dict={ 'a_value' : a_value, 
                                               'b_value' : b_value }, 
-                                 casting='safe')
+                                 casting='safe', **eval_kwargs)
         except (ValueError), detail:
             if 'unknown type object' in str(detail):
                 pass
@@ -142,7 +142,7 @@ def _where_numexpr(cond, a, b, raise_on_error = False):
 # turn myself on
 set_use_numexpr(True)
 
-def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True):
+def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True, **eval_kwargs):
     """ evaluate and return the expression of the op on a and b
 
         Parameters
@@ -158,7 +158,7 @@ def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True):
         """
 
     if use_numexpr:
-        return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error)
+        return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error, **eval_kwargs)
     return _evaluate_standard(op, op_str, a, b, raise_on_error=raise_on_error)
 
 def where(cond, a, b, raise_on_error=False, use_numexpr=True):
