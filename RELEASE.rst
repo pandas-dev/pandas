@@ -250,6 +250,8 @@ pandas 0.11.1
     not converting dtypes (GH3911_)
   - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
     in the ``to_replace`` argument wasn't working (GH3907_)
+  - Fixed ``__truediv__`` in Python 2.7 with ``numexpr`` installed to actually do true division when dividing
+    two integer arrays with at least 10000 cells total (GH3764_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -351,6 +353,7 @@ pandas 0.11.1
 .. _GH3907: https://github.com/pydata/pandas/issues/3907
 .. _GH3911: https://github.com/pydata/pandas/issues/3911
 .. _GH3912: https://github.com/pydata/pandas/issues/3912
+.. _GH3764: https://github.com/pydata/pandas/issues/3764
 
 pandas 0.11.0
 =============
