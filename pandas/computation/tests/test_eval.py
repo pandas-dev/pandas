@@ -5,8 +5,8 @@ import itertools
 from itertools import product
 
 import nose
-from nose.tools import assert_raises, assert_tuple_equal, assert_equal
-from nose.tools import assert_true
+from nose.tools import assert_raises, assert_tuple_equal
+from nose.tools import assert_true, assert_false
 
 from numpy.random import randn, rand
 import numpy as np
@@ -23,8 +23,6 @@ from pandas.computation.ops import _binary_ops_dict, _unary_ops_dict
 import pandas.computation.expr as expr
 from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.computation.eval import Scope
-from pandas.computation.eval import _scope_has_series_and_frame_datetime_index
-from pandas.computation.eval import _maybe_convert_engine
 from pandas.util.testing import assert_frame_equal, randbool
 
 
@@ -551,8 +549,6 @@ def check_datetime_index_rows_punts_to_python(engine):
     index = getattr(df, 'index')
     s = Series(np.random.randn(5), index[:5])
     env = Scope(globals(), locals())
-    assert_true(_scope_has_series_and_frame_datetime_index(env))
-    assert_equal(_maybe_convert_engine(env, engine), 'python')
 
 
 def test_datetime_index_rows_punts_to_python():
@@ -580,6 +576,21 @@ def check_global_scope(engine):
 def test_global_scope():
     for engine in _engines:
         yield check_global_scope, engine
+
+
+def check_is_expr(engine):
+    s = 1
+    valid = 's + 1'
+    invalid = 's +'
+    assert_true(expr.isexpr(valid, check_names=True))
+    assert_false(expr.isexpr(valid, check_names=False))
+    assert_false(expr.isexpr(invalid, check_names=False))
+    assert_false(expr.isexpr(invalid, check_names=True))
+
+
+def test_is_expr():
+    for engine in _engines:
+        check_is_expr(engine)
 
 
 if __name__ == '__main__':
