@@ -2459,23 +2459,31 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
 
     bounds length of printed sequence, depending on options
     """
-    if isinstance(seq, set):
-        fmt = u("set([%s])")
+    if isinstance(seq, (set, frozenset)):
+        fmt = u("{0}([%s])").format(type(seq).__name__)
     else:
         fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
 
-    nitems = get_option("max_seq_items") or len(seq)
+    n = len(seq)
+    nitems = get_option("display.max_seq_items")
+    edgeitems = get_option("display.max_edge_items")
 
     s = iter(seq)
     r = []
-    for i in range(min(nitems, len(seq))):  # handle sets, no slicing
-        r.append(pprint_thing(next(s), _nest_lvl + 1, **kwds))
-    body = ", ".join(r)
 
-    if nitems < len(seq):
-        body += ", ..."
-    elif isinstance(seq, tuple) and len(seq) == 1:
-        body += ','
+    for i in range(min(nitems, n)):  # handle sets, no slicing
+        r.append(pprint_thing(next(s), _nest_lvl + 1, **kwds))
+
+    items = r if nitems >= n else [pprint_thing(item, **kwds) for item in
+                                   seq[:edgeitems]]
+    body = u(", ").join(items)
+
+    if nitems < n:
+        joined = u(', ').join(pprint_thing(item, **kwds)
+                              for item in seq[-edgeitems:])
+        body += u(", ..., {0}").format(joined)
+    elif isinstance(seq, tuple) and n == 1:
+        body += u(',')
 
     return fmt % body
 
@@ -2531,7 +2539,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
     def as_escaped_unicode(thing, escape_chars=escape_chars):
         # Unicode is fine, else we try to decode using utf-8 and 'replace'
         # if that's not it either, we have no way of knowing and the user
-        # should deal with it himself.
+        # should deal with it.
 
         try:
             result = compat.text_type(thing)  # we should try this first

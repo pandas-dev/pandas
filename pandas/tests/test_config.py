@@ -4,6 +4,7 @@ import pandas as pd
 import unittest
 import warnings
 import nose
+from nose.tools import assert_raises
 
 
 class TestConfig(unittest.TestCase):
@@ -167,7 +168,6 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(self.cf.get_option('b.b'), 1.1)
 
         self.assertRaises(KeyError, self.cf.set_option, 'no.such.key', None)
-
 
     def test_set_option_empty_args(self):
         self.assertRaises(ValueError, self.cf.set_option)
@@ -424,3 +424,33 @@ class TestConfig(unittest.TestCase):
         options.c = 1
         self.assertEqual(len(holder), 1)
 
+
+def test_failing_option_values_max_edge_items():
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', -1)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 1j)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 1.0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_edge_items', 'asdf')
+
+
+def test_failing_option_values_max_seq_items():
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', -1)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 1j)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 1.0)
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 'asdf')
+    assert_raises(ValueError, pd.core.config.set_option,
+                  'display.max_seq_items', 31)
+
+# fmt.reset_printoptions and fmt.set_printoptions were altered
+# to use core.config, test_format exercises those paths.

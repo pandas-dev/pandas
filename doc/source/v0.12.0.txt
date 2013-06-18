@@ -346,6 +346,10 @@ Other Enhancements
 
   - DatetimeIndexes no longer try to convert mixed-integer indexes during join
     operations (:issue:`3877`)
+  - A new option ``display.max_edge_items`` now controls the number of items
+    printed by a sequence (:issue:`3974`)
+  - The option ``display.max_seq_items`` can now only be an even number greater
+    than or equal to 2 (:issue:`3974`)
 
   - Timestamp.min and Timestamp.max now represent valid Timestamp instances instead
     of the default datetime.min and datetime.max (respectively), thanks @SleepingPills

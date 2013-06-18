@@ -321,9 +321,9 @@ def set_trace():
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
 
+
 #------------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
-
 
 @contextmanager
 def ensure_clean(filename=None, return_filelike=False):
@@ -381,9 +381,9 @@ def get_data_path(f=''):
     base_dir = os.path.abspath(os.path.dirname(filename))
     return os.path.join(base_dir, 'data', f)
 
+
 #------------------------------------------------------------------------------
 # Comparators
-
 
 def equalContents(arr1, arr2):
     """Checks if the set of unique elements of arr1 and arr2 are equivalent.
@@ -396,6 +396,7 @@ def assert_isinstance(obj, class_type_or_tuple, msg=''):
     assert isinstance(obj, class_type_or_tuple), (
         "%sExpected object to be of type %r, found %r instead" % (
             msg, class_type_or_tuple, type(obj)))
+
 
 
 def assert_equal(a, b, msg=""):
@@ -531,6 +532,7 @@ def assert_panelnd_equal(left, right,
     for i, item in enumerate(right._get_axis(0)):
         assert item in left, "non-matching item (left) '%s'" % item
 
+
 # TODO: strangely check_names fails in py3 ?
 _panel_frame_equal = partial(assert_frame_equal, check_names=False)
 assert_panel_equal = partial(assert_panelnd_equal,
@@ -573,8 +575,8 @@ def makeUnicodeIndex(k=10):
     return Index([randu(10) for _ in range(k)])
 
 
-def makeIntIndex(k=10):
-    return Index(lrange(k))
+def makeIntIndex(k):
+    return Index(np.arange(k))
 
 
 def makeFloatIndex(k=10):
@@ -936,10 +938,9 @@ def skip_if_no_package(*args, **kwargs):
                   exc_failed_check=SkipTest,
                   *args, **kwargs)
 
+
 #
 # Additional tags decorators for nose
-#
-
 
 def optional_args(decorator):
     """allows a decorator to take optional positional and keyword arguments.
@@ -1267,6 +1268,7 @@ def assertRaises(_exception, _callable=None, *args, **kwargs):
             _callable(*args, **kwargs)
     else:
         return manager
+
 
 def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
     """ Port of assertRaisesRegexp from unittest in Python 2.7 - used in with statement.

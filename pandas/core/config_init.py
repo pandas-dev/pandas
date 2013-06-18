@@ -154,13 +154,22 @@ pc_chop_threshold_doc = """
 """
 
 pc_max_seq_items = """
-: int or None
+: positive even integer
 
-    when pretty-printing a long sequence, no more then `max_seq_items`
-    will be printed. If items are omitted, they will be denoted by the
-    addition of "..." to the resulting string.
+    when pretty-printing a long sequence, no more then `max_seq_items` will be
+    printed. If items are omitted, they will be denoted by the first and last
+    "max_edge_items". This number must be an even positive integer. The default
+    limit is 100.
+"""
 
-    If set to None, the number of items to be printed is unlimited.
+pc_max_edge_items = """
+: positive integer
+
+    when pretty-printing a long sequence, no more then `max_seq_items` will be
+    printed. If items are omitted, they will be denoted by the first and last
+    "max_edge_items". This value will be overridden by `max_seq_items` if
+    `max_seq_items` is less than `max_edge_items`. The default number of edge
+    items is 3.
 """
 
 
@@ -246,7 +255,15 @@ with cf.config_prefix('display'):
                        validator=is_text)
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
-    cf.register_option('max_seq_items', 100, pc_max_seq_items)
+    cf.register_option('max_seq_items', 100, pc_max_seq_items,
+                       validator=has_property_factory(
+                           lambda x: isinstance(x, int) and x > 0 and x % 2 == 0,
+                           "value must be an even positive integer greater "
+                           "than or equal to 2"))
+    cf.register_option('max_edge_items', 3, pc_max_edge_items,
+                       validator=has_property_factory(
+                           lambda x: isinstance(x, int) and x > 0,
+                           "value must be a positive integer"))
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)
