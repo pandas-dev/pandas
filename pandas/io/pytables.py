@@ -155,7 +155,7 @@ def h5_open(path, mode):
     
 @contextmanager
 def get_store(path, mode='a', complevel=None, complib=None,
-              fletcher32=False):
+              fletcher32=False, iterator=False):
     """
     Creates an HDFStore instance. This function can be used in a with statement
 
@@ -175,7 +175,7 @@ def get_store(path, mode='a', complevel=None, complib=None,
                          complib=complib, fletcher32=False)
         yield store
     finally:
-        if store is not None:
+        if store is not None and not iterator:
             store.close()
 
 
@@ -199,7 +199,7 @@ def read_hdf(path_or_buf, key, **kwargs):
     f = lambda store: store.select(key, **kwargs)
 
     if isinstance(path_or_buf, basestring):
-        with get_store(path_or_buf) as store:
+        with get_store(path_or_buf, iterator=kwargs.get("iterator")) as store:
             return f(store)
     f(path_or_buf)
     
