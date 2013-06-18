@@ -846,7 +846,7 @@ class TestTimeSeries(unittest.TestCase):
 
         ### array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101','20120101 12:01:01']
-        expected = to_datetime(array)
+        expected = list(to_datetime(array))
         result = map(Timestamp,array)
         tm.assert_almost_equal(result,expected)
 

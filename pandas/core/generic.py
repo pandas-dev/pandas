@@ -1159,9 +1159,13 @@ def truncate(self, before=None, after=None, copy=True):
     -------
     truncated : type of caller
     """
-    from pandas.tseries.tools import to_datetime
-    before = to_datetime(before)
-    after = to_datetime(after)
+
+    # if we have a date index, convert to dates, otherwise
+    # treat like a slice
+    if self.index.is_all_dates:
+        from pandas.tseries.tools import to_datetime
+        before = to_datetime(before)
+        after = to_datetime(after)
 
     if before is not None and after is not None:
         if before > after:
