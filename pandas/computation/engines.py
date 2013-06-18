@@ -275,7 +275,7 @@ class NumExprEngine(AbstractEngine):
 
     def convert(self):
         """Return a string"""
-        return str(self.expr)
+        return '%s' % self.expr
 
     def _evaluate(self, env):
         import numexpr as ne
