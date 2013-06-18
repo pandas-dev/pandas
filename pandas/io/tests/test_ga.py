@@ -5,7 +5,7 @@ from datetime import datetime
 import nose
 import pandas as pd
 from pandas import DataFrame
-from pandas.util.testing import network, assert_frame_equal
+from pandas.util.testing import network, assert_frame_equal, with_connectivity_check
 from numpy.testing.decorators import slow
 
 try:
@@ -71,7 +71,7 @@ class TestGoogle(unittest.TestCase):
             raise nose.SkipTest
 
     @slow
-    @network
+    @with_connectivity_check("http://www.google.com")
     def test_iterator(self):
         try:
             reader = GAnalytics()
@@ -97,16 +97,9 @@ class TestGoogle(unittest.TestCase):
 
         except AuthenticationConfigError:
             raise nose.SkipTest
-        except httplib2.ServerNotFoundError:
-            try:
-                h = httplib2.Http()
-                response, content = h.request("http://www.google.com")
-                raise
-            except httplib2.ServerNotFoundError:
-                raise nose.SkipTest
 
     @slow
-    @network
+    @with_connectivity_check("http://www.google.com")
     def test_segment(self):
         try:
             end_date = datetime.now()

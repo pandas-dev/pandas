@@ -2,18 +2,15 @@ import unittest
 import nose
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import pandas.io.data as web
-from pandas.util.testing import (network, assert_series_equal)
-from numpy.testing.decorators import slow
-import numpy as np
-
-import urllib2
+from pandas.util.testing import network, with_connectivity_check
 
 
 class TestGoogle(unittest.TestCase):
 
-    @with_connectivity_check('http://www.google.com')
+    @with_connectivity_check("http://www.google.com")
     def test_google(self):
         # asserts that google is minimally working and that it throws
         # an exception when DataReader can't get a 200 response from

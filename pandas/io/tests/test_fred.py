@@ -8,7 +8,7 @@ import pandas as pd
 import pandas.io.data as web
 from pandas.util.testing import (network, assert_frame_equal,
                                  assert_series_equal,
-                                 assert_almost_equal)
+                                 assert_almost_equal, with_connectivity_check)
 from numpy.testing.decorators import slow
 
 import urllib2
@@ -17,7 +17,7 @@ import urllib2
 class TestFred(unittest.TestCase):
 
     @slow
-    @network
+    @with_connectivity_check("http://www.google.com")
     def test_fred(self):
         """
         Throws an exception when DataReader can't get a 200 response from
