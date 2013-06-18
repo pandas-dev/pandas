@@ -144,13 +144,13 @@ void initObjToJSON(void)
 int initObjToJSON(void)
 #endif
 {
+  PyObject *mod_frame;
   PyObject* mod_decimal = PyImport_ImportModule("decimal");
   type_decimal = PyObject_GetAttrString(mod_decimal, "Decimal");
   Py_INCREF(type_decimal);
   Py_DECREF(mod_decimal);
 
   PyDateTime_IMPORT;
-  PyObject *mod_frame;
 
   mod_frame = PyImport_ImportModule("pandas.core.frame");
   if (mod_frame)
