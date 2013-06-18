@@ -8,6 +8,7 @@ import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
 from pandas.core.common import notnull, isnull
+from pandas.util.py3compat import PY3
 import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -290,6 +291,7 @@ def test_ensure_platform_int():
 
 
 def test_pprint_max_seq_items():
+    # test with a specific setting
     with cf.option_context('display.max_seq_items', 3):
         s = 'Int64Index([0, 1, 2, ..., 4], dtype=int64)'
         res = repr(tm.makeIntIndex(5))
@@ -303,11 +305,37 @@ def test_pprint_max_seq_items():
         res = repr(tm.makeIntIndex(3))
         assert_equal(s, res)
 
+        s = 'Int64Index([0, 1, 2, ..., 3], dtype=int64)'
+        res = repr(tm.makeIntIndex(4))
+        assert_equal(s, res)
+
+        s = 'Int64Index([], dtype=int64)'
+        res = repr(tm.makeIntIndex(0))
+        assert_equal(s, res)
+
+    # test with the default
+    s = 'Int64Index([0, 1, 2, 3, 4], dtype=int64)'
+    res = repr(tm.makeIntIndex(5))
+    assert_equal(s, res)
+
+    s = 'Int64Index([0, 1], dtype=int64)'
+    res = repr(tm.makeIntIndex(2))
+    assert_equal(s, res)
+
+    s = 'Int64Index([], dtype=int64)'
+    res = repr(tm.makeIntIndex(0))
+    assert_equal(s, res)
+
+    # test multiindex
     with cf.option_context('display.max_seq_items', 2):
         df = tm.makeCustomDataframe(2, 3, c_idx_nlevels=2)
         mi = df.columns
-        s = ("MultiIndex\n[(u'C_l0_g0', u'C_l1_g0'), (u'C_l0_g1', u'C_l1_g1'),"
-             " ..., ('C_l0_g2', 'C_l1_g2')]")
+        if PY3:
+            s = ("MultiIndex\n[('C_l0_g0', 'C_l1_g0'), ('C_l0_g1', 'C_l1_g1'),"
+                 " ..., ('C_l0_g2', 'C_l1_g2')]")
+        else:
+            s = ("MultiIndex\n[(u'C_l0_g0', u'C_l1_g0'), "
+                 "(u'C_l0_g1', u'C_l1_g1'), ..., (u'C_l0_g2', u'C_l1_g2')]")
         res = repr(mi)
         assert_equal(s, res)
 

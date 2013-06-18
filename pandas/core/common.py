@@ -1956,7 +1956,7 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     body = u", ".join(r)
 
     if nitems < n:
-        body += u", ..., {0}".format(seq[-1])
+        body += u", ..., {0}".format(pprint_thing(seq[-1], **kwds))
     elif isinstance(seq, tuple) and n == 1:
         body += u','
 
