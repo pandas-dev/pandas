@@ -116,30 +116,55 @@ future releases.
 Converting to Timestamps
 ------------------------
 
-To convert a list or Series of datetimes or strings (or a mixture, or NAs),
-you can use the ``to_datetime`` function:
+To convert a Series or list-like object of date-like objects e.g. strings,
+epochs, or a mixture, you can use the ``to_datetime`` function. When passed
+a Series, this returns a Series (with the same index), whilst a list-like
+is converted to a DatetimeIndex:
 
 .. ipython:: python
 
-    pd.to_datetime(['Jul 31, 2009', '2010-01-10'])
+    to_datetime(Series(['Jul 31, 2009', '2010-01-10', None]))
 
-    pd.to_datetime(['2005/11/23', '2010.12.31''])
+    to_datetime(['2005/11/23', '2010.12.31'])
 
-If you use dates start with the dayfirst (European style), you can pass
-the dayfirst flag:
-
-.. ipython:: python
-
-    to_datetime(['12-13-2012'], dayfirst=True)
-
-*There is a known bug that this falls back to not dayfirst if there are
-inconsistent date formats.*
-
-Pass ``coerce=True`` to convert data to ``NaT`` (not a time):
+If you use dates which start with the day first (i.e. European style),
+you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
 
-    pd.to_datetime(['2009-07-31', 'asd'], coerce=True)
+    to_datetime(['04-01-2012 10:00'], dayfirst=True)
+
+    to_datetime(['14-01-2012', '01-14-2012'], dayfirst=True)
+
+.. warning::
+
+   You see in the above example that ``dayfirst`` isn't strict, so if a date
+   can't be parsed with the day being first it will be parsed as if
+   ``dayfirst`` were False.
+
+
+Pass ``coerce=True`` to convert bad data to ``NaT`` (not a time):
+
+.. ipython:: python
+
+   to_datetime(['2009-07-31', 'asd'])
+
+   to_datetime(['2009-07-31', 'asd'], coerce=True)
+
+It's also possible to convert integer or float epoch times. The default unit
+for these is nanoseconds (since these are how Timestamps are stored). However,
+often epochs are stored in another ``unit`` which can be specified:
+
+
+.. ipython:: python
+
+   to_datetime([1])
+
+   to_datetime([1, 3.14], unit='s')
+
+.. note::
+
+   Epoch times will be rounded to the nearest nanosecond.
 
 .. _timeseries.daterange:
 
