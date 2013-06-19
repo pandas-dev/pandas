@@ -90,10 +90,6 @@ def panel_index(time, panels, names=['time', 'panel']):
     return MultiIndex(levels, labels, sortorder=None, names=names)
 
 
-class PanelError(Exception):
-    pass
-
-
 def _arith_method(func, name):
     # work only for scalars
 
