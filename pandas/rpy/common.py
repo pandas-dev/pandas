@@ -195,7 +195,7 @@ def convert_robj(obj, use_pandas=True):
         if isinstance(obj, rpy_type):
             return converter(obj)
 
-    raise Exception('Do not know what to do with %s object' % type(obj))
+    raise TypeError('Do not know what to do with %s object' % type(obj))
 
 
 def convert_to_r_posixct(obj):

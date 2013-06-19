@@ -580,7 +580,7 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
                     mask_info = (row_mask, col_mask), (row_needs, col_needs)
                 if row_needs or col_needs:
                     if out is not None and out.dtype != dtype:
-                        raise Exception('Incompatible type for fill_value')
+                        raise TypeError('Incompatible type for fill_value')
                 else:
                     # if not, then depromote, set fill_value to dummy
                     # (it won't be used but we don't want the cython code
@@ -814,7 +814,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
                 # if we are trying to do something unsafe
                 # like put a bigger dtype in a smaller one, use the smaller one
                 if change.dtype.itemsize < r.dtype.itemsize:
-                    raise Exception("cannot change dtype of input to smaller size")
+                    raise TypeError("cannot change dtype of input to smaller size")
                 change.dtype = r.dtype
                 change[:] = r
 
@@ -1259,7 +1259,7 @@ def ensure_float(arr):
 
 def _mut_exclusive(arg1, arg2):
     if arg1 is not None and arg2 is not None:
-        raise Exception('mutually exclusive arguments')
+        raise TypeError('mutually exclusive arguments')
     elif arg1 is not None:
         return arg1
     else:

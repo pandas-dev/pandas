@@ -351,7 +351,7 @@ class BusinessDay(CacheableOffset, DateOffset):
             return BDay(self.n, offset=self.offset + other,
                         normalize=self.normalize)
         else:
-            raise Exception('Only know how to combine business day with '
+            raise TypeError('Only know how to combine business day with '
                             'datetime or timedelta!')
 
     @classmethod
@@ -487,7 +487,7 @@ class Week(DateOffset, CacheableOffset):
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
-                raise Exception('Day must be 0<=day<=6, got %d' %
+                raise ValueError('Day must be 0<=day<=6, got %d' %
                                 self.weekday)
 
         self._inc = timedelta(weeks=1)
@@ -562,13 +562,13 @@ class WeekOfMonth(DateOffset, CacheableOffset):
         self.week = kwds['week']
 
         if self.n == 0:
-            raise Exception('N cannot be 0')
+            raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
-            raise Exception('Day must be 0<=day<=6, got %d' %
+            raise ValueError('Day must be 0<=day<=6, got %d' %
                             self.weekday)
         if self.week < 0 or self.week > 3:
-            raise Exception('Week must be 0<=day<=3, got %d' %
+            raise ValueError('Week must be 0<=day<=3, got %d' %
                             self.week)
 
         self.kwds = kwds

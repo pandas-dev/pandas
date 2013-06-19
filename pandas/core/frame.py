@@ -938,7 +938,7 @@ class DataFrame(NDFrame):
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
-                raise Exception('Dot product shape mismatch, %s vs %s' %
+                raise ValueError('Dot product shape mismatch, %s vs %s' %
                                 (lvals.shape, rvals.shape))
 
         if isinstance(other, DataFrame):
@@ -2849,7 +2849,7 @@ class DataFrame(NDFrame):
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
-            raise Exception('Index has duplicate keys: %s' % duplicates)
+            raise ValueError('Index has duplicate keys: %s' % duplicates)
 
         for c in to_remove:
             del frame[c]
@@ -3320,7 +3320,7 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         the_axis = self._get_axis(axis)
         if not isinstance(the_axis, MultiIndex):
-            raise Exception('can only sort by level with a hierarchical index')
+            raise TypeError('can only sort by level with a hierarchical index')
 
         new_axis, indexer = the_axis.sortlevel(level, ascending=ascending)
 
@@ -3382,7 +3382,7 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis),
                           MultiIndex):  # pragma: no cover
-            raise Exception('Can only reorder levels on a hierarchical axis.')
+            raise TypeError('Can only reorder levels on a hierarchical axis.')
 
         result = self.copy()
 
@@ -3794,7 +3794,7 @@ class DataFrame(NDFrame):
         from pandas.core.series import _get_rename_function
 
         if index is None and columns is None:
-            raise Exception('must pass either index or columns')
+            raise TypeError('must pass either index or columns')
 
         index_f = _get_rename_function(index)
         columns_f = _get_rename_function(columns)

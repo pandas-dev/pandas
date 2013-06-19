@@ -361,7 +361,7 @@ class Index(np.ndarray):
         return hash(self.view(np.ndarray))
 
     def __setitem__(self, key, value):
-        raise Exception(str(self.__class__) + ' object is immutable')
+        raise TypeError(str(self.__class__) + ' does not support item assignment')
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -547,7 +547,7 @@ class Index(np.ndarray):
             return sorted_index
 
     def sort(self, *args, **kwargs):
-        raise Exception('Cannot sort an Index object')
+        raise TypeError('Cannot sort an %r object' % self.__class__.__name__)
 
     def shift(self, periods=1, freq=None):
         """
@@ -606,7 +606,7 @@ class Index(np.ndarray):
         union : Index
         """
         if not hasattr(other, '__iter__'):
-            raise Exception('Input must be iterable!')
+            raise TypeError('Input must be iterable!')
 
         if len(other) == 0 or self.equals(other):
             return self
@@ -671,7 +671,7 @@ class Index(np.ndarray):
         intersection : Index
         """
         if not hasattr(other, '__iter__'):
-            raise Exception('Input must be iterable!')
+            raise TypeError('Input must be iterable!')
 
         self._assert_can_do_setop(other)
 
@@ -713,7 +713,7 @@ class Index(np.ndarray):
         """
 
         if not hasattr(other, '__iter__'):
-            raise Exception('Input must be iterable!')
+            raise TypeError('Input must be iterable!')
 
         if self.equals(other):
             return Index([], name=self.name)
@@ -1080,7 +1080,7 @@ class Index(np.ndarray):
         the MultiIndex will not be changed (currently)
         """
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
-            raise Exception('Join on level between two MultiIndex objects '
+            raise TypeError('Join on level between two MultiIndex objects '
                             'is ambiguous')
 
         left, right = self, other
@@ -2298,7 +2298,7 @@ class MultiIndex(Index):
 
             if lab not in lev:
                 if not lev.is_type_compatible(lib.infer_dtype([lab])):
-                    raise Exception('Level type mismatch: %s' % lab)
+                    raise TypeError('Level type mismatch: %s' % lab)
 
                 # short circuit
                 loc = lev.searchsorted(lab, side=side)
@@ -2738,7 +2738,7 @@ def _ensure_index(index_like):
 
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
-        raise Exception('do not recognize join method %s' % method)
+        raise ValueError('do not recognize join method %s' % method)
 
 
 # TODO: handle index names!

@@ -428,7 +428,7 @@ class DatetimeIndex(Int64Index):
             end = Timestamp(end)
 
         if offset is None:
-            raise Exception('Must provide a DateOffset!')
+            raise TypeError('Must provide a DateOffset!')
 
         drc = _daterange_cache
         if offset not in _daterange_cache:
@@ -922,10 +922,10 @@ class DatetimeIndex(Int64Index):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise Exception('Cannot join tz-naive with tz-aware '
+                    raise TypeError('Cannot join tz-naive with tz-aware '
                                     'DatetimeIndex')
             elif other.tz is not None:
-                raise Exception('Cannot join tz-naive with tz-aware '
+                raise TypeError('Cannot join tz-naive with tz-aware '
                                 'DatetimeIndex')
 
             if self.tz != other.tz:
@@ -1492,7 +1492,7 @@ class DatetimeIndex(Int64Index):
 
         if self.tz is None:
             # tz naive, use tz_localize
-            raise Exception('Cannot convert tz-naive timestamps, use '
+            raise TypeError('Cannot convert tz-naive timestamps, use '
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with

@@ -1962,7 +1962,8 @@ class Series(pa.Array, generic.PandasObject):
         clipped : Series
         """
         if out is not None:  # pragma: no cover
-            raise Exception('out argument is not supported yet')
+            # TODO: Support out argument?
+            raise NotImplementedError('out argument is not supported yet')
 
         result = self
         if lower is not None:
@@ -2028,7 +2029,7 @@ class Series(pa.Array, generic.PandasObject):
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[0] != rvals.shape[0]:
-                raise Exception('Dot product shape mismatch, %s vs %s' %
+                raise ValueError('Dot product shape mismatch, %s vs %s' %
                                 (lvals.shape, rvals.shape))
 
         if isinstance(other, DataFrame):
@@ -2379,7 +2380,7 @@ class Series(pa.Array, generic.PandasObject):
         sorted : Series
         """
         if not isinstance(self.index, MultiIndex):
-            raise Exception('can only sort by level with a hierarchical index')
+            raise TypeError('can only sort by level with a hierarchical index')
 
         new_index, indexer = self.index.sortlevel(level, ascending=ascending)
         new_values = self.values.take(indexer)
@@ -2417,7 +2418,7 @@ class Series(pa.Array, generic.PandasObject):
         type of caller (new object)
         """
         if not isinstance(self.index, MultiIndex):  # pragma: no cover
-            raise Exception('Can only reorder levels on a hierarchical axis.')
+            raise TypeError('Can only reorder levels on a hierarchical axis.')
 
         result = self.copy()
         result.index = result.index.reorder_levels(order)
@@ -3156,7 +3157,7 @@ class Series(pa.Array, generic.PandasObject):
         """
         if method == 'time':
             if not isinstance(self, TimeSeries):
-                raise Exception('time-weighted interpolation only works'
+                raise TypeError('time-weighted interpolation only works'
                                 'on TimeSeries')
             method = 'values'
             # inds = pa.array([d.toordinal() for d in self.index])
@@ -3279,7 +3280,7 @@ class Series(pa.Array, generic.PandasObject):
 
         if not isinstance(self.index, DatetimeIndex):
             if len(self.index) > 0:
-                raise Exception('Cannot tz-localize non-time series')
+                raise TypeError('Cannot tz-localize non-time series')
 
             new_index = DatetimeIndex([], tz=tz)
         else:
@@ -3413,7 +3414,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     elif subarr.ndim > 1:
         if isinstance(data, pa.Array):
-            raise Exception('Data must be 1-dimensional')
+            raise ValueError('Data must be 1-dimensional')
         else:
             subarr = _asarray_tuplesafe(data, dtype=dtype)
 

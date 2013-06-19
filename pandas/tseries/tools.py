@@ -344,6 +344,6 @@ def ole2datetime(oledt):
     # Excel has a bug where it thinks the date 2/29/1900 exists
     # we just reject any date before 3/1/1900.
     if val < 61:
-        raise Exception("Value is outside of acceptable range: %s " % val)
+        raise ValueError("Value is outside of acceptable range: %s " % val)
 
     return OLE_TIME_ZERO + timedelta(days=val)

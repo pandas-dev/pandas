@@ -133,7 +133,7 @@ def _comp_method(func, name):
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, func)
         elif isinstance(other, (self._constructor_sliced, DataFrame, Series)):
-            raise Exception("input needs alignment for this object [%s]" %
+            raise ValueError("input needs alignment for this object [%s]" %
                             self._constructor)
         else:
             return self._combine_const(other, na_op)
