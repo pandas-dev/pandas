@@ -2,10 +2,10 @@
 
 clean: clean_pyc
 	-rm -rf build dist
-	-find . -name '*.so' -exec rm -f {} \;
+	-find . -name '*.so' -exec rm {} \;
 
 clean_pyc:
-	-find . -name '*.pyc' -exec rm -f {} \;
+	-find . -name '*.pyc' -or -name '*.pyo' -exec rm {} \;
 
 tseries: pandas/lib.pyx pandas/tslib.pyx pandas/hashtable.pyx
 	python setup.py build_ext --inplace
