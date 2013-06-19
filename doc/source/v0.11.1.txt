@@ -39,7 +39,7 @@ API changes
 
 
   - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
-    ``np.nan`` or ``np.inf`` as appropriate (GH3590_). This correct a numpy bug that treats ``integer``
+    ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`). This correct a numpy bug that treats ``integer``
     and ``float`` dtypes differently.
 
     .. ipython:: python
@@ -53,8 +53,8 @@ API changes
   - Add ``squeeze`` keyword to ``groupby`` to allow reduction from 
     DataFrame -> Series if groups are unique. This is a Regression from 0.10.1.
     We are reverting back to the prior behavior. This means groupby will return the 
-    same shaped objects whether the groups are unique or not. Revert this issue (GH2893_) 
-    with (GH3596_).
+    same shaped objects whether the groups are unique or not. Revert this issue (:issue:`2893`) 
+    with (:issue:`3596`).
 
     .. ipython:: python
 
@@ -71,7 +71,7 @@ API changes
 
   - Raise on ``iloc`` when boolean indexing with a label based indexer mask
     e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
-    is purely positional based, the labels on the Series are not alignable (GH3631_)
+    is purely positional based, the labels on the Series are not alignable (:issue:`3631`)
 
     This case is rarely used, and there are plently of alternatives. This preserves the
     ``iloc`` API to be *purely* positional based.
@@ -97,18 +97,18 @@ API changes
     plot something.
 
   - ``DataFrame.interpolate()`` is now deprecated. Please use
-    ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (GH3582_,
-    GH3675_, GH3676_)
+    ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (:issue:`3582`,
+    :issue:`3675`, :issue:`3676`)
 
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
 
   - ``DataFrame.replace`` 's ``infer_types`` parameter is removed and now
-    performs conversion by default. (GH3907_)
+    performs conversion by default. (:issue:`3907`)
 
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
-    to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (GH3679_)
-  - Implement ``__nonzero__`` for ``NDFrame`` objects (GH3691_, GH3696_)
+    to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (:issue:`3679`)
+  - Implement ``__nonzero__`` for ``NDFrame`` objects (:issue:`3691`, :issue:`3696`)
 
   - IO api
 
@@ -136,13 +136,13 @@ API changes
          read_frame(....)
 
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
-    their first argument (GH3702_)
+    their first argument (:issue:`3702`)
 
   - Do not allow astypes on ``datetime64[ns]`` except to ``object``, and
-    ``timedelta64[ns]`` to ``object/int`` (GH3425_)
+    ``timedelta64[ns]`` to ``object/int`` (:issue:`3425`)
 
   - The behavior of ``datetime64`` dtypes has changed with respect to certain
-    so-called reduction operations (GH3726_). The following operations now
+    so-called reduction operations (:issue:`3726`). The following operations now
     raise a ``TypeError`` when perfomed on a ``Series`` and return an *empty*
     ``Series`` when performed on a ``DataFrame`` similar to performing these
     operations on, for example, a ``DataFrame`` of ``slice`` objects:
@@ -157,7 +157,7 @@ I/O Enhancements
 ~~~~~~~~~~~~~~~~
 
   - ``pd.read_html()`` can now parse HTML strings, files or urls and return
-    DataFrames, courtesy of @cpcloud. (GH3477_, GH3605_, GH3606_, GH3616_).
+    DataFrames, courtesy of @cpcloud. (:issue:`3477`, :issue:`3605`, :issue:`3606`, :issue:`3616`).
     It works with a *single* parser backend: BeautifulSoup4 + html5lib :ref:`See the docs<io.html>`
 
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
@@ -174,14 +174,14 @@ I/O Enhancements
     ``DataFrame.to_html()`` are not inverses.
 
     - ``pd.read_html()`` no longer performs hard conversion of date strings
-      (GH3656_).
+      (:issue:`3656`).
 
     .. warning::
 
       You may have to install an older version of BeautifulSoup4, 
       :ref:`See the installation docs<install.optional_dependencies>`
 
-  - Added module for reading and writing Stata files: ``pandas.io.stata`` (GH1512_)
+  - Added module for reading and writing Stata files: ``pandas.io.stata`` (:issue:`1512`)
     accessable via ``read_stata`` top-level function for reading,
     and ``to_stata`` DataFrame method for writing, :ref:`See the docs<io.stata>`
 
@@ -202,7 +202,7 @@ I/O Enhancements
 
       Note: The default behavior in 0.11.1 remains unchanged, but starting with 0.12,
       the default *to* write and read multi-index columns will be in the new 
-      format. (GH3571_, GH1651_, GH3141_)
+      format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
 
     - If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
       with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will 
@@ -268,7 +268,7 @@ Other Enhancements
   - ``pd.melt()`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame.
 
-  - ``pd.set_option()`` now allows N option, value pairs (GH3667_).
+  - ``pd.set_option()`` now allows N option, value pairs (:issue:`3667`).
 
       Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
       We can set them at the same time:
@@ -315,16 +315,16 @@ Other Enhancements
 
        dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
 
-  - Series and DataFrame hist methods now take a ``figsize`` argument (GH3834_)
+  - Series and DataFrame hist methods now take a ``figsize`` argument (:issue:`3834`)
   - DatetimeIndexes no longer try to convert mixed-integer indexes during join
-    operations (GH3877_)
+    operations (:issue:`3877`)
 
 Bug Fixes
 ~~~~~~~~~
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
-    if the associated objects have have a dtype of ``object`` (GH1818_,
-    GH3572_, GH3911_, GH3912_), but they will try to convert object arrays to
+    if the associated objects have have a dtype of ``object`` (:issue:`1818`,
+    :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object arrays to
     numeric arrays if possible so that you can still plot, for example, an
     object array with floats. This happens before any drawing takes place which
     elimnates any spurious plots from showing up.
@@ -332,7 +332,7 @@ Bug Fixes
   - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
     a list or tuple.
 
-  - ``Series.str`` now supports iteration (GH3638_). You can iterate over the
+  - ``Series.str`` now supports iteration (:issue:`3638`). You can iterate over the
     individual elements of each string in the ``Series``. Each iteration yields
     yields a ``Series`` with either a single character at each index of the
     original ``Series`` or ``NaN``. For example,
@@ -356,90 +356,37 @@ Bug Fixes
 
   - ``HDFStore``
 
-    - will retain index attributes (freq,tz,name) on recreation (GH3499_)
+    - will retain index attributes (freq,tz,name) on recreation (:issue:`3499`)
     - will warn with a ``AttributeConflictWarning`` if you are attempting to append
       an index with a different frequency than the existing, or attempting
       to append an index with a different name than the existing
-    - support datelike columns with a timezone as data_columns (GH2852_)
+    - support datelike columns with a timezone as data_columns (:issue:`2852`)
 
-  - Non-unique index support clarified (GH3468_).
+  - Non-unique index support clarified (:issue:`3468`).
 
-    - Fix assigning a new index to a duplicate index in a DataFrame would fail (GH3468_)
+    - Fix assigning a new index to a duplicate index in a DataFrame would fail (:issue:`3468`)
     - Fix construction of a DataFrame with a duplicate index
     - ref_locs support to allow duplicative indices across dtypes,
-      allows iget support to always find the index (even across dtypes) (GH2194_)
+      allows iget support to always find the index (even across dtypes) (:issue:`2194`)
     - applymap on a DataFrame with a non-unique index now works
-      (removed warning) (GH2786_), and fix (GH3230_)
-    - Fix to_csv to handle non-unique columns (GH3495_)
-    - Duplicate indexes with getitem will return items in the correct order (GH3455_, GH3457_)
-      and handle missing elements like unique indices (GH3561_)
-    - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (GH3562_)
-    - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (GH3602_)
-    - Allow insert/delete to non-unique columns (GH3679_)
-    - Non-unique indexing with a slice via ``loc`` and friends fixed (GH3659_)
-    - Allow insert/delete to non-unique columns (GH3679_)
-    - Extend ``reindex`` to correctly deal with non-unique indices (GH3679_)
+      (removed warning) (:issue:`2786`), and fix (:issue:`3230`)
+    - Fix to_csv to handle non-unique columns (:issue:`3495`)
+    - Duplicate indexes with getitem will return items in the correct order (:issue:`3455`, :issue:`3457`)
+      and handle missing elements like unique indices (:issue:`3561`)
+    - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (:issue:`3562`)
+    - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (:issue:`3602`)
+    - Allow insert/delete to non-unique columns (:issue:`3679`)
+    - Non-unique indexing with a slice via ``loc`` and friends fixed (:issue:`3659`)
+    - Allow insert/delete to non-unique columns (:issue:`3679`)
+    - Extend ``reindex`` to correctly deal with non-unique indices (:issue:`3679`)
     - ``DataFrame.itertuples()`` now works with frames with duplicate column
-      names (GH3873_)
+      names (:issue:`3873`)
 
-  - ``DataFrame.from_records`` did not accept empty recarrays (GH3682_)
-  - ``read_html`` now correctly skips tests (GH3741_)
+  - ``DataFrame.from_records`` did not accept empty recarrays (:issue:`3682`)
+  - ``read_html`` now correctly skips tests (:issue:`3741`)
   - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
-    in the ``to_replace`` argument wasn't working (GH3907_)
+    in the ``to_replace`` argument wasn't working (:issue:`3907`)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
-
-.. _GH3468: https://github.com/pydata/pandas/issues/3468
-.. _GH2194: https://github.com/pydata/pandas/issues/2194
-.. _GH2786: https://github.com/pydata/pandas/issues/2786
-.. _GH3230: https://github.com/pydata/pandas/issues/3230
-.. _GH3495: https://github.com/pydata/pandas/issues/3495
-.. _GH3455: https://github.com/pydata/pandas/issues/3455
-.. _GH3457: https://github.com/pydata/pandas/issues/3457
-.. _GH3561: https://github.com/pydata/pandas/issues/3561
-.. _GH3562: https://github.com/pydata/pandas/issues/3562
-.. _GH3602: https://github.com/pydata/pandas/issues/3602
-.. _GH2437: https://github.com/pydata/pandas/issues/2437
-.. _GH2852: https://github.com/pydata/pandas/issues/2852
-.. _GH3477: https://github.com/pydata/pandas/issues/3477
-.. _GH3492: https://github.com/pydata/pandas/issues/3492
-.. _GH3499: https://github.com/pydata/pandas/issues/3499
-.. _GH2893: https://github.com/pydata/pandas/issues/2893
-.. _GH3596: https://github.com/pydata/pandas/issues/3596
-.. _GH3590: https://github.com/pydata/pandas/issues/3590
-.. _GH3435: https://github.com/pydata/pandas/issues/3435
-.. _GH1512: https://github.com/pydata/pandas/issues/1512
-.. _GH2285: https://github.com/pydata/pandas/issues/2285
-.. _GH3631: https://github.com/pydata/pandas/issues/3631
-.. _GH3571: https://github.com/pydata/pandas/issues/3571
-.. _GH1651: https://github.com/pydata/pandas/issues/1651
-.. _GH3141: https://github.com/pydata/pandas/issues/3141
-.. _GH3638: https://github.com/pydata/pandas/issues/3638
-.. _GH3616: https://github.com/pydata/pandas/issues/3616
-.. _GH3605: https://github.com/pydata/pandas/issues/3605
-.. _GH3606: https://github.com/pydata/pandas/issues/3606
-.. _GH3656: https://github.com/pydata/pandas/issues/3656
-.. _GH1818: https://github.com/pydata/pandas/issues/1818
-.. _GH3572: https://github.com/pydata/pandas/issues/3572
-.. _GH3582: https://github.com/pydata/pandas/issues/3582
-.. _GH3676: https://github.com/pydata/pandas/issues/3676
-.. _GH3675: https://github.com/pydata/pandas/issues/3675
-.. _GH3682: https://github.com/pydata/pandas/issues/3682
-.. _GH3679: https://github.com/pydata/pandas/issues/3679
-.. _GH3702: https://github.com/pydata/pandas/issues/3702
-.. _GH3691: https://github.com/pydata/pandas/issues/3691
-.. _GH3696: https://github.com/pydata/pandas/issues/3696
-.. _GH3667: https://github.com/pydata/pandas/issues/3667
-.. _GH3741: https://github.com/pydata/pandas/issues/3741
-.. _GH3726: https://github.com/pydata/pandas/issues/3726
-.. _GH3425: https://github.com/pydata/pandas/issues/3425
-.. _GH3834: https://github.com/pydata/pandas/issues/3834
-.. _GH3873: https://github.com/pydata/pandas/issues/3873
-.. _GH3877: https://github.com/pydata/pandas/issues/3877
-.. _GH3659: https://github.com/pydata/pandas/issues/3659
-.. _GH3679: https://github.com/pydata/pandas/issues/3679
-.. _GH3907: https://github.com/pydata/pandas/issues/3907
-.. _GH3911: https://github.com/pydata/pandas/issues/3911
-.. _GH3912: https://github.com/pydata/pandas/issues/3912

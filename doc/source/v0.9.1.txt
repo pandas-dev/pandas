@@ -13,7 +13,7 @@ New features
 ~~~~~~~~~~~~
 
   - `Series.sort`, `DataFrame.sort`, and `DataFrame.sort_index` can now be
-    specified in a per-column manner to support multiple sort orders (GH928_)
+    specified in a per-column manner to support multiple sort orders (:issue:`928`)
 
     .. ipython:: python
 
@@ -24,7 +24,7 @@ New features
 
   - `DataFrame.rank` now supports additional argument values for the
     `na_option` parameter so missing values can be assigned either the largest
-    or the smallest rank (GH1508_, GH2159_)
+    or the smallest rank (:issue:`1508`, :issue:`2159`)
 
     .. ipython:: python
 
@@ -40,7 +40,7 @@ New features
 
 
   - DataFrame has new `where` and `mask` methods to select values according to a
-    given boolean mask (GH2109_, GH2151_)
+    given boolean mask (:issue:`2109`, :issue:`2151`)
 
 	DataFrame currently supports slicing via a boolean vector the same length as the DataFrame (inside the `[]`).
 	The returned DataFrame has the same number of columns as the original, but is sliced on its index.
@@ -81,7 +81,7 @@ New features
 
 	   df.mask(df<=0)
 
-  - Enable referencing of Excel columns by their column names (GH1936_)
+  - Enable referencing of Excel columns by their column names (:issue:`1936`)
 
     .. ipython:: python
 
@@ -92,13 +92,13 @@ New features
 
   - Added option to disable pandas-style tick locators and formatters
     using `series.plot(x_compat=True)` or `pandas.plot_params['x_compat'] =
-    True` (GH2205_)
+    True` (:issue:`2205`)
   - Existing TimeSeries methods `at_time` and `between_time` were added to
-    DataFrame (GH2149_)
-  - DataFrame.dot can now accept ndarrays (GH2042_)
-  - DataFrame.drop now supports non-unique indexes (GH2101_)
-  - Panel.shift now supports negative periods (GH2164_)
-  - DataFrame now support unary ~ operator (GH2110_)
+    DataFrame (:issue:`2149`)
+  - DataFrame.dot can now accept ndarrays (:issue:`2042`)
+  - DataFrame.drop now supports non-unique indexes (:issue:`2101`)
+  - Panel.shift now supports negative periods (:issue:`2164`)
+  - DataFrame now support unary ~ operator (:issue:`2110`)
 
 API changes
 ~~~~~~~~~~~
@@ -116,7 +116,7 @@ API changes
 
 
   - Period.end_time now returns the last nanosecond in the time interval
-    (GH2124_, GH2125_, GH1764_)
+    (:issue:`2124`, :issue:`2125`, :issue:`1764`)
 
     .. ipython:: python
 
@@ -126,7 +126,7 @@ API changes
 
 
   - File parsers no longer coerce to float or bool for columns that have custom
-    converters specified (GH2184_)
+    converters specified (:issue:`2184`)
 
     .. ipython:: python
 
@@ -139,95 +139,3 @@ API changes
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
-
-
-.. _GH1508: https://github.com/pydata/pandas/issues/1508
-.. _GH928: https://github.com/pydata/pandas/issues/928
-.. _GH2159: https://github.com/pydata/pandas/issues/2159
-.. _GH2109: https://github.com/pydata/pandas/issues/2109
-.. _GH2151: https://github.com/pydata/pandas/issues/2151
-.. _GH2149: https://github.com/pydata/pandas/issues/2149
-.. _GH2101: https://github.com/pydata/pandas/issues/2101
-.. _GH2042: https://github.com/pydata/pandas/issues/2042
-.. _GH1936: https://github.com/pydata/pandas/issues/1936
-.. _GH1764: https://github.com/pydata/pandas/issues/1764
-.. _GH2125: https://github.com/pydata/pandas/issues/2125
-.. _GH2124: https://github.com/pydata/pandas/issues/2124
-.. _GH2110: https://github.com/pydata/pandas/issues/2110
-.. _GH2184: https://github.com/pydata/pandas/issues/2184
-.. _GH2205: https://github.com/pydata/pandas/issues/2205
-
-.. _GH2181: https://github.com/pydata/pandas/issues/2181
-.. _GH2180: https://github.com/pydata/pandas/issues/2180
-.. _GH2176: https://github.com/pydata/pandas/issues/2176
-.. _GH2174: https://github.com/pydata/pandas/issues/2174
-.. _GH2173: https://github.com/pydata/pandas/issues/2173
-.. _GH2170: https://github.com/pydata/pandas/issues/2170
-.. _GH2169: https://github.com/pydata/pandas/issues/2169
-.. _GH2167: https://github.com/pydata/pandas/issues/2167
-.. _GH2166: https://github.com/pydata/pandas/issues/2166
-.. _GH2165: https://github.com/pydata/pandas/issues/2165
-.. _GH2164: https://github.com/pydata/pandas/issues/2164
-.. _GH2163: https://github.com/pydata/pandas/issues/2163
-.. _GH2161: https://github.com/pydata/pandas/issues/2161
-.. _GH2157: https://github.com/pydata/pandas/issues/2157
-.. _GH2155: https://github.com/pydata/pandas/issues/2155
-.. _GH2152: https://github.com/pydata/pandas/issues/2152
-.. _GH2150: https://github.com/pydata/pandas/issues/2150
-.. _GH2148: https://github.com/pydata/pandas/issues/2148
-.. _GH2147: https://github.com/pydata/pandas/issues/2147
-.. _GH2146: https://github.com/pydata/pandas/issues/2146
-.. _GH2144: https://github.com/pydata/pandas/issues/2144
-.. _GH2140: https://github.com/pydata/pandas/issues/2140
-.. _GH2135: https://github.com/pydata/pandas/issues/2135
-.. _GH2133: https://github.com/pydata/pandas/issues/2133
-.. _GH2131: https://github.com/pydata/pandas/issues/2131
-.. _GH2129: https://github.com/pydata/pandas/issues/2129
-.. _GH2128: https://github.com/pydata/pandas/issues/2128
-.. _GH2127: https://github.com/pydata/pandas/issues/2127
-.. _GH2122: https://github.com/pydata/pandas/issues/2122
-.. _GH2120: https://github.com/pydata/pandas/issues/2120
-.. _GH2119: https://github.com/pydata/pandas/issues/2119
-.. _GH2117: https://github.com/pydata/pandas/issues/2117
-.. _GH2116: https://github.com/pydata/pandas/issues/2116
-.. _GH2114: https://github.com/pydata/pandas/issues/2114
-.. _GH2113: https://github.com/pydata/pandas/issues/2113
-.. _GH2111: https://github.com/pydata/pandas/issues/2111
-.. _GH2108: https://github.com/pydata/pandas/issues/2108
-.. _GH2107: https://github.com/pydata/pandas/issues/2107
-.. _GH2103: https://github.com/pydata/pandas/issues/2103
-.. _GH2100: https://github.com/pydata/pandas/issues/2100
-.. _GH2096: https://github.com/pydata/pandas/issues/2096
-.. _GH2095: https://github.com/pydata/pandas/issues/2095
-.. _GH2093: https://github.com/pydata/pandas/issues/2093
-.. _GH2087: https://github.com/pydata/pandas/issues/2087
-.. _GH2086: https://github.com/pydata/pandas/issues/2086
-.. _GH2083: https://github.com/pydata/pandas/issues/2083
-.. _GH2082: https://github.com/pydata/pandas/issues/2082
-.. _GH2080: https://github.com/pydata/pandas/issues/2080
-.. _GH2079: https://github.com/pydata/pandas/issues/2079
-.. _GH2078: https://github.com/pydata/pandas/issues/2078
-.. _GH2077: https://github.com/pydata/pandas/issues/2077
-.. _GH2075: https://github.com/pydata/pandas/issues/2075
-.. _GH2068: https://github.com/pydata/pandas/issues/2068
-.. _GH2066: https://github.com/pydata/pandas/issues/2066
-.. _GH2065: https://github.com/pydata/pandas/issues/2065
-.. _GH2063: https://github.com/pydata/pandas/issues/2063
-.. _GH2061: https://github.com/pydata/pandas/issues/2061
-.. _GH2060: https://github.com/pydata/pandas/issues/2060
-.. _GH2059: https://github.com/pydata/pandas/issues/2059
-.. _GH2056: https://github.com/pydata/pandas/issues/2056
-.. _GH2051: https://github.com/pydata/pandas/issues/2051
-.. _GH2049: https://github.com/pydata/pandas/issues/2049
-.. _GH2043: https://github.com/pydata/pandas/issues/2043
-.. _GH2041: https://github.com/pydata/pandas/issues/2041
-.. _GH2032: https://github.com/pydata/pandas/issues/2032
-.. _GH2029: https://github.com/pydata/pandas/issues/2029
-.. _GH2018: https://github.com/pydata/pandas/issues/2018
-.. _GH2008: https://github.com/pydata/pandas/issues/2008
-.. _GH2005: https://github.com/pydata/pandas/issues/2005
-.. _GH1979: https://github.com/pydata/pandas/issues/1979
-.. _GH1976: https://github.com/pydata/pandas/issues/1976
-.. _GH1959: https://github.com/pydata/pandas/issues/1959
-.. _GH1890: https://github.com/pydata/pandas/issues/1890
-.. _GH1555: https://github.com/pydata/pandas/issues/1555

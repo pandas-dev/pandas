@@ -129,7 +129,7 @@ Dtype Gotchas
 
 Starting in 0.11.0, construction of DataFrame/Series will use default dtypes of ``int64`` and ``float64``,
 *regardless of platform*. This is not an apparent change from earlier versions of pandas. If you specify
-dtypes, they *WILL* be respected, however (GH2837_)
+dtypes, they *WILL* be respected, however (:issue:`2837`)
 
 The following will all result in ``int64`` dtypes
 
@@ -176,7 +176,7 @@ Datetimes Conversion
 Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value,
 in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way.
 Furthermore ``datetime64[ns]`` columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
-(GH2809_, GH2810_)
+(:issue:`2809`, :issue:`2810`)
 
 .. ipython:: python
 
@@ -210,7 +210,7 @@ API changes
 ~~~~~~~~~~~
 
   - Added to_series() method to indicies, to facilitate the creation of indexers
-    (GH3275_)
+    (:issue:`3275`)
 
   - ``HDFStore``
 
@@ -221,7 +221,7 @@ API changes
 Enhancements
 ~~~~~~~~~~~~
 
-  - Improved performance of df.to_csv() by up to 10x in some cases. (GH3059_)
+  - Improved performance of df.to_csv() by up to 10x in some cases. (:issue:`3059`)
 
   - Numexpr is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
     types of numerical and boolean operations
@@ -248,11 +248,11 @@ Enhancements
     - provide dotted attribute access to ``get`` from stores, e.g. ``store.df == store['df']``
 
     - new keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
-      provided to support iteration on ``select`` and ``select_as_multiple`` (GH3076_)
+      provided to support iteration on ``select`` and ``select_as_multiple`` (:issue:`3076`)
 
-  - You can now select timestamps from an *unordered* timeseries similarly to an *ordered* timeseries (GH2437_)
+  - You can now select timestamps from an *unordered* timeseries similarly to an *ordered* timeseries (:issue:`2437`)
 
-  - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (GH3070_)
+  - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (:issue:`3070`)
 
     .. ipython:: python
 
@@ -291,59 +291,36 @@ Enhancements
       ``above_below``. This allows the user to specify if they would like to
       only return forward looking data for options near the current stock
       price. This just obtains the data from Options.get_near_stock_price
-      instead of Options.get_xxx_data() (GH2758_).
+      instead of Options.get_xxx_data() (:issue:`2758`).
 
   - Cursor coordinate information is now displayed in time-series plots.
 
   - added option `display.max_seq_items` to control the number of
-    elements printed per sequence pprinting it.  (GH2979_)
+    elements printed per sequence pprinting it.  (:issue:`2979`)
 
   - added option `display.chop_threshold` to control display of small numerical
-    values. (GH2739_)
+    values. (:issue:`2739`)
 
   - added option `display.max_info_rows` to prevent verbose_info from being
-    calculated for frames above 1M rows (configurable). (GH2807_, GH2918_)
+    calculated for frames above 1M rows (configurable). (:issue:`2807`, :issue:`2918`)
 
   - value_counts() now accepts a "normalize" argument, for normalized
-    histograms. (GH2710_).
+    histograms. (:issue:`2710`).
 
   - DataFrame.from_records now accepts not only dicts but any instance of
     the collections.Mapping ABC.
 
   - added option `display.mpl_style` providing a sleeker visual style
-    for plots. Based on https://gist.github.com/huyng/816622 (GH3075_).
+    for plots. Based on https://gist.github.com/huyng/816622 (:issue:`3075`).
 
   - Treat boolean values as integers (values 1 and 0) for numeric
-    operations. (GH2641_)
+    operations. (:issue:`2641`)
 
   - to_html() now accepts an optional "escape" argument to control reserved
     HTML character escaping (enabled by default) and escapes ``&``, in addition
-    to ``<`` and ``>``.  (GH2919_)
+    to ``<`` and ``>``.  (:issue:`2919`)
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
-.. _GH2437: https://github.com/pydata/pandas/issues/2437
-.. _GH2809: https://github.com/pydata/pandas/issues/2809
-.. _GH2810: https://github.com/pydata/pandas/issues/2810
-.. _GH2837: https://github.com/pydata/pandas/issues/2837
-.. _GH2898: https://github.com/pydata/pandas/issues/2898
-.. _GH3035: https://github.com/pydata/pandas/issues/3035
-.. _GH2978: https://github.com/pydata/pandas/issues/2978
-.. _GH2877: https://github.com/pydata/pandas/issues/2877
-.. _GH2739: https://github.com/pydata/pandas/issues/2739
-.. _GH2710: https://github.com/pydata/pandas/issues/2710
-.. _GH2806: https://github.com/pydata/pandas/issues/2806
-.. _GH2807: https://github.com/pydata/pandas/issues/2807
-.. _GH2918: https://github.com/pydata/pandas/issues/2918
-.. _GH2758: https://github.com/pydata/pandas/issues/2758
-.. _GH3275: https://github.com/pydata/pandas/issues/3275
-.. _GH2979: https://github.com/pydata/pandas/issues/2979
-.. _GH3011: https://github.com/pydata/pandas/issues/3011
-.. _GH3076: https://github.com/pydata/pandas/issues/3076
-.. _GH3059: https://github.com/pydata/pandas/issues/3059
-.. _GH3070: https://github.com/pydata/pandas/issues/3070
-.. _GH3075: https://github.com/pydata/pandas/issues/3075
-.. _GH2641: https://github.com/pydata/pandas/issues/2641
-.. _GH2919: https://github.com/pydata/pandas/issues/2919
