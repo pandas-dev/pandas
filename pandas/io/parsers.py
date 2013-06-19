@@ -24,10 +24,6 @@ import pandas.tslib as tslib
 import pandas.parser as _parser
 from pandas.tseries.period import Period
 
-
-class DateConversionError(Exception):
-    pass
-
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
 
@@ -1752,10 +1748,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
     new_name = '_'.join([str(x) for x in colnames])
     to_parse = [data_dict[c] for c in colnames if c in data_dict]
 
-    try:
-        new_col = parser(*to_parse)
-    except DateConversionError:
-        new_col = parser(_concat_date_cols(to_parse))
+    new_col = parser(*to_parse)
     return new_name, new_col, colnames
 
 
