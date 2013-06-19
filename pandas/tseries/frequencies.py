@@ -499,7 +499,7 @@ def get_offset(name):
     if offset is not None:
         return offset
     else:
-        raise Exception('Bad rule name requested: %s!' % name)
+        raise ValueError('Bad rule name requested: %s.' % name)
 
 
 getOffset = get_offset
@@ -522,7 +522,7 @@ def get_offset_name(offset):
     if name is not None:
         return name
     else:
-        raise Exception('Bad rule given: %s!' % offset)
+        raise ValueError('Bad rule given: %s.' % offset)
 
 
 def get_legacy_offset_name(offset):

@@ -19,7 +19,7 @@ from pandas.stats.api import ols
 from pandas.stats.ols import _filter_data
 from pandas.stats.plm import NonPooledPanelOLS, PanelOLS
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal, assertRaisesRegexp)
 import pandas.util.testing as tm
 
 from common import BaseTest
@@ -663,7 +663,10 @@ class TestPanelOLS(BaseTest):
     def testRollingWithEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             cluster='entity')
-
+    def testUnknownClusterRaisesValueError(self):
+        assertRaisesRegexp(ValueError, "Unrecognized cluster.*ridiculous",
+                           self.checkMovingOLS, self.panel_x, self.panel_y,
+                                               cluster='ridiculous')
     def testRollingWithTimeEffectsAndEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             time_effects=True, cluster='entity')
@@ -689,6 +692,10 @@ class TestPanelOLS(BaseTest):
         self.checkNonPooled(y=self.panel_y, x=self.panel_x)
         self.checkNonPooled(y=self.panel_y, x=self.panel_x,
                             window_type='rolling', window=25, min_periods=10)
+    def testUnknownWindowType(self):
+        self.assertRaisesRegexp(ValueError, "window.*ridiculous",
+                self.checkNonPooled, y=self.panel_y, x=self.panel_x,
+                window_type='ridiculous', window=25, min_periods=10)
 
     def checkNonPooled(self, x, y, **kwds):
         # For now, just check that it doesn't crash

@@ -422,13 +422,20 @@ class DatetimeIndex(Int64Index):
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
                       name=None):
+        if start is None and end is None:
+            # I somewhat believe this should never be raised externally and therefore
+            # should be a `PandasError` but whatever...
+            raise TypeError('Must specify either start or end.')
         if start is not None:
             start = Timestamp(start)
         if end is not None:
             end = Timestamp(end)
+        if (start is None or end is None) and periods is None:
+            raise TypeError('Must either specify period or provide both start and end.')
 
         if offset is None:
-            raise Exception('Must provide a DateOffset!')
+            # This can't happen with external-facing code, therefore PandasError
+            raise TypeError('Must provide offset.')
 
         drc = _daterange_cache
         if offset not in _daterange_cache:
@@ -922,10 +929,10 @@ class DatetimeIndex(Int64Index):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise Exception('Cannot join tz-naive with tz-aware '
+                    raise TypeError('Cannot join tz-naive with tz-aware '
                                     'DatetimeIndex')
             elif other.tz is not None:
-                raise Exception('Cannot join tz-naive with tz-aware '
+                raise TypeError('Cannot join tz-naive with tz-aware '
                                 'DatetimeIndex')
 
             if self.tz != other.tz:
@@ -1492,7 +1499,7 @@ class DatetimeIndex(Int64Index):
 
         if self.tz is None:
             # tz naive, use tz_localize
-            raise Exception('Cannot convert tz-naive timestamps, use '
+            raise TypeError('Cannot convert tz-naive timestamps, use '
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
@@ -1507,7 +1514,7 @@ class DatetimeIndex(Int64Index):
         localized : DatetimeIndex
         """
         if self.tz is not None:
-            raise ValueError("Already tz-aware, use tz_convert to convert.")
+            raise TypeError("Already tz-aware, use tz_convert to convert.")
         tz = tools._maybe_get_tz(tz)
 
         # Convert to UTC
@@ -1678,7 +1685,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Beijing
+        Asia/Hong_Kong
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     name : str, default None

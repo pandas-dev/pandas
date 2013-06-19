@@ -13,6 +13,7 @@ from pandas.tseries.index import bdate_range, date_range
 import pandas.tseries.tools as tools
 
 import pandas.core.datetools as datetools
+from pandas.util.testing import assertRaisesRegexp
 
 
 def _skip_if_no_pytz():
@@ -65,6 +66,12 @@ class TestDateRange(unittest.TestCase):
         self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
         self.assertRaises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
 
+    def test_naive_aware_conflicts(self):
+        naive = bdate_range(START, END, freq=datetools.bday, tz=None)
+        aware = bdate_range(START, END, freq=datetools.bday, tz="Asia/Hong_Kong")
+        assertRaisesRegexp(TypeError, "tz-naive.*tz-aware", naive.join, aware)
+        assertRaisesRegexp(TypeError, "tz-naive.*tz-aware", aware.join, naive)
+
     def test_cached_range(self):
         rng = DatetimeIndex._cached_range(START, END,
                                           offset=datetools.bday)
@@ -73,16 +80,16 @@ class TestDateRange(unittest.TestCase):
         rng = DatetimeIndex._cached_range(end=START, periods=20,
                                           offset=datetools.bday)
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, START, END)
+        assertRaisesRegexp(TypeError, "offset", DatetimeIndex._cached_range, START, END)
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, START,
-                          freq=datetools.bday)
+        assertRaisesRegexp(TypeError, "specify period", DatetimeIndex._cached_range, START,
+                          offset=datetools.bday)
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, end=END,
-                          freq=datetools.bday)
+        assertRaisesRegexp(TypeError, "specify period", DatetimeIndex._cached_range, end=END,
+                          offset=datetools.bday)
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, periods=20,
-                          freq=datetools.bday)
+        assertRaisesRegexp(TypeError, "start or end", DatetimeIndex._cached_range, periods=20,
+                          offset=datetools.bday)
 
     def test_cached_range_bug(self):
         rng = date_range('2010-09-01 05:00:00', periods=50,

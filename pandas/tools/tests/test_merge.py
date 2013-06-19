@@ -1078,7 +1078,7 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(appended is not self.frame)
 
         # overlap
-        self.assertRaises(Exception, self.frame.append, self.frame,
+        self.assertRaises(ValueError, self.frame.append, self.frame,
                           verify_integrity=True)
 
     def test_append_length0_frame(self):

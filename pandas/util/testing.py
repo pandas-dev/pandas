@@ -748,6 +748,56 @@ def stdin_encoding(encoding=None):
     yield
     sys.stdin = _stdin
 
+def assertRaisesRegexp(exception, regexp, callable, *args, **kwargs):
+    """ Port of assertRaisesRegexp from unittest in Python 2.7 - used in with statement.
+
+    Explanation from standard library:
+        Like assertRaises() but also tests that regexp matches on the string
+        representation of the raised exception. regexp may be a regular expression
+        object or a string containing a regular expression suitable for use by
+        re.search().
+
+    You can pass either a regular expression or a compiled regular expression object.
+    >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
+    ...                                int, 'XYZ')
+    >>> import re
+    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ')
+
+    If an exception of a different type is raised, it bubbles up.
+
+    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ')
+    Traceback (most recent call last):
+        ...
+    ValueError: invalid literal for int() with base 10: 'XYZ'
+    >>> dct = {}
+    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple')
+    Traceback (most recent call last):
+        ...
+    AssertionError: "pear" does not match "'apple'"
+    >>> assertRaisesRegexp(KeyError, 'apple', dct.__getitem__, 'apple')
+    >>> assertRaisesRegexp(Exception, 'operand type.*int.*dict', lambda : 2 + {})
+    """
+
+    import re
+    try:
+        callable(*args, **kwargs)
+    except Exception as e:
+        if not issubclass(e.__class__, exception):
+            # mimics behavior of unittest
+            raise
+        # don't recompile
+        if hasattr(regexp, "search"):
+            expected_regexp = regexp
+        else:
+            expected_regexp = re.compile(regexp)
+        if not expected_regexp.search(str(e)):
+            raise AssertionError('"%s" does not match "%s"' %
+                     (expected_regexp.pattern, str(e)))
+    else:
+        # Apparently some exceptions don't have a __name__ attribute? Just aping unittest library here
+        name = getattr(exception, "__name__", str(exception))
+        raise AssertionError("{0} not raised".format(name))
+
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always"):

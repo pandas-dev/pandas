@@ -634,8 +634,8 @@ class MovingOLS(OLS):
         self._window_type = scom._get_window_type(window_type)
 
         if self._is_rolling:
-            if not ((window is not None)):
-                raise AssertionError()
+            if window is None:
+                raise AssertionError("Must specify window.")
             if min_periods is None:
                 min_periods = window
         else:

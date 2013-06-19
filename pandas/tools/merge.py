@@ -16,7 +16,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
-
+from pandas.core.common import PandasError
 from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
@@ -1002,7 +1002,8 @@ class _Concatenator(object):
                 blk.ref_items = self.new_axes[0]
 
             new_data = BlockManager(new_blocks, self.new_axes)
-        except Exception:  # EAFP
+        # Eventual goal would be to move everything to PandasError or other explicit error
+        except (Exception, PandasError):  # EAFP
             # should not be possible to fail here for the expected reason with
             # axis = 0
             if self.axis == 0:  # pragma: no cover
@@ -1039,8 +1040,11 @@ class _Concatenator(object):
         if self.axis > 0:
             # Not safe to remove this check, need to profile
             if not _all_indexes_same([b.items for b in blocks]):
-                raise Exception('dtypes are not consistent throughout '
-                                'DataFrames')
+                # TODO: Either profile this piece or remove.
+                # FIXME: Need to figure out how to test whether this line exists or does not...(unclear if even possible
+                #        or maybe would require performance test)
+                raise PandasError('dtypes are not consistent throughout '
+                                  'DataFrames')
             return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
 
@@ -1184,7 +1188,7 @@ class _Concatenator(object):
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index.get_duplicates()
-                raise Exception('Indexes have overlapping values: %s'
+                raise ValueError('Indexes have overlapping values: %s'
                                 % str(overlap))
 
 
