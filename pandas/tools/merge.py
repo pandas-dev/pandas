@@ -1184,7 +1184,7 @@ class _Concatenator(object):
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index.get_duplicates()
-                raise Exception('Indexes have overlapping values: %s'
+                raise ValueError('Indexes have overlapping values: %s'
                                 % str(overlap))
 
 
