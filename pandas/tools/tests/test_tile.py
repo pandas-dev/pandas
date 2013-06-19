@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas import DataFrame, Series, unique
 import pandas.util.testing as tm
+from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
 
 from pandas.core.algorithms import quantile
@@ -136,7 +137,7 @@ class TestCut(unittest.TestCase):
         self.assert_(factor.equals(expected))
 
     def test_qcut_all_bins_same(self):
-        self.assertRaises(Exception, qcut, [0,0,0,0,0,0,0,0,0,0], 3)
+        assertRaisesRegexp(ValueError, "edges.*unique", qcut, [0,0,0,0,0,0,0,0,0,0], 3)
 
     def test_cut_out_of_bounds(self):
         arr = np.random.randn(100)

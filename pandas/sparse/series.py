@@ -133,7 +133,7 @@ class SparseSeries(SparseArray, Series):
                     raise AssertionError()
         else:
             if index is None:
-                raise Exception('must pass index!')
+                raise TypeError('must pass index!')
 
             length = len(index)
 
@@ -388,7 +388,7 @@ class SparseSeries(SparseArray, Series):
 
         """
         if dtype is not None and dtype not in (np.float_, float):
-            raise Exception('Can only support floating point data')
+            raise TypeError('Can only support floating point data')
 
         return self.copy()
 

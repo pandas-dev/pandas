@@ -5455,7 +5455,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.ix[4]
-        self.assertRaises(Exception, df.append, series, verify_integrity=True)
+        self.assertRaises(ValueError, df.append, series, verify_integrity=True)
         series.name = None
         self.assertRaises(Exception, df.append, series, verify_integrity=True)
 

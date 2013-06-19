@@ -20,6 +20,7 @@ from nose.tools import assert_raises
 
 from pandas.tslib import monthrange
 from pandas.lib import Timestamp
+from pandas.util.testing import assertRaisesRegexp
 
 _multiprocess_can_split_ = True
 
@@ -44,7 +45,7 @@ def test_ole2datetime():
     actual = ole2datetime(60000)
     assert actual == datetime(2064, 4, 8)
 
-    assert_raises(Exception, ole2datetime, 60)
+    assert_raises(ValueError, ole2datetime, 60)
 
 
 def test_to_datetime1():
@@ -285,7 +286,7 @@ class TestBusinessDay(unittest.TestCase):
         self.assertEqual(rs, xp)
 
     def test_apply_corner(self):
-        self.assertRaises(Exception, BDay().apply, BMonthEnd())
+        self.assertRaises(TypeError, BDay().apply, BMonthEnd())
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -301,8 +302,8 @@ def assertOnOffset(offset, date, expected):
 
 class TestWeek(unittest.TestCase):
     def test_corner(self):
-        self.assertRaises(Exception, Week, weekday=7)
-        self.assertRaises(Exception, Week, weekday=-1)
+        self.assertRaises(ValueError, Week, weekday=7)
+        assertRaisesRegexp(ValueError, "Day must be", Week, weekday=-1)
 
     def test_isAnchored(self):
         self.assert_(Week(weekday=0).isAnchored())
@@ -366,11 +367,11 @@ class TestWeek(unittest.TestCase):
 class TestWeekOfMonth(unittest.TestCase):
 
     def test_constructor(self):
-        self.assertRaises(Exception, WeekOfMonth, n=0, week=1, weekday=1)
-        self.assertRaises(Exception, WeekOfMonth, n=1, week=4, weekday=0)
-        self.assertRaises(Exception, WeekOfMonth, n=1, week=-1, weekday=0)
-        self.assertRaises(Exception, WeekOfMonth, n=1, week=0, weekday=-1)
-        self.assertRaises(Exception, WeekOfMonth, n=1, week=0, weekday=7)
+        assertRaisesRegexp(ValueError, "^N cannot be 0", WeekOfMonth, n=0, week=1, weekday=1)
+        assertRaisesRegexp(ValueError, "^Week", WeekOfMonth, n=1, week=4, weekday=0)
+        assertRaisesRegexp(ValueError, "^Week", WeekOfMonth, n=1, week=-1, weekday=0)
+        assertRaisesRegexp(ValueError, "^Day", WeekOfMonth, n=1, week=0, weekday=-1)
+        assertRaisesRegexp(ValueError, "^Day", WeekOfMonth, n=1, week=0, weekday=7)
 
     def test_offset(self):
         date1 = datetime(2011, 1, 4)  # 1st Tuesday of Month
@@ -1445,7 +1446,7 @@ def test_hasOffsetName():
 
 
 def test_get_offset_name():
-    assert_raises(Exception, get_offset_name, BDay(2))
+    assertRaisesRegexp(ValueError, 'Bad rule.*BusinessDays', get_offset_name, BDay(2))
 
     assert get_offset_name(BDay()) == 'B'
     assert get_offset_name(BMonthEnd()) == 'BM'
@@ -1457,7 +1458,7 @@ def test_get_offset_name():
 
 
 def test_get_offset():
-    assert_raises(Exception, get_offset, 'gibberish')
+    assertRaisesRegexp(ValueError, "rule.*GIBBERISH", get_offset, 'gibberish')
 
     assert get_offset('B') == BDay()
     assert get_offset('b') == BDay()

@@ -1681,7 +1681,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             else:
                 self.fail("orphaned index!")
 
-        self.assertRaises(Exception, self.ts.append, self.ts,
+        self.assertRaises(ValueError, self.ts.append, self.ts,
                           verify_integrity=True)
 
     def test_append_many(self):
