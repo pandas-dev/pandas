@@ -254,6 +254,7 @@ pandas 0.11.1
     in the ``to_replace`` argument wasn't working (GH3907_)
   - Fixed ``__truediv__`` in Python 2.7 with ``numexpr`` installed to actually do true division when dividing
     two integer arrays with at least 10000 cells total (GH3764_)
+  - Indexing with a string with seconds resolution not selecting from a time index (GH3925_)
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
@@ -355,9 +356,13 @@ pandas 0.11.1
 .. _GH3907: https://github.com/pydata/pandas/issues/3907
 .. _GH3911: https://github.com/pydata/pandas/issues/3911
 .. _GH3912: https://github.com/pydata/pandas/issues/3912
+<<<<<<< HEAD
 .. _GH3764: https://github.com/pydata/pandas/issues/3764
 .. _GH3888: https://github.com/pydata/pandas/issues/3888
 
+=======
+.. _GH3925: https://github.com/pydata/pandas/issues/3925
+>>>>>>> BUG: (GH3925) Indexing with a string with seconds resolution not selecting from a time index
 
 pandas 0.11.0
 =============
