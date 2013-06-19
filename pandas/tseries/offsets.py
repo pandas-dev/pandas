@@ -363,8 +363,13 @@ class BusinessDay(CacheableOffset, DateOffset):
 
 class CustomBusinessDay(BusinessDay):
     """
-    DateOffset subclass representing possibly n business days excluding
-    holidays
+    **EXPERIMENTAL** DateOffset subclass representing possibly n business days
+    excluding holidays
+
+    .. warning:: EXPERIMENTAL
+
+        This class is not officially supported and the API is likely to change
+        in future versions. Use this at your own risk.
 
     Parameters
     ----------

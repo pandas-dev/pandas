@@ -382,6 +382,7 @@ frequency increment. Specific offset logic like "month", "business day", or
 
     DateOffset, "Generic offset class, defaults to 1 calendar day"
     BDay, "business day (weekday)"
+    CDay, "custom business day (experimental)"
     Week, "one week, optionally anchored on a day of the week"
     WeekOfMonth, "the x-th day of the y-th week of each month"
     MonthEnd, "calendar month end"
@@ -477,6 +478,54 @@ Another example is parameterizing ``YearEnd`` with the specific ending month:
 
 .. _timeseries.alias:
 
+Custom Business Days (Experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``CDay`` or ``CustomBusinessDay`` class provides a parametric
+``BusinessDay`` class which can be used to create customized business day
+calendars which account for local holidays and local weekend conventions.
+
+.. ipython:: python
+
+    from pandas.tseries.offsets import CustomBusinessDay
+    # As an interesting example, let's look at Egypt where
+    # a Friday-Saturday weekend is observed.
+    weekmask_egypt = 'Sun Mon Tue Wed Thu'
+    # They also observe International Workers' Day so let's
+    # add that for a couple of years
+    holidays = ['2012-05-01', datetime(2013, 5, 1), np.datetime64('2014-05-01')]
+    bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
+    dt = datetime(2013, 4, 30)
+    print dt + 2 * bday_egypt
+    dts = date_range(dt, periods=5, freq=bday_egypt).to_series()
+    print dts
+    print Series(dts.weekday, dts).map(Series('Mon Tue Wed Thu Fri Sat Sun'.split()))
+
+.. note::
+
+    The frequency string 'C' is used to indicate that a CustomBusinessDay
+    DateOffset is used, it is important to note that since CustomBusinessDay is
+    a parameterised type, instances of CustomBusinessDay may differ and this is
+    not detectable from the 'C' frequency string. The user therefore needs to
+    ensure that the 'C' frequency string is used consistently within the user's
+    application.
+
+
+.. note::
+
+    This uses the ``numpy.busdaycalendar`` API introduced in Numpy 1.7 and
+    therefore requires Numpy 1.7.0 or newer.
+
+.. warning::
+
+    There are known problems with the timezone handling in Numpy 1.7 and users
+    should therefore use this **experimental(!)** feature with caution and at
+    their own risk.
+
+    To the extent that the ``datetime64`` and ``busdaycalendar`` APIs in Numpy
+    have to change to fix the timezone issues, the behaviour of the
+    ``CustomBusinessDay`` class may have to change in future versions.
+
 Offset Aliases
 ~~~~~~~~~~~~~~
 
@@ -489,6 +538,7 @@ frequencies. We will refer to these aliases as *offset aliases*
     :widths: 15, 100
 
     "B", "business day frequency"
+    "C", "custom business day frequency (experimental)"
     "D", "calendar day frequency"
     "W", "weekly frequency"
     "M", "month end frequency"
