@@ -825,12 +825,35 @@ class TestTimeSeries(unittest.TestCase):
 
         self.assertEquals(NaT.weekday(), -1)
 
-    def test_to_datetime_empty_string(self):
+    def test_to_datetime_types(self):
+
+        # empty string
         result = to_datetime('')
-        self.assert_(result == '')
+        self.assert_(result is NaT)
 
         result = to_datetime(['', ''])
         self.assert_(isnull(result).all())
+
+        # ints
+        result = Timestamp(0)
+        expected = to_datetime(0)
+        self.assert_(result == expected)
+
+        # GH 3888 (strings)
+        expected = to_datetime(['2012'])[0]
+        result = to_datetime('2012')
+        self.assert_(result == expected)
+
+        ### array = ['2012','20120101','20120101 12:01:01']
+        array = ['20120101','20120101 12:01:01']
+        expected = list(to_datetime(array))
+        result = map(Timestamp,array)
+        tm.assert_almost_equal(result,expected)
+
+        ### currently fails ###
+        ### result = Timestamp('2012')
+        ### expected = to_datetime('2012')
+        ### self.assert_(result == expected)
 
     def test_to_datetime_other_datetime64_units(self):
         # 5/25/2012
