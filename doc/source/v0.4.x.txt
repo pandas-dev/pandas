@@ -6,15 +6,15 @@ v.0.4.3 through v0.4.1 (September 25 - October 9, 2011)
 New Features
 ~~~~~~~~~~~~
 
-- Added Python 3 support using 2to3 (PR200_)
+- Added Python 3 support using 2to3 (:issue:`200`)
 - :ref:`Added <dsintro.name_attribute>` ``name`` attribute to ``Series``, now
   prints as part of ``Series.__repr__``
 - :ref:`Added <missing.isnull>` instance methods ``isnull`` and ``notnull`` to
-  Series (PR209_, :issue:`203`)
+  Series (:issue:`209`, :issue:`203`)
 - :ref:`Added <basics.align>` ``Series.align`` method for aligning two series
   with choice of join method (ENH56_)
 - :ref:`Added <indexing.get_level_values>` method ``get_level_values`` to
-  ``MultiIndex`` (IS188_)
+  ``MultiIndex`` (:issue:`188`)
 - :ref:`Set <indexing.mixed_type_setting>` values in mixed-type
   ``DataFrame`` objects via ``.ix`` indexing attribute (:issue:`135`)
 - Added new ``DataFrame`` :ref:`methods <basics.dtypes>`
@@ -22,14 +22,14 @@ New Features
 - Added :ref:`ignore_index <merging.ignore_index>` option to
   ``DataFrame.append`` to stack DataFrames (ENH1b_)
 - ``read_csv`` tries to :ref:`sniff <io.sniff>` delimiters using
-  ``csv.Sniffer`` (PR146_)
+  ``csv.Sniffer`` (:issue:`146`)
 - ``read_csv`` can :ref:`read <io.csv_multiindex>` multiple columns into a
   ``MultiIndex``; DataFrame's ``to_csv`` method writes out a corresponding
-  ``MultiIndex`` (PR151_)
+  ``MultiIndex`` (:issue:`151`)
 - ``DataFrame.rename`` has a new ``copy`` parameter to :ref:`rename
   <basics.rename>` a DataFrame in place (ENHed_)
-- :ref:`Enable <reshaping.unstack_by_name>` unstacking by name (PR142_)
-- :ref:`Enable <indexing.sortlevel_byname>` ``sortlevel`` to work by level (PR141_)
+- :ref:`Enable <reshaping.unstack_by_name>` unstacking by name (:issue:`142`)
+- :ref:`Enable <indexing.sortlevel_byname>` ``sortlevel`` to work by level (:issue:`141`)
 
 Performance Enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,15 +57,8 @@ Performance Enhancements
 - Wrote fast time series merging / joining methods in Cython. Will be
   integrated later into DataFrame.join and related functions
 
-.. _PR146: https://github.com/pydata/pandas/pull/146
 .. _ENH1b: https://github.com/pydata/pandas/commit/1ba56251f0013ff7cd8834e9486cef2b10098371
 .. _ENHdc: https://github.com/pydata/pandas/commit/dca3c5c5a6a3769ee01465baca04cfdfa66a4f76
-.. _PR151: https://github.com/pydata/pandas/pull/151
 .. _ENHed: https://github.com/pydata/pandas/commit/edd9f1945fc010a57fa0ae3b3444d1fffe592591
-.. _PR142: https://github.com/pydata/pandas/pull/142
-.. _PR141: https://github.com/pydata/pandas/pull/141
-.. _IS188: https://github.com/pydata/pandas/issues/188
 .. _ENH56: https://github.com/pydata/pandas/commit/56e0c9ffafac79ce262b55a6a13e1b10a88fbe93
-.. _PR209: https://github.com/pydata/pandas/pull/209
-.. _PR200: https://github.com/pydata/pandas/pull/200
 
