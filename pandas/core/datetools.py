@@ -11,9 +11,9 @@ businessDay = bday
 try:
     cday = CDay()
     customBusinessDay = CustomBusinessDay()
-except ImportError:
-    # Don't create CustomBusinessDay instances when not available
-    pass
+except NotImplementedError:
+    cday = None
+    customBusinessDay = None
 monthEnd = MonthEnd()
 yearEnd = YearEnd()
 yearBegin = YearBegin()

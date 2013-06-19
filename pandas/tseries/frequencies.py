@@ -121,10 +121,14 @@ from pandas.tseries.offsets import (Micro, Milli, Second, Minute, Hour,
                                     BQuarterEnd, YearBegin, YearEnd,
                                     BYearBegin, BYearEnd,
                                     )
+try:
+    cday = CDay()
+except NotImplementedError:
+    cday = None
 
 _offset_map = {
     'D': Day(),
-    'C': CDay(),
+    'C': cday,
     'B': BDay(),
     'H': Hour(),
     'T': Minute(),

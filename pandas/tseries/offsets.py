@@ -385,8 +385,9 @@ class CustomBusinessDay(BusinessDay):
         # Check we have the required numpy version
         from distutils.version import LooseVersion
         if LooseVersion(np.__version__) < '1.7.0':
-            raise ImportError("CustomBusinessDay requires numpy >= 1.7.0. "
-                              "Current version: "+np.__version__)
+            raise NotImplementedError("CustomBusinessDay requires numpy >= "
+                                      "1.7.0. Current version: " +
+                                      np.__version__)
 
         self.n = int(n)
         self.kwds = kwds
