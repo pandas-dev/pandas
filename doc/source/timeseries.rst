@@ -118,7 +118,7 @@ Converting to Timestamps
 
 To convert a Series or list-like object of date-like objects e.g. strings,
 epochs, or a mixture, you can use the ``to_datetime`` function. When passed
-a Series, this returns a Series (with the same index), whilst a list-like
+a Series, this returns a Series (with the same index), while a list-like
 is converted to a DatetimeIndex:
 
 .. ipython:: python
@@ -165,6 +165,12 @@ often epochs are stored in another ``unit`` which can be specified:
 .. note::
 
    Epoch times will be rounded to the nearest nanosecond.
+
+Take care, ``to_datetime`` may not act as you expect on mixed data:
+
+.. ipython:: python
+
+   pd.to_datetime([1, '1'])
 
 .. _timeseries.daterange:
 
