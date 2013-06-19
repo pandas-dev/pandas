@@ -2463,3 +2463,25 @@ Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
 
    import os
    os.remove('stata.dta')
+   
+Data
+----
+
+Functions from :mod:`pandas.io.data` extract data from various Internet
+sources into a DataFrame. Currently the following sources are supported:
+
+    - Yahoo! Finance
+    - Google Finance
+    - St. Louis FED (FRED)
+    - Kenneth French's data library
+
+It should be noted, that various sources support different kinds of data, so not all sources implement the same methods and the data elements returned might also differ.
+
+.. ipython:: python
+
+    import pandas.io.data as web
+    from datetime import datetime
+    start = datetime(2010, 1, 1)
+    end = datetime(2013, 01, 27)
+    f=web.DataReader("F", 'yahoo', start, end)
+    f.ix['2010-01-04']
