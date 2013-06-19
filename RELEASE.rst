@@ -356,13 +356,9 @@ pandas 0.11.1
 .. _GH3907: https://github.com/pydata/pandas/issues/3907
 .. _GH3911: https://github.com/pydata/pandas/issues/3911
 .. _GH3912: https://github.com/pydata/pandas/issues/3912
-<<<<<<< HEAD
 .. _GH3764: https://github.com/pydata/pandas/issues/3764
 .. _GH3888: https://github.com/pydata/pandas/issues/3888
-
-=======
 .. _GH3925: https://github.com/pydata/pandas/issues/3925
->>>>>>> BUG: (GH3925) Indexing with a string with seconds resolution not selecting from a time index
 
 pandas 0.11.0
 =============
