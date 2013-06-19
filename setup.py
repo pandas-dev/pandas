@@ -482,7 +482,8 @@ ujson_ext = Extension('pandas.json',
                                'pandas/src/datetime/np_datetime_strings.c'],
                       include_dirs=['pandas/src/ujson/python',
                                     'pandas/src/ujson/lib',
-                                    'pandas/src/datetime'] + common_include)
+                                    'pandas/src/datetime'] + common_include,
+                      extra_compile_args=['-D_GNU_SOURCE'])
 
 
 extensions.append(ujson_ext)
