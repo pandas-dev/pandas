@@ -2245,8 +2245,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         try:
             DataFrame({'a': False, 'b': True})
         except (Exception), detail:
+            msg = 'If using all scalar values, you must must pass an index'
             self.assert_(type(detail) == ValueError)
-            self.assert_("If use all scalar values, must pass index" in str(detail))
+            self.assert_(msg in str(detail))
 
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
