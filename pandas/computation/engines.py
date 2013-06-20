@@ -1,27 +1,26 @@
 import abc
-import functools
-from functools import partial
+from functools import partial, wraps
 from itertools import izip
 
 import numpy as np
 
 import pandas as pd
 import pandas.core.common as com
-from pandas.computation.ops import _resolve_name, _update_names
+from pandas.computation.ops import is_const
 from pandas.computation.common import flatten
 
 
 def _align_core_single_unary_op(term):
-    if isinstance(term, np.ndarray) and not com.is_series(term):
-        typ = np.asanyarray
+    if isinstance(term.value, np.ndarray) and not com.is_series(term.value):
+        typ = partial(np.asanyarray, dtype=term.value.dtype)
     else:
-        typ = type(term)
-    ret = typ, [term]
+        typ = type(term.value)
+    ret = typ,
 
-    if not hasattr(term, 'axes'):
+    if not hasattr(term.value, 'axes'):
         ret += None,
     else:
-        ret += _zip_axes_from_type(typ, term.axes),
+        ret += _zip_axes_from_type(typ, term.value.axes),
     return ret
 
 
@@ -69,33 +68,28 @@ def _maybe_promote_shape(values, naxes):
 
 def _any_pandas_objects(terms):
     """Check a sequence of terms for instances of PandasObject."""
-    return any(com.is_pd_obj(term) for term in terms)
+    return any(com.is_pd_obj(term.value) for term in terms)
 
 
 def _filter_special_cases(f):
-    @functools.wraps(f)
+    @wraps(f)
     def wrapper(terms):
-        # need to ensure that terms is not an iterator
-        terms = list(terms)
-
-        ## special cases
-
         # single unary operand
         if len(terms) == 1:
             return _align_core_single_unary_op(terms[0])
 
         # only scalars
-        elif all(np.isscalar(term) for term in terms):
-            return np.result_type(*terms), terms, None
+        elif all(term.isscalar for term in terms):
+            return np.result_type(*(term.value for term in terms)), None
 
         # single element ndarrays
-        all_has_size = all(hasattr(term, 'size') for term in terms)
-        if (all_has_size and all(term.size == 1 for term in terms)):
-            return np.result_type(*terms), terms, None
+        all_has_size = all(hasattr(term.value, 'size') for term in terms)
+        if (all_has_size and all(term.value.size == 1 for term in terms)):
+            return np.result_type(*(term.value for term in terms)), None
 
         # no pandas so just punt to the evaluator
         if not _any_pandas_objects(terms):
-            return np.result_type(*terms), terms, None
+            return np.result_type(*(term.value for term in terms)), None
 
         return f(terms)
     return wrapper
@@ -103,27 +97,28 @@ def _filter_special_cases(f):
 
 @_filter_special_cases
 def _align_core(terms):
-    term_index = [i for i, term in enumerate(terms) if hasattr(term, 'axes')]
-    term_dims = [terms[i].ndim for i in term_index]
+    term_index = [i for i, term in enumerate(terms) if hasattr(term.value,
+                                                               'axes')]
+    term_dims = [terms[i].value.ndim for i in term_index]
     ndims = pd.Series(dict(zip(term_index, term_dims)))
 
     # initial axes are the axes of the largest-axis'd term
-    biggest = terms[ndims.idxmax()]
+    biggest = terms[ndims.idxmax()].value
     typ = biggest._constructor
     axes = biggest.axes
     naxes = len(axes)
 
     for i in term_index:
-        for axis, items in enumerate(terms[i].axes):
-            if com.is_series(terms[i]) and naxes > 1:
-                axes[naxes - 1] = axes[naxes - 1].join(terms[i].index,
+        for axis, items in enumerate(terms[i].value.axes):
+            if com.is_series(terms[i].value) and naxes > 1:
+                axes[naxes - 1] = axes[naxes - 1].join(terms[i].value.index,
                                                        how='outer')
             else:
                 axes[axis] = axes[axis].join(items, how='outer')
 
     for i, ndim in ndims.iteritems():
         for axis, items in izip(xrange(ndim), axes):
-            ti = terms[i]  # needed here because we modify it in the inner loop
+            ti = terms[i].value  # needed here because we modify it in the inner loop
 
             if hasattr(ti, 'reindex_axis'):
                 transpose = com.is_series(ti) and naxes > 1
@@ -138,31 +133,31 @@ def _align_core(terms):
                 else:
                     r = f()
 
-                terms[i] = r
+                terms[i].update(r)
 
-        res = _maybe_promote_shape(terms[i].T if transpose else terms[i],
-                                   naxes)
+        res = _maybe_promote_shape(terms[i].value.T if transpose else
+                                   terms[i].value, naxes)
         res = res.T if transpose else res
 
         try:
-            terms[i] = res.values
+            v = res.values
         except AttributeError:
-            terms[i] = res
+            v = res
+        terms[i].update(v)
 
-    return typ, terms, _zip_axes_from_type(typ, axes)
+    return typ, _zip_axes_from_type(typ, axes)
 
 
 def _filter_terms(flat):
     # numeric literals
-    literals = filter(lambda string: not com.is_string(string), flat)
-    literals_set = set(literals)
+    literals = set(filter(is_const, flat))
 
     # these are strings which are variable names
-    names = filter(com.is_string, flat)
-    names_set = set(names)
+    names = set(flat) - literals
 
-    # literals are not names and names are not literals, by definition
-    if literals_set & names_set:
+    # literals are not names and names are not literals, so intersection should
+    # be empty
+    if literals & names:
         raise ValueError('literals cannot be names and names cannot be '
                          'literals')
     return names, literals
@@ -170,30 +165,20 @@ def _filter_terms(flat):
 
 def _align(terms, env):
     # flatten the parse tree (a nested list)
-    flat = list(flatten(terms))
+    terms = list(flatten(terms))
 
     # separate names and literals
-    names, literals = _filter_terms(flat)
+    names, literals = _filter_terms(terms)
 
     if not names:  # only literals so just promote to a common type
         return np.result_type(*literals).type, None
 
-    # get the variables out
-    resolve_in_env = partial(_resolve_name, env)
-    resolved = map(resolve_in_env, names)
-
     # if all resolved variables are numeric scalars
-    if all(np.isscalar(rsv) for rsv in resolved):
-        return np.result_type(*resolved).type, None
+    if all(term.isscalar for term in terms):
+        return np.result_type(*(term.value for term in terms)).type, None
 
     # perform the main alignment
-    typ, resolved, axes = _align_core(resolved)
-
-    # put the aligned arrays back in the table
-    _update_names(env, dict(izip(names, resolved)))
-
-    # we need this to reconstruct things after evaluation since we CANNOT
-    # depend on the array interface
+    typ, axes = _align_core(terms)
     return typ, axes
 
 
@@ -222,7 +207,8 @@ def _reconstruct_object(typ, obj, axes):
     except AttributeError:
         pass
 
-    if typ != np.asanyarray and issubclass(typ, pd.core.generic.PandasObject):
+    if (not isinstance(typ, partial) and
+        issubclass(typ, pd.core.generic.PandasObject)):
         return typ(obj, **axes)
 
     ret_value = typ(obj)

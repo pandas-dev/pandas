@@ -3,6 +3,7 @@ from functools import partial
 
 import numpy as np
 from pandas.util.py3compat import PY3
+import pandas.core.common as com
 
 
 _reductions = 'sum', 'prod'
@@ -59,18 +60,18 @@ class Term(object):
         self.env = env
         self.type = type(value)
 
-    def __iter__(self):
-        yield self.value
-        raise StopIteration
-
     def __str__(self):
         return '{0}({1!r})'.format(self.__class__.__name__, self.name)
 
     __repr__ = __str__
 
-    def update(self, env, value):
+    def update(self, value):
         _update_name(self.env, self.name, value)
         self.value = value
+
+    @property
+    def isscalar(self):
+        return np.isscalar(self.value)
 
 
 class Constant(Term):
@@ -112,17 +113,28 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast(terms, env, dtype):
-    resolver = partial(_resolve_name, env)
-    updater = partial(_update_name, env)
+def _cast(terms, dtype):
     dt = np.dtype(dtype)
     for term in terms:
-        t = resolver(term)
+        # cast all the way down the tree since operands must be
         try:
-            new_value = t.astype(dt)
+            _cast(term.operands, dtype)
         except AttributeError:
-            new_value = dt.type(t)
-        updater(term, new_value)
+            # we've bottomed out so cast
+            try:
+                new_value = term.value.astype(dt)
+            except AttributeError:
+                new_value = dt.type(term.value)
+            term.update(new_value)
+
+
+def is_term(obj):
+    return isinstance(obj, Term)
+
+
+def is_const(obj):
+    return isinstance(obj, Constant)
+
 
 class BinOp(Op):
     """Hold a binary operator and its operands
@@ -146,8 +158,9 @@ class BinOp(Op):
                                       ' operators are {1}'.format(op, keys))
 
     def __repr__(self):
-        return '{0}(op={1!r}, lhs={2!r}, rhs={3!r})'.format(self.name, self.op,
-                                                            self.lhs, self.rhs)
+        return com.pprint_thing('{0}(op={1!r}, lhs={2!r}, '
+                                'rhs={3!r})'.format(self.name, self.op,
+                                                    self.lhs, self.rhs))
 
     __str__ = __repr__
 
@@ -169,25 +182,22 @@ class BinOp(Op):
             right = self.rhs
 
         # base cases
-        if not (isinstance(left, basestring) or isinstance(right, basestring)):
+        if is_term(left) and is_term(right):
+            res = self.func(left.value, right.value)
+        elif not is_term(left) and is_term(right):
+            res = self.func(left, right.value)
+        elif is_term(left) and not is_term(right):
+            res = self.func(left.value, right)
+        elif not (is_term(left) or is_term(right)):
             res = self.func(left, right)
-        elif isinstance(left, basestring) and not isinstance(right,
-                                                             basestring):
-            res = self.func(_resolve_name(env, left), right)
-        elif not isinstance(left, basestring) and isinstance(right,
-                                                             basestring):
-            res = self.func(left, _resolve_name(env, right))
-        elif isinstance(left, basestring) and isinstance(right, basestring):
-            res = self.func(_resolve_name(env, left), _resolve_name(env,
-                                                                    right))
 
         return res
 
 
 class Mod(BinOp):
-    def __init__(self, lhs, rhs, env=None):
+    def __init__(self, lhs, rhs):
         super(Mod, self).__init__('%', lhs, rhs)
-        _cast((lhs, rhs), env, np.float_)
+        _cast(self.operands, np.float_)
 
 
 _unary_ops_syms = '+', '-', '~'
@@ -218,10 +228,7 @@ class UnaryOp(Op):
         except TypeError:
             operand = self.operand
 
-        if isinstance(operand, basestring):
-            v = _resolve_name(env, operand)
-        else:
-            v = operand
+        v = operand.value if is_term(operand) else operand
 
         try:
             res = self.func(v)
@@ -231,5 +238,6 @@ class UnaryOp(Op):
         return res
 
     def __repr__(self):
-        return '{0}(op={1!r}, operand={2!r})'.format(self.name, self.op,
-                                                     self.operand)
+        return com.pprint_thing('{0}(op={1!r}, '
+                                'operand={2!r})'.format(self.name, self.op,
+                                                        self.operand))
