@@ -71,10 +71,10 @@ your contribution or address the issue you're having.
 
     which fails on python 2.6, use `self.assertRaises(TheException,func,args)` instead.
 
-  - RELEASE.rst and doc/source/vx.y.z.txt contain an on-going changelog for each
-    release as it is worked on. Add entries to these files as needed in
-    a separate commit in your PR, documenting the fix, enhancement or (unavoidable)
-    breaking change.
+  - doc/source/release.rst and doc/source/vx.y.z.txt contain an on-going
+    changelog for each release as it is worked on. Add entries to these files
+    as needed in a separate commit in your PR, documenting the fix, enhancement
+    or (unavoidable) breaking change.
   - For extra brownie points, use "git rebase -i" to squash and reorder
     commits in your PR so that the history makes the most sense. Use your own
     judgment to decide what history needs to be preserved.

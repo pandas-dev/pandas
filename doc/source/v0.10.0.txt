@@ -159,7 +159,7 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
       s
       s.apply(f)
 
-- New API functions for working with pandas options (GH2097_):
+- New API functions for working with pandas options (:issue:`2097`):
 
   - ``get_option`` / ``set_option`` - get/set the value of an option. Partial
     names are accepted.  - ``reset_option`` - reset one or more options to
@@ -174,7 +174,7 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
 
      get_option("display.max_rows")
 
-- to_string() methods now always return unicode strings  (GH2224_).
+- to_string() methods now always return unicode strings  (:issue:`2224`).
 
 New features
 ~~~~~~~~~~~~
@@ -297,22 +297,22 @@ Updated PyTables Support
 
 - performance improvments on table writing
 - support for arbitrarily indexed dimensions
-- ``SparseSeries`` now has a ``density`` property (GH2384_)
+- ``SparseSeries`` now has a ``density`` property (:issue:`2384`)
 - enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument
-  to strip arbitrary characters (GH2411_)
+  to strip arbitrary characters (:issue:`2411`)
 - implement ``value_vars`` in ``melt`` to limit values to certain columns
-  and add ``melt`` to pandas namespace (GH2412_)
+  and add ``melt`` to pandas namespace (:issue:`2412`)
 
 **Bug Fixes**
 
-- added ``Term`` method of specifying where conditions (GH1996_).
+- added ``Term`` method of specifying where conditions (:issue:`1996`).
 - ``del store['df']`` now call ``store.remove('df')`` for store deletion
 - deleting of consecutive rows is much faster than before
 - ``min_itemsize`` parameter can be specified in table creation to force a
   minimum size for indexing columns (the previous implementation would set the
   column size based on the first append)
 - indexing support via ``create_table_index`` (requires PyTables >= 2.3)
-  (GH698_).
+  (:issue:`698`).
 - appending on a store would fail if the table was not first created via ``put``
 - fixed issue with missing attributes after loading a pickled dataframe (GH2431)
 - minor change to select and remove: require a table ONLY if where is also
@@ -350,16 +350,7 @@ Adding experimental support for Panel4D and factory functions to create n-dimens
 
 
 
-See the `full release notes
-<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+See the :ref:`full release notes
+<release>` or issue tracker
 on GitHub for a complete list.
 
-.. _GH698: https://github.com/pydata/pandas/issues/698
-.. _GH1996: https://github.com/pydata/pandas/issues/1996
-.. _GH2316: https://github.com/pydata/pandas/issues/2316
-.. _GH2097: https://github.com/pydata/pandas/issues/2097
-.. _GH2224: https://github.com/pydata/pandas/issues/2224
-.. _GH2431: https://github.com/pydata/pandas/issues/2431
-.. _GH2412: https://github.com/pydata/pandas/issues/2412
-.. _GH2411: https://github.com/pydata/pandas/issues/2411
-.. _GH2384: https://github.com/pydata/pandas/issues/2384

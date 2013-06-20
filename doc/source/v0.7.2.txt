@@ -8,31 +8,20 @@ This release targets bugs in 0.7.1, and adds a few minor features.
 New features
 ~~~~~~~~~~~~
 
-  - Add additional tie-breaking methods in DataFrame.rank (GH874_)
-  - Add ascending parameter to rank in Series, DataFrame (GH875_)
-  - Add coerce_float option to DataFrame.from_records (GH893_)
-  - Add sort_columns parameter to allow unsorted plots (GH918_)
-  - Enable column access via attributes on GroupBy (GH882_)
-  - Can pass dict of values to DataFrame.fillna (GH661_)
+  - Add additional tie-breaking methods in DataFrame.rank (:issue:`874`)
+  - Add ascending parameter to rank in Series, DataFrame (:issue:`875`)
+  - Add coerce_float option to DataFrame.from_records (:issue:`893`)
+  - Add sort_columns parameter to allow unsorted plots (:issue:`918`)
+  - Enable column access via attributes on GroupBy (:issue:`882`)
+  - Can pass dict of values to DataFrame.fillna (:issue:`661`)
   - Can select multiple hierarchical groups by passing list of values in .ix
-    (GH134_)
-  - Add ``axis`` option to DataFrame.fillna (GH174_)
-  - Add level keyword to ``drop`` for dropping values from a level (GH159_)
+    (:issue:`134`)
+  - Add ``axis`` option to DataFrame.fillna (:issue:`174`)
+  - Add level keyword to ``drop`` for dropping values from a level (:issue:`159`)
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-  - Use khash for Series.value_counts, add raw function to algorithms.py (GH861_)
-  - Intercept __builtin__.sum in groupby (GH885_)
+  - Use khash for Series.value_counts, add raw function to algorithms.py (:issue:`861`)
+  - Intercept __builtin__.sum in groupby (:issue:`885`)
 
-.. _GH134: https://github.com/pydata/pandas/issues/134
-.. _GH159: https://github.com/pydata/pandas/issues/159
-.. _GH174: https://github.com/pydata/pandas/issues/174
-.. _GH661: https://github.com/pydata/pandas/issues/661
-.. _GH874: https://github.com/pydata/pandas/issues/874
-.. _GH875: https://github.com/pydata/pandas/issues/875
-.. _GH893: https://github.com/pydata/pandas/issues/893
-.. _GH918: https://github.com/pydata/pandas/issues/918
-.. _GH882: https://github.com/pydata/pandas/issues/882
-.. _GH861: https://github.com/pydata/pandas/issues/861
-.. _GH885: https://github.com/pydata/pandas/issues/885
