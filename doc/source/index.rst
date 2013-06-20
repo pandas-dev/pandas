@@ -105,7 +105,6 @@ See the package overview for more detail about what's in the library.
 
 
 .. toctree::
-    :hidden:
     :maxdepth: 3
 
     whatsnew
