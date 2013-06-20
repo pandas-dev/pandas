@@ -1,9 +1,16 @@
 import ast
+import sys
 from functools import partial
+import collections
+
 
 from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops, Mod
 from pandas.computation.ops import _cmp_ops_syms, _bool_ops_syms
 from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
+from pandas.computation.ops import _resolve_name, Term, Constant
+
+
+Scope = collections.namedtuple('Scope', 'globals locals')
 
 
 class ExprParserError(Exception):
@@ -65,10 +72,11 @@ class ExprVisitor(ast.NodeVisitor):
         return op(self.visit(node.operand))
 
     def visit_Name(self, node):
-        return node.id
+        name = node.id
+        return Term(_resolve_name(self.env, name), name, self.env)
 
     def visit_Num(self, node):
-        return node.n
+        return Constant(node.n, self.env)
 
     def visit_Compare(self, node):
         ops = node.ops
@@ -92,18 +100,28 @@ class ExprVisitor(ast.NodeVisitor):
         raise NotImplementedError("attribute access is not yet supported")
 
     def visit_Mod(self, node):
-        return partial(Mod, env=self.env)
+        return Mod
 
 
 class Expr(object):
     """Expr object for pandas
     """
-    def __init__(self, expr, engine, env, truediv):
+    def __init__(self, expr, engine='numexpr', env=None, truediv=True):
         self.expr = expr
-        self._visitor = ExprVisitor(env)
+        self.env = env or self._get_calling_scope()
+        self._visitor = ExprVisitor(self.env)
         self.terms = self.parse()
         self.engine = engine
         self.truediv = truediv
+
+    def _get_calling_scope(self):
+        frame = sys._getframe(1)
+        gbl, lcl = frame.f_globals, frame.f_locals
+
+        try:
+            return Scope(gbl, lcl)
+        finally:
+            del frame
 
     def __call__(self, env):
         env.locals['truediv'] = self.truediv
@@ -123,14 +141,16 @@ class Expr(object):
             raise e
         return visited
 
-    def align(self, env):
+    def align(self):
         """align a set of Terms"""
-        return self.terms.align(env)
+        return self.terms.align(self.env)
 
 
-def isexpr(s):
+def isexpr(s, check_names=True):
     try:
-        Expr(s, engine=None)
+        Expr(s)
     except SyntaxError:
         return False
+    except NameError:
+        return not check_names
     return True
