@@ -387,6 +387,6 @@ Bug Fixes
   - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
     in the ``to_replace`` argument wasn't working (:issue:`3907`)
 
-See the `full release notes
-<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+See the :ref:`full release notes
+<release>` or issue tracker
 on GitHub for a complete list.

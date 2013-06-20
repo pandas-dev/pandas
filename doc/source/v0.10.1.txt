@@ -206,7 +206,7 @@ combined result, by using ``where`` on a selector table.
   :issue:`2629`, :issue:`2626`)
 
 
-See the `full release notes
-<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+See the :ref:`full release notes
+<release>` or issue tracker
 on GitHub for a complete list.
 

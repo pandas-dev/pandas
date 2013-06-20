@@ -10,8 +10,8 @@ than 20 distinct authors. Most pandas 0.7.3 and earlier users should not
 experience any issues upgrading, but due to the migration to the NumPy
 datetime64 dtype, there may be a number of bugs and incompatibilities
 lurking. Lingering incompatibilities will be fixed ASAP in a 0.8.1 release if
-necessary. See the `full release notes
-<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+necessary. See the :ref:`full release notes
+<release>` or issue tracker
 on GitHub for a complete list.
 
 Support for non-unique indexes
