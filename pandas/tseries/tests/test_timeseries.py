@@ -2752,23 +2752,31 @@ class TestTimestamp(unittest.TestCase):
         self.assert_(stamp.nanosecond == 500)
 
     def test_unit(self):
-        def check(val,unit=None,s=1,us=0):
+        def check(val,unit=None,h=1,s=1,us=0):
             stamp = Timestamp(val, unit=unit)
             self.assert_(stamp.year == 2000)
             self.assert_(stamp.month == 1)
             self.assert_(stamp.day == 1)
-            self.assert_(stamp.hour == 1)
-            self.assert_(stamp.minute == 1)
-            self.assert_(stamp.second == s)
-            self.assert_(stamp.microsecond == us)
+            self.assert_(stamp.hour == h)
+            if unit != 'D':
+                self.assert_(stamp.minute == 1)
+                self.assert_(stamp.second == s)
+                self.assert_(stamp.microsecond == us)
+            else:
+                self.assert_(stamp.minute == 0)
+                self.assert_(stamp.second == 0)
+                self.assert_(stamp.microsecond == 0)
             self.assert_(stamp.nanosecond == 0)
 
-        val = Timestamp('20000101 01:01:01').value
+        ts = Timestamp('20000101 01:01:01')
+        val = ts.value
+        days = (ts - Timestamp('1970-01-01')).days
 
         check(val)
         check(val/1000L,unit='us')
         check(val/1000000L,unit='ms')
         check(val/1000000000L,unit='s')
+        check(days,unit='D',h=0)
 
         # using truediv, so these are like floats
         if py3compat.PY3:
@@ -2792,6 +2800,7 @@ class TestTimestamp(unittest.TestCase):
         check(val/1000000.0 + 0.5,unit='ms',us=500)
         check(val/1000000.0 + 0.005,unit='ms',us=5)
         check(val/1000000000.0 + 0.5,unit='s',us=500000)
+        check(days + 0.5,unit='D',h=12)
 
         # nan
         result = Timestamp(np.nan)

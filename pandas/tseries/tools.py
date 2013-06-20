@@ -69,7 +69,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y"
     coerce : force errors to NaT (False by default)
-    unit : unit of the arg (s,ms,us,ns) denote the unit in epoch
+    unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number
 
     Returns
