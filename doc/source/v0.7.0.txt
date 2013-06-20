@@ -9,24 +9,24 @@ New features
 - New unified :ref:`merge function <merging.join>` for efficiently performing
   full gamut of database / relational-algebra operations. Refactored existing
   join methods to use the new infrastructure, resulting in substantial
-  performance gains (GH220_, GH249_, GH267_)
+  performance gains (:issue:`220`, :issue:`249`, :issue:`267`)
 
 - New :ref:`unified concatenation function <merging.concat>` for concatenating
   Series, DataFrame or Panel objects along an axis. Can form union or
   intersection of the other axes. Improves performance of ``Series.append`` and
-  ``DataFrame.append`` (GH468_, GH479_, GH273_)
+  ``DataFrame.append`` (:issue:`468`, :issue:`479`, :issue:`273`)
 
 - :ref:`Can <merging.concatenation>` pass multiple DataFrames to
   `DataFrame.append` to concatenate (stack) and multiple Series to
   ``Series.append`` too
 
 - :ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a
-  list of JSON objects) to DataFrame constructor (GH526_)
+  list of JSON objects) to DataFrame constructor (:issue:`526`)
 
 - You can now :ref:`set multiple columns <indexing.columns.multiple>` in a
-  DataFrame via ``__getitem__``, useful for transformation (GH342_)
+  DataFrame via ``__getitem__``, useful for transformation (:issue:`342`)
 
-- Handle differently-indexed output values in ``DataFrame.apply`` (GH498_)
+- Handle differently-indexed output values in ``DataFrame.apply`` (:issue:`498`)
 
 .. ipython:: python
 
@@ -34,10 +34,10 @@ New features
    df.apply(lambda x: x.describe())
 
 - :ref:`Add<indexing.reorderlevels>` ``reorder_levels`` method to Series and
-  DataFrame (PR534_)
+  DataFrame (:issue:`534`)
 
 - :ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame
-  and Panel (PR521_)
+  and Panel (:issue:`521`)
 
 - :ref:`Add<basics.iterrows>` ``DataFrame.iterrows`` method for efficiently
   iterating through the rows of a DataFrame
@@ -52,10 +52,10 @@ New features
 
 - :ref:`Add <indexing.advanced_reindex>` ``level`` option to the ``reindex``
   and ``align`` methods on Series and DataFrame for broadcasting values across
-  a level (GH542_, PR552_, others)
+  a level (:issue:`542`, :issue:`552`, others)
 
 - :ref:`Add <dsintro.panel_item_selection>` attribute-based item access to
-  ``Panel`` and add IPython completion (PR563_)
+  ``Panel`` and add IPython completion (:issue:`563`)
 
 - :ref:`Add <visualization.basic>` ``logy`` option to ``Series.plot`` for
   log-scaling on the Y axis
@@ -64,38 +64,38 @@ New features
   ``DataFrame.to_string``
 
 - :ref:`Can <merging.multiple_join>` pass multiple DataFrames to
-  ``DataFrame.join`` to join on index (GH115_)
+  ``DataFrame.join`` to join on index (:issue:`115`)
 
 - :ref:`Can <merging.multiple_join>` pass multiple Panels to ``Panel.join``
-  (GH115_)
+  (:issue:`115`)
 
 - :ref:`Added <io.formatting>` ``justify`` argument to ``DataFrame.to_string``
   to allow different alignment of column headers
 
 - :ref:`Add <groupby.attributes>` ``sort`` option to GroupBy to allow disabling
-  sorting of the group keys for potential speedups (GH595_)
+  sorting of the group keys for potential speedups (:issue:`595`)
 
 - :ref:`Can <basics.dataframe.from_series>` pass MaskedArray to Series
-  constructor (PR563_)
+  constructor (:issue:`563`)
 
 - :ref:`Add <dsintro.panel_item_selection>` Panel item access via attributes
-  and IPython completion (GH554_)
+  and IPython completion (:issue:`554`)
 
 - Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving values
-  given a sequence of row and column labels (GH338_)
+  given a sequence of row and column labels (:issue:`338`)
 
 - Can pass a :ref:`list of functions <groupby.aggregate.multifunc>` to
   aggregate with groupby on a DataFrame, yielding an aggregated result with
-  hierarchical columns (GH166_)
+  hierarchical columns (:issue:`166`)
 
 - Can call ``cummin`` and ``cummax`` on Series and DataFrame to get cumulative
-  minimum and maximum, respectively (GH647_)
+  minimum and maximum, respectively (:issue:`647`)
 
 - ``value_range`` added as utility function to get min and max of a dataframe
-  (GH288_)
+  (:issue:`288`)
 
 - Added ``encoding`` argument to ``read_csv``, ``read_table``, ``to_csv`` and
-  ``from_csv`` for non-ascii text (GH717_)
+  ``from_csv`` for non-ascii text (:issue:`717`)
 
 - :ref:`Added <basics.stats>` ``abs`` method to pandas objects
 
@@ -231,28 +231,28 @@ Other API Changes
 - If ``Series.sort`` is called on a column of a DataFrame, an exception will
   now be raised. Before it was possible to accidentally mutate a DataFrame's
   column by doing ``df[col].sort()`` instead of the side-effect free method
-  ``df[col].order()`` (GH316_)
+  ``df[col].order()`` (:issue:`316`)
 
 - Miscellaneous renames and deprecations which will (harmlessly) raise
   ``FutureWarning``
 
-- ``drop`` added as an optional parameter to ``DataFrame.reset_index`` (GH699_)
+- ``drop`` added as an optional parameter to ``DataFrame.reset_index`` (:issue:`699`)
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - :ref:`Cythonized GroupBy aggregations <groupby.aggregate.cython>` no longer
-  presort the data, thus achieving a significant speedup (GH93_).  GroupBy
+  presort the data, thus achieving a significant speedup (:issue:`93`).  GroupBy
   aggregations with Python functions significantly sped up by clever
-  manipulation of the ndarray data type in Cython (GH496_).
+  manipulation of the ndarray data type in Cython (:issue:`496`).
 - Better error message in DataFrame constructor when passed column labels
-  don't match data (GH497_)
+  don't match data (:issue:`497`)
 - Substantially improve performance of multi-GroupBy aggregation when a
-  Python function is passed, reuse ndarray object in Cython (GH496_)
-- Can store objects indexed by tuples and floats in HDFStore (GH492_)
-- Don't print length by default in Series.to_string, add `length` option (GH489_)
+  Python function is passed, reuse ndarray object in Cython (:issue:`496`)
+- Can store objects indexed by tuples and floats in HDFStore (:issue:`492`)
+- Don't print length by default in Series.to_string, add `length` option (:issue:`489`)
 - Improve Cython code for multi-groupby to aggregate without having to sort
-  the data (GH93_)
+  the data (:issue:`93`)
 - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,
   test for backwards unpickling compatibility
 - Improve column reindexing performance by using specialized Cython take
@@ -262,47 +262,11 @@ Performance improvements
   regression from prior versions
 - Friendlier error message in setup.py if NumPy not installed
 - Use common set of NA-handling operations (sum, mean, etc.) in Panel class
-  also (GH536_)
+  also (:issue:`536`)
 - Default name assignment when calling ``reset_index`` on DataFrame with a
-  regular (non-hierarchical) index (GH476_)
+  regular (non-hierarchical) index (:issue:`476`)
 - Use Cythonized groupers when possible in Series/DataFrame stat ops with
-  ``level`` parameter passed (GH545_)
+  ``level`` parameter passed (:issue:`545`)
 - Ported skiplist data structure to C to speed up ``rolling_median`` by about
-  5-10x in most typical use cases (GH374_)
+  5-10x in most typical use cases (:issue:`374`)
 
-.. _GH115: https://github.com/pydata/pandas/issues/115
-.. _GH166: https://github.com/pydata/pandas/issues/166
-.. _GH220: https://github.com/pydata/pandas/issues/220
-.. _GH288: https://github.com/pydata/pandas/issues/288
-.. _GH249: https://github.com/pydata/pandas/issues/249
-.. _GH267: https://github.com/pydata/pandas/issues/267
-.. _GH273: https://github.com/pydata/pandas/issues/273
-.. _GH316: https://github.com/pydata/pandas/issues/316
-.. _GH338: https://github.com/pydata/pandas/issues/338
-.. _GH342: https://github.com/pydata/pandas/issues/342
-.. _GH374: https://github.com/pydata/pandas/issues/374
-.. _GH439: https://github.com/pydata/pandas/issues/439
-.. _GH468: https://github.com/pydata/pandas/issues/468
-.. _GH476: https://github.com/pydata/pandas/issues/476
-.. _GH479: https://github.com/pydata/pandas/issues/479
-.. _GH489: https://github.com/pydata/pandas/issues/489
-.. _GH492: https://github.com/pydata/pandas/issues/492
-.. _GH496: https://github.com/pydata/pandas/issues/496
-.. _GH497: https://github.com/pydata/pandas/issues/497
-.. _GH498: https://github.com/pydata/pandas/issues/498
-.. _GH526: https://github.com/pydata/pandas/issues/526
-.. _GH536: https://github.com/pydata/pandas/issues/536
-.. _GH542: https://github.com/pydata/pandas/issues/542
-.. _GH545: https://github.com/pydata/pandas/issues/545
-.. _GH554: https://github.com/pydata/pandas/issues/554
-.. _GH595: https://github.com/pydata/pandas/issues/595
-.. _GH647: https://github.com/pydata/pandas/issues/647
-.. _GH699: https://github.com/pydata/pandas/issues/699
-.. _GH717: https://github.com/pydata/pandas/issues/717
-.. _GH93: https://github.com/pydata/pandas/issues/93
-.. _GH93: https://github.com/pydata/pandas/issues/93
-.. _PR521: https://github.com/pydata/pandas/pull/521
-.. _PR534: https://github.com/pydata/pandas/pull/534
-.. _PR552: https://github.com/pydata/pandas/pull/552
-.. _PR554: https://github.com/pydata/pandas/pull/554
-.. _PR563: https://github.com/pydata/pandas/pull/563
