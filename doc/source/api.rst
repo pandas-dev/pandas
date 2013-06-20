@@ -126,7 +126,7 @@ Data manipulations
    merge
    concat
 
-Top-level Missing Data
+Top-level missing data
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. currentmodule:: pandas.core.common
@@ -136,6 +136,17 @@ Top-level Missing Data
 
    isnull
    notnull
+
+Top-level dealing with datetimes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.tseries.tools
+
+.. autosummary::
+   :toctree: generated/
+
+   to_datetime
+
 
 Standard moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
