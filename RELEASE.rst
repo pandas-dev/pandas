@@ -222,6 +222,7 @@ pandas 0.11.1
   - ``read_html`` now correctly skips tests (GH3741_)
   - Fix incorrect arguments passed to concat that are not list-like (e.g. concat(df1,df2)) (GH3481_)
   - Correctly parse when passed the ``dtype=str`` (or other variable-len string dtypes) in ``read_csv`` (GH3795_)
+  - Fix using provided pause and retry_count arguments for ``get_data_yahoo`` and ``get_data_google``
 
 .. _GH3164: https://github.com/pydata/pandas/issues/3164
 .. _GH2786: https://github.com/pydata/pandas/issues/2786
