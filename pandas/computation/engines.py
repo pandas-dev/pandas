@@ -48,7 +48,7 @@ def _maybe_promote_shape(values, naxes):
 
     axes_slice = [slice(None)] * naxes
 
-    # symmetric difference
+    # symmetric difference of numaxes and ndims
     slices = nax - ndim
 
     if ndims == naxes:
