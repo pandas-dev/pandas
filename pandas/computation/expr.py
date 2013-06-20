@@ -115,8 +115,9 @@ class Expr(object):
         self.truediv = truediv
 
     def _get_calling_scope(self):
-        frame = sys._getframe(1)
-        gbl, lcl = frame.f_globals, frame.f_locals
+        # call this method **only** in the constructor
+        frame = sys._getframe(2)
+        gbl, lcl = frame.f_globals.copy(), frame.f_locals.copy()
 
         try:
             return Scope(gbl, lcl)
