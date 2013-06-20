@@ -5713,7 +5713,8 @@ def extract_index(data):
                 raw_lengths.append(len(v))
 
         if not indexes and not raw_lengths:
-            raise ValueError('If use all scalar values, must pass index')
+            raise ValueError('If using all scalar values, you must must pass'
+                             ' an index')
 
         if have_series or have_dicts:
             index = _union_indexes(indexes)
