@@ -287,7 +287,7 @@ pandas 0.12
   - Fixed insertion issue into DataFrame, after rename (:issue:`4032`)
   - Fixed testing issue where too many sockets where open thus leading to a
     connection reset issue (:issue:`3982`, :issue:`3985`)
-
+  - Possibly invalidate the item_cache when numpy implicty converts a view to a copy (:issue:`3970`)
 
 pandas 0.11.0
 =============

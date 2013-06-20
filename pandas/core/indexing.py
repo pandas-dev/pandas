@@ -184,6 +184,14 @@ class _NDFrameIndexer(object):
             if np.prod(values.shape):
                 values[indexer] = value
 
+            # we might need to invalidate a cached version of myself
+            cacher = getattr(self.obj,'_cacher',None)
+            if cacher is not None:
+                try:
+                    cacher()._clear_item_cache()
+                except:
+                    pass
+
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple or scalar
         if isinstance(indexer, tuple):
@@ -709,6 +717,7 @@ class _LocationIndexer(_NDFrameIndexer):
                 return self.obj.take(inds, axis=axis, convert=False)
             except (Exception), detail:
                 raise self._exception(detail)
+
     def _get_slice_axis(self, slice_obj, axis=0):
         """ this is pretty simple as we just have to deal with labels """
         obj = self.obj
