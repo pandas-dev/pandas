@@ -22,14 +22,20 @@ def eval(expr, engine='numexpr', truediv=True, local_dict=None,
     frame = sys._getframe(1)
 
     try:
-        # get the globals and locals
-        gbl, lcl = global_dict or frame.f_globals, local_dict or frame.f_locals
+        # parse the expression from a string
+        if isinstance(expr, basestring):
+            # get the globals and locals
+            gbl, lcl = (global_dict or frame.f_globals,
+                        local_dict or frame.f_locals)
 
-        # shallow copy the scope so we don't overwrite everything
-        env = Scope(gbl.copy(), lcl.copy())
-
-        # parse the expression
-        parsed_expr = Expr(expr, engine, env, truediv)
+            # shallow copy the scope so we don't overwrite everything
+            env = Scope(gbl.copy(), lcl.copy())
+            parsed_expr = Expr(expr, engine, env, truediv)
+        elif isinstance(expr, Expr):
+            parsed_expr = expr
+        else:
+            raise TypeError("eval only accepts strings and Expr objects, you "
+                            "passed a {0!r}".format(expr.__class__.__name__))
 
         # choose the engine
         eng = _engines[engine]
