@@ -386,6 +386,11 @@ Bug Fixes
   - ``read_html`` now correctly skips tests (:issue:`3741`)
   - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
     in the ``to_replace`` argument wasn't working (:issue:`3907`)
+  - Improved ``network`` test decorator to catch ``IOError`` (and therefore
+    ``URLError`` as well). Added ``with_connectivity_check`` decorator to allow
+    explicitly checking a website as a proxy for seeing if there is network
+    connectivity. Plus, new ``optional_args`` decorator factory for decorators.
+    (:issue:`3910`, :issue:`3914`)
 
 See the :ref:`full release notes
 <release>` or issue tracker
