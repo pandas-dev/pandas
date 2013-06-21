@@ -1,6 +1,7 @@
 from datetime import datetime
 import pickle
 import unittest
+import nose
 
 import numpy as np
 
@@ -9,7 +10,7 @@ from pandas.tseries.index import DatetimeIndex
 
 from pandas import Timestamp
 from pandas.tseries.offsets import generate_range
-from pandas.tseries.index import bdate_range, date_range
+from pandas.tseries.index import cdate_range, bdate_range, date_range
 import pandas.tseries.tools as tools
 
 import pandas.core.datetools as datetools
@@ -21,6 +22,11 @@ def _skip_if_no_pytz():
         import pytz
     except ImportError:
         raise nose.SkipTest
+
+
+def _skip_if_no_cday():
+    if datetools.cday is None:
+        raise nose.SkipTest("CustomBusinessDay not available.")
 
 
 def eq_gen_range(kwargs, expected):
@@ -35,6 +41,12 @@ class TestGenRangeGeneration(unittest.TestCase):
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=datetools.bday))
         rng2 = list(generate_range(START, END, time_rule='B'))
+        self.assert_(np.array_equal(rng1, rng2))
+
+    def test_generate_cday(self):
+        _skip_if_no_cday()
+        rng1 = list(generate_range(START, END, offset=datetools.cday))
+        rng2 = list(generate_range(START, END, time_rule='C'))
         self.assert_(np.array_equal(rng1, rng2))
 
     def test_1(self):
@@ -364,7 +376,235 @@ class TestDateRange(unittest.TestCase):
         early_dr.union(late_dr)
 
 
+class TestCustomDateRange(unittest.TestCase):
+
+    def setUp(self):
+        _skip_if_no_cday()
+        self.rng = cdate_range(START, END)
+
+    def test_constructor(self):
+        rng = cdate_range(START, END, freq=datetools.cday)
+        rng = cdate_range(START, periods=20, freq=datetools.cday)
+        rng = cdate_range(end=START, periods=20, freq=datetools.cday)
+        self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'C')
+        self.assertRaises(ValueError, cdate_range, '2011-1-1', '2012-1-1', 'C')
+
+    def test_cached_range(self):
+        rng = DatetimeIndex._cached_range(START, END,
+                                          offset=datetools.cday)
+        rng = DatetimeIndex._cached_range(START, periods=20,
+                                          offset=datetools.cday)
+        rng = DatetimeIndex._cached_range(end=START, periods=20,
+                                          offset=datetools.cday)
+
+        self.assertRaises(Exception, DatetimeIndex._cached_range, START, END)
+
+        self.assertRaises(Exception, DatetimeIndex._cached_range, START,
+                          freq=datetools.cday)
+
+        self.assertRaises(Exception, DatetimeIndex._cached_range, end=END,
+                          freq=datetools.cday)
+
+        self.assertRaises(Exception, DatetimeIndex._cached_range, periods=20,
+                          freq=datetools.cday)
+
+    def test_comparison(self):
+        d = self.rng[10]
+
+        comp = self.rng > d
+        self.assert_(comp[11])
+        self.assert_(not comp[9])
+
+    def test_copy(self):
+        cp = self.rng.copy()
+        repr(cp)
+        self.assert_(cp.equals(self.rng))
+
+    def test_repr(self):
+        # only really care that it works
+        repr(self.rng)
+
+    def test_getitem(self):
+        smaller = self.rng[:5]
+        self.assert_(np.array_equal(smaller, self.rng.view(np.ndarray)[:5]))
+        self.assertEquals(smaller.offset, self.rng.offset)
+
+        sliced = self.rng[::5]
+        self.assertEquals(sliced.offset, datetools.cday * 5)
+
+        fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
+        self.assertEquals(len(fancy_indexed), 5)
+        self.assert_(isinstance(fancy_indexed, DatetimeIndex))
+        self.assert_(fancy_indexed.freq is None)
+
+        # 32-bit vs. 64-bit platforms
+        self.assertEquals(self.rng[4], self.rng[np.int_(4)])
+
+    def test_getitem_matplotlib_hackaround(self):
+        values = self.rng[:, None]
+        expected = self.rng.values[:, None]
+        self.assert_(np.array_equal(values, expected))
+
+    def test_shift(self):
+        shifted = self.rng.shift(5)
+        self.assertEquals(shifted[0], self.rng[5])
+        self.assertEquals(shifted.offset, self.rng.offset)
+
+        shifted = self.rng.shift(-5)
+        self.assertEquals(shifted[5], self.rng[0])
+        self.assertEquals(shifted.offset, self.rng.offset)
+
+        shifted = self.rng.shift(0)
+        self.assertEquals(shifted[0], self.rng[0])
+        self.assertEquals(shifted.offset, self.rng.offset)
+
+        rng = date_range(START, END, freq=datetools.bmonthEnd)
+        shifted = rng.shift(1, freq=datetools.cday)
+        self.assertEquals(shifted[0], rng[0] + datetools.cday)
+
+    def test_pickle_unpickle(self):
+        pickled = pickle.dumps(self.rng)
+        unpickled = pickle.loads(pickled)
+
+        self.assert_(unpickled.offset is not None)
+
+    def test_union(self):
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        self.assert_(isinstance(the_union, DatetimeIndex))
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_union = left.union(right)
+        self.assert_(isinstance(the_union, Index))
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_union = left.union(right)
+        self.assert_(isinstance(the_union, DatetimeIndex))
+
+        # order does not matter
+        self.assert_(np.array_equal(right.union(left), the_union))
+
+        # overlapping, but different offset
+        rng = date_range(START, END, freq=datetools.bmonthEnd)
+
+        the_union = self.rng.union(rng)
+        self.assert_(isinstance(the_union, DatetimeIndex))
+
+    def test_outer_join(self):
+        # should just behave as union
+
+        # overlapping
+        left = self.rng[:10]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        self.assert_(isinstance(the_join, DatetimeIndex))
+
+        # non-overlapping, gap in middle
+        left = self.rng[:5]
+        right = self.rng[10:]
+
+        the_join = left.join(right, how='outer')
+        self.assert_(isinstance(the_join, DatetimeIndex))
+        self.assert_(the_join.freq is None)
+
+        # non-overlapping, no gap
+        left = self.rng[:5]
+        right = self.rng[5:10]
+
+        the_join = left.join(right, how='outer')
+        self.assert_(isinstance(the_join, DatetimeIndex))
+
+        # overlapping, but different offset
+        rng = date_range(START, END, freq=datetools.bmonthEnd)
+
+        the_join = self.rng.join(rng, how='outer')
+        self.assert_(isinstance(the_join, DatetimeIndex))
+        self.assert_(the_join.freq is None)
+
+    def test_intersection_bug(self):
+        # GH #771
+        a = cdate_range('11/30/2011', '12/31/2011')
+        b = cdate_range('12/10/2011', '12/20/2011')
+        result = a.intersection(b)
+        self.assert_(result.equals(b))
+
+    def test_summary(self):
+        self.rng.summary()
+        self.rng[2:2].summary()
+
+    def test_summary_pytz(self):
+        _skip_if_no_pytz()
+        import pytz
+        cdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
+
+    def test_misc(self):
+        end = datetime(2009, 5, 13)
+        dr = cdate_range(end=end, periods=20)
+        firstDate = end - 19 * datetools.cday
+
+        assert len(dr) == 20
+        assert dr[0] == firstDate
+        assert dr[-1] == end
+
+    def test_date_parse_failure(self):
+        badly_formed_date = '2007/100/1'
+
+        self.assertRaises(ValueError, Timestamp, badly_formed_date)
+
+        self.assertRaises(ValueError, cdate_range, start=badly_formed_date,
+                          periods=10)
+        self.assertRaises(ValueError, cdate_range, end=badly_formed_date,
+                          periods=10)
+        self.assertRaises(ValueError, cdate_range, badly_formed_date,
+                          badly_formed_date)
+
+    def test_equals(self):
+        self.assertFalse(self.rng.equals(list(self.rng)))
+
+    def test_daterange_bug_456(self):
+        # GH #456
+        rng1 = cdate_range('12/5/2011', '12/5/2011')
+        rng2 = cdate_range('12/2/2011', '12/5/2011')
+        rng2.offset = datetools.CDay()
+
+        result = rng1.union(rng2)
+        self.assert_(isinstance(result, DatetimeIndex))
+
+    def test_cdaterange(self):
+        rng = cdate_range('2013-05-01', periods=3)
+        xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-03'])
+        self.assert_(xp.equals(rng))
+
+    def test_cdaterange_weekmask(self):
+        rng = cdate_range('2013-05-01', periods=3,
+                          weekmask='Sun Mon Tue Wed Thu')
+        xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-05'])
+        self.assert_(xp.equals(rng))
+
+    def test_cdaterange_holidays(self):
+        rng = cdate_range('2013-05-01', periods=3,
+                          holidays=['2013-05-01'])
+        xp = DatetimeIndex(['2013-05-02', '2013-05-03', '2013-05-06'])
+        self.assert_(xp.equals(rng))
+
+    def test_cdaterange_weekmask_and_holidays(self):
+        rng = cdate_range('2013-05-01', periods=3,
+                          weekmask='Sun Mon Tue Wed Thu',
+                          holidays=['2013-05-01'])
+        xp = DatetimeIndex(['2013-05-02', '2013-05-05', '2013-05-06'])
+        self.assert_(xp.equals(rng))
+
+
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
