@@ -4,41 +4,27 @@ from datetime import datetime
 
 import pandas as pd
 import pandas.io.data as web
-from pandas.util.testing import (network, assert_frame_equal,
-                                 assert_series_equal,
-                                 assert_almost_equal)
-from numpy.testing.decorators import slow
-
-import urllib2
+from pandas.util.testing import network, assert_series_equal, with_connectivity_check
 
 
 class TestYahoo(unittest.TestCase):
 
-    @network
+    @with_connectivity_check("http://www.google.com")
     def test_yahoo(self):
         # asserts that yahoo is minimally working and that it throws
-        # an excecption when DataReader can't get a 200 response from
+        # an exception when DataReader can't get a 200 response from
         # yahoo
         start = datetime(2010, 1, 1)
         end = datetime(2013, 01, 27)
 
-        try:
-            self.assertEquals(
-                web.DataReader("F", 'yahoo', start, end)['Close'][-1],
-                13.68)
+        self.assertEquals(
+            web.DataReader("F", 'yahoo', start, end)['Close'][-1],
+            13.68)
 
-            self.assertRaises(
-                Exception,
-                lambda: web.DataReader("NON EXISTENT TICKER", 'yahoo',
+        self.assertRaises(
+            Exception,
+            lambda: web.DataReader("NON EXISTENT TICKER", 'yahoo',
                                       start, end))
-        except urllib2.URLError:
-            try:
-                urllib2.urlopen('http://www.google.com')
-            except urllib2.URLError:
-                raise nose.SkipTest
-            else:
-                raise
-
 
     @network
     def test_get_quote(self):
