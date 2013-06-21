@@ -1037,6 +1037,24 @@ baz,7,8,9
                                   iterator=True)
         self.assert_(isinstance(treader, TextFileReader))
 
+        # stopping iteration when on chunksize is specified, GH 3967
+        data = """A,B,C
+foo,1,2,3
+bar,4,5,6
+baz,7,8,9
+"""
+        reader = self.read_csv(StringIO(data), iterator=True)
+        result = list(reader)
+        expected = DataFrame(dict(A = [1,4,7], B = [2,5,8], C = [3,6,9]), index=['foo','bar','baz'])
+        tm.assert_frame_equal(result[0], expected)
+
+        # chunksize = 1
+        reader = self.read_csv(StringIO(data), chunksize=1)
+        result = list(reader)
+        expected = DataFrame(dict(A = [1,4,7], B = [2,5,8], C = [3,6,9]), index=['foo','bar','baz'])
+        self.assert_(len(result) == 3)
+        tm.assert_frame_equal(pd.concat(result), expected)
+
     def test_header_not_first_line(self):
         data = """got,to,ignore,this,line
 got,to,ignore,this,line
