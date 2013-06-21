@@ -168,6 +168,11 @@ pandas 0.11.1
     until success is also valid
   - more consistency in the to_datetime return types (give string/array of string inputs) (:issue:`3888`)
 
+**Experimental Feautres**
+
+  - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
+    with custom holiday calendars and custom weekmasks. (:issue:`2301`)
+
 **Bug Fixes**
 
   - Fixed an esoteric excel reading bug, xlrd>= 0.9.0 now required for excel
