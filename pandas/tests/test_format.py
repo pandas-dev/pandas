@@ -337,8 +337,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         empty = DataFrame({u'c/\u03c3': Series()})
         nonempty = DataFrame({u'c/\u03c3': Series([1, 2, 3])})
 
-        print >>buf, empty  # TODO py3?
-        print >>buf, nonempty  # TODO py3?
+        print >>buf, empty
+        print >>buf, nonempty
 
         # this should work
         buf.getvalue()
