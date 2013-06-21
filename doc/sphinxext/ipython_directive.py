@@ -296,11 +296,14 @@ class EmbeddedSphinxShell(object):
         is_savefig = decorator is not None and \
                      decorator.startswith('@savefig')
 
-        input_lines = input.split('\n')
+        def _remove_first_space_if_any(line):
+            return line[1:] if line.startswith(' ') else line
+
+        input_lines = map(_remove_first_space_if_any, input.split('\n'))
 
         self.datacontent = data
 
-        continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
+        continuation = '   %s: '%''.join(['.']*(len(str(lineno))+2))
 
         if is_savefig:
             image_file, image_directive = self.process_image(decorator)
