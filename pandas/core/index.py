@@ -563,7 +563,7 @@ class Index(np.ndarray):
             return self
 
         offset = periods * freq
-        return Index([idx + offset for idx in self])
+        return Index([idx + offset for idx in self], name=self.name)
 
     def argsort(self, *args, **kwargs):
         """
