@@ -348,6 +348,24 @@ We are stopping on the included end-point as its part of the index
       dft.loc['2013-1-15 12:30:00']
 
 
+Datetime Indexing
+~~~~~~~~~~~~~~~~~
+
+Indexing a ``DateTimeIndex`` with a partial string depends on the "accuracy" of the period, in other words how specific the interval is in relation to the frequency of the index. In contrast, indexing with datetime objects is exact, because the objects have exact meaning. These also follow the sematics of *including both endpoints*.
+
+These ``datetime`` objects  are specific ``hours, minutes,`` and ``seconds`` even though they were not explicity specified (they are ``0``).
+
+.. ipython:: python
+
+   dft[datetime(2013, 1, 1):datetime(2013,2,28)]
+
+With no defaults.
+
+.. ipython:: python
+
+   dft[datetime(2013, 1, 1, 10, 12, 0):datetime(2013, 2, 28, 10, 12, 0)]
+
+
 Truncating & Fancy Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
