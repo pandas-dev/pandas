@@ -88,7 +88,7 @@ pandas 0.11.1
   - DatetimeIndexes no longer try to convert mixed-integer indexes during join
     operations (:issue:`3877`)
   - Add ``unit`` keyword to ``Timestamp`` and ``to_datetime`` to enable passing of
-    integers or floats that are in an epoch unit of ``s, ms, us, ns``
+    integers or floats that are in an epoch unit of ``D, s, ms, us, ns``, thanks @mtkini (:issue:`3969`)
     (e.g. unix timestamps or epoch ``s``, with fracional seconds allowed) (:issue:`3540`)
   - DataFrame corr method (spearman) is now cythonized.
 
