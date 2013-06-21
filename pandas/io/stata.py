@@ -407,7 +407,7 @@ class StataReader(StataParser):
 
     def _next(self):
         typlist = self.typlist
-        if self._has_string_data:
+        if self.has_string_data:
             data = [None] * self.nvar
             for i in range(len(data)):
                 if type(typlist[i]) is int:
@@ -523,7 +523,8 @@ class StataReader(StataParser):
         for i in cols_:
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
-                data[col] = Series(data[col], data[col].index, self.dtyplist[i])
+                if data[col].dtype is not np.dtype(object):
+                    data[col] = Series(data[col], data[col].index, self.dtyplist[i])
 
         if convert_dates:
             cols = np.where(map(lambda x: x in _date_formats, self.fmtlist))[0]
@@ -856,7 +857,7 @@ class StataWriter(StataParser):
                 typ = ord(typlist[i])
                 if typ <= 244:  # we've got a string
                     if len(var) < typ:
-                        var = _pad_bytes(self._decode_bytes(var), len(var) + 1)
+                        var = _pad_bytes(var, typ)
                     self._write(var)
                 else:
                     try:
@@ -884,15 +885,13 @@ class StataWriter(StataParser):
                 if i in convert_dates:
                     var = _datetime_to_stata_elapsed(var, self.fmtlist[i])
                 if typ <= 244:  # we've got a string
-                    if isnull(var):
-                        var = ""  # missing string
                     if len(var) < typ:
-                        var = _pad_bytes(var, len(var) + 1)
+                        var = _pad_bytes(var, typ)
                     self._write(var)
                 else:
                     if isnull(var):  # this only matters for floats
                         var = MISSING_VALUES[typ]
-                    self._write(struct.pack(byteorder+TYPE_MAP[typ], var))
+                    self._file.write(struct.pack(byteorder+TYPE_MAP[typ], var))
 
     def _null_terminate(self, s, as_string=False):
         null_byte = '\x00'
