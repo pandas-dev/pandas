@@ -186,7 +186,7 @@ def _read(filepath_or_buffer, kwds):
             kwds['parse_dates'] = True
 
     # Extract some of the arguments (pass chunksize on).
-    iterator = kwds.pop('iterator', False)
+    iterator = kwds.get('iterator', False)
     nrows = kwds.pop('nrows', None)
     chunksize = kwds.get('chunksize', None)
 
@@ -569,8 +569,11 @@ class TextFileReader(object):
 
     def __iter__(self):
         try:
-            while True:
-                yield self.read(self.chunksize)
+            if self.chunksize:
+                while True:
+                    yield self.read(self.chunksize)
+            else:
+                yield self.read()
         except StopIteration:
             pass
 
@@ -1594,47 +1597,58 @@ class PythonParser(ParserBase):
     def _get_lines(self, rows=None):
         source = self.data
         lines = self.buf
+        new_rows = None
 
         # already fetched some number
         if rows is not None:
-            rows -= len(self.buf)
 
-        if isinstance(source, list):
-            if self.pos > len(source):
-                raise StopIteration
-            if rows is None:
-                lines.extend(source[self.pos:])
-                self.pos = len(source)
+            # we already have the lines in the buffer
+            if len(self.buf) >= rows:
+                new_rows, self.buf = self.buf[:rows], self.buf[rows:]
+
+            # need some lines
             else:
-                lines.extend(source[self.pos:self.pos + rows])
-                self.pos += rows
-        else:
-            new_rows = []
-            try:
-                if rows is not None:
-                    for _ in xrange(rows):
-                        new_rows.append(next(source))
-                    lines.extend(new_rows)
-                else:
-                    rows = 0
-                    while True:
-                        try:
-                            new_rows.append(next(source))
-                            rows += 1
-                        except csv.Error, inst:
-                            if 'newline inside string' in str(inst):
-                                row_num = str(self.pos + rows)
-                                msg = ('EOF inside string starting with line '
-                                       + row_num)
-                                raise Exception(msg)
-                            raise
-            except StopIteration:
-                lines.extend(new_rows)
-                if len(lines) == 0:
-                    raise
-            self.pos += len(new_rows)
+                rows -= len(self.buf)
 
-        self.buf = []
+        if new_rows is None:
+            if isinstance(source, list):
+                if self.pos > len(source):
+                    raise StopIteration
+                if rows is None:
+                    lines.extend(source[self.pos:])
+                    self.pos = len(source)
+                else:
+                    lines.extend(source[self.pos:self.pos + rows])
+                    self.pos += rows
+            else:
+                new_rows = []
+                try:
+                    if rows is not None:
+                        for _ in xrange(rows):
+                            new_rows.append(next(source))
+                        lines.extend(new_rows)
+                    else:
+                        rows = 0
+                        while True:
+                            try:
+                                new_rows.append(next(source))
+                                rows += 1
+                            except csv.Error, inst:
+                                if 'newline inside string' in str(inst):
+                                    row_num = str(self.pos + rows)
+                                    msg = ('EOF inside string starting with line '
+                                           + row_num)
+                                    raise Exception(msg)
+                                raise
+                except StopIteration:
+                    lines.extend(new_rows)
+                    if len(lines) == 0:
+                        raise
+                self.pos += len(new_rows)
+
+            self.buf = []
+        else:
+            lines = new_rows
 
         if self.skip_footer:
             lines = lines[:-self.skip_footer]
