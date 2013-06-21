@@ -10,6 +10,8 @@ def read_clipboard(**kwargs):  # pragma: no cover
     -------
     parsed : DataFrame
     """
+    if kwargs.get('sep') is None and kwargs.get('delim_whitespace') is None:
+        kwargs['sep'] = '\s+'
     from pandas.util.clipboard import clipboard_get
     from pandas.io.parsers import read_table
     text = clipboard_get()

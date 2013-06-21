@@ -1405,7 +1405,7 @@ Clipboard
 
 A handy way to grab data is to use the ``read_clipboard`` method, which takes
 the contents of the clipboard buffer and passes them to the ``read_table``
-method described in the next section. For instance, you can copy the following
+method. For instance, you can copy the following
 text to the clipboard (CTRL-C on many operating systems):
 
 .. code-block:: python
@@ -1419,7 +1419,7 @@ And then import the data directly to a DataFrame by calling:
 
 .. code-block:: python
 
-   clipdf = pd.read_clipboard(delim_whitespace=True)
+   clipdf = pd.read_clipboard()
 
 .. ipython:: python
 
