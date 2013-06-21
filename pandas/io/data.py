@@ -115,7 +115,7 @@ def get_quote_yahoo(symbols):
         lines = urllib2.urlopen(urlStr).readlines()
     except Exception, e:
         s = "Failed to download:\n{0}".format(e)
-        print s
+        print (s)
         return None
 
     for line in lines:
@@ -467,7 +467,7 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
     start, end = _sanitize_dates(start, end)
 
     if(name is None):
-        print "Need to provide a name"
+        print ("Need to provide a name")
         return None
 
     fred_URL = "http://research.stlouisfed.org/fred2/series/"
