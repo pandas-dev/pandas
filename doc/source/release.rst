@@ -91,6 +91,11 @@ pandas 0.11.1
     integers or floats that are in an epoch unit of ``D, s, ms, us, ns``, thanks @mtkini (:issue:`3969`)
     (e.g. unix timestamps or epoch ``s``, with fracional seconds allowed) (:issue:`3540`)
   - DataFrame corr method (spearman) is now cythonized.
+  - Improved ``network`` test decorator to catch ``IOError`` (and therefore
+    ``URLError`` as well). Added ``with_connectivity_check`` decorator to allow
+    explicitly checking a website as a proxy for seeing if there is network
+    connectivity. Plus, new ``optional_args`` decorator factory for decorators.
+    (:issue:`3910`, :issue:`3914`)
 
 **API Changes**
 
