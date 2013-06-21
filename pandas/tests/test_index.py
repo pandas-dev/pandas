@@ -204,6 +204,9 @@ class TestIndex(unittest.TestCase):
         shifted = self.dateIndex.shift(1, 'B')
         self.assert_(np.array_equal(shifted, self.dateIndex + offsets.BDay()))
 
+        shifted.name = 'shifted'
+        self.assertEqual(shifted.name, shifted.shift(1, 'D').name)
+
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]

@@ -270,6 +270,7 @@ pandas 0.11.1
   - Indexing with a string with seconds resolution not selecting from a time index (:issue:`3925`)
   - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was 
     specified (:issue:`3967`), python parser failing with ``chunksize=1``
+	- Fix index name not propogating when using ``shift`` 
 
 .. _Gh3616: https://github.com/pydata/pandas/issues/3616
 
