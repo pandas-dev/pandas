@@ -86,8 +86,8 @@ class TestReadHtmlBase(TestCase):
         out = df.to_html()
         res = self.run_read_html(out, attrs={'class': 'dataframe'},
                                  index_col=0)[0]
-        print df.dtypes
-        print res.dtypes
+        print (df.dtypes)
+        print (res.dtypes)
         assert_frame_equal(res, df)
 
     @network
@@ -125,7 +125,7 @@ class TestReadHtmlBase(TestCase):
         df2 = self.run_read_html(self.spam_data, 'Unit', infer_types=False)
 
         assert_framelist_equal(df1, df2)
-        print df1[0]
+        print (df1[0])
 
         self.assertEqual(df1[0].ix[0, 0], 'Proximates')
         self.assertEqual(df1[0].columns[0], 'Nutrient')

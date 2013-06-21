@@ -124,10 +124,10 @@ class RVAR(object):
         return rpy.convert_robj(r.coef(self._estimate))
 
     def summary(self, equation=None):
-        print r.summary(self._estimate, equation=equation)
+        print (r.summary(self._estimate, equation=equation))
 
     def output(self):
-        print self._estimate
+        print (self._estimate)
 
     def estimate(self):
         self._estimate = r.VAR(self.rdata, p=self.p, type=self.type)
@@ -144,7 +144,7 @@ class RVAR(object):
         return test
 
     def data_summary(self):
-        print r.summary(self.rdata)
+        print (r.summary(self.rdata))
 
 
 class TestVAR(TestCase):

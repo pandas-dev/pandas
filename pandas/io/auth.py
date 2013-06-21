@@ -55,7 +55,7 @@ def process_flags(flags=[]):
     try:
         FLAGS(flags)
     except gflags.FlagsError, e:
-        print '%s\nUsage: %s ARGS\n%s' % (e, str(flags), FLAGS)
+        print ('%s\nUsage: %s ARGS\n%s' % (e, str(flags), FLAGS))
         sys.exit(1)
 
     # Set the logging according to the command-line flag.

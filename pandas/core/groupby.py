@@ -1420,7 +1420,7 @@ class SeriesGroupBy(GroupBy):
             ret = Series(result, index=index)
 
         if not self.as_index:  # pragma: no cover
-            print 'Warning, ignoring as_index=True'
+            print ('Warning, ignoring as_index=True')
 
         return ret
 

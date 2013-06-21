@@ -508,7 +508,7 @@ class TextFileReader(object):
         sep = options['delimiter']
         if (sep is None and not options['delim_whitespace']):
             if engine == 'c':
-                print 'Using Python parser to sniff delimiter'
+                print ('Using Python parser to sniff delimiter')
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
             # wait until regex engine integrated
@@ -870,7 +870,7 @@ class ParserBase(object):
                                                   coerce_type)
             result[c] = cvals
             if verbose and na_count:
-                print 'Filled %d NA values in column %s' % (na_count, str(c))
+                print ('Filled %d NA values in column %s' % (na_count, str(c)))
         return result
 
     def _convert_types(self, values, na_values, try_num_bool=True):
