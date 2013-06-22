@@ -5,11 +5,12 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import pandas.io.data as web
+from numpy.testing.decorators import slow
 from pandas.util.testing import network, with_connectivity_check
 
 
 class TestGoogle(unittest.TestCase):
-
+    @slow
     @with_connectivity_check("http://www.google.com")
     def test_google(self):
         # asserts that google is minimally working and that it throws
@@ -27,17 +28,19 @@ class TestGoogle(unittest.TestCase):
             lambda: web.DataReader("NON EXISTENT TICKER", 'google',
                                 start, end))
 
-
     @network
     def test_get_quote(self):
         self.assertRaises(NotImplementedError,
                 lambda: web.get_quote_google(pd.Series(['GOOG', 'AAPL', 'GOOG'])))
 
+
+    @slow
     @with_connectivity_check('http://www.google.com')
     def test_get_goog_volume(self):
         df = web.get_data_google('GOOG')
         assert df.Volume.ix['OCT-08-2010'] == 2863473
 
+    @slow
     @with_connectivity_check('http://www.google.com')
     def test_get_multi1(self):
         sl = ['AAPL', 'AMZN', 'GOOG']
@@ -45,6 +48,7 @@ class TestGoogle(unittest.TestCase):
         ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
         assert ts[0].dayofyear == 96
 
+    @slow
     @with_connectivity_check('http://www.google.com')
     def test_get_multi2(self):
         pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12', 'JAN-31-12')
