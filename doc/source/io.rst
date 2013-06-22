@@ -2464,8 +2464,10 @@ Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
    import os
    os.remove('stata.dta')
    
-Data
-----
+Data Reader
+-----------
+
+.. _io.data_reader:
 
 Functions from :mod:`pandas.io.data` extract data from various Internet
 sources into a DataFrame. Currently the following sources are supported:
@@ -2477,41 +2479,45 @@ sources into a DataFrame. Currently the following sources are supported:
 
 It should be noted, that various sources support different kinds of data, so not all sources implement the same methods and the data elements returned might also differ.
 
-Loading Yahoo! Finance data:
+Yahoo! Finance
+~~~~~~~~~~~~~~
 
 .. ipython:: python
 
     import pandas.io.data as web
-    from datetime import datetime
-    start = datetime(2010, 1, 1)
-    end = datetime(2013, 01, 27)
+    start = datetime.datetime(2010, 1, 1)
+    end = datetime.datetime(2013, 01, 27)
     f=web.DataReader("F", 'yahoo', start, end)
     f.ix['2010-01-04']
 
-Loading Google Finance data:
+Google Finance
+~~~~~~~~~~~~~~
 
 .. ipython:: python
 
     import pandas.io.data as web
-    from datetime import datetime
-    start = datetime(2010, 1, 1)
-    end = datetime(2013, 01, 27)
+    start = datetime.datetime(2010, 1, 1)
+    end = datetime.datetime(2013, 01, 27)
     f=web.DataReader("F", 'google', start, end)
     f.ix['2010-01-04']
 
-Loading FRED data:
+FRED
+~~~~
 
 .. ipython:: python
 
     import pandas.io.data as web
-    from datetime import datetime
-    start = datetime(2010, 1, 1)
-    end = datetime(2013, 01, 27)
+    start = datetime.datetime(2010, 1, 1)
+    end = datetime.datetime(2013, 01, 27)
     gdp=web.DataReader("GDP", "fred", start, end)
     gdp.ix['2013-01-01']
 
-Loading Fama/French data (the dataset names are listed at `Fama/French Data Library
-<http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html>`_):
+
+Fama/French
+~~~~~~~~~~~
+
+Tthe dataset names are listed at `Fama/French Data Library
+<http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html>`_)
 
 .. ipython:: python
 
