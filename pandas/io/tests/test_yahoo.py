@@ -1,6 +1,7 @@
 import unittest
 import nose
 from datetime import datetime
+import warnings
 
 import pandas as pd
 import pandas.io.data as web
@@ -102,33 +103,25 @@ class TestYahoo(unittest.TestCase):
             import lxml
         except ImportError:
             raise nose.SkipTest
-        try:
-            # aapl has monthlies
-            aapl = web.Options('aapl', 'yahoo')
-            today = datetime.today()
-            year = today.year
-            month = today.month+1
-            if (month>12):
-                year = year +1
-                month = 1
-            expiry=datetime(year, month, 1)
-            (calls, puts) = aapl.get_options_data(expiry=expiry)
-            assert len(calls)>1
-            assert len(puts)>1
-            (calls, puts) = aapl.get_near_stock_price(call=True, put=True, expiry=expiry)
-            assert len(calls)==5
-            assert len(puts)==5
-            calls = aapl.get_call_data(expiry=expiry)
-            assert len(calls)>1
-            puts = aapl.get_put_data(expiry=expiry)
-            assert len(puts)>1
-        except IOError:
-            try:
-                urllib2.urlopen('http://www.google.com')
-            except IOError:
-                raise nose.SkipTest
-            else:
-                raise
+        # aapl has monthlies
+        aapl = web.Options('aapl', 'yahoo')
+        today = datetime.today()
+        year = today.year
+        month = today.month+1
+        if (month>12):
+            year = year +1
+            month = 1
+        expiry=datetime(year, month, 1)
+        (calls, puts) = aapl.get_options_data(expiry=expiry)
+        assert len(calls)>1
+        assert len(puts)>1
+        (calls, puts) = aapl.get_near_stock_price(call=True, put=True, expiry=expiry)
+        assert len(calls)==5
+        assert len(puts)==5
+        calls = aapl.get_call_data(expiry=expiry)
+        assert len(calls)>1
+        puts = aapl.get_put_data(expiry=expiry)
+        assert len(puts)>1
 
     @network
     def test_options_warnings(self):
@@ -136,38 +129,29 @@ class TestYahoo(unittest.TestCase):
             import lxml
         except ImportError:
             raise nose.SkipTest
-        try:
-            import warnings
-            with warnings.catch_warnings(record=True) as w:
-                warnings.resetwarnings()
-                # Cause all warnings to always be triggered.
-                warnings.simplefilter("always")
-                # aapl has monthlies
-                aapl = web.Options('aapl')
-                today = datetime.today()
-                year = today.year
-                month = today.month+1
-                if (month>12):
-                    year = year +1
-                    month = 1
-                (calls, puts) = aapl.get_options_data(month=month, year=year)
-                (calls, puts) = aapl.get_near_stock_price(call=True, put=True, month=month, year=year)
-                calls = aapl.get_call_data(month=month, year=year)
-                puts = aapl.get_put_data(month=month, year=year)
-                print(w)
-                assert len(w) == 5
-                assert "deprecated" in str(w[0].message)
-                assert "deprecated" in str(w[1].message)
-                assert "deprecated" in str(w[2].message)
-                assert "deprecated" in str(w[3].message)
-                assert "deprecated" in str(w[4].message)
-        except IOError:
-            try:
-                urllib2.urlopen('http://www.google.com')
-            except IOError:
-                raise nose.SkipTest
-            else:
-                raise
+        with warnings.catch_warnings(record=True) as w:
+            warnings.resetwarnings()
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+            # aapl has monthlies
+            aapl = web.Options('aapl')
+            today = datetime.today()
+            year = today.year
+            month = today.month+1
+            if (month>12):
+                year = year +1
+                month = 1
+            (calls, puts) = aapl.get_options_data(month=month, year=year)
+            (calls, puts) = aapl.get_near_stock_price(call=True, put=True, month=month, year=year)
+            calls = aapl.get_call_data(month=month, year=year)
+            puts = aapl.get_put_data(month=month, year=year)
+            print(w)
+            assert len(w) == 5
+            assert "deprecated" in str(w[0].message)
+            assert "deprecated" in str(w[1].message)
+            assert "deprecated" in str(w[2].message)
+            assert "deprecated" in str(w[3].message)
+            assert "deprecated" in str(w[4].message)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
