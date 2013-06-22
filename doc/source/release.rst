@@ -156,6 +156,9 @@ pandas 0.11.1
       ``load`` will give deprecation warning.  
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
+  - set FutureWarning to require data_source, and to replace year/month with
+    expiry date in pandas.io options. This is in preparation to add options
+    data from google (:issue:`3822`)
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
   - Implement ``__nonzero__`` for ``NDFrame`` objects (:issue:`3691`, :issue:`3696`)

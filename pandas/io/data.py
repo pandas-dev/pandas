@@ -10,6 +10,7 @@ import datetime as dt
 import urllib
 import urllib2
 import time
+import warnings
 
 from zipfile import ZipFile
 from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
@@ -111,12 +112,7 @@ def get_quote_yahoo(symbols):
     urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (
         sym_list, request)
 
-    try:
-        lines = urllib2.urlopen(urlStr).readlines()
-    except Exception, e:
-        s = "Failed to download:\n{0}".format(e)
-        print (s)
-        return None
+    lines = urllib2.urlopen(urlStr).readlines()
 
     for line in lines:
         fields = line.decode('utf-8').strip().split(',')
@@ -539,7 +535,7 @@ def _parse_options_data(table):
 
 class Options(object):
     """
-    This class fetches call/put data for a given stock/exipry month.
+    This class fetches call/put data for a given stock/expiry month.
 
     It is instantiated with a string representing the ticker symbol.
 
@@ -553,7 +549,7 @@ class Options(object):
     Examples
     --------
     # Instantiate object with ticker
-    >>> aapl = Options('aapl')
+    >>> aapl = Options('aapl', 'yahoo')
 
     # Fetch September 2012 call data
     >>> calls = aapl.get_call_data(9, 2012)
@@ -576,24 +572,25 @@ class Options(object):
 
     """
 
-    def __init__(self, symbol):
+    def __init__(self, symbol, data_source=None):
         """ Instantiates options_data with a ticker saved as symbol """
         self.symbol = str(symbol).upper()
+        if (data_source is None):
+            warnings.warn("Options(symbol) is deprecated, use Options(symbol, data_source) instead",
+                      FutureWarning)
+            data_source = "yahoo"
+        if (data_source != "yahoo"):
+            raise NotImplementedError("currently only yahoo supported")
 
-    def get_options_data(self, month=None, year=None):
+    def get_options_data(self, month=None, year=None, expiry=None):
         """
         Gets call/put data for the stock with the expiration data in the
         given month and year
 
         Parameters
         ----------
-        month: number, int, optional(default=None)
-            The month the options expire. This should be either 1 or 2
-            digits.
-
-        year: number, int, optional(default=None)
-            The year the options expire. This sould be a 4 digit int.
-
+        expiry: datetime.date, optional(default=None)
+            The date when options expire (defaults to current month)
 
         Returns
         -------
@@ -609,7 +606,7 @@ class Options(object):
         When called, this function will add instance variables named
         calls and puts. See the following example:
 
-            >>> aapl = Options('aapl')  # Create object
+            >>> aapl = Options('aapl', 'yahoo')  # Create object
             >>> aapl.calls  # will give an AttributeError
             >>> aapl.get_options_data()  # Get data and set ivars
             >>> aapl.calls  # Doesn't throw AttributeError
@@ -621,6 +618,8 @@ class Options(object):
         representations of the month and year for the expiry of the
         options.
         """
+        year, month = self._try_parse_dates(year,month,expiry)
+
         from lxml.html import parse
 
         if month and year:  # try to get specified month from yahoo finance
@@ -659,19 +658,15 @@ class Options(object):
 
         return [call_data, put_data]
 
-    def get_call_data(self, month=None, year=None):
+    def get_call_data(self, month=None, year=None, expiry=None):
         """
         Gets call/put data for the stock with the expiration data in the
         given month and year
 
         Parameters
         ----------
-        month: number, int, optional(default=None)
-            The month the options expire. This should be either 1 or 2
-            digits.
-
-        year: number, int, optional(default=None)
-            The year the options expire. This sould be a 4 digit int.
+        expiry: datetime.date, optional(default=None)
+            The date when options expire (defaults to current month)
 
         Returns
         -------
@@ -683,7 +678,7 @@ class Options(object):
         When called, this function will add instance variables named
         calls and puts. See the following example:
 
-            >>> aapl = Options('aapl')  # Create object
+            >>> aapl = Options('aapl', 'yahoo')  # Create object
             >>> aapl.calls  # will give an AttributeError
             >>> aapl.get_call_data()  # Get data and set ivars
             >>> aapl.calls  # Doesn't throw AttributeError
@@ -694,6 +689,8 @@ class Options(object):
         repsectively, two digit representations of the month and year
         for the expiry of the options.
         """
+        year, month = self._try_parse_dates(year,month,expiry)
+
         from lxml.html import parse
 
         if month and year:  # try to get specified month from yahoo finance
@@ -727,19 +724,15 @@ class Options(object):
 
         return call_data
 
-    def get_put_data(self, month=None, year=None):
+    def get_put_data(self, month=None, year=None, expiry=None):
         """
         Gets put data for the stock with the expiration data in the
         given month and year
 
         Parameters
         ----------
-        month: number, int, optional(default=None)
-            The month the options expire. This should be either 1 or 2
-            digits.
-
-        year: number, int, optional(default=None)
-            The year the options expire. This sould be a 4 digit int.
+        expiry: datetime.date, optional(default=None)
+            The date when options expire (defaults to current month)
 
         Returns
         -------
@@ -764,6 +757,8 @@ class Options(object):
         repsectively, two digit representations of the month and year
         for the expiry of the options.
         """
+        year, month = self._try_parse_dates(year,month,expiry)
+
         from lxml.html import parse
 
         if month and year:  # try to get specified month from yahoo finance
@@ -798,7 +793,7 @@ class Options(object):
         return put_data
 
     def get_near_stock_price(self, above_below=2, call=True, put=False,
-                             month=None, year=None):
+                             month=None, year=None, expiry=None):
         """
         Cuts the data frame opt_df that is passed in to only take
         options that are near the current stock price.
@@ -810,19 +805,15 @@ class Options(object):
             should be taken
 
         call: bool
-            Tells the function weather or not it should be using
+            Tells the function whether or not it should be using
             self.calls
 
         put: bool
             Tells the function weather or not it should be using
             self.puts
 
-        month: number, int, optional(default=None)
-            The month the options expire. This should be either 1 or 2
-            digits.
-
-        year: number, int, optional(default=None)
-            The year the options expire. This sould be a 4 digit int.
+        expiry: datetime.date, optional(default=None)
+            The date when options expire (defaults to current month)
 
         Returns
         -------
@@ -831,6 +822,8 @@ class Options(object):
             desired. If there isn't data as far out as the user has asked for
             then
         """
+        year, month = self._try_parse_dates(year,month,expiry)
+
         price = float(get_quote_yahoo([self.symbol])['last'])
 
         if call:
@@ -843,13 +836,6 @@ class Options(object):
                     df_c = self.calls
             except AttributeError:
                 df_c = self.get_call_data(month, year)
-
-            # NOTE: For some reason the put commas in all values >1000. We remove
-            #       them here
-            df_c.Strike = df_c.Strike.astype(str).apply(lambda x: \
-                                                        x.replace(',', ''))
-            # Now make sure Strike column has dtype float
-            df_c.Strike = df_c.Strike.astype(float)
 
             start_index = np.where(df_c['Strike'] > price)[0][0]
 
@@ -872,13 +858,6 @@ class Options(object):
             except AttributeError:
                 df_p = self.get_put_data(month, year)
 
-            # NOTE: For some reason the put commas in all values >1000. We remove
-            #       them here
-            df_p.Strike = df_p.Strike.astype(str).apply(lambda x: \
-                                                        x.replace(',', ''))
-            # Now make sure Strike column has dtype float
-            df_p.Strike = df_p.Strike.astype(float)
-
             start_index = np.where(df_p.Strike > price)[0][0]
 
             get_range = range(start_index - above_below,
@@ -897,11 +876,21 @@ class Options(object):
             else:
                 return chop_put
 
+    def _try_parse_dates(self, year, month, expiry):
+        if year is not None or month is not None:
+            warnings.warn("month, year arguments are deprecated, use expiry instead",
+                      FutureWarning)
+
+        if expiry is not None:
+            year=expiry.year
+            month=expiry.month
+        return year, month
+
     def get_forward_data(self, months, call=True, put=False, near=False,
                          above_below=2):
         """
         Gets either call, put, or both data for months starting in the current
-        month and going out in the future a spcified amount of time.
+        month and going out in the future a specified amount of time.
 
         Parameters
         ----------
@@ -933,6 +922,7 @@ class Options(object):
             If asked for, a DataFrame containing put data from the current
             month to the current month plus months.
         """
+        warnings.warn("get_forward_data() is deprecated", FutureWarning)
         in_months = range(cur_month, cur_month + months + 1)
         in_years = [cur_year] * (months + 1)
 
