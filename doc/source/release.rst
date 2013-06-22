@@ -96,6 +96,8 @@ pandas 0.11.1
     explicitly checking a website as a proxy for seeing if there is network
     connectivity. Plus, new ``optional_args`` decorator factory for decorators.
     (:issue:`3910`, :issue:`3914`)
+  - ``read_csv`` will now throw a more informative error message when a file
+    contains no columns, e.g., all newline characters
 
 **API Changes**
 

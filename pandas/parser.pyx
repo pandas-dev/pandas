@@ -476,6 +476,9 @@ cdef class TextReader:
         self.names = names
         self.header, self.table_width = self._get_header()
 
+        if not self.table_width:
+            raise ValueError("No columns to parse from file")
+
         # compute buffer_lines as function of table width
         heuristic = 2**20 // self.table_width
         self.buffer_lines = 1

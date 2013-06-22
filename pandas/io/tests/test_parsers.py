@@ -2330,6 +2330,19 @@ No,No,No"""
         expected = self.read_csv(StringIO(data.replace('\r', '\n')))
         tm.assert_frame_equal(result, expected)
 
+    def test_raise_on_no_columns(self):
+        # single newline
+        data = """
+"""
+        self.assertRaises(ValueError, self.read_csv, StringIO(data))
+
+        # test with more than a single newline
+        data = """
+
+
+"""
+        self.assertRaises(ValueError, self.read_csv, StringIO(data))
+
 
 class TestParseSQL(unittest.TestCase):
 
