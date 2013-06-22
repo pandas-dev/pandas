@@ -949,6 +949,7 @@ class CParserWrapper(ParserBase):
 
         # #2442
         kwds['allow_leading_cols'] = self.index_col is not False
+
         self._reader = _parser.TextReader(src, **kwds)
 
         # XXX
