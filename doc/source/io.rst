@@ -2477,6 +2477,8 @@ sources into a DataFrame. Currently the following sources are supported:
 
 It should be noted, that various sources support different kinds of data, so not all sources implement the same methods and the data elements returned might also differ.
 
+Loading Yahoo! Finance data:
+
 .. ipython:: python
 
     import pandas.io.data as web
@@ -2485,3 +2487,34 @@ It should be noted, that various sources support different kinds of data, so not
     end = datetime(2013, 01, 27)
     f=web.DataReader("F", 'yahoo', start, end)
     f.ix['2010-01-04']
+
+Loading Google Finance data:
+
+.. ipython:: python
+
+    import pandas.io.data as web
+    from datetime import datetime
+    start = datetime(2010, 1, 1)
+    end = datetime(2013, 01, 27)
+    f=web.DataReader("F", 'google', start, end)
+    f.ix['2010-01-04']
+
+Loading FRED data:
+
+.. ipython:: python
+
+    import pandas.io.data as web
+    from datetime import datetime
+    start = datetime(2010, 1, 1)
+    end = datetime(2013, 01, 27)
+    gdp=web.DataReader("GDP", "fred", start, end)
+    gdp.ix['2013-01-01']
+
+Loading Fama/French data (the dataset names are listed at `Fama/French Data Library
+<http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html>`_):
+
+.. ipython:: python
+
+    import pandas.io.data as web
+    ip=web.DataReader("5_Industry_Portfolios", "famafrench")
+    ip[4].ix[192607]
