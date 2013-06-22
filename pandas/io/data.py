@@ -877,11 +877,11 @@ class Options(object):
                 return chop_put
 
     def _try_parse_dates(self, year, month, expiry):
-        if (year is not None or month is not None):
+        if year is not None or month is not None:
             warnings.warn("month, year arguments are deprecated, use expiry instead",
                       FutureWarning)
 
-        if (expiry is not None):
+        if expiry is not None:
             year=expiry.year
             month=expiry.month
         return year, month
