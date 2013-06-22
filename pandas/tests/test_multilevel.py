@@ -948,6 +948,19 @@ Thur,Lunch,Yes,51.51,17"""
         xp.columns.name = 'Params'
         assert_frame_equal(rs, xp)
 
+    def test_stack_dropna(self):
+        # GH #3997
+        df = pd.DataFrame({'A': ['a1', 'a2'], 
+                           'B': ['b1', 'b2'], 
+                           'C': [1, 1]})
+        df = df.set_index(['A', 'B'])
+
+        stacked = df.unstack().stack(dropna=False)
+        self.assertTrue(len(stacked) > len(stacked.dropna()))
+
+        stacked = df.unstack().stack(dropna=True)
+        assert_frame_equal(stacked, stacked.dropna())
+
     def test_unstack_multiple_hierarchical(self):
         df = DataFrame(index=[[0, 0, 0, 0, 1, 1, 1, 1],
                               [0, 0, 1, 1, 0, 0, 1, 1],
