@@ -492,7 +492,7 @@ def stack(frame, level=-1, dropna=True):
     level = frame.columns._get_level_number(level)
 
     if isinstance(frame.columns, MultiIndex):
-        return _stack_multi_columns(frame, level=level, dropna=True)
+        return _stack_multi_columns(frame, level=level, dropna=dropna)
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
         new_levels.append(frame.columns)

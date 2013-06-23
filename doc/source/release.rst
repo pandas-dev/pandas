@@ -276,6 +276,7 @@ pandas 0.11.1
   - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was 
     specified (:issue:`3967`), python parser failing with ``chunksize=1``
 	- Fix index name not propogating when using ``shift`` 
+	- Fixed dropna=False being ignored with multi-index stack (:issue:`3997`)
 
 .. _Gh3616: https://github.com/pydata/pandas/issues/3616
 
