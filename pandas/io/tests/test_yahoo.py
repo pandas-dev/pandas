@@ -1,4 +1,5 @@
 import unittest
+import warnings
 import nose
 from datetime import datetime
 
@@ -6,7 +7,7 @@ import pandas as pd
 import numpy as np
 import pandas.io.data as web
 from pandas.util.testing import (network, assert_series_equal,
-                                 assert_produces_warning)
+                                 assert_produces_warning, assert_frame_equal)
 from numpy.testing import assert_array_equal
 
 
@@ -37,8 +38,19 @@ class TestYahoo(unittest.TestCase):
                           'yahoo', start, end)
 
     @network
-    def test_get_quote(self):
+    def test_get_quote_series(self):
         df = web.get_quote_yahoo(pd.Series(['GOOG', 'AAPL', 'GOOG']))
+        assert_series_equal(df.ix[0], df.ix[2])
+
+    @network
+    def test_get_quote_string(self):
+        df = web.get_quote_yahoo('GOOG')
+        df2 = web.get_quote_yahoo('GOOG')
+        assert_frame_equal(df, df2)
+
+    @network
+    def test_get_quote_stringlist(self):
+        df = web.get_quote_yahoo(['GOOG', 'AAPL', 'GOOG'])
         assert_series_equal(df.ix[0], df.ix[2])
 
     @network
@@ -139,26 +151,42 @@ class TestYahooOptions(unittest.TestCase):
 
     @network
     def test_get_options_data(self):
-        calls, puts = self.aapl.get_options_data(expiry=self.expiry)
-        assert len(calls)>1
-        assert len(puts)>1
+        try:
+            calls, puts = self.aapl.get_options_data(expiry=self.expiry)
+        except IndexError:
+            warnings.warn("IndexError thrown no tables found")
+        else:
+            assert len(calls)>1
+            assert len(puts)>1
 
     @network
     def test_get_near_stock_price(self):
-        calls, puts = self.aapl.get_near_stock_price(call=True, put=True,
-                                                     expiry=self.expiry)
-        self.assertEqual(len(calls), 5)
-        self.assertEqual(len(puts), 5)
+        try:
+            calls, puts = self.aapl.get_near_stock_price(call=True, put=True,
+                                                        expiry=self.expiry)
+        except IndexError:
+            warnings.warn("IndexError thrown no tables found")
+        else:
+            self.assertEqual(len(calls), 5)
+            self.assertEqual(len(puts), 5)
 
     @network
     def test_get_call_data(self):
-        calls = self.aapl.get_call_data(expiry=self.expiry)
-        assert len(calls)>1
+        try:
+            calls = self.aapl.get_call_data(expiry=self.expiry)
+        except IndexError:
+            warnings.warn("IndexError thrown no tables found")
+        else:
+            assert len(calls)>1
 
     @network
     def test_get_put_data(self):
-        puts = self.aapl.get_put_data(expiry=self.expiry)
-        assert len(puts)>1
+        try:
+            puts = self.aapl.get_put_data(expiry=self.expiry)
+        except IndexError:
+            warnings.warn("IndexError thrown no tables found")
+        else:
+            assert len(puts)>1
 
 
 class TestOptionsWarnings(unittest.TestCase):
@@ -169,7 +197,7 @@ class TestOptionsWarnings(unittest.TestCase):
         except ImportError:
             raise nose.SkipTest
 
-        with assert_produces_warning(FutureWarning):
+        with assert_produces_warning():
             cls.aapl = web.Options('aapl')
 
         today = datetime.today()
@@ -185,30 +213,42 @@ class TestOptionsWarnings(unittest.TestCase):
 
     @network
     def test_get_options_data_warning(self):
-        with assert_produces_warning(FutureWarning):
+        with assert_produces_warning():
             print('month: {0}, year: {1}'.format(self.month, self.year))
-            self.aapl.get_options_data(month=self.month, year=self.year)
+            try:
+                self.aapl.get_options_data(month=self.month, year=self.year)
+            except IndexError:
+                warnings.warn("IndexError thrown no tables found")
 
     @network
     def test_get_near_stock_price_warning(self):
-        with assert_produces_warning(FutureWarning):
+        with assert_produces_warning():
             print('month: {0}, year: {1}'.format(self.month, self.year))
-            calls_near, puts_near = self.aapl.get_near_stock_price(call=True,
-                                                                   put=True,
-                                                                   month=self.month,
-                                                                   year=self.year)
+            try:
+                calls_near, puts_near = self.aapl.get_near_stock_price(call=True,
+                                                                    put=True,
+                                                                    month=self.month,
+                                                                    year=self.year)
+            except IndexError:
+                warnings.warn("IndexError thrown no tables found")
 
     @network
     def test_get_call_data_warning(self):
-        with assert_produces_warning(FutureWarning):
+        with assert_produces_warning():
             print('month: {0}, year: {1}'.format(self.month, self.year))
-            self.aapl.get_call_data(month=self.month, year=self.year)
+            try:
+                self.aapl.get_call_data(month=self.month, year=self.year)
+            except IndexError:
+                warnings.warn("IndexError thrown no tables found")
 
     @network
     def test_get_put_data_warning(self):
-        with assert_produces_warning(FutureWarning):
+        with assert_produces_warning():
             print('month: {0}, year: {1}'.format(self.month, self.year))
-            self.aapl.get_put_data(month=self.month, year=self.year)
+            try:
+                self.aapl.get_put_data(month=self.month, year=self.year)
+            except IndexError:
+                warnings.warn("IndexError thrown no tables found")
 
 
 if __name__ == '__main__':
