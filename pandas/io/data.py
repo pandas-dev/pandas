@@ -478,7 +478,7 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
     except KeyError:
         if data.ix[3].name[7:12] == 'Error':
             raise Exception("Failed to get the data. "
-                            "Check that {} is valid FRED "
+                            "Check that {0!r} is valid FRED "
                             "series.".format(name))
         else:
             raise
