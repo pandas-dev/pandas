@@ -2140,7 +2140,12 @@ class BlockManager(object):
         return BlockManager(self.blocks, new_axes)
 
     def rename_items(self, mapper, copydata=True):
-        new_items = Index([mapper(x) for x in self.items])
+        if isinstance(self.items, MultiIndex):
+            items = [tuple(mapper(y) for y in x) for x in self.items]
+            new_items = MultiIndex.from_tuples(items, names=self.items.names)
+        else:
+            items = [mapper(x) for x in self.items]
+            new_items = Index(items, names=self.items.names)
 
         new_blocks = []
         for block in self.blocks:
