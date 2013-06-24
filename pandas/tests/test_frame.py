@@ -7736,11 +7736,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEquals(renamed.index.name, renamer.index.name)
 
         # MultiIndex
-        index = MultiIndex.from_tuples([('foo1', 'bar1'), ('foo2', 'bar2')], names=['foo', 'bar'])
-        renamer = DataFrame(data, index=index)
-        renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'})
-        self.assert_(np.array_equal(renamed.index, MultiIndex.from_tuples([('foo3', 'bar1'), ('foo2', 'bar3')])))
+        tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]
+        tuples_columns = [('fizz1', 'buzz1'), ('fizz2', 'buzz2')]
+        index = MultiIndex.from_tuples(tuples_index, names=['foo', 'bar'])
+        columns = MultiIndex.from_tuples(tuples_columns, names=['fizz', 'buzz'])
+        renamer = DataFrame([(0,0),(1,1)], index=index, columns=columns)
+        renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
+                                 columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
+        new_index = MultiIndex.from_tuples([('foo3', 'bar1'), ('foo2', 'bar3')])
+        new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'), ('fizz2', 'buzz3')])
+        self.assert_(np.array_equal(renamed.index, new_index))
+        self.assert_(np.array_equal(renamed.columns, new_columns))
         self.assertEquals(renamed.index.names, renamer.index.names)
+        self.assertEquals(renamed.columns.names, renamer.columns.names)
 
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
