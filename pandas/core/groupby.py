@@ -1252,11 +1252,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
-            if level > 0:
+            if isinstance(level, basestring):
+                if obj.index.name != level:
+                    raise ValueError('level name %s is not the name of the index' % level)
+            elif level > 0:
                 raise ValueError('level > 0 only valid with MultiIndex')
-            else:
-                level = None
-                key = group_axis
+            
+            level = None
+            key = group_axis
 
     if isinstance(key, CustomGrouper):
         gpr = key.get_grouper(obj)
