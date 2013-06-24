@@ -1414,6 +1414,12 @@ class TestGroupBy(unittest.TestCase):
         # raise exception for non-MultiIndex
         self.assertRaises(ValueError, self.df.groupby, level=1)
 
+    def test_groupby_level_index_names(self):
+        ## GH4014 this used to raise ValueError since 'exp'>1 (in py2)
+        df = DataFrame({'exp' : ['A']*3 + ['B']*3, 'var1' : range(6),}).set_index('exp')
+        df.groupby(level='exp')
+        self.assertRaises(ValueError, df.groupby, level='foo')
+
     def test_groupby_level_with_nas(self):
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
                            labels=[[1, 1, 1, 1, 0, 0, 0, 0],

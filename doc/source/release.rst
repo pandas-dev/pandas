@@ -214,6 +214,7 @@ pandas 0.11.1
       names (:issue:`3873`)
 
   - Fixed bug in groupby with empty series referencing a variable before assignment. (:issue:`3510`)
+  - Allow index name to be used in groupby for non MultiIndex (:issue:`4014`)
   - Fixed bug in mixed-frame assignment with aligned series (:issue:`3492`)
   - Fixed bug in selecting month/quarter/year from a series would not select the time element
     on the last day (:issue:`3546`)
