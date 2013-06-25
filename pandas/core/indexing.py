@@ -476,10 +476,21 @@ class _NDFrameIndexer(object):
                     cur_indexer = com._ensure_int64(l[check])
 
                     new_labels = np.empty(tuple([len(indexer)]),dtype=object)
-                    new_labels[cur_indexer] = cur_labels
-                    new_labels[missing_indexer]    = missing_labels
+                    new_labels[cur_indexer]     = cur_labels
+                    new_labels[missing_indexer] = missing_labels
+                    new_indexer = (Index(cur_indexer) + Index(missing_indexer)).values
+                    new_indexer[missing_indexer] = -1
 
-                    result = result.reindex_axis(new_labels,axis=axis)
+                    # need to reindex with an indexer on a specific axis
+                    from pandas.core.frame import DataFrame
+                    if not (type(self.obj) == DataFrame):
+                        raise NotImplementedError("cannot handle non-unique indexing for non-DataFrame (yet)")
+
+                    args = [None] * 4
+                    args[2*axis] = new_labels
+                    args[2*axis+1] = new_indexer
+
+                    result = result._reindex_with_indexers(*args, copy=False, fill_value=np.nan)
 
                 return result
 

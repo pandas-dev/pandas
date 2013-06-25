@@ -1979,7 +1979,9 @@ class DataFrame(NDFrame):
             else:
                 label = self.index[i]
                 if isinstance(label, Index):
-                    return self.reindex(label)
+
+                    # a location index by definition
+                    return self.reindex(label, takeable=True)
                 else:
                     try:
                         new_values = self._data.fast_2d_xs(i, copy=copy)
@@ -2590,7 +2592,7 @@ class DataFrame(NDFrame):
             return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
-                fill_value=NA, limit=None, copy=True):
+                fill_value=NA, limit=None, copy=True, takeable=False):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -2617,6 +2619,7 @@ class DataFrame(NDFrame):
             "compatible" value
         limit : int, default None
             Maximum size gap to forward or backward fill
+        takeable : the labels are locations (and not labels)
 
         Examples
         --------
@@ -2636,11 +2639,11 @@ class DataFrame(NDFrame):
 
         if columns is not None:
             frame = frame._reindex_columns(columns, copy, level,
-                                           fill_value, limit)
+                                           fill_value, limit, takeable)
 
         if index is not None:
             frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit)
+                                         fill_value, limit, takeable)
 
         return frame
 
@@ -2717,16 +2720,18 @@ class DataFrame(NDFrame):
             return self.copy() if copy else self
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None):
+                       limit=None, takeable=False):
         new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit, copy_if_needed=True)
+                                                limit=limit, copy_if_needed=True,
+                                                takeable=takeable)
         return self._reindex_with_indexers(new_index, indexer, None, None,
                                            copy, fill_value)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None):
+                         limit=None, takeable=False):
         new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit, copy_if_needed=True)
+                                                    limit=limit, copy_if_needed=True,
+                                                    takeable=takeable)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
                                            copy, fill_value)
 
