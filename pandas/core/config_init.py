@@ -198,6 +198,40 @@ pc_mpl_style_doc = """
     Setting this to None/False restores the values to their initial value.
 """
 
+
+def _max_seq_items_property(value):
+    is_int = isinstance(value, int)
+    try:
+        gt_0 = value > 0
+    except:
+        gt_0 = False
+
+    try:
+        even = value % 2 == 0
+    except:
+        even = False
+
+    try:
+        max_ee = cf.get_option('max_edge_items')
+    except KeyError:
+        max_ee = 3
+    return is_int and gt_0 and even and value > 2 * max_ee
+
+
+def _max_edge_items_property(value):
+    is_int = isinstance(value, int)
+    try:
+        gt_0 = value > 0
+    except:
+        gt_0 = False
+
+    try:
+        max_si = cf.get_option('max_seq_items')
+    except KeyError:
+        max_si = 100
+    return is_int and gt_0 and 2 * value < max_si
+
+
 style_backup = dict()
 
 
@@ -223,6 +257,43 @@ def mpl_style_cb(key):
             plt.rcParams.update(style_backup)
 
     return val
+
+
+_current_max_edge_items = 3
+
+
+def _max_edge_items_checker(key):
+    global _current_max_edge_items
+
+    mei = cf.get_option(key)
+    msi = cf.get_option('display.max_seq_items')
+    if 2 * mei > msi:
+        cf.set_option(key, _current_max_edge_items)
+        raise ValueError("max_edge_items is {0}, but must be LESS THAN "
+                         "max_seq_items // 2 == {1}, max_seq_items == "
+                         "{2}".format(mei, msi // 2, msi))
+
+    _current_max_edge_items = mei
+    return mei
+
+
+_current_max_seq_items = 100
+
+
+def _max_seq_items_checker(key):
+    global _current_max_seq_items
+
+    msi = cf.get_option(key)
+    mei = cf.get_option('display.max_edge_items')
+    if msi <= 2 * mei:
+        cf.set_option(key, _current_max_seq_items)
+        raise ValueError("max_seq_items is {0}, but must be GREATER THAN "
+                         "2 * max_edge_items == {1},"
+                         " max_edge_items == {2}".format(msi, 2 * mei, mei))
+
+    _current_max_seq_items = msi
+    return msi
+
 
 with cf.config_prefix('display'):
     cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
@@ -256,14 +327,15 @@ with cf.config_prefix('display'):
     cf.register_option('expand_frame_repr', True, pc_expand_repr_doc)
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items,
-                       validator=has_property_factory(
-                           lambda x: isinstance(x, int) and x > 0 and x % 2 == 0,
+                       validator=has_property_factory(_max_seq_items_property,
                            "value must be an even positive integer greater "
-                           "than or equal to 2"))
+                           "than or equal to 2"),
+                       cb=_max_seq_items_checker)
     cf.register_option('max_edge_items', 3, pc_max_edge_items,
                        validator=has_property_factory(
                            lambda x: isinstance(x, int) and x > 0,
-                           "value must be a positive integer"))
+                           "value must be a positive integer"),
+                       cb=_max_edge_items_checker)
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)

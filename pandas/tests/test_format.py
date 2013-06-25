@@ -146,10 +146,10 @@ class TestDataFrameFormatting(tm.TestCase):
         # default of 100
         reset_option("display.max_seq_items")
         reset_option("display.max_edge_items")
-        self.assertTrue(len(com.pprint_thing(range(1000))) == 29)
+        self.assertTrue(len(com.pprint_thing(lrange(1000))) == 29)
 
-        with option_context("display.max_seq_items", 4):
-            self.assertTrue(len(com.pprint_thing(range(1000))) == 29)
+        with option_context("display.max_seq_items", 8):
+            self.assertTrue(len(com.pprint_thing(lrange(1000))) == 29)
 
     def test_repr_is_valid_construction_code(self):
         import pandas as pd

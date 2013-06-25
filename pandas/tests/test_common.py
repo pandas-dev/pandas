@@ -421,9 +421,9 @@ def test_ensure_platform_int():
 
 def test_pprint_1d_index_seq_items_LT_edge_items():
     # test with a specific setting
-    with cf.option_context('display.max_seq_items', 2,
-                           'display.max_edge_items', 5):
-        s = 'Int64Index([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=int64)'
+    with cf.option_context('display.max_seq_items', 8,
+                           'display.max_edge_items', 2):
+        s = 'Int64Index([0, 1, ..., 8, 9], dtype=int64)'
         res = repr(tm.makeIntIndex(10))
         assert_equal(s, res)
 
@@ -445,7 +445,7 @@ def test_pprint_1d_index_seq_items_LT_edge_items():
 
 
 def test_pprint_1d_index_seq_items_GT_edge_items():
-    with cf.option_context('display.max_seq_items', 6,
+    with cf.option_context('display.max_seq_items', 8,
                            'display.max_edge_items', 2):
         s = 'Int64Index([0, 1, ..., 8, 9], dtype=int64)'
         res = repr(tm.makeIntIndex(10))
@@ -455,7 +455,7 @@ def test_pprint_1d_index_seq_items_GT_edge_items():
         res = repr(tm.makeIntIndex(3))
         assert_equal(s, res)
 
-        s = 'Int64Index([0, 1, ..., 5, 6], dtype=int64)'
+        s = 'Int64Index([0, 1, 2, 3, 4, 5, 6], dtype=int64)'
         res = repr(tm.makeIntIndex(7))
         assert_equal(s, res)
 
@@ -484,7 +484,7 @@ def test_pprint_max_seq_and_max_edge_items_1d_index_defaults():
 
 
 def test_1d_max_seq_vs_edge_items_2x():
-    with cf.option_context('display.max_seq_items', 4,
+    with cf.option_context('display.max_seq_items', 8,
                            'display.max_edge_items', 2):
         s = 'Int64Index([0, 1, ..., 8, 9], dtype=int64)'
         res = repr(tm.makeIntIndex(10))
@@ -494,7 +494,7 @@ def test_1d_max_seq_vs_edge_items_2x():
         res = repr(tm.makeIntIndex(3))
         assert_equal(s, res)
 
-        s = 'Int64Index([0, 1, ..., 4, 5], dtype=int64)'
+        s = 'Int64Index([0, 1, 2, 3, 4, 5], dtype=int64)'
         res = repr(tm.makeIntIndex(6))
         assert_equal(s, res)
 
@@ -508,8 +508,8 @@ def test_1d_max_seq_vs_edge_items_2x():
 
 
 def test_multiindex_seq_items_LT_edge_items():
-    with cf.option_context('display.max_seq_items', 2,
-                           'display.max_edge_items', 5):
+    with cf.option_context('display.max_seq_items', 8,
+                           'display.max_edge_items', 2):
         df = tm.makeCustomDataframe(2, 3, c_idx_nlevels=3)
         mi = df.columns
         if PY3:
@@ -527,7 +527,7 @@ def test_multiindex_seq_items_LT_edge_items():
 
 
 def test_multiindex_seq_items_GT_edge_items():
-    with cf.option_context('display.max_seq_items', 6,
+    with cf.option_context('display.max_seq_items', 8,
                            'display.max_edge_items', 2):
         df = tm.makeCustomDataframe(2, 3, c_idx_nlevels=10)
         mi = df.columns
