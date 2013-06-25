@@ -196,7 +196,6 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         with option_context('mode.sim_interactive', False,
                             'display.width', 0,
-                            'display.height', 0,
                             'display.max_rows',5000):
             self.assertFalse(has_info_repr(df))
             self.assertFalse(has_expanded_repr(df))
