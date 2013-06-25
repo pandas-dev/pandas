@@ -874,7 +874,8 @@ class DataFrame(NDFrame):
                                   default_axis=None, fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
-    __rmod__ = _arith_method(operator.mod, '__rmod__', default_axis=None, fill_zeros=np.nan)
+    __rmod__ = _arith_method(lambda x, y: y % x, '__rmod__', default_axis=None,
+                             fill_zeros=np.nan)
 
     # boolean operators
     __and__ = _arith_method(operator.and_, '__and__', '&')

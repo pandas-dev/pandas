@@ -1266,7 +1266,7 @@ class Series(pa.Array, generic.PandasObject):
     __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__', fill_zeros=np.inf)
     __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__', fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
-    __rmod__ = _arith_method(operator.mod, '__mod__', fill_zeros=np.nan)
+    __rmod__ = _arith_method(lambda x, y: y % x, '__mod__', fill_zeros=np.nan)
 
     # comparisons
     __gt__ = _comp_method(operator.gt, '__gt__')
