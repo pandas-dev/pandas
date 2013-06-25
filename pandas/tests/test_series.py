@@ -2840,6 +2840,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
         self.assert_(isinstance(expected, Series))
 
+    def test_clip_types_and_nulls(self):
+
+        sers = [Series([np.nan, 1.0, 2.0, 3.0]),
+                Series([None, 'a', 'b', 'c']),
+                Series(pd.to_datetime([np.nan, 1, 2, 3], unit='D'))]
+
+        for s in sers:
+            thresh = s[2]
+            l = s.clip_lower(thresh)
+            u = s.clip_upper(thresh)
+            self.assertEqual(l[notnull(l)].min(), thresh)
+            self.assertEqual(u[notnull(u)].max(), thresh)
+            self.assertEqual(list(isnull(s)), list(isnull(l)))
+            self.assertEqual(list(isnull(s)), list(isnull(u)))
+
     def test_valid(self):
         ts = self.ts.copy()
         ts[::2] = np.NaN
