@@ -17,11 +17,13 @@ TOX_INI_PAR="tox.ini"
 
 if [ x"$1" == x"fast" ]; then
     scripts/use_build_cache.py
+    python setup.py clean
+    python setup.py develop
 fi
 
 echo "[Creating distfile]"
 tox --sdistonly
-export DISTFILE="$(find .tox/dist -type f )"
+export DISTFILE="$(find .tox/dist -type f)"
 
 echo -e "[Starting tests]\n"
 for e in $ENVS; do
