@@ -14,7 +14,6 @@ from contextlib import contextmanager  # contextlib is available since 2.5
 
 from distutils.version import LooseVersion
 import urllib2
-import nose
 
 from numpy.random import randn
 import numpy as np
@@ -755,6 +754,7 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     network connectivity. ``_RAISE_NETWORK_ERROR_DEFAULT`` in
     ``pandas/util/testing.py`` sets the default behavior (currently False).
     """
+    from nose import SkipTest
     t.network = True
 
     @wraps(t)
@@ -765,7 +765,7 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
             try:
                 return t(*args, **kwargs)
             except error_classes as e:
-                raise nose.SkipTest("Skipping test %s" % e)
+                raise SkipTest("Skipping test %s" % e)
 
     return network_wrapper
 
@@ -839,21 +839,22 @@ def with_connectivity_check(t, url="http://www.google.com",
             ...
         SkipTest
     """
+    from nose import SkipTest
     t.network = True
 
     @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url):
-                raise nose.SkipTest
+                raise SkipTest
         try:
             return t(*args, **kwargs)
         except error_classes as e:
             if raise_on_error or can_connect(url):
                 raise
             else:
-                raise nose.SkipTest("Skipping test due to lack of connectivity"
-                                    " and error %s" % e)
+                raise SkipTest("Skipping test due to lack of connectivity"
+                               " and error %s" % e)
 
     return wrapper
 
