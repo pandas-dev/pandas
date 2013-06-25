@@ -105,7 +105,7 @@ class TestYahoo(unittest.TestCase):
             raise nose.SkipTest
 
         ##### FAILING #####
-        nose.SkipTest('this test is currently failing')
+        raise nose.SkipTest('this test is currently failing')
 
         # aapl has monthlies
         aapl = web.Options('aapl', 'yahoo')
