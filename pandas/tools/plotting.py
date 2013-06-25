@@ -1890,7 +1890,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False, **kwarg
 
 def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
-               sharey=False, figsize=None, **kwds):
+               sharey=False, figsize=None, layout=None, **kwds):
     """
     Draw Histogram the DataFrame's series using matplotlib / pylab.
 
@@ -1916,6 +1916,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     sharey : bool, if True, the Y axis will be shared amongst all subplots.
     figsize : tuple
         The size of the figure to create in inches by default
+    layout: (optional) a tuple (rows, columns) for the layout of the histograms
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
@@ -1943,12 +1944,21 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
     import matplotlib.pyplot as plt
     n = len(data.columns)
-    rows, cols = 1, 1
-    while rows * cols < n:
-        if cols > rows:
-            rows += 1
-        else:
-            cols += 1
+
+    if layout is not None:
+        if not isinstance(layout, (tuple, list)) or len(layout) != 2:
+            raise ValueError('Layout must be a tuple of (rows, columns)')
+
+        rows, cols = layout
+        if rows * cols < n:
+            raise ValueError('Layout of %sx%s is incompatible with %s columns' % (rows, cols, n))
+    else:
+        rows, cols = 1, 1
+        while rows * cols < n:
+            if cols > rows:
+                rows += 1
+            else:
+                cols += 1
     fig, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False,
                           sharex=sharex, sharey=sharey, figsize=figsize)
 
