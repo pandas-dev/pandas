@@ -291,7 +291,8 @@ pandas 0.12
   - Fixed failing tests in test_yahoo, test_google where symbols were not
     retrieved but were being accessed (:issue:`3982`, :issue:`3985`,
     :issue:`4028`, :issue:`4054`)
-
+  - ``Series.hist`` will now take the figure from the current environment if
+    one is not passed
 
 pandas 0.11.0
 =============
