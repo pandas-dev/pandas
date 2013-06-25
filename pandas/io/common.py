@@ -63,8 +63,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
             else:
                 errors = 'replace'
                 encoding = 'utf-8'
-            bytes = filepath_or_buffer.read()
-            filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
+            bytes = filepath_or_buffer.read().decode(encoding, errors)
+            filepath_or_buffer = StringIO(bytes)
             return filepath_or_buffer, encoding
         return filepath_or_buffer, None
 

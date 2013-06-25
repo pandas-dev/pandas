@@ -2,12 +2,13 @@
 
 from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
-from os.path import split as psplit
 import csv
 import os
 import sys
 import re
 import unittest
+from contextlib import closing
+from urllib2 import urlopen
 
 import nose
 
@@ -1391,7 +1392,8 @@ a,b,c,d
 
         except urllib2.URLError:
             try:
-                urllib2.urlopen('http://www.google.com')
+                with closing(urlopen('http://www.google.com')) as resp:
+                    pass
             except urllib2.URLError:
                 raise nose.SkipTest
             else:
