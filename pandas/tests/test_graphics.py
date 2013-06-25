@@ -196,11 +196,10 @@ class TestSeriesPlots(unittest.TestCase):
     @slow
     def test_kde_color(self):
         _skip_if_no_scipy()
-        _check_plot_works(self.ts.plot, kind='kde')
-        _check_plot_works(self.ts.plot, kind='density')
         ax = self.ts.plot(kind='kde', logy=True, color='r')
-        self.assert_(ax.get_lines()[0].get_color() == 'r')
-        self.assert_(ax.get_lines()[1].get_color() == 'r')
+        lines = ax.get_lines()
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0].get_color(), 'r')
 
     @slow
     def test_autocorrelation_plot(self):
