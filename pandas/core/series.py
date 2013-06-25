@@ -1984,7 +1984,10 @@ class Series(pa.Array, generic.PandasObject):
         -------
         clipped : Series
         """
-        return pa.where(self > threshold, threshold, self)
+        if isnull(threshold):
+            raise ValueError("Cannot use an NA value as a clip threshold")
+
+        return self.where((self <= threshold) | isnull(self), threshold)
 
     def clip_lower(self, threshold):
         """
@@ -1998,7 +2001,10 @@ class Series(pa.Array, generic.PandasObject):
         -------
         clipped : Series
         """
-        return pa.where(self < threshold, threshold, self)
+        if isnull(threshold):
+            raise ValueError("Cannot use an NA value as a clip threshold")
+
+        return self.where((self >= threshold) | isnull(self), threshold)
 
     def dot(self, other):
         """
