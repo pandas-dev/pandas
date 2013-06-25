@@ -140,11 +140,6 @@ pc_width_doc = """
     terminal and hence it is not possible to correctly detect the width.
 """
 
-pc_height_doc = """
-: int
-    Deprecated.
-"""
-
 pc_chop_threshold_doc = """
 : float or None
     if set to a float value, all float values smaller then the given threshold
@@ -239,8 +234,6 @@ with cf.config_prefix('display'):
     cf.register_option('mpl_style', None, pc_mpl_style_doc,
                        validator=is_one_of_factory([None, False, 'default']),
                        cb=mpl_style_cb)
-    cf.register_option('height', 60, pc_height_doc,
-                       validator=is_instance_factory([type(None), int]))
     cf.register_option('width',80, pc_width_doc,
                        validator=is_instance_factory([type(None), int]))
     # redirected to width, make defval identical
@@ -252,7 +245,7 @@ cf.deprecate_option('display.line_width',
 
 cf.deprecate_option('display.height',
                     msg=pc_height_deprecation_warning,
-                    rkey='display.height')
+                    rkey='display.max_rows')
 
 tc_sim_interactive_doc = """
 : boolean

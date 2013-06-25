@@ -1721,7 +1721,7 @@ def get_console_size():
     Returns (None,None) in non-interactive session.
     """
     display_width = get_option('display.width')
-    display_height = get_option('display.height')
+    display_height = get_option('display.max_rows')
 
     # Consider
     # interactive shell terminal, can detect term size
@@ -1739,7 +1739,7 @@ def get_console_size():
             # match default for width,height in config_init
             from pandas.core.config import get_default_val
             terminal_width = get_default_val('display.width')
-            terminal_height = get_default_val('display.height')
+            terminal_height = get_default_val('display.max_rows')
         else:
             # pure terminal
             terminal_width, terminal_height = get_terminal_size()
