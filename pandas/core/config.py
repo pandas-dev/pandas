@@ -100,6 +100,26 @@ def _get_option(pat, silent=False):
     return root[k]
 
 
+def _set_single_option(pat, value, silent):
+    key = _get_single_key(pat, silent)
+
+    o = _get_registered_option(key)
+    if o and o.validator:
+        o.validator(value)
+
+    # walk the nested dict
+    root, k = _get_root(key)
+    root[k] = value
+
+    if o.cb:
+        root[k] = o.cb(key)
+
+
+def _set_multiple_options(args, silent):
+    for k, v in zip(args[::2], args[1::2]):
+        _set_single_option(k, v, silent)
+
+
 def _set_option(*args, **kwargs):
     # must at least 1 arg deal with constraints later
     nargs = len(args)
