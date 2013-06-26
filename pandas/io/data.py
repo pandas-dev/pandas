@@ -4,6 +4,7 @@ Module contains tools for collecting data from various remote sources
 
 """
 import warnings
+import tempfile
 
 import numpy as np
 import datetime as dt
@@ -493,10 +494,13 @@ def get_data_famafrench(name, start=None, end=None):
     zipFileURL = "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
 
     with closing(urlopen(zipFileURL + name + ".zip")) as url:
-        zf = ZipFile(StringIO(url.read()))
+        raw = url.read()
 
-    with closing(zf.open(name + ".txt")) as z:
-        data = z.readlines()
+    with tempfile.TemporaryFile() as tmpf:
+        tmpf.write(raw)
+
+        with closing(ZipFile(tmpf, 'r')) as zf:
+            data = zf.read(name + '.txt').splitlines()
 
     file_edges = np.where(np.array([len(d) for d in data]) == 2)[0]
 
