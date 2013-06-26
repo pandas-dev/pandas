@@ -422,6 +422,8 @@ Bug Fixes
     explicitly checking a website as a proxy for seeing if there is network
     connectivity. Plus, new ``optional_args`` decorator factory for decorators.
     (:issue:`3910`, :issue:`3914`)
+  - Fixed testing issue where too many sockets where open thus leading to a
+    connection reset issue (:issue:`3982`, :issue:`3985`)
 
 See the :ref:`full release notes
 <release>` or issue tracker
