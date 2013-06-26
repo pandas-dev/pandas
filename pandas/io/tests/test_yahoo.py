@@ -5,7 +5,9 @@ import warnings
 
 import pandas as pd
 import pandas.io.data as web
-from pandas.util.testing import network, assert_series_equal, with_connectivity_check
+from pandas.util.testing import (network, assert_series_equal,
+                                 with_connectivity_check)
+from numpy.testing import assert_array_equal
 
 
 class TestYahoo(unittest.TestCase):
@@ -31,7 +33,6 @@ class TestYahoo(unittest.TestCase):
     def test_get_quote(self):
         df = web.get_quote_yahoo(pd.Series(['GOOG', 'AAPL', 'GOOG']))
         assert_series_equal(df.ix[0], df.ix[2])
-
 
     @network
     def test_get_components(self):
@@ -59,43 +60,42 @@ class TestYahoo(unittest.TestCase):
         #single symbol
         #http://finance.yahoo.com/q/hp?s=GOOG&a=09&b=08&c=2010&d=09&e=10&f=2010&g=d
         df = web.get_data_yahoo('GOOG')
-        assert df.Volume.ix['OCT-08-2010'] == 2859200
+        self.assertEqual(df.Volume.ix['OCT-08-2010'], 2859200)
 
         sl = ['AAPL', 'AMZN', 'GOOG']
         pan = web.get_data_yahoo(sl, '2012')
         ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
-        assert ts[0].dayofyear == 96
+        self.assertEqual(ts[0].dayofyear, 96)
 
         #dfi = web.get_components_yahoo('^DJI')
         #pan = web.get_data_yahoo(dfi, 'JAN-01-12', 'JAN-31-12')
         pan = web.get_data_yahoo(['GE', 'MSFT', 'INTC'], 'JAN-01-12', 'JAN-31-12')
         expected = [19.02, 28.23, 25.39]
         result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']].tolist()
-        assert result == expected
+        self.assertEqual(result, expected)
 
         # sanity checking
-        t= np.array(result)
-        assert     np.issubdtype(t.dtype, np.floating)
-        assert     t.shape == (3,)
+        t = np.array(result)
+        assert np.issubdtype(t.dtype, np.floating)
+        self.assertEqual(t.shape, (3,))
 
         expected = [[ 18.99,  28.4 ,  25.18],
                     [ 18.58,  28.31,  25.13],
                     [ 19.03,  28.16,  25.52],
                     [ 18.81,  28.82,  25.87]]
         result = pan.Open.ix['Jan-15-12':'Jan-20-12'][['GE', 'MSFT', 'INTC']].values
-        assert (result == expected).all()
+        assert_array_equal(expected, result)
 
         #Check ret_index
         pan = web.get_data_yahoo(['GE', 'INTC', 'IBM'], '1977', '1987',
                                  ret_index=True)
         tstamp = pan.Ret_Index.INTC.first_valid_index()
         result = pan.Ret_Index.ix[tstamp]['INTC']
-        expected = 1.0
-        assert result == expected
+        self.assertEqual(result, 1.0)
 
         # sanity checking
-        t= np.array(pan)
-        assert     np.issubdtype(t.dtype, np.floating)
+        t = np.array(pan)
+        assert np.issubdtype(t.dtype, np.floating)
 
     @network
     def test_options(self):
