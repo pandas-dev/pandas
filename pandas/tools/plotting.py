@@ -1084,6 +1084,11 @@ class MPLPlot(object):
         if has_color and (style is None or re.match('[a-z]+', style) is None):
             kwds['color'] = colors[i % len(colors)]
 
+    def _get_marked_label(self, label, col_num):
+        if self.on_right(col_num):
+            return label + ' (right)'
+        else:
+            return label
 
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
@@ -1214,10 +1219,12 @@ class LinePlot(MPLPlot):
 
                 newline = plotf(*args, **kwds)[0]
                 lines.append(newline)
-                leg_label = label
-                if self.mark_right and self.on_right(i):
-                    leg_label += ' (right)'
-                labels.append(leg_label)
+
+                if self.mark_right:
+                    labels.append(self._get_marked_label(label, i))
+                else:
+                    labels.append(label)
+
                 ax.grid(self.grid)
 
                 if self._is_datetype():
@@ -1235,18 +1242,16 @@ class LinePlot(MPLPlot):
         lines = []
         labels = []
 
-        def to_leg_label(label, i):
-            if self.mark_right and self.on_right(i):
-                return label + ' (right)'
-            return label
-
         def _plot(data, col_num, ax, label, style, **kwds):
             newlines = tsplot(data, plotf, ax=ax, label=label,
                                 style=style, **kwds)
             ax.grid(self.grid)
             lines.append(newlines[0])
-            leg_label = to_leg_label(label, col_num)
-            labels.append(leg_label)
+
+            if self.mark_right:
+                labels.append(self._get_marked_label(label, col_num))
+            else:
+                labels.append(label)
 
         if isinstance(data, Series):
             ax = self._get_ax(0)  # self.axes[0]
@@ -1356,6 +1361,7 @@ class BarPlot(MPLPlot):
     _default_rot = {'bar': 90, 'barh': 0}
 
     def __init__(self, data, **kwargs):
+        self.mark_right = kwargs.pop('mark_right', True)
         self.stacked = kwargs.pop('stacked', False)
         self.ax_pos = np.arange(len(data)) + 0.25
         if self.stacked:
@@ -1398,8 +1404,6 @@ class BarPlot(MPLPlot):
         rects = []
         labels = []
 
-        ax = self._get_ax(0)  # self.axes[0]
-
         bar_f = self.bar_f
 
         pos_prior = neg_prior = np.zeros(len(self.data))
@@ -1407,6 +1411,7 @@ class BarPlot(MPLPlot):
         K = self.nseries
 
         for i, (label, y) in enumerate(self._iter_data()):
+            ax = self._get_ax(i)
             label = com.pprint_thing(label)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % len(colors)]
@@ -1419,8 +1424,6 @@ class BarPlot(MPLPlot):
                     start = 0 if mpl.__version__ == "1.2.1" else None
 
             if self.subplots:
-                ax = self._get_ax(i)  # self.axes[i]
-
                 rect = bar_f(ax, self.ax_pos, y,  self.bar_width,
                              start = start,
                              **kwds)
@@ -1437,7 +1440,10 @@ class BarPlot(MPLPlot):
                              start = start,
                               label=label, **kwds)
             rects.append(rect)
-            labels.append(label)
+            if self.mark_right:
+                labels.append(self._get_marked_label(label, i))
+            else:
+                labels.append(label)
 
         if self.legend and not self.subplots:
             patches = [r[0] for r in rects]
@@ -1537,7 +1543,10 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
         Rotation for ticks
     secondary_y : boolean or sequence, default False
         Whether to plot on the secondary y-axis
-        If dict then can select which columns to plot on secondary y-axis
+        If a list/tuple, which columns to plot on secondary y-axis
+    mark_right: boolean, default True
+        When using a secondary_y axis, should the legend label the axis of
+        the various columns automatically
     kwds : keywords
         Options to pass to matplotlib plotting method
 
