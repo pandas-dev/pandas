@@ -32,7 +32,7 @@ def DataReader(name, data_source=None, start=None, end=None,
     name : str
         the name of the dataset
     data_source: str
-        the data source ("yahoo", "fred", or "ff")
+        the data source ("yahoo", "fred", or "famafrench")
     start : {datetime, None}
         left boundary for range (defaults to 1/1/2010)
     end : {datetime, None}
@@ -65,7 +65,7 @@ def DataReader(name, data_source=None, start=None, end=None,
                               retry_count=retry_count, pause=pause)
     elif(data_source == "fred"):
         return get_data_fred(name=name, start=start, end=end)
-    elif(data_source == "famafrench"):
+    elif((data_source == "famafrench") or (data_source == "ff")):
         return get_data_famafrench(name=name)
 
 
