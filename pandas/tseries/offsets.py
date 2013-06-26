@@ -5,7 +5,6 @@ from pandas.tseries.tools import to_datetime
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
-import pandas.lib as lib
 import pandas.tslib as tslib
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
@@ -50,7 +49,7 @@ class DateOffset(object):
     is:
 
     def __add__(date):
-      date = rollback(date) # does nothing is date is valid
+      date = rollback(date) # does nothing if date is valid
       return date + <n number of periods>
 
     When a date offset is created for a negitive number of periods,
