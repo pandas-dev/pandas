@@ -493,8 +493,10 @@ def get_data_famafrench(name, start=None, end=None):
     zipFileURL = "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
 
     with closing(urlopen(zipFileURL + name + ".zip")) as url:
-        with closing(ZipFile(StringIO(url.read()))) as zf:
-            data = zf.read(name + ".txt").splitlines()
+        zf = ZipFile(StringIO(url.read()))
+
+    with closing(zf.open(name + ".txt")) as z:
+        data = z.readlines()
 
     file_edges = np.where(np.array([len(d) for d in data]) == 2)[0]
 

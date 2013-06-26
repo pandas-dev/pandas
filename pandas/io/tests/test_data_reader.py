@@ -13,7 +13,8 @@ class TestDataReader(unittest.TestCase):
 
     @network
     def test_read_google(self):
-        pass
+        gs = DataReader("GS", "google")
+        assert isinstance(gs, PandasObject)
 
     @network
     def test_read_fred(self):
