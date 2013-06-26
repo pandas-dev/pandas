@@ -500,7 +500,7 @@ and that the transformed data contains no NAs.
 Filtration
 ----------
 
-.. versionadded:: 0.11.1
+.. versionadded:: 0.12
 
 The ``filter`` method returns a subset of the original object. Suppose we
 want to take only elements that belong to groups with a group sum greater

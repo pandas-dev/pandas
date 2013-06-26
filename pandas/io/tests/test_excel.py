@@ -861,7 +861,7 @@ class ExcelTests(unittest.TestCase):
 
     def test_deprecated_from_parsers(self):
 
-        # since 0.11.1 changed the import path
+        # since 0.12 changed the import path
         import warnings
 
         with warnings.catch_warnings() as w:

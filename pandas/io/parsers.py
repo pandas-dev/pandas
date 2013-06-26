@@ -1957,7 +1957,7 @@ class FixedWidthFieldParser(PythonParser):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter)
 
 
-##### deprecations in 0.11.1 #####
+##### deprecations in 0.12 #####
 ##### remove in 0.12         #####
 
 from pandas.io import clipboard
