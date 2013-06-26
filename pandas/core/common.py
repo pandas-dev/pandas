@@ -2076,7 +2076,7 @@ def console_encode(object, **kwds):
     return pprint_thing_encoded(object,
                                 get_option("display.encoding"))
 
-def load(path):  # TODO remove in 0.12
+def load(path):  # TODO remove in 0.13
     """
     Load pickled pandas object (or any other pickled object) from the specified
     file path
@@ -2098,7 +2098,7 @@ def load(path):  # TODO remove in 0.12
     from pandas.io.pickle import read_pickle
     return read_pickle(path)
 
-def save(obj, path):  # TODO remove in 0.12
+def save(obj, path):  # TODO remove in 0.13
     '''
     Pickle (serialize) object to input file path
 

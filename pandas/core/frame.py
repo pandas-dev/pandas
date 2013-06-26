@@ -568,14 +568,14 @@ class DataFrame(NDFrame):
     def _verbose_info(self):
         import warnings
         warnings.warn('The _verbose_info property will be removed in version '
-                      '0.12. please use "max_info_rows"', FutureWarning)
+                      '0.13. please use "max_info_rows"', FutureWarning)
         return get_option('display.max_info_rows') is None
 
     @_verbose_info.setter
     def _verbose_info(self, value):
         import warnings
         warnings.warn('The _verbose_info property will be removed in version '
-                      '0.12. please use "max_info_rows"', FutureWarning)
+                      '0.13. please use "max_info_rows"', FutureWarning)
 
         value = None if value else 1000000
         set_option('display.max_info_rows', value)
@@ -3593,12 +3593,12 @@ class DataFrame(NDFrame):
         if method is not None:
             from warnings import warn
             warn('the "method" argument is deprecated and will be removed in'
-                 'v0.12; this argument has no effect')
+                 'v0.13; this argument has no effect')
 
         if axis is not None:
             from warnings import warn
             warn('the "axis" argument is deprecated and will be removed in'
-                 'v0.12; this argument has no effect')
+                 'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
 
@@ -3733,7 +3733,7 @@ class DataFrame(NDFrame):
         reindex, replace, fillna
         """
         from warnings import warn
-        warn('DataFrame.interpolate will be removed in v0.12, please use '
+        warn('DataFrame.interpolate will be removed in v0.13, please use '
              'either DataFrame.fillna or DataFrame.replace instead',
              FutureWarning)
         if self._is_mixed_type and axis == 1:
