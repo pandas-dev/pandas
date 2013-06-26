@@ -1,6 +1,7 @@
 import sys
 import urllib2
 import json
+from contextlib import closing
 from datetime import datetime
 
 
@@ -48,7 +49,8 @@ def _get_page(page_number):
     gh_url = ('https://api.github.com/repos/pydata/pandas/issues?'
               'milestone=*&state=closed&assignee=*&page=%d') % page_number
     req = urllib2.Request(gh_url)
-    rs = urllib2.urlopen(req).readlines()[0]
+    with closing(urllib2.urlopen(req)) as resp:
+        rs = resp.readlines()[0]
     jsondata = json.loads(rs)
     issues = [Issue(x['title'], x['labels'], x['number'],
                     get_milestone(x['milestone']), x['body'], x['state'])

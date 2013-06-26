@@ -1,6 +1,6 @@
-import urllib2
-import warnings
+from urllib2 import urlopen
 import json
+from contextlib import closing
 import pandas
 import numpy as np
 
@@ -85,8 +85,8 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
         indicator + "?date=" + str(start) + ":" + str(end) + "&per_page=25000" + \
         "&format=json"
     # Download
-    response = urllib2.urlopen(url)
-    data = response.read()
+    with closing(urlopen(url)) as response:
+        data = response.read()
     # Parse JSON file
     data = json.loads(data)[1]
     country = map(lambda x: x['country']['value'], data)
@@ -102,8 +102,8 @@ def get_countries():
     '''Query information about countries
     '''
     url = 'http://api.worldbank.org/countries/all?format=json'
-    response = urllib2.urlopen(url)
-    data = response.read()
+    with closing(urlopen(url)) as response:
+        data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
     data.adminregion = map(lambda x: x['value'], data.adminregion)
@@ -118,8 +118,8 @@ def get_indicators():
     '''Download information about all World Bank data series
     '''
     url = 'http://api.worldbank.org/indicators?per_page=50000&format=json'
-    response = urllib2.urlopen(url)
-    data = response.read()
+    with closing(urlopen(url)) as response:
+        data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
     # Clean fields
