@@ -14,14 +14,14 @@ from contextlib import closing
 from urllib2 import urlopen
 
 from zipfile import ZipFile
-from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
+from pandas.util.py3compat import StringIO, bytes_to_str
 
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.io.parsers import TextParser
 
 
 def DataReader(name, data_source=None, start=None, end=None,
-               retry_count=3, pause=0):
+               retry_count=3, pause=0.001):
     """
     Imports data from a number of online sources.
 
@@ -138,7 +138,7 @@ def get_quote_google(symbols):
     raise NotImplementedError("Google Finance doesn't have this functionality")
 
 def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
-                    pause=0, **kwargs):
+                    pause=0.001, **kwargs):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
@@ -184,7 +184,7 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
 
 
 def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
-                    pause=0, **kwargs):
+                    pause=0.001, **kwargs):
     """
     Get historical data for the given name from google.
     Date format is datetime
@@ -310,7 +310,7 @@ def get_components_yahoo(idx_sym):
     return idx_df
 
 
-def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
+def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0.001,
                    adjust_price=False, ret_index=False, chunksize=25,
                    **kwargs):
     """
@@ -389,8 +389,8 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
 
     return hist_data
 
-def get_data_google(symbols=None, start=None, end=None, retry_count=3, pause=0,
-                   chunksize=25, **kwargs):
+def get_data_google(symbols=None, start=None, end=None, retry_count=3,
+                    pause=0.001, chunksize=25, **kwargs):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
     range, start to end. To avoid being penalized by Google Finance servers,
