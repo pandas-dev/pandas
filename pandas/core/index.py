@@ -920,7 +920,8 @@ class Index(np.ndarray):
         }
         return aliases.get(method, method)
 
-    def reindex(self, target, method=None, level=None, limit=None, copy_if_needed=False):
+    def reindex(self, target, method=None, level=None, limit=None,
+                copy_if_needed=False, takeable=False):
         """
         For Index, simply returns the new index and the results of
         get_indexer. Provided here to enable an interface that is amenable for
@@ -953,7 +954,11 @@ class Index(np.ndarray):
                     if method is not None or limit is not None:
                         raise ValueError("cannot reindex a non-unique index "
                                          "with a method or limit")
-                    indexer, missing = self.get_indexer_non_unique(target)
+                    if takeable:
+                        indexer = target
+                        missing = (target>=len(target)).nonzero()[0]
+                    else:
+                        indexer, missing = self.get_indexer_non_unique(target)
 
         return target, indexer
 
@@ -2202,7 +2207,8 @@ class MultiIndex(Index):
 
         return com._ensure_platform_int(indexer)
 
-    def reindex(self, target, method=None, level=None, limit=None, copy_if_needed=False):
+    def reindex(self, target, method=None, level=None, limit=None,
+                copy_if_needed=False, takeable=False):
         """
         Performs any necessary conversion on the input index and calls
         get_indexer. This method is here so MultiIndex and an Index of
