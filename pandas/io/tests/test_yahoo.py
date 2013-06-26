@@ -104,9 +104,6 @@ class TestYahoo(unittest.TestCase):
         except ImportError:
             raise nose.SkipTest
 
-        ##### FAILING #####
-        raise nose.SkipTest('this test is currently failing')
-
         # aapl has monthlies
         aapl = web.Options('aapl', 'yahoo')
         today = datetime.today()
