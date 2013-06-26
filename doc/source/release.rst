@@ -232,6 +232,7 @@ pandas 0.11.1
     is a ``list`` or ``tuple``.
   - Fixed bug where a time-series was being selected in preference to an actual column name
     in a frame (:issue:`3594`)
+  - Make secondary_y work properly for bar plots (:issue:`3598`)
   - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
     ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`)
   - Fix incorrect dtype on groupby with ``as_index=False`` (:issue:`3610`)

@@ -616,6 +616,16 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(axes[2].get_yaxis().get_ticks_position() == 'right')
 
     @slow
+    def test_secondary_bar_frame(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 3), columns=['a', 'b', 'c'])
+        axes = df.plot(kind='bar', secondary_y=['a', 'c'], subplots=True)
+        self.assert_(axes[0].get_yaxis().get_ticks_position() == 'right')
+        self.assert_(axes[1].get_yaxis().get_ticks_position() == 'default')
+        self.assert_(axes[2].get_yaxis().get_ticks_position() == 'right')
+
+    @slow
     def test_mixed_freq_regular_first(self):
         import matplotlib.pyplot as plt
         plt.close('all')
@@ -863,6 +873,18 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(leg.get_texts()[1].get_text() == 'B')
         self.assert_(leg.get_texts()[2].get_text() == 'C')
         self.assert_(leg.get_texts()[3].get_text() == 'D')
+
+        plt.clf()
+        ax = df.plot(kind='bar', secondary_y=['A'])
+        leg = ax.get_legend()
+        self.assert_(leg.get_texts()[0].get_text() == 'A (right)')
+        self.assert_(leg.get_texts()[1].get_text() == 'B')
+
+        plt.clf()
+        ax = df.plot(kind='bar', secondary_y=['A'], mark_right=False)
+        leg = ax.get_legend()
+        self.assert_(leg.get_texts()[0].get_text() == 'A')
+        self.assert_(leg.get_texts()[1].get_text() == 'B')
 
         plt.clf()
         ax = fig.add_subplot(211)
