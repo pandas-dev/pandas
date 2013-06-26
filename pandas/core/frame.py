@@ -842,12 +842,14 @@ class DataFrame(NDFrame):
     sub = _arith_method(operator.sub, 'subtract', '-')
     div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
     pow = _arith_method(operator.pow, 'pow', '**')
+    mod = _arith_method(lambda x, y: x % y, 'mod')
 
     radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
     rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
     rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
     rpow = _arith_method(lambda x, y: y ** x, 'rpow')
+    rmod = _arith_method(lambda x, y: y % x, 'rmod')
 
     __add__ = _arith_method(operator.add, '__add__', '+', default_axis=None)
     __sub__ = _arith_method(operator.sub, '__sub__', '-', default_axis=None)
@@ -874,7 +876,8 @@ class DataFrame(NDFrame):
                                   default_axis=None, fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
-    __rmod__ = _arith_method(operator.mod, '__rmod__', default_axis=None, fill_zeros=np.nan)
+    __rmod__ = _arith_method(lambda x, y: y % x, '__rmod__', default_axis=None,
+                             fill_zeros=np.nan)
 
     # boolean operators
     __and__ = _arith_method(operator.and_, '__and__', '&')

@@ -1737,6 +1737,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series(p['first'].values % p['second'].values)
         assert_series_equal(result,expected)
 
+        p = p.astype('float64')
+        result = p['first'] % p['second']
+        result2 = p['second'] % p['first']
+        self.assertFalse(np.array_equal(result,result2))
+
     def test_div(self):
 
         # integer div, but deal with the 0's
@@ -1761,6 +1766,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             assert_series_equal(result,p['first'].astype('float64'))
         else:
             assert_series_equal(result,p['first'])
+        self.assertFalse(np.array_equal(result, p['second'] / p['first']))
 
     def test_operators(self):
 
@@ -1773,7 +1779,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             tm.assert_almost_equal(cython_or_numpy, python)
 
         def check(series, other):
-            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
+            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'mod']
 
             for opname in simple_ops:
                 _check_op(series, other, getattr(operator, opname))
@@ -1787,6 +1793,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             _check_op(series, other, lambda x, y: operator.mul(y, x))
             _check_op(series, other, lambda x, y: operator.pow(y, x),
                       pos_only=True)
+            _check_op(series, other, lambda x, y: operator.mod(y, x))
 
         check(self.ts, self.ts * 2)
         check(self.ts, self.ts * 0)
