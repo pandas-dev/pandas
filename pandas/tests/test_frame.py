@@ -10018,6 +10018,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp.columns = ['A', 'A', 'B']
         assert_frame_equal(rs, xp)
 
+    def test_insert_column_bug_4032(self):
+        # GH4032, inserting a column and renaming causing errors
+        df = DataFrame({'b': [1.1, 2.2]})
+        df = df.rename(columns={})
+        df.insert(0, 'a', [1, 2])
+
+        result = df.rename(columns={})
+        expected = DataFrame([[1,1.1],[2, 2.2]],columns=['a','b'])
+        assert_frame_equal(result,expected)
+        df.insert(0, 'c', [1.3, 2.3])
+
+        result = df.rename(columns={})
+        expected = DataFrame([[1.3,1,1.1],[2.3,2, 2.2]],columns=['c','a','b'])
+        assert_frame_equal(result,expected)
+
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
         expected = DataFrame(self.frame._series, dtype=int)

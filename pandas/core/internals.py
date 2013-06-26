@@ -85,6 +85,8 @@ class Block(object):
         """
         if not isinstance(ref_items, Index):
             raise AssertionError('block ref_items must be an Index')
+        if maybe_rename == 'clear':
+            self._ref_locs = None
         if maybe_rename:
             self.items = ref_items.take(self.ref_locs)
         self.ref_items = ref_items
@@ -1798,11 +1800,17 @@ class BlockManager(object):
 
         if len(self.blocks) > 100:
             self._consolidate_inplace()
+        elif new_items.is_unique:
+            self.set_items_clear(new_items)
 
         self._known_consolidated = False
 
     def set_items_norename(self, value):
         self.set_axis(0, value, maybe_rename=False, check_axis=False)
+
+    def set_items_clear(self, value):
+        """ clear the ref_locs on all blocks """
+        self.set_axis(0, value, maybe_rename='clear', check_axis=False)
 
     def _delete_from_all_blocks(self, loc, item):
         """ delete from the items loc the item
@@ -1914,7 +1922,7 @@ class BlockManager(object):
             # and reset
             self._reset_ref_locs()
             self._set_ref_locs(do_refs=True)
-            
+
     def _find_block(self, item):
         self._check_have(item)
         for i, block in enumerate(self.blocks):
