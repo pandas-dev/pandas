@@ -8,9 +8,9 @@ import warnings
 import numpy as np
 import datetime as dt
 import urllib
-import urllib2
 import time
-import warnings
+from contextlib import closing
+from urllib2 import urlopen
 
 from zipfile import ZipFile
 from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
@@ -109,10 +109,11 @@ def get_quote_yahoo(symbols):
 
     data = dict(zip(codes.keys(), [[] for i in range(len(codes))]))
 
-    urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (
-        sym_list, request)
+    url_str = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (sym_list,
+                                                                   request)
 
-    lines = urllib2.urlopen(urlStr).readlines()
+    with closing(urlopen(url_str)) as url:
+        lines = url.readlines()
 
     for line in lines:
         fields = line.decode('utf-8').strip().split(',')
@@ -151,29 +152,29 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
 
     yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
 
-    url = yahoo_URL + 's=%s' % sym + \
-        '&a=%s' % (start.month - 1) + \
-        '&b=%s' % start.day + \
-        '&c=%s' % start.year + \
-        '&d=%s' % (end.month - 1) + \
-        '&e=%s' % end.day + \
-        '&f=%s' % end.year + \
-        '&g=d' + \
-        '&ignore=.csv'
+    url = (yahoo_URL + 's=%s' % sym +
+           '&a=%s' % (start.month - 1) +
+           '&b=%s' % start.day +
+           '&c=%s' % start.year +
+           '&d=%s' % (end.month - 1) +
+           '&e=%s' % end.day +
+           '&f=%s' % end.year +
+           '&g=d' +
+           '&ignore=.csv')
 
-    for _ in range(retry_count):
-        resp = urllib2.urlopen(url)
-        if resp.code == 200:
-            lines = resp.read()
-            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
-                          parse_dates=True)[::-1]
+    for _ in xrange(retry_count):
+        with closing(urlopen(url)) as resp:
+            if resp.code == 200:
+                lines = resp.read()
+                rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
+                              parse_dates=True)[::-1]
 
-            # Yahoo! Finance sometimes does this awesome thing where they
-            # return 2 rows for the most recent business day
-            if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
-                rs = rs[:-1]
+                # Yahoo! Finance sometimes does this awesome thing where they
+                # return 2 rows for the most recent business day
+                if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
+                    rs = rs[:-1]
 
-            return rs
+                return rs
 
         time.sleep(pause)
 
@@ -198,17 +199,19 @@ def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
     google_URL = 'http://www.google.com/finance/historical?'
 
     # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
-    url = google_URL + urllib.urlencode({"q": sym, \
-        "startdate": start.strftime('%b %d, %Y'), \
-        "enddate": end.strftime('%b %d, %Y'), "output": "csv" })
-    for _ in range(retry_count):
-        resp = urllib2.urlopen(url)
-        if resp.code == 200:
-            lines = resp.read()
-            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
-                          parse_dates=True)[::-1]
+    url = google_URL + urllib.urlencode({"q": sym,
+                                         "startdate": start.strftime('%b %d, '
+                                                                     '%Y'),
+                                         "enddate": end.strftime('%b %d, %Y'),
+                                         "output": "csv"})
+    for _ in xrange(retry_count):
+        with closing(urlopen(url)) as resp:
+            if resp.code == 200:
+                lines = resp.read()
+                rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
+                              parse_dates=True)[::-1]
 
-            return rs
+                return rs
 
         time.sleep(pause)
 
@@ -280,19 +283,19 @@ def get_components_yahoo(idx_sym):
           '&e=.csv&h={2}'
 
     idx_mod = idx_sym.replace('^', '@%5E')
-    urlStr = url.format(idx_mod, stats, 1)
+    url_str = url.format(idx_mod, stats, 1)
 
     idx_df = DataFrame()
     mask = [True]
     comp_idx = 1
 
-    #LOOP across component index structure,
-    #break when no new components are found
-    while (True in mask):
-        urlStr = url.format(idx_mod, stats,  comp_idx)
-        lines = (urllib.urlopen(urlStr).read().decode('utf-8').strip().
-                 strip('"').split('"\r\n"'))
-
+    # LOOP across component index structure,
+    # break when no new components are found
+    while True in mask:
+        url_str = url.format(idx_mod, stats,  comp_idx)
+        with closing(urlopen(url_str)) as resp:
+            raw = resp.read()
+        lines = raw.decode('utf-8').strip().strip('"').split('"\r\n"')
         lines = [line.strip().split('","') for line in lines]
 
         temp_df = DataFrame(lines, columns=['ticker', 'name', 'exchange'])
@@ -468,11 +471,11 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
 
     fred_URL = "http://research.stlouisfed.org/fred2/series/"
 
-    url = fred_URL + '%s' % name + \
-        '/downloaddata/%s' % name + '.csv'
-    data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True,
-                    header=None, skiprows=1, names=["DATE", name],
-                    na_values='.')
+    url = fred_URL + '%s' % name + '/downloaddata/%s' % name + '.csv'
+    with closing(urlopen(url)) as resp:
+        data = read_csv(resp, index_col=0, parse_dates=True,
+                        header=None, skiprows=1, names=["DATE", name],
+                        na_values='.')
     try:
         return data.truncate(start, end)
     except KeyError:
@@ -489,9 +492,9 @@ def get_data_famafrench(name, start=None, end=None):
     # path of zip files
     zipFileURL = "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
 
-    url = urllib.urlopen(zipFileURL + name + ".zip")
-    zipfile = ZipFile(StringIO(url.read()))
-    data = zipfile.open(name + ".txt").readlines()
+    with closing(urlopen(zipFileURL + name + ".zip")) as url:
+        with closing(ZipFile(StringIO(url.read()))) as zf:
+            data = zf.read(name + ".txt").splitlines()
 
     file_edges = np.where(np.array([len(d) for d in data]) == 2)[0]
 
@@ -638,7 +641,7 @@ class Options(object):
             url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
                                                             '+Options')
 
-        parsed = parse(urllib2.urlopen(url))
+        parsed = parse(url)
         doc = parsed.getroot()
         tables = doc.findall('.//table')
         calls = tables[9]
@@ -709,7 +712,7 @@ class Options(object):
             url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
                                                             '+Options')
 
-        parsed = parse(urllib2.urlopen(url))
+        parsed = parse(url)
         doc = parsed.getroot()
         tables = doc.findall('.//table')
         calls = tables[9]
@@ -777,7 +780,7 @@ class Options(object):
             url = str('http://finance.yahoo.com/q/op?s=' + self.symbol +
                                                             '+Options')
 
-        parsed = parse(urllib2.urlopen(url))
+        parsed = parse(url)
         doc = parsed.getroot()
         tables = doc.findall('.//table')
         puts = tables[13]
