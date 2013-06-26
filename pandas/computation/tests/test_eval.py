@@ -19,11 +19,12 @@ from pandas import DataFrame, Series
 from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.computation.engines import (_engines, _align_core,
                                         _reconstruct_object)
-from pandas.computation.ops import _binary_ops_dict, _unary_ops_dict
+from pandas.computation.ops import _binary_ops_dict, _unary_ops_dict, Term
 import pandas.computation.expr as expr
 from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.computation.eval import Scope
 from pandas.util.testing import assert_frame_equal, randbool
+from pandas.util.py3compat import PY3
 
 
 def skip_numexpr_engine(engine):
@@ -48,7 +49,9 @@ def _eval_from_expr(lhs, cmp1, rhs, binop, cmp2):
     f1 = _binary_ops_dict[cmp1]
     f2 = _binary_ops_dict[cmp2]
     bf = _binary_ops_dict[binop]
-    typ, (lhs, rhs), axes = _align_core((lhs, rhs))
+    env = Scope()
+    typ, axes = _align_core((Term(lhs, 'lhs', env), Term(rhs, 'rhs', env)))
+    lhs, rhs = env.locals['lhs'], env.locals['rhs']
     return _reconstruct_object(typ, bf(f1(lhs, rhs), f2(lhs, rhs)), axes)
 
 
@@ -483,7 +486,7 @@ def check_series_frame_commutativity(engine, r_idx_type, c_idx_type, op,
                                                    df)
 
 
-INDEX_TYPES = 'i', 'f', 's', 'u', 'dt',  # 'p'
+INDEX_TYPES = 'i', 'f', 's', 'u', # 'dt',  # 'p'
 
 
 @slow
@@ -562,7 +565,21 @@ def test_truediv():
 
 
 def check_truediv(engine):
-    s = randn(10)
+    s = np.array([1])
+    ex = 's / 1'
+
+    if PY3:
+        res = pd.eval(ex, truediv=False)
+        assert_array_equal(res, np.array([1.0]))
+
+        res = pd.eval(ex, truediv=True)
+        assert_array_equal(res, np.array([1.0]))
+    else:
+        res = pd.eval(ex, truediv=False)
+        assert_array_equal(res, np.array([1]))
+
+        res = pd.eval(ex, truediv=True)
+        assert_array_equal(res, np.array([1.0]))
 
 
 __var_s = randn(10)
@@ -583,7 +600,7 @@ def check_is_expr(engine):
     valid = 's + 1'
     invalid = 's +'
     assert_true(expr.isexpr(valid, check_names=True))
-    assert_false(expr.isexpr(valid, check_names=False))
+    assert_true(expr.isexpr(valid, check_names=False))
     assert_false(expr.isexpr(invalid, check_names=False))
     assert_false(expr.isexpr(invalid, check_names=True))
 
