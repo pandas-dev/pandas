@@ -253,8 +253,7 @@ pandas 0.11.1
   - Fix running of bs4 tests when it is not installed (:issue:`3605`)
   - Fix parsing of html table (:issue:`3606`)
   - ``read_html()`` now only allows a single backend: ``html5lib`` (:issue:`3616`)
-  - ``convert_objects`` with ``convert_dates='coerce'`` was parsing some single-letter strings
-     into today's date
+  - ``convert_objects`` with ``convert_dates='coerce'`` was parsing some single-letter strings into today's date
   - ``DataFrame.from_records`` did not accept empty recarrays (:issue:`3682`)
   - ``DataFrame.to_csv`` will succeed with the deprecated option ``nanRep``, @tdsmith
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
@@ -277,10 +276,11 @@ pandas 0.11.1
   - Indexing with a string with seconds resolution not selecting from a time index (:issue:`3925`)
   - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was 
     specified (:issue:`3967`), python parser failing with ``chunksize=1``
-	- Fix index name not propogating when using ``shift`` 
-	- Fixed dropna=False being ignored with multi-index stack (:issue:`3997`)
+  - Fix index name not propogating when using ``shift`` 
+  - Fixed dropna=False being ignored with multi-index stack (:issue:`3997`)
   - Fixed flattening of columns when renaming MultiIndex columns DataFrame (:issue:`4004`)
-	- Fix ``Series.clip`` for datetime series. NA/NaN threshold values will now throw ValueError (:issue:`3996`)
+  - Fix ``Series.clip`` for datetime series. NA/NaN threshold values will now throw ValueError (:issue:`3996`)
+  - Fixed insertion issue into DataFrame, after rename (:issue:`4032`)
 
 .. _Gh3616: https://github.com/pydata/pandas/issues/3616
 
