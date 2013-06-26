@@ -1,7 +1,6 @@
 import ast
 import sys
 from functools import partial
-import collections
 
 
 from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops, Mod
@@ -10,7 +9,17 @@ from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
 from pandas.computation.ops import _resolve_name, Term, Constant
 
 
-Scope = collections.namedtuple('Scope', 'globals locals')
+class Scope(object):
+    __slots__ = 'globals', 'locals'
+
+    def __init__(self, gbls=None, lcls=None, frame_level=1):
+        frame = sys._getframe(frame_level)
+
+        try:
+            self.globals = gbls or frame.f_globals.copy()
+            self.locals = lcls or frame.f_locals.copy()
+        finally:
+            del frame
 
 
 class ExprParserError(Exception):
@@ -104,25 +113,14 @@ class ExprVisitor(ast.NodeVisitor):
 
 
 class Expr(object):
-    """Expr object for pandas
-    """
+    """Expr object"""
     def __init__(self, expr, engine='numexpr', env=None, truediv=True):
         self.expr = expr
-        self.env = env or self._get_calling_scope()
+        self.env = env or Scope(frame_level=2)
         self._visitor = ExprVisitor(self.env)
         self.terms = self.parse()
         self.engine = engine
         self.truediv = truediv
-
-    def _get_calling_scope(self):
-        # call this method **only** in the constructor
-        frame = sys._getframe(2)
-        gbl, lcl = frame.f_globals.copy(), frame.f_locals.copy()
-
-        try:
-            return Scope(gbl, lcl)
-        finally:
-            del frame
 
     def __call__(self, env):
         env.locals['truediv'] = self.truediv
@@ -154,4 +152,5 @@ def isexpr(s, check_names=True):
         return False
     except NameError:
         return not check_names
-    return True
+    else:
+        return True
