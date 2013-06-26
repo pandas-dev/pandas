@@ -1753,6 +1753,16 @@ class DatetimeIndex(Int64Index):
             max_stamp = self.asi8.max()
             return Timestamp(max_stamp, tz=self.tz)
 
+    def to_julian_date(self):
+
+        # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
+        year = self.year
+        month = self.month
+        day = self.day
+        testarr = month < 3
+        year[testarr] -= 1
+        month[testarr] += 12
+        return day + np.fix((153*month - 457)/5) + 365*year + np.floor(year / 4) - np.floor(year / 100) + np.floor(year / 400) + 1721118.5 + (self.hour + self.minute/60.0 + self.second/3600.0 + self.microsecond/3600.0/1e+6 + self.nanosecond/3600.0/1e+9)/24.0
 
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):
