@@ -212,6 +212,8 @@ pandas 0.12
     - Extend ``reindex`` to correctly deal with non-unique indices (:issue:`3679`)
     - ``DataFrame.itertuples()`` now works with frames with duplicate column
       names (:issue:`3873`)
+    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to 
+      ``reindex`` for location-based taking
 
   - Fixed bug in groupby with empty series referencing a variable before assignment. (:issue:`3510`)
   - Allow index name to be used in groupby for non MultiIndex (:issue:`4014`)

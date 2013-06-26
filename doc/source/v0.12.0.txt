@@ -410,6 +410,8 @@ Bug Fixes
     - Extend ``reindex`` to correctly deal with non-unique indices (:issue:`3679`)
     - ``DataFrame.itertuples()`` now works with frames with duplicate column
       names (:issue:`3873`)
+    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to 
+      ``reindex`` for location-based taking
 
   - ``DataFrame.from_records`` did not accept empty recarrays (:issue:`3682`)
   - ``read_html`` now correctly skips tests (:issue:`3741`)

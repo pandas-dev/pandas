@@ -598,7 +598,7 @@ class Series(pa.Array, generic.PandasObject):
             else:
                 label = self.index[i]
                 if isinstance(label, Index):
-                    return self.reindex(label)
+                    return self.reindex(label, takeable=True)
                 else:
                     return _index.get_value_at(self, i)
 
@@ -2618,7 +2618,7 @@ class Series(pa.Array, generic.PandasObject):
         return self._constructor(new_values, new_index, name=self.name)
 
     def reindex(self, index=None, method=None, level=None, fill_value=pa.NA,
-                limit=None, copy=True):
+                limit=None, copy=True, takeable=False):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -2643,6 +2643,7 @@ class Series(pa.Array, generic.PandasObject):
             "compatible" value
         limit : int, default None
             Maximum size gap to forward or backward fill
+        takeable : the labels are locations (and not labels)
 
         Returns
         -------
@@ -2664,7 +2665,8 @@ class Series(pa.Array, generic.PandasObject):
             return Series(nan, index=index, name=self.name)
 
         new_index, indexer = self.index.reindex(index, method=method,
-                                                level=level, limit=limit)
+                                                level=level, limit=limit,
+                                                takeable=takeable)
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 

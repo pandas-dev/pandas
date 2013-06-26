@@ -148,3 +148,19 @@ inds = range(0, 100, 10)
 
 indexing_panel_subset = Benchmark('p.ix[inds, inds, inds]', setup,
                                   start_date=datetime(2012, 1, 1))
+
+#----------------------------------------------------------------------
+# Iloc
+
+setup = common_setup + """
+df = DataFrame({'A' : [0.1] * 3000, 'B' : [1] * 3000})
+idx = np.array(range(30)) * 99
+df2 = DataFrame({'A' : [0.1] * 1000, 'B' : [1] * 1000})
+df2 = concat([df2, 2*df2, 3*df2])
+"""
+
+frame_iloc_dups = Benchmark('df2.iloc[idx]', setup,
+                            start_date=datetime(2013, 1, 1))
+
+frame_loc_dups = Benchmark('df2.loc[idx]', setup,
+                            start_date=datetime(2013, 1, 1))
