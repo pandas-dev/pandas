@@ -793,7 +793,7 @@ class CSVFormatter(object):
                  line_terminator='\n', chunksize=None, engine=None,
                  tupleize_cols=True):
 
-        self.engine = engine  # remove for 0.12
+        self.engine = engine  # remove for 0.13
         self.obj = obj
 
         self.path_or_buf = path_or_buf
@@ -962,7 +962,7 @@ class CSVFormatter(object):
                                          delimiter=self.sep, quoting=self.quoting)
 
             if self.engine == 'python':
-            # to be removed in 0.12
+            # to be removed in 0.13
                 self._helper_csv(self.writer, na_rep=self.na_rep,
                                  float_format=self.float_format, cols=self.cols,
                                  header=self.header, index=self.index,

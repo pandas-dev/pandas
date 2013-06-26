@@ -820,7 +820,7 @@ rows will skip the interveaing rows.
    print open('mi.csv').read()
    pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
 
-Note: The default behavior in 0.11.1 remains unchanged (``tupleize_cols=True``),
+Note: The default behavior in 0.12 remains unchanged (``tupleize_cols=True``),
 but starting with 0.12, the default *to* write and read multi-index columns will be in the new 
 format (``tupleize_cols=False``)
 
@@ -1126,7 +1126,7 @@ Reading HTML Content
 
 .. _io.read_html:
 
-.. versionadded:: 0.11.1
+.. versionadded:: 0.12
 
 The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
 string/file/url and will parse HTML tables into list of pandas DataFrames.
@@ -1501,7 +1501,7 @@ advanced strategies
 
 .. note::
 
-   The prior method of accessing Excel is now deprecated as of 0.11.1,
+   The prior method of accessing Excel is now deprecated as of 0.12,
    this will work but will be removed in a future version.
 
       .. code-block:: python
@@ -1935,7 +1935,7 @@ The default is 50,000 rows returned in a chunk.
 
 .. note::
 
-   .. versionadded:: 0.11.1
+   .. versionadded:: 0.12
 
    You can also use the iterator with ``read_hdf`` which will open, then
    automatically close the store when finished iterating.
@@ -2443,7 +2443,7 @@ Reading from STATA format
 
 .. _io.stata_reader:
 
-.. versionadded:: 0.11.1
+.. versionadded:: 0.12
 
 The top-level function ``read_stata`` will read a dta format file
 and return a DataFrame:

@@ -24,7 +24,7 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.11.1
+pandas 0.12
 =============
 
 **Release date:** not-yet-released
@@ -40,9 +40,9 @@ pandas 0.11.1
   - Added support for writing in ``to_csv`` and reading in ``read_csv``,
     multi-index columns. The ``header`` option in ``read_csv`` now accepts a
     list of the rows from which to read the index. Added the option,
-    ``tupleize_cols`` to provide compatiblity for the pre 0.11.1 behavior of
+    ``tupleize_cols`` to provide compatiblity for the pre 0.12 behavior of
     writing and reading multi-index columns via a list of tuples. The default in
-    0.11.1 is to write lists of tuples and *not* interpret list of tuples as a
+    0.12 is to write lists of tuples and *not* interpret list of tuples as a
     multi-index column.
     Note: The default value will change in 0.12 to make the default *to* write and
     read multi-index columns in the new format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
@@ -146,7 +146,7 @@ pandas 0.11.1
   - Deprecated display.height, display.width is now only a formatting option
     does not control triggering of summary, similar to < 0.11.0.
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
-    to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (:issue:`3679`)
+    to be inserted if ``True``, default is ``False`` (same as prior to 0.12) (:issue:`3679`)
   - io API changes
 
     - added ``pandas.io.api`` for i/o imports
@@ -282,7 +282,6 @@ pandas 0.11.1
   - Fix ``Series.clip`` for datetime series. NA/NaN threshold values will now throw ValueError (:issue:`3996`)
   - Fixed insertion issue into DataFrame, after rename (:issue:`4032`)
 
-.. _Gh3616: https://github.com/pydata/pandas/issues/3616
 
 pandas 0.11.0
 =============

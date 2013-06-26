@@ -880,7 +880,7 @@ class MPLPlot(object):
         try:
             # might be an ndframe
             numeric_data = self.data._get_numeric_data()
-        except AttributeError:  # TODO: rm in 0.12 (series-inherit-ndframe)
+        except AttributeError:  # TODO: rm in 0.13 (series-inherit-ndframe)
             numeric_data = self.data
             orig_dtype = numeric_data.dtype
 
