@@ -1,6 +1,6 @@
-.. _whatsnew_0111:
+.. _whatsnew_0120:
 
-v0.11.1 (June ??, 2013)
+v0.12.0 (June ??, 2013)
 ------------------------
 
 This is a minor release from 0.11.0 and includes several new features and
@@ -107,7 +107,7 @@ API changes
     performs conversion by default. (:issue:`3907`)
 
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
-    to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (:issue:`3679`)
+    to be inserted if ``True``, default is ``False`` (same as prior to 0.12) (:issue:`3679`)
   - Implement ``__nonzero__`` for ``NDFrame`` objects (:issue:`3691`, :issue:`3696`)
 
   - IO api
@@ -195,12 +195,12 @@ I/O Enhancements
       list of the rows from which to read the index.
 
     - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
-      ``read_csv``, to provide compatiblity for the pre 0.11.1 behavior of
+      ``read_csv``, to provide compatiblity for the pre 0.12 behavior of
       writing and reading multi-index columns via a list of tuples. The default in
-      0.11.1 is to write lists of tuples and *not* interpret list of tuples as a 
+      0.12 is to write lists of tuples and *not* interpret list of tuples as a 
       multi-index column.  
 
-      Note: The default behavior in 0.11.1 remains unchanged, but starting with 0.12,
+      Note: The default behavior in 0.12 remains unchanged, but starting with 0.13,
       the default *to* write and read multi-index columns will be in the new 
       format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
 

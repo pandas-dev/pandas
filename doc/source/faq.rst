@@ -35,7 +35,7 @@ horizontal scrolling, auto-detection of width/height.
 To appropriately address all these environments, the display behavior is controlled
 by several options, which you're encouraged to tweak to suit your setup.
 
-As of 0.11.1, these are the relavent options, all under the `display` namespace,
+As of 0.12, these are the relavent options, all under the `display` namespace,
 (e.g. display.width,  etc'):
 
 - notebook_repr_html: if True, IPython frontends with HTML support will display
