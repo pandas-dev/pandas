@@ -231,6 +231,8 @@ Enhancements
 
 - ``quotechar``, ``doublequote``, and ``escapechar`` can now be specified when
   using ``DataFrame.to_csv`` (:issue:`5414`, :issue:`4528`)
+- Added a ``to_julian_date`` function to ``TimeStamp`` and ``DatetimeIndex``
+  to convert to the Julian Date used primarily in astronomy. (:issue:`4041`)
 
 Performance
 ~~~~~~~~~~~
