@@ -122,6 +122,14 @@ They can take a number of arguments:
     will try to look for it in the output and parse relevant data to integers.
     Because it has to essentially scan through the data again, this causes a
     significant performance hit so only use if necessary.
+  - ``lineterminator`` : string (length 1), default ``None``, Character to break file into lines. Only valid with C parser
+  - ``quotechar`` : string, The character to used to denote the start and end of a quoted item. 
+    Quoted items can include the delimiter and it will be ignored.
+  - ``quoting`` : int, 
+    Controls whether quotes should be recognized. Values are taken from `csv.QUOTE_*` values.
+    Acceptable values are 0, 1, 2, and 3 for QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONE, and QUOTE_NONNUMERIC, respectively.
+  - ``skipinitialspace`` : boolean, default ``False``, Skip spaces after delimiter
+  - ``escapechar`` : string, to specify how to escape quoted data
   - ``comment``: denotes the start of a comment and ignores the rest of the line.
     Currently line commenting is not supported.
   - ``nrows``: Number of rows to read out of the file. Useful to only read a
