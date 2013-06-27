@@ -853,7 +853,7 @@ class Options(object):
 
             chop_call = df_c.ix[get_range, :]
 
-            chop_call = chop_call.dropna()
+            chop_call = chop_call.dropna(how='all')
             chop_call = chop_call.reset_index()
 
         if put:
@@ -874,7 +874,7 @@ class Options(object):
 
             chop_put = df_p.ix[get_range, :]
 
-            chop_put = chop_put.dropna()
+            chop_put = chop_put.dropna(how='all')
             chop_put = chop_put.reset_index()
 
         if call and put:

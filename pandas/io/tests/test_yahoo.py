@@ -127,9 +127,9 @@ class TestYahooOptions(unittest.TestCase):
         cls.aapl = web.Options('aapl', 'yahoo')
         today = datetime.today()
         year = today.year
-        month = today.month+1
+        month = today.month + 1
         if month > 12:
-            year = year +1
+            year = year + 1
             month = 1
         cls.expiry = datetime(year, month, 1)
 
