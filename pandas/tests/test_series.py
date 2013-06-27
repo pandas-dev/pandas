@@ -262,7 +262,6 @@ class SafeForSparse(object):
 
 _ts = tm.makeTimeSeries()
 
-
 class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     _multiprocess_can_split_ = True
@@ -1817,7 +1816,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             tm.assert_almost_equal(result, expected)
 
         def check(series, other):
-            simple_ops = ['add', 'sub', 'mul']
+            simple_ops = ['add', 'sub', 'mul', 'floordiv', 'truediv', 'pow']
+            if not compat.PY3:
+                simple_ops.append('div')
 
             for opname in simple_ops:
                 _check_op(series, other, getattr(Series, opname),
@@ -1826,6 +1827,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         check(self.ts, self.ts * 2)
         check(self.ts, self.ts[::2])
         check(self.ts, 5)
+        check(tm.makeFloatSeries(), tm.makeFloatSeries())
 
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
@@ -2216,43 +2218,42 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_operators_datetimelike(self):
 
-        # timedelta64 ###
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td2 = timedelta(minutes=5, seconds=4)
-        for op in ['__mul__', '__floordiv__', '__pow__']:
-            op = getattr(td1, op, None)
-            if op is not None:
-                self.assertRaises(TypeError, op, td2)
+        def run_ops(ops, get_ser, test_ser):
+            for op in ops:
+                try:
+                    op = getattr(get_ser, op, None)
+                    if op is not None:
+                        self.assertRaises(TypeError, op, test_ser)
+                except:
+                    print("Failed on op %r" % op)
+                    raise
+        ### timedelta64 ###
+        td1 = Series([timedelta(minutes=5,seconds=3)]*3)
+        td2 = timedelta(minutes=5,seconds=4)
+        ops = ['__mul__','__floordiv__','__pow__']
+        run_ops(ops, td1, td2)
         td1 + td2
         td1 - td2
-        td1 / td2
 
-        # datetime64 ###
-        dt1 = Series(
-            [Timestamp('20111230'), Timestamp('20120101'), Timestamp('20120103')])
-        dt2 = Series(
-            [Timestamp('20111231'), Timestamp('20120102'), Timestamp('20120104')])
-        for op in ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']:
-            sop = getattr(dt1, op, None)
-            if sop is not None:
-                self.assertRaises(TypeError, sop, dt2)
+        ### datetime64 ###
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
+        ops = ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__',
+               '__pow__']
+        run_ops(ops, dt1, dt2)
         dt1 - dt2
 
-        # datetime64 with timetimedelta ###
-        for op in ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']:
-            sop = getattr(dt1, op, None)
-            if sop is not None:
-                self.assertRaises(TypeError, sop, td1)
+        ### datetime64 with timetimedelta ###
+        ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']
+        run_ops(ops, dt1, td1)
         dt1 + td1
         dt1 - td1
 
-        # timetimedelta with datetime64 ###
-        for op in ['__sub__', '__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']:
-            sop = getattr(td1, op, None)
-            if sop is not None:
-                self.assertRaises(TypeError, sop, dt1)
-
-        # timedelta + datetime ok
+        ### timetimedelta with datetime64 ###
+        ops = ['__sub__', '__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__']
+        run_ops(ops, td1, dt1)
         td1 + dt1
 
     def test_timedelta64_functions(self):
@@ -2385,7 +2386,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
         s[::2] = np.nan
 
-        # test that comparions work
+        # test that comparisons work
         ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
         for op in ops:
             val = s[5]

@@ -1,8 +1,6 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-from pandas.compat import range, lrange, StringIO, cPickle, OrderedDict
-from pandas import compat
 import operator
 import unittest
 import nose
@@ -16,6 +14,7 @@ from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
 from pandas import compat
+from pandas.compat import range, lrange, StringIO, cPickle, OrderedDict
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -327,9 +326,11 @@ class SafeForSparse(object):
                 print("Failing operation: %r" % op)
                 raise
         if compat.PY3:
-            check_op(operator.truediv, 'divide')
-        else:
-            check_op(operator.div, 'divide')
+            try:
+                check_op(operator.floordiv, 'div')
+            except:
+                print("Failing operation: 'floordiv'")
+                raise
 
     def test_combinePanel(self):
         result = self.panel.add(self.panel)
@@ -1657,6 +1658,31 @@ class TestLongPanel(unittest.TestCase):
         wp = self.panel.to_panel()
         result = (self.panel + 1).to_panel()
         assert_frame_equal(wp['ItemA'] + 1, result['ItemA'])
+
+    def test_arith_flex_panel(self):
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
+        if not compat.PY3:
+            aliases = {}
+        else:
+            aliases = {'div': 'truediv'}
+        self.panel = self.panel.to_panel()
+        n = np.random.randint(-50, 50)
+        for op in ops:
+            try:
+                alias = aliases.get(op, op)
+                f = getattr(operator, alias)
+                result = getattr(self.panel, op)(n)
+                exp = f(self.panel, n)
+                assert_panel_equal(result, exp, check_panel_type=True)
+
+                # rops
+                r_f = lambda x, y: f(y, x)
+                result = getattr(self.panel, 'r' + op)(n)
+                exp = r_f(self.panel, n)
+                assert_panel_equal(result, exp)
+            except:
+                print("Failing operation %r" % op)
+                raise
 
     def test_sort(self):
         def is_sorted(arr):
