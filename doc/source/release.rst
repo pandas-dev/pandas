@@ -54,6 +54,9 @@ pandas 0.12
   - Access to historical Google Finance data in pandas.io.data (:issue:`3814`)
   - DataFrame plotting methods can sample column colors from a Matplotlib 
     colormap via the ``colormap`` keyword. (:issue:`3860`)
+  - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
+    ``SparsePanel``, etc.), now support the entire set of arithmetic operators
+    and arithmetic flex methods (add, sub, mul, pow, etc.). (:issue:`3765`)
 
 **Improvements to existing features**
 
