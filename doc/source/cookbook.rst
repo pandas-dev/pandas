@@ -179,6 +179,12 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 `Frequency table like plyr in R
 <http://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
 
+Apply
+~~~~~
+
+`Turning embeded lists into a multi-index frame
+<http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
+
 Timeseries
 ----------
 
@@ -297,6 +303,9 @@ The :ref:`CSV <io.read_csv_table>` docs
 
 `Reading CSV with Unix timestamps and converting to local timezone
 <http://nipunbatra.wordpress.com/2013/06/07/pandas-reading-csv-with-unix-timestamps-and-converting-to-local-timezone/>`__
+
+`Write a multi-row index CSV without writing duplicates
+<http://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
 
 .. _cookbook.sql:
 
