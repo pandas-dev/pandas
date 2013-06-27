@@ -834,63 +834,6 @@ class DataFrame(NDFrame):
         """True if DataFrame has this column"""
         return key in self.columns
 
-    #----------------------------------------------------------------------
-    # Arithmetic methods
-
-    add = _arith_method(operator.add, 'add', '+')
-    mul = _arith_method(operator.mul, 'multiply', '*')
-    sub = _arith_method(operator.sub, 'subtract', '-')
-    div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
-    pow = _arith_method(operator.pow, 'pow', '**')
-    mod = _arith_method(lambda x, y: x % y, 'mod')
-
-    radd = _arith_method(_radd_compat, 'radd')
-    rmul = _arith_method(operator.mul, 'rmultiply')
-    rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
-    rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
-    rpow = _arith_method(lambda x, y: y ** x, 'rpow')
-    rmod = _arith_method(lambda x, y: y % x, 'rmod')
-
-    __add__ = _arith_method(operator.add, '__add__', '+', default_axis=None)
-    __sub__ = _arith_method(operator.sub, '__sub__', '-', default_axis=None)
-    __mul__ = _arith_method(operator.mul, '__mul__', '*', default_axis=None)
-    __truediv__ = _arith_method(operator.truediv, '__truediv__', '/',
-                                default_axis=None, fill_zeros=np.inf, truediv=True)
-    # numexpr produces a different value (python/numpy: 0.000, numexpr: inf)
-    # when dividing by zero, so can't use floordiv speed up (yet)
-    # __floordiv__ = _arith_method(operator.floordiv, '__floordiv__', '//',
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__',
-                                 default_axis=None, fill_zeros=np.inf)
-    __pow__ = _arith_method(operator.pow, '__pow__', '**', default_axis=None)
-
-    # currently causes a floating point exception to occur - so sticking with unaccelerated for now
-    # __mod__ = _arith_method(operator.mod, '__mod__', '%', default_axis=None, fill_zeros=np.nan)
-    __mod__ = _arith_method(operator.mod, '__mod__', default_axis=None, fill_zeros=np.nan)
-
-    __radd__ = _arith_method(_radd_compat, '__radd__', default_axis=None)
-    __rmul__ = _arith_method(operator.mul, '__rmul__', default_axis=None)
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__', default_axis=None)
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__',
-                                 default_axis=None, fill_zeros=np.inf)
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__',
-                                  default_axis=None, fill_zeros=np.inf)
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
-                             default_axis=None)
-    __rmod__ = _arith_method(lambda x, y: y % x, '__rmod__', default_axis=None,
-                             fill_zeros=np.nan)
-
-    # boolean operators
-    __and__ = _arith_method(operator.and_, '__and__', '&')
-    __or__ = _arith_method(operator.or_, '__or__', '|')
-    __xor__ = _arith_method(operator.xor, '__xor__')
-
-    # Python 2 division methods
-    if not py3compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__', '/',
-                                default_axis=None, fill_zeros=np.inf, truediv=False)
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
-                                 default_axis=None, fill_zeros=np.inf)
-
     def __neg__(self):
         arr = operator.neg(self.values)
         return self._wrap_array(arr, self.axes, copy=False)
@@ -898,21 +841,6 @@ class DataFrame(NDFrame):
     def __invert__(self):
         arr = operator.inv(self.values)
         return self._wrap_array(arr, self.axes, copy=False)
-
-    # Comparison methods
-    __eq__ = _comp_method(operator.eq, '__eq__', '==')
-    __ne__ = _comp_method(operator.ne, '__ne__', '!=')
-    __lt__ = _comp_method(operator.lt, '__lt__', '<' )
-    __gt__ = _comp_method(operator.gt, '__gt__', '>' )
-    __le__ = _comp_method(operator.le, '__le__', '<=')
-    __ge__ = _comp_method(operator.ge, '__ge__', '>=')
-
-    eq = _flex_comp_method(operator.eq, 'eq', '==')
-    ne = _flex_comp_method(operator.ne, 'ne', '!=')
-    lt = _flex_comp_method(operator.lt, 'lt', '<')
-    gt = _flex_comp_method(operator.gt, 'gt', '>')
-    le = _flex_comp_method(operator.le, 'le', '<=')
-    ge = _flex_comp_method(operator.ge, 'ge', '>=')
 
     def dot(self, other):
         """
@@ -6029,7 +5957,10 @@ def boxplot(self, column=None, by=None, ax=None, fontsize=None,
     return ax
 DataFrame.boxplot = boxplot
 
-
+DataFrame._add_flex_arithmetic_methods(_arith_method, radd_func=_radd_compat,
+        flex_comp_method=_flex_comp_method)
+DataFrame._add_special_arithmetic_methods(_arith_method, radd_func=_radd_compat,
+        comp_method=_comp_method, bool_method=_arith_method)
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

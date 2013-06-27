@@ -223,24 +223,6 @@ class Panel(NDFrame):
         d.update(kwargs)
         return d
 
-    __add__ = _arith_method(operator.add, '__add__')
-    __sub__ = _arith_method(operator.sub, '__sub__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__')
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
-    __mul__ = _arith_method(operator.mul, '__mul__')
-    __pow__ = _arith_method(operator.pow, '__pow__')
-
-    __radd__ = _arith_method(operator.add, '__radd__')
-    __rmul__ = _arith_method(operator.mul, '__rmul__')
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__')
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
-
-    if not py3compat.PY3:
-        __div__ = _arith_method(operator.div, '__div__')
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__')
-
     def __init__(self, data=None, items=None, major_axis=None, minor_axis=None,
                  copy=False, dtype=None):
         self._init_data(
@@ -457,21 +439,6 @@ class Panel(NDFrame):
 
     def __invert__(self):
         return -1 * self
-
-    # Comparison methods
-    __eq__ = _comp_method(operator.eq, '__eq__')
-    __ne__ = _comp_method(operator.ne, '__ne__')
-    __lt__ = _comp_method(operator.lt, '__lt__')
-    __gt__ = _comp_method(operator.gt, '__gt__')
-    __le__ = _comp_method(operator.le, '__le__')
-    __ge__ = _comp_method(operator.ge, '__ge__')
-
-    eq = _comp_method(operator.eq, 'eq')
-    ne = _comp_method(operator.ne, 'ne')
-    gt = _comp_method(operator.gt, 'gt')
-    lt = _comp_method(operator.lt, 'lt')
-    ge = _comp_method(operator.ge, 'ge')
-    le = _comp_method(operator.le, 'le')
 
     #----------------------------------------------------------------------
     # Magic methods
@@ -1621,7 +1588,7 @@ class Panel(NDFrame):
         return _ensure_index(index)
 
     @classmethod
-    def _add_aggregate_operations(cls):
+    def _add_aggregate_operations(cls, use_numexpr=True):
         """ add the operations to the cls; evaluate the doc strings again """
 
         # doc strings substitors
@@ -1638,25 +1605,27 @@ Returns
 -------
 """ + cls.__name__ + "\n"
 
-        def _panel_arith_method(op, name):
+        def _panel_arith_method(op, name, str_rep = None, default_axis=None, fill_zeros=None, **eval_kwargs):
+            def na_op(x, y):
+                try:
+                    result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
+                except TypeError:
+                    result = op(x, y)
+
+                # handles discrepancy between numpy and numexpr on division/mod by 0
+                # though, given that these are generally (always?) non-scalars, I'm
+                # not sure whether it's worth it at the moment
+                result = com._fill_zeros(result,y,fill_zeros)
+                return result
             @Substitution(op)
             @Appender(_agg_doc)
             def f(self, other, axis=0):
-                return self._combine(other, op, axis=axis)
+                return self._combine(other, na_op, axis=axis)
             f.__name__ = name
             return f
-
-        cls.add = _panel_arith_method(operator.add, 'add')
-        cls.subtract = cls.sub = _panel_arith_method(operator.sub, 'subtract')
-        cls.multiply = cls.mul = _panel_arith_method(operator.mul, 'multiply')
-
-        try:
-            cls.divide = cls.div = _panel_arith_method(operator.div, 'divide')
-        except AttributeError:  # pragma: no cover
-            # Python 3
-            cls.divide = cls.div = _panel_arith_method(
-                operator.truediv, 'divide')
-
+        # add `div`, `mul`, `pow`, etc..
+        cls._add_flex_arithmetic_methods(_panel_arith_method,
+                use_numexpr=use_numexpr, flex_comp_method=_comp_method)
         _agg_doc = """
 Return %(desc)s over requested axis
 
@@ -1737,6 +1706,7 @@ If all values are NA, result will be NA"""
             return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
         cls.min = min
 
+Panel._add_special_arithmetic_methods(_arith_method, comp_method=_comp_method)
 Panel._add_aggregate_operations()
 
 WidePanel = Panel
