@@ -1788,6 +1788,9 @@ class BlockManager(object):
             # new block
             self._add_new_block(item, value, loc=loc)
 
+            if loc != len(self.items)-1 and new_items.is_unique:
+                self.set_items_clear(new_items)
+
         except:
 
             # so our insertion operation failed, so back out of the new items
@@ -1800,8 +1803,6 @@ class BlockManager(object):
 
         if len(self.blocks) > 100:
             self._consolidate_inplace()
-        elif new_items.is_unique:
-            self.set_items_clear(new_items)
 
         self._known_consolidated = False
 
