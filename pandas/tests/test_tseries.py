@@ -2,7 +2,7 @@ import unittest
 
 from numpy import nan
 import numpy as np
-from pandas import Index, isnull
+from pandas import Index, isnull, Timestamp
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas.lib as lib
@@ -682,6 +682,22 @@ class TestReducer(unittest.TestCase):
                             dummy=dummy, labels=Index(np.arange(100)))
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
+
+
+class TestTsUtil(unittest.TestCase):
+    def test_min_valid(self):
+        # Ensure that Timestamp.min is a valid Timestamp
+        Timestamp(Timestamp.min)
+
+    def test_max_valid(self):
+        # Ensure that Timestamp.max is a valid Timestamp
+        Timestamp(Timestamp.max)
+
+    def test_to_datetime_bijective(self):
+        # Ensure that converting to datetime and back only loses precision
+        # by going from nanoseconds to microseconds.
+        self.assertEqual(Timestamp(Timestamp.max.to_pydatetime()).value/1000, Timestamp.max.value/1000)
+        self.assertEqual(Timestamp(Timestamp.min.to_pydatetime()).value/1000, Timestamp.min.value/1000)
 
 if __name__ == '__main__':
     import nose
