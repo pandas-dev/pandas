@@ -80,8 +80,7 @@ class TestYahoo(unittest.TestCase):
             ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
             self.assertEquals(ts[0].dayofyear, 96)
 
-        if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
-            hasattr(pan.Close, 'AAPL')):
+        if hasattr(pan.Close, 'GOOG') and hasattr(pan.Close, 'AAPL'):
             testit()
         else:
             self.assertRaises(AttributeError, testit)
@@ -89,20 +88,17 @@ class TestYahoo(unittest.TestCase):
     @network
     def test_get_data_multiple_symbols_two_dates(self):
         pan = web.get_data_yahoo(['GE', 'MSFT', 'INTC'], 'JAN-01-12', 'JAN-31-12')
-        expected = [19.02, 28.23, 25.39]
-        result = pan.Close.ix['01-18-12'][['GE', 'MSFT', 'INTC']]
-        self.assertEqual(len(result), len(expected))
+        result = pan.Close.ix['01-18-12']
+        self.assertEqual(len(result), 3)
 
         # sanity checking
         assert np.issubdtype(result.dtype, np.floating)
-        self.assertEqual(result.shape, (3,))
 
-        expected = [[ 18.99,  28.4 ,  25.18],
-                    [ 18.58,  28.31,  25.13],
-                    [ 19.03,  28.16,  25.52],
-                    [ 18.81,  28.82,  25.87]]
-        result = pan.Open.ix['Jan-15-12':'Jan-20-12'][['GE', 'MSFT',
-                                                       'INTC']].values
+        expected = np.array([[ 18.99,  28.4 ,  25.18],
+                             [ 18.58,  28.31,  25.13],
+                             [ 19.03,  28.16,  25.52],
+                             [ 18.81,  28.82,  25.87]])
+        result = pan.Open.ix['Jan-15-12':'Jan-20-12'].values
         assert_array_equal(np.array(expected).shape, result.shape)
 
     @network
