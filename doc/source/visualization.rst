@@ -531,3 +531,65 @@ be colored differently.
 
    @savefig radviz.png width=6in
    radviz(data, 'Name')
+
+.. _visualization.colormaps:
+
+Colormaps
+~~~~~~~~~
+
+A potential issue when plotting a large number of columns is that it can be difficult to distinguish some series due to repetition in the default colors. To remedy this, DataFrame plotting supports the use of the ``colormap=`` argument, which accepts either a Matplotlib `colormap <http://matplotlib.org/api/cm_api.html>`__ or a string that is a name of a colormap registered with Matplotlib. A visualization of the default matplotlib colormaps is available `here <http://wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps>`__.
+
+As matplotlib does not directly support colormaps for line-based plots, the colors are selected based on an even spacing determined by the number of columns in the DataFrame. There is no consideration made for background color, so some colormaps will produce lines that are not easily visible.
+
+To use the jet colormap, we can simply pass ``'jet'`` to ``colormap=``
+
+.. ipython:: python
+
+   df = DataFrame(randn(1000, 10), index=ts.index)
+   df = df.cumsum()
+
+   plt.figure()
+
+   @savefig jet.png width=6in
+   df.plot(colormap='jet')
+
+or we can pass the colormap itself
+
+.. ipython:: python
+
+   from matplotlib import cm
+
+   plt.figure()
+
+   @savefig jet_cm.png width=6in
+   df.plot(colormap=cm.jet)
+
+Colormaps can also be used other plot types, like bar charts:
+
+.. ipython:: python
+
+   dd = DataFrame(randn(10, 10)).applymap(abs)
+   dd = dd.cumsum()
+
+   plt.figure()
+
+   @savefig greens.png width=6in
+   dd.plot(kind='bar', colormap='Greens')
+
+Parallel coordinates charts:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig parallel_gist_rainbow.png width=6in
+   parallel_coordinates(data, 'Name', colormap='gist_rainbow')
+
+Andrews curves charts:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig andrews_curve_winter.png width=6in
+   andrews_curves(data, 'Name', colormap='winter')

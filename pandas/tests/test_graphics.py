@@ -103,6 +103,35 @@ class TestSeriesPlots(unittest.TestCase):
             self.assert_(xp == rs)
 
         plt.close('all')
+
+        from matplotlib import cm
+
+        # Test str -> colormap functionality
+        ax = df.plot(kind='bar', colormap='jet')
+
+        rects = ax.patches
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, 5))
+        for i, rect in enumerate(rects[::5]):
+            xp = rgba_colors[i]
+            rs = rect.get_facecolor()
+            self.assert_(xp == rs)
+
+        plt.close('all')
+
+        # Test colormap functionality
+        ax = df.plot(kind='bar', colormap=cm.jet)
+
+        rects = ax.patches
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, 5))
+        for i, rect in enumerate(rects[::5]):
+            xp = rgba_colors[i]
+            rs = rect.get_facecolor()
+            self.assert_(xp == rs)
+
+        plt.close('all')
+
         df.ix[:, [0]].plot(kind='bar', color='DodgerBlue')
 
     @slow
@@ -600,6 +629,7 @@ class TestDataFramePlots(unittest.TestCase):
     def test_parallel_coordinates(self):
         from pandas import read_csv
         from pandas.tools.plotting import parallel_coordinates
+        from matplotlib import cm
         path = os.path.join(curpath(), 'data/iris.csv')
         df = read_csv(path)
         _check_plot_works(parallel_coordinates, df, 'Name')
@@ -611,6 +641,7 @@ class TestDataFramePlots(unittest.TestCase):
                           colors=('#556270', '#4ECDC4', '#C7F464'))
         _check_plot_works(parallel_coordinates, df, 'Name',
                           colors=['dodgerblue', 'aquamarine', 'seagreen'])
+        _check_plot_works(parallel_coordinates, df, 'Name', colormap=cm.jet)
 
         df = read_csv(
             path, header=None, skiprows=1, names=[1, 2, 4, 8, 'Name'])
@@ -622,9 +653,11 @@ class TestDataFramePlots(unittest.TestCase):
     def test_radviz(self):
         from pandas import read_csv
         from pandas.tools.plotting import radviz
+        from matplotlib import cm
         path = os.path.join(curpath(), 'data/iris.csv')
         df = read_csv(path)
         _check_plot_works(radviz, df, 'Name')
+        _check_plot_works(radviz, df, 'Name', colormap=cm.jet)
 
     @slow
     def test_plot_int_columns(self):
@@ -666,6 +699,7 @@ class TestDataFramePlots(unittest.TestCase):
         import matplotlib.pyplot as plt
         import sys
         from StringIO import StringIO
+        from matplotlib import cm
 
         custom_colors = 'rgcby'
 
@@ -690,6 +724,30 @@ class TestDataFramePlots(unittest.TestCase):
                 self.assert_(l1.get_color(), l2.get_color())
         finally:
             sys.stderr = tmp
+
+        plt.close('all')
+
+        ax = df.plot(colormap='jet')
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, len(df)))
+
+        lines = ax.get_lines()
+        for i, l in enumerate(lines):
+            xp = rgba_colors[i]
+            rs = l.get_color()
+            self.assert_(xp == rs)
+
+        plt.close('all')
+
+        ax = df.plot(colormap=cm.jet)
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, len(df)))
+
+        lines = ax.get_lines()
+        for i, l in enumerate(lines):
+            xp = rgba_colors[i]
+            rs = l.get_color()
+            self.assert_(xp == rs)
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
@@ -862,6 +920,10 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         except ValueError:
             pass
 
+    def test_invalid_colormap(self):
+        df = DataFrame(np.random.randn(500, 2), columns=['A', 'B'])
+
+        self.assertRaises(ValueError, df.plot, colormap='invalid_colormap')
 
 def _check_plot_works(f, *args, **kwargs):
     import matplotlib.pyplot as plt
