@@ -32,6 +32,7 @@ import pandas.core.array as pa
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
+import pandas.core.expressions as expressions
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, cache_readonly
@@ -55,17 +56,14 @@ _SHOW_WARNINGS = True
 # Wrapper function for Series arithmetic methods
 
 
-def _arith_method(op, name, fill_zeros=None):
+def _arith_method(op, name, str_rep=None, fill_zeros=None, default_axis=None, **eval_kwargs):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
     def na_op(x, y):
         try:
-
-            result = op(x, y)
-            result = com._fill_zeros(result,y,fill_zeros)
-
+            result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
         except TypeError:
             result = pa.empty(len(x), dtype=x.dtype)
             if isinstance(y, pa.Array):
@@ -77,6 +75,8 @@ def _arith_method(op, name, fill_zeros=None):
 
             result, changed = com._maybe_upcast_putmask(result,-mask,pa.NA)
 
+        # handles discrepancy between numpy and numexpr on division/mod by 0
+        result = com._fill_zeros(result,y,fill_zeros)
         return result
 
     def wrapper(self, other, name=name):
@@ -184,10 +184,12 @@ def _arith_method(op, name, fill_zeros=None):
                 lvalues = lvalues.values
             return Series(wrap_results(na_op(lvalues, rvalues)),
                           index=self.index, name=self.name, dtype=dtype)
+    wrapper.__name__ = name
     return wrapper
 
-
-def _comp_method(op, name):
+# Would it make sense to have this use numexpr instead?
+# Should frame use vec_compare?
+def _comp_method(op, name, str_rep=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -239,10 +241,11 @@ def _comp_method(op, name):
                                 % type(other))
             return Series(na_op(values, other),
                           index=self.index, name=self.name)
+    wrapper.__name__ = name
     return wrapper
 
 
-def _bool_method(op, name):
+def _bool_method(op, name, str_rep=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -280,6 +283,7 @@ def _bool_method(op, name):
             # scalars
             return Series(na_op(self.values, other),
                           index=self.index, name=self.name)
+    wrapper.__name__ = name
     return wrapper
 
 
@@ -306,8 +310,7 @@ def _maybe_match_name(a, b):
         name = a.name
     return name
 
-
-def _flex_method(op, name):
+def _flex_method(op, name, str_rep=None, default_axis=None, fill_zeros=None, **eval_kwargs):
     doc = """
     Binary operator %s with support to substitute a fill_value for missing data
     in one of the inputs
@@ -326,18 +329,35 @@ def _flex_method(op, name):
     -------
     result : Series
     """ % name
+    # copied directly from _arith_method above...we'll see whether this works
+    def na_op(x, y):
+        try:
+            result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
+        except TypeError:
+            result = pa.empty(len(x), dtype=x.dtype)
+            if isinstance(y, pa.Array):
+                mask = notnull(x) & notnull(y)
+                result[mask] = op(x[mask], y[mask])
+            else:
+                mask = notnull(x)
+                result[mask] = op(x[mask], y)
 
+            result, changed = com._maybe_upcast_putmask(result,-mask,pa.NA)
+
+        # handles discrepancy between numpy and numexpr on division/mod by 0
+        result = com._fill_zeros(result,y,fill_zeros)
+        return result
     @Appender(doc)
     def f(self, other, level=None, fill_value=None):
         if isinstance(other, Series):
-            return self._binop(other, op, level=level, fill_value=fill_value)
+            return self._binop(other, na_op, level=level, fill_value=fill_value)
         elif isinstance(other, (pa.Array, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
             return self._binop(Series(other, self.index), op,
                                level=level, fill_value=fill_value)
         else:
-            return Series(op(self.values, other), self.index,
+            return Series(na_op(self.values, other), self.index,
                           name=self.name)
 
     f.__name__ = name

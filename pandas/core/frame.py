@@ -194,8 +194,6 @@ def _arith_method(op, name, str_rep = None, default_axis='columns', fill_zeros=N
     def na_op(x, y):
         try:
             result = expressions.evaluate(op, str_rep, x, y, raise_on_error=True, **eval_kwargs)
-            result = com._fill_zeros(result,y,fill_zeros)
-
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
@@ -210,6 +208,8 @@ def _arith_method(op, name, str_rep = None, default_axis='columns', fill_zeros=N
             result, changed = com._maybe_upcast_putmask(result,-mask,np.nan)
             result = result.reshape(x.shape)
 
+        # handles discrepancy between numpy and numexpr on division/mod by 0
+        result = com._fill_zeros(result,y,fill_zeros)
         return result
 
     @Appender(_arith_doc % name)
@@ -250,7 +250,7 @@ def _flex_comp_method(op, name, str_rep = None, default_axis='columns'):
 
     def na_op(x, y):
         try:
-            result = op(x, y)
+            result = expressions.evaluate(op, str_rep, x, y)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
