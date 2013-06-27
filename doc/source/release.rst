@@ -52,6 +52,8 @@ pandas 0.12
   - A ``filter`` method on grouped Series or DataFrames returns a subset of
     the original (:issue:`3680`, :issue:`919`)
   - Access to historical Google Finance data in pandas.io.data (:issue:`3814`)
+  - DataFrame plotting methods can sample column colors from a Matplotlib 
+    colormap via the ``colormap`` keyword. (:issue:`3860`)
 
 **Improvements to existing features**
 
