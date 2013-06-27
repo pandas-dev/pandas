@@ -70,7 +70,8 @@ class TestExpressions(unittest.TestCase):
             operations.append('div')
         for arith in operations:
             if test_flex:
-                op = getattr(df, arith)
+                op = lambda x, y : getattr(df, arith)(y)
+                op.__name__ = arith
             else:
                 op = getattr(operator, arith)
             expr.set_use_numexpr(False)
@@ -105,11 +106,10 @@ class TestExpressions(unittest.TestCase):
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
         operations = ['gt', 'lt', 'ge', 'le', 'eq', 'ne']
-        found_error = False
-        print "Running binary test with other - ", type(other)
         for arith in operations:
             if test_flex:
-                op = getattr(df, arith)
+                op = lambda x, y: getattr(df, arith)(y)
+                op.__name__ = arith
             else:
                 op = getattr(operator, arith)
             expr.set_use_numexpr(False)
@@ -129,13 +129,10 @@ class TestExpressions(unittest.TestCase):
                 else:
                     assert not used_numexpr, "Used numexpr unexpectedly."
                 assert_func(expected, result)
-            except Exception as e:
-                print("-----------Failed test with func %r" % op)
-                print("-----------test_flex was %r" % test_flex)
-                print "-----------", e
-                found_error = True
-        if found_error:
-            raise AssertionError("found an error")
+            except Exception:
+                print("Failed test with operation %r" % arith)
+                print("test_flex was %r" % test_flex)
+                raise
 
     def run_frame(self, df, other, binary_comp=None, run_binary=True, **kwargs):
         self.run_arithmetic_test(df, other, assert_frame_equal, test_flex=False,
@@ -173,9 +170,8 @@ class TestExpressions(unittest.TestCase):
                 binary_comp = other + 1
             self.run_binary_test(panel, binary_comp, assert_func,
                                  test_flex=False, **kwargs)
-            # Panel doesn't support flex comparison methods...
-            # self.run_binary_test(panel, binary_comp, assert_panel_equal,
-            #         test_flex=True, **kwargs)
+            self.run_binary_test(panel, binary_comp, assert_func,
+                                 test_flex=True, **kwargs)
 
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)

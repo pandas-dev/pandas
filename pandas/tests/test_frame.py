@@ -4166,7 +4166,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(index == frame.index[-6])
 
     def test_arith_flex_frame(self):
-        ops = ['add', 'sub', 'mul','div', 'truediv', 'pow', 'floordiv', 'mod']
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
         if not py3compat.PY3:
             aliases = {}
         else:
@@ -4178,6 +4178,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 f = getattr(operator, alias)
                 result = getattr(self.frame, op)(2 * self.frame)
                 exp = f(self.frame, 2 * self.frame)
+                assert_frame_equal(result, exp)
+
+                # rops
+                r_f = lambda x, y: f(y, x)
+                result = getattr(self.frame, 'r' + op)(2 * self.frame)
+                exp = r_f(self.frame, 2 * self.frame)
                 assert_frame_equal(result, exp)
 
                 # vs mix float
