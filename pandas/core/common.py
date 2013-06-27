@@ -4,7 +4,7 @@ Misc tools for implementing data structures
 
 import itertools
 import re
-from datetime import datetime
+import types
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
@@ -37,6 +37,30 @@ class PandasError(Exception):
 class AmbiguousIndexError(PandasError, KeyError):
     pass
 
+
+def bind_method(cls, name, func):
+    """Bind a method to class, python 2 and python 3 compatible.
+
+    Parameters
+    ----------
+
+    cls : type
+        class to receive bound method
+    name : basestring
+        name of method on class instance
+    func : function
+        function to be bound as method
+
+
+    Returns
+    -------
+    None
+    """
+    # only python 2 has bound/unbound method issue
+    if not py3compat.PY3:
+        setattr(cls, name, types.MethodType(func, None, cls))
+    else:
+        setattr(cls, name, func)
 
 _POSSIBLY_CAST_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]','O','int8','uint8','int16','uint16','int32','uint32','int64','uint64'] ])
 _NS_DTYPE = np.dtype('M8[ns]')
