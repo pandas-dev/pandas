@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
 
+import weakref
 import numpy as np
 
 from pandas.core.index import MultiIndex
@@ -666,6 +667,7 @@ class NDFrame(PandasObject):
             values = self._data.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
+            res._cacher = weakref.ref(self)
             return res
 
     def _box_item_values(self, key, values):
@@ -1065,6 +1067,7 @@ class NDFrame(PandasObject):
             new_data = self._data.reindex_axis(new_items, axis=0)
         else:
             new_data = self._data.take(indices, axis=axis, verify=False)
+
         return self._constructor(new_data)
 
     def tz_convert(self, tz, axis=0, copy=True):

@@ -1650,6 +1650,7 @@ class BlockManager(object):
             self._known_consolidated = True
 
     def get(self, item):
+
         if self.items.is_unique:
             _, block = self._find_block(item)
             return block.get(item)

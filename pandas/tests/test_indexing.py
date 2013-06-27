@@ -1066,7 +1066,18 @@ class TestIndexing(unittest.TestCase):
         result = df2.loc[idx]
         assert_frame_equal(result, expected)
 
+    def test_series_iloc(self):
+        # GH 3970
 
+        df = DataFrame({ "aa":range(5), "bb":[2.2]*5})
+        df["cc"] = 0.0
+        ck = [True]*len(df)
+        df["bb"].loc[0] = .13 # works
+        df_tmp = df.iloc[ck]
+        df["bb"].loc[0] = .15 # doesn't work
+        expected = DataFrame({ "aa":range(5), "bb":[0.15,2.2,2.2,2.2,2.2], "cc": 0.0 })
+        assert_frame_equal(df, expected)
+        
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
