@@ -312,6 +312,8 @@ class SafeForSparse(object):
             check_op(operator.truediv, 'divide')
         else:
             check_op(operator.div, 'divide')
+        check_op(operator.truediv, 'truediv')
+        check_op(operator.floordiv, 'floordiv')
 
     def test_combinePanel(self):
         result = self.panel.add(self.panel)

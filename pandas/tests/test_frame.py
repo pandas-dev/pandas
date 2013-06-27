@@ -4166,35 +4166,47 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(index == frame.index[-6])
 
     def test_arith_flex_frame(self):
-        ops = ['add', 'sub', 'mul', 'div', 'pow']
-        aliases = {'div': 'truediv'}
+        ops = ['add', 'sub', 'mul','div', 'truediv', 'pow', 'floordiv', 'mod']
+        if not py3compat.PY3:
+            aliases = {}
+        else:
+            aliases = {'div': 'truediv'}
 
         for op in ops:
-            alias = aliases.get(op, op)
-            f = getattr(operator, alias)
-            result = getattr(self.frame, op)(2 * self.frame)
-            exp = f(self.frame, 2 * self.frame)
-            assert_frame_equal(result, exp)
-
-            # vs mix float
-            result = getattr(self.mixed_float, op)(2 * self.mixed_float)
-            exp = f(self.mixed_float, 2 * self.mixed_float)
-            assert_frame_equal(result, exp)
-            _check_mixed_float(result, dtype = dict(C = None))
-
-            # vs mix int
-            if op in ['add','sub','mul']:
-                result = getattr(self.mixed_int, op)(2 + self.mixed_int)
-                exp = f(self.mixed_int, 2 + self.mixed_int)
-
-                # overflow in the uint
-                dtype = None
-                if op in ['sub']:
-                    dtype = dict(B = 'object', C = None)
-                elif op in ['add','mul']:
-                    dtype = dict(C = None)
+            try:
+                alias = aliases.get(op, op)
+                f = getattr(operator, alias)
+                result = getattr(self.frame, op)(2 * self.frame)
+                exp = f(self.frame, 2 * self.frame)
                 assert_frame_equal(result, exp)
-                _check_mixed_int(result, dtype = dtype)
+
+                # vs mix float
+                result = getattr(self.mixed_float, op)(2 * self.mixed_float)
+                exp = f(self.mixed_float, 2 * self.mixed_float)
+                assert_frame_equal(result, exp)
+                _check_mixed_float(result, dtype = dict(C = None))
+
+                result = getattr(self.intframe, op)(2 * self.intframe)
+                exp = f(self.intframe, 2 * self.intframe)
+                print repr(op), repr(f)
+                assert_frame_equal(result, exp)
+
+                # vs mix int
+                if op in ['add','sub','mul']:
+                    result = getattr(self.mixed_int, op)(2 + self.mixed_int)
+                    exp = f(self.mixed_int, 2 + self.mixed_int)
+
+                    # overflow in the uint
+                    dtype = None
+                    if op in ['sub']:
+                        dtype = dict(B = 'object', C = None)
+                    elif op in ['add','mul']:
+                        dtype = dict(C = None)
+                    assert_frame_equal(result, exp)
+                    _check_mixed_int(result, dtype = dtype)
+            except:
+                print("Failing operation %r" % op)
+                raise
 
         # res_add = self.frame.add(self.frame)
         # res_sub = self.frame.sub(self.frame)
@@ -10590,6 +10602,37 @@ starting,ending,measure
         f = lambda x: x.rename({1: 'foo'}, inplace=True)
         _check_f(data.copy()['c'], f)
 
+    def test_default_axis(self):
+        # in frame, default axis is `None` for special methods
+        # and `columns` for flex methods
+        frame = DataFrame(np.random.randn(5, 7), columns=list("ABCDEFG"))
+        ops = ['add', 'radd', 'sub', 'rsub', 'div', 'rdiv', 'truediv', 'rtruediv', 'floordiv', 'rfloordiv', 'mul', 'rmul', 'pow', 'rpow', 'mod', 'rmod']
+        special_ops = list("__%s__" % op for op in ops)
+        for flex_name, special_name in zip(ops, special_ops):
+            try:
+                try:
+                    flex_meth = getattr(frame, flex_name)
+                    special_meth = getattr(frame, special_name)
+                except AttributeError:
+                    # for now, ignore if doesn't respond to methods
+                    continue
+                expected = flex_meth(frame.irow(0), axis=1)
+                result = flex_meth(frame.irow(0))
+                #flex method has right axis
+                assert_frame_equal(result, expected)
+                #special method has right axis
+                result2 = special_meth(frame.irow(0))
+                assert_frame_equal(result2, expected)
+                # finally, test that going against default axis results in Na
+                flex_result = flex_meth(frame.icol(0))
+                assert isnull(flex_result).all().all(), "Flex method should have been all NaN when using column"
+                flex_result2 = flex_meth(frame.irow(0), axis=0)
+                assert isnull(flex_result2).all().all(), "With axis 0, flex method should be all NaN when using row"
+                special_result = special_meth(frame.icol(0))
+                assert isnull(special_result).all().all(), "Special method should be all NaN when using column"
+            except:
+                print("Failure on %r, %r" % (flex_name, special_name))
+                raise
 
 if __name__ == '__main__':
     # unittest.main()
