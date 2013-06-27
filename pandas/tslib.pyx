@@ -389,7 +389,9 @@ cpdef object get_value_box(ndarray arr, object loc):
 
 
 # Add the min and max fields at the class level
-cdef int64_t _NS_LOWER_BOUND = -9223372036854775807LL
+# These are defined as magic numbers due to strange
+# wraparound behavior when using the true int64 lower boundary
+cdef int64_t _NS_LOWER_BOUND = -9223285636854775000LL
 cdef int64_t _NS_UPPER_BOUND = 9223372036854775807LL
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
