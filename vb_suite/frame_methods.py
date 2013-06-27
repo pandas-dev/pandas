@@ -125,8 +125,19 @@ def f(K=500):
         df[i] = new_col
 """
 
-frame_insert_500_columns = Benchmark('f()', setup,
-                                     start_date=datetime(2011, 1, 1))
+frame_insert_500_columns_end = Benchmark('f()', setup, start_date=datetime(2011, 1, 1))
+
+setup = common_setup + """
+N = 1000
+
+def f(K=100):
+    df = DataFrame(index=range(N))
+    new_col = np.random.randn(N)
+    for i in range(K):
+        df.insert(0,i,new_col)
+"""
+
+frame_insert_100_columns_begin = Benchmark('f()', setup, start_date=datetime(2011, 1, 1))
 
 #----------------------------------------------------------------------
 # strings methods, #2602
