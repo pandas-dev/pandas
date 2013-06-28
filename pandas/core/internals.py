@@ -575,9 +575,10 @@ class Block(object):
             return make_block(result, self.items, self.ref_items)
 
         # might need to separate out blocks
-        axis = cond.ndim-1
-        cond = cond.swapaxes(axis,0)
-        mask = np.array([ cond[i].all() for i in enumerate(range(cond.shape[0]))],dtype=bool)
+        axis = cond.ndim - 1
+        cond = cond.swapaxes(axis, 0)
+        mask = np.array([cond[i].all() for i in xrange(cond.shape[0])],
+                        dtype=bool)
 
         result_blocks = []
         for m in [mask, ~mask]:

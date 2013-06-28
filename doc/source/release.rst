@@ -293,6 +293,8 @@ pandas 0.12
     :issue:`4028`, :issue:`4054`)
   - ``Series.hist`` will now take the figure from the current environment if
     one is not passed
+  - Fixed bug where a 1xN DataFrame would barf on a 1xN mask (:issue:`4071`)
+
 
 pandas 0.11.0
 =============
