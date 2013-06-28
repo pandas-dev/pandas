@@ -11,39 +11,50 @@ from pandas.computation.engines import _engines
 
 def eval(expr, engine='numexpr', truediv=True, local_dict=None,
          global_dict=None):
+    """Evaluate a Python expression as a string.
+
+    Parameters
+    ----------
+    expr : string or Expr object
+    engine : string, optional, default 'numexpr'
+        The engine to use to evaluate the passed expression
+    truediv : bool, optional, default True
+    local_dict : dict or None, optional, default None
+    global_dict : dict or None, optional, default None
+
+    Returns
+    -------
+    obj : ndarray, scalar, DataFrame, Series, or Panel
+    """
     # make sure we're passed a valid engine
     if not engine in _engines:
         raise KeyError('Invalid engine {0} passed, valid engines are'
                        ' {1}'.format(_engines.keys()))
 
-    # 1 up in the call stack for locals/globals; see the documentation for the
-    # inspect module for why you must decrease the refcount of frame at all
-    # costs
-    frame = sys._getframe(1)
+    eng = _engines[engine]
 
-    try:
-        # parse the expression from a string
-        if isinstance(expr, basestring):
-            # get the globals and locals
-            gbl, lcl = (global_dict or frame.f_globals,
-                        local_dict or frame.f_locals)
+    if isinstance(expr, basestring):
+        frame = sys._getframe(1)
 
-            # shallow copy the scope so we don't overwrite everything
+        # get the globals and locals
+        gbl, lcl = (global_dict or frame.f_globals,
+                    local_dict or frame.f_locals)
+
+        try:
+            # shallow copy the scope so we don't overwrite anything
             env = Scope(gbl.copy(), lcl.copy())
-            parsed_expr = Expr(expr, engine, env, truediv)
-        elif isinstance(expr, Expr):
-            parsed_expr = expr
-        else:
-            raise TypeError("eval only accepts strings and Expr objects, you "
-                            "passed a {0!r}".format(expr.__class__.__name__))
+        finally:
+            del frame
+        parsed_expr = Expr(expr, engine, env, truediv)
+    elif isinstance(expr, Expr):
+        parsed_expr = expr
+    else:
+        raise TypeError("eval only accepts strings and Expr objects, you "
+                        "passed a {0!r}".format(expr.__class__.__name__))
 
-        # choose the engine
-        eng = _engines[engine]
 
-        # construct the engine and evaluate
-        ret = eng(parsed_expr).evaluate(env)
-    finally:
-        del frame
+    # construct the engine and evaluate
+    ret = eng(parsed_expr).evaluate()
 
     # sanity check for a number
     if np.isscalar(ret):
