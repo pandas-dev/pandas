@@ -339,8 +339,6 @@ def radviz(frame, class_column, ax=None, colormap=None, **kwds):
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
-    import matplotlib.text as text
-    import random
 
     def normalize(series):
         a = min(series)
@@ -378,10 +376,8 @@ def radviz(frame, class_column, ax=None, colormap=None, **kwds):
         to_plot[class_name][1].append(y[1])
 
     for i, class_ in enumerate(classes):
-        line = ax.scatter(to_plot[class_][0],
-                          to_plot[class_][1],
-                          color=colors[i],
-                          label=com.pprint_thing(class_), **kwds)
+        ax.scatter(to_plot[class_][0], to_plot[class_][1], color=colors[i],
+                   label=com.pprint_thing(class_), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
@@ -429,7 +425,6 @@ def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
     """
     from math import sqrt, pi, sin, cos
     import matplotlib.pyplot as plt
-    import random
 
     def function(amplitudes):
         def f(x):
@@ -445,9 +440,7 @@ def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
             return result
         return f
 
-
     n = len(data)
-    classes = set(data[class_column])
     class_col = data[class_column]
     columns = [data[col] for col in data.columns if (col != class_column)]
     x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
@@ -492,7 +485,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     fig: matplotlib figure
     """
     import random
-    import matplotlib
     import matplotlib.pyplot as plt
 
     # random.sample(ndarray, int) fails on python 3.3, sigh
@@ -576,7 +568,6 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     >>> plt.show()
     """
     import matplotlib.pyplot as plt
-    import random
 
 
     n = len(data)
@@ -1240,7 +1231,6 @@ class LinePlot(MPLPlot):
         return (freq is not None) and self._is_dynamic_freq(freq)
 
     def _make_plot(self):
-        import pandas.tseries.plotting as tsplot
         # this is slightly deceptive
         if not self.x_compat and self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
@@ -2021,20 +2011,26 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     """
     import matplotlib.pyplot as plt
 
-    fig = kwds.setdefault('figure', plt.figure(figsize=figsize))
+    fig = kwds.get('figure', plt.gcf()
+                   if plt.get_fignums() else plt.figure(figsize=figsize))
+    if figsize is not None and tuple(figsize) != tuple(fig.get_size_inches()):
+        fig.set_size_inches(*figsize, forward=True)
 
     if by is None:
         if ax is None:
             ax = fig.add_subplot(111)
-        else:
-            if ax.get_figure() != fig:
-                raise AssertionError('passed axis not bound to passed figure')
+        if ax.get_figure() != fig:
+            raise AssertionError('passed axis not bound to passed figure')
         values = self.dropna().values
 
         ax.hist(values, **kwds)
         ax.grid(grid)
         axes = np.array([ax])
     else:
+        if 'figure' in kwds:
+            raise ValueError("Cannot pass 'figure' when using the "
+                             "'by' argument, since a new 'Figure' instance "
+                             "will be created")
         axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize,
                             **kwds)
 
@@ -2384,7 +2380,6 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
 
 def _get_xlim(lines):
-    import pandas.tseries.converter as conv
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata()
