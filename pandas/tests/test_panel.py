@@ -1227,7 +1227,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(unfiltered.to_panel(), self.panel)
 
         # names
-        self.assertEqual(unfiltered.index.names, ['major', 'minor'])
+        self.assertEqual(unfiltered.index.names, ('major', 'minor'))
 
         # unsorted, round trip
         df = self.panel.to_frame(filter_observations=False)

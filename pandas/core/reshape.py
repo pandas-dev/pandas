@@ -92,8 +92,8 @@ class _Unstacker(object):
     def _make_sorted_values_labels(self):
         v = self.level
 
-        labs = self.index.labels
-        levs = self.index.levels
+        labs = list(self.index.labels)
+        levs = list(self.index.levels)
         to_sort = labs[:v] + labs[v + 1:] + [labs[v]]
         sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
@@ -206,8 +206,8 @@ class _Unstacker(object):
         width = len(self.value_columns)
         propagator = np.repeat(np.arange(width), stride)
         if isinstance(self.value_columns, MultiIndex):
-            new_levels = self.value_columns.levels + [self.removed_level]
-            new_names = self.value_columns.names + [self.removed_name]
+            new_levels = self.value_columns.levels + (self.removed_level,)
+            new_names = self.value_columns.names + (self.removed_name,)
 
             new_labels = [lab.take(propagator)
                           for lab in self.value_columns.labels]

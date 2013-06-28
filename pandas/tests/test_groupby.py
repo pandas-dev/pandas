@@ -1283,13 +1283,13 @@ class TestGroupBy(unittest.TestCase):
             return result
 
         result = grouped.apply(desc)
-        self.assertEquals(result.index.names, ['A', 'B', 'stat'])
+        self.assertEquals(result.index.names, ('A', 'B', 'stat'))
 
         result2 = grouped.apply(desc2)
-        self.assertEquals(result2.index.names, ['A', 'B', 'stat'])
+        self.assertEquals(result2.index.names, ('A', 'B', 'stat'))
 
         result3 = grouped.apply(desc3)
-        self.assertEquals(result3.index.names, ['A', 'B', None])
+        self.assertEquals(result3.index.names, ('A', 'B', None))
 
     def test_nonsense_func(self):
         df = DataFrame([0])
@@ -1519,7 +1519,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
-        self.assertEquals(result.index.names[:2], ['A', 'B'])
+        self.assertEquals(result.index.names[:2], ('A', 'B'))
 
     def test_apply_frame_to_series(self):
         grouped = self.df.groupby(['A', 'B'])
@@ -1836,7 +1836,7 @@ class TestGroupBy(unittest.TestCase):
         result = self.df.groupby([self.df['A'], self.df['B']]).mean()
         result2 = self.df.groupby([self.df['A'], self.df['B']],
                                   as_index=False).mean()
-        self.assertEquals(result.index.names, ['A', 'B'])
+        self.assertEquals(result.index.names, ('A', 'B'))
         self.assert_('A' in result2)
         self.assert_('B' in result2)
 
@@ -2332,7 +2332,7 @@ class TestGroupBy(unittest.TestCase):
 
         result = self.df.groupby([self.df['A'].values,
                                   self.df['B'].values]).sum()
-        self.assert_(result.index.names == [None, None])
+        self.assert_(result.index.names == (None, None))
 
     def test_groupby_categorical(self):
         levels = ['foo', 'bar', 'baz', 'qux']

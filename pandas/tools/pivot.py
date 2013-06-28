@@ -217,7 +217,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
 
     row_names = result.index.names
     result = result.append(margin_dummy)
-    result.index.names = row_names
+    result.index = result.index.set_names(row_names)
 
     return result
 

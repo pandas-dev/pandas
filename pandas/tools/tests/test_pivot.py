@@ -42,7 +42,7 @@ class TestPivotTable(unittest.TestCase):
         pivot_table(self.data, values='D', rows=rows)
 
         if len(rows) > 1:
-            self.assertEqual(table.index.names, rows)
+            self.assertEqual(table.index.names, tuple(rows))
         else:
             self.assertEqual(table.index.name, rows[0])
 
@@ -365,7 +365,7 @@ class TestCrosstab(unittest.TestCase):
         result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
                           margins=True)
 
-        self.assertEqual(result.index.names, ['a'])
+        self.assertEqual(result.index.names, ('a',))
         self.assertEqual(result.columns.names, ['b', 'c'])
 
         all_cols = result['All', '']

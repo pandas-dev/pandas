@@ -1921,7 +1921,7 @@ class TestHDFStore(unittest.TestCase):
         with ensure_clean(self.path) as store:
             store['frame'] = frame
             recons = store['frame']
-            assert(recons.index.names == ['foo', 'bar'])
+            assert(recons.index.names == ('foo', 'bar'))
 
     def test_store_index_name(self):
         df = tm.makeDataFrame()
