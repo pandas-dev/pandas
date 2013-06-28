@@ -21,7 +21,8 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _NS_DTYPE, _TD_DTYPE)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import _SeriesIndexer, _check_bool_indexer, _check_slice_bounds
+from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer,
+                                  _check_slice_bounds, _maybe_convert_indices)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
@@ -598,7 +599,8 @@ class Series(pa.Array, generic.PandasObject):
             else:
                 label = self.index[i]
                 if isinstance(label, Index):
-                    return self.reindex(label, takeable=True)
+                    i = _maybe_convert_indices(i, len(self))
+                    return self.reindex(i, takeable=True)
                 else:
                     return _index.get_value_at(self, i)
 
