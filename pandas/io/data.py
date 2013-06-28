@@ -4,6 +4,7 @@ Module contains tools for collecting data from various remote sources
 
 """
 import warnings
+import tempfile
 
 import numpy as np
 import datetime as dt
@@ -13,14 +14,14 @@ from contextlib import closing
 from urllib2 import urlopen
 
 from zipfile import ZipFile
-from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
+from pandas.util.py3compat import StringIO, bytes_to_str
 
 from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.io.parsers import TextParser
 
 
 def DataReader(name, data_source=None, start=None, end=None,
-               retry_count=3, pause=0):
+               retry_count=3, pause=0.001):
     """
     Imports data from a number of online sources.
 
@@ -137,7 +138,7 @@ def get_quote_google(symbols):
     raise NotImplementedError("Google Finance doesn't have this functionality")
 
 def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
-                    pause=0, **kwargs):
+                    pause=0.001, **kwargs):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
@@ -183,7 +184,7 @@ def _get_hist_yahoo(sym=None, start=None, end=None, retry_count=3,
 
 
 def _get_hist_google(sym=None, start=None, end=None, retry_count=3,
-                    pause=0, **kwargs):
+                    pause=0.001, **kwargs):
     """
     Get historical data for the given name from google.
     Date format is datetime
@@ -309,7 +310,7 @@ def get_components_yahoo(idx_sym):
     return idx_df
 
 
-def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
+def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0.001,
                    adjust_price=False, ret_index=False, chunksize=25,
                    **kwargs):
     """
@@ -388,8 +389,8 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3, pause=0,
 
     return hist_data
 
-def get_data_google(symbols=None, start=None, end=None, retry_count=3, pause=0,
-                   chunksize=25, **kwargs):
+def get_data_google(symbols=None, start=None, end=None, retry_count=3,
+                    pause=0.001, chunksize=25, **kwargs):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
     range, start to end. To avoid being penalized by Google Finance servers,
@@ -493,8 +494,13 @@ def get_data_famafrench(name, start=None, end=None):
     zipFileURL = "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
 
     with closing(urlopen(zipFileURL + name + ".zip")) as url:
-        with closing(ZipFile(StringIO(url.read()))) as zf:
-            data = zf.read(name + ".txt").splitlines()
+        raw = url.read()
+
+    with tempfile.TemporaryFile() as tmpf:
+        tmpf.write(raw)
+
+        with closing(ZipFile(tmpf, 'r')) as zf:
+            data = zf.read(name + '.txt').splitlines()
 
     file_edges = np.where(np.array([len(d) for d in data]) == 2)[0]
 
@@ -847,7 +853,7 @@ class Options(object):
 
             chop_call = df_c.ix[get_range, :]
 
-            chop_call = chop_call.dropna()
+            chop_call = chop_call.dropna(how='all')
             chop_call = chop_call.reset_index()
 
         if put:
@@ -868,7 +874,7 @@ class Options(object):
 
             chop_put = df_p.ix[get_range, :]
 
-            chop_put = chop_put.dropna()
+            chop_put = chop_put.dropna(how='all')
             chop_put = chop_put.reset_index()
 
         if call and put:
