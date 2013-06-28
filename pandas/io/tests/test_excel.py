@@ -675,7 +675,7 @@ class ExcelTests(unittest.TestCase):
             recons = reader.parse('test1', index_col=[0, 1])
 
             tm.assert_frame_equal(tsframe, recons, check_names=False)
-            self.assertEquals(recons.index.names, ['time', 'foo'])
+            self.assertEquals(recons.index.names, ('time', 'foo'))
 
             # infer index
             tsframe.to_excel(path, 'test1')

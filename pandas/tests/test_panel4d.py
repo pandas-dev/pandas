@@ -898,7 +898,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse,
     #    assert_panel_equal(unfiltered.to_panel(), self.panel)
 
     #    # names
-    #    self.assertEqual(unfiltered.index.names, ['major', 'minor'])
+    #    self.assertEqual(unfiltered.index.names, ('major', 'minor'))
 
     def test_to_frame_mixed(self):
         raise nose.SkipTest

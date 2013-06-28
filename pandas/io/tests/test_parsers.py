@@ -821,7 +821,7 @@ c,4,5
         levels[0] = lev.to_datetime(dayfirst=True)
         # hack to get this to work - remove for final test
         levels[0].name = lev.name
-        expected.index.levels = levels
+        expected.index.set_levels(levels, inplace=True)
         expected['aux_date'] = to_datetime(expected['aux_date'],
                                            dayfirst=True)
         expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
@@ -1339,7 +1339,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # it works!
         df = self.read_table(StringIO(text), sep='\s+')
-        self.assertEquals(df.index.names, ['one', 'two', 'three', 'four'])
+        self.assertEquals(df.index.names, ('one', 'two', 'three', 'four'))
 
     def test_read_csv_parse_simple_list(self):
         text = """foo

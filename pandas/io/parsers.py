@@ -774,7 +774,7 @@ class ParserBase(object):
         # add names for the index
         if indexnamerow:
             coffset = len(indexnamerow) - len(columns)
-            index.names = indexnamerow[:coffset]
+            index = index.set_names(indexnamerow[:coffset])
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)

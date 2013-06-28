@@ -3526,7 +3526,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # MultiIndex
         result = DataFrame.from_records(documents,
                                         index=['order_id', 'quantity'])
-        self.assert_(result.index.names == ['order_id', 'quantity'])
+        self.assert_(result.index.names == ('order_id', 'quantity'))
 
     def test_from_records_misc_brokenness(self):
         # #2179
@@ -7239,7 +7239,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # don't specify values
         pivoted = frame.pivot(index='index', columns='columns')
         self.assertEqual(pivoted.index.name, 'index')
-        self.assertEqual(pivoted.columns.names, [None, 'columns'])
+        self.assertEqual(pivoted.columns.names, (None, 'columns'))
 
         # pivot multiple columns
         wp = tm.makePanel()

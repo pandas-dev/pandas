@@ -72,6 +72,24 @@ API changes
          import os
          os.remove(path)
 
+  - Changes to how ``Index`` and ``MultiIndex`` handle metadata (``levels``,
+    ``labels``, and ``names``) (:issue:`4039`):
+
+    ..code-block ::
+
+        # previously, you would have set levels or labels directly
+        index.levels = [[1, 2, 3, 4], [1, 2, 4, 4]]
+
+        # now, you use the set_levels or set_labels methods
+        index = index.set_levels([[1, 2, 3, 4], [1, 2, 4, 4]])
+
+        # similarly, for names, you can rename the object
+        # but setting names is not deprecated.
+        index = index.set_names(["bob", "cranberry"])
+
+        # and all methods take an inplace kwarg
+        index.set_names(["bob", "cranberry"], inplace=True)
+
 Enhancements
 ~~~~~~~~~~~~
 

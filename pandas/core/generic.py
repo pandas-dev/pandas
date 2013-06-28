@@ -404,7 +404,7 @@ class PandasContainer(PandasObject):
                 new_axis = axis.drop(labels)
             dropped = self.reindex(**{axis_name: new_axis})
             try:
-                dropped.axes[axis_].names = axis.names
+                dropped.axes[axis_].set_names(axis.names, inplace=True)
             except AttributeError:
                 pass
             return dropped
