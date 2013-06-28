@@ -1981,7 +1981,8 @@ class DataFrame(NDFrame):
                 if isinstance(label, Index):
 
                     # a location index by definition
-                    return self.reindex(label, takeable=True)
+                    i = _maybe_convert_indices(i, len(self._get_axis(axis)))
+                    return self.reindex(i, takeable=True)
                 else:
                     try:
                         new_values = self._data.fast_2d_xs(i, copy=copy)
