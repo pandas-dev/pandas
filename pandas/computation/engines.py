@@ -235,11 +235,12 @@ class AbstractEngine(object):
         """Convert an expression for evaluation."""
         pass
 
-    def evaluate(self, env):
+    def evaluate(self):
         if not self._is_aligned:
-            self.result_type, self.aligned_axes = _align(self.expr.terms, env)
+            self.result_type, self.aligned_axes = _align(self.expr.terms,
+                                                         self.expr.env)
 
-        res = self._evaluate(env)
+        res = self._evaluate(self.expr.env)
         return _reconstruct_object(self.result_type, res, self.aligned_axes)
 
     @property
@@ -284,8 +285,8 @@ class PythonEngine(AbstractEngine):
     def convert(self):
         pass
 
-    def evaluate(self, env):
-        return self.expr(env)
+    def evaluate(self):
+        return self.expr(self.expr.env)
 
     def _evaluate(self, env):
         pass
