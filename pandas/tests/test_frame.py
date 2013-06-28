@@ -7678,7 +7678,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_mask_edge_case_1xN_frame(self):
         # GH4071
         df = DataFrame([[1, 2]])
-        res = df.mask(np.array([[True, False]]))
+        res = df.mask(DataFrame([[True, False]]))
         expec = DataFrame([[nan, 2]])
         assert_frame_equal(res, expec)
 
