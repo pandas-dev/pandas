@@ -16,7 +16,7 @@ What's New
 
 These are new features and improvements of note in each release.
 
-.. include:: v0.11.1.txt
+.. include:: v0.12.0.txt
 
 .. include:: v0.11.0.txt
 

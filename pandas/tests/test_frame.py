@@ -4041,6 +4041,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result2 = DataFrame(p.values.astype('float64') % 0,index=p.index,columns=p.columns)
         assert_frame_equal(result2,expected)
 
+        # not commutative with series
+        p = DataFrame(np.random.randn(10, 5))
+        s = p[0]
+        res = s % p
+        res2 = p % s
+        self.assertFalse(np.array_equal(res.fillna(0), res2.fillna(0)))
+
     def test_div(self):
 
         # integer div, but deal with the 0's
@@ -4061,6 +4068,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # numpy has a slightly different (wrong) treatement
         result2 = DataFrame(p.values.astype('float64')/0,index=p.index,columns=p.columns).fillna(np.inf)
         assert_frame_equal(result2,expected)
+
+        p = DataFrame(np.random.randn(10, 5))
+        s = p[0]
+        res = s / p
+        res2 = p / s
+        self.assertFalse(np.array_equal(res.fillna(0), res2.fillna(0)))
 
     def test_logical_operators(self):
         import operator
@@ -4391,11 +4404,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df.sub(row), df - row)
         assert_frame_equal(df.div(row), df / row)
         assert_frame_equal(df.mul(row), df * row)
+        assert_frame_equal(df.mod(row), df % row)
 
         assert_frame_equal(df.add(col, axis=0), (df.T + col).T)
         assert_frame_equal(df.sub(col, axis=0), (df.T - col).T)
         assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
         assert_frame_equal(df.mul(col, axis=0), (df.T * col).T)
+        assert_frame_equal(df.mod(col, axis=0), (df.T % col).T)
 
     def test_arith_non_pandas_object(self):
         df = self.simple
@@ -10025,11 +10040,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.insert(0, 'a', [1, 2])
 
         result = df.rename(columns={})
+        str(result)
+
         expected = DataFrame([[1,1.1],[2, 2.2]],columns=['a','b'])
         assert_frame_equal(result,expected)
         df.insert(0, 'c', [1.3, 2.3])
 
         result = df.rename(columns={})
+        str(result)
+
         expected = DataFrame([[1.3,1,1.1],[2.3,2, 2.2]],columns=['c','a','b'])
         assert_frame_equal(result,expected)
 

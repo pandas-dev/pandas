@@ -272,33 +272,44 @@ cdef class IndexEngine:
             to the -1 indicies in the results """
 
         cdef:
-            ndarray values
+            ndarray values, x
             ndarray[int64_t] result, missing
-            object v, val
+            set stargets
+            dict d = {}
+            object val
             int count = 0, count_missing = 0
-            Py_ssize_t i, j, n, found
+            Py_ssize_t i, j, n, n_t
 
         self._ensure_mapping_populated()
         values = self._get_index_values()
+        stargets = set(targets)
         n = len(values)
         n_t = len(targets)
-        result  = np.empty(n+n_t, dtype=np.int64)
+        result  = np.empty(n*n_t, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
+        # form the set of the results (like ismember)
+        members = np.empty(n, dtype=np.uint8)
+        for i in range(n):
+            val = util.get_value_1d(values, i)
+            if val in stargets:
+                if val not in d:
+                   d[val] = []
+                d[val].append(i)
+
         for i in range(n_t):
-            val = util.get_value_at(targets, i)
-            found = 0
 
-            for j in range(n):
-                v = util.get_value_at(values, j)
+            val = util.get_value_1d(targets, i)
 
-                if v == val:
+            # found
+            if val in d:
+                for j in d[val]:
                    result[count] = j
                    count += 1
-                   found = 1
 
             # value not found
-            if found == 0:
+            else:
+
                 result[count] = -1
                 count += 1
                 missing[count_missing] = i

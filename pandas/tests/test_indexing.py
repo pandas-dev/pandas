@@ -8,7 +8,7 @@ from numpy.random import randn
 import numpy as np
 from numpy.testing import assert_array_equal
 
-import pandas as pan
+import pandas as pd
 import pandas.core.common as com
 from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
                              MultiIndex, DatetimeIndex, Timestamp)
@@ -1036,6 +1036,36 @@ class TestIndexing(unittest.TestCase):
 
         result = df.loc[[0, 1]].index.name
         self.assert_(result == 'index_name')
+
+    def test_iloc_non_unique_indexing(self):
+
+        #GH 4017, non-unique indexing (on the axis)
+        df = DataFrame({'A' : [0.1] * 3000, 'B' : [1] * 3000})
+        idx = np.array(range(30)) * 99
+        expected = df.iloc[idx]
+
+        df3 = pd.concat([df, 2*df, 3*df])
+        result = df3.iloc[idx]
+
+        assert_frame_equal(result, expected)
+
+        df2 = DataFrame({'A' : [0.1] * 1000, 'B' : [1] * 1000})
+        df2 = pd.concat([df2, 2*df2, 3*df2])
+
+        sidx = df2.index.to_series()
+        expected = df2.iloc[idx[idx<=sidx.max()]]
+
+        new_list = []
+        for r, s in expected.iterrows():
+            new_list.append(s)
+            new_list.append(s*2)
+            new_list.append(s*3)
+
+        expected = DataFrame(new_list)
+        expected = pd.concat([ expected, DataFrame(index=idx[idx>sidx.max()]) ])
+        result = df2.loc[idx]
+        assert_frame_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose

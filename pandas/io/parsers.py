@@ -37,7 +37,11 @@ filepath_or_buffer : string or file handle / StringIO. The string could be
 lineterminator : string (length 1), default None
     Character to break file into lines. Only valid with C parser
 quotechar : string
-quoting : string
+    The character to used to denote the start and end of a quoted item. Quoted items can include the delimiter and it will be ignored.
+quoting : int
+    Controls whether quotes should be recognized. Values are taken from
+    `csv.QUOTE_*` values. Acceptable values are 0, 1, 2, and 3 for
+    QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONE, and QUOTE_NONNUMERIC, respectively.
 skipinitialspace : boolean, default False
     Skip spaces after delimiter
 escapechar : string
@@ -1953,7 +1957,7 @@ class FixedWidthFieldParser(PythonParser):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter)
 
 
-##### deprecations in 0.11.1 #####
+##### deprecations in 0.12 #####
 ##### remove in 0.12         #####
 
 from pandas.io import clipboard

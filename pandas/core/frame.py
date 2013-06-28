@@ -568,14 +568,14 @@ class DataFrame(NDFrame):
     def _verbose_info(self):
         import warnings
         warnings.warn('The _verbose_info property will be removed in version '
-                      '0.12. please use "max_info_rows"', FutureWarning)
+                      '0.13. please use "max_info_rows"', FutureWarning)
         return get_option('display.max_info_rows') is None
 
     @_verbose_info.setter
     def _verbose_info(self, value):
         import warnings
         warnings.warn('The _verbose_info property will be removed in version '
-                      '0.12. please use "max_info_rows"', FutureWarning)
+                      '0.13. please use "max_info_rows"', FutureWarning)
 
         value = None if value else 1000000
         set_option('display.max_info_rows', value)
@@ -842,12 +842,14 @@ class DataFrame(NDFrame):
     sub = _arith_method(operator.sub, 'subtract', '-')
     div = divide = _arith_method(lambda x, y: x / y, 'divide', '/')
     pow = _arith_method(operator.pow, 'pow', '**')
+    mod = _arith_method(lambda x, y: x % y, 'mod')
 
     radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
     rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
     rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
     rpow = _arith_method(lambda x, y: y ** x, 'rpow')
+    rmod = _arith_method(lambda x, y: y % x, 'rmod')
 
     __add__ = _arith_method(operator.add, '__add__', '+', default_axis=None)
     __sub__ = _arith_method(operator.sub, '__sub__', '-', default_axis=None)
@@ -874,7 +876,8 @@ class DataFrame(NDFrame):
                                   default_axis=None, fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__',
                              default_axis=None)
-    __rmod__ = _arith_method(operator.mod, '__rmod__', default_axis=None, fill_zeros=np.nan)
+    __rmod__ = _arith_method(lambda x, y: y % x, '__rmod__', default_axis=None,
+                             fill_zeros=np.nan)
 
     # boolean operators
     __and__ = _arith_method(operator.and_, '__and__', '&')
@@ -1976,7 +1979,10 @@ class DataFrame(NDFrame):
             else:
                 label = self.index[i]
                 if isinstance(label, Index):
-                    return self.reindex(label)
+
+                    # a location index by definition
+                    i = _maybe_convert_indices(i, len(self._get_axis(axis)))
+                    return self.reindex(i, takeable=True)
                 else:
                     try:
                         new_values = self._data.fast_2d_xs(i, copy=copy)
@@ -2587,7 +2593,7 @@ class DataFrame(NDFrame):
             return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
-                fill_value=NA, limit=None, copy=True):
+                fill_value=NA, limit=None, copy=True, takeable=False):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -2614,6 +2620,7 @@ class DataFrame(NDFrame):
             "compatible" value
         limit : int, default None
             Maximum size gap to forward or backward fill
+        takeable : the labels are locations (and not labels)
 
         Examples
         --------
@@ -2633,11 +2640,11 @@ class DataFrame(NDFrame):
 
         if columns is not None:
             frame = frame._reindex_columns(columns, copy, level,
-                                           fill_value, limit)
+                                           fill_value, limit, takeable)
 
         if index is not None:
             frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit)
+                                         fill_value, limit, takeable)
 
         return frame
 
@@ -2714,16 +2721,18 @@ class DataFrame(NDFrame):
             return self.copy() if copy else self
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None):
+                       limit=None, takeable=False):
         new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit, copy_if_needed=True)
+                                                limit=limit, copy_if_needed=True,
+                                                takeable=takeable)
         return self._reindex_with_indexers(new_index, indexer, None, None,
                                            copy, fill_value)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None):
+                         limit=None, takeable=False):
         new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit, copy_if_needed=True)
+                                                    limit=limit, copy_if_needed=True,
+                                                    takeable=takeable)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
                                            copy, fill_value)
 
@@ -3590,12 +3599,12 @@ class DataFrame(NDFrame):
         if method is not None:
             from warnings import warn
             warn('the "method" argument is deprecated and will be removed in'
-                 'v0.12; this argument has no effect')
+                 'v0.13; this argument has no effect')
 
         if axis is not None:
             from warnings import warn
             warn('the "axis" argument is deprecated and will be removed in'
-                 'v0.12; this argument has no effect')
+                 'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
 
@@ -3730,7 +3739,7 @@ class DataFrame(NDFrame):
         reindex, replace, fillna
         """
         from warnings import warn
-        warn('DataFrame.interpolate will be removed in v0.12, please use '
+        warn('DataFrame.interpolate will be removed in v0.13, please use '
              'either DataFrame.fillna or DataFrame.replace instead',
              FutureWarning)
         if self._is_mixed_type and axis == 1:

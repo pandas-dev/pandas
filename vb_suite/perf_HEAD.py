@@ -8,6 +8,8 @@ from __future__ import print_function
 """
 
 import urllib2
+from contextlib import closing
+from urllib2 import urlopen
 import json
 
 import pandas as pd
@@ -23,8 +25,8 @@ def get_travis_data():
     if not jobid:
         return None, None
 
-    workers = json.loads(
-        urllib2.urlopen("https://api.travis-ci.org/workers/").read())
+    with closing(urlopen("https://api.travis-ci.org/workers/")) as resp:
+        workers = json.loads(resp.read())
 
     host = njobs = None
     for item in workers:
@@ -64,20 +66,20 @@ def dump_as_gist(data, desc="The Commit", njobs=None):
                    public=True,
                    files={'results.json': dict(content=json.dumps(content))})
     try:
-        r = urllib2.urlopen("https://api.github.com/gists",
-                            json.dumps(payload), timeout=WEB_TIMEOUT)
-        if 200 <= r.getcode() < 300:
-            print("\n\n" + "-" * 80)
+        with closing(urlopen("https://api.github.com/gists",
+                             json.dumps(payload), timeout=WEB_TIMEOUT)) as r:
+            if 200 <= r.getcode() < 300:
+                print("\n\n" + "-" * 80)
 
-            gist = json.loads(r.read())
-            file_raw_url = gist['files'].items()[0][1]['raw_url']
-            print("[vbench-gist-raw_url] %s" % file_raw_url)
-            print("[vbench-html-url] %s" % gist['html_url'])
-            print("[vbench-api-url] %s" % gist['url'])
+                gist = json.loads(r.read())
+                file_raw_url = gist['files'].items()[0][1]['raw_url']
+                print("[vbench-gist-raw_url] %s" % file_raw_url)
+                print("[vbench-html-url] %s" % gist['html_url'])
+                print("[vbench-api-url] %s" % gist['url'])
 
-            print("-" * 80 + "\n\n")
-        else:
-            print("api.github.com returned status %d" % r.getcode())
+                print("-" * 80 + "\n\n")
+            else:
+                print("api.github.com returned status %d" % r.getcode())
     except:
         print("Error occured while dumping to gist")
 
@@ -131,22 +133,22 @@ if __name__ == "__main__":
 
 
 def get_vbench_log(build_url):
-    r = urllib2.urlopen(build_url)
-    if not (200 <= r.getcode() < 300):
-        return
+    with closing(urllib2.urlopen(build_url)) as r:
+        if not (200 <= r.getcode() < 300):
+            return
 
-    s = json.loads(r.read())
-    s = [x for x in s['matrix'] if "VBENCH" in ((x.get('config', {})
-                                                or {}).get('env', {}) or {})]
-            # s=[x for x in s['matrix']]
-    if not s:
-        return
-    id = s[0]['id']  # should be just one for now
-    r2 = urllib2.urlopen("https://api.travis-ci.org/jobs/%s" % id)
-    if (not 200 <= r.getcode() < 300):
-        return
-    s2 = json.loads(r2.read())
-    return s2.get('log')
+        s = json.loads(r.read())
+        s = [x for x in s['matrix'] if "VBENCH" in ((x.get('config', {})
+                                                    or {}).get('env', {}) or {})]
+                # s=[x for x in s['matrix']]
+        if not s:
+            return
+        id = s[0]['id']  # should be just one for now
+        with closing(urllib2.urlopen("https://api.travis-ci.org/jobs/%s" % id)) as r2:
+            if not 200 <= r.getcode() < 300:
+                return
+            s2 = json.loads(r2.read())
+            return s2.get('log')
 
 
 def get_results_raw_url(build):
@@ -169,7 +171,9 @@ def convert_json_to_df(results_url):
 
     df contains timings for all successful vbenchmarks
     """
-    res = json.loads(urllib2.urlopen(results_url).read())
+
+    with closing(urlopen(results_url)) as resp:
+        res = json.loads(resp.read())
     timings = res.get("timings")
     if not timings:
         return
@@ -212,10 +216,10 @@ def get_all_results(repo_id=53976):  # travis pydata/pandas id
     dfs = OrderedDict()
 
     while True:
-        r = urllib2.urlopen(url)
-        if not (200 <= r.getcode() < 300):
-            break
-        builds = json.loads(r.read())
+        with closing(urlopen(url)) as r:
+            if not (200 <= r.getcode() < 300):
+                break
+            builds = json.loads(r.read())
         res = get_results_from_builds(builds)
         if not res:
             break

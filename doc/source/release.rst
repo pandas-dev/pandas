@@ -24,7 +24,7 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.11.1
+pandas 0.12
 =============
 
 **Release date:** not-yet-released
@@ -40,9 +40,9 @@ pandas 0.11.1
   - Added support for writing in ``to_csv`` and reading in ``read_csv``,
     multi-index columns. The ``header`` option in ``read_csv`` now accepts a
     list of the rows from which to read the index. Added the option,
-    ``tupleize_cols`` to provide compatiblity for the pre 0.11.1 behavior of
+    ``tupleize_cols`` to provide compatiblity for the pre 0.12 behavior of
     writing and reading multi-index columns via a list of tuples. The default in
-    0.11.1 is to write lists of tuples and *not* interpret list of tuples as a
+    0.12 is to write lists of tuples and *not* interpret list of tuples as a
     multi-index column.
     Note: The default value will change in 0.12 to make the default *to* write and
     read multi-index columns in the new format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
@@ -52,6 +52,8 @@ pandas 0.11.1
   - A ``filter`` method on grouped Series or DataFrames returns a subset of
     the original (:issue:`3680`, :issue:`919`)
   - Access to historical Google Finance data in pandas.io.data (:issue:`3814`)
+  - DataFrame plotting methods can sample column colors from a Matplotlib 
+    colormap via the ``colormap`` keyword. (:issue:`3860`)
 
 **Improvements to existing features**
 
@@ -146,7 +148,7 @@ pandas 0.11.1
   - Deprecated display.height, display.width is now only a formatting option
     does not control triggering of summary, similar to < 0.11.0.
   - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
-    to be inserted if ``True``, default is ``False`` (same as prior to 0.11.1) (:issue:`3679`)
+    to be inserted if ``True``, default is ``False`` (same as prior to 0.12) (:issue:`3679`)
   - io API changes
 
     - added ``pandas.io.api`` for i/o imports
@@ -212,6 +214,8 @@ pandas 0.11.1
     - Extend ``reindex`` to correctly deal with non-unique indices (:issue:`3679`)
     - ``DataFrame.itertuples()`` now works with frames with duplicate column
       names (:issue:`3873`)
+    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to 
+      ``reindex`` for location-based taking
 
   - Fixed bug in groupby with empty series referencing a variable before assignment. (:issue:`3510`)
   - Allow index name to be used in groupby for non MultiIndex (:issue:`4014`)
@@ -281,8 +285,14 @@ pandas 0.11.1
   - Fixed flattening of columns when renaming MultiIndex columns DataFrame (:issue:`4004`)
   - Fix ``Series.clip`` for datetime series. NA/NaN threshold values will now throw ValueError (:issue:`3996`)
   - Fixed insertion issue into DataFrame, after rename (:issue:`4032`)
-
-.. _Gh3616: https://github.com/pydata/pandas/issues/3616
+  - Fixed testing issue where too many sockets where open thus leading to a
+    connection reset issue (:issue:`3982`, :issue:`3985`, :issue:`4028`,
+    :issue:`4054`)
+  - Fixed failing tests in test_yahoo, test_google where symbols were not
+    retrieved but were being accessed (:issue:`3982`, :issue:`3985`,
+    :issue:`4028`, :issue:`4054`)
+  - ``Series.hist`` will now take the figure from the current environment if
+    one is not passed
 
 pandas 0.11.0
 =============

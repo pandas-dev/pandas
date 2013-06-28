@@ -36,13 +36,13 @@ class PandasObject(object):
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path)
 
-    def save(self, path):  # TODO remove in 0.12
+    def save(self, path):  # TODO remove in 0.13
         import warnings
         from pandas.io.pickle import to_pickle
         warnings.warn("save is deprecated, use to_pickle", FutureWarning)
         return to_pickle(self, path)
 
-    def load(self, path):  # TODO remove in 0.12
+    def load(self, path):  # TODO remove in 0.13
         import warnings
         from pandas.io.pickle import read_pickle
         warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)

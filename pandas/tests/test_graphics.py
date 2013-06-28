@@ -26,7 +26,6 @@ def _skip_if_no_scipy():
 
 
 class TestSeriesPlots(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         try:
@@ -44,6 +43,10 @@ class TestSeriesPlots(unittest.TestCase):
 
         self.iseries = tm.makePeriodSeries()
         self.iseries.name = 'iseries'
+
+    def tearDown(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
 
     @slow
     def test_plot(self):
@@ -103,6 +106,35 @@ class TestSeriesPlots(unittest.TestCase):
             self.assert_(xp == rs)
 
         plt.close('all')
+
+        from matplotlib import cm
+
+        # Test str -> colormap functionality
+        ax = df.plot(kind='bar', colormap='jet')
+
+        rects = ax.patches
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, 5))
+        for i, rect in enumerate(rects[::5]):
+            xp = rgba_colors[i]
+            rs = rect.get_facecolor()
+            self.assert_(xp == rs)
+
+        plt.close('all')
+
+        # Test colormap functionality
+        ax = df.plot(kind='bar', colormap=cm.jet)
+
+        rects = ax.patches
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, 5))
+        for i, rect in enumerate(rects[::5]):
+            xp = rgba_colors[i]
+            rs = rect.get_facecolor()
+            self.assert_(xp == rs)
+
+        plt.close('all')
+
         df.ix[:, [0]].plot(kind='bar', color='DodgerBlue')
 
     @slow
@@ -149,6 +181,19 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.hist, figsize=(8, 10))
         _check_plot_works(self.ts.hist, by=self.ts.index.month)
 
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(1, 1)
+        _check_plot_works(self.ts.hist, ax=ax)
+        _check_plot_works(self.ts.hist, ax=ax, figure=fig)
+        _check_plot_works(self.ts.hist, figure=fig)
+        plt.close('all')
+
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
+        _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
+        self.assertRaises(ValueError, self.ts.hist, by=self.ts.index,
+                          figure=fig)
+
     def test_plot_fails_when_ax_differs_from_figure(self):
         from pylab import figure
         fig1 = figure()
@@ -167,11 +212,10 @@ class TestSeriesPlots(unittest.TestCase):
     @slow
     def test_kde_color(self):
         _skip_if_no_scipy()
-        _check_plot_works(self.ts.plot, kind='kde')
-        _check_plot_works(self.ts.plot, kind='density')
         ax = self.ts.plot(kind='kde', logy=True, color='r')
-        self.assert_(ax.get_lines()[0].get_color() == 'r')
-        self.assert_(ax.get_lines()[1].get_color() == 'r')
+        lines = ax.get_lines()
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0].get_color(), 'r')
 
     @slow
     def test_autocorrelation_plot(self):
@@ -199,7 +243,6 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_valid_object_plot(self):
-        from pandas.io.common import PerformanceWarning
         s = Series(range(10), dtype=object)
         kinds = 'line', 'bar', 'barh', 'kde', 'density'
 
@@ -232,6 +275,10 @@ class TestDataFramePlots(unittest.TestCase):
             mpl.use('Agg', warn=False)
         except ImportError:
             raise nose.SkipTest
+
+    def tearDown(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
 
     @slow
     def test_plot(self):
@@ -600,6 +647,7 @@ class TestDataFramePlots(unittest.TestCase):
     def test_parallel_coordinates(self):
         from pandas import read_csv
         from pandas.tools.plotting import parallel_coordinates
+        from matplotlib import cm
         path = os.path.join(curpath(), 'data/iris.csv')
         df = read_csv(path)
         _check_plot_works(parallel_coordinates, df, 'Name')
@@ -611,6 +659,7 @@ class TestDataFramePlots(unittest.TestCase):
                           colors=('#556270', '#4ECDC4', '#C7F464'))
         _check_plot_works(parallel_coordinates, df, 'Name',
                           colors=['dodgerblue', 'aquamarine', 'seagreen'])
+        _check_plot_works(parallel_coordinates, df, 'Name', colormap=cm.jet)
 
         df = read_csv(
             path, header=None, skiprows=1, names=[1, 2, 4, 8, 'Name'])
@@ -622,9 +671,11 @@ class TestDataFramePlots(unittest.TestCase):
     def test_radviz(self):
         from pandas import read_csv
         from pandas.tools.plotting import radviz
+        from matplotlib import cm
         path = os.path.join(curpath(), 'data/iris.csv')
         df = read_csv(path)
         _check_plot_works(radviz, df, 'Name')
+        _check_plot_works(radviz, df, 'Name', colormap=cm.jet)
 
     @slow
     def test_plot_int_columns(self):
@@ -666,6 +717,7 @@ class TestDataFramePlots(unittest.TestCase):
         import matplotlib.pyplot as plt
         import sys
         from StringIO import StringIO
+        from matplotlib import cm
 
         custom_colors = 'rgcby'
 
@@ -690,6 +742,30 @@ class TestDataFramePlots(unittest.TestCase):
                 self.assert_(l1.get_color(), l2.get_color())
         finally:
             sys.stderr = tmp
+
+        plt.close('all')
+
+        ax = df.plot(colormap='jet')
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, len(df)))
+
+        lines = ax.get_lines()
+        for i, l in enumerate(lines):
+            xp = rgba_colors[i]
+            rs = l.get_color()
+            self.assert_(xp == rs)
+
+        plt.close('all')
+
+        ax = df.plot(colormap=cm.jet)
+
+        rgba_colors = map(cm.jet, np.linspace(0, 1, len(df)))
+
+        lines = ax.get_lines()
+        for i, l in enumerate(lines):
+            xp = rgba_colors[i]
+            rs = l.get_color()
+            self.assert_(xp == rs)
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
@@ -746,18 +822,17 @@ class TestDataFramePlots(unittest.TestCase):
 
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
-        # import sys
-        # if 'IPython' in sys.modules:
-        #    raise nose.SkipTest
-
         try:
             import matplotlib as mpl
             mpl.use('Agg', warn=False)
         except ImportError:
             raise nose.SkipTest
+
+    def tearDown(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
 
     @slow
     def test_boxplot(self):
@@ -848,12 +923,6 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
                           by=df.C, foo='bar')
 
     def test_option_mpl_style(self):
-        # just a sanity check
-        try:
-            import matplotlib
-        except:
-            raise nose.SkipTest
-
         set_option('display.mpl_style', 'default')
         set_option('display.mpl_style', None)
         set_option('display.mpl_style', False)
@@ -862,23 +931,48 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         except ValueError:
             pass
 
+    def test_invalid_colormap(self):
+        df = DataFrame(np.random.randn(500, 2), columns=['A', 'B'])
+
+        self.assertRaises(ValueError, df.plot, colormap='invalid_colormap')
+
+
+def assert_is_valid_plot_return_object(objs):
+    import matplotlib.pyplot as plt
+    if isinstance(objs, np.ndarray):
+        for el in objs.flat:
+            assert isinstance(el, plt.Axes), ('one of \'objs\' is not a '
+                                              'matplotlib Axes instance, '
+                                              'type encountered {0!r}'
+                                              ''.format(el.__class__.__name__))
+    else:
+        assert isinstance(objs, (plt.Artist, tuple, dict)), \
+                ('objs is neither an ndarray of Artist instances nor a '
+                 'single Artist instance, tuple, or dict, "objs" is a {0!r} '
+                 ''.format(objs.__class__.__name__))
+
 
 def _check_plot_works(f, *args, **kwargs):
     import matplotlib.pyplot as plt
 
-    fig = plt.gcf()
-    plt.clf()
-    ax = fig.add_subplot(211)
-    ret = f(*args, **kwargs)
-    assert ret is not None  # do something more intelligent
-
-    ax = fig.add_subplot(212)
     try:
-        kwargs['ax'] = ax
+        fig = kwargs['figure']
+    except KeyError:
+        fig = plt.gcf()
+    plt.clf()
+    ax = kwargs.get('ax', fig.add_subplot(211))
+    ret = f(*args, **kwargs)
+
+    assert ret is not None
+    assert_is_valid_plot_return_object(ret)
+
+    try:
+        kwargs['ax'] = fig.add_subplot(212)
         ret = f(*args, **kwargs)
-        assert(ret is not None)  # do something more intelligent
     except Exception:
         pass
+    else:
+        assert_is_valid_plot_return_object(ret)
 
     with ensure_clean() as path:
         plt.savefig(path)

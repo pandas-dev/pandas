@@ -91,6 +91,43 @@ mpl_stylesheet = {
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
+def _get_standard_colors(num_colors=None, colormap=None,
+                        color_type='default', color=None):
+    import matplotlib.pyplot as plt
+
+    if color is None and colormap is not None:
+        if isinstance(colormap, basestring):
+            import matplotlib.cm as cm
+            colormap = cm.get_cmap(colormap)
+        colors = map(colormap, np.linspace(0, 1, num=num_colors))
+    elif color is not None:
+        if colormap is not None:
+            warnings.warn("'color' and 'colormap' cannot be used "
+                          "simultaneously. Using 'color'")
+        colors = color
+    else:
+        if color_type == 'default':
+            colors = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+            if isinstance(colors, basestring):
+                colors = list(colors)
+        elif color_type == 'random':
+            import random
+            def random_color(column):
+                random.seed(column)
+                return [random.random() for _ in range(3)]
+
+            colors = map(random_color, range(num_colors))
+        else:
+            raise NotImplementedError
+
+    if len(colors) != num_colors:
+        multiple = num_colors//len(colors) - 1
+        mod = num_colors % len(colors)
+
+        colors += multiple * colors
+        colors += colors[:mod]
+
+    return colors
 
 class _Options(dict):
     """
@@ -283,7 +320,7 @@ def _get_marker_compat(marker):
     return marker
 
 
-def radviz(frame, class_column, ax=None, **kwds):
+def radviz(frame, class_column, ax=None, colormap=None, **kwds):
     """RadViz - a multivariate data visualization algorithm
 
     Parameters:
@@ -291,6 +328,9 @@ def radviz(frame, class_column, ax=None, **kwds):
     frame: DataFrame object
     class_column: Column name that contains information about class membership
     ax: Matplotlib axis object, optional
+    colormap : str or matplotlib colormap object, default None
+        Colormap to select colors from. If string, load colormap with that name
+        from matplotlib.
     kwds: Matplotlib scatter method keyword arguments, optional
 
     Returns:
@@ -299,12 +339,6 @@ def radviz(frame, class_column, ax=None, **kwds):
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
-    import matplotlib.text as text
-    import random
-
-    def random_color(column):
-        random.seed(column)
-        return [random.random() for _ in range(3)]
 
     def normalize(series):
         a = min(series)
@@ -322,6 +356,9 @@ def radviz(frame, class_column, ax=None, **kwds):
     classes = set(frame[class_column])
     to_plot = {}
 
+    colors = _get_standard_colors(num_colors=len(classes), colormap=colormap,
+                                  color_type='random', color=kwds.get('color'))
+
     for class_ in classes:
         to_plot[class_] = [[], []]
 
@@ -338,11 +375,9 @@ def radviz(frame, class_column, ax=None, **kwds):
         to_plot[class_name][0].append(y[0])
         to_plot[class_name][1].append(y[1])
 
-    for class_ in classes:
-        line = ax.scatter(to_plot[class_][0],
-                          to_plot[class_][1],
-                          color=random_color(class_),
-                          label=com.pprint_thing(class_), **kwds)
+    for i, class_ in enumerate(classes):
+        ax.scatter(to_plot[class_][0], to_plot[class_][1], color=colors[i],
+                   label=com.pprint_thing(class_), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
@@ -368,7 +403,8 @@ def radviz(frame, class_column, ax=None, **kwds):
     return ax
 
 
-def andrews_curves(data, class_column, ax=None, samples=200):
+def andrews_curves(data, class_column, ax=None, samples=200, colormap=None,
+                   **kwds):
     """
     Parameters:
     -----------
@@ -377,6 +413,10 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     class_column : Name of the column containing class names
     ax : matplotlib axes object, default None
     samples : Number of points to plot in each curve
+    colormap : str or matplotlib colormap object, default None
+        Colormap to select colors from. If string, load colormap with that name
+        from matplotlib.
+    kwds : Optional plotting arguments to be passed to matplotlib
 
     Returns:
     --------
@@ -385,7 +425,6 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     """
     from math import sqrt, pi, sin, cos
     import matplotlib.pyplot as plt
-    import random
 
     def function(amplitudes):
         def f(x):
@@ -401,15 +440,15 @@ def andrews_curves(data, class_column, ax=None, samples=200):
             return result
         return f
 
-    def random_color(column):
-        random.seed(column)
-        return [random.random() for _ in range(3)]
     n = len(data)
-    classes = set(data[class_column])
     class_col = data[class_column]
     columns = [data[col] for col in data.columns if (col != class_column)]
     x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
     used_legends = set([])
+
+    colors = _get_standard_colors(num_colors=n, colormap=colormap,
+                                  color_type='random', color=kwds.get('color'))
+
     if ax is None:
         ax = plt.gca(xlim=(-pi, pi))
     for i in range(n):
@@ -420,9 +459,9 @@ def andrews_curves(data, class_column, ax=None, samples=200):
         if com.pprint_thing(class_col[i]) not in used_legends:
             label = com.pprint_thing(class_col[i])
             used_legends.add(label)
-            ax.plot(x, y, color=random_color(class_col[i]), label=label)
+            ax.plot(x, y, color=colors[i], label=label, **kwds)
         else:
-            ax.plot(x, y, color=random_color(class_col[i]))
+            ax.plot(x, y, color=colors[i], **kwds)
 
     ax.legend(loc='upper right')
     ax.grid()
@@ -446,7 +485,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     fig: matplotlib figure
     """
     import random
-    import matplotlib
     import matplotlib.pyplot as plt
 
     # random.sample(ndarray, int) fails on python 3.3, sigh
@@ -492,7 +530,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
 
 def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
-                         use_columns=False, xticks=None, **kwds):
+                         use_columns=False, xticks=None, colormap=None, **kwds):
     """Parallel coordinates plotting.
 
     Parameters
@@ -511,6 +549,8 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
         If true, columns will be used as xticks
     xticks: list or tuple, optional
         A list of values to use for xticks
+    colormap: str or matplotlib colormap, default None
+        Colormap to use for line colors.
     kwds: list, optional
         A list of keywords for matplotlib plot method
 
@@ -528,11 +568,8 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     >>> plt.show()
     """
     import matplotlib.pyplot as plt
-    import random
 
-    def random_color(column):
-        random.seed(column)
-        return [random.random() for _ in range(3)]
+
     n = len(data)
     classes = set(data[class_column])
     class_col = data[class_column]
@@ -563,13 +600,11 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     if ax is None:
         ax = plt.gca()
 
-    # if user has not specified colors to use, choose at random
-    if colors is None:
-        colors = dict((kls, random_color(kls)) for kls in classes)
-    else:
-        if len(colors) != len(classes):
-            raise ValueError('Number of colors must match number of classes')
-        colors = dict((kls, colors[i]) for i, kls in enumerate(classes))
+    color_values = _get_standard_colors(num_colors=len(classes),
+                                        colormap=colormap, color_type='random',
+                                        color=colors)
+
+    colors = dict(zip(classes, color_values))
 
     for i in range(n):
         row = df.irow(i).values
@@ -714,7 +749,7 @@ class MPLPlot(object):
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
                  sort_columns=False, fontsize=None,
-                 secondary_y=False, **kwds):
+                 secondary_y=False, colormap=None, **kwds):
 
         self.data = data
         self.by = by
@@ -756,6 +791,8 @@ class MPLPlot(object):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
+        self.colormap = colormap
+
         self.kwds = kwds
 
         self._validate_color_args()
@@ -773,6 +810,11 @@ class MPLPlot(object):
              isinstance(self.data, DataFrame) and len(self.data.columns) == 1)):
             # support series.plot(color='green')
             self.kwds['color'] = [self.kwds['color']]
+
+        if ('color' in self.kwds or 'colors' in self.kwds) and \
+                self.colormap is not None:
+            warnings.warn("'color' and 'colormap' cannot be used "
+                          "simultaneously. Using 'color'")
 
     def _iter_data(self):
         from pandas.core.frame import DataFrame
@@ -880,7 +922,7 @@ class MPLPlot(object):
         try:
             # might be an ndframe
             numeric_data = self.data._get_numeric_data()
-        except AttributeError:  # TODO: rm in 0.12 (series-inherit-ndframe)
+        except AttributeError:  # TODO: rm in 0.13 (series-inherit-ndframe)
             numeric_data = self.data
             orig_dtype = numeric_data.dtype
 
@@ -1072,15 +1114,18 @@ class MPLPlot(object):
         return style or None
 
     def _get_colors(self):
-        import matplotlib.pyplot as plt
-        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
-        if isinstance(cycle, basestring):
-            cycle = list(cycle)
-        colors = self.kwds.get('color', cycle)
-        return colors
+        from pandas.core.frame import DataFrame
+        if isinstance(self.data, DataFrame):
+            num_colors = len(self.data.columns)
+        else:
+            num_colors = 1
+
+        return _get_standard_colors(num_colors=num_colors,
+                                    colormap=self.colormap,
+                                    color=self.kwds.get('color'))
 
     def _maybe_add_color(self, colors, kwds, style, i):
-        has_color = 'color' in kwds
+        has_color = 'color' in kwds or self.colormap is not None
         if has_color and (style is None or re.match('[a-z]+', style) is None):
             kwds['color'] = colors[i % len(colors)]
 
@@ -1089,6 +1134,7 @@ class MPLPlot(object):
             return label + ' (right)'
         else:
             return label
+
 
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
@@ -1185,7 +1231,6 @@ class LinePlot(MPLPlot):
         return (freq is not None) and self._is_dynamic_freq(freq)
 
     def _make_plot(self):
-        import pandas.tseries.plotting as tsplot
         # this is slightly deceptive
         if not self.x_compat and self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
@@ -1389,15 +1434,6 @@ class BarPlot(MPLPlot):
 
         return f
 
-    def _get_colors(self):
-        import matplotlib.pyplot as plt
-        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
-        if isinstance(cycle, basestring):
-            cycle = list(cycle)
-        has_colors = 'color' in self.kwds
-        colors = self.kwds.get('color', cycle)
-        return colors
-
     def _make_plot(self):
         import matplotlib as mpl
         colors = self._get_colors()
@@ -1547,6 +1583,9 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     mark_right: boolean, default True
         When using a secondary_y axis, should the legend label the axis of
         the various columns automatically
+    colormap : str or matplotlib colormap object, default None
+        Colormap to select colors from. If string, load colormap with that name
+        from matplotlib.
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -1724,12 +1763,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
 
     def _get_colors():
-        import matplotlib.pyplot as plt
-        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
-        if isinstance(cycle, basestring):
-            cycle = list(cycle)
-        colors = kwds.get('color', cycle)
-        return colors
+        return _get_standard_colors(color=kwds.get('color'), num_colors=1)
 
     def maybe_color_bp(bp):
         if 'color' not in kwds :
@@ -1977,20 +2011,26 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     """
     import matplotlib.pyplot as plt
 
-    fig = kwds.setdefault('figure', plt.figure(figsize=figsize))
+    fig = kwds.get('figure', plt.gcf()
+                   if plt.get_fignums() else plt.figure(figsize=figsize))
+    if figsize is not None and tuple(figsize) != tuple(fig.get_size_inches()):
+        fig.set_size_inches(*figsize, forward=True)
 
     if by is None:
         if ax is None:
             ax = fig.add_subplot(111)
-        else:
-            if ax.get_figure() != fig:
-                raise AssertionError('passed axis not bound to passed figure')
+        if ax.get_figure() != fig:
+            raise AssertionError('passed axis not bound to passed figure')
         values = self.dropna().values
 
         ax.hist(values, **kwds)
         ax.grid(grid)
         axes = np.array([ax])
     else:
+        if 'figure' in kwds:
+            raise ValueError("Cannot pass 'figure' when using the "
+                             "'by' argument, since a new 'Figure' instance "
+                             "will be created")
         axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize,
                             **kwds)
 
@@ -2340,7 +2380,6 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
 
 def _get_xlim(lines):
-    import pandas.tseries.converter as conv
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata()
