@@ -219,7 +219,7 @@ def read_hdf(path_or_buf, key, **kwargs):
     # a passed store; user controls open/close
     f(path_or_buf, False)
 
-class HDFStore(StringMixin):
+class HDFStore(object):
     """
     dict-like IO interface for storing pandas objects in PyTables
     format.
@@ -421,7 +421,8 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
         return self._read_group(group)
 
-    def select(self, key, where=None, start=None, stop=None, columns=None, iterator=False, chunksize=None, auto_close=False, **kwargs):
+    def select(self, key, where=None, start=None, stop=None, columns=None,
+               iterator=False, chunksize=None, auto_close=False, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -448,14 +449,18 @@ class HDFStore(StringMixin):
 
         # what we are actually going to do for a chunk
         def func(_start, _stop):
-            return s.read(where=where, start=_start, stop=_stop, columns=columns, **kwargs)
+            return s.read(where=where, start=_start, stop=_stop,
+                          columns=columns, **kwargs)
 
         if iterator or chunksize is not None:
             if not s.is_table:
                 raise TypeError("can only use an iterator or chunksize on a table")
-            return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop, chunksize=chunksize, auto_close=auto_close)
+            return TableIterator(self, func, nrows=s.nrows, start=start,
+                                 stop=stop, chunksize=chunksize,
+                                 auto_close=auto_close)
 
-        return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop, auto_close=auto_close).get_values()
+        return TableIterator(self, func, nrows=s.nrows, start=start, stop=stop,
+                             auto_close=auto_close).get_values()
 
     def select_as_coordinates(self, key, where=None, start=None, stop=None, **kwargs):
         """
@@ -1619,6 +1624,9 @@ class Storer(StringMixin):
                 s = "[%s]" % ','.join([pprint_thing(x) for x in s])
             return "%-12.12s (shape->%s)" % (self.pandas_type,s)
         return self.pandas_type
+
+    def __str__(self):
+        return self.__repr__()
 
     def set_object_info(self):
         """ set my pandas type & version """
