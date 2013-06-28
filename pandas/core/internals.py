@@ -87,7 +87,7 @@ class Block(object):
             raise AssertionError('block ref_items must be an Index')
         if maybe_rename == 'clear':
             self._ref_locs = None
-        if maybe_rename:
+        elif maybe_rename:
             self.items = ref_items.take(self.ref_locs)
         self.ref_items = ref_items
 
@@ -1788,9 +1788,6 @@ class BlockManager(object):
             # new block
             self._add_new_block(item, value, loc=loc)
 
-            if loc != len(self.items)-1 and new_items.is_unique:
-                self.set_items_clear(new_items)
-
         except:
 
             # so our insertion operation failed, so back out of the new items
@@ -1805,6 +1802,10 @@ class BlockManager(object):
             self._consolidate_inplace()
 
         self._known_consolidated = False
+
+        # clear the internal ref_loc mappings if necessary
+        if loc != len(self.items)-1 and new_items.is_unique:
+            self.set_items_clear(new_items)
 
     def set_items_norename(self, value):
         self.set_axis(0, value, maybe_rename=False, check_axis=False)

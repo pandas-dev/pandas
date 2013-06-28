@@ -10034,6 +10034,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(rs, xp)
 
     def test_insert_column_bug_4032(self):
+
         # GH4032, inserting a column and renaming causing errors
         df = DataFrame({'b': [1.1, 2.2]})
         df = df.rename(columns={})
