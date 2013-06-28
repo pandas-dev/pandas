@@ -11,20 +11,44 @@ from pandas.computation.engines import _engines
 
 def eval(expr, engine='numexpr', truediv=True, local_dict=None,
          global_dict=None):
-    """Evaluate a Python expression as a string.
+    """Evaluate a Python expression as a string using various backends.
+
+    The following arithmetic operations are supported: +, -, *, /, **, %, //
+    (python engine only) along with the following boolean operations: | (or), &
+    (and), and ~ (not). All Pandas objects are supported and behave as they
+    would with in-Python evaluation.
 
     Parameters
     ----------
     expr : string or Expr object
-    engine : string, optional, default 'numexpr'
-        The engine to use to evaluate the passed expression
+        The expression to evaluate. This can be either a string or an ``Expr``
+        object.
+    engine : string, optional, default 'numexpr', {'python', 'numexpr', 'pytables'}
+        The engine used to evaluate the expression. Supported engines are
+
+        - 'numexpr': This default engine evaluates pandas objects using numexpr
+                     for large speed ups in complex expressions with large
+                     frames.
+        - 'python': Performs operations as if you had eval'd in top level
+                    python
+        - 'pytables': Engine used for evaluating expressions for selection of
+                      objects from PyTables HDF5 tables.
+
     truediv : bool, optional, default True
+        Whether to use true division, like in Python >= 3
     local_dict : dict or None, optional, default None
+        A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional, default None
+        A dictionary of global variables, taken from globals() by default.
 
     Returns
     -------
     obj : ndarray, scalar, DataFrame, Series, or Panel
+
+    Notes
+    -----
+    The benefits of using ``eval`` are that very large frames that are terms in
+    long expressions are sped up, sometimes by as much as 10x.
     """
     # make sure we're passed a valid engine
     if not engine in _engines:
