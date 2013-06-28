@@ -139,6 +139,9 @@ def read_frame(sql, con, index_col=None, coerce_float=True):
     con: DB connection object, optional
     index_col: string, optional
         column name to use for the returned DataFrame object.
+    coerce_float : boolean, default True
+            Attempt to convert values to non-string, non-numeric objects (like
+            decimal.Decimal) to floating point, useful for SQL result sets
     """
     cur = execute(sql, con)
     rows = _safe_fetch(cur)
