@@ -28,3 +28,7 @@ class TestDataReader(unittest.TestCase):
                      "F-F_ST_Reversal_Factor"):
             ff = DataReader(name, "famafrench")
             assert isinstance(ff, dict)
+
+            # test "ff" data_source option
+            ff = DataReader(name, "ff")
+            assert isinstance(ff, dict)
