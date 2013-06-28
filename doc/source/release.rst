@@ -294,6 +294,8 @@ pandas 0.12
   - ``Series.hist`` will now take the figure from the current environment if
     one is not passed
   - Fixed bug where a 1xN DataFrame would barf on a 1xN mask (:issue:`4071`)
+  - Fixed running of ``tox`` under python3 where the pickle import was getting
+    rewritten in an incompatible way (:issue:`4062`, :issue:`4063`)
 
 
 pandas 0.11.0

@@ -25,3 +25,4 @@ for e in $ENVS; do
     echo "[launching tox for $e]"
     tox -c "$TOX_INI_PAR" -e "$e" &
 done
+wait

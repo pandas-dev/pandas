@@ -1,8 +1,5 @@
-# XXX: HACK for NumPy 1.5.1 to suppress warnings
-try:
-    import cPickle as pickle
-except ImportError:  # pragma: no cover
-    import pickle
+import cPickle as pkl
+
 
 def to_pickle(obj, path):
     """
@@ -14,11 +11,9 @@ def to_pickle(obj, path):
     path : string
         File path
     """
-    f = open(path, 'wb')
-    try:
-        pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
-    finally:
-        f.close()
+    with open(path, 'wb') as f:
+        pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
+
 
 def read_pickle(path):
     """
@@ -38,11 +33,11 @@ def read_pickle(path):
     unpickled : type of object stored in file
     """
     try:
-        with open(path,'rb') as fh:
-            return pickle.load(fh)
+        with open(path, 'rb') as fh:
+            return pkl.load(fh)
     except:
-        from pandas.util import py3compat
-        if not py3compat.PY3:
-            raise
-        with open(path,'rb') as fh:
-            return pickle.load(fh, encoding='latin1')
+        from pandas.util.py3compat import PY3
+        if PY3:
+            with open(path, 'rb') as fh:
+                return pkl.load(fh, encoding='latin1')
+        raise
