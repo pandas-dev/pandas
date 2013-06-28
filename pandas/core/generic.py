@@ -775,11 +775,20 @@ class NDFrame(PandasObject):
 
     @property
     def _is_mixed_type(self):
-        return self._data.is_mixed_type
+        f = lambda: self._data.is_mixed_type
+        return self._protect_consolidate(f)
 
     @property
     def _is_numeric_mixed_type(self):
-        return self._data.is_numeric_mixed_type
+        f = lambda: self._data.is_numeric_mixed_type
+        return self._protect_consolidate(f)
+
+    def _protect_consolidate(self, f):
+        blocks_before = len(self._data.blocks)
+        result = f()
+        if len(self._data.blocks) != blocks_before:
+            self._clear_item_cache()
+        return result
 
     def _reindex_axis(self, new_index, fill_method, axis, copy):
         new_data = self._data.reindex_axis(new_index, axis=axis,
