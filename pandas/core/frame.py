@@ -2100,14 +2100,9 @@ class DataFrame(NDFrame):
         else:
             mgr_axis = 0
 
-        # Super bad smell, need to review all this cache inval / block business
-        blocks_before = len(self._data.blocks)
+        self._consolidate_inplace()
         new_data = self._data.get_slice(slobj, axis=mgr_axis,
                                         raise_on_error=raise_on_error)
-
-        # Internal consolidation requires cache invalidation
-        if len(self._data.blocks) != blocks_before:
-            self._clear_item_cache()
 
         return self._constructor(new_data)
 

@@ -747,8 +747,8 @@ class NDFrame(PandasObject):
     # Consolidation of internals
 
     def _consolidate_inplace(self):
-        self._clear_item_cache()
-        self._data = self._data.consolidate()
+        f = lambda: self._data.consolidate()
+        self._data = self._protect_consolidate(f)
 
     def consolidate(self, inplace=False):
         """
@@ -768,7 +768,8 @@ class NDFrame(PandasObject):
         if inplace:
             self._consolidate_inplace()
         else:
-            cons_data = self._data.consolidate()
+            f = lambda: self._data.consolidate()
+            cons_data = self._protect_consolidate(f)
             if cons_data is self._data:
                 cons_data = cons_data.copy()
             return self._constructor(cons_data)
