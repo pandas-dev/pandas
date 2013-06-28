@@ -45,12 +45,13 @@ def _skip_if_no_scipy():
     except ImportError:
         raise nose.SkipTest
 
-#-------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 # DataFrame test cases
 
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 MIXED_FLOAT_DTYPES = ['float16','float32','float64']
-MIXED_INT_DTYPES   = ['uint8','uint16','uint32','uint64','int8','int16','int32','int64']
+MIXED_INT_DTYPES   = ['uint8','uint16','uint32','uint64','int8','int16',
+                      'int32','int64']
 
 def _check_mixed_float(df, dtype = None):
 
@@ -3188,7 +3189,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = mixed.min(axis=1)
 
         # GH 3106
-        df = DataFrame({ 'time' : date_range('20130102',periods=5), 'time2' : date_range('20130105',periods=5) })
+        df = DataFrame({'time' : date_range('20130102',periods=5),
+                        'time2' : date_range('20130105',periods=5) })
         df['off1'] = df['time2']-df['time']
         self.assert_(df['off1'].dtype == 'timedelta64[ns]')
 
@@ -3196,6 +3198,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df._consolidate_inplace()
         self.assertTrue(df['off1'].dtype == 'timedelta64[ns]')
         self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
+
+    def test__slice_consolidate_invalidate_item_cache(self):
+        # #3970
+        df = DataFrame({ "aa":range(5), "bb":[2.2]*5})
+
+        # Creates a second float block
+        df["cc"] = 0.0
+
+        # caches a reference to the 'bb' series
+        df["bb"]
+
+        # repr machinery triggers consolidation
+        repr(df)
+
+        # Assignment to wrong series
+        df['bb'].iloc[0] = 0.17
+        df._clear_item_cache()
+        self.assertAlmostEqual(df['bb'][0], 0.17)
 
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
@@ -7514,7 +7534,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             def is_ok(s):
                 return issubclass(s.dtype.type, (np.integer,np.floating)) and s.dtype != 'uint8'
             return DataFrame(dict([ (c,s+1) if is_ok(s) else (c,s) for c, s in df.iteritems() ]))
-        
+
         def _check_get(df, cond, check_dtypes = True):
             other1 = _safe_add(df)
             rs = df.where(cond, other1)
@@ -8483,7 +8503,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(['a','a','a','b','c','d','e','f','g'],
                        columns=['A'],
                        index=date_range('20130101',periods=9))
-        dts = [ Timestamp(x) for x in  ['2004-02-11','2004-01-21','2004-01-26','2005-09-20','2010-10-04','2009-05-12','2008-11-12','2010-09-28','2010-09-28'] ]
+        dts = [Timestamp(x)
+               for x in  ['2004-02-11','2004-01-21','2004-01-26',
+                          '2005-09-20','2010-10-04','2009-05-12',
+                          '2008-11-12','2010-09-28','2010-09-28']]
         df['B'] = dts[::2] + dts[1::2]
         df['C'] = 2.
         df['A1'] = 3.

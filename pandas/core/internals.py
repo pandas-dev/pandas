@@ -168,7 +168,7 @@ class Block(object):
         reindexed : Block
         """
         new_ref_items, indexer = self.items.reindex(new_ref_items)
-            
+
         if indexer is None:
             new_items = new_ref_items
             new_values = self.values.copy() if copy else self.values
@@ -1074,7 +1074,7 @@ class BlockManager(object):
         if we have a non-unique index on this axis, set the indexers
         we need to set an absolute indexer for the blocks
         return the indexer if we are not unique
-        
+
         labels : the (new) labels for this manager
         ref    : boolean, whether to set the labels (one a 1-1 mapping)
 
@@ -1088,7 +1088,7 @@ class BlockManager(object):
         if is_unique and not do_refs:
 
             if not self.items.is_unique:
-                
+
                 # reset our ref locs
                 self._ref_locs = None
                 for b in self.blocks:
@@ -1130,12 +1130,12 @@ class BlockManager(object):
             self._ref_locs = rl
             return rl
 
-        # return our cached _ref_locs (or will compute again 
+        # return our cached _ref_locs (or will compute again
         # when we recreate the block manager if needed
         return getattr(self,'_ref_locs',None)
 
     def get_items_map(self, use_cached=True):
-        """ 
+        """
         return an inverted ref_loc map for an item index
         block -> item (in that block) location -> column location
 
@@ -1166,7 +1166,7 @@ class BlockManager(object):
         else:
 
             for i, (block, idx) in enumerate(rl):
-                
+
                 m = maybe_create_block_in_items_map(im,block)
                 m[idx] = i
 
@@ -1362,11 +1362,13 @@ class BlockManager(object):
 
     @property
     def is_mixed_type(self):
+        # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return len(self.blocks) > 1
 
     @property
     def is_numeric_mixed_type(self):
+        # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return all([ block.is_numeric for block in self.blocks ])
 
@@ -1438,9 +1440,9 @@ class BlockManager(object):
             new_items = new_axes[0]
             if len(self.blocks) == 1:
                 blk = self.blocks[0]
-                newb = make_block(blk.values[slobj], 
+                newb = make_block(blk.values[slobj],
                                   new_items,
-                                  new_items, 
+                                  new_items,
                                   klass=blk.__class__,
                                   fastpath=True,
                                   placement=blk._ref_locs)
@@ -1462,9 +1464,9 @@ class BlockManager(object):
         slicer = tuple(slicer)
 
         for block in self.blocks:
-            newb = make_block(block.values[slicer], 
+            newb = make_block(block.values[slicer],
                               block.items,
-                              block.ref_items, 
+                              block.ref_items,
                               klass=block.__class__,
                               fastpath=True,
                               placement=block._ref_locs)
@@ -1576,9 +1578,9 @@ class BlockManager(object):
                 raise Exception('cannot get view of mixed-type or '
                                 'non-consolidated DataFrame')
             for blk in self.blocks:
-                newb = make_block(blk.values[slicer], 
-                                  blk.items, 
-                                  blk.ref_items, 
+                newb = make_block(blk.values[slicer],
+                                  blk.items,
+                                  blk.ref_items,
                                   klass=blk.__class__,
                                   fastpath=True)
                 new_blocks.append(newb)
@@ -1587,8 +1589,8 @@ class BlockManager(object):
             vals = block.values[slicer]
             if copy:
                 vals = vals.copy()
-            new_blocks = [make_block(vals, 
-                                     self.items, 
+            new_blocks = [make_block(vals,
+                                     self.items,
                                      self.items,
                                      klass=block.__class__,
                                      fastpath=True)]
@@ -1637,7 +1639,6 @@ class BlockManager(object):
 
     def _consolidate_inplace(self):
         if not self.is_consolidated():
-
             self.blocks = _consolidate(self.blocks, self.items)
 
             # reset our mappings
@@ -1703,7 +1704,7 @@ class BlockManager(object):
         # dupe keys may return mask
         loc = _possibly_convert_to_indexer(loc)
         self._delete_from_all_blocks(loc, item)
-    
+
         # _ref_locs, and _items_map are good here
         new_items = self.items.delete(loc)
         self.set_items_norename(new_items)
@@ -1763,7 +1764,7 @@ class BlockManager(object):
                         if self.items.is_unique:
                             self._reset_ref_locs()
                             self._set_ref_locs(do_refs='force')
-                            
+
                     self._rebuild_ref_locs()
 
 
@@ -1893,7 +1894,7 @@ class BlockManager(object):
 
             # reset the ref_locs based on the now good block._ref_locs
             self._reset_ref_locs()
-            
+
     def _add_new_block(self, item, value, loc=None):
         # Do we care about dtype at the moment?
 
@@ -1919,7 +1920,7 @@ class BlockManager(object):
                     self._ref_locs[i] = self._ref_locs[i-1]
 
             self._ref_locs[loc] = (new_block, 0)
-            
+
             # and reset
             self._reset_ref_locs()
             self._set_ref_locs(do_refs=True)
@@ -2081,7 +2082,7 @@ class BlockManager(object):
         if new_index is None:
             new_index = self.axes[axis].take(indexer)
 
-        new_axes[axis] = new_index 
+        new_axes[axis] = new_index
         return self.apply('take',axes=new_axes,indexer=indexer,ref_items=new_axes[0],axis=axis)
 
     def merge(self, other, lsuffix=None, rsuffix=None):
@@ -2453,7 +2454,7 @@ def _interleaved_dtype(blocks):
         if lcd.kind == 'u':
             return np.dtype('int%s' % (lcd.itemsize*8*2))
         return lcd
-    
+
     elif have_dt64 and not have_float and not have_complex:
         return np.dtype('M8[ns]')
     elif have_complex:
@@ -2500,7 +2501,7 @@ def _merge_blocks(blocks, items, dtype=None):
     new_ref_locs = [ b._ref_locs for b in blocks ]
     if all([ x is not None for x in new_ref_locs ]):
         new_block.set_ref_locs(np.concatenate(new_ref_locs))
-    return new_block    
+    return new_block
 
 
 def _block_shape(values, ndim=1, shape=None):
