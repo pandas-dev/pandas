@@ -249,6 +249,9 @@ I/O Enhancements
   - ``read_csv`` will now throw a more informative error message when a file
     contains no columns, e.g., all newline characters
 
+  - Updated documentation to reflect ``data_source`` in ``DataReader``
+
+
 Other Enhancements
 ~~~~~~~~~~~~~~~~~~
 
