@@ -2100,7 +2100,15 @@ class DataFrame(NDFrame):
         else:
             mgr_axis = 0
 
-        new_data = self._data.get_slice(slobj, axis=mgr_axis, raise_on_error=raise_on_error)
+        # Super bad smell, need to review all this cache inval / block business
+        blocks_before = len(self._data.blocks)
+        new_data = self._data.get_slice(slobj, axis=mgr_axis,
+                                        raise_on_error=raise_on_error)
+
+        # Internal consolidation requires cache invalidation
+        if len(self._data.blocks) != blocks_before:
+            self._clear_item_cache()
+
         return self._constructor(new_data)
 
     def _box_item_values(self, key, values):
@@ -3226,7 +3234,8 @@ class DataFrame(NDFrame):
         return self.sort_index(by=columns, axis=axis, ascending=ascending,
                                inplace=inplace)
 
-    def sort_index(self, axis=0, by=None, ascending=True, inplace=False):
+    def sort_index(self, axis=0, by=None, ascending=True, inplace=False,
+                   kind='quicksort'):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         a column
@@ -3263,7 +3272,10 @@ class DataFrame(NDFrame):
         if by is not None:
             if axis != 0:
                 raise AssertionError('Axis must be 0')
-            if isinstance(by, (tuple, list)):
+            if not isinstance(by, (tuple, list)):
+                by = [by]
+
+            if len(by) > 1:
                 keys = []
                 for x in by:
                     k = self[x].values
@@ -3281,18 +3293,19 @@ class DataFrame(NDFrame):
                 indexer = _lexsort_indexer(keys, orders=ascending)
                 indexer = com._ensure_platform_int(indexer)
             else:
+                by = by[0]
                 k = self[by].values
                 if k.ndim == 2:
                     raise ValueError('Cannot sort by duplicate column %s'
                                      % str(by))
-                indexer = k.argsort()
+                indexer = k.argsort(kind=kind)
                 if not ascending:
                     indexer = indexer[::-1]
         elif isinstance(labels, MultiIndex):
             indexer = _lexsort_indexer(labels.labels, orders=ascending)
             indexer = com._ensure_platform_int(indexer)
         else:
-            indexer = labels.argsort()
+            indexer = labels.argsort(kind=kind)
             if not ascending:
                 indexer = indexer[::-1]
 
