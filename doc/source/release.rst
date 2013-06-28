@@ -293,6 +293,7 @@ pandas 0.12
     :issue:`4028`, :issue:`4054`)
   - ``Series.hist`` will now take the figure from the current environment if
     one is not passed
+  - Updated documentation to reflect ``data_source`` in ``DataReader``
 
 pandas 0.11.0
 =============
