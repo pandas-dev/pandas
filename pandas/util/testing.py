@@ -773,7 +773,8 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
 def can_connect(url):
     """tries to connect to the given url. True if succeeds, False if IOError raised"""
     try:
-        urllib2.urlopen(url)
+        with closing(urllib2.urlopen(url)) as resp:
+            pass
     except IOError:
         return False
     else:

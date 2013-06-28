@@ -286,7 +286,11 @@ pandas 0.12
   - Fix ``Series.clip`` for datetime series. NA/NaN threshold values will now throw ValueError (:issue:`3996`)
   - Fixed insertion issue into DataFrame, after rename (:issue:`4032`)
   - Fixed testing issue where too many sockets where open thus leading to a
-    connection reset issue (:issue:`3982`, :issue:`3985`)
+    connection reset issue (:issue:`3982`, :issue:`3985`, :issue:`4028`,
+    :issue:`4054`)
+  - Fixed failing tests in test_yahoo, test_google where symbols were not
+    retrieved but were being accessed (:issue:`3982`, :issue:`3985`,
+    :issue:`4028`, :issue:`4054`)
 
 
 pandas 0.11.0

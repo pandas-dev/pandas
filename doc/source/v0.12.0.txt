@@ -429,7 +429,11 @@ Bug Fixes
     connectivity. Plus, new ``optional_args`` decorator factory for decorators.
     (:issue:`3910`, :issue:`3914`)
   - Fixed testing issue where too many sockets where open thus leading to a
-    connection reset issue (:issue:`3982`, :issue:`3985`)
+    connection reset issue (:issue:`3982`, :issue:`3985`, :issue:`4028`,
+    :issue:`4054`)
+  - Fixed failing tests in test_yahoo, test_google where symbols were not
+    retrieved but were being accessed (:issue:`3982`, :issue:`3985`,
+    :issue:`4028`, :issue:`4054`)
 
 See the :ref:`full release notes
 <release>` or issue tracker
