@@ -612,6 +612,31 @@ class TestDataFramePlots(unittest.TestCase):
         self.assertRaises(AttributeError, ser.hist, foo='bar')
 
     @slow
+    def test_hist_layout(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        df = DataFrame(np.random.randn(100, 4))
+
+        layout_to_expected_size = (
+            {'layout': None, 'expected_size': (2, 2)},  # default is 2x2
+            {'layout': (2, 2), 'expected_size': (2, 2)},
+            {'layout': (4, 1), 'expected_size': (4, 1)},
+            {'layout': (1, 4), 'expected_size': (1, 4)},
+            {'layout': (3, 3), 'expected_size': (3, 3)},
+        )
+
+        for layout_test in layout_to_expected_size:
+            ax = df.hist(layout=layout_test['layout'])
+            self.assert_(len(ax) == layout_test['expected_size'][0])
+            self.assert_(len(ax[0]) == layout_test['expected_size'][1])
+
+        # layout too small for all 4 plots
+        self.assertRaises(ValueError, df.hist, layout=(1, 1))
+
+        # invalid format for layout
+        self.assertRaises(ValueError, df.hist, layout=(1,))
+
+    @slow
     def test_scatter(self):
         _skip_if_no_scipy()
 
