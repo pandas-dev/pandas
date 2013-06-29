@@ -108,17 +108,17 @@ def _align_core(terms):
     axes = biggest.axes
     naxes = len(axes)
 
-    for i in term_index:
-        for axis, items in enumerate(terms[i].value.axes):
-            if com.is_series(terms[i].value) and naxes > 1:
-                axes[naxes - 1] = axes[naxes - 1].join(terms[i].value.index,
-                                                       how='outer')
+    for term in (terms[i] for i in term_index):
+        for axis, items in enumerate(term.value.axes):
+            if com.is_series(term.value) and naxes > 1:
+                ax, itm = naxes - 1, term.value.index
             else:
-                axes[axis] = axes[axis].join(items, how='outer')
+                ax, itm = axis, items
+            axes[ax] = axes[ax].join(itm, how='outer')
 
     for i, ndim in ndims.iteritems():
         for axis, items in izip(xrange(ndim), axes):
-            ti = terms[i].value  # needed here because we modify it in the inner loop
+            ti = terms[i].value
 
             if hasattr(ti, 'reindex_axis'):
                 transpose = com.is_series(ti) and naxes > 1
