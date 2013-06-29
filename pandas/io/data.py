@@ -20,6 +20,10 @@ from pandas import Panel, DataFrame, Series, read_csv, concat
 from pandas.io.parsers import TextParser
 
 
+class SymbolWarning(UserWarning):
+    pass
+
+
 def DataReader(name, data_source=None, start=None, end=None,
                retry_count=3, pause=0.001):
     """
@@ -311,7 +315,9 @@ def _dl_mult_symbols(symbols, start, end, chunksize, pause, method, **kwargs):
                 stocks[sym] = method(sym, start=start, end=end, pause=pause,
                                      **kwargs)
             except IOError:
-                warnings.warn('ERROR with symbol: {0}, skipping.'.format(sym))
+                warnings.warn('Failed to read symbol: {0!r}, replacing with '
+                              'NaN.'.format(sym), SymbolWarning)
+                stocks[sym] = np.nan
 
     return Panel(stocks).swapaxes('items', 'minor')
 
