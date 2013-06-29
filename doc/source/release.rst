@@ -100,6 +100,7 @@ pandas 0.12
     (:issue:`3910`, :issue:`3914`)
   - ``read_csv`` will now throw a more informative error message when a file
     contains no columns, e.g., all newline characters
+  - Added ``layout`` keyword to DataFrame.hist() for more customizable layout (:issue:`4050`)
 
 **API Changes**
 
