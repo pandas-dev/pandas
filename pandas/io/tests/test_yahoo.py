@@ -111,7 +111,7 @@ class TestYahoo(unittest.TestCase):
                              [ 19.03,  28.16,  25.52],
                              [ 18.81,  28.82,  25.87]])
         result = pan.Open.ix['Jan-15-12':'Jan-20-12']
-        assert_array_equal(np.array(expected).shape, result.shape)
+        self.assertEqual(expected.shape, result.shape)
 
     @network
     def test_get_date_ret_index(self):

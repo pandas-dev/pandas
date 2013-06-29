@@ -311,7 +311,9 @@ def _dl_mult_symbols(symbols, start, end, chunksize, pause, method, **kwargs):
                 stocks[sym] = method(sym, start=start, end=end, pause=pause,
                                      **kwargs)
             except IOError:
-                warnings.warn('ERROR with symbol: {0}, skipping.'.format(sym))
+                warnings.warn('Failed to read symbol: {0!r}, replacing with '
+                              'NaN.'.format(sym))
+                stocks[sym] = np.nan
 
     return Panel(stocks).swapaxes('items', 'minor')
 
