@@ -1,21 +1,20 @@
 from datetime import datetime
 import re
+import unittest
 
 import nose
 from nose.tools import assert_equal
 import unittest
+import numpy as np
+from pandas.tslib import iNaT
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull
+import pandas.compat as compat
 import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.core.config as cf
-
-import numpy as np
-
-from pandas.tslib import iNaT
-from pandas import compat
 
 _multiprocess_can_split_ = True
 
@@ -781,6 +780,7 @@ class TestTake(unittest.TestCase):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = datetime(2007, 1, 1)
         tm.assert_almost_equal(result, expected)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

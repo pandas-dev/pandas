@@ -9,7 +9,7 @@ import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp
-from pandas.core.base import PandasObject
+from pandas.core.base import FrozenList, FrozenNDArray
 
 from pandas.util.decorators import cache_readonly
 from pandas.core.common import isnull
@@ -47,7 +47,7 @@ def _shouldbe_timestamp(obj):
             or tslib.is_timestamp_array(obj))
 
 
-class Index(PandasObject, np.ndarray):
+class Index(FrozenNDArray):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects
@@ -313,7 +313,7 @@ class Index(PandasObject, np.ndarray):
         """
         Index is not mutable, so disabling deepcopy
         """
-        return self
+        return self._shallow_copy()
 
     def __contains__(self, key):
         hash(key)
@@ -325,9 +325,6 @@ class Index(PandasObject, np.ndarray):
 
     def __hash__(self):
         return hash(self.view(np.ndarray))
-
-    def __setitem__(self, key, value):
-        raise TypeError(str(self.__class__) + ' does not support item assignment')
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
