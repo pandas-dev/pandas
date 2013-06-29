@@ -14,6 +14,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.core.common import isnull
 import pandas.core.common as com
 from pandas.util import py3compat
+from pandas.util.exceptions import PandasError
 from pandas.core.config import get_option
 
 
@@ -35,8 +36,13 @@ def _indexOp(opname):
     return wrapper
 
 
-class InvalidIndexError(Exception):
+class AmbiguousIndexError(PandasError, KeyError):
     pass
+
+
+class InvalidIndexError(PandasError, KeyError):
+    pass
+
 
 _o_dtype = np.dtype(object)
 
@@ -941,7 +947,7 @@ class Index(np.ndarray):
 
             if self.equals(target):
                 indexer = None
-                
+
                 # to avoid aliasing an existing index
                 if copy_if_needed and target.name != self.name and self.name is not None:
                     if target.name is None:
@@ -1248,7 +1254,7 @@ class Index(np.ndarray):
         else:
             try:
                 start_slice = self.get_loc(start)
-                
+
                 if not is_unique:
 
                     # get_loc will return a boolean array for non_uniques

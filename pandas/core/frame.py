@@ -28,9 +28,9 @@ from pandas.core.common import (isnull, notnull, _try_sort, _default_index,
                                 _infer_dtype_from_scalar)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
-                                  _convert_to_index_sliceable, _check_bool_indexer,
-                                  _maybe_convert_indices)
+from pandas.core.indexing import (_maybe_droplevels,
+                                  _convert_to_index_sliceable,
+                                  _check_bool_indexer, _maybe_convert_indices)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
@@ -39,9 +39,8 @@ import pandas.core.expressions as expressions
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
-from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
-from pandas.util.exceptions import PandasError
+from pandas.util.exceptions import PandasError, DataConflictError
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
@@ -54,7 +53,6 @@ import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 
 import pandas.lib as lib
-import pandas.tslib as tslib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option, set_option
@@ -180,12 +178,6 @@ Returns
 -------
 merged : DataFrame
 """
-
-# Custom error class for update
-
-
-class DataConflictError(Exception):
-    pass
 
 #----------------------------------------------------------------------
 # Factory helper methods

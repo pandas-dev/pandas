@@ -11,7 +11,7 @@ from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 from pandas.util.compat import OrderedDict
-from pandas.util.exceptions import DataError
+from pandas.util.exceptions import PandasError, DataError
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import _possibly_downcast_to_dtype, notnull
@@ -42,7 +42,7 @@ aggregated : DataFrame
 """
 
 
-class GroupByError(Exception):
+class GroupByError(PandasError):
     pass
 
 

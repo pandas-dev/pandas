@@ -6,7 +6,7 @@ class DataError(PandasError):
     pass
 
 
-class AmbiguousIndexError(PandasError, KeyError):
+class DataConflictError(DataError):
     pass
 
 
