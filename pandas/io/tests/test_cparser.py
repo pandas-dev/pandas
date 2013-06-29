@@ -34,7 +34,7 @@ import pandas.parser as parser
 class TestCParser(unittest.TestCase):
 
     def setUp(self):
-        self.dirpath = tm.get_data_path('/')
+        self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')

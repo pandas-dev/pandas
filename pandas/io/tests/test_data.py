@@ -1,14 +1,86 @@
 import unittest
 import warnings
 import nose
+from nose.tools import assert_equal
 from datetime import datetime
 
-import pandas as pd
 import numpy as np
-import pandas.io.data as web
-from pandas.util.testing import (network, assert_series_equal,
-                                 assert_produces_warning, assert_frame_equal)
+import pandas as pd
+from pandas import DataFrame
+from pandas.io import data as web
+from pandas.io.data import DataReader, SymbolWarning
+from pandas.util.testing import (assert_series_equal, assert_produces_warning,
+                                 assert_frame_equal, network)
 from numpy.testing import assert_array_equal
+
+
+def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
+    all_nan_cols = pd.Series(dict((k, pd.isnull(v).all()) for k, v in
+                                  obj.iteritems()))
+    n_all_nan_cols = all_nan_cols.sum()
+    valid_warnings = pd.Series([wng for wng in wngs if isinstance(wng, cls)])
+    assert_equal(len(valid_warnings), n_all_nan_cols)
+    failed_symbols = all_nan_cols[all_nan_cols].index
+    msgs = valid_warnings.map(lambda x: x.message)
+    assert msgs.str.contains('|'.join(failed_symbols)).all()
+
+
+class TestGoogle(unittest.TestCase):
+
+    @network
+    def test_google(self):
+        # asserts that google is minimally working and that it throws
+        # an exception when DataReader can't get a 200 response from
+        # google
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 01, 27)
+
+        self.assertEquals(
+            web.DataReader("F", 'google', start, end)['Close'][-1],
+            13.68)
+
+        self.assertRaises(Exception, web.DataReader, "NON EXISTENT TICKER",
+                          'google', start, end)
+
+    @network
+    def test_get_quote_fails(self):
+        self.assertRaises(NotImplementedError, web.get_quote_google,
+                          pd.Series(['GOOG', 'AAPL', 'GOOG']))
+
+    @network
+    def test_get_goog_volume(self):
+        df = web.get_data_google('GOOG')
+        self.assertEqual(df.Volume.ix['OCT-08-2010'], 2863473)
+
+    @network
+    def test_get_multi1(self):
+        sl = ['AAPL', 'AMZN', 'GOOG']
+        pan = web.get_data_google(sl, '2012')
+
+        def testit():
+            ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
+            self.assertEquals(ts[0].dayofyear, 96)
+
+        if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
+            hasattr(pan.Close, 'AAPL')):
+            testit()
+        else:
+            self.assertRaises(AttributeError, testit)
+
+    @network
+    def test_get_multi2(self):
+        with warnings.catch_warnings(record=True) as w:
+            pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12',
+                                      'JAN-31-12')
+            result = pan.Close.ix['01-18-12']
+            assert_n_failed_equals_n_null_columns(w, result)
+
+            # sanity checking
+
+            assert np.issubdtype(result.dtype, np.floating)
+            result = pan.Open.ix['Jan-15-12':'Jan-20-12']
+            self.assertEqual((4, 3), result.shape)
+            assert_n_failed_equals_n_null_columns(w, result)
 
 
 class TestYahoo(unittest.TestCase):
@@ -111,7 +183,7 @@ class TestYahoo(unittest.TestCase):
                              [ 19.03,  28.16,  25.52],
                              [ 18.81,  28.82,  25.87]])
         result = pan.Open.ix['Jan-15-12':'Jan-20-12']
-        assert_array_equal(np.array(expected).shape, result.shape)
+        self.assertEqual(expected.shape, result.shape)
 
     @network
     def test_get_date_ret_index(self):
@@ -249,6 +321,82 @@ class TestOptionsWarnings(unittest.TestCase):
                 self.aapl.get_put_data(month=self.month, year=self.year)
             except IndexError:
                 warnings.warn("IndexError thrown no tables found")
+
+
+class TestDataReader(unittest.TestCase):
+    @network
+    def test_read_yahoo(self):
+        gs = DataReader("GS", "yahoo")
+        assert isinstance(gs, DataFrame)
+
+    @network
+    def test_read_google(self):
+        gs = DataReader("GS", "google")
+        assert isinstance(gs, DataFrame)
+
+    @network
+    def test_read_fred(self):
+        vix = DataReader("VIXCLS", "fred")
+        assert isinstance(vix, DataFrame)
+
+    @network
+    def test_read_famafrench(self):
+        for name in ("F-F_Research_Data_Factors",
+                     "F-F_Research_Data_Factors_weekly", "6_Portfolios_2x3",
+                     "F-F_ST_Reversal_Factor"):
+            ff = DataReader(name, "famafrench")
+            assert isinstance(ff, dict)
+
+
+class TestFred(unittest.TestCase):
+    @network
+    def test_fred(self):
+        """
+        Throws an exception when DataReader can't get a 200 response from
+        FRED.
+        """
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 01, 27)
+
+        self.assertEquals(
+            web.DataReader("GDP", "fred", start, end)['GDP'].tail(1),
+            15984.1)
+
+        self.assertRaises(Exception, web.DataReader, "NON EXISTENT SERIES",
+                          'fred', start, end)
+
+    @network
+    def test_fred_nan(self):
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 01, 27)
+        df = web.DataReader("DFII5", "fred", start, end)
+        assert pd.isnull(df.ix['2010-01-01'])
+
+    @network
+    def test_fred_parts(self):
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 01, 27)
+        df = web.get_data_fred("CPIAUCSL", start, end)
+        self.assertEqual(df.ix['2010-05-01'], 217.23)
+
+        t = df.CPIAUCSL.values
+        assert np.issubdtype(t.dtype, np.floating)
+        self.assertEqual(t.shape, (37,))
+
+    @network
+    def test_fred_part2(self):
+        expected = [[576.7],
+                    [962.9],
+                    [684.7],
+                    [848.3],
+                    [933.3]]
+        result = web.get_data_fred("A09024USA144NNBR", start="1915").ix[:5]
+        assert_array_equal(result.values, np.array(expected))
+
+    @network
+    def test_invalid_series(self):
+        name = "NOT A REAL SERIES"
+        self.assertRaises(Exception, web.get_data_fred, name)
 
 
 if __name__ == '__main__':

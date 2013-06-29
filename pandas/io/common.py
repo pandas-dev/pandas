@@ -1,8 +1,13 @@
-""" Common api utilities """
+"""Common IO api utilities"""
 
+import sys
 import urlparse
-from pandas.util import py3compat
+import urllib2
+import zipfile
+from contextlib import contextmanager, closing
 from StringIO import StringIO
+
+from pandas.util import py3compat
 
 _VALID_URLS = set(urlparse.uses_relative + urlparse.uses_netloc +
                   urlparse.uses_params)
@@ -84,3 +89,24 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None):
         return filepath_or_buffer, None
 
     return filepath_or_buffer, None
+
+
+# ----------------------
+# Prevent double closing
+if py3compat.PY3:
+    urlopen = urllib2.urlopen
+else:
+    @contextmanager
+    def urlopen(*args, **kwargs):
+        with closing(urllib2.urlopen(*args, **kwargs)) as f:
+            yield f
+
+# ZipFile is not a context manager for <= 2.6
+# must be tuple index here since 2.6 doesn't use namedtuple for version_info
+if sys.version_info[1] <= 6:
+    @contextmanager
+    def ZipFile(*args, **kwargs):
+        with closing(zipfile.ZipFile(*args, **kwargs)) as zf:
+            yield zf
+else:
+    ZipFile = zipfile.ZipFile
