@@ -6,15 +6,16 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import pandas.io.data as web, DataReader
+from pandas.io import data as web
+from pandas.io.data import DataReader, SymbolWarning
 from pandas.core.generic import PandasObject
 from pandas.util.testing import (network, assert_series_equal,
                                  assert_produces_warning, assert_frame_equal)
 from numpy.testing import assert_array_equal
 
 
-def assert_n_failed_equals_n_null_columns(wngs, obj, cls=UserWarning):
-    all_nan_cols = pd.Series(dict((k, v.isnull().all()) for k, v in
+def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
+    all_nan_cols = pd.Series(dict((k, pd.isnull(v).all()) for k, v in
                                   obj.iteritems()))
     n_all_nan_cols = all_nan_cols.sum()
     valid_warnings = pd.Series([wng for wng in wngs if isinstance(wng, cls)])
