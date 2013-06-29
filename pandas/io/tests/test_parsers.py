@@ -817,7 +817,11 @@ c,4,5
         expected = self.read_csv(StringIO(data), sep=";", index_col=lrange(4))
 
         lev = expected.index.levels[0]
-        expected.index.levels[0] = lev.to_datetime(dayfirst=True)
+        levels = list(expected.index.levels)
+        levels[0] = lev.to_datetime(dayfirst=True)
+        # hack to get this to work - remove for final test
+        levels[0].name = lev.name
+        expected.index.levels = levels
         expected['aux_date'] = to_datetime(expected['aux_date'],
                                            dayfirst=True)
         expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
@@ -2144,14 +2148,14 @@ a,b,c
 4,5,6
 7,8,9
 10,11,12"""
-        result = self.read_csv(StringIO(data), usecols=(0, 1, 2), 
-                               names=('a', 'b', 'c'), 
+        result = self.read_csv(StringIO(data), usecols=(0, 1, 2),
+                               names=('a', 'b', 'c'),
                                header=None,
                                converters={'a': str},
                                dtype={'b': int, 'c': float},
-                              )                               
+                              )
         result2 = self.read_csv(StringIO(data), usecols=(0, 2),
-                               names=('a', 'b', 'c'), 
+                               names=('a', 'b', 'c'),
                                header=None,
                                converters={'a': str},
                                dtype={'b': int, 'c': float},

@@ -57,7 +57,8 @@ class TestIndex(unittest.TestCase):
         from copy import deepcopy
 
         copy = deepcopy(self.strIndex)
-        self.assert_(copy is self.strIndex)
+        self.assert_(copy is not self.strIndex)
+        self.assert_(copy.equals(self.strIndex))
 
     def test_duplicates(self):
         idx = Index([0, 0, 0])
