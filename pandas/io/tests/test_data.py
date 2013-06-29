@@ -6,7 +6,8 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import pandas.io.data as web
+import pandas.io.data as web, DataReader
+from pandas.core.generic import PandasObject
 from pandas.util.testing import (network, assert_series_equal,
                                  assert_produces_warning, assert_frame_equal)
 
@@ -318,6 +319,31 @@ class TestOptionsWarnings(unittest.TestCase):
                 self.aapl.get_put_data(month=self.month, year=self.year)
             except IndexError:
                 warnings.warn("IndexError thrown no tables found")
+
+
+class TestDataReader(unittest.TestCase):
+    @network
+    def test_read_yahoo(self):
+        gs = DataReader("GS", "yahoo")
+        assert isinstance(gs, PandasObject)
+
+    @network
+    def test_read_google(self):
+        gs = DataReader("GS", "google")
+        assert isinstance(gs, PandasObject)
+
+    @network
+    def test_read_fred(self):
+        vix = DataReader("VIXCLS", "fred")
+        assert isinstance(vix, PandasObject)
+
+    @network
+    def test_read_famafrench(self):
+        for name in ("F-F_Research_Data_Factors",
+                     "F-F_Research_Data_Factors_weekly", "6_Portfolios_2x3",
+                     "F-F_ST_Reversal_Factor"):
+            ff = DataReader(name, "famafrench")
+            assert isinstance(ff, dict)
 
 
 if __name__ == '__main__':
