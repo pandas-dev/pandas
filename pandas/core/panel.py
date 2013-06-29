@@ -6,10 +6,8 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 import operator
 import sys
 import numpy as np
-from pandas.core.common import (PandasError, _mut_exclusive,
-                                _try_sort, _default_index,
-                                _infer_dtype_from_scalar,
-                                notnull)
+from pandas.core.common import (_mut_exclusive, _try_sort, _default_index,
+                                _infer_dtype_from_scalar, notnull)
 from pandas.core.categorical import Categorical
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
@@ -21,6 +19,7 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.util import py3compat
+from pandas.util.exceptions import PandasError
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops

@@ -4,7 +4,6 @@ Misc tools for implementing data structures
 
 import itertools
 import re
-from datetime import datetime
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
@@ -18,7 +17,6 @@ import codecs
 import csv
 
 from pandas.util.py3compat import StringIO, BytesIO
-
 from pandas.core.config import get_option
 from pandas.core import array as pa
 
@@ -27,14 +25,6 @@ try:
     np.seterr(all='ignore')
     # np.set_printoptions(suppress=True)
 except Exception:  # pragma: no cover
-    pass
-
-
-class PandasError(Exception):
-    pass
-
-
-class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 

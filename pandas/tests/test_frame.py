@@ -32,6 +32,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  makeCustomDataframe as mkdf,
                                  ensure_clean)
 from pandas.util import py3compat
+from pandas.util.exceptions import PandasError
 from pandas.util.compat import OrderedDict
 
 import pandas.util.testing as tm
@@ -2977,10 +2978,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                          index=[1, 2],
                                          columns=['a', 'c']))
 
-        self.assertRaises(com.PandasError, DataFrame, 'a', [1, 2])
-        self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a', 'c'])
+        self.assertRaises(PandasError, DataFrame, 'a', [1, 2])
+        self.assertRaises(PandasError, DataFrame, 'a', columns=['a', 'c'])
         self.assertRaises(
-            com.PandasError, DataFrame, 'a', [1, 2], ['a', 'c'], float)
+            PandasError, DataFrame, 'a', [1, 2], ['a', 'c'], float)
 
 
     def test_constructor_with_datetimes(self):

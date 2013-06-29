@@ -11,6 +11,7 @@ from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 from pandas.util.compat import OrderedDict
+from pandas.util.exceptions import DataError
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import _possibly_downcast_to_dtype, notnull
@@ -45,7 +46,7 @@ class GroupByError(Exception):
     pass
 
 
-class DataError(GroupByError):
+class GroupByDataError(GroupByError, DataError):
     pass
 
 
@@ -456,7 +457,7 @@ class GroupBy(object):
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
-            raise DataError('No numeric types to aggregate')
+            raise GroupByDataError('No numeric types to aggregate')
 
         return self._wrap_aggregated_output(output, names)
 
@@ -1257,7 +1258,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
                     raise ValueError('level name %s is not the name of the index' % level)
             elif level > 0:
                 raise ValueError('level > 0 only valid with MultiIndex')
-            
+
             level = None
             key = group_axis
 
@@ -1656,7 +1657,7 @@ class NDFrameGroupBy(GroupBy):
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
-            raise DataError('No numeric types to aggregate')
+            raise GroupByDataError('No numeric types to aggregate')
 
         return new_blocks
 
@@ -1772,7 +1773,7 @@ class NDFrameGroupBy(GroupBy):
                                      grouper=self.grouper)
                 results.append(colg.aggregate(arg))
                 keys.append(col)
-            except (TypeError, DataError) :
+            except (TypeError, GroupByDataError) :
                 pass
             except SpecificationError:
                 raise
@@ -1900,7 +1901,7 @@ class NDFrameGroupBy(GroupBy):
                     if not all_indexed_same:
                         return self._concat_objects(keys, values,
                                                     not_indexed_same=not_indexed_same)
-                    
+
                 try:
                     if self.axis == 0:
 
@@ -1999,7 +2000,7 @@ class NDFrameGroupBy(GroupBy):
         else:
             fast_path = lambda group: func(group, *args, **kwargs)
             slow_path = lambda group: group.apply(lambda x: func(x, *args, **kwargs), axis=self.axis)
-        return fast_path, slow_path 
+        return fast_path, slow_path
 
     def _choose_path(self, fast_path, slow_path, group):
         path = slow_path

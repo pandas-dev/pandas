@@ -23,8 +23,8 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _maybe_upcast, _is_sequence,
+from pandas.core.common import (isnull, notnull, _try_sort, _default_index,
+                                _maybe_upcast, _is_sequence,
                                 _infer_dtype_from_scalar)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -41,6 +41,7 @@ from pandas.util.compat import OrderedDict
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
+from pandas.util.exceptions import PandasError
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
