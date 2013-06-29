@@ -8707,6 +8707,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              columns=['A','B','bool1','bool2'])
         assert_frame_equal(df, expected)
 
+        # GH 4080, int conversions
+        df = DataFrame(dict((c, [1,2,3]) for c in ['a', 'b', 'c']))
+        df.set_index(['a', 'b', 'c'], inplace=True)
+        s = Series([1], index=[(2,2,2)])
+        df['val'] = 0
+        df['val'].update(s)
+        expected = DataFrame(dict(a = [1,2,3], b = [1,2,3], c = [1,2,3], val = [0.0,1.0,0.0]))
+        expected.set_index(['a', 'b', 'c'], inplace=True)
+        assert_frame_equal(df,expected)
+
     def test_update_nooverwrite(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],

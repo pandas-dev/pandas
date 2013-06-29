@@ -1,5 +1,6 @@
 # pylint: disable=W0231,E1101
 
+import weakref
 import numpy as np
 import pandas.lib as lib
 from pandas.core.base import PandasObject
@@ -667,10 +668,16 @@ class NDFrame(PandasContainer):
             values = self._data.get(item)
             res = self._box_item_values(item, values)
             cache[item] = res
+            res._cacher  = (item,weakref.ref(self))
             return res
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
+
+    def _maybe_cache_changed(self, item, value):
+        """ the object has called back to us saying
+        maybe it has changed """
+        self._data.maybe_changed(item, value)
 
     def _clear_item_cache(self):
         self._item_cache.clear()

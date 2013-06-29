@@ -557,6 +557,12 @@ class Series(generic.PandasContainer, pa.Array):
         self.index = _handle_legacy_indexes([index])[0]
         self.name = name
 
+    def _maybe_update_cacher(self):
+        """ see if we need to update our parent cacher """
+        cacher = getattr(self,'_cacher',None)
+        if cacher is not None:
+            cacher[1]()._maybe_cache_changed(cacher[0],self)
+
     # indexers
     @property
     def axes(self):
@@ -2157,7 +2163,8 @@ class Series(generic.PandasContainer, pa.Array):
         """
         other = other.reindex_like(self)
         mask = notnull(other)
-        com._maybe_upcast_putmask(self.values,mask,other,change=self.values)
+        com._maybe_upcast_putmask(self.values,mask,other,change=self)
+        self._maybe_update_cacher()
 
     #----------------------------------------------------------------------
     # Reindexing, sorting

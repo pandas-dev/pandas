@@ -318,6 +318,8 @@ pandas 0.12
     iterated over when regex=False (:issue:`4115`)
   - Fixed bug in ``convert_objects(convert_numeric=True)`` where a mixed numeric and
     object Series/Frame was not converting properly (:issue:`4119`)
+  - Bug in Series update where the parent frame is not updating its blocks based on
+    dtype changes (:issue:`4080`)
 
 
 pandas 0.11.0
