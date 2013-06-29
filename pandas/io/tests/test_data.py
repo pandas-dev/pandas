@@ -1,14 +1,83 @@
 import unittest
 import warnings
 import nose
+from nose.tools import assert_equal
 from datetime import datetime
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pandas.io.data as web
 from pandas.util.testing import (network, assert_series_equal,
                                  assert_produces_warning, assert_frame_equal)
-from numpy.testing import assert_array_equal
+
+
+def assert_n_failed_equals_n_null_columns(wngs, obj, cls=UserWarning):
+    all_nan_cols = pd.Series(dict((k, v.isnull().all()) for k, v in
+                                  obj.iteritems()))
+    n_all_nan_cols = all_nan_cols.sum()
+    valid_warnings = pd.Series([wng for wng in wngs if isinstance(wng, cls)])
+    assert_equal(len(valid_warnings), n_all_nan_cols)
+    failed_symbols = all_nan_cols[all_nan_cols].index
+    msgs = valid_warnings.map(lambda x: x.message)
+    assert msgs.str.contains('|'.join(failed_symbols)).all()
+
+
+class TestGoogle(unittest.TestCase):
+
+    @network
+    def test_google(self):
+        # asserts that google is minimally working and that it throws
+        # an exception when DataReader can't get a 200 response from
+        # google
+        start = datetime(2010, 1, 1)
+        end = datetime(2013, 01, 27)
+
+        self.assertEquals(
+            web.DataReader("F", 'google', start, end)['Close'][-1],
+            13.68)
+
+        self.assertRaises(Exception, web.DataReader, "NON EXISTENT TICKER",
+                          'google', start, end)
+
+    @network
+    def test_get_quote_fails(self):
+        self.assertRaises(NotImplementedError, web.get_quote_google,
+                          pd.Series(['GOOG', 'AAPL', 'GOOG']))
+
+    @network
+    def test_get_goog_volume(self):
+        df = web.get_data_google('GOOG')
+        self.assertEqual(df.Volume.ix['OCT-08-2010'], 2863473)
+
+    @network
+    def test_get_multi1(self):
+        sl = ['AAPL', 'AMZN', 'GOOG']
+        pan = web.get_data_google(sl, '2012')
+
+        def testit():
+            ts = pan.Close.GOOG.index[pan.Close.AAPL > pan.Close.GOOG]
+            self.assertEquals(ts[0].dayofyear, 96)
+
+        if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
+            hasattr(pan.Close, 'AAPL')):
+            testit()
+        else:
+            self.assertRaises(AttributeError, testit)
+
+    @network
+    def test_get_multi2(self):
+        with warnings.catch_warnings(record=True) as w:
+            pan = web.get_data_google(['GE', 'MSFT', 'INTC'], 'JAN-01-12',
+                                      'JAN-31-12')
+            result = pan.Close.ix['01-18-12']
+            assert_n_failed_equals_n_null_columns(w, result)
+
+            # sanity checking
+
+            assert np.issubdtype(result.dtype, np.floating)
+            result = pan.Open.ix['Jan-15-12':'Jan-20-12']
+            self.assertEqual((4, 3), result.shape)
+            assert_n_failed_equals_n_null_columns(w, result)
 
 
 class TestYahoo(unittest.TestCase):
