@@ -40,7 +40,7 @@ class AmbiguousIndexError(PandasError, KeyError):
     pass
 
 
-class InvalidIndexError(PandasError, KeyError):
+class InvalidIndexError(PandasError):
     pass
 
 
