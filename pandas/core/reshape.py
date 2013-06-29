@@ -14,13 +14,14 @@ from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
+from pandas.util.exceptions import PandasError
 import pandas.algos as algos
 from pandas import lib
 
 from pandas.core.index import MultiIndex, Index
 
 
-class ReshapeError(Exception):
+class ReshapeError(PandasError):
     pass
 
 
@@ -159,7 +160,7 @@ class _Unstacker(object):
                     values[j] = orig_values[i]
             else:
                 index = index.take(self.unique_groups)
-        
+
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
@@ -627,7 +628,7 @@ def melt(frame, id_vars=None, value_vars=None,
     a        B     1
     b        B     3
     c        B     5
-    
+
     >>> melt(df, id_vars=['A'], value_vars=['B'],
     ... var_name='myVarname', value_name='myValname')
     A myVarname  myValname
@@ -662,7 +663,7 @@ def melt(frame, id_vars=None, value_vars=None,
 
     mdata[value_name] = frame.values.ravel('F')
     mdata[var_name] = np.asarray(frame.columns).repeat(N)
-    
+
     return DataFrame(mdata, columns=mcolumns)
 
 

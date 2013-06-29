@@ -10,10 +10,6 @@ import pandas.core.common as com
 import pandas.lib as lib
 
 
-class PandasError(Exception):
-    pass
-
-
 class PandasObject(object):
 
     _AXIS_NUMBERS = {

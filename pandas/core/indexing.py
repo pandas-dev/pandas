@@ -4,6 +4,7 @@ from datetime import datetime
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.common as com
+from pandas.util.exceptions import PandasError
 import pandas.lib as lib
 
 import numpy as np
@@ -23,7 +24,7 @@ def get_indexers_list():
 _NS = slice(None, None)
 
 
-class IndexingError(Exception):
+class IndexingError(PandasError):
     pass
 
 
@@ -608,7 +609,7 @@ class _NDFrameIndexer(object):
                 mask = check == -1
                 if mask.any():
                     raise KeyError('%s not in index' % objarr[mask])
-            
+
                 return indexer
 
         else:

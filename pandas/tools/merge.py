@@ -16,7 +16,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
-from pandas.core.common import PandasError
+from pandas.util.exceptions import PandasError
 from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
@@ -39,7 +39,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 
-class MergeError(Exception):
+class MergeError(PandasError):
     pass
 
 
@@ -892,7 +892,7 @@ class _Concatenator(object):
             raise AssertionError('first argument must be a list-like of pandas '
                                  'objects, you passed an object of type '
                                  '"{0}"'.format(type(objs).__name__))
-        
+
         if join == 'outer':
             self.intersect = False
         elif join == 'inner':
@@ -1057,7 +1057,7 @@ class _Concatenator(object):
                 concat_items = indexer
             else:
                 concat_items = self.new_axes[0].take(indexer)
-                
+
             if self.ignore_index:
                 ref_items = self._get_fresh_axis()
                 return make_block(concat_values, concat_items, ref_items)
