@@ -1,1 +1,1 @@
-nosetests -A "not slow" pandas --with-id $*
+nosetests -A "not slow and not network" pandas --with-id $*
