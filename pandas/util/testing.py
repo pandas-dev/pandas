@@ -2,18 +2,20 @@ from __future__ import division
 
 # pylint: disable-msg=W0402
 
-from datetime import datetime
-from functools import wraps
 import random
 import string
 import sys
 import tempfile
 import warnings
+import inspect
+import os
 
-from contextlib import contextmanager  # contextlib is available since 2.5
-
+from datetime import datetime
+from functools import wraps
+from contextlib import contextmanager, closing
+from httplib import HTTPException
+from urllib2 import urlopen
 from distutils.version import LooseVersion
-import urllib2
 
 from numpy.random import randn
 import numpy as np
@@ -28,6 +30,8 @@ import pandas.core.panel4d as panel4d
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
+
+from pandas.io.common import urlopen
 
 Index = index.Index
 MultiIndex = index.MultiIndex
@@ -81,7 +85,6 @@ def set_trace():
 
 #------------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
-from contextlib import contextmanager
 @contextmanager
 def ensure_clean(filename = None):
     # if we are not passed a filename, generate a temporary
@@ -91,30 +94,23 @@ def ensure_clean(filename = None):
     try:
         yield filename
     finally:
-        import os
         try:
             os.remove(filename)
         except:
             pass
 
-def get_data_path(f = None):
-    """  return the path of a data file, these are relative to the current test dir """
 
-    if f is None:
-        f = ''
-    import inspect, os
-
+def get_data_path(f=''):
+    """Return the path of a data file, these are relative to the current test
+    directory.
+    """
     # get our callers file
-    frame,filename,line_number,function_name,lines,index = \
-        inspect.getouterframes(inspect.currentframe())[1]
-
+    _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
     base_dir = os.path.abspath(os.path.dirname(filename))
-    return os.path.join(base_dir, 'data/%s' % f)
+    return os.path.join(base_dir, 'data', f)
 
 #------------------------------------------------------------------------------
 # Comparators
-
-
 def equalContents(arr1, arr2):
     """Checks if the set of unique elements of arr1 and arr2 are equivalent.
     """
@@ -692,9 +688,11 @@ def optional_args(decorator):
     return wrapper
 
 
+_network_error_classes = IOError, HTTPException
+
 @optional_args
 def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
-            error_classes=(IOError,)):
+            error_classes=_network_error_classes):
     """
     Label a test as requiring network connection and skip test if it encounters a ``URLError``.
 
@@ -727,6 +725,7 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
 
       >>> from pandas.util.testing import network
       >>> import urllib2
+      >>> import nose
       >>> @network
       ... def test_network():
       ...   urllib2.urlopen("rabbit://bonanza.com")
@@ -770,12 +769,25 @@ def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     return network_wrapper
 
 
-def can_connect(url):
-    """tries to connect to the given url. True if succeeds, False if IOError raised"""
+def can_connect(url, error_classes=_network_error_classes):
+    """Try to connect to the given url. True if succeeds, False if IOError
+    raised
+
+    Parameters
+    ----------
+    url : basestring
+        The URL to try to connect to
+
+    Returns
+    -------
+    connectable : bool
+        Return True if no IOError (unable to connect) or URLError (bad url) was
+        raised
+    """
     try:
-        with closing(urllib2.urlopen(url)) as resp:
+        with urlopen(url):
             pass
-    except IOError:
+    except error_classes:
         return False
     else:
         return True
@@ -783,8 +795,9 @@ def can_connect(url):
 
 @optional_args
 def with_connectivity_check(t, url="http://www.google.com",
-                            raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT, check_before_test=False,
-                            error_classes=IOError):
+                            raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
+                            check_before_test=False,
+                            error_classes=_network_error_classes):
     """
     Label a test as requiring network connection and, if an error is
     encountered, only raise if it does not find a network connection.
@@ -811,7 +824,10 @@ def with_connectivity_check(t, url="http://www.google.com",
         error classes to ignore. If not in ``error_classes``, raises the error.
         defaults to IOError. Be careful about changing the error classes here.
 
-    NOTE: ``raise_on_error`` supercedes ``check_before_test``
+    Notes
+    -----
+    * ``raise_on_error`` supercedes ``check_before_test``
+
     Returns
     -------
     t : callable
@@ -846,12 +862,12 @@ def with_connectivity_check(t, url="http://www.google.com",
     @wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
-            if not can_connect(url):
+            if not can_connect(url, error_classes):
                 raise SkipTest
         try:
             return t(*args, **kwargs)
         except error_classes as e:
-            if raise_on_error or can_connect(url):
+            if raise_on_error or can_connect(url, error_classes):
                 raise
             else:
                 raise SkipTest("Skipping test due to lack of connectivity"
