@@ -12,6 +12,7 @@ from pandas.core.config import set_option
 
 
 import numpy as np
+from numpy import random
 
 from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
@@ -946,6 +947,38 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         # propagate attr exception from matplotlib.Axes.hist
         self.assertRaises(AttributeError, plotting.grouped_hist, df.A,
                           by=df.C, foo='bar')
+
+    @slow
+    def test_axis_shared(self):
+        # GH4089
+        import matplotlib.pyplot as plt
+        def tick_text(tl):
+            return [x.get_text() for x in tl]
+
+        n = 100
+        df = DataFrame({'gender': np.array(['Male', 'Female'])[random.randint(2, size=n)],
+                        'height': random.normal(66, 4, size=n),
+                        'weight': random.normal(161, 32, size=n)})
+        ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True)
+        self.assert_(ax1._shared_x_axes.joined(ax1, ax2))
+        self.assertFalse(ax1._shared_y_axes.joined(ax1, ax2))
+        self.assert_(ax2._shared_x_axes.joined(ax1, ax2))
+        self.assertFalse(ax2._shared_y_axes.joined(ax1, ax2))
+        plt.close('all')
+
+        ax1, ax2 = df.hist(column='height', by=df.gender, sharey=True)
+        self.assertFalse(ax1._shared_x_axes.joined(ax1, ax2))
+        self.assert_(ax1._shared_y_axes.joined(ax1, ax2))
+        self.assertFalse(ax2._shared_x_axes.joined(ax1, ax2))
+        self.assert_(ax2._shared_y_axes.joined(ax1, ax2))
+        plt.close('all')
+
+        ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True,
+                           sharey=True)
+        self.assert_(ax1._shared_x_axes.joined(ax1, ax2))
+        self.assert_(ax1._shared_y_axes.joined(ax1, ax2))
+        self.assert_(ax2._shared_x_axes.joined(ax1, ax2))
+        self.assert_(ax2._shared_y_axes.joined(ax1, ax2))
 
     def test_option_mpl_style(self):
         set_option('display.mpl_style', 'default')

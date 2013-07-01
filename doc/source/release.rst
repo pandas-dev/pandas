@@ -297,6 +297,8 @@ pandas 0.12
   - Fixed bug where a 1xN DataFrame would barf on a 1xN mask (:issue:`4071`)
   - Fixed running of ``tox`` under python3 where the pickle import was getting
     rewritten in an incompatible way (:issue:`4062`, :issue:`4063`)
+  - Fixed bug where sharex and sharey were not being passed to grouped_hist
+    (:issue:`4089`)
 
 
 pandas 0.11.0
