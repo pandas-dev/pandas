@@ -1,7 +1,7 @@
 from __future__ import division
 
 import numpy as np
-
+from pandas.core.base import StringMixin
 from pandas.util.decorators import cache_readonly
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel
@@ -11,7 +11,7 @@ from pandas.stats.math import inv
 from pandas.stats.ols import _combine_rhs
 
 
-class VAR(object):
+class VAR(StringMixin):
     """
     Estimates VAR(p) regression on multivariate time series data
     presented in pandas data structures.
@@ -477,7 +477,7 @@ BIC:                            %(bic).3f
 
         return np.dot(resid, resid.T) / (n - k)
 
-    def __repr__(self):
+    def __unicode__(self):
         return self.summary
 
 
