@@ -2651,7 +2651,7 @@ class Table(Storer):
             obj = obj.reindex_axis(a[1], axis=a[0], copy=False)
 
         # figure out data_columns and get out blocks
-        block_obj = self.get_object(obj)
+        block_obj = self.get_object(obj).consolidate()
         blocks = block_obj._data.blocks
         if len(self.non_index_axes):
             axis, axis_labels = self.non_index_axes[0]
@@ -2662,6 +2662,19 @@ class Table(Storer):
                 for c in data_columns:
                     blocks.extend(block_obj.reindex_axis(
                             [c], axis=axis, copy=False)._data.blocks)
+
+        # reorder the blocks in the same order as the existing_table if we can
+        if existing_table is not None:
+            by_items = dict([ (tuple(b.items.tolist()),b) for b in blocks ])
+            new_blocks = []
+            for ea in existing_table.values_axes:
+                items = tuple(ea.values)
+                try:
+                    b = by_items.pop(items)
+                    new_blocks.append(b)
+                except:
+                    raise ValueError("cannot match existing table structure for [%s] on appending data" % items)
+            blocks = new_blocks
 
         # add my values
         self.values_axes = []

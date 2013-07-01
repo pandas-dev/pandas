@@ -596,6 +596,31 @@ class TestHDFStore(unittest.TestCase):
             expected = df.reindex(columns=['A'], index=df.index[0:4])
             tm.assert_frame_equal(expected, result)
 
+    def test_append_with_different_block_ordering(self):
+
+        #GH 4096; using same frames, but different block orderings
+        with ensure_clean(self.path) as store:
+
+            for i in range(10):
+
+                df = DataFrame(np.random.randn(10,2),columns=list('AB'))
+                df['index'] = range(10)
+                df['index'] += i*10
+                df['int64'] = Series([1]*len(df),dtype='int64')
+                df['int16'] = Series([1]*len(df),dtype='int16')
+
+                if i % 2 == 0:
+                    del df['int64']
+                    df['int64'] = Series([1]*len(df),dtype='int64')
+                if i % 3 == 0:
+                    a = df.pop('A')
+                    df['A'] = a
+
+                df.set_index('index',inplace=True)
+
+                store.append('df',df)
+
+
     def test_ndim_indexables(self):
         """ test using ndim tables in new ways"""
 
