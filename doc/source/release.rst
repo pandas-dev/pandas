@@ -299,6 +299,8 @@ pandas 0.12
     rewritten in an incompatible way (:issue:`4062`, :issue:`4063`)
   - Fixed bug where sharex and sharey were not being passed to grouped_hist
     (:issue:`4089`)
+  - Fix bug where ``HDFStore`` will fail to append because of a different block
+    ordering on-disk (:issue:`4096`)
 
 
 pandas 0.11.0
