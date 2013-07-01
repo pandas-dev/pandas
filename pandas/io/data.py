@@ -5,19 +5,29 @@ Module contains tools for collecting data from various remote sources
 """
 import warnings
 import tempfile
-
-import numpy as np
+import itertools
 import datetime as dt
 import urllib
 import time
-from collections import defaultdict
-from contextlib import closing
-from urllib2 import urlopen
 
-from zipfile import ZipFile
+from collections import defaultdict
+
+import numpy as np
+
 from pandas.util.py3compat import StringIO, bytes_to_str
 from pandas import Panel, DataFrame, Series, read_csv, concat
+from pandas.core.common import PandasError
 from pandas.io.parsers import TextParser
+from pandas.io.common import urlopen, ZipFile
+from pandas.util.testing import _network_error_classes
+
+
+class SymbolWarning(UserWarning):
+    pass
+
+
+class RemoteDataError(PandasError, IOError):
+    pass
 
 
 def DataReader(name, data_source=None, start=None, end=None,
@@ -58,16 +68,16 @@ def DataReader(name, data_source=None, start=None, end=None,
 
     if data_source == "yahoo":
         return get_data_yahoo(symbols=name, start=start, end=end,
-                              adjust_price=False, chunk=25,
+                              adjust_price=False, chunksize=25,
                               retry_count=retry_count, pause=pause)
     elif data_source == "google":
         return get_data_google(symbols=name, start=start, end=end,
-                               adjust_price=False, chunk=25,
+                               adjust_price=False, chunksize=25,
                                retry_count=retry_count, pause=pause)
     elif data_source == "fred":
-        return get_data_fred(name=name, start=start, end=end)
+        return get_data_fred(name, start, end)
     elif data_source == "famafrench":
-        return get_data_famafrench(name=name)
+        return get_data_famafrench(name)
 
 
 def _sanitize_dates(start, end):
@@ -88,6 +98,9 @@ def _in_chunks(seq, size):
     return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
 
 
+_yahoo_codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
+                'time': 't1', 'short_ratio': 's7'}
+
 def get_quote_yahoo(symbols):
     """
     Get current yahoo quote
@@ -96,24 +109,19 @@ def get_quote_yahoo(symbols):
     """
     if isinstance(symbols, basestring):
         sym_list = symbols
-    elif not isinstance(symbols, Series):
-        symbols = Series(symbols)
-        sym_list = '+'.join(symbols)
     else:
         sym_list = '+'.join(symbols)
 
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
-    codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
-             'time': 't1', 'short_ratio': 's7'}
-    request = ''.join(codes.itervalues())  # code request string
-    header = codes.keys()
+    request = ''.join(_yahoo_codes.itervalues())  # code request string
+    header = _yahoo_codes.keys()
 
     data = defaultdict(list)
 
     url_str = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (sym_list,
                                                                    request)
 
-    with closing(urlopen(url_str)) as url:
+    with urlopen(url_str) as url:
         lines = url.readlines()
 
     for line in lines:
@@ -131,7 +139,6 @@ def get_quote_yahoo(symbols):
             data[header[i]].append(v)
 
     idx = data.pop('symbol')
-
     return DataFrame(data, index=idx)
 
 
@@ -139,8 +146,30 @@ def get_quote_google(symbols):
     raise NotImplementedError("Google Finance doesn't have this functionality")
 
 
-def _get_hist_yahoo(sym, start=None, end=None, retry_count=3, pause=0.001,
-                    **kwargs):
+def _retry_read_url(url, retry_count, pause, name):
+    for _ in xrange(retry_count):
+        time.sleep(pause)
+
+        # kludge to close the socket ASAP
+        try:
+            with urlopen(url) as resp:
+                lines = resp.read()
+        except _network_error_classes:
+            pass
+        else:
+            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
+                          parse_dates=True)[::-1]
+            # Yahoo! Finance sometimes does this awesome thing where they
+            # return 2 rows for the most recent business day
+            if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
+                rs = rs[:-1]
+            return rs
+
+    raise IOError("after %d tries, %s did not "
+                  "return a 200 for url %r" % (retry_count, name, url))
+
+
+def _get_hist_yahoo(sym, start, end, retry_count, pause):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
@@ -148,10 +177,8 @@ def _get_hist_yahoo(sym, start=None, end=None, retry_count=3, pause=0.001,
     Returns a DataFrame.
     """
     start, end = _sanitize_dates(start, end)
-
-    yahoo_URL = 'http://ichart.yahoo.com/table.csv?'
-
-    url = (yahoo_URL + 's=%s' % sym +
+    yahoo_url = 'http://ichart.yahoo.com/table.csv?'
+    url = (yahoo_url + 's=%s' % sym +
            '&a=%s' % (start.month - 1) +
            '&b=%s' % start.day +
            '&c=%s' % start.year +
@@ -160,29 +187,10 @@ def _get_hist_yahoo(sym, start=None, end=None, retry_count=3, pause=0.001,
            '&f=%s' % end.year +
            '&g=d' +
            '&ignore=.csv')
-
-    for _ in xrange(retry_count):
-        with closing(urlopen(url)) as resp:
-            if resp.code == 200:
-                lines = resp.read()
-                rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
-                              parse_dates=True)[::-1]
-
-                # Yahoo! Finance sometimes does this awesome thing where they
-                # return 2 rows for the most recent business day
-                if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
-                    rs = rs[:-1]
-
-                return rs
-
-        time.sleep(pause)
-
-    raise IOError("after %d tries, Yahoo did not "
-                  "return a 200 for url %r" % (retry_count, url))
+    return _retry_read_url(url, retry_count, pause, 'Yahoo!')
 
 
-def _get_hist_google(sym, start=None, end=None, retry_count=3, pause=0.001,
-                     **kwargs):
+def _get_hist_google(sym, start, end, retry_count, pause):
     """
     Get historical data for the given name from google.
     Date format is datetime
@@ -190,7 +198,6 @@ def _get_hist_google(sym, start=None, end=None, retry_count=3, pause=0.001,
     Returns a DataFrame.
     """
     start, end = _sanitize_dates(start, end)
-
     google_URL = 'http://www.google.com/finance/historical?'
 
     # www.google.com/finance/historical?q=GOOG&startdate=Jun+9%2C+2011&enddate=Jun+8%2C+2013&output=csv
@@ -199,25 +206,16 @@ def _get_hist_google(sym, start=None, end=None, retry_count=3, pause=0.001,
                                                                      '%Y'),
                                          "enddate": end.strftime('%b %d, %Y'),
                                          "output": "csv"})
-    for _ in xrange(retry_count):
-        with closing(urlopen(url)) as resp:
-            if resp.code == 200:
-                rs = read_csv(StringIO(bytes_to_str(resp.read())), index_col=0,
-                              parse_dates=True)[::-1]
-
-                return rs
-
-        time.sleep(pause)
-
-    raise IOError("after %d tries, Google did not "
-                  "return a 200 for url %s" % (retry_count, url))
+    return _retry_read_url(url, retry_count, pause, 'Google')
 
 
-def _adjust_prices(hist_data, price_list=['Open', 'High', 'Low', 'Close']):
+def _adjust_prices(hist_data, price_list=None):
     """
     Return modifed DataFrame or Panel with adjusted prices based on
     'Adj Close' price. Adds 'Adj_Ratio' column.
     """
+    if price_list is None:
+        price_list = 'Open', 'High', 'Low', 'Close'
     adj_ratio = hist_data['Adj Close'] / hist_data['Close']
 
     data = hist_data.copy()
@@ -234,7 +232,7 @@ def _calc_return_index(price_df):
     (typically NaN) is set to 1.
     """
     df = price_df.pct_change().add(1).cumprod()
-    mask = ~df.ix[1].isnull() & df.ix[0].isnull()
+    mask = df.ix[1].notnull() & df.ix[0].isnull()
     df.ix[0][mask] = 1
 
     # Check for first stock listings after starting date of index in ret_index
@@ -245,8 +243,7 @@ def _calc_return_index(price_df):
             t_idx = df.index.get_loc(tstamp) - 1
             df[sym].ix[t_idx] = 1
 
-    ret_index = df
-    return ret_index
+    return df
 
 
 def get_components_yahoo(idx_sym):
@@ -287,7 +284,7 @@ def get_components_yahoo(idx_sym):
     # break when no new components are found
     while True in mask:
         url_str = url.format(idx_mod, stats,  comp_idx)
-        with closing(urlopen(url_str)) as resp:
+        with urlopen(url_str) as resp:
             raw = resp.read()
         lines = raw.decode('utf-8').strip().strip('"').split('"\r\n"')
         lines = [line.strip().split('","') for line in lines]
@@ -303,22 +300,54 @@ def get_components_yahoo(idx_sym):
     return idx_df
 
 
-def _dl_mult_symbols(symbols, start, end, chunksize, pause, method, **kwargs):
+def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
+                     method):
     stocks = {}
     for sym_group in _in_chunks(symbols, chunksize):
         for sym in sym_group:
             try:
-                stocks[sym] = method(sym, start=start, end=end, pause=pause,
-                                     **kwargs)
+                stocks[sym] = method(sym, start, end, retry_count, pause)
             except IOError:
-                warnings.warn('ERROR with symbol: {0}, skipping.'.format(sym))
+                warnings.warn('Failed to read symbol: {0!r}, replacing with '
+                              'NaN.'.format(sym), SymbolWarning)
+                stocks[sym] = np.nan
 
     return Panel(stocks).swapaxes('items', 'minor')
 
 
+_source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo}
+
+def _get_data_from(symbols, start, end, retry_count, pause, adjust_price,
+                   ret_index, chunksize, source, name):
+    if name is not None:
+        warnings.warn("Arg 'name' is deprecated, please use 'symbols' "
+                      "instead.", FutureWarning)
+        symbols = name
+
+    src_fn = _source_functions[source]
+
+    # If a single symbol, (e.g., 'GOOG')
+    if isinstance(symbols, (basestring, int)):
+        hist_data = src_fn(symbols, start, end, retry_count, pause)
+    # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
+    elif isinstance(symbols, DataFrame):
+        hist_data = _dl_mult_symbols(symbols.index, start, end, chunksize,
+                                     retry_count, pause, src_fn)
+    else:
+        hist_data = _dl_mult_symbols(symbols, start, end, chunksize,
+                                     retry_count, pause, src_fn)
+    if source.lower() == 'yahoo':
+        if ret_index:
+            hist_data['Ret_Index'] = _calc_return_index(hist_data['Adj Close'])
+        if adjust_price:
+            hist_data = _adjust_prices(hist_data)
+
+    return hist_data
+
+
 def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
                    pause=0.001, adjust_price=False, ret_index=False,
-                   chunksize=25, **kwargs):
+                   chunksize=25, name=None):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
     range, start to end. To avoid being penalized by Yahoo! Finance servers,
@@ -352,32 +381,13 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
     -------
     hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
     """
-    if 'name' in kwargs:
-        warnings.warn("Arg 'name' is deprecated, please use 'symbols' "
-                      "instead.", FutureWarning)
-        symbols = kwargs['name']
-
-    # If a single symbol, (e.g., 'GOOG')
-    if isinstance(symbols, (basestring, int)):
-        hist_data = _get_hist_yahoo(symbols, start=start, end=end)
-    # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
-    elif isinstance(symbols, DataFrame):
-        hist_data = _dl_mult_symbols(symbols.index, start, end, chunksize,
-                                     pause, _get_hist_yahoo, **kwargs)
-    else:
-        hist_data = _dl_mult_symbols(symbols, start, end, chunksize, pause,
-                                     _get_hist_yahoo, **kwargs)
-
-    if ret_index:
-        hist_data['Ret_Index'] = _calc_return_index(hist_data['Adj Close'])
-    if adjust_price:
-        hist_data = _adjust_prices(hist_data)
-
-    return hist_data
+    return _get_data_from(symbols, start, end, retry_count, pause,
+                          adjust_price, ret_index, chunksize, 'yahoo', name)
 
 
 def get_data_google(symbols=None, start=None, end=None, retry_count=3,
-                    pause=0.001, chunksize=25, **kwargs):
+                    pause=0.001, adjust_price=False, ret_index=False,
+                    chunksize=25, name=None):
     """
     Returns DataFrame/Panel of historical stock prices from symbols, over date
     range, start to end. To avoid being penalized by Google Finance servers,
@@ -405,21 +415,8 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3,
     -------
     hist_data : DataFrame (str) or Panel (array-like object, DataFrame)
     """
-    if 'name' in kwargs:
-        warnings.warn("Arg 'name' is deprecated, please use 'symbols' "
-                      "instead.", FutureWarning)
-        symbols = kwargs['name']
-
-    # If a single symbol, (e.g., 'GOOG')
-    if isinstance(symbols, (basestring, int)):
-        return _get_hist_google(symbols, start=start, end=end)
-    # Or multiple symbols, (e.g., ['GOOG', 'AAPL', 'MSFT'])
-    elif isinstance(symbols, DataFrame):
-        symbs = symbols.index
-    else:  # Guess a Series
-        symbs = symbols
-    return _dl_mult_symbols(symbs, start, end, chunksize, pause,
-                            _get_hist_google, **kwargs)
+    return _get_data_from(symbols, start, end, retry_count, pause,
+                          adjust_price, ret_index, chunksize, 'google', name)
 
 
 def get_data_fred(name, start=dt.datetime(2010, 1, 1),
@@ -435,7 +432,7 @@ def get_data_fred(name, start=dt.datetime(2010, 1, 1),
     fred_URL = "http://research.stlouisfed.org/fred2/series/"
 
     url = fred_URL + '%s' % name + '/downloaddata/%s' % name + '.csv'
-    with closing(urlopen(url)) as resp:
+    with urlopen(url) as resp:
         data = read_csv(resp, index_col=0, parse_dates=True,
                         header=None, skiprows=1, names=["DATE", name],
                         na_values='.')
@@ -448,39 +445,39 @@ def get_data_fred(name, start=dt.datetime(2010, 1, 1),
         raise
 
 
-def get_data_famafrench(name, start=None, end=None):
-    start, end = _sanitize_dates(start, end)
-
+def get_data_famafrench(name):
     # path of zip files
-    zipFileURL = "http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
+    zip_file_url = ('http://mba.tuck.dartmouth.edu/pages/faculty/'
+                    'ken.french/ftp/')
+    zip_file_path = '{0}{1}.zip'.format(zip_file_url, name)
 
-    with closing(urlopen(zipFileURL + name + ".zip")) as url:
+    with urlopen(zip_file_path) as url:
         raw = url.read()
 
     with tempfile.TemporaryFile() as tmpf:
         tmpf.write(raw)
 
-        with closing(ZipFile(tmpf, 'r')) as zf:
+        with ZipFile(tmpf, 'r') as zf:
             data = zf.read(name + '.txt').splitlines()
 
-    file_edges = np.where(np.array([len(d) for d in data]) == 2)[0]
+    line_lengths = np.array(map(len, data))
+    file_edges = np.where(line_lengths)[0]
 
     datasets = {}
-    for i in xrange(len(file_edges) - 1):
-        dataset = [d.split() for d in data[(file_edges[i] + 1):
-                                           file_edges[i + 1]]]
+    edges = itertools.izip(file_edges[:-1], file_edges[1:])
+    for i, (left_edge, right_edge) in enumerate(edges):
+        dataset = [d.split() for d in data[left_edge:right_edge]]
         if len(dataset) > 10:
-            ncol = np.median(np.array([len(d) for d in dataset]))
-            header_index = np.where(
-                np.array([len(d) for d in dataset]) == (ncol - 1))[0][-1]
+            ncol_raw = np.array(map(len, dataset))
+            ncol = np.median(ncol_raw)
+            header_index = np.where(ncol_raw == ncol - 1)[0][-1]
             header = dataset[header_index]
+            ds_header = dataset[header_index + 1:]
             # to ensure the header is unique
-            header = ['{0} {1}'.format(j + 1, header_j) for j, header_j in
-                      enumerate(header)]
-            index = np.array(
-                [d[0] for d in dataset[(header_index + 1):]], dtype=int)
-            dataset = np.array(
-                [d[1:] for d in dataset[(header_index + 1):]], dtype=float)
+            header = ['{0} {1}'.format(*items) for items in enumerate(header,
+                                                                      start=1)]
+            index = np.fromiter((d[0] for d in ds_header), dtype=int)
+            dataset = np.fromiter((d[1:] for d in ds_header), dtype=float)
             datasets[i] = DataFrame(dataset, index, columns=header)
 
     return datasets
@@ -490,7 +487,7 @@ CUR_MONTH = dt.datetime.now().month
 CUR_YEAR = dt.datetime.now().year
 
 
-def _unpack(row, kind='td'):
+def _unpack(row, kind):
     els = row.xpath('.//%s' % kind)
     return [val.text_content() for val in els]
 
@@ -498,7 +495,7 @@ def _unpack(row, kind='td'):
 def _parse_options_data(table):
     rows = table.xpath('.//tr')
     header = _unpack(rows[0], kind='th')
-    data = map(_unpack, rows[1:])
+    data = [_unpack(row, kind='td') for row in rows[1:]]
     # Use ',' as a thousands separator as we're pulling from the US site.
     return TextParser(data, names=header, na_values=['N/A'],
                       thousands=',').get_chunk()
@@ -615,13 +612,18 @@ class Options(object):
             from lxml.html import parse
         except ImportError:
             raise ImportError("Please install lxml if you want to use the "
-                              "{0} class".format(self.__class__.__name__))
+                              "{0!r} class".format(self.__class__.__name__))
         try:
-            tables = parse(url).xpath('.//table')
-        except (AttributeError, IOError):
-            raise IndexError("Table location {0} invalid, unable to parse "
-                             "tables".format(table_loc))
+            doc = parse(url)
+        except _network_error_classes:
+            raise RemoteDataError("Unable to parse tables from URL "
+                                  "{0!r}".format(url))
         else:
+            root = doc.getroot()
+            if root is None:
+                raise RemoteDataError("Parsed URL {0!r} has no root"
+                                      "element".format(url))
+            tables = root.xpath('.//table')
             ntables = len(tables)
             if table_loc - 1 > ntables:
                 raise IndexError("Table location {0} invalid, {1} tables"
@@ -758,7 +760,7 @@ class Options(object):
             chop = df[get_range].dropna()
             chop.reset_index(inplace=True)
             data[nam] = chop
-        return [data[nam] for nam in sorted(to_ret)]
+        return [data[nam] for nam in to_ret]
 
     def _try_parse_dates(self, year, month, expiry):
         if year is not None or month is not None:
@@ -852,7 +854,7 @@ class Options(object):
                 else:
                     all_data = concat([all_data, frame])
             data[name] = all_data
-        ret = [data[k] for k in sorted(data.keys())]
+        ret = [data[k] for k in to_ret]
         if len(ret) == 1:
             return ret.pop()
         if len(ret) != 2:
