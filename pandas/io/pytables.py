@@ -151,8 +151,8 @@ def _tables():
 def h5_open(path, mode):
     tables = _tables()
     return tables.openFile(path, mode)
-    
-    
+
+
 @contextmanager
 def get_store(path, mode='a', complevel=None, complib=None,
               fletcher32=False):
@@ -217,7 +217,7 @@ def read_hdf(path_or_buf, key, **kwargs):
 
     # a passed store; user controls open/close
     f(path_or_buf, False)
-    
+
 class HDFStore(object):
     """
     dict-like IO interface for storing pandas objects in PyTables
@@ -757,7 +757,7 @@ class HDFStore(object):
     def get_storer(self, key):
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
-        if group is None: 
+        if group is None:
             return None
         s = self._create_storer(group)
         s.infer_axes()
@@ -810,9 +810,9 @@ class HDFStore(object):
         """ return a suitable Storer class to operate """
 
         def error(t):
-            raise TypeError("cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" % 
+            raise TypeError("cannot properly create the storer for: [%s] [group->%s,value->%s,table->%s,append->%s,kwargs->%s]" %
                             (t,group,type(value),table,append,kwargs))
-        
+
         pt = _ensure_decoded(getattr(group._v_attrs,'pandas_type',None))
         tt = _ensure_decoded(getattr(group._v_attrs,'table_type',None))
 
@@ -863,7 +863,7 @@ class HDFStore(object):
                     tt = u'appendable_ndim'
 
             else:
-                
+
                 # distiguish between a frame/table
                 tt = u'legacy_panel'
                 try:
@@ -930,7 +930,7 @@ class HDFStore(object):
 
 class TableIterator(object):
     """ define the iteration interface on a table
-        
+
         Parameters
         ----------
 
@@ -974,7 +974,7 @@ class TableIterator(object):
             yield v
 
         self.close()
-            
+
     def close(self):
         if self.auto_close:
             self.store.close()
@@ -1003,7 +1003,7 @@ class IndexCol(object):
     _info_fields = ['freq','tz','index_name']
 
     def __init__(self, values=None, kind=None, typ=None, cname=None, itemsize=None,
-                 name=None, axis=None, kind_attr=None, pos=None, freq=None, tz=None, 
+                 name=None, axis=None, kind_attr=None, pos=None, freq=None, tz=None,
                  index_name=None, **kwargs):
         self.values = values
         self.kind = kind
@@ -1088,21 +1088,27 @@ class IndexCol(object):
         except:
             pass
 
+        values =_maybe_convert(values, self.kind, encoding)
+
         kwargs = dict()
         if self.freq is not None:
             kwargs['freq'] = _ensure_decoded(self.freq)
-        if self.tz is not None:
-            kwargs['tz'] = _ensure_decoded(self.tz)
         if self.index_name is not None:
             kwargs['name'] = _ensure_decoded(self.index_name)
         try:
-            self.values = Index(_maybe_convert(values, self.kind, self.encoding), **kwargs)
+            self.values = Index(values, **kwargs)
         except:
 
             # if the output freq is different that what we recorded, then infer it
             if 'freq' in kwargs:
                 kwargs['freq'] = 'infer'
             self.values = Index(_maybe_convert(values, self.kind, encoding), **kwargs)
+
+        # set the timezone if indicated
+        # we stored in utc, so reverse to local timezone
+        if self.tz is not None:
+            self.values = self.values.tz_localize('UTC').tz_convert(_ensure_decoded(self.tz))
+
         return self
 
     def take_data(self):
@@ -1189,7 +1195,7 @@ class IndexCol(object):
                 idx = info[self.name]
             except:
                 idx = info[self.name] = dict()
-        
+
             existing_value = idx.get(key)
             if key in idx and value is not None and existing_value != value:
 
@@ -1235,7 +1241,7 @@ class GenericIndexCol(IndexCol):
 
     def convert(self, values, nan_rep, encoding):
         """ set the values from this selection: take = take ownership """
-        
+
         self.values = Int64Index(np.arange(self.table.nrows))
         return self
 
@@ -1359,7 +1365,13 @@ class DataCol(IndexCol):
                         "invalid timezone specification")
 
                 values = index.tz_convert('UTC').values.view('i8')
-                self.tz = tz
+
+                # store a converted timezone
+                zone = tslib.get_timezone(index.tz)
+                if zone is None:
+                    zone = tslib.tot_seconds(index.tz.utcoffset())
+                self.tz = zone
+
                 self.update_info(info)
                 self.set_atom_datetime64(block, values.reshape(block.values.shape))
 
@@ -1398,7 +1410,7 @@ class DataCol(IndexCol):
                 inferred_type = lib.infer_dtype(col.ravel())
                 if inferred_type != 'string':
                     raise TypeError("Cannot serialize the column [%s] because\n"
-                                    "its data contents are [%s] object dtype" % 
+                                    "its data contents are [%s] object dtype" %
                                     (item,inferred_type))
 
 
@@ -1607,7 +1619,7 @@ class Storer(object):
                 s = "[%s]" % ','.join([ str(x) for x in s ])
             return "%-12.12s (shape->%s)" % (self.pandas_type,s)
         return self.pandas_type
-    
+
     def __str__(self):
         return self.__repr__()
 
@@ -1929,7 +1941,7 @@ class GenericStorer(Storer):
         self._handle.createArray(self.group, key, arr)
         getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         getattr(self.group, key)._v_attrs.shape = value.shape
-        
+
     def write_array(self, key, value, items=None):
         if key in self.group:
             self._handle.removeNode(self.group, key)
@@ -2142,7 +2154,7 @@ class BlockManagerStorer(GenericStorer):
         try:
             ndim = self.ndim
 
-            # items 
+            # items
             items = 0
             for i in range(self.nblocks):
                 node = getattr(self.group, 'block%d_items' % i)
@@ -2212,7 +2224,7 @@ class PanelStorer(BlockManagerStorer):
     pandas_kind = u'wide'
     obj_type    = Panel
     is_shape_reversed = True
-    
+
     def write(self, obj, **kwargs):
         obj._consolidate_inplace()
         return super(PanelStorer, self).write(obj, **kwargs)
@@ -2270,7 +2282,7 @@ class Table(Storer):
                                                                               self.ncols,
                                                                               ','.join([ a.name for a in self.index_axes ]),
                                                                               dc)
-    
+
     def __getitem__(self, c):
         """ return the axis for c """
         for a in self.axes:
@@ -2568,7 +2580,7 @@ class Table(Storer):
             try:
                 axes = _AXES_MAP[type(obj)]
             except:
-                raise TypeError("cannot properly create the storer for: [group->%s,value->%s]" % 
+                raise TypeError("cannot properly create the storer for: [group->%s,value->%s]" %
                                 (self.group._v_name,type(obj)))
 
         # map axes to numbers
@@ -2597,7 +2609,7 @@ class Table(Storer):
         # nan_representation
         if nan_rep is None:
             nan_rep = 'nan'
-            
+
         self.nan_rep = nan_rep
 
         # create axes to index and non_index
@@ -2665,7 +2677,7 @@ class Table(Storer):
                 name = b.items[0]
                 self.data_columns.append(name)
 
-            # make sure that we match up the existing columns 
+            # make sure that we match up the existing columns
             # if we have an existing table
             if existing_table is not None and validate:
                 try:
@@ -2740,7 +2752,7 @@ class Table(Storer):
                             return obj.ix._getitem_axis(takers,axis=axis_number)
 
                     raise ValueError("cannot find the field [%s] for filtering!" % field)
-  
+
                 obj = process_filter(field, filt)
 
         return obj
@@ -3053,7 +3065,7 @@ class AppendableTable(LegacyTable):
                 self.table.flush()
         except (Exception), detail:
             raise Exception("tables cannot write this data -> %s" % str(detail))
- 
+
     def delete(self, where=None, **kwargs):
 
         # delete all rows (and return the nrows)
@@ -3113,7 +3125,7 @@ class AppendableFrameTable(AppendableTable):
     table_type = u'appendable_frame'
     ndim = 2
     obj_type = DataFrame
-    
+
     @property
     def is_transposed(self):
         return self.index_axes[0].axis == 1
@@ -3266,7 +3278,7 @@ def _convert_index(index, encoding=None):
 
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
-        return IndexCol(converted, 'datetime64', _tables().Int64Col(), 
+        return IndexCol(converted, 'datetime64', _tables().Int64Col(),
                         freq=getattr(index,'freq',None), tz=getattr(index,'tz',None),
                         index_name=index_name)
     elif isinstance(index, (Int64Index, PeriodIndex)):
@@ -3382,7 +3394,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
 
     if nan_rep is None:
         nan_rep = 'nan'
-            
+
     data = lib.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
@@ -3421,7 +3433,7 @@ class Term(object):
     value : a value or list of values (required)
     queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
     encoding : an encoding that will encode the query terms
-    
+
     Returns
     -------
     a Term object
@@ -3582,7 +3594,7 @@ class Term(object):
             if self.is_in_table:
 
                 self.condition = self.generate(values[0])
-                        
+
             else:
 
                 raise TypeError("passing a filterable condition to a non-table indexer [%s]" % str(self))
