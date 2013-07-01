@@ -634,10 +634,6 @@ class NDFrame(PandasContainer):
         return self._constructor(mgr)
 
     @property
-    def _constructor(self):
-        return NDFrame
-
-    @property
     def axes(self):
         return self._data.axes
 

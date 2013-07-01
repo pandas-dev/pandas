@@ -585,10 +585,6 @@ class DataFrame(NDFrame):
         return [self.index, self.columns]
 
     @property
-    def _constructor(self):
-        return self.__class__
-
-    @property
     def shape(self):
         return (len(self.index), len(self.columns))
 

@@ -42,6 +42,11 @@ class StringMixin(object):
 class PandasObject(StringMixin):
     """baseclass for various pandas objects"""
 
+    @property
+    def _constructor(self):
+        """class constructor (for this class it's just `__class__`"""
+        return self.__class__
+
     def __unicode__(self):
         """
         Return a string representation for a particular object.

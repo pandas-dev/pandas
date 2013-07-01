@@ -209,10 +209,6 @@ class Index(PandasObject, np.ndarray):
     names = property(fset=_set_names, fget=_get_names)
 
     @property
-    def _constructor(self):
-        return Index
-
-    @property
     def _has_complex_internals(self):
         # to disable groupby tricks in MultiIndex
         return False
@@ -1378,10 +1374,6 @@ class Int64Index(Index):
     @property
     def inferred_type(self):
         return 'integer'
-
-    @property
-    def _constructor(self):
-        return Int64Index
 
     @property
     def asi8(self):

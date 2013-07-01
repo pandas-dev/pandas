@@ -520,10 +520,6 @@ class Series(generic.PandasContainer, pa.Array):
         pass
 
     @property
-    def _constructor(self):
-        return Series
-
-    @property
     def _can_hold_na(self):
         return not is_integer_dtype(self.dtype)
 

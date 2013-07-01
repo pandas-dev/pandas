@@ -186,10 +186,6 @@ class Panel(NDFrame):
     major_axis = lib.AxisProperty(1)
     minor_axis = lib.AxisProperty(2)
 
-    @property
-    def _constructor(self):
-        return type(self)
-
     # return the type of the slice constructor
     _constructor_sliced = DataFrame
 
