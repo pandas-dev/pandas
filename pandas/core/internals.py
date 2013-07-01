@@ -4,6 +4,7 @@ from datetime import datetime
 
 from numpy import nan
 import numpy as np
+from pandas.core.base import PandasObject
 
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 _TD_DTYPE)
@@ -19,7 +20,7 @@ from pandas.tslib import Timestamp
 from pandas.util import py3compat
 
 
-class Block(object):
+class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
     data structure
@@ -91,14 +92,12 @@ class Block(object):
             self.items = ref_items.take(self.ref_locs)
         self.ref_items = ref_items
 
-    def __repr__(self):
+    def __unicode__(self):
         shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
         name = type(self).__name__
         result = '%s: %s, %s, dtype %s' % (
             name, com.pprint_thing(self.items), shape, self.dtype)
-        if py3compat.PY3:
-            return unicode(result)
-        return com.console_encode(result)
+        return result
 
     def __contains__(self, item):
         return item in self.items
@@ -969,7 +968,7 @@ def make_block(values, items, ref_items, klass=None, fastpath=False, placement=N
 # TODO: flexible with index=None and/or items=None
 
 
-class BlockManager(object):
+class BlockManager(PandasObject):
     """
     Core internal data structure to implement DataFrame
 
@@ -1213,7 +1212,7 @@ class BlockManager(object):
     def __len__(self):
         return len(self.items)
 
-    def __repr__(self):
+    def __unicode__(self):
         output = 'BlockManager'
         for i, ax in enumerate(self.axes):
             if i == 0:
@@ -1222,7 +1221,7 @@ class BlockManager(object):
                 output += '\nAxis %d: %s' % (i, ax)
 
         for block in self.blocks:
-            output += '\n%s' % repr(block)
+            output += '\n%s' % com.pprint_thing(block)
         return output
 
     @property

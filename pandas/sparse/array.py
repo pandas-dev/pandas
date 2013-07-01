@@ -8,6 +8,7 @@ from numpy import nan, ndarray
 import numpy as np
 
 import operator
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 
 from pandas.util import py3compat
@@ -86,8 +87,7 @@ def _sparse_fillop(this, other, name):
 
     return result, result_index
 
-
-class SparseArray(np.ndarray):
+class SparseArray(PandasObject, np.ndarray):
     """Data structure for labeled, sparse floating point data
 
 Parameters
@@ -184,9 +184,9 @@ to sparse
     def __len__(self):
         return self.sp_index.length
 
-    def __repr__(self):
-        return '%s\n%s' % (np.ndarray.__repr__(self),
-                           repr(self.sp_index))
+    def __unicode__(self):
+        return '%s\n%s' % (com.pprint_thing(self),
+                           com.pprint_thing(self.sp_index))
 
     # Arithmetic operators
 

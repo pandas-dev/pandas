@@ -73,9 +73,6 @@ class ExcelFile(object):
             data = path_or_buf.read()
             self.book = xlrd.open_workbook(file_contents=data)
 
-    def __repr__(self):
-        return object.__repr__(self)
-
     def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,

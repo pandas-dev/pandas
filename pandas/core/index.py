@@ -9,6 +9,7 @@ import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp
+from pandas.core.base import PandasObject
 
 from pandas.util.decorators import cache_readonly
 from pandas.core.common import isnull
@@ -47,7 +48,7 @@ def _shouldbe_timestamp(obj):
             or tslib.is_timestamp_array(obj))
 
 
-class Index(np.ndarray):
+class Index(PandasObject, np.ndarray):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
     storing axis labels for all pandas objects
@@ -142,28 +143,6 @@ class Index(np.ndarray):
     def _shallow_copy(self):
         return self.view()
 
-    def __str__(self):
-        """
-        Return a string representation for a particular Index
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular Index
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
     def __unicode__(self):
         """
         Return a string representation for a particular Index
@@ -172,14 +151,6 @@ class Index(np.ndarray):
         """
         prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),quote_strings=True)
         return '%s(%s, dtype=%s)' % (type(self).__name__, prepr, self.dtype)
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular Index
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
 
     def to_series(self):
         """
@@ -1531,28 +1502,6 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
-    def __str__(self):
-        """
-        Return a string representation for a particular Index
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular Index
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
     def __unicode__(self):
         """
         Return a string representation for a particular Index
@@ -1565,14 +1514,6 @@ class MultiIndex(Index):
                                    quote_strings=True)
 
         return output % summary
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular Index
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
 
     def __len__(self):
         return len(self.labels[0])
