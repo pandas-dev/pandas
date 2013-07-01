@@ -52,7 +52,7 @@ pandas 0.12
   - A ``filter`` method on grouped Series or DataFrames returns a subset of
     the original (:issue:`3680`, :issue:`919`)
   - Access to historical Google Finance data in pandas.io.data (:issue:`3814`)
-  - DataFrame plotting methods can sample column colors from a Matplotlib 
+  - DataFrame plotting methods can sample column colors from a Matplotlib
     colormap via the ``colormap`` keyword. (:issue:`3860`)
 
 **Improvements to existing features**
@@ -63,7 +63,7 @@ pandas 0.12
   - ``convert_objects`` now accepts a ``copy`` parameter (defaults to ``True``)
   - ``HDFStore``
 
-    - will retain index attributes (freq,tz,name) on recreation (:issue:`3499`)
+    - will retain index attributes (freq,tz,name) on recreation (:issue:`3499`,:issue:`4098`)
     - will warn with a ``AttributeConflictWarning`` if you are attempting to append
       an index with a different frequency than the existing, or attempting
       to append an index with a different name than the existing
@@ -158,7 +158,7 @@ pandas 0.12
     - removed ``clipboard`` support to ``pandas.io.clipboard``
     - replace top-level and instance methods ``save`` and ``load`` with
       top-level ``read_pickle`` and ``to_pickle`` instance method, ``save`` and
-      ``load`` will give deprecation warning.  
+      ``load`` will give deprecation warning.
   - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
     deprecated
   - set FutureWarning to require data_source, and to replace year/month with
@@ -215,7 +215,7 @@ pandas 0.12
     - Extend ``reindex`` to correctly deal with non-unique indices (:issue:`3679`)
     - ``DataFrame.itertuples()`` now works with frames with duplicate column
       names (:issue:`3873`)
-    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to 
+    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to
       ``reindex`` for location-based taking
 
   - Fixed bug in groupby with empty series referencing a variable before assignment. (:issue:`3510`)
@@ -272,16 +272,16 @@ pandas 0.12
   - Correctly parse when passed the ``dtype=str`` (or other variable-len string dtypes)
     in ``read_csv`` (:issue:`3795`)
   - Fix index name not propogating when using ``loc/ix`` (:issue:`3880`)
-  - Fix groupby when applying a custom function resulting in a returned DataFrame was 
+  - Fix groupby when applying a custom function resulting in a returned DataFrame was
     not converting dtypes (:issue:`3911`)
   - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
     in the ``to_replace`` argument wasn't working (:issue:`3907`)
   - Fixed ``__truediv__`` in Python 2.7 with ``numexpr`` installed to actually do true division when dividing
     two integer arrays with at least 10000 cells total (:issue:`3764`)
   - Indexing with a string with seconds resolution not selecting from a time index (:issue:`3925`)
-  - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was 
+  - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was
     specified (:issue:`3967`), python parser failing with ``chunksize=1``
-  - Fix index name not propogating when using ``shift`` 
+  - Fix index name not propogating when using ``shift``
   - Fixed dropna=False being ignored with multi-index stack (:issue:`3997`)
   - Fixed flattening of columns when renaming MultiIndex columns DataFrame (:issue:`4004`)
   - Fix ``Series.clip`` for datetime series. NA/NaN threshold values will now throw ValueError (:issue:`3996`)
