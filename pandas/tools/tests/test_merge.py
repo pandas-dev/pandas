@@ -13,7 +13,8 @@ from pandas import *
 from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 assert_almost_equal, rands)
+                                 assert_almost_equal, rands,
+                                 makeCustomDataframe as mkdf)
 import pandas.algos as algos
 import pandas.util.testing as tm
 
@@ -357,6 +358,7 @@ class TestMerge(unittest.TestCase):
         joined = df1.join(df2, how='outer')
         ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        expected.index.names = index1.names
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
 
@@ -366,6 +368,7 @@ class TestMerge(unittest.TestCase):
         joined = df1.join(df2, how='outer').sortlevel(0)
         ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
+        expected.index.names = index1.names
 
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
@@ -717,6 +720,24 @@ class TestMerge(unittest.TestCase):
 
         self.assert_((df.var3.unique() == result.var3.unique()).all())
 
+    def test_merge_nan_right(self):
+        df1 = DataFrame({"i1" : [0, 1], "i2" : [0, 1]})
+        df2 = DataFrame({"i1" : [0], "i3" : [0]})
+        result = df1.join(df2, on="i1", rsuffix="_")
+        expected = DataFrame({'i1': {0: 0.0, 1: 1}, 'i2': {0: 0, 1: 1},
+                              'i1_': {0: 0, 1: np.nan}, 'i3': {0: 0.0, 1: np.nan},
+                               None: {0: 0, 1: 0}}).set_index(None).reset_index()[['i1', 'i2', 'i1_', 'i3']]
+        assert_frame_equal(result, expected, check_dtype=False)
+
+        df1 = DataFrame({"i1" : [0, 1], "i2" : [0.5, 1.5]})
+        df2 = DataFrame({"i1" : [0], "i3" : [0.7]})
+        result = df1.join(df2, rsuffix="_", on='i1')
+        expected = DataFrame({'i1': {0: 0, 1: 1}, 'i1_': {0: 0.0, 1: nan},
+                              'i2': {0: 0.5, 1: 1.5}, 'i3': {0: 0.69999999999999996,
+                              1: nan}})[['i1', 'i2', 'i1_', 'i3']]
+        assert_frame_equal(result, expected)
+
+
     def test_overlapping_columns_error_message(self):
         # #2649
         df = DataFrame({'key': [1, 2, 3],
@@ -739,7 +760,7 @@ def _check_merge(x, y):
                          sort=True)
         expected = expected.set_index('index')
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)  # TODO check_names on merge?
 
 
 class TestMergeMulti(unittest.TestCase):
@@ -849,12 +870,12 @@ class TestMergeMulti(unittest.TestCase):
             left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
                               'k2': ['foo', 'bar'] * 12,
                               'v': np.array(np.arange(24),dtype=np.int64) })
-            
+
             index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
             right = DataFrame({'v2': np.array([5, 7], dtype=dtype2)}, index=index)
-            
+
             result = left.join(right, on=['k1', 'k2'])
-            
+
             expected = left.copy()
 
             if dtype2.kind == 'i':
@@ -862,7 +883,7 @@ class TestMergeMulti(unittest.TestCase):
             expected['v2'] = np.array(np.nan,dtype=dtype2)
             expected['v2'][(expected.k1 == 2) & (expected.k2 == 'bar')] = 5
             expected['v2'][(expected.k1 == 1) & (expected.k2 == 'foo')] = 7
-            
+
             tm.assert_frame_equal(result, expected)
 
         for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
@@ -1057,7 +1078,7 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(appended is not self.frame)
 
         # overlap
-        self.assertRaises(Exception, self.frame.append, self.frame,
+        self.assertRaises(ValueError, self.frame.append, self.frame,
                           verify_integrity=True)
 
     def test_append_length0_frame(self):
@@ -1651,6 +1672,45 @@ class TestConcatenate(unittest.TestCase):
 
         self.assertEqual(len(left), len(right))
 
+    def test_concat_bug_2972(self):
+        ts0 = Series(np.zeros(5))
+        ts1 = Series(np.ones(5))
+        ts0.name = ts1.name = 'same name'
+        result = concat([ts0, ts1], axis=1)
+
+        expected = DataFrame({0: ts0, 1: ts1})
+        expected.columns=['same name', 'same name']
+        assert_frame_equal(result, expected)
+
+    def test_concat_bug_3602(self):
+
+        # GH 3602, duplicate columns
+        df1 = DataFrame({'firmNo' : [0,0,0,0], 'stringvar' : ['rrr', 'rrr', 'rrr', 'rrr'], 'prc' : [6,6,6,6] })
+        df2 = DataFrame({'misc' : [1,2,3,4], 'prc' : [6,6,6,6], 'C' : [9,10,11,12]})
+        expected = DataFrame([[0,6,'rrr',9,1,6],
+                              [0,6,'rrr',10,2,6],
+                              [0,6,'rrr',11,3,6],
+                              [0,6,'rrr',12,4,6]])
+        expected.columns = ['firmNo','prc','stringvar','C','misc','prc']
+
+        result = concat([df1,df2],axis=1)
+        assert_frame_equal(result,expected)
+
+    def test_concat_series_axis1_same_names_ignore_index(self):
+        dates = date_range('01-Jan-2013', '01-Jan-2014', freq='MS')[0:-1]
+        s1 = Series(randn(len(dates)), index=dates, name='value')
+        s2 = Series(randn(len(dates)), index=dates, name='value')
+
+        result = concat([s1, s2], axis=1, ignore_index=True)
+        self.assertTrue(np.array_equal(result.columns, [0, 1]))
+
+    def test_concat_invalid_first_argument(self):
+        df1 = mkdf(10, 2)
+        df2 = mkdf(10, 2)
+        self.assertRaises(AssertionError, concat, df1, df2)
+
+        # generator ok though
+        concat(DataFrame(np.random.rand(5,5)) for _ in range(3))
 
 class TestOrderedMerge(unittest.TestCase):
 

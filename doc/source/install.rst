@@ -70,7 +70,25 @@ Dependencies
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support
 
-Optional dependencies
+.. _install.recommended_dependencies:
+
+Recommended Dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+  * `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
+    ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
+  * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+    evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
+
+.. note::
+
+   You are highly encouraged to install these libraries, as they provide large speedups, especially
+   if working with large data sets.
+
+
+.. _install.optional_dependencies:
+
+Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `Cython <http://www.cython.org>`__: Only necessary to build development
@@ -83,6 +101,49 @@ Optional dependencies
   * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
      * openpyxl version 1.6.1 or higher
      * Needed for Excel I/O
+  * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
+    access.
+  * One of the following combinations of libraries is needed to use the
+    top-level :func:`~pandas.io.html.read_html` function:
+
+    * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
+      okay.)
+    * `BeautifulSoup4`_ and `lxml`_ 
+    * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_ 
+    * Only `lxml`_, although see :ref:`HTML reading gotchas <html-gotchas>`
+      for reasons as to why you should probably **not** take this approach.
+
+    .. warning::
+
+       * if you install `BeautifulSoup4`_ you must install either
+         `lxml`_ or `html5lib`_ or both.
+         :func:`~pandas.io.html.read_html` will **not** work with *only*
+         `BeautifulSoup4`_ installed.
+       * You are highly encouraged to read :ref:`HTML reading gotchas
+         <html-gotchas>`. It explains issues surrounding the installation and
+         usage of the above three libraries
+       * You may need to install an older version of `BeautifulSoup4`_:
+           - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
+             32-bit Ubuntu/Debian
+       * Additionally, if you're using `Anaconda`_ you should definitely
+         read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
+
+    .. note::
+
+       * if you're on a system with ``apt-get`` you can do
+
+         .. code-block:: sh
+
+            sudo apt-get build-dep python-lxml
+
+         to get the necessary dependencies for installation of `lxml`_. This
+         will prevent further headaches down the line.
+
+
+.. _html5lib: https://github.com/html5lib/html5lib-python
+.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
+.. _lxml: http://lxml.de
+.. _Anaconda: https://store.continuum.io/cshop/anaconda
 
 .. note::
 

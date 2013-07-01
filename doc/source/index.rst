@@ -105,13 +105,14 @@ See the package overview for more detail about what's in the library.
 
 
 .. toctree::
-    :hidden:
     :maxdepth: 3
 
     whatsnew
     install
     faq
     overview
+    10min
+    cookbook
     dsintro
     basics
     indexing
@@ -122,11 +123,13 @@ See the package overview for more detail about what's in the library.
     reshaping
     timeseries
     visualization
+    rplot
     io
+    enhancingperf
     sparse
     gotchas
     r_interface
     related
     comparison_with_r
     api
-
+    release

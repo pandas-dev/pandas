@@ -4,16 +4,20 @@ from cpython cimport PyDict_Contains, PyDict_GetItem, PyDict_GetItem
 cdef class cache_readonly(object):
 
     cdef readonly:
-        object fget, name
+        object func, name, allow_setting
 
-    def __init__(self, func):
-        self.fget = func
+    def __init__(self, func=None, allow_setting=False):
+        if func is not None:
+            self.func = func
+            self.name = func.__name__
+        self.allow_setting = allow_setting
+
+    def __call__(self, func, doc=None):
+        self.func = func
         self.name = func.__name__
+        return self
 
-    def __get__(self, obj, type):
-        if obj is None:
-            return self.fget
-
+    def __get__(self, obj, typ):
         # Get the cache or set a default one if needed
 
         cache = getattr(obj, '_cache', None)
@@ -23,12 +27,23 @@ cdef class cache_readonly(object):
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
             val = <object> PyDict_GetItem(cache, self.name)
-            return val
         else:
-            val = self.fget(obj)
+            val = self.func(obj)
             PyDict_SetItem(cache, self.name, val)
-            return val
+        return val
 
+    def __set__(self, obj, value):
+
+        if not self.allow_setting:
+            raise Exception("cannot set values for [%s]" % self.name)
+
+        # Get the cache or set a default one if needed
+        cache = getattr(obj, '_cache', None)
+        if cache is None:
+            cache = obj._cache = {}
+
+        PyDict_SetItem(cache, self.name, value)
+            
 cdef class AxisProperty(object):
     cdef:
         Py_ssize_t axis

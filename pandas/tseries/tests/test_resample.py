@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
+from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull, Timestamp
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
@@ -44,8 +44,7 @@ class TestResample(unittest.TestCase):
         dti = DatetimeIndex(freq='Min', start=datetime(2005, 1, 1),
                             end=datetime(2005, 1, 10))
 
-        data = np.array([1] * len(dti))
-        s = Series(data, index=dti)
+        s = Series(np.array([1] * len(dti)), index=dti, dtype='int64')
 
         b = TimeGrouper(Minute(5))
         g = s.groupby(b)
@@ -71,12 +70,11 @@ class TestResample(unittest.TestCase):
         idx = idx.append(dti[-1:])
         expect = Series(arr, index=idx)
 
-        # cython returns float for now
+        # GH2763 - return in put dtype if we can
         result = g.agg(np.sum)
-        assert_series_equal(result, expect.astype(float))
+        assert_series_equal(result, expect)
 
-        data = np.random.rand(len(dti), 10)
-        df = DataFrame(data, index=dti)
+        df = DataFrame(np.random.rand(len(dti), 10), index=dti, dtype='float64')
         r = df.groupby(b).agg(np.sum)
 
         self.assertEquals(len(r.columns), 10)
@@ -559,11 +557,11 @@ class TestResample(unittest.TestCase):
             result = df.resample("T", how=lambda x: x.mean())
             exp = df.asfreq('T')
             tm.assert_frame_equal(result, exp)
-            
+
             result = df.resample("T", how="median")
             exp = df.asfreq('T')
             tm.assert_frame_equal(result, exp)
-            
+
     def test_how_lambda_functions(self):
         ts = _simple_ts('1/1/2000', '4/1/2000')
 
@@ -936,6 +934,14 @@ class TestResamplePeriodIndex(unittest.TestCase):
         # it works!
         df.resample('W-MON', how='first', closed='left', label='left')
 
+    def test_resample_bms_2752(self):
+        # GH2753
+        foo = pd.Series(index=pd.bdate_range('20000101','20000201'))
+        res1 = foo.resample("BMS")
+        res2 = foo.resample("BMS").resample("B")
+        self.assertEqual(res1.index[0], Timestamp('20000103'))
+        self.assertEqual(res1.index[0], res2.index[0])
+
     # def test_monthly_convention_span(self):
     #     rng = period_range('2000-01', periods=3, freq='M')
     #     ts = Series(np.arange(3), index=rng)
@@ -983,6 +989,14 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = s.resample("A", how='mean')
         tm.assert_almost_equal(result[0], s.mean())
 
+    def test_resample_doesnt_truncate(self):
+        """Test for issue #3020"""
+        import pandas as pd
+        dates = pd.date_range('01-Jan-2014','05-Jan-2014', freq='D')
+        series = Series(1, index=dates)
+
+        result = series.resample('D')
+        self.assertEquals(result.index[0], dates[0])
 
 class TestTimeGrouper(unittest.TestCase):
 

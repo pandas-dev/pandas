@@ -7,6 +7,105 @@ API Reference
 
 .. _api.functions:
 
+Input/Output
+------------
+
+Pickling
+~~~~~~~~
+
+.. currentmodule:: pandas.io.pickle
+
+.. autosummary::
+   :toctree: generated/
+
+   read_pickle
+
+Flat File
+~~~~~~~~~
+
+.. currentmodule:: pandas.io.parsers
+
+.. autosummary::
+   :toctree: generated/
+
+   read_table
+   read_csv
+   read_fwf
+   read_clipboard
+
+Excel
+~~~~~
+
+.. currentmodule:: pandas.io.excel
+
+.. autosummary::
+   :toctree: generated/
+
+   read_excel
+   ExcelFile.parse
+
+JSON
+~~~~
+
+.. currentmodule:: pandas.io.json
+
+.. autosummary::
+   :toctree: generated/
+
+   read_json
+
+HTML
+~~~~
+
+.. currentmodule:: pandas.io.html
+
+.. autosummary::
+   :toctree: generated/
+
+   read_html
+
+HDFStore: PyTables (HDF5)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.io.pytables
+
+.. autosummary::
+   :toctree: generated/
+
+   read_hdf
+   HDFStore.put
+   HDFStore.append
+   HDFStore.get
+   HDFStore.select
+
+SQL
+~~~
+.. currentmodule:: pandas.io.sql
+
+.. autosummary::
+   :toctree: generated/
+
+   read_sql
+   read_frame
+   write_frame
+
+
+STATA
+~~~~~
+
+.. currentmodule:: pandas.io.stata
+
+.. autosummary::
+   :toctree: generated/
+
+   read_stata
+   StataReader.data
+   StataReader.data_label
+   StataReader.value_labels
+   StataReader.variable_labels
+   StataWriter.write_file
+
+
 General functions
 -----------------
 
@@ -27,38 +126,27 @@ Data manipulations
    merge
    concat
 
-Pickling
-~~~~~~~~
+Top-level missing data
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. currentmodule:: pandas.core.common
 
 .. autosummary::
    :toctree: generated/
 
-   load
-   save
+   isnull
+   notnull
 
-File IO
-~~~~~~~
+Top-level dealing with datetimes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. currentmodule:: pandas.io.parsers
-
-.. autosummary::
-   :toctree: generated/
-
-   read_table
-   read_csv
-   ExcelFile.parse
-
-HDFStore: PyTables (HDF5)
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. currentmodule:: pandas.io.pytables
+.. currentmodule:: pandas.tseries.tools
 
 .. autosummary::
    :toctree: generated/
 
-   HDFStore.put
-   HDFStore.get
+   to_datetime
+
 
 Standard moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -300,12 +388,12 @@ Serialization / IO / Conversion
    :toctree: generated/
 
    Series.from_csv
-   Series.load
-   Series.save
+   Series.to_pickle
    Series.to_csv
    Series.to_dict
    Series.to_sparse
    Series.to_string
+   Series.to_clipboard
 
 .. _api.dataframe:
 
@@ -458,6 +546,7 @@ Missing data handling
 
    DataFrame.dropna
    DataFrame.fillna
+   DataFrame.replace
 
 Reshaping, sorting, transposing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -485,7 +574,6 @@ Combining / joining / merging
    DataFrame.append
    DataFrame.join
    DataFrame.merge
-   DataFrame.replace
    DataFrame.update
 
 Time series-related
@@ -522,23 +610,177 @@ Serialization / IO / Conversion
    DataFrame.from_items
    DataFrame.from_records
    DataFrame.info
-   DataFrame.load
-   DataFrame.save
+   DataFrame.to_pickle
    DataFrame.to_csv
+   DataFrame.to_hdf
    DataFrame.to_dict
    DataFrame.to_excel
+   DataFrame.to_json
    DataFrame.to_html
+   DataFrame.to_stata
    DataFrame.to_records
    DataFrame.to_sparse
    DataFrame.to_string
+   DataFrame.to_clipboard
 
 .. _api.panel:
 
 Panel
------
+------
+
+Attributes and underlying data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Axes**
+
+  * **items**: axis 0; each item corresponds to a DataFrame contained inside
+  * **major_axis**: axis 1; the index (rows) of each of the DataFrames
+  * **minor_axis**: axis 2; the columns of each of the DataFrames
+
+.. autosummary::
+   :toctree: generated/
+
+   Panel.values
+   Panel.axes
+   Panel.ndim
+   Panel.shape
+
+Conversion / Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.__init__
+   Panel.astype
+   Panel.copy
+
+Getting and setting
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.get_value
+   Panel.set_value
+
+Indexing, iteration, slicing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.ix
+   Panel.__iter__
+   Panel.iteritems
+   Panel.pop
+   Panel.xs
+   Panel.major_xs
+   Panel.minor_xs
+
+Binary operator functions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.add
+   Panel.div
+   Panel.mul
+   Panel.sub
+
+Function application, GroupBy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.apply
+   Panel.groupby
 
 .. _api.panel.stats:
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.abs
+   Panel.count
+   Panel.cummax
+   Panel.cummin
+   Panel.cumprod
+   Panel.cumsum
+   Panel.max
+   Panel.mean
+   Panel.median
+   Panel.min
+   Panel.pct_change
+   Panel.prod
+   Panel.skew
+   Panel.sum
+   Panel.std
+   Panel.var
+
+Reindexing / Selection / Label manipulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.add_prefix
+   Panel.add_suffix
+   Panel.drop
+   Panel.filter
+   Panel.first
+   Panel.last
+   Panel.reindex
+   Panel.reindex_axis
+   Panel.reindex_like
+   Panel.select
+   Panel.take
+   Panel.truncate
+
+Missing data handling
+~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.dropna
+   Panel.fillna
+
+Reshaping, sorting, transposing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.sort_index
+   Panel.swaplevel
+   Panel.transpose
+   Panel.swapaxes
+   Panel.conform
+
+Combining / joining / merging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.join
+   Panel.update
+
+Time series-related
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.asfreq
+   Panel.shift
+   Panel.resample
+   Panel.tz_convert
+   Panel.tz_localize
+
+Serialization / IO / Conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel.from_dict
+   Panel.to_pickle
+   Panel.to_excel
+   Panel.to_sparse
+   Panel.to_frame
+   Panel.to_clipboard
 

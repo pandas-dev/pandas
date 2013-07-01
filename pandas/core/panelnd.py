@@ -3,7 +3,7 @@
 import pandas.lib as lib
 
 
-def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_aliases=None, stat_axis=2):
+def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_aliases=None, stat_axis=2,ns=None):
     """ manufacture a n-d class:
 
         parameters
@@ -35,7 +35,8 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
             raise Exception("cannot create this slicer [%s]" % slicer)
 
     # build the klass
-    klass = type(klass_name, (slicer,), {})
+    ns = {} if not ns else ns
+    klass = type(klass_name, (slicer,), ns)
 
     # add the class variables
     klass._AXIS_ORDERS = axis_orders
@@ -105,7 +106,7 @@ def create_nd_panel_factory(klass_name, axis_orders, axis_slices, slicer, axis_a
     klass._combine_with_constructor = _combine_with_constructor
 
     # set as NonImplemented operations which we don't support
-    for f in ['to_frame', 'to_excel', 'to_sparse', 'groupby', 'join', 'filter', 'dropna', 'shift', 'take']:
+    for f in ['to_frame', 'to_excel', 'to_sparse', 'groupby', 'join', 'filter', 'dropna', 'shift']:
         def func(self, *args, **kwargs):
             raise NotImplementedError
         setattr(klass, f, func)

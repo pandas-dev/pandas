@@ -20,7 +20,7 @@ try:
         raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
                         'install version 1.5 or 2.1+!')
 except ImportError:  # pragma: no cover
-    print 'Please install python-dateutil via easy_install or some method!'
+    print ('Please install python-dateutil via easy_install or some method!')
     raise  # otherwise a 2nd import won't show the message
 
 
@@ -28,7 +28,8 @@ def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            assert(tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo))
+            if not (tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo)):
+                raise AssertionError()
         return tz
     tz = None
     if start is not None:
@@ -49,7 +50,7 @@ def _maybe_get_tz(tz):
 
 
 def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
-                format=None):
+                format=None, coerce=False, unit='ns'):
     """
     Convert argument to datetime
 
@@ -58,9 +59,18 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     arg : string, datetime, array of strings (with possible NAs)
     errors : {'ignore', 'raise'}, default 'ignore'
         Errors are ignored by default (values left untouched)
+    dayfirst : boolean, default False
+        If True parses dates with the day first, eg 20/01/2005
     utc : boolean, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well)
+    box : boolean, default True
+        If True returns a DatetimeIndex, if False returns ndarray of values
+    format : string, default None
+        strftime to parse time, eg "%d/%m/%Y"
+    coerce : force errors to NaT (False by default)
+    unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
+        (e.g. a unix timestamp), which is an integer/float number
 
     Returns
     -------
@@ -77,7 +87,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 result = tslib.array_strptime(arg, format)
             else:
                 result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
-                                                 utc=utc, dayfirst=dayfirst)
+                                                 utc=utc, dayfirst=dayfirst,
+                                                 coerce=coerce, unit=unit)
             if com.is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz='utc' if utc else None)
             return result
@@ -88,16 +99,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
             except (ValueError, TypeError):
                 raise e
 
-    if arg is None:
-        return arg
-    elif isinstance(arg, datetime):
-        return arg
-    elif isinstance(arg, Series):
-        values = arg.values
-        if not com.is_datetime64_dtype(values):
-            values = _convert_f(values)
-        return Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (np.ndarray, list)):
+    def _convert_listlike(arg):        
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
 
@@ -111,24 +113,23 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                         return DatetimeIndex._simple_new(values, None, tz=tz)
                     except (ValueError, TypeError):
                         raise e
-            return arg
+                return arg
 
-        try:
-            return _convert_f(arg)
-        except ValueError:
-            raise
+        return _convert_f(arg)
+
+    if arg is None:
         return arg
-
-    try:
-        if not arg:
-            return arg
-        default = datetime(1, 1, 1)
-        return parse(arg, dayfirst=dayfirst, default=default)
-    except Exception:
-        if errors == 'raise':
-            raise
+    elif isinstance(arg, datetime):
         return arg
+    elif isinstance(arg, Series):
+        values = arg.values
+        if not com.is_datetime64_dtype(values):
+            values = _convert_f(values)
+        return Series(values, index=arg.index, name=arg.name)
+    elif isinstance(arg, (np.ndarray, list)):
+        return _convert_listlike(arg)
 
+    return _convert_listlike(np.array([ arg ], dtype='O'))[0]
 
 class DateParseError(ValueError):
     pass
@@ -343,6 +344,6 @@ def ole2datetime(oledt):
     # Excel has a bug where it thinks the date 2/29/1900 exists
     # we just reject any date before 3/1/1900.
     if val < 61:
-        raise Exception("Value is outside of acceptable range: %s " % val)
+        raise ValueError("Value is outside of acceptable range: %s " % val)
 
     return OLE_TIME_ZERO + timedelta(days=val)

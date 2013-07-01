@@ -74,6 +74,23 @@ def _sparse_series_op(left, right, op, name):
 
 
 class SparseSeries(SparseArray, Series):
+    """Data structure for labeled, sparse floating point data
+
+    Parameters
+    ----------
+    data : {array-like, Series, SparseSeries, dict}
+    kind : {'block', 'integer'}
+    fill_value : float
+        Defaults to NaN (code for missing)
+    sparse_index : {BlockIndex, IntIndex}, optional
+        Only if you have one. Mainly used internally
+
+    Notes
+    -----
+    SparseSeries objects are immutable via the typical Python means. If you
+    must change values, convert to dense, make your changes, then convert back
+    to sparse
+    """
     __array_priority__ = 15
 
     sp_index = None
@@ -93,7 +110,8 @@ class SparseSeries(SparseArray, Series):
             if isinstance(data, SparseSeries) and index is None:
                 index = data.index
             elif index is not None:
-                assert(len(index) == len(data))
+                if not (len(index) == len(data)):
+                    raise AssertionError()
 
             sparse_index = data.sp_index
             values = np.asarray(data)
@@ -111,10 +129,11 @@ class SparseSeries(SparseArray, Series):
                                                    fill_value=fill_value)
             else:
                 values = data
-                assert(len(values) == sparse_index.npoints)
+                if not (len(values) == sparse_index.npoints):
+                    raise AssertionError()
         else:
             if index is None:
-                raise Exception('must pass index!')
+                raise TypeError('must pass index!')
 
             length = len(index)
 
@@ -168,23 +187,6 @@ class SparseSeries(SparseArray, Series):
 
     def __init__(self, data, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, copy=False):
-        """Data structure for labeled, sparse floating point data
-
-Parameters
-----------
-data : {array-like, Series, SparseSeries, dict}
-kind : {'block', 'integer'}
-fill_value : float
-    Defaults to NaN (code for missing)
-sparse_index : {BlockIndex, IntIndex}, optional
-    Only if you have one. Mainly used internally
-
-Notes
------
-SparseSeries objects are immutable via the typical Python means. If you
-must change values, convert to dense, make your changes, then convert back
-to sparse
-        """
         pass
 
     @property
@@ -378,14 +380,15 @@ to sparse
 
     @property
     def density(self):
-        return float(len(self.sp_index)) / len(self.index)
+        r = float(self.sp_index.npoints) / float(self.sp_index.length)
+        return r
 
     def astype(self, dtype=None):
         """
 
         """
         if dtype is not None and dtype not in (np.float_, float):
-            raise Exception('Can only support floating point data')
+            raise TypeError('Can only support floating point data')
 
         return self.copy()
 
@@ -445,7 +448,8 @@ to sparse
         -------
         reindexed : SparseSeries
         """
-        assert(isinstance(new_index, splib.SparseIndex))
+        if not (isinstance(new_index, splib.SparseIndex)):
+            raise AssertionError()
 
         new_values = self.sp_index.to_int_index().reindex(self.sp_values,
                                                           self.fill_value,
@@ -467,7 +471,7 @@ to sparse
         else:
             return result
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, convert=True):
         """
         Sparse-compatible version of ndarray.take
 
@@ -571,4 +575,23 @@ to sparse
 
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
+    """Data structure for labeled, sparse floating point data, with `TimeStamp`
+    index labels
+
+    Parameters
+    ----------
+    data : {array-like, Series, SparseSeries, dict}
+    kind : {'block', 'integer'}
+    fill_value : float
+        Defaults to NaN (code for missing)
+    sparse_index : {BlockIndex, IntIndex}, optional
+        Only if you have one. Mainly used internally
+
+    Notes
+    -----
+    SparseSeries objects are immutable via the typical Python means. If you
+    must change values, convert to dense, make your changes, then convert back
+    to sparse
+    """
+
     pass

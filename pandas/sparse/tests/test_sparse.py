@@ -9,10 +9,11 @@ import nose
 
 from numpy import nan
 import numpy as np
+import pandas as pd
 dec = np.testing.dec
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal)
+                                 assert_frame_equal, assert_panel_equal, assertRaisesRegexp)
 from numpy.testing import assert_equal
 
 from pandas import Series, DataFrame, bdate_range, Panel
@@ -74,8 +75,7 @@ def _test_data2_zero():
     arr[np.isnan(arr)] = 0
     return arr, index
 
-
-def assert_sp_series_equal(a, b):
+def assert_sp_series_equal(a, b, exact_indices=True):
     assert(a.index.equals(b.index))
     assert_sp_array_equal(a, b)
 
@@ -155,6 +155,14 @@ class TestSparseSeries(TestCase,
     def test_construct_DataFrame_with_sp_series(self):
         # it works!
         df = DataFrame({'col': self.bseries})
+
+    def test_series_density(self):
+        # GH2803
+        ts = Series(np.random.randn(10))
+        ts[2:-2] = nan
+        sts = ts.to_sparse()
+        density =  sts.density # don't die
+        self.assertEqual(density,4/10.0)
 
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
@@ -633,7 +641,7 @@ class TestSparseSeries(TestCase,
         # must have NaN fill value
         data = {'a': SparseSeries(np.arange(7), sparse_index=expected2,
                                   fill_value=0)}
-        nose.tools.assert_raises(Exception, spf.homogenize, data)
+        assertRaisesRegexp(TypeError, "NaN fill value", spf.homogenize, data)
 
     def test_fill_value_corner(self):
         cop = self.zbseries.copy()
@@ -783,7 +791,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_sp_frame_equal(cons, reindexed)
 
         # assert level parameter breaks reindex
-        self.assertRaises(Exception, self.frame.reindex, idx, level=0)
+        self.assertRaises(TypeError, self.frame.reindex, idx, level=0)
 
         repr(self.frame)
 
@@ -797,14 +805,14 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_sp_frame_equal(sp, self.frame.reindex(columns=['A']))
 
         # raise on level argument
-        self.assertRaises(Exception, self.frame.reindex, columns=['A'],
+        self.assertRaises(TypeError, self.frame.reindex, columns=['A'],
                           level=1)
 
         # wrong length index / columns
-        self.assertRaises(Exception, SparseDataFrame, self.frame.values,
-                          index=self.frame.index[:-1])
-        self.assertRaises(Exception, SparseDataFrame, self.frame.values,
-                          columns=self.frame.columns[:-1])
+        assertRaisesRegexp(ValueError, "^Index length", SparseDataFrame, self.frame.values,
+                           index=self.frame.index[:-1])
+        assertRaisesRegexp(ValueError, "^Column length", SparseDataFrame, self.frame.values,
+                           columns=self.frame.columns[:-1])
 
     def test_constructor_empty(self):
         sp = SparseDataFrame()
@@ -832,11 +840,17 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         x = Series(np.random.randn(10000), name ='a')
         y = Series(np.random.randn(10000), name ='b')
-        x.ix[:9998] = 0
-        x = x.to_sparse(fill_value=0)
+        x2 = x.astype(float)
+        x2.ix[:9998] = np.NaN
+        x_sparse = x2.to_sparse(fill_value=np.NaN)
         
-        # currently fails
-        #df1 = SparseDataFrame([x, y])
+        # Currently fails too with weird ufunc error
+        # df1 = SparseDataFrame([x_sparse, y])
+
+        y.ix[:9998] = 0
+        y_sparse = y.to_sparse(fill_value=0)
+        # without sparse value raises error
+        # df2 = SparseDataFrame([x2_sparse, y])
 
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))

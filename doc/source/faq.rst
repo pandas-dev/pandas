@@ -20,11 +20,45 @@ Frequently Asked Questions (FAQ)
    from pandas.tseries.offsets import *
    import matplotlib.pyplot as plt
    plt.close('all')
+   options.display.mpl_style='default'
+
+
+.. _ref-repr-control:
+
+How do I control the way my DataFrame is displayed?
+---------------------------------------------------
+
+Pandas users rely on a variety of environments for using pandas: scripts, terminal,
+IPython qtconsole/ notebook, (IDLE, spyder, etc').
+Each environment has it's own capabilities and limitations: HTML support,
+horizontal scrolling, auto-detection of width/height.
+To appropriately address all these environments, the display behavior is controlled
+by several options, which you're encouraged to tweak to suit your setup.
+
+As of 0.12, these are the relevant options, all under the `display` namespace,
+(e.g. display.width,  etc'):
+
+- notebook_repr_html: if True, IPython frontends with HTML support will display
+  dataframes as HTML tables when possible.
+- expand_repr (default True):  when the frame width cannot fit within the screen,
+  the output will be broken into multiple pages to accomedate. This applies to
+  textual (as opposed to HTML) display only.
+- max_columns: max dataframe columns to display. a wider frame will trigger
+  a summary view, unless `expand_repr` is True and HTML output is disabled.
+- max_rows: max dataframe rows display. a longer frame will trigger a summary view.
+- width: width of display screen in characters, used to determine the width of lines
+  when expand_repr is active,  Setting this to None will trigger auto-detection of terminal
+  width, this only works for proper terminals, not IPython frontends such as ipnb.
+  width is ignored in IPython notebook, since the browser provides horizontal scrolling.
+
+IPython users can use the IPython startup file to import pandas and set these
+options automatically when starting up.
+
 
 .. _ref-monkey-patching:
 
-
-----------------------------------------------------
+Adding Features to your Pandas Installation
+-------------------------------------------
 
 Pandas is a powerful tool and already has a plethora of data manipulation
 operations implemented, most of them are very fast as well.
@@ -171,7 +205,7 @@ adopted to pandas's data structures. For example:
    rng = period_range('1987Q2', periods=10, freq='Q-DEC')
    data = Series(np.random.randn(10), index=rng)
 
-   @savefig skts_ts_plot.png width=4.5in
+   @savefig skts_ts_plot.png width=6in
    plt.figure(); data.plot()
 
 Converting to and from period format
@@ -212,3 +246,22 @@ interval (``'start'`` or ``'end'``) convention:
    data = Series(np.random.randn(50), index=rng)
    resampled = data.resample('A', kind='timestamp', convention='end')
    resampled.index
+
+
+Byte-Ordering Issues
+--------------------
+Occasionally you may have to deal with data that were created on a machine with
+a different byte order than the one on which you are running Python. To deal
+with this issue you should convert the underlying NumPy array to the native
+system byte order *before* passing it to Series/DataFrame/Panel constructors
+using something similar to the following:
+
+.. ipython:: python
+
+   x = np.array(range(10), '>i4') # big endian
+   newx = x.byteswap().newbyteorder() # force native byteorder
+   s = Series(newx)
+
+See `the NumPy documentation on byte order
+<http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+details.

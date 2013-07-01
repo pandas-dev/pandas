@@ -10,6 +10,8 @@ import nose
 
 from numpy import nan as NA
 import numpy as np
+from numpy.testing import assert_array_equal
+from numpy.random import randint
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
@@ -24,6 +26,82 @@ import pandas.core.strings as strings
 class TestStringMethods(unittest.TestCase):
 
     _multiprocess_can_split_ = True
+
+    def test_iter(self):
+        # GH3638
+        strs = 'google', 'wikimedia', 'wikipedia', 'wikitravel'
+        ds = Series(strs)
+
+        for s in ds.str:
+            # iter must yield a Series
+            self.assert_(isinstance(s, Series))
+
+            # indices of each yielded Series should be equal to the index of
+            # the original Series
+            assert_array_equal(s.index, ds.index)
+
+            for el in s:
+                # each element of the series is either a basestring or nan
+                self.assert_(isinstance(el, basestring) or isnull(el))
+
+        # desired behavior is to iterate until everything would be nan on the
+        # next iter so make sure the last element of the iterator was 'l' in
+        # this case since 'wikitravel' is the longest string
+        self.assertEqual(s.dropna().values.item(), 'l')
+
+    def test_iter_empty(self):
+        ds = Series([], dtype=object)
+
+        i, s = 100, 1
+
+        for i, s in enumerate(ds.str):
+            pass
+
+        # nothing to iterate over so nothing defined values should remain
+        # unchanged
+        self.assertEqual(i, 100)
+        self.assertEqual(s, 1)
+
+    def test_iter_single_element(self):
+        ds = Series(['a'])
+
+        for i, s in enumerate(ds.str):
+            pass
+
+        self.assertFalse(i)
+        assert_series_equal(ds, s)
+
+    def test_iter_numeric_try_string(self):
+        # behavior identical to empty series
+        dsi = Series(range(4))
+
+        i, s = 100, 'h'
+
+        for i, s in enumerate(dsi.str):
+            pass
+
+        self.assertEqual(i, 100)
+        self.assertEqual(s, 'h')
+
+        dsf = Series(np.arange(4.))
+
+        for i, s in enumerate(dsf.str):
+            pass
+
+        self.assertEqual(i, 100)
+        self.assertEqual(s, 'h')
+
+    def test_iter_object_try_string(self):
+        ds = Series([slice(None, randint(10), randint(10, 20))
+                     for _ in xrange(4)])
+
+        i, s = 100, 'h'
+
+        for i, s in enumerate(ds.str):
+            pass
+
+        self.assertEqual(i, 100)
+        self.assertEqual(s, 'h')
 
     def test_cat(self):
         one = ['a', 'a', 'b', 'b', 'c', NA]
@@ -127,6 +205,11 @@ class TestStringMethods(unittest.TestCase):
         expected = [False, False, True, True]
         self.assert_(result.dtype == np.bool_)
         tm.assert_almost_equal(result, expected)
+
+        # na
+        values = Series(['om', 'foo',np.nan])
+        res = values.str.contains('foo', na="foo")
+        self.assertEqual (res.ix[2], "foo"        )
 
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
@@ -265,6 +348,13 @@ class TestStringMethods(unittest.TestCase):
         result = values.str.replace('BAD[_]*', '', n=1)
         exp = Series([u'foobarBAD', NA])
         tm.assert_series_equal(result, exp)
+
+        #flags + unicode
+        values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
+        exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
+        result = values.str.replace("(?<=\w),(?=\w)", ", ", flags=re.UNICODE)
+        tm.assert_series_equal(result, exp)
+
 
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
@@ -747,6 +837,19 @@ class TestStringMethods(unittest.TestCase):
 
         result = s.str[:3]
         expected = s.str.slice(stop=3)
+        assert_series_equal(result, expected)
+
+    def test_string_slice_out_of_bounds(self):
+        s = Series([(1, 2), (1,), (3,4,5)])
+
+        result = s.str[1]
+        expected = Series([2, np.nan, 4])
+
+        assert_series_equal(result, expected)
+
+        s = Series(['foo', 'b', 'ba'])
+        result = s.str[1]
+        expected = Series(['o', np.nan, 'a'])
         assert_series_equal(result, expected)
 
     def test_match_findall_flags(self):

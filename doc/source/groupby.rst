@@ -11,6 +11,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib.pyplot as plt
    plt.close('all')
+   options.display.mpl_style='default'
 
 *****************************
 Group By: split-apply-combine
@@ -40,6 +41,12 @@ following:
     - Standardizing data (zscore) within group
     - Filling NAs within groups with a value derived from each group
 
+ - **Filtration**: discard some groups, according to a group-wise computation
+   that evaluates True or False. Some examples:
+
+    - Discarding data that belongs to groups with only a few members
+    - Filtering out data based on the group sum or mean
+
  - Some combination of the above: GroupBy will examine the results of the apply
    step and try to return a sensibly combined result if it doesn't fit into
    either of the above two categories
@@ -58,6 +65,8 @@ a SQL-based tool (or ``itertools``), in which you can write code like:
 We aim to make operations like this natural and easy to express using
 pandas. We'll address each area of GroupBy functionality then provide some
 non-trivial examples / use cases.
+
+See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies
 
 .. _groupby.split:
 
@@ -170,7 +179,7 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    len(grouped)
 
 By default the group keys are sorted during the groupby operation. You may
-however pass ``sort``=``False`` for potential speedups:
+however pass ``sort=False`` for potential speedups:
 
 .. ipython:: python
 
@@ -486,6 +495,41 @@ and that the transformed data contains no NAs.
    grouped_trans.count() # counts after transformation
    grouped_trans.size() # Verify non-NA count equals group size
 
+.. _groupby.filter:
+
+Filtration
+----------
+
+.. versionadded:: 0.12
+
+The ``filter`` method returns a subset of the original object. Suppose we
+want to take only elements that belong to groups with a group sum greater
+than 2.
+
+.. ipython:: python
+
+   sf = Series([1, 1, 2, 3, 3, 3])
+   sf.groupby(sf).filter(lambda x: x.sum() > 2)
+
+The argument of ``filter`` must a function that, applied to the group as a 
+whole, returns ``True`` or ``False``.
+
+Another useful operation is filtering out elements that belong to groups
+with only a couple members.
+
+.. ipython:: python
+
+   dff = DataFrame({'A': np.arange(8), 'B': list('aabbbbcc')})
+   dff.groupby('B').filter(lambda x: len(x) > 2)
+
+Alternatively, instead of dropping the offending groups, we can return a
+like-indexed objects where the groups that do not pass the filter are filled
+with NaNs.
+
+.. ipython:: python
+
+   dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
+
 .. _groupby.dispatch:
 
 Dispatching to instance methods
@@ -603,8 +647,8 @@ versions of pandas, but users were generally discarding the NA group anyway
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Categorical variables represented as instance of pandas's ``Factor`` class can
-be used as group keys. If so, the order of the levels will be preserved:
+Categorical variables represented as instance of pandas's ``Categorical`` class
+can be used as group keys. If so, the order of the levels will be preserved:
 
 .. ipython:: python
 

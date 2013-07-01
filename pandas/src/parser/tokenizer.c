@@ -148,6 +148,7 @@ void parser_set_default_options(parser_t *self) {
     self->allow_embedded_newline = 1;
     self->strict = 0;
 
+    self->expected_fields = -1;
     self->error_bad_lines = 0;
     self->warn_bad_lines = 0;
 
@@ -428,16 +429,19 @@ static void append_warning(parser_t *self, const char *msg) {
 static int end_line(parser_t *self) {
     int fields;
     khiter_t k;  /* for hash set detection */
-    int ex_fields = -1;
+    int ex_fields = self->expected_fields;
     char *msg;
 
     fields = self->line_fields[self->lines];
 
     TRACE(("Line end, nfields: %d\n", fields));
 
-
     if (self->lines > 0) {
-        ex_fields = self->line_fields[self->lines - 1];
+        if (self->expected_fields >= 0) {
+            ex_fields = self->expected_fields;
+        } else {
+            ex_fields = self->line_fields[self->lines - 1];
+        }
     }
 
     if (self->skipset != NULL) {
@@ -457,7 +461,10 @@ static int end_line(parser_t *self) {
         }
     }
 
-    if (!(self->lines <= self->header + 1) && fields > ex_fields) {
+    /* printf("Line: %d, Fields: %d, Ex-fields: %d\n", self->lines, fields, ex_fields); */
+
+    if (!(self->lines <= self->header_end + 1)
+        && (self->expected_fields < 0 && fields > ex_fields)) {
         // increment file line count
         self->file_lines++;
 
@@ -491,7 +498,14 @@ static int end_line(parser_t *self) {
     }
     else {
         /* missing trailing delimiters */
-        if (self->lines >= self->header + 1 && self->lines > 0) {
+        if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
+
+            /* Might overrun the buffer when closing fields */
+            if (make_stream_space(self, ex_fields - fields) < 0) {
+                self->error_msg = "out of memory";
+                return -1;
+            }
+
             while (fields < ex_fields){
                 end_field(self);
                 /* printf("Prior word: %s\n", self->words[self->words_len - 2]); */
@@ -673,6 +687,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                self->state));
 
         switch(self->state) {
+
         case START_RECORD:
             // start of record
 
@@ -688,6 +703,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             /* normal character - handle as START_FIELD */
             self->state = START_FIELD;
             /* fallthru */
+
         case START_FIELD:
             /* expecting field */
             if (c == '\n') {
@@ -832,6 +848,14 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
             }
             break;
 
+        case EAT_COMMENT:
+            if (c == '\n') {
+                END_LINE();
+            } else if (c == '\r') {
+                self->state = EAT_CRNL;
+            }
+            break;
+
         case EAT_CRNL:
             if (c == '\n') {
                 END_LINE();
@@ -840,16 +864,23 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 // Handle \r-delimited files
                 END_LINE_AND_FIELD_STATE(START_FIELD);
             } else {
-                PUSH_CHAR(c);
-                END_LINE_STATE(IN_FIELD);
-            }
-            break;
+                /* \r line terminator */
 
-        case EAT_COMMENT:
-            if (c == '\n') {
-                END_LINE();
-            } else if (c == '\r') {
-                self->state = EAT_CRNL;
+                /* UGH. we don't actually want to consume the token. fix this later */
+                self->stream_len = slen;
+                if (end_line(self) < 0) {
+                    goto parsingerror;
+                }
+                stream = self->stream + self->stream_len;
+                slen = self->stream_len;
+                self->state = START_RECORD;
+
+                /* HACK, let's try this one again */
+                --i; buf--;
+                if (line_limit > 0 && self->lines == start_lines + line_limit) {
+                    goto linelimit;
+                }
+
             }
             break;
 

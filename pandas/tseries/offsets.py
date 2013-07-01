@@ -1,13 +1,13 @@
 from datetime import date, datetime, timedelta
+import numpy as np
 
 from pandas.tseries.tools import to_datetime
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
-import pandas.lib as lib
 import pandas.tslib as tslib
 
-__all__ = ['Day', 'BusinessDay', 'BDay',
+__all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
@@ -49,7 +49,7 @@ class DateOffset(object):
     is:
 
     def __add__(date):
-      date = rollback(date) # does nothing is date is valid
+      date = rollback(date) # does nothing if date is valid
       return date + <n number of periods>
 
     When a date offset is created for a negitive number of periods,
@@ -100,7 +100,8 @@ class DateOffset(object):
 
     def _params(self):
         attrs = [(k, v) for k, v in vars(self).iteritems()
-                 if k not in ['kwds', '_offset', 'name', 'normalize']]
+                 if k not in ['kwds', '_offset', 'name', 'normalize',
+                 'busdaycalendar']]
         attrs.extend(self.kwds.items())
         attrs = sorted(set(attrs))
 
@@ -351,7 +352,7 @@ class BusinessDay(CacheableOffset, DateOffset):
             return BDay(self.n, offset=self.offset + other,
                         normalize=self.normalize)
         else:
-            raise Exception('Only know how to combine business day with '
+            raise TypeError('Only know how to combine business day with '
                             'datetime or timedelta!')
 
     @classmethod
@@ -359,11 +360,126 @@ class BusinessDay(CacheableOffset, DateOffset):
         return dt.weekday() < 5
 
 
+class CustomBusinessDay(BusinessDay):
+    """
+    **EXPERIMENTAL** DateOffset subclass representing possibly n business days
+    excluding holidays
+
+    .. warning:: EXPERIMENTAL
+
+        This class is not officially supported and the API is likely to change
+        in future versions. Use this at your own risk.
+
+    Parameters
+    ----------
+    n : int, default 1
+    offset : timedelta, default timedelta(0)
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+    """
+
+    _cacheable = False
+
+    def __init__(self, n=1, **kwds):
+        # Check we have the required numpy version
+        from distutils.version import LooseVersion
+        if LooseVersion(np.__version__) < '1.7.0':
+            raise NotImplementedError("CustomBusinessDay requires numpy >= "
+                                      "1.7.0. Current version: " +
+                                      np.__version__)
+
+        self.n = int(n)
+        self.kwds = kwds
+        self.offset = kwds.get('offset', timedelta(0))
+        self.normalize = kwds.get('normalize', False)
+        self.weekmask = kwds.get('weekmask', 'Mon Tue Wed Thu Fri')
+
+        holidays = kwds.get('holidays', [])
+        holidays = [self._to_dt64(dt, dtype='datetime64[D]') for dt in
+                    holidays]
+        self.holidays = tuple(sorted(holidays))
+        self.kwds['holidays'] = self.holidays
+        self._set_busdaycalendar()
+
+    def _set_busdaycalendar(self):
+        holidays = np.array(self.holidays, dtype='datetime64[D]')
+        self.busdaycalendar = np.busdaycalendar(holidays=holidays,
+                                                weekmask=self.weekmask)
+
+    def __getstate__(self):
+        """"Return a pickleable state"""
+        state = self.__dict__.copy()
+        del state['busdaycalendar']
+        return state
+
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        self.__dict__ = state
+        self._set_busdaycalendar()
+
+    @property
+    def rule_code(self):
+        return 'C'
+
+    @staticmethod
+    def _to_dt64(dt, dtype='datetime64'):
+        if isinstance(dt, (datetime, basestring)):
+            dt = np.datetime64(dt, dtype=dtype)
+        if isinstance(dt, np.datetime64):
+            dt = dt.astype(dtype)
+        else:
+            raise TypeError('dt must be datestring, datetime or datetime64')
+        return dt
+
+    def apply(self, other):
+        if isinstance(other, datetime):
+            dtype = type(other)
+        elif isinstance(other, np.datetime64):
+            dtype = other.dtype
+        elif isinstance(other, (timedelta, Tick)):
+            return BDay(self.n, offset=self.offset + other,
+                        normalize=self.normalize)
+        else:
+            raise TypeError('Only know how to combine trading day with '
+                            'datetime, datetime64 or timedelta!')
+        dt64 = self._to_dt64(other)
+
+        day64 = dt64.astype('datetime64[D]')
+        time = dt64 - day64
+
+        if self.n<=0:
+            roll = 'forward'
+        else:
+            roll = 'backward'
+
+        result = np.busday_offset(day64, self.n, roll=roll,
+                                  busdaycal=self.busdaycalendar)
+
+        if not self.normalize:
+            result = result + time
+
+        result = result.astype(dtype)
+
+        if self.offset:
+            result = result + self.offset
+
+        return result
+
+    def onOffset(self, dt):
+        day64 = self._to_dt64(dt).astype('datetime64[D]')
+        return np.is_busday(day64, busdaycal=self.busdaycalendar)
+
+
 class MonthEnd(DateOffset, CacheableOffset):
     """DateOffset of one month end"""
 
     def apply(self, other):
-        other = datetime(other.year, other.month, other.day)
+        other = datetime(other.year, other.month, other.day, tzinfo=other.tzinfo)
 
         n = self.n
         _, days_in_month = tslib.monthrange(other.year, other.month)
@@ -487,7 +603,7 @@ class Week(DateOffset, CacheableOffset):
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
-                raise Exception('Day must be 0<=day<=6, got %d' %
+                raise ValueError('Day must be 0<=day<=6, got %d' %
                                 self.weekday)
 
         self._inc = timedelta(weeks=1)
@@ -562,13 +678,13 @@ class WeekOfMonth(DateOffset, CacheableOffset):
         self.week = kwds['week']
 
         if self.n == 0:
-            raise Exception('N cannot be 0')
+            raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
-            raise Exception('Day must be 0<=day<=6, got %d' %
+            raise ValueError('Day must be 0<=day<=6, got %d' %
                             self.weekday)
         if self.week < 0 or self.week > 3:
-            raise Exception('Week must be 0<=day<=3, got %d' %
+            raise ValueError('Week must be 0<=day<=3, got %d' %
                             self.week)
 
         self.kwds = kwds
@@ -966,7 +1082,7 @@ class YearBegin(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year begin dates"""
 
     def __init__(self, n=1, **kwds):
-        self.month = kwds.get('month', 12)
+        self.month = kwds.get('month', 1)
 
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
@@ -974,19 +1090,44 @@ class YearBegin(DateOffset, CacheableOffset):
         DateOffset.__init__(self, n=n, **kwds)
 
     def apply(self, other):
-        n = self.n
-        if other.month != 1 or other.day != 1:
-            other = datetime(other.year, 1, 1,
-                             other.hour, other.minute, other.second,
-                             other.microsecond)
-            if n <= 0:
-                n = n + 1
-        other = other + relativedelta(years=n, day=1)
-        return other
+        def _increment(date):
+            year = date.year
+            if date.month >= self.month:
+                year += 1
+            return datetime(year, self.month, 1, date.hour, date.minute,
+                            date.second, date.microsecond)
 
-    @classmethod
-    def onOffset(cls, dt):
-        return dt.month == 1 and dt.day == 1
+        def _decrement(date):
+            year = date.year
+            if date.month < self.month or (date.month == self.month and
+                                           date.day == 1):
+                year -= 1
+            return datetime(year, self.month, 1, date.hour, date.minute,
+                            date.second, date.microsecond)
+
+        def _rollf(date):
+            if (date.month != self.month) or date.day > 1:
+                date = _increment(date)
+            return date
+
+        n = self.n
+        result = other
+        if n > 0:
+            while n > 0:
+                result = _increment(result)
+                n -= 1
+        elif n < 0:
+            while n < 0:
+                result = _decrement(result)
+                n += 1
+        else:
+            # n == 0, roll forward
+            result = _rollf(result)
+
+        return result
+
+    def onOffset(self, dt):
+        return dt.month == self.month and dt.day == 1
 
     @property
     def rule_code(self):
@@ -1144,6 +1285,7 @@ class Nano(Tick):
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
 BMonthBegin = BusinessMonthBegin
+CDay = CustomBusinessDay
 
 
 def _get_firstbday(wkday):
@@ -1172,6 +1314,8 @@ def generate_range(start=None, end=None, periods=None,
     start : datetime (default None)
     end : datetime (default None)
     periods : int, optional
+    time_rule : (legacy) name of DateOffset object to be used, optional
+        Corresponds with names expected by tseries.frequencies.get_offset        
 
     Note
     ----
@@ -1179,6 +1323,7 @@ def generate_range(start=None, end=None, periods=None,
     * At least two of (start, end, periods) must be specified.
     * If both start and end are specified, the returned dates will
     satisfy start <= date <= end.
+    * If both time_rule and offset are specified, time_rule supersedes offset.
 
     Returns
     -------

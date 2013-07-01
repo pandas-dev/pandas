@@ -34,11 +34,11 @@ class Resolution(object):
 
     @classmethod
     def get_str(cls, reso):
-        return {RESO_US: 'microsecond',
-                RESO_SEC: 'second',
-                RESO_MIN: 'minute',
-                RESO_HR: 'hour',
-                RESO_DAY: 'day'}.get(reso, 'day')
+        return {cls.RESO_US: 'microsecond',
+                cls.RESO_SEC: 'second',
+                cls.RESO_MIN: 'minute',
+                cls.RESO_HR: 'hour',
+                cls.RESO_DAY: 'day'}.get(reso, 'day')
 
 
 def get_reso_string(reso):
@@ -46,7 +46,7 @@ def get_reso_string(reso):
 
 
 def get_to_timestamp_base(base):
-    if base <= FreqGroup.FR_WK:
+    if base < FreqGroup.FR_BUS:
         return FreqGroup.FR_DAY
     if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
@@ -114,14 +114,21 @@ def _get_freq_str(base, mult=1):
 # Offset names ("time rules") and related functions
 
 
-from pandas.tseries.offsets import (Day, BDay, Hour, Minute, Second, Milli,
-                                    Week, Micro, MonthEnd, MonthBegin,
-                                    BMonthBegin, BMonthEnd, YearBegin, YearEnd,
-                                    BYearBegin, BYearEnd, QuarterBegin,
-                                    QuarterEnd, BQuarterBegin, BQuarterEnd)
+from pandas.tseries.offsets import (Micro, Milli, Second, Minute, Hour,
+                                    Day, BDay, CDay, Week, MonthBegin,
+                                    MonthEnd, BMonthBegin, BMonthEnd,
+                                    QuarterBegin, QuarterEnd, BQuarterBegin,
+                                    BQuarterEnd, YearBegin, YearEnd,
+                                    BYearBegin, BYearEnd,
+                                    )
+try:
+    cday = CDay()
+except NotImplementedError:
+    cday = None
 
 _offset_map = {
     'D': Day(),
+    'C': cday,
     'B': BDay(),
     'H': Hour(),
     'T': Minute(),
@@ -278,6 +285,7 @@ _offset_to_period_map = {
     'BAS': 'A',
     'MS': 'M',
     'D': 'D',
+    'C': 'C',
     'B': 'B',
     'T': 'T',
     'S': 'S',
@@ -394,9 +402,10 @@ def to_offset(freqstr):
     """
     Return DateOffset object from string representation
 
-    Example
-    -------
-    to_offset('5Min') -> Minute(5)
+    Examples
+    --------
+    >>> to_offset('5Min')
+    Minute(5)
     """
     if freqstr is None:
         return None
@@ -444,8 +453,8 @@ def _base_and_stride(freqstr):
     """
     Return base freq and stride info from string representation
 
-    Example
-    -------
+    Examples
+    --------
     _freq_and_stride('5Min') -> 'Min', 5
     """
     groups = opattern.match(freqstr)
@@ -478,8 +487,8 @@ def get_offset(name):
     """
     Return DateOffset object associated with rule name
 
-    Example
-    -------
+    Examples
+    --------
     get_offset('EOM') --> BMonthEnd(1)
     """
     if name not in _dont_uppercase:
@@ -498,7 +507,7 @@ def get_offset(name):
     if offset is not None:
         return offset
     else:
-        raise Exception('Bad rule name requested: %s!' % name)
+        raise ValueError('Bad rule name requested: %s.' % name)
 
 
 getOffset = get_offset
@@ -512,8 +521,8 @@ def get_offset_name(offset):
     """
     Return rule name associated with a DateOffset object
 
-    Example
-    -------
+    Examples
+    --------
     get_offset_name(BMonthEnd(1)) --> 'EOM'
     """
     name = _offset_names.get(offset)
@@ -521,7 +530,7 @@ def get_offset_name(offset):
     if name is not None:
         return name
     else:
-        raise Exception('Bad rule given: %s!' % offset)
+        raise ValueError('Bad rule given: %s.' % offset)
 
 
 def get_legacy_offset_name(offset):
@@ -746,6 +755,7 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex
+    warn : boolean, default True
 
     Returns
     -------
@@ -1002,15 +1012,17 @@ def is_subperiod(source, target):
         if _is_quarterly(source):
             return _quarter_months_conform(_get_rule_month(source),
                                            _get_rule_month(target))
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(target):
-        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+        return source in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif target == 'M':
-        return source in ['D', 'B', 'H', 'T', 'S']
+        return source in ['D', 'C', 'B', 'H', 'T', 'S']
     elif _is_weekly(target):
-        return source in [target, 'D', 'B', 'H', 'T', 'S']
+        return source in [target, 'D', 'C', 'B', 'H', 'T', 'S']
     elif target == 'B':
         return source in ['B', 'H', 'T', 'S']
+    elif target == 'C':
+        return source in ['C', 'H', 'T', 'S']
     elif target == 'D':
         return source in ['D', 'H', 'T', 'S']
     elif target == 'H':
@@ -1053,17 +1065,19 @@ def is_superperiod(source, target):
             smonth = _get_rule_month(source)
             tmonth = _get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(source):
-        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'M', 'H', 'T', 'S']
     elif source == 'M':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
     elif _is_weekly(source):
-        return target in [source, 'D', 'B', 'H', 'T', 'S']
+        return target in [source, 'D', 'C', 'B', 'H', 'T', 'S']
     elif source == 'B':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
+    elif source == 'C':
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
     elif source == 'D':
-        return target in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'C', 'B', 'H', 'T', 'S']
     elif source == 'H':
         return target in ['H', 'T', 'S']
     elif source == 'T':

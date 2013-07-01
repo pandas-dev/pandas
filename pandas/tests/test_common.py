@@ -1,5 +1,6 @@
 from datetime import datetime
 import sys
+import re
 
 import nose
 import unittest
@@ -26,6 +27,11 @@ def test_is_sequence():
     assert(not is_seq(u"abcd"))
     assert(not is_seq(np.int64))
 
+    class A(object):
+        def __getitem__(self):
+            return 1
+
+    assert(not is_seq(A()))
 
 def test_notnull():
     assert notnull(1.)
@@ -239,6 +245,18 @@ def test_groupby():
         assert v == expected[k]
 
 
+def test_is_list_like():
+    passes = ([], [1], (1,), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
+              Series([]), Series(['a']).str)
+    fails = (1, '2', object())
+
+    for p in passes:
+        assert com.is_list_like(p)
+
+    for f in fails:
+        assert not com.is_list_like(f)
+
+
 def test_ensure_int32():
     values = np.arange(10, dtype=np.int32)
     result = com._ensure_int32(values)
@@ -247,6 +265,26 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
+
+def test_ensure_platform_int():
+
+    # verify that when we create certain types of indices
+    # they remain the correct type under platform conversions
+    from pandas.core.index import Int64Index
+
+    # int64
+    x = Int64Index([1, 2, 3], dtype='int64')
+    assert(x.dtype == np.int64)
+
+    pi = com._ensure_platform_int(x)
+    assert(pi.dtype == np.int_)
+
+    # int32
+    x = Int64Index([1, 2, 3], dtype='int32')
+    assert(x.dtype == np.int32)
+
+    pi = com._ensure_platform_int(x)
+    assert(pi.dtype == np.int_)
 
 # TODO: fix this broken test
 
@@ -264,25 +302,27 @@ def test_ensure_int32():
 #         assert (result == expected)
 
 
-def test_pprint_thing():
-    if py3compat.PY3:
-        raise nose.SkipTest
+def test_is_re():
+    passes = re.compile('ad'),
+    fails = 'x', 2, 3, object()
 
-    pp_t = com.pprint_thing
+    for p in passes:
+        assert com.is_re(p)
 
-    assert(pp_t('a') == u'a')
-    assert(pp_t(u'a') == u'a')
-    assert(pp_t(None) == '')
-    assert(pp_t(u'\u05d0') == u'\u05d0')
-    assert(pp_t((u'\u05d0', u'\u05d1')) == u'(\u05d0, \u05d1)')
-    assert(pp_t((u'\u05d0', (u'\u05d1', u'\u05d2'))) ==
-           u'(\u05d0, (\u05d1, \u05d2))')
-    assert(pp_t(('foo', u'\u05d0', (u'\u05d0', u'\u05d0'))) ==
-           u'(foo, \u05d0, (\u05d0, \u05d0))')
+    for f in fails:
+        assert not com.is_re(f)
 
-    # escape embedded tabs in string
-    # GH #2038
-    assert not "\t" in pp_t("a\tb", escape_chars=("\t",))
+
+def test_is_recompilable():
+    passes = (r'a', u'x', r'asdf', re.compile('adsf'), ur'\u2233\s*',
+              re.compile(r''))
+    fails = 1, [], object()
+
+    for p in passes:
+        assert com.is_re_compilable(p)
+
+    for f in fails:
+        assert not com.is_re_compilable(f)
 
 
 class TestTake(unittest.TestCase):
@@ -659,7 +699,7 @@ class TestTake(unittest.TestCase):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
-    
+
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
         arr = np.random.randint(11045376L, 11360736L, (5,3))*100000000000

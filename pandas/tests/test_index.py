@@ -10,13 +10,13 @@ import os
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from pandas.core.categorical import Factor
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
 import pandas.core.common as com
 
 import pandas.util.testing as tm
+import pandas.core.config as cf
 
 from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
@@ -204,6 +204,9 @@ class TestIndex(unittest.TestCase):
         shifted = self.dateIndex.shift(1, 'B')
         self.assert_(np.array_equal(shifted, self.dateIndex + offsets.BDay()))
 
+        shifted.name = 'shifted'
+        self.assertEqual(shifted.name, shifted.shift(1, 'D').name)
+
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
@@ -299,12 +302,27 @@ class TestIndex(unittest.TestCase):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
         answer = self.strIndex[10:20]
+        first.name = 'name'
+        # different names
         result = first - second
 
         self.assert_(tm.equalContents(result, answer))
+        self.assertEqual(result.name, None)
 
-        diff = first.diff(first)
-        self.assert_(len(diff) == 0)
+        # same names
+        second.name = 'name'
+        result = first - second
+        self.assertEqual(result.name, 'name')
+
+        # with empty
+        result = first.diff([])
+        self.assert_(tm.equalContents(result, first))
+        self.assertEqual(result.name, first.name)
+
+        # with everythin
+        result = first.diff(first)
+        self.assert_(len(result) == 0)
+        self.assertEqual(result.name, first.name)
 
         # non-iterable input
         self.assertRaises(Exception, first.diff, 0.5)
@@ -351,12 +369,13 @@ class TestIndex(unittest.TestCase):
         # 2845
         index = Index([1, 2.0+3.0j, np.nan])
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), str(index[2])]
+        expected = [str(index[0]), str(index[1]), u'NaN']
         self.assertEquals(formatted, expected)
 
+        # is this really allowed?
         index = Index([1, 2.0+3.0j, None])
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), '']
+        expected = [str(index[0]), str(index[1]), u'NaN']
         self.assertEquals(formatted, expected)
 
         self.strIndex[:0].format()
@@ -879,9 +898,10 @@ class TestInt64Index(unittest.TestCase):
         repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_summary(self):
-        r = repr(pd.Index(np.arange(10000)))
-        self.assertTrue(len(r) < 100)
-        self.assertTrue("..." in r)
+        with cf.option_context('display.max_seq_items',10):
+            r = repr(pd.Index(np.arange(1000)))
+            self.assertTrue(len(r) < 100)
+            self.assertTrue("..." in r)
 
     def test_unicode_string_with_unicode(self):
         idx = Index(range(1000))
@@ -1063,7 +1083,7 @@ class TestMultiIndex(unittest.TestCase):
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'mindex_073.pickle')
 
-        obj = com.load(filepath)
+        obj = pd.read_pickle(filepath)
 
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assert_(obj.equals(obj2))
@@ -1354,12 +1374,12 @@ class TestMultiIndex(unittest.TestCase):
                                 category=FutureWarning,
                                 module=".*format")
         # #1538
-        pd.set_printoptions(multi_sparse=False)
+        pd.set_option('display.multi_sparse', False)
 
         result = self.index.format()
         self.assertEqual(result[1], 'foo  two')
 
-        pd.reset_printoptions()
+        pd.reset_option("^display\.")
 
         warnings.filters = warn_filters
 
@@ -1509,6 +1529,18 @@ class TestMultiIndex(unittest.TestCase):
         # raise Exception called with non-MultiIndex
         result = first.diff(first._tuple_index)
         self.assertTrue(result.equals(first[:0]))
+
+        # name from empty array
+        result = first.diff([])
+        self.assert_(first.equals(result))
+        self.assertEqual(first.names, result.names)
+
+        # name from non-empty array 
+        result = first.diff([('foo', 'one')])
+        expected = pd.MultiIndex.from_tuples([('bar', 'one'), ('baz', 'two'), ('foo', 'two'),
+                                              ('qux', 'one'), ('qux', 'two')])
+        expected.names = first.names
+        self.assertEqual(first.names, result.names)
 
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])

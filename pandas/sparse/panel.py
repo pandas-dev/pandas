@@ -71,7 +71,8 @@ class SparsePanel(Panel):
                                     default_kind=default_kind)
             frames = new_frames
 
-        assert(isinstance(frames, dict))
+        if not (isinstance(frames, dict)):
+            raise AssertionError()
 
         self.default_fill_value = fill_value = default_fill_value
         self.default_kind = kind = default_kind
@@ -248,7 +249,7 @@ class SparsePanel(Panel):
         frame : DataFrame
         """
         if not filter_observations:
-            raise Exception('filter_observations=False not supported for '
+            raise TypeError('filter_observations=False not supported for '
                             'SparsePanel.to_long')
 
         I, N, K = self.shape
@@ -324,7 +325,7 @@ class SparsePanel(Panel):
                 if item in self._frames:
                     new_frames[item] = self._frames[item]
                 else:
-                    raise Exception('Reindexing with new items not yet '
+                    raise NotImplementedError('Reindexing with new items not yet '
                                     'supported')
         else:
             new_frames = self._frames
@@ -487,7 +488,7 @@ def _stack_sparse_info(frame):
         series = frame[col]
 
         if not np.isnan(series.fill_value):
-            raise Exception('This routine assumes NaN fill value')
+            raise TypeError('This routine assumes NaN fill value')
 
         int_index = series.sp_index.to_int_index()
         inds_to_concat.append(int_index.indices)

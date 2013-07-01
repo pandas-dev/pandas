@@ -82,3 +82,12 @@ arr = np.random.randn(100000)
 
 stats_rolling_mean = Benchmark('rolling_mean(arr, 100)', setup,
                                start_date=datetime(2011, 6, 1))
+
+# spearman correlation
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(1000, 30))
+"""
+
+stats_corr_spearman = Benchmark("df.corr(method='spearman')", setup,
+                                start_date=datetime(2011, 12, 4))

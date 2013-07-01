@@ -200,7 +200,9 @@ Reshaping by Melt
 The ``melt`` function found in ``pandas.core.reshape`` is useful to massage a
 DataFrame into a format where one or more columns are identifier variables,
 while all other columns, considered measured variables, are "pivoted" to the
-row axis, leaving just two non-identifier columns, "variable" and "value".
+row axis, leaving just two non-identifier columns, "variable" and "value". The
+names of those columns can be customized by supplying the ``var_name`` and
+``value_name`` parameters.
 
 For instance,
 
@@ -212,6 +214,7 @@ For instance,
                        'weight' : [130, 150]})
    cheese
    melt(cheese, id_vars=['first', 'last'])
+   melt(cheese, id_vars=['first', 'last'], var_name='quantity')
 
 Combining with stats and GroupBy
 --------------------------------
@@ -239,7 +242,9 @@ Pivot tables and cross-tabulations
 .. _reshaping.pivot:
 
 The function ``pandas.pivot_table`` can be used to create spreadsheet-style pivot
-tables. It takes a number of arguments
+tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced strategies
+
+It takes a number of arguments
 
 - ``data``: A DataFrame object
 - ``values``: a column or a list of columns to aggregate

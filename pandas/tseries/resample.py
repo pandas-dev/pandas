@@ -24,8 +24,8 @@ class TimeGrouper(CustomGrouper):
     Parameters
     ----------
     freq : pandas date offset or offset alias for identifying bin edges
-    closed : closed end of interval; left (default) or right
-    label : interval boundary to use for labeling; left (default) or right
+    closed : closed end of interval; left or right
+    label : interval boundary to use for labeling; left or right
     nperiods : optional, integer
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
@@ -85,7 +85,7 @@ class TimeGrouper(CustomGrouper):
             offset = to_offset(self.freq)
             if offset.n > 1:
                 if self.kind == 'period':  # pragma: no cover
-                    print 'Warning: multiple of frequency -> timestamps'
+                    print ('Warning: multiple of frequency -> timestamps')
                 # Cannot have multiple of periods, convert to timestamp
                 self.kind = 'timestamp'
 
@@ -119,7 +119,8 @@ class TimeGrouper(CustomGrouper):
         return binner, grouper
 
     def _get_time_bins(self, axis):
-        assert(isinstance(axis, DatetimeIndex))
+        if not (isinstance(axis, DatetimeIndex)):
+            raise AssertionError()
 
         if len(axis) == 0:
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
@@ -178,7 +179,8 @@ class TimeGrouper(CustomGrouper):
         return binner, bin_edges
 
     def _get_time_period_bins(self, axis):
-        assert(isinstance(axis, DatetimeIndex))
+        if not(isinstance(axis, DatetimeIndex)):
+            raise AssertionError()
 
         if len(axis) == 0:
             binner = labels = PeriodIndex(data=[], freq=self.freq)
@@ -208,8 +210,15 @@ class TimeGrouper(CustomGrouper):
                 result = grouped.aggregate(self._agg_method)
             else:
                 # upsampling shortcut
-                assert(self.axis == 0)
-                result = obj.reindex(binner[1:], method=self.fill_method,
+                if not (self.axis == 0):
+                    raise AssertionError()
+
+                if self.closed == 'right':
+                    res_index = binner[1:]
+                else:
+                    res_index = binner[:-1]
+
+                result = obj.reindex(res_index, method=self.fill_method,
                                      limit=self.limit)
         else:
             # Irregular data, have to use groupby
@@ -276,13 +285,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
     elif isinstance(obj, DataFrame):
         if axis == 1:
             raise NotImplementedError
-        data = obj._data
-
-        new_blocks = [b.take(indexer, axis=1) for b in data.blocks]
-        new_axes = list(data.axes)
-        new_axes[1] = new_index
-        new_data = BlockManager(new_blocks, new_axes)
-        return DataFrame(new_data)
+        return DataFrame(obj._data.take(indexer,new_index=new_index,axis=1))
     else:
         raise NotImplementedError
 

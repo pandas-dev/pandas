@@ -25,7 +25,8 @@ def _sparse_op_wrap(op, name):
     """
     def wrapper(self, other):
         if isinstance(other, np.ndarray):
-            assert(len(self) == len(other))
+            if not ((len(self) == len(other))):
+                raise AssertionError()
             if not isinstance(other, SparseArray):
                 other = SparseArray(other, fill_value=self.fill_value)
             return _sparse_array_op(self, other, op, name)
@@ -129,7 +130,8 @@ to sparse
                                                    fill_value=fill_value)
             else:
                 values = data
-                assert(len(values) == sparse_index.npoints)
+                if not ((len(values) == sparse_index.npoints)):
+                    raise AssertionError()
 
         # Create array, do *not* copy data by default
         if copy:
@@ -259,7 +261,7 @@ to sparse
             loc += n
 
         if loc >= len(self) or loc < 0:
-            raise Exception('Out of bounds access')
+            raise IndexError('out of bounds access')
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
@@ -275,12 +277,13 @@ to sparse
         -------
         taken : ndarray
         """
-        assert(axis == 0)
+        if not ((axis == 0)):
+            raise AssertionError()
         indices = np.asarray(indices, dtype=int)
 
         n = len(self)
         if (indices < 0).any() or (indices >= n).any():
-            raise Exception('out of bounds access')
+            raise IndexError('out of bounds access')
 
         if self.sp_index.npoints > 0:
             locs = np.array([self.sp_index.lookup(loc) for loc in indices])
@@ -293,10 +296,10 @@ to sparse
         return result
 
     def __setitem__(self, key, value):
-        raise Exception('SparseArray objects are immutable')
+        raise TypeError('%r object does not support item assignment' % self.__class__.__name__)
 
     def __setslice__(self, i, j, value):
-        raise Exception('SparseArray objects are immutable')
+        raise TypeError('%r object does not support item assignment' % self.__class__.__name__)
 
     def to_dense(self):
         """
@@ -310,7 +313,7 @@ to sparse
         """
         dtype = np.dtype(dtype)
         if dtype is not None and dtype not in (np.float_, float):
-            raise Exception('Can only support floating point data for now')
+            raise TypeError('Can only support floating point data for now')
         return self.copy()
 
     def copy(self, deep=True):

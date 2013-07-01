@@ -2,13 +2,19 @@ from __future__ import division
 
 # pylint: disable-msg=W0402
 
-from datetime import datetime
 import random
 import string
 import sys
+import tempfile
+import warnings
+import inspect
+import os
 
-from contextlib import contextmanager  # contextlib is available since 2.5
-
+from datetime import datetime
+from functools import wraps
+from contextlib import contextmanager, closing
+from httplib import HTTPException
+from urllib2 import urlopen
 from distutils.version import LooseVersion
 
 from numpy.random import randn
@@ -25,6 +31,8 @@ from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 
+from pandas.io.common import urlopen
+
 Index = index.Index
 MultiIndex = index.MultiIndex
 Series = series.Series
@@ -34,11 +42,12 @@ Panel4D = panel4d.Panel4D
 
 N = 30
 K = 4
+_RAISE_NETWORK_ERROR_DEFAULT = False
 
 
 def rands(n):
     choices = string.ascii_letters + string.digits
-    return ''.join([random.choice(choices) for _ in xrange(n)])
+    return ''.join(random.choice(choices) for _ in xrange(n))
 
 
 def randu(n):
@@ -75,9 +84,33 @@ def set_trace():
         OldPdb().set_trace(sys._getframe().f_back)
 
 #------------------------------------------------------------------------------
+# contextmanager to ensure the file cleanup
+@contextmanager
+def ensure_clean(filename = None):
+    # if we are not passed a filename, generate a temporary
+    if filename is None:
+        filename = tempfile.mkstemp()[1]
+
+    try:
+        yield filename
+    finally:
+        try:
+            os.remove(filename)
+        except:
+            pass
+
+
+def get_data_path(f=''):
+    """Return the path of a data file, these are relative to the current test
+    directory.
+    """
+    # get our callers file
+    _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
+    base_dir = os.path.abspath(os.path.dirname(filename))
+    return os.path.join(base_dir, 'data', f)
+
+#------------------------------------------------------------------------------
 # Comparators
-
-
 def equalContents(arr1, arr2):
     """Checks if the set of unique elements of arr1 and arr2 are equivalent.
     """
@@ -93,20 +126,22 @@ def assert_almost_equal(a, b, check_less_precise = False):
         return assert_dict_equal(a, b)
 
     if isinstance(a, basestring):
-        assert a == b, (a, b)
+        assert a == b, "%s != %s" % (a, b)
         return True
 
     if isiterable(a):
         np.testing.assert_(isiterable(b))
-        assert(len(a) == len(b))
+        na, nb = len(a), len(b)
+        assert na == nb, "%s != %s" % (na, nb)
+
         if np.array_equal(a, b):
             return True
         else:
-            for i in xrange(len(a)):
+            for i in xrange(na):
                 assert_almost_equal(a[i], b[i], check_less_precise)
         return True
 
-    err_msg = lambda a, b: 'expected %.5f but got %.5f' % (a, b)
+    err_msg = lambda a, b: 'expected %.5f but got %.5f' % (b, a)
 
     if isnull(a):
         np.testing.assert_(isnull(b))
@@ -117,10 +152,8 @@ def assert_almost_equal(a, b, check_less_precise = False):
 
         # deal with differing dtypes
         if check_less_precise:
-            dtype_a = np.dtype(a)
-            dtype_b = np.dtype(b)
-            if dtype_a.kind == 'i' and dtype_b == 'i':
-                pass
+            dtype_a = np.dtype(type(a))
+            dtype_b = np.dtype(type(b))
             if dtype_a.kind == 'f' and dtype_b == 'f':
                 if dtype_a.itemsize <= 4 and dtype_b.itemsize <= 4:
                     decimal = 3
@@ -136,7 +169,7 @@ def assert_almost_equal(a, b, check_less_precise = False):
             np.testing.assert_almost_equal(
                 1, a / b, decimal=decimal, err_msg=err_msg(a, b), verbose=False)
     else:
-        assert(a == b)
+        assert a == b, "%s != %s" % (a, b)
 
 
 def is_sorted(seq):
@@ -164,7 +197,10 @@ def assert_series_equal(left, right, check_dtype=True,
     assert_almost_equal(left.values, right.values, check_less_precise)
     if check_dtype:
         assert(left.dtype == right.dtype)
-    assert(left.index.equals(right.index))
+    if check_less_precise:
+        assert_almost_equal(left.index.values, right.index.values, check_less_precise)
+    else:
+        assert(left.index.equals(right.index))
     if check_index_type:
         assert(type(left.index) == type(right.index))
         assert(left.index.dtype == right.index.dtype)
@@ -174,24 +210,29 @@ def assert_series_equal(left, right, check_dtype=True,
                getattr(right, 'freqstr', None))
 
 
-def assert_frame_equal(left, right, check_dtype=True, 
+def assert_frame_equal(left, right, check_dtype=True,
                        check_index_type=False,
                        check_column_type=False,
                        check_frame_type=False,
-                       check_less_precise=False):
+                       check_less_precise=False,
+                       check_names=True):
     if check_frame_type:
         assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
 
-    assert(left.columns.equals(right.columns))
-    assert(left.index.equals(right.index))
+    if check_less_precise:
+        assert_almost_equal(left.columns,right.columns)
+        assert_almost_equal(left.index,right.index)
+    else:
+        assert(left.columns.equals(right.columns))
+        assert(left.index.equals(right.index))
 
     for i, col in enumerate(left.columns):
         assert(col in right)
         lcol = left.icol(i)
         rcol = right.icol(i)
-        assert_series_equal(lcol, rcol, 
+        assert_series_equal(lcol, rcol,
                             check_dtype=check_dtype,
                             check_index_type=check_index_type,
                             check_less_precise=check_less_precise)
@@ -204,9 +245,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         assert(type(left.columns) == type(right.columns))
         assert(left.columns.dtype == right.columns.dtype)
         assert(left.columns.inferred_type == right.columns.inferred_type)
+    if check_names:
+        assert(left.index.names == right.index.names)
+        assert(left.columns.names == right.columns.names)
 
 
-def assert_panel_equal(left, right, 
+def assert_panel_equal(left, right,
                        check_panel_type=False,
                        check_less_precise=False):
     if check_panel_type:
@@ -218,7 +262,7 @@ def assert_panel_equal(left, right,
 
     for col, series in left.iterkv():
         assert(col in right)
-        assert_frame_equal(series, right[col], check_less_precise=check_less_precise)
+        assert_frame_equal(series, right[col], check_less_precise=check_less_precise, check_names=False)  # TODO strangely check_names fails in py3 ?
 
     for col in right:
         assert(col in left)
@@ -376,7 +420,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
        label will repeated at the corresponding level, you can specify just
        the first few, the rest will use the default ndupe_l of 1.
        len(ndupe_l) <= nlevels.
-    idx_type - "i"/"f"/"s"/"u"/"dt".
+    idx_type - "i"/"f"/"s"/"u"/"dt/"p".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,
        "s"/"u" creates a string/unicode index
@@ -392,7 +436,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     assert (names is None or names is False
             or names is True or len(names) is nlevels)
     assert idx_type is None or \
-        (idx_type in ('i', 'f', 's', 'u', 'dt') and nlevels == 1)
+        (idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and nlevels == 1)
 
     if names is True:
         # build default names
@@ -407,7 +451,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     # specific 1D index type requested?
     idx_func = dict(i=makeIntIndex, f=makeFloatIndex, s=makeStringIndex,
-                    u=makeUnicodeIndex, dt=makeDateIndex).get(idx_type)
+                    u=makeUnicodeIndex, dt=makeDateIndex, p=makePeriodIndex).get(idx_type)
     if idx_func:
         idx = idx_func(nentries)
         # but we need to fill in the name
@@ -416,7 +460,7 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         return idx
     elif idx_type is not None:
         raise ValueError('"%s" is not a legal value for `idx_type`, use  '
-                         '"i"/"f"/"s"/"u"/"dt".' % idx_type)
+                         '"i"/"f"/"s"/"u"/"dt/"p".' % idx_type)
 
     if len(ndupe_l) < nlevels:
         ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
@@ -510,9 +554,9 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or \
-        (r_idx_type in ('i', 'f', 's', 'u', 'dt') and r_idx_nlevels == 1)
+        (r_idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and r_idx_nlevels == 1)
     assert c_idx_type is None or \
-        (c_idx_type in ('i', 'f', 's', 'u', 'dt') and c_idx_nlevels == 1)
+        (c_idx_type in ('i', 'f', 's', 'u', 'dt', 'p') and c_idx_nlevels == 1)
 
     columns = makeCustomIndex(ncols, nlevels=c_idx_nlevels, prefix='C',
                               names=c_idx_names, ndupe_l=c_ndupe_l,
@@ -618,18 +662,57 @@ def skip_if_no_package(*args, **kwargs):
 # Additional tags decorators for nose
 #
 
+def optional_args(decorator):
+    """allows a decorator to take optional positional and keyword arguments.
+    Assumes that taking a single, callable, positional argument means that
+    it is decorating a function, i.e. something like this::
 
-def network(t):
+        @my_decorator
+        def function(): pass
+
+    Calls decorator with decorator(f, *args, **kwargs)"""
+
+    @wraps(decorator)
+    def wrapper(*args, **kwargs):
+        def dec(f):
+            return decorator(f, *args, **kwargs)
+
+        is_decorating = not kwargs and len(args) == 1 and callable(args[0])
+        if is_decorating:
+            f = args[0]
+            args = []
+            return dec(f)
+        else:
+            return dec
+
+    return wrapper
+
+
+_network_error_classes = IOError, HTTPException
+
+@optional_args
+def network(t, raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
+            error_classes=_network_error_classes):
     """
-    Label a test as requiring network connection.
+    Label a test as requiring network connection and skip test if it encounters a ``URLError``.
 
     In some cases it is not possible to assume network presence (e.g. Debian
     build hosts).
+
+    You can pass an optional ``raise_on_error`` argument to the decorator, in
+    which case it will always raise an error even if it's not a subclass of
+    ``error_classes``.
 
     Parameters
     ----------
     t : callable
         The test requiring network connectivity.
+    raise_on_error : bool
+        If True, never catches errors.
+    error_classes : iterable
+        error classes to ignore. If not in ``error_classes``, raises the error.
+        defaults to URLError. Be careful about changing the error classes here,
+        it may result in undefined behavior.
 
     Returns
     -------
@@ -640,18 +723,157 @@ def network(t):
     --------
     A test can be decorated as requiring network like this::
 
-      from pandas.util.testing import *
+      >>> from pandas.util.testing import network
+      >>> import urllib2
+      >>> import nose
+      >>> @network
+      ... def test_network():
+      ...   urllib2.urlopen("rabbit://bonanza.com")
+      ...
+      >>> try:
+      ...   test_network()
+      ... except nose.SkipTest:
+      ...   print "SKIPPING!"
+      ...
+      SKIPPING!
 
-      @network
-      def test_network(self):
-          print 'Fetch the stars from http://'
+    Alternatively, you can use set ``raise_on_error`` in order to get
+    the error to bubble up, e.g.::
+
+      >>> @network(raise_on_error=True)
+      ... def test_network():
+      ...   urllib2.urlopen("complaint://deadparrot.com")
+      ...
+      >>> test_network()
+      Traceback (most recent call last):
+        ...
+      URLError: <urlopen error unknown url type: complaint>
 
     And use ``nosetests -a '!network'`` to exclude running tests requiring
-    network connectivity.
+    network connectivity. ``_RAISE_NETWORK_ERROR_DEFAULT`` in
+    ``pandas/util/testing.py`` sets the default behavior (currently False).
     """
-
+    from nose import SkipTest
     t.network = True
-    return t
+
+    @wraps(t)
+    def network_wrapper(*args, **kwargs):
+        if raise_on_error:
+            return t(*args, **kwargs)
+        else:
+            try:
+                return t(*args, **kwargs)
+            except error_classes as e:
+                raise SkipTest("Skipping test %s" % e)
+
+    return network_wrapper
+
+
+def can_connect(url, error_classes=_network_error_classes):
+    """Try to connect to the given url. True if succeeds, False if IOError
+    raised
+
+    Parameters
+    ----------
+    url : basestring
+        The URL to try to connect to
+
+    Returns
+    -------
+    connectable : bool
+        Return True if no IOError (unable to connect) or URLError (bad url) was
+        raised
+    """
+    try:
+        with urlopen(url):
+            pass
+    except error_classes:
+        return False
+    else:
+        return True
+
+
+@optional_args
+def with_connectivity_check(t, url="http://www.google.com",
+                            raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
+                            check_before_test=False,
+                            error_classes=_network_error_classes):
+    """
+    Label a test as requiring network connection and, if an error is
+    encountered, only raise if it does not find a network connection.
+
+    In comparison to ``network``, this assumes an added contract to your test:
+    you must assert that, under normal conditions, your test will ONLY fail if
+    it does not have network connectivity.
+
+    You can call this in 3 ways: as a standard decorator, with keyword
+    arguments, or with a positional argument that is the url to check.
+
+    Parameters
+    ----------
+    t : callable
+        The test requiring network connectivity.
+    url : path
+        The url to test via ``urllib2.urlopen`` to check for connectivity.
+        Defaults to 'http://www.google.com'.
+    raise_on_error : bool
+        If True, never catches errors.
+    check_before_test : bool
+        If True, checks connectivity before running the test case.
+    error_classes : tuple or Exception
+        error classes to ignore. If not in ``error_classes``, raises the error.
+        defaults to IOError. Be careful about changing the error classes here.
+
+    Notes
+    -----
+    * ``raise_on_error`` supercedes ``check_before_test``
+
+    Returns
+    -------
+    t : callable
+        The decorated test ``t``, with checks for connectivity errors.
+
+    Example
+    -------
+
+    In this example, you see how it will raise the error if it can connect to
+    the url::
+        >>> @with_connectivity_check("http://www.yahoo.com")
+        ... def test_something_with_yahoo():
+        ...    raise IOError("Failure Message")
+        >>> test_something_with_yahoo()
+        Traceback (most recent call last):
+            ...
+        IOError: Failure Message
+
+    I you set check_before_test, it will check the url first and not run the test on failure::
+        >>> @with_connectivity_check("failing://url.blaher", check_before_test=True)
+        ... def test_something():
+        ...     print("I ran!")
+        ...     raise ValueError("Failure")
+        >>> test_something()
+        Traceback (most recent call last):
+            ...
+        SkipTest
+    """
+    from nose import SkipTest
+    t.network = True
+
+    @wraps(t)
+    def wrapper(*args, **kwargs):
+        if check_before_test and not raise_on_error:
+            if not can_connect(url, error_classes):
+                raise SkipTest
+        try:
+            return t(*args, **kwargs)
+        except error_classes as e:
+            if raise_on_error or can_connect(url, error_classes):
+                raise
+            else:
+                raise SkipTest("Skipping test due to lack of connectivity"
+                               " and error %s" % e)
+
+    return wrapper
 
 
 class SimpleMock(object):
@@ -698,7 +920,105 @@ def stdin_encoding(encoding=None):
 
     """
     import sys
+
     _stdin = sys.stdin
     sys.stdin = SimpleMock(sys.stdin, "encoding", encoding)
     yield
     sys.stdin = _stdin
+
+
+def assertRaisesRegexp(exception, regexp, callable, *args, **kwargs):
+    """ Port of assertRaisesRegexp from unittest in Python 2.7 - used in with statement.
+
+    Explanation from standard library:
+        Like assertRaises() but also tests that regexp matches on the string
+        representation of the raised exception. regexp may be a regular expression
+        object or a string containing a regular expression suitable for use by
+        re.search().
+
+    You can pass either a regular expression or a compiled regular expression object.
+    >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
+    ...                                int, 'XYZ')
+    >>> import re
+    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ')
+
+    If an exception of a different type is raised, it bubbles up.
+
+    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ')
+    Traceback (most recent call last):
+        ...
+    ValueError: invalid literal for int() with base 10: 'XYZ'
+    >>> dct = {}
+    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple')
+    Traceback (most recent call last):
+        ...
+    AssertionError: "pear" does not match "'apple'"
+    >>> assertRaisesRegexp(KeyError, 'apple', dct.__getitem__, 'apple')
+    >>> assertRaisesRegexp(Exception, 'operand type.*int.*dict', lambda : 2 + {})
+    """
+
+    import re
+
+    try:
+        callable(*args, **kwargs)
+    except Exception as e:
+        if not issubclass(e.__class__, exception):
+            # mimics behavior of unittest
+            raise
+        # don't recompile
+        if hasattr(regexp, "search"):
+            expected_regexp = regexp
+        else:
+            expected_regexp = re.compile(regexp)
+        if not expected_regexp.search(str(e)):
+            raise AssertionError('"%s" does not match "%s"' %
+                                 (expected_regexp.pattern, str(e)))
+    else:
+        # Apparently some exceptions don't have a __name__ attribute? Just aping unittest library here
+        name = getattr(exception, "__name__", str(exception))
+        raise AssertionError("{0} not raised".format(name))
+
+
+@contextmanager
+def assert_produces_warning(expected_warning=Warning, filter_level="always"):
+    """
+    Context manager for running code that expects to raise (or not raise)
+    warnings.  Checks that code raises the expected warning and only the
+    expected warning. Pass ``False`` or ``None`` to check that it does *not*
+    raise a warning. Defaults to ``exception.Warning``, baseclass of all
+    Warnings. (basically a wrapper around ``warnings.catch_warnings``).
+
+    >>> import warnings
+    >>> with assert_produces_warning():
+    ...     warnings.warn(UserWarning())
+    ...
+    >>> with assert_produces_warning(False):
+    ...     warnings.warn(RuntimeWarning())
+    ...
+    Traceback (most recent call last):
+        ...
+    AssertionError: Caused unexpected warning(s): ['RuntimeWarning'].
+    >>> with assert_produces_warning(UserWarning):
+    ...     warnings.warn(RuntimeWarning())
+    Traceback (most recent call last):
+        ...
+    AssertionError: Did not see expected warning of class 'UserWarning'.
+
+    ..warn:: This is *not* thread-safe.
+    """
+    with warnings.catch_warnings(record=True) as w:
+        saw_warning = False
+        warnings.simplefilter(filter_level)
+        yield w
+        extra_warnings = []
+        for actual_warning in w:
+            if (expected_warning and issubclass(actual_warning.category,
+                                                expected_warning)):
+                saw_warning = True
+            else:
+                extra_warnings.append(actual_warning.category.__name__)
+        if expected_warning:
+            assert saw_warning, ("Did not see expected warning of class %r."
+                                 % expected_warning.__name__)
+        assert not extra_warnings, ("Caused unexpected warning(s): %r."
+                                    % extra_warnings)

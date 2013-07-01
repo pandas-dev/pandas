@@ -22,17 +22,76 @@ _multiprocess_can_split_ = True
 
 def test_melt():
     df = tm.makeTimeDataFrame()[:10]
-    df['id1'] = (df['A'] > 0).astype(int)
-    df['id2'] = (df['B'] > 0).astype(int)
+    df['id1'] = (df['A'] > 0).astype(np.int64)
+    df['id2'] = (df['B'] > 0).astype(np.int64)
 
-    molten1 = melt(df)
-    molten2 = melt(df, id_vars=['id1'])
-    molten3 = melt(df, id_vars=['id1', 'id2'])
-    molten4 = melt(df, id_vars=['id1', 'id2'],
+    var_name = 'var'
+    value_name = 'val'
+
+    # Default column names
+    result = melt(df)
+    result1 = melt(df, id_vars=['id1'])
+    result2 = melt(df, id_vars=['id1', 'id2'])
+    result3 = melt(df, id_vars=['id1', 'id2'],
                    value_vars='A')
-    molten5 = melt(df, id_vars=['id1', 'id2'],
+    result4 = melt(df, id_vars=['id1', 'id2'],
                    value_vars=['A', 'B'])
+                  
+    expected4 = DataFrame({'id1': df['id1'].tolist() * 2,
+                           'id2': df['id2'].tolist() * 2,
+                           'variable': ['A']*10 + ['B']*10,
+                           'value': df['A'].tolist() + df['B'].tolist()},
+                          columns=['id1', 'id2', 'variable', 'value'])                  
+    tm.assert_frame_equal(result4, expected4)
+    
+    # Supply custom name for the 'variable' column    
+    result5 = melt(df, var_name=var_name)
+    result6 = melt(df, id_vars=['id1'], var_name=var_name)
+    result7 = melt(df, id_vars=['id1', 'id2'], var_name=var_name)
+    result8 = melt(df, id_vars=['id1', 'id2'],
+                   value_vars='A', var_name=var_name)
+    result9 = melt(df, id_vars=['id1', 'id2'],
+                   value_vars=['A', 'B'], var_name=var_name)
+                    
+    expected9 = DataFrame({'id1': df['id1'].tolist() * 2,
+                           'id2': df['id2'].tolist() * 2,
+                           var_name: ['A']*10 + ['B']*10,
+                           'value': df['A'].tolist() + df['B'].tolist()},
+                          columns=['id1', 'id2', var_name, 'value'])                  
+    tm.assert_frame_equal(result9, expected9)
 
+    # Supply custom name for the 'value' column
+    result10 = melt(df, value_name=value_name)
+    result11 = melt(df, id_vars=['id1'], value_name=value_name)
+    result12 = melt(df, id_vars=['id1', 'id2'], value_name=value_name)
+    result13 = melt(df, id_vars=['id1', 'id2'],
+                    value_vars='A', value_name=value_name)
+    result14 = melt(df, id_vars=['id1', 'id2'],
+                    value_vars=['A', 'B'], value_name=value_name)
+                    
+    expected14 = DataFrame({'id1': df['id1'].tolist() * 2,
+                            'id2': df['id2'].tolist() * 2,
+                            'variable': ['A']*10 + ['B']*10,
+                            value_name: df['A'].tolist() + df['B'].tolist()},
+                           columns=['id1', 'id2', 'variable', value_name])                  
+    tm.assert_frame_equal(result14, expected14)
+
+    # Supply custom names for the 'variable' and 'value' columns
+    result15 = melt(df, var_name=var_name, value_name=value_name)
+    result16 = melt(df, id_vars=['id1'], var_name=var_name, value_name=value_name)
+    result17 = melt(df, id_vars=['id1', 'id2'],
+                    var_name=var_name, value_name=value_name)
+    result18 = melt(df, id_vars=['id1', 'id2'],
+                    value_vars='A', var_name=var_name, value_name=value_name)
+    result19 = melt(df, id_vars=['id1', 'id2'],
+                    value_vars=['A', 'B'], var_name=var_name, value_name=value_name)
+                    
+    expected19 = DataFrame({'id1': df['id1'].tolist() * 2,
+                            'id2': df['id2'].tolist() * 2,
+                            var_name: ['A']*10 + ['B']*10,
+                            value_name: df['A'].tolist() + df['B'].tolist()},
+                           columns=['id1', 'id2', var_name, value_name])                  
+    tm.assert_frame_equal(result19, expected19)
 
 def test_convert_dummies():
     df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',

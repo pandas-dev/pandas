@@ -4,7 +4,16 @@ import sys
 print("\nINSTALLED VERSIONS")
 print("------------------")
 print("Python: %d.%d.%d.%s.%s" % sys.version_info[:])
+try:
+    import os
+    (sysname, nodename, release, version, machine) = os.uname()
+    print("OS: %s %s %s %s" % (sysname, release, version,machine))
+    print("LC_ALL: %s" % os.environ.get('LC_ALL',"None"))
+    print("LANG: %s" % os.environ.get('LANG',"None"))
+except:
+    pass
 
+print("")
 try:
     import Cython
     print("Cython: %s" % Cython.__version__)
@@ -53,6 +62,12 @@ except:
     print("pytz: Not installed")
 
 try:
+    import bottleneck
+    print("bottleneck: %s" % bottleneck.__version__)
+except:
+    print("bottleneck: Not installed")
+
+try:
     import tables
     print("PyTables: %s" % tables.__version__)
 except:
@@ -93,5 +108,24 @@ try:
     print("sqlalchemy: %s" % sqlalchemy.__version__)
 except:
     print("sqlalchemy: Not installed")
+
+try:
+    import lxml
+    from lxml import etree
+    print("lxml: %s" % etree.__version__)
+except:
+    print("lxml: Not installed")
+
+try:
+    import bs4
+    print("bs4: %s" % bs4.__version__)
+except:
+    print("bs4: Not installed")
+
+try:
+    import html5lib
+    print("html5lib: %s" % html5lib.__version__)
+except:
+    print("html5lib: Not installed")
 
 print("\n")

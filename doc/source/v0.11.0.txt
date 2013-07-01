@@ -1,27 +1,83 @@
 .. _whatsnew_0110:
 
-v0.11.0 (March ??, 2013)
+v0.11.0 (April 22, 2013)
 ------------------------
 
 This is a major release from 0.10.1 and includes many new features and
-enhancements along with a large number of bug fixes. There are also a number of
-important API changes that long-time pandas users should pay close attention
-to.
+enhancements along with a large number of bug fixes. The methods of Selecting
+Data have had quite a number of additions, and Dtype support is now full-fledged.
+There are also a number of important API changes that long-time pandas users should
+pay close attention to.
 
-API changes
-~~~~~~~~~~~
+There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
+primarily geared to new users.
+
+There is a new section in the documentation, :ref:`Cookbook <cookbook>`, a collection
+of useful recipes in pandas (and that we want contributions!).
+
+There are several libraries that are now :ref:`Recommended Dependencies <install.recommended_dependencies>`
+
+Selection Choices
+~~~~~~~~~~~~~~~~~
+
+Starting in 0.11.0, object selection has had a number of user-requested additions in
+order to support more explicit location based indexing. Pandas now supports
+three types of multi-axis indexing.
+
+- ``.loc`` is strictly label based, will raise ``KeyError`` when the items are not found, allowed inputs are:
+
+  - A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index)
+  - A list or array of labels ``['a', 'b', 'c']``
+  - A slice object with labels ``'a':'f'``, (note that contrary to usual python slices, **both** the start and the stop are included!)
+  - A boolean array
+
+  See more at :ref:`Selection by Label <indexing.label>`
+
+- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
+
+  - An integer e.g. ``5``
+  - A list or array of integers ``[4, 3, 0]``
+  - A slice object with ints ``1:7``
+  - A boolean array
+
+  See more at :ref:`Selection by Position <indexing.integer>`
+
+- ``.ix`` supports mixed integer and label based access. It is primarily label based, but will fallback to integer positional access. ``.ix`` is the most general and will support
+  any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes. ``.ix`` is especially useful when dealing with mixed positional and label
+  based hierarchial indexes.
+
+  As using integer slices with ``.ix`` have different behavior depending on whether the slice
+  is interpreted as position based or label based, it's usually better to be
+  explicit and use ``.iloc`` or ``.loc``.
+
+  See more at :ref:`Advanced Indexing <indexing.advanced>`, :ref:`Advanced Hierarchical <indexing.advanced_hierarchical>` and
+  :ref:`Fallback Indexing <indexing.fallback>`
+
+
+Selection Deprecations
+~~~~~~~~~~~~~~~~~~~~~~
+
+Starting in version 0.11.0, these methods *may* be deprecated in future versions.
+
+- ``irow``
+- ``icol``
+- ``iget_value``
+
+See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
+
+Dtypes
+~~~~~~
 
 Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
-
-Dtype Specification
-~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
 
    df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
    df1
    df1.dtypes
-   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), B = Series(randn(8)), C = Series(randn(8),dtype='uint8') ))
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
+                         B = Series(randn(8)),
+                         C = Series(randn(8),dtype='uint8') ))
    df2
    df2.dtypes
 
@@ -33,15 +89,22 @@ Dtype Specification
 Dtype Conversion
 ~~~~~~~~~~~~~~~~
 
+This is lower-common-denomicator upcasting, meaning you get the dtype which can accomodate all of the types
+
 .. ipython:: python
 
-   # this is lower-common-denomicator upcasting (meaning you get the dtype which can accomodate all of the types)
    df3.values.dtype
 
-   # conversion of dtypes
+Conversion
+
+.. ipython:: python
+
    df3.astype('float32').dtypes
 
-   # mixed type conversions
+Mixed Conversion
+
+.. ipython:: python
+
    df3['D'] = '1.'
    df3['E'] = '1'
    df3.convert_objects(convert_numeric=True).dtypes
@@ -51,7 +114,10 @@ Dtype Conversion
    df3['E'] = df3['E'].astype('int32')
    df3.dtypes
 
-   # forcing date coercion
+Forcing Date coercion (and setting ``NaT`` when not datelike)
+
+.. ipython:: python
+
    s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1,
                Timestamp('20010104'), '20010105'],dtype='O')
    s.convert_objects(convert_dates='coerce')
@@ -63,7 +129,7 @@ Dtype Gotchas
 
 Starting in 0.11.0, construction of DataFrame/Series will use default dtypes of ``int64`` and ``float64``,
 *regardless of platform*. This is not an apparent change from earlier versions of pandas. If you specify
-dtypes, they *WILL* be respected, however (GH2837_)
+dtypes, they *WILL* be respected, however (:issue:`2837`)
 
 The following will all result in ``int64`` dtypes
 
@@ -79,7 +145,7 @@ Keep in mind that ``DataFrame(np.array([1,2]))`` **WILL** result in ``int32`` on
 **Upcasting Gotchas**
 
 Performing indexing operations on integer type data can easily upcast the data.
-The dtype of the input data will be preserved in cases where ``nans`` are not introduced (coming soon).
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
 
 .. ipython:: python
 
@@ -110,7 +176,7 @@ Datetimes Conversion
 Datetime64[ns] columns in a DataFrame (or a Series) allow the use of ``np.nan`` to indicate a nan value,
 in addition to the traditional ``NaT``, or not-a-time. This allows convenient nan setting in a generic way.
 Furthermore ``datetime64[ns]`` columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
-(GH2809_, GH2810_)
+(:issue:`2809`, :issue:`2810`)
 
 .. ipython:: python
 
@@ -140,11 +206,62 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`
    s.dtype
 
 
+API changes
+~~~~~~~~~~~
+
+  - Added to_series() method to indicies, to facilitate the creation of indexers
+    (:issue:`3275`)
+
+  - ``HDFStore``
+
+    - added the method ``select_column`` to select a single column from a table as a Series.
+    - deprecated the ``unique`` method, can be replicated by ``select_column(key,column).unique()``
+    - ``min_itemsize`` parameter to ``append`` will now automatically create data_columns for passed keys
+
 Enhancements
 ~~~~~~~~~~~~
 
-  - In ``HDFStore``, provide dotted attribute access to ``get`` from stores
-    (e.g. store.df == store['df'])
+  - Improved performance of df.to_csv() by up to 10x in some cases. (:issue:`3059`)
+
+  - Numexpr is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
+    types of numerical and boolean operations
+
+  - Bottleneck is now a :ref:`Recommended Dependencies <install.recommended_dependencies>`, to accelerate certain
+    types of ``nan`` operations
+
+  - ``HDFStore``
+
+    - support ``read_hdf/to_hdf`` API similar to ``read_csv/to_csv``
+
+      .. ipython:: python
+
+          df = DataFrame(dict(A=range(5), B=range(5)))
+          df.to_hdf('store.h5','table',append=True)
+          read_hdf('store.h5', 'table', where = ['index>2'])
+
+      .. ipython:: python
+          :suppress:
+          :okexcept:
+
+          os.remove('store.h5')
+
+    - provide dotted attribute access to ``get`` from stores, e.g. ``store.df == store['df']``
+
+    - new keywords ``iterator=boolean``, and ``chunksize=number_in_a_chunk`` are
+      provided to support iteration on ``select`` and ``select_as_multiple`` (:issue:`3076`)
+
+  - You can now select timestamps from an *unordered* timeseries similarly to an *ordered* timeseries (:issue:`2437`)
+
+  - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (:issue:`3070`)
+
+    .. ipython:: python
+
+        idx = date_range("2001-10-1", periods=5, freq='M')
+        ts = Series(np.random.rand(len(idx)),index=idx)
+        ts['2001']
+
+        df = DataFrame(dict(A = ts))
+        df['2001']
 
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
@@ -174,46 +291,36 @@ Enhancements
       ``above_below``. This allows the user to specify if they would like to
       only return forward looking data for options near the current stock
       price. This just obtains the data from Options.get_near_stock_price
-      instead of Options.get_xxx_data().
+      instead of Options.get_xxx_data() (:issue:`2758`).
 
-Bug Fixes
-~~~~~~~~~
+  - Cursor coordinate information is now displayed in time-series plots.
 
-  - Timedeltas are now fully operational (closes GH2898_)
+  - added option `display.max_seq_items` to control the number of
+    elements printed per sequence pprinting it.  (:issue:`2979`)
 
-    .. ipython:: python
+  - added option `display.chop_threshold` to control display of small numerical
+    values. (:issue:`2739`)
 
-        from datetime import datetime, timedelta
-        s  = Series(date_range('2012-1-1', periods=3, freq='D'))
-        td = Series([ timedelta(days=i) for i in range(3) ])
-        df = DataFrame(dict(A = s, B = td))
-        df
-        s - s.max()
-        s - datetime(2011,1,1,3,5)
-        s + timedelta(minutes=5)
-        df['C'] = df['A'] + df['B']
-        df
-        df.dtypes
+  - added option `display.max_info_rows` to prevent verbose_info from being
+    calculated for frames above 1M rows (configurable). (:issue:`2807`, :issue:`2918`)
 
-        # timedelta are representas as ``NaT``
-        y = s - s.shift()
-	y
+  - value_counts() now accepts a "normalize" argument, for normalized
+    histograms. (:issue:`2710`).
 
-	# can be set via ``np.nan``
-	y[1] = np.nan
-	y
+  - DataFrame.from_records now accepts not only dicts but any instance of
+    the collections.Mapping ABC.
 
-        # works on lhs too
-   	s.max() - s
-        datetime(2011,1,1,3,5) - s
-        timedelta(minutes=5) + s
+  - added option `display.mpl_style` providing a sleeker visual style
+    for plots. Based on https://gist.github.com/huyng/816622 (:issue:`3075`).
 
-See the `full release notes
-<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+  - Treat boolean values as integers (values 1 and 0) for numeric
+    operations. (:issue:`2641`)
+
+  - to_html() now accepts an optional "escape" argument to control reserved
+    HTML character escaping (enabled by default) and escapes ``&``, in addition
+    to ``<`` and ``>``.  (:issue:`2919`)
+
+See the :ref:`full release notes
+<release>` or issue tracker
 on GitHub for a complete list.
-
-.. _GH2809: https://github.com/pydata/pandas/issues/2809
-.. _GH2810: https://github.com/pydata/pandas/issues/2810
-.. _GH2837: https://github.com/pydata/pandas/issues/2837
-.. _GH2898: https://github.com/pydata/pandas/issues/2898
 

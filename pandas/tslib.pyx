@@ -5,7 +5,12 @@ from numpy cimport (int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
 import numpy as np
 
-from cpython cimport *
+from cpython cimport (
+    PyTypeObject,
+    PyFloat_Check,
+    PyObject_RichCompareBool,
+    PyString_Check
+)
 
 # Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
@@ -22,6 +27,7 @@ from khash cimport *
 cimport cython
 
 from datetime import timedelta, datetime
+from datetime import time as datetime_time
 from dateutil.parser import parse as parse_date
 
 cdef extern from "Python.h":
@@ -113,14 +119,21 @@ def _is_fixed_offset(tz):
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
+    """TimeStamp is the pandas equivalent of python's Datetime
+    and is interchangable with it in most cases. It's the type used
+    for the entries that make up a DatetimeIndex, and other timeseries
+    oriented data structures in pandas.
+    """
 
-    def __new__(cls, object ts_input, object offset=None, tz=None):
+    @classmethod
+    def fromordinal(cls, ordinal, offset=None, tz=None):
+        """ passed an ordinal, translate and convert to a ts
+            note: by definition there cannot be any tz info on the ordinal itself """
+        return cls(datetime.fromordinal(ordinal),offset=offset,tz=tz)
+
+    def __new__(cls, object ts_input, object offset=None, tz=None, unit=None):
         cdef _TSObject ts
         cdef _Timestamp ts_base
-
-        if PyFloat_Check(ts_input):
-            # to do, do we want to support this, ie with fractional seconds?
-            raise TypeError("Cannot convert a float to datetime")
 
         if util.is_string_object(ts_input):
             try:
@@ -128,7 +141,7 @@ class Timestamp(_Timestamp):
             except Exception:
                 pass
 
-        ts = convert_to_tsobject(ts_input, tz)
+        ts = convert_to_tsobject(ts_input, tz, unit)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -147,20 +160,25 @@ class Timestamp(_Timestamp):
 
     def __repr__(self):
         result = self._repr_base
+        zone = None
 
         try:
             result += self.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += _tz_format(self, zone)
         except ValueError:
             year2000 = self.replace(year=2000)
             result += year2000.strftime('%z')
             if self.tzinfo:
                 zone = _get_zone(self.tzinfo)
-                result += _tz_format(year2000, zone)
 
-        return '<Timestamp: %s>' % result
+        try:
+            result += zone.strftime(' %%Z')
+        except:
+            pass
+        zone = "'%s'" % zone if zone else 'None'
+
+        return "Timestamp('%s', tz=%s)" % (result,zone)
 
     @property
     def _repr_base(self):
@@ -289,14 +307,17 @@ class Timestamp(_Timestamp):
 
         if self.nanosecond != 0 and warn:
             print 'Warning: discarding nonzero nanoseconds'
-        ts = convert_to_tsobject(self, self.tzinfo)
+        ts = convert_to_tsobject(self, self.tzinfo, None)
 
         return datetime(ts.dts.year, ts.dts.month, ts.dts.day,
                         ts.dts.hour, ts.dts.min, ts.dts.sec,
                         ts.dts.us, ts.tzinfo)
 
 
+_nat_strings = set(['NaT','nat','NAT','nan','NaN','NAN'])
+_not_datelike_strings = set(['a','A','m','M','p','P','t','T'])
 class NaTType(_NaT):
+    """(N)ot-(A)-(T)ime, the time equivalent of NaN"""
 
     def __new__(cls):
         cdef _NaT base
@@ -357,7 +378,8 @@ cpdef object get_value_box(ndarray arr, object loc):
 
     if i < 0 and sz > 0:
         i += sz
-    elif i >= sz or sz == 0:
+
+    if i >= sz or sz == 0 or i < 0:
         raise IndexError('index out of bounds')
 
     if arr.descr.type_num == NPY_DATETIME:
@@ -443,7 +465,8 @@ cdef class _Timestamp(datetime):
             elif op == 3:
                 return True
             else:
-                raise TypeError('Cannot compare Timestamp with %s' % str(other))
+                raise TypeError('Cannot compare Timestamp with '
+                                '{0!r}'.format(other.__class__.__name__))
 
         self._assert_tzawareness_compat(other)
 
@@ -504,7 +527,7 @@ cdef class _Timestamp(datetime):
         cdef:
             pandas_datetimestruct dts
             _TSObject ts
-        ts = convert_to_tsobject(self, self.tzinfo)
+        ts = convert_to_tsobject(self, self.tzinfo, None)
         dts = ts.dts
         return datetime(dts.year, dts.month, dts.day,
                         dts.hour, dts.min, dts.sec,
@@ -597,12 +620,13 @@ cpdef _get_utcoffset(tzinfo, obj):
         return tzinfo.utcoffset(obj)
 
 # helper to extract datetime and int64 from several different possibilities
-cdef convert_to_tsobject(object ts, object tz):
+cdef convert_to_tsobject(object ts, object tz, object unit):
     """
     Extract datetime and int64 from any of:
-        - np.int64
+        - np.int64 (with unit providing a possible modifier)
         - np.datetime64
-        - python int or long object
+        - a float (with unit providing a possible modifier)
+        - python int or long object (with unit providing a possible modifier)
         - iso8601 string object
         - python datetime object
         - another timestamp object
@@ -617,15 +641,31 @@ cdef convert_to_tsobject(object ts, object tz):
 
     obj = _TSObject()
 
-    if is_datetime64_object(ts):
+    if ts is None or ts is NaT:
+        obj.value = NPY_NAT
+    elif is_datetime64_object(ts):
         obj.value = _get_datetime64_nanos(ts)
         pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
     elif is_integer_object(ts):
-        obj.value = ts
-        pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
+        if ts == NPY_NAT:
+            obj.value = NPY_NAT
+        else:
+            ts = ts * cast_from_unit(unit,None)
+            obj.value = ts
+            pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
+    elif util.is_float_object(ts):
+        if ts != ts or ts == NPY_NAT:
+            obj.value = NPY_NAT
+        else:
+            ts = cast_from_unit(unit,ts)
+            obj.value = ts
+            pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif util.is_string_object(ts):
-        _string_to_dts(ts, &obj.dts)
-        obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
+        if ts in _nat_strings:
+            obj.value = NPY_NAT
+        else:
+            _string_to_dts(ts, &obj.dts)
+            obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
     elif PyDateTime_Check(ts):
         if tz is not None:
             # sort of a temporary hack
@@ -668,7 +708,9 @@ cdef convert_to_tsobject(object ts, object tz):
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
     elif PyDate_Check(ts):
-        obj.value  = _date_to_datetime64(ts, &obj.dts)
+        # Keep the converter same as PyDateTime's
+        ts = datetime.combine(ts, datetime_time())
+        return convert_to_tsobject(ts, tz, None)
     else:
         raise ValueError("Could not construct Timestamp from argument %s" %
                          type(ts))
@@ -773,7 +815,7 @@ def datetime_to_datetime64(ndarray[object] values):
                 else:
                     inferred_tz = _get_zone(val.tzinfo)
 
-                _ts = convert_to_tsobject(val, None)
+                _ts = convert_to_tsobject(val, None, None)
                 iresult[i] = _ts.value
                 _check_dts_bounds(iresult[i], &_ts.dts)
             else:
@@ -788,7 +830,7 @@ def datetime_to_datetime64(ndarray[object] values):
 
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
-                      format=None, utc=None, coerce=False):
+                      format=None, utc=None, coerce=False, unit=None):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
@@ -797,6 +839,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
         pandas_datetimestruct dts
         bint utc_convert = bool(utc)
         _TSObject _ts
+        int64_t m = cast_from_unit(unit,None)
 
     from dateutil.parser import parse
 
@@ -810,7 +853,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             elif PyDateTime_Check(val):
                 if val.tzinfo is not None:
                     if utc_convert:
-                        _ts = convert_to_tsobject(val, None)
+                        _ts = convert_to_tsobject(val, None, unit)
                         iresult[i] = _ts.value
                         _check_dts_bounds(iresult[i], &_ts.dts)
                     else:
@@ -830,10 +873,22 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
 
             # if we are coercing, dont' allow integers
             elif util.is_integer_object(val) and not coerce:
-                iresult[i] = val
+                if val == iNaT:
+                    iresult[i] = iNaT
+                else:
+                    iresult[i] = val*m
+            elif util.is_float_object(val) and not coerce:
+                if val != val or val == iNaT:
+                    iresult[i] = iNaT
+                else:
+                    iresult[i] = cast_from_unit(unit,val)
             else:
                 try:
                     if len(val) == 0:
+                       iresult[i] = iNaT
+                       continue
+
+                    elif val in _nat_strings:
                        iresult[i] = iNaT
                        continue
 
@@ -842,6 +897,14 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                                                                    &dts)
                     _check_dts_bounds(iresult[i], &dts)
                 except ValueError:
+
+                    # for some reason, dateutil parses some single letter len-1 strings into today's date
+                    if len(val) == 1 and val in _not_datelike_strings:
+                        if coerce:
+                            iresult[i] = iNaT
+                            continue
+                        elif raise_:
+                            raise
                     try:
                         result[i] = parse(val, dayfirst=dayfirst)
                     except Exception:
@@ -909,12 +972,12 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
                  val = _delta_to_nanoseconds(np.timedelta64(val).item())
 
              result[i] = val
-        
+
         elif util._checknull(val) or val == iNaT or val is NaT:
              result[i] = iNaT
 
         else:
-             
+
              # just return, don't convert
              if not coerce:
                  return values.copy()
@@ -925,28 +988,54 @@ def array_to_timedelta64(ndarray[object] values, coerce=True):
 
 def repr_timedelta64(object value):
    """ provide repr for timedelta64 """
-   
+
    ivalue = value.view('i8')
 
+   # put frac in seconds
    frac   = float(ivalue)/1e9
-   days   = int(frac) / 86400
-   frac  -= days*86400
-   hours  = int(frac) / 3600
-   frac  -= hours * 3600
-   minutes  = int(frac) / 60
-   seconds  = frac - minutes * 60
-   nseconds = int(seconds)
+   sign   = np.sign(frac)
+   frac   = np.abs(frac)
 
-   if nseconds == seconds:
-      seconds_pretty = "%02d" % nseconds
+   if frac >= 86400:
+      days   = int(frac / 86400)
+      frac  -= days * 86400
    else:
-      sp = abs(int(1e6*(seconds-nseconds)))
-      seconds_pretty = "%02d.%06d" % (nseconds,sp)
+      days   = 0
+
+   if frac >= 3600:
+      hours  = int(frac / 3600)
+      frac  -= hours * 3600
+   else:
+      hours  = 0
+
+   if frac >= 60:
+      minutes = int(frac / 60)
+      frac   -= minutes * 60
+   else:
+      minutes  = 0
+
+   if frac >= 1:
+      seconds = int(frac)
+      frac   -= seconds
+   else:
+      seconds = 0
+
+   if frac == int(frac):
+      seconds_pretty = "%02d" % seconds
+   else:
+      sp = abs(round(1e6*frac))
+      seconds_pretty = "%02d.%06d" % (seconds,sp)
+
+   if sign < 0:
+       sign_pretty = "-"
+   else:
+       sign_pretty = ""
 
    if days:
-       return "%d days, %02d:%02d:%s" % (days,hours,minutes,seconds_pretty)
+       return "%s%d days, %02d:%02d:%s" % (sign_pretty, days, hours, minutes,
+                                           seconds_pretty)
 
-   return "%02d:%02d:%s" % (hours,minutes,seconds_pretty)
+   return "%s%02d:%02d:%s" % (sign_pretty, hours, minutes, seconds_pretty)
 
 def array_strptime(ndarray[object] values, object fmt):
     cdef:
@@ -984,9 +1073,9 @@ def array_strptime(ndarray[object] values, object fmt):
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
-    
+
     dts.us = dts.ps = dts.as = 0
-    
+
     cdef dict _parse_code_table = {
         'y': 0,
         'Y': 1,
@@ -1108,12 +1197,12 @@ def array_strptime(ndarray[object] values, object fmt):
                     # W starts week on Monday.
                     week_of_year_start = 0
             elif parse_code == 17:
-                # Since -1 is default value only need to worry about setting tz if
-                # it can be something other than -1.
+                # Since -1 is default value only need to worry about setting tz
+                # if it can be something other than -1.
                 found_zone = found_dict['Z'].lower()
                 for value, tz_values in enumerate(locale_time.timezone):
                     if found_zone in tz_values:
-                        # Deal with bad locale setup where timezone names are the
+                        # Deal w/ bad locale setup where timezone names are the
                         # same and yet time.daylight is true; too ambiguous to
                         # be able to tell what timezone has daylight savings
                         if (time.tzname[0] == time.tzname[1] and
@@ -1122,14 +1211,14 @@ def array_strptime(ndarray[object] values, object fmt):
                         else:
                             tz = value
                             break
-        # If we know the week of the year and what day of that week, we can figure
+        # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
         if julian == -1 and week_of_year != -1 and weekday != -1:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
                                                 week_starts_Mon)
         # Cannot pre-calculate datetime_date() since can change in Julian
-        # calculation and thus could have different value for the day of the week
+        # calculation and thus could have different value for the day of the wk
         # calculation.
         if julian == -1:
             # Need to add 1 to result since first day of the year is 1, not 0.
@@ -1137,7 +1226,8 @@ def array_strptime(ndarray[object] values, object fmt):
                       datetime_date(year, 1, 1).toordinal() + 1
         else:  # Assume that if they bothered to include Julian day it will
                # be accurate.
-            datetime_result = datetime_date.fromordinal((julian - 1) + datetime_date(year, 1, 1).toordinal())
+            datetime_result = datetime_date.fromordinal(
+                (julian - 1) + datetime_date(year, 1, 1).toordinal())
             year = datetime_result.year
             month = datetime_result.month
             day = datetime_result.day
@@ -1176,6 +1266,34 @@ cdef inline _get_datetime64_nanos(object val):
     else:
         return ival
 
+cdef inline int64_t cast_from_unit(object unit, object ts):
+    """ return a casting of the unit represented to nanoseconds
+        round the fractional part of a float to our precision, p """
+    if unit == 'D':
+        m = 1000000000L * 86400
+        p = 6
+    elif unit == 's':
+        m = 1000000000L
+        p = 6
+    elif unit == 'ms':
+        m = 1000000L
+        p = 3
+    elif unit == 'us':
+        m = 1000L
+        p = 0
+    else:
+        m = 1L
+        p = 0
+
+    # just give me the unit back
+    if ts is None:
+        return m
+
+    # cast the unit, multiply base/frace separately
+    # to avoid precision issues from float -> int
+    base = <int64_t> ts
+    frac = ts-base
+    return <int64_t> (base*m) + <int64_t> (round(frac,p)*m)
 
 def cast_to_nanoseconds(ndarray arr):
     cdef:
@@ -1216,7 +1334,7 @@ def pydt_to_i8(object pydt):
     cdef:
         _TSObject ts
 
-    ts = convert_to_tsobject(pydt, None)
+    ts = convert_to_tsobject(pydt, None, None)
 
     return ts.value
 
@@ -1257,7 +1375,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                               dts.min, dts.sec, dts.us, tz1)
-                delta = int(total_seconds(_get_utcoffset(tz1, dt))) * 1000000000
+                delta = (int(total_seconds(_get_utcoffset(tz1, dt)))
+                         * 1000000000)
                 utc_dates[i] = v - delta
         else:
             deltas = _get_deltas(tz1)
@@ -1626,8 +1745,9 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
         ndarray[int32_t, ndim=2] _month_offset
-        int isleap
+        int isleap, isleap_prev
         pandas_datetimestruct dts
+        int mo_off, doy, dow, woy
 
     _month_offset = np.array(
         [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
@@ -1712,7 +1832,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         for i in range(count):
             if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
-            ts = convert_to_tsobject(dtindex[i], None)
+            ts = convert_to_tsobject(dtindex[i], None, None)
             out[i] = ts_dayofweek(ts)
         return out
 
@@ -1721,9 +1841,29 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
             if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            ts = convert_to_tsobject(dtindex[i], None, None)
             isleap = is_leapyear(dts.year)
-            out[i] = _month_offset[isleap, dts.month - 1] + dts.day
-            out[i] = ((out[i] - 1) / 7) + 1
+            isleap_prev = is_leapyear(dts.year - 1)
+            mo_off = _month_offset[isleap, dts.month - 1]
+            doy = mo_off + dts.day
+            dow = ts_dayofweek(ts)
+
+            #estimate
+            woy = (doy - 1) - dow + 3
+            if woy >= 0:
+                woy = woy / 7 + 1
+
+            # verify
+            if woy < 0:
+                if (woy > -2) or (woy == -2 and isleap_prev):
+                    woy = 53
+                else:
+                    woy = 52
+            elif woy == 53:
+                if 31 - dts.day + dow < 3:
+                    woy = 1
+
+            out[i] = woy
         return out
 
     elif field == 'q':
@@ -1739,7 +1879,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
 
 cdef inline int m8_weekday(int64_t val):
-    ts = convert_to_tsobject(val, None)
+    ts = convert_to_tsobject(val, None, None)
     return ts_dayofweek(ts)
 
 cdef int64_t DAY_NS = 86400000000000LL
@@ -2214,6 +2354,7 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^"]
 
 cdef _period_strftime(int64_t value, int freq, object fmt):
+    import sys
     cdef:
         Py_ssize_t i
         date_info dinfo
@@ -2255,6 +2396,10 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
     # Py3?
     if not PyString_Check(result):
         result = str(result)
+
+    # GH3363
+    if sys.version_info[0] == 2:
+       result = result.decode('utf-8','strict')
 
     return result
 

@@ -94,7 +94,7 @@ def _get_option(pat, silent=False):
     return root[k]
 
 
-def _set_option(pat, value, silent=False):
+def _set_single_option(pat, value, silent):
     key = _get_single_key(pat, silent)
 
     o = _get_registered_option(key)
@@ -109,6 +109,40 @@ def _set_option(pat, value, silent=False):
         o.cb(key)
 
 
+def _set_multiple_options(args, silent):
+    for k, v in zip(args[::2], args[1::2]):
+        _set_single_option(k, v, silent)
+
+
+def _set_option(*args, **kwargs):
+    # must at least 1 arg deal with constraints later
+    nargs = len(args)
+    if not nargs or nargs % 2 != 0:
+        raise AssertionError("Must provide an even number of non-keyword "
+                             "arguments")
+
+    # must be 0 or 1 kwargs
+    nkwargs = len(kwargs)
+    if nkwargs not in (0, 1):
+        raise AssertionError("The can only be 0 or 1 keyword arguments")
+
+    # if 1 kwarg then it must be silent=True or silent=False
+    if nkwargs:
+        k, = kwargs.keys()
+        v, = kwargs.values()
+
+        if k != 'silent':
+            raise ValueError("the only allowed keyword argument is 'silent', "
+                             "you passed '{0}'".format(k))
+        if not isinstance(v, bool):
+            raise TypeError("the type of the keyword argument passed must be "
+                            "bool, you passed a {0}".format(v.__class__))
+
+    # default to false
+    silent = kwargs.get('silent', False)
+    _set_multiple_options(args, silent)
+
+
 def _describe_option(pat='', _print_desc=True):
 
     keys = _select_options(pat)
@@ -120,7 +154,7 @@ def _describe_option(pat='', _print_desc=True):
         s += _build_option_description(k)
 
     if _print_desc:
-        print s
+        print (s)
     else:
         return s
 
@@ -140,6 +174,9 @@ def _reset_option(pat):
     for k in keys:
         _set_option(k, _registered_options[k].defval)
 
+def get_default_val(pat):
+    key =  _get_single_key(pat, silent=True)
+    return _get_registered_option(key).defval
 
 class DictWrapper(object):
     """ provide attribute-style access to a nested dict
@@ -183,7 +220,7 @@ class DictWrapper(object):
 # of options, and option descriptions.
 
 
-class CallableDyanmicDoc(object):
+class CallableDynamicDoc(object):
 
     def __init__(self, func, doc_tmpl):
         self.__doc_tmpl__ = doc_tmpl
@@ -298,10 +335,10 @@ None
 
 # bind the functions with their docstrings into a Callable
 # and use that as the functions exposed in pd.api
-get_option = CallableDyanmicDoc(_get_option, _get_option_tmpl)
-set_option = CallableDyanmicDoc(_set_option, _set_option_tmpl)
-reset_option = CallableDyanmicDoc(_reset_option, _reset_option_tmpl)
-describe_option = CallableDyanmicDoc(_describe_option, _describe_option_tmpl)
+get_option = CallableDynamicDoc(_get_option, _get_option_tmpl)
+set_option = CallableDynamicDoc(_set_option, _set_option_tmpl)
+reset_option = CallableDynamicDoc(_reset_option, _reset_option_tmpl)
+describe_option = CallableDynamicDoc(_describe_option, _describe_option_tmpl)
 options = DictWrapper(_global_config)
 
 ######################################################
@@ -310,8 +347,10 @@ options = DictWrapper(_global_config)
 
 class option_context(object):
     def __init__(self, *args):
-        assert len(args) % 2 == 0 and len(args) >= 2, \
-            "Need to invoke as option_context(pat,val,[(pat,val),..))."
+        if not ( len(args) % 2 == 0 and len(args) >= 2):
+           errmsg =  "Need to invoke as option_context(pat,val,[(pat,val),..))."
+           raise AssertionError(errmsg)
+
         ops = zip(args[::2], args[1::2])
         undo = []
         for pat, val in ops:
@@ -500,13 +539,7 @@ def _get_registered_option(key):
     -------
     RegisteredOption (namedtuple) if key is deprecated, None otherwise
     """
-
-    try:
-        d = _registered_options[key]
-    except KeyError:
-        return None
-    else:
-        return d
+    return _registered_options.get(key)
 
 
 def _translate_key(key):
@@ -598,7 +631,7 @@ def pp_options_list(keys, width=80, _print=False):
         ls += pp(k, ks)
     s = '\n'.join(ls)
     if _print:
-        print s
+        print (s)
     else:
         return s
 
@@ -698,11 +731,24 @@ def is_instance_factory(_type):
     """
 
     def inner(x):
-        if not isinstance(x, _type):
+        if isinstance(_type,(tuple,list)) :
+            if not any([isinstance(x,t) for t in _type]):
+                from pandas.core.common import pprint_thing as pp
+                pp_values = map(pp, _type)
+                raise ValueError("Value must be an instance of %s" % pp("|".join(pp_values)))
+        elif not isinstance(x, _type):
             raise ValueError("Value must be an instance of '%s'" % str(_type))
 
     return inner
 
+def is_one_of_factory(legal_values):
+    def inner(x):
+        from pandas.core.common import pprint_thing as pp
+        if not x in legal_values:
+            pp_values = map(pp, legal_values)
+            raise ValueError("Value must be one of %s" % pp("|".join(pp_values)))
+
+    return inner
 
 # common type validators, for convenience
 # usage: register_option(... , validator = is_int)

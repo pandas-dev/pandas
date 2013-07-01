@@ -147,7 +147,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     return labels, uniques
 
 
-def value_counts(values, sort=True, ascending=False):
+def value_counts(values, sort=True, ascending=False, normalize=False):
     """
     Compute a histogram of the counts of non-null values
 
@@ -158,6 +158,8 @@ def value_counts(values, sort=True, ascending=False):
         Sort by values
     ascending : boolean, default False
         Sort in ascending order
+    normalize: boolean, default False
+        If True then compute a relative histogram
 
     Returns
     -------
@@ -170,6 +172,14 @@ def value_counts(values, sort=True, ascending=False):
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
         keys, counts = htable.value_count_int64(values)
+    elif issubclass(values.dtype.type, (np.datetime64,np.timedelta64)):
+
+        dtype = values.dtype
+        values = values.view(np.int64)
+        keys, counts = htable.value_count_int64(values)
+
+        # convert the keys back to the dtype we came in
+        keys = Series(keys,dtype=dtype)
     else:
         mask = com.isnull(values)
         values = com._ensure_object(values)
@@ -181,6 +191,9 @@ def value_counts(values, sort=True, ascending=False):
         result.sort()
         if not ascending:
             result = result[::-1]
+
+    if normalize:
+        result = result / float(values.size)
 
     return result
 

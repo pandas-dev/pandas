@@ -18,7 +18,7 @@ import numpy as np
 from pandas import DataFrame, Series, Index, isnull, MultiIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               ExcelFile, TextParser)
+                               TextParser)
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network)
 import pandas.lib as lib
@@ -27,19 +27,14 @@ from pandas.lib import Timestamp
 
 import pandas.util.testing as tm
 
-from pandas._parser import TextReader
-import pandas._parser as parser
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
+from pandas.parser import TextReader
+import pandas.parser as parser
 
 
 class TestCParser(unittest.TestCase):
 
     def setUp(self):
-        self.dirpath = curpath()
+        self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
@@ -184,7 +179,7 @@ class TestCParser(unittest.TestCase):
         reader = TextReader(StringIO(data), delimiter=',', header=2,
                             as_recarray=True)
         header = reader.header
-        expected = ['a', 'b', 'c']
+        expected = [['a', 'b', 'c']]
         self.assertEquals(header, expected)
 
         recs = reader.read()

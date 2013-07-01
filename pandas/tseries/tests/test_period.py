@@ -77,6 +77,12 @@ class TestPeriodProperties(TestCase):
                 expected = Period(daystr, freq='D').asfreq(freq)
                 self.assertEquals(result, expected)
 
+    def test_timestamp_tz_arg(self):
+        import pytz
+        p = Period('1/1/2005', freq='M').to_timestamp(tz='Europe/Brussels')
+        self.assertEqual(p.tz,
+                         pytz.timezone('Europe/Brussels').normalize(p).tzinfo)
+
     def test_period_constructor(self):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')
@@ -93,7 +99,7 @@ class TestPeriodProperties(TestCase):
         i4 = Period('2005', freq='M')
         i5 = Period('2005', freq='m')
 
-        self.assert_(i1 != i4)
+        self.assertRaises(ValueError, i1.__ne__, i4)
         self.assertEquals(i4, i5)
 
         i1 = Period.now('Q')
@@ -200,8 +206,9 @@ class TestPeriodProperties(TestCase):
 
     def test_strftime(self):
         p = Period('2000-1-1 12:34:12', freq='S')
-        self.assert_(p.strftime('%Y-%m-%d %H:%M:%S') ==
-                     '2000-01-01 12:34:12')
+        res = p.strftime('%Y-%m-%d %H:%M:%S')
+        self.assert_( res ==  '2000-01-01 12:34:12')
+        self.assert_( isinstance(res,unicode)) # GH3363
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
@@ -305,6 +312,14 @@ class TestPeriodProperties(TestCase):
 
         xp = _ex(2012, 1, 2)
         self.assertEquals(Period('2012', freq='W').end_time, xp)
+
+    def test_anchor_week_end_time(self):
+        def _ex(*args):
+            return Timestamp(Timestamp(datetime(*args)).value - 1)
+
+        p = Period('2013-1-1', 'W-SAT')
+        xp = _ex(2013, 1, 6)
+        self.assertEquals(p.end_time, xp)
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
@@ -448,12 +463,6 @@ class TestPeriodProperties(TestCase):
         self.assert_(p.freq == 'S')
 
         self.assertRaises(ValueError, Period, '2007-01-01 07:10:15.123456')
-
-    def test_comparisons(self):
-        p = Period('2007-01-01')
-        self.assertEquals(p, p)
-        self.assert_(not p == 1)
-
 
 def noWrap(item):
     return item
@@ -1220,6 +1229,14 @@ class TestPeriodIndex(TestCase):
         self.assertRaises(
             ValueError, period_range, '2011-1-1', '2012-1-1', 'B')
 
+    def test_tolist(self):
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        rs = index.tolist()
+        [self.assert_(isinstance(x, Period)) for x in rs]
+
+        recon = PeriodIndex(rs)
+        self.assert_(index.equals(recon))
+
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
@@ -1229,7 +1246,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.index.equals(exp_index))
         self.assertEquals(result.name, 'foo')
 
-        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = series.to_timestamp(how='start')
         self.assert_(result.index.equals(exp_index))
 
@@ -1280,6 +1297,14 @@ class TestPeriodIndex(TestCase):
 
         conv = index.to_timestamp('D')
         self.assertEquals(conv.name, 'foo')
+
+    def test_to_timestamp_repr_is_code(self):
+        zs=[Timestamp('99-04-17 00:00:00',tz='UTC'),
+        Timestamp('2001-04-17 00:00:00',tz='UTC'),
+        Timestamp('2001-04-17 00:00:00',tz='America/Los_Angeles'),
+        Timestamp('2001-04-17 00:00:00',tz=None)]
+        for z in zs:
+            self.assertEquals( eval(repr(z)), z)
 
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
@@ -1338,7 +1363,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.index.equals(exp_index))
         assert_almost_equal(result.values, df.values)
 
-        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = df.to_timestamp('D', 'start')
         self.assert_(result.index.equals(exp_index))
 
@@ -1369,7 +1394,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.columns.equals(exp_index))
         assert_almost_equal(result.values, df.values)
 
-        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-JAN')
         result = df.to_timestamp('D', 'start', axis=1)
         self.assert_(result.columns.equals(exp_index))
 
@@ -1590,6 +1615,83 @@ class TestPeriodIndex(TestCase):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
         ts = Series(np.random.randn(len(index)), index=index)
         repr(ts)
+
+    def test_period_index_unicode(self):
+        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 9)
+        assert_equal(pi, eval(unicode(pi)))
+
+        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 4 * 9)
+        assert_equal(pi, eval(unicode(pi)))
+
+        pi = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 12 * 9)
+        assert_equal(pi, eval(unicode(pi)))
+
+        start = Period('02-Apr-2005', 'B')
+        i1 = PeriodIndex(start=start, periods=20)
+        assert_equal(len(i1), 20)
+        assert_equal(i1.freq, start.freq)
+        assert_equal(i1[0], start)
+        assert_equal(i1, eval(unicode(i1)))
+
+        end_intv = Period('2006-12-31', 'W')
+        i1 = PeriodIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), 10)
+        assert_equal(i1.freq, end_intv.freq)
+        assert_equal(i1[-1], end_intv)
+        assert_equal(i1, eval(unicode(i1)))
+
+        end_intv = Period('2006-12-31', '1w')
+        i2 = PeriodIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), len(i2))
+        self.assert_((i1 == i2).all())
+        assert_equal(i1.freq, i2.freq)
+        assert_equal(i1, eval(unicode(i1)))
+        assert_equal(i2, eval(unicode(i2)))
+
+        end_intv = Period('2006-12-31', ('w', 1))
+        i2 = PeriodIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), len(i2))
+        self.assert_((i1 == i2).all())
+        assert_equal(i1.freq, i2.freq)
+        assert_equal(i1, eval(unicode(i1)))
+        assert_equal(i2, eval(unicode(i2)))
+
+        try:
+            PeriodIndex(start=start, end=end_intv)
+            raise AssertionError('Cannot allow mixed freq for start and end')
+        except ValueError:
+            pass
+
+        end_intv = Period('2005-05-01', 'B')
+        i1 = PeriodIndex(start=start, end=end_intv)
+        assert_equal(i1, eval(unicode(i1)))
+
+        try:
+            PeriodIndex(start=start)
+            raise AssertionError(
+                'Must specify periods if missing start or end')
+        except ValueError:
+            pass
+
+        # infer freq from first element
+        i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
+        assert_equal(len(i2), 2)
+        assert_equal(i2[0], end_intv)
+        assert_equal(i2, eval(unicode(i2)))
+
+        i2 = PeriodIndex(np.array([end_intv, Period('2005-05-05', 'B')]))
+        assert_equal(len(i2), 2)
+        assert_equal(i2[0], end_intv)
+        assert_equal(i2, eval(unicode(i2)))
+
+        # Mixed freq should fail
+        vals = [end_intv, Period('2006-12-31', 'w')]
+        self.assertRaises(ValueError, PeriodIndex, vals)
+        vals = np.array(vals)
+        self.assertRaises(ValueError, PeriodIndex, vals)
 
     def test_frame_index_to_string(self):
         index = PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')
@@ -1912,6 +2014,16 @@ class TestPeriodIndex(TestCase):
         result = index.to_datetime()
         self.assertEquals(result[0], Timestamp('1/1/2012'))
 
+    def test_get_loc_msg(self):
+        idx = period_range('2000-1-1', freq='A', periods=10)
+        bad_period = Period('2012', 'A')
+        self.assertRaises(KeyError, idx.get_loc, bad_period)
+
+        try:
+            idx.get_loc(bad_period)
+        except KeyError as inst:
+            self.assert_(inst.args[0] == bad_period)
+
     def test_append_concat(self):
         # #1815
         d1 = date_range('12/31/1990', '12/31/1999', freq='A-DEC')
@@ -1928,6 +2040,12 @@ class TestPeriodIndex(TestCase):
         self.assert_(isinstance(result.index, PeriodIndex))
         self.assertEquals(result.index[0], s1.index[0])
 
+    def test_pickle_freq(self):
+        # GH2891
+        import pickle
+        prng = period_range('1/1/2011', '1/1/2012', freq='M')
+        new_prng = pickle.loads(pickle.dumps(prng))
+        self.assertEqual(new_prng.freq,'M')
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
@@ -1999,6 +2117,67 @@ class TestPeriodRepresentation(unittest.TestCase):
         period = Period(ordinal=-1, freq='W')
         repr(period)
 
+
+class TestComparisons(unittest.TestCase):
+    def setUp(self):
+        self.january1 = Period('2000-01', 'M')
+        self.january2 = Period('2000-01', 'M')
+        self.february = Period('2000-02', 'M')
+        self.march = Period('2000-03', 'M')
+        self.day = Period('2012-01-01', 'D')
+
+    def test_equal(self):
+        self.assertEqual(self.january1, self.january2)
+
+    def test_equal_Raises_Value(self):
+        self.assertRaises(ValueError, self.january1.__eq__, self.day)
+
+    def test_equal_Raises_Type(self):
+        self.assertRaises(TypeError, self.january1.__eq__, 1)
+
+    def test_notEqual(self):
+        self.assertNotEqual(self.january1, self.february)
+
+    def test_greater(self):
+        self.assert_(self.february > self.january1)
+
+    def test_greater_Raises_Value(self):
+        self.assertRaises(ValueError, self.january1.__gt__, self.day)
+
+    def test_greater_Raises_Type(self):
+        self.assertRaises(TypeError, self.january1.__gt__, 1)
+
+    def test_greaterEqual(self):
+        self.assert_(self.january1 >= self.january2)
+
+    def test_greaterEqual_Raises_Value(self):
+        self.assertRaises(ValueError, self.january1.__ge__, self.day)
+
+    def test_greaterEqual_Raises_Value(self):
+        self.assertRaises(TypeError, self.january1.__ge__, 1)
+
+    def test_smallerEqual(self):
+        self.assert_(self.january1 <= self.january2)
+
+    def test_smallerEqual_Raises_Value(self):
+        self.assertRaises(ValueError, self.january1.__le__, self.day)
+
+    def test_smallerEqual_Raises_Type(self):
+        self.assertRaises(TypeError, self.january1.__le__, 1)
+
+    def test_smaller(self):
+        self.assert_(self.january1 < self.february)
+
+    def test_smaller_Raises_Value(self):
+        self.assertRaises(ValueError, self.january1.__lt__, self.day)
+
+    def test_smaller_Raises_Type(self):
+        self.assertRaises(TypeError, self.january1.__lt__, 1)
+
+    def test_sort(self):
+        periods = [self.march, self.january1, self.february]
+        correctPeriods = [self.january1, self.february, self.march]
+        self.assertEqual(sorted(periods), correctPeriods)
 
 if __name__ == '__main__':
     import nose

@@ -17,7 +17,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-   set_printoptions(precision=4, max_columns=8)
+   set_option('display.precision', 4, 'display.max_columns', 8)
 
 .. ipython:: python
 
@@ -77,14 +77,11 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. note::
 
-    Starting in v0.8.0, pandas supports non-unique index values. In previous
-    version, if the index values are not unique an exception will
-    **not** be raised immediately, but attempting any operation involving the
-    index will later result in an exception. In other words, the Index object
-    containing the labels "lazily" checks whether the values are unique. The
-    reason for being lazy is nearly all performance-based (there are many
-    instances in computations, like parts of GroupBy, where the index is not
-    used).
+    Starting in v0.8.0, pandas supports non-unique index values. If an operation
+    that does not support duplicate index values is attempted, an exception
+    will be raised at that time. The reason for being lazy is nearly all performance-based
+    (there are many instances in computations, like parts of GroupBy, where the index
+    is not used).
 
 **From dict**
 
@@ -437,8 +434,8 @@ The basics of indexing are as follows:
     :widths: 30, 20, 10
 
     Select column, ``df[col]``, Series
-    Select row by label, ``df.xs(label)`` or ``df.ix[label]``, Series
-    Select row by location (int), ``df.ix[loc]``, Series
+    Select row by label, ``df.loc[label]``, Series
+    Select row by integer location, ``df.iloc[loc]``, Series
     Slice rows, ``df[5:10]``, DataFrame
     Select rows by boolean vector, ``df[bool_vec]``, DataFrame
 
@@ -447,103 +444,13 @@ DataFrame:
 
 .. ipython:: python
 
-   df.xs('b')
-   df.ix[2]
+   df.loc['b']
+   df.iloc[2]
 
 For a more exhaustive treatment of more sophisticated label-based indexing and
 slicing, see the :ref:`section on indexing <indexing>`. We will address the
 fundamentals of reindexing / conforming to new sets of lables in the
 :ref:`section on reindexing <basics.reindexing>`.
-
-DataTypes
-~~~~~~~~~
-
-.. _dsintro.column_types:
-
-The main types stored in pandas objects are float, int, boolean, datetime64[ns],
-and object. A convenient ``dtypes`` attribute return a Series with the data type of
-each column.
-
-.. ipython:: python
-
-   df['integer'] = 1
-   df['int32']   = df['integer'].astype('int32')
-   df['float32'] = Series([1.0]*len(df),dtype='float32')
-   df['timestamp'] = Timestamp('20010102')
-   df.dtypes
-
-If a DataFrame contains columns of multiple dtypes, the dtype of the column
-will be chosen to accommodate all of the data types (dtype=object is the most
-general).
-
-The related method ``get_dtype_counts`` will return the number of columns of
-each type:
-
-.. ipython:: python
-
-   df.get_dtype_counts()
-
-Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0). 
-If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, 
-or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
-
-.. ipython:: python
-
-   df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
-   df1
-   df1.dtypes
-   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'), 
-                         B = Series(randn(8)), 
-                         C = Series(np.array(randn(8),dtype='uint8')) ))
-   df2
-   df2.dtypes
-
-   # here you get some upcasting
-   df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
-   df3
-   df3.dtypes
-
-   # this is lower-common-denomicator upcasting (meaning you get the dtype which can accomodate all of the types)
-   df3.values.dtype
-
-Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation, then the more *general* one will be used as the result of the operation.
-
-DataType Conversion
-~~~~~~~~~~~~~~~~~~~
-
-You can use the ``astype`` method to convert dtypes from one to another. These *always* return a copy. 
-In addition, ``convert_objects`` will attempt to *soft* conversion of any *object* dtypes, meaning that if all the objects in a Series are of the same type, the Series
-will have that dtype.
-
-.. ipython:: python
-
-   df3
-   df3.dtypes
-
-   # conversion of dtypes
-   df3.astype('float32').dtypes
-
-To force conversion of specific types of number conversion, pass ``convert_numeric = True``. 
-This will force strings and numbers alike to be numbers if possible, otherwise the will be set to ``np.nan``.
-To force conversion to ``datetime64[ns]``, pass ``convert_dates = 'coerce'``. 
-This will convert any datetimelike object to dates, forcing other values to ``NaT``.
-
-.. ipython:: python
-
-   # mixed type conversions
-   df3['D'] = '1.'
-   df3['E'] = '1'
-   df3.convert_objects(convert_numeric=True).dtypes
-
-   # same, but specific dtype conversion
-   df3['D'] = df3['D'].astype('float16')
-   df3['E'] = df3['E'].astype('int32')
-   df3.dtypes
-
-   # forcing date coercion
-   s = Series([datetime(2001,1,1,0,0), 'foo', 1.0, 1, Timestamp('20010104'), '20010105'],dtype='O')
-   s
-   s.convert_objects(convert_dates='coerce')
 
 Data alignment and arithmetic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -565,7 +472,7 @@ row-wise. For example:
 
 .. ipython:: python
 
-   df - df.ix[0]
+   df - df.iloc[0]
 
 In the special case of working with time series data, if the Series is a
 TimeSeries (which it will be automatically if the index contains datetime
@@ -575,19 +482,23 @@ column-wise:
 .. ipython:: python
 
    index = date_range('1/1/2000', periods=8)
-   df = DataFrame(randn(8, 3), index=index,
-                  columns=['A', 'B', 'C'])
+   df = DataFrame(randn(8, 3), index=index, columns=list('ABC'))
    df
    type(df['A'])
    df - df['A']
 
-Technical purity aside, this case is so common in practice that supporting the
-special case is preferable to the alternative of forcing the user to transpose
-and do column-based alignment like so:
+.. warning::
 
-.. ipython:: python
+   .. code-block:: python
 
-   (df.T - df['A']).T
+      df - df['A']
+
+   is now deprecated and will be removed in a future release. The preferred way
+   to replicate this behavior is
+
+   .. code-block:: python
+
+      df.sub(df['A'], axis=0)
 
 For explicit control over the matching and broadcasting behavior, see the
 section on :ref:`flexible binary operations <basics.binop>`.
@@ -664,7 +575,7 @@ R package):
    :suppress:
 
    # force a summary to be printed
-   set_printoptions(max_rows=5)
+   pd.set_option('display.max_rows', 5)
 
 .. ipython:: python
 
@@ -675,14 +586,14 @@ R package):
    :suppress:
 
    # restore GlobalPrintConfig
-   reset_printoptions()
+   pd.reset_option('^display\.')
 
 However, using ``to_string`` will return a string representation of the
 DataFrame in tabular form, though it won't always fit the console width:
 
 .. ipython:: python
 
-   print baseball.ix[-20:, :12].to_string()
+   print baseball.iloc[-20:, :12].to_string()
 
 New since 0.10.0, wide DataFrames will now be printed across multiple rows by
 default:

@@ -174,6 +174,7 @@ class TestSQLite(unittest.TestCase):
                                 index_col='Idx')
         expected = frame.copy()
         expected.index = Index(range(len(frame2))) + 10
+        expected.index.name = 'Idx'
         tm.assert_frame_equal(expected, result)
 
     def test_tquery(self):
@@ -217,6 +218,22 @@ class TestSQLite(unittest.TestCase):
         '''
         df = DataFrame({'From':np.ones(5)})
         sql.write_frame(df, con = self.db, name = 'testkeywords')
+
+    def test_onecolumn_of_integer(self):
+        '''
+        GH 3628
+        a column_of_integers dataframe should transfer well to sql
+        '''
+        mono_df=DataFrame([1 , 2], columns=['c0'])
+        sql.write_frame(mono_df, con = self.db, name = 'mono_df')
+        # computing the sum via sql
+        con_x=self.db
+        the_sum=sum([my_c0[0] for  my_c0 in con_x.execute("select * from mono_df")])
+        # it should not fail, and gives 3 ( Issue #3628 )
+        self.assertEqual(the_sum , 3)
+
+        result = sql.read_frame("select * from mono_df",con_x)
+        tm.assert_frame_equal(result,mono_df)
 
 
 class TestMySQL(unittest.TestCase):

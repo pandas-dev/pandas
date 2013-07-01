@@ -24,6 +24,7 @@ try:
     _TYPE_MAP[np.complex256] = 'complex'
     _TYPE_MAP[np.float16] = 'floating'
     _TYPE_MAP[np.datetime64] = 'datetime64'
+    _TYPE_MAP[np.timedelta64] = 'timedelta64'
 except AttributeError:
     pass
 
@@ -95,6 +96,10 @@ def infer_dtype(object _values):
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values):
             return 'timedelta'
+
+    elif is_period(val):
+        if is_period_array(values):
+            return 'period'
 
     for i in range(n):
         val = util.get_value_1d(values, i)
@@ -320,6 +325,10 @@ def is_time_array(ndarray[object] values):
             return False
     return True
 
+def is_period(object o):
+    from pandas import Period
+    return isinstance(o,Period)
+
 def is_period_array(ndarray[object] values):
     cdef int i, n = len(values)
     from pandas import Period
@@ -364,11 +373,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     for i from 0 <= i < n:
         val = values[i]
 
-        if util.is_float_object(val):
-            floats[i] = complexes[i] = val
-            seen_float = 1
-        elif val in na_values:
+        if val in na_values:
             floats[i] = complexes[i] = nan
+            seen_float = 1
+        elif util.is_float_object(val):
+            floats[i] = complexes[i] = val
             seen_float = 1
         elif val is None:
             floats[i] = complexes[i] = nan
@@ -392,7 +401,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                     elif 'inf' in val:  # special case to handle +/-inf
                         seen_float = 1
                     elif fval < fINT64_MAX and fval > fINT64_MIN:
-                        ints[i] = <int64_t> fval
+                        try:
+                            ints[i] = int(val)
+                        except ValueError:
+                            ints[i] = <int64_t> fval
                     else:
                         seen_float = 1
             except:
@@ -401,7 +413,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
                 floats[i] = nan
                 seen_float = 1
-               
+
 
     if seen_complex:
         return complexes
@@ -459,7 +471,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen_float = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
-                idatetimes[i] = convert_to_tsobject(val, None).value
+                idatetimes[i] = convert_to_tsobject(val, None, None).value
                 seen_datetime = 1
             else:
                 seen_object = 1
@@ -481,7 +493,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
             if convert_datetime:
                 seen_datetime = 1
-                idatetimes[i] = convert_to_tsobject(val, None).value
+                idatetimes[i] = convert_to_tsobject(val, None, None).value
             else:
                 seen_object = 1
                 break

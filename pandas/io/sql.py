@@ -22,6 +22,15 @@ def execute(sql, con, retry=True, cur=None, params=None):
     ----------
     sql: string
         Query to be executed
+    con: database connection instance
+        Database connection.  Must implement PEP249 (Database API v2.0).
+    retry: bool
+        Not currently implemented
+    cur: database cursor, optional
+        Must implement PEP249 (Datbase API v2.0).  If cursor is not provided,
+        one will be obtained from the database connection.
+    params: list or tuple, optional
+        List of parameters to pass to execute method.
 
     Returns
     -------
@@ -42,7 +51,7 @@ def execute(sql, con, retry=True, cur=None, params=None):
         except Exception:  # pragma: no cover
             pass
 
-        print 'Error on sql %s' % sql
+        print ('Error on sql %s' % sql)
         raise
 
 
@@ -85,7 +94,7 @@ def tquery(sql, con=None, cur=None, retry=True):
         except Exception, e:
             excName = e.__class__.__name__
             if excName == 'OperationalError':  # pragma: no cover
-                print 'Failed to commit, may need to restart interpreter'
+                print ('Failed to commit, may need to restart interpreter')
             else:
                 raise
 
@@ -102,7 +111,7 @@ def tquery(sql, con=None, cur=None, retry=True):
     return result
 
 
-def uquery(sql, con=None, cur=None, retry=True, params=()):
+def uquery(sql, con=None, cur=None, retry=True, params=None):
     """
     Does the same thing as tquery, but instead of returning results, it
     returns the number of rows affected.  Good for update queries.
@@ -119,12 +128,12 @@ def uquery(sql, con=None, cur=None, retry=True, params=()):
 
         traceback.print_exc()
         if retry:
-            print 'Looks like your connection failed, reconnecting...'
+            print ('Looks like your connection failed, reconnecting...')
             return uquery(sql, con, retry=False)
     return result
 
 
-def read_frame(sql, con, index_col=None, coerce_float=True):
+def read_frame(sql, con, index_col=None, coerce_float=True, params=None):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
@@ -142,8 +151,10 @@ def read_frame(sql, con, index_col=None, coerce_float=True):
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
+    params: list or tuple, optional
+        List of parameters to pass to execute method.
     """
-    cur = execute(sql, con)
+    cur = execute(sql, con, params=params)
     rows = _safe_fetch(cur)
     columns = [col_desc[0] for col_desc in cur.description]
 
@@ -159,7 +170,7 @@ def read_frame(sql, con, index_col=None, coerce_float=True):
     return result
 
 frame_query = read_frame
-
+read_sql = read_frame
 
 def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """
@@ -220,7 +231,11 @@ def _write_sqlite(frame, table, names, cur):
     wildcards = ','.join(['?'] * len(names))
     insert_query = 'INSERT INTO %s (%s) VALUES (%s)' % (
         table, col_names, wildcards)
-    data = [tuple(x) for x in frame.values]
+    # pandas types are badly handled if there is only 1 column ( Issue #3628 )
+    if   not len(frame.columns  )==1 :
+        data = [tuple(x) for x in frame.values]
+    else :
+        data = [tuple(x) for x in frame.values.tolist()]
     cur.executemany(insert_query, data)
 
 def _write_mysql(frame, table, names, cur):

@@ -92,12 +92,13 @@ write_store_mixed = Benchmark(
 # get from a table (mixed)
 
 setup5 = common_setup + """
-index = [rands(10) for _ in xrange(25000)]
-df = DataFrame({'float1' : randn(25000),
-                'float2' : randn(25000),
-                'string1' : ['foo'] * 25000,
-                'bool1' : [True] * 25000,
-                'int1' : np.random.randint(0, 250000, size=25000)},
+N=10000
+index = [rands(10) for _ in xrange(N)]
+df = DataFrame({'float1' : randn(N),
+                'float2' : randn(N),
+                'string1' : ['foo'] * N,
+                'bool1' : [True] * N,
+                'int1' : np.random.randint(0, N, size=N)},
                index=index)
 
 remove(f)
@@ -265,7 +266,7 @@ write_store_table_panel = Benchmark(
 # write to a table (data_columns)
 
 setup15 = common_setup + """
-df = DataFrame(np.random.randn(25000,10),columns = [ 'C%03d' % i for i in xrange(10) ])
+df = DataFrame(np.random.randn(10000,10),columns = [ 'C%03d' % i for i in xrange(10) ])
 
 remove(f)
 store = HDFStore(f)

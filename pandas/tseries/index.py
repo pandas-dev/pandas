@@ -6,12 +6,12 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.common import isnull
+from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
 from pandas.core.index import Index, Int64Index
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
     Resolution, get_reso_string)
-from pandas.tseries.offsets import DateOffset, generate_range, Tick
+from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
@@ -87,14 +87,7 @@ def _ensure_datetime64(other):
     raise TypeError('%s type object %s' % (type(other), str(other)))
 
 
-class TimeSeriesError(Exception):
-    pass
-
-
 _midnight = time(0, 0)
-_NS_DTYPE = np.dtype('M8[ns]')
-_INT64_DTYPE = np.dtype(np.int64)
-
 
 class DatetimeIndex(Int64Index):
     """
@@ -298,14 +291,22 @@ class DatetimeIndex(Int64Index):
         if end is not None:
             end = Timestamp(end)
 
-        inferred_tz = tools._infer_tzinfo(start, end)
+        try:
+            inferred_tz = tools._infer_tzinfo(start, end)
+        except:
+            raise ValueError('Start and end cannot both be tz-aware with '
+                             'different timezones')
+
+        inferred_tz = tools._maybe_get_tz(inferred_tz)
+        tz = tools._maybe_get_tz(tz)
 
         if tz is not None and inferred_tz is not None:
-            assert(inferred_tz == tz)
+            if not inferred_tz == tz:
+                raise AssertionError()
+
         elif inferred_tz is not None:
             tz = inferred_tz
 
-        tz = tools._maybe_get_tz(tz)
 
         if start is not None:
             if normalize:
@@ -421,13 +422,20 @@ class DatetimeIndex(Int64Index):
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
                       name=None):
+        if start is None and end is None:
+            # I somewhat believe this should never be raised externally and therefore
+            # should be a `PandasError` but whatever...
+            raise TypeError('Must specify either start or end.')
         if start is not None:
             start = Timestamp(start)
         if end is not None:
             end = Timestamp(end)
+        if (start is None or end is None) and periods is None:
+            raise TypeError('Must either specify period or provide both start and end.')
 
         if offset is None:
-            raise Exception('Must provide a DateOffset!')
+            # This can't happen with external-facing code, therefore PandasError
+            raise TypeError('Must provide offset.')
 
         drc = _daterange_cache
         if offset not in _daterange_cache:
@@ -445,14 +453,17 @@ class DatetimeIndex(Int64Index):
             cachedRange = drc[offset]
 
         if start is None:
-            assert(isinstance(end, Timestamp))
+            if not (isinstance(end, Timestamp)):
+                raise AssertionError()
 
             end = offset.rollback(end)
 
             endLoc = cachedRange.get_loc(end) + 1
             startLoc = endLoc - periods
         elif end is None:
-            assert(isinstance(start, Timestamp))
+            if not (isinstance(start, Timestamp)):
+                raise AssertionError()
+
             start = offset.rollforward(start)
 
             startLoc = cachedRange.get_loc(start)
@@ -551,9 +562,15 @@ class DatetimeIndex(Int64Index):
         if isinstance(delta, (Tick, timedelta)):
             inc = offsets._delta_to_nanoseconds(delta)
             new_values = (self.asi8 + inc).view(_NS_DTYPE)
+            tz = 'UTC' if self.tz is not None else None
+            result = DatetimeIndex(new_values, tz=tz, freq='infer')
+            utc = _utc()
+            if self.tz is not None and self.tz is not utc:
+                result = result.tz_convert(self.tz)
         else:
             new_values = self.astype('O') + delta
-        return DatetimeIndex(new_values, tz=self.tz, freq='infer')
+            result = DatetimeIndex(new_values, tz=self.tz, freq='infer')
+        return result
 
     def __contains__(self, key):
         try:
@@ -561,6 +578,26 @@ class DatetimeIndex(Int64Index):
             return np.isscalar(res) or type(res) == slice
         except (KeyError, TypeError):
             return False
+
+    def _format_with_header(self, header, **kwargs):
+        return header + self._format_native_types(**kwargs)
+
+    def _format_native_types(self, na_rep=u'NaT', **kwargs):
+        data = list(self)
+
+        # tz formatter or time formatter
+        zero_time = time(0, 0)
+        for d in data:
+            if d.time() != zero_time or d.tzinfo is not None:
+                return [u'%s' % x for x in data ]
+
+        values = np.array(data,dtype=object)
+        mask = isnull(self.values)
+        values[mask] = na_rep
+
+        imask = -mask
+        values[imask] = np.array([ u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day) for dt in values[imask] ])
+        return values.tolist()
 
     def isin(self, values):
         """
@@ -620,11 +657,6 @@ class DatetimeIndex(Int64Index):
             return self.asi8.copy()
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
-
-    @property
-    def asi8(self):
-        # do not cache or you'll create a memory leak
-        return self.values.view('i8')
 
     def _get_time_micros(self):
         utc = _utc()
@@ -881,7 +913,8 @@ class DatetimeIndex(Int64Index):
         """
         See Index.join
         """
-        if not isinstance(other, DatetimeIndex) and len(other) > 0:
+        if (not isinstance(other, DatetimeIndex) and len(other) > 0 and
+            other.inferred_type != 'mixed-integer'):
             try:
                 other = DatetimeIndex(other)
             except TypeError:
@@ -896,10 +929,10 @@ class DatetimeIndex(Int64Index):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise Exception('Cannot join tz-naive with tz-aware '
+                    raise TypeError('Cannot join tz-naive with tz-aware '
                                     'DatetimeIndex')
             elif other.tz is not None:
-                raise Exception('Cannot join tz-naive with tz-aware '
+                raise TypeError('Cannot join tz-naive with tz-aware '
                                 'DatetimeIndex')
 
             if self.tz != other.tz:
@@ -1037,49 +1070,73 @@ class DatetimeIndex(Int64Index):
             left_chunk = left.values[lslice]
             return self._view_like(left_chunk)
 
-    def _partial_date_slice(self, reso, parsed):
-        if not self.is_monotonic:
-            raise TimeSeriesError('Partial indexing only valid for ordered '
-                                  'time series.')
+    def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
+        
+        is_monotonic = self.is_monotonic
 
         if reso == 'year':
             t1 = Timestamp(datetime(parsed.year, 1, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, 12, 31), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, 12, 31, 23, 59, 59, 999999), tz=self.tz)
         elif reso == 'month':
             d = tslib.monthrange(parsed.year, parsed.month)[1]
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, parsed.month, d), tz=self.tz)
+            t2 = Timestamp(datetime(parsed.year, parsed.month, d, 23, 59, 59, 999999), tz=self.tz)
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = tslib.monthrange(parsed.year, qe)[1]   # at end of month
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1), tz=self.tz)
-            t2 = Timestamp(datetime(parsed.year, qe, d), tz=self.tz)
-        elif reso == 'day' and self._resolution < Resolution.RESO_DAY:
+            t2 = Timestamp(datetime(parsed.year, qe, d, 23, 59, 59, 999999), tz=self.tz)
+        elif (reso == 'day' and (self._resolution < Resolution.RESO_DAY or not is_monotonic)):
             st = datetime(parsed.year, parsed.month, parsed.day)
             t1 = Timestamp(st, tz=self.tz)
             t2 = st + offsets.Day()
             t2 = Timestamp(Timestamp(t2, tz=self.tz).value - 1)
-        elif (reso == 'hour' and
-              self._resolution < Resolution.RESO_HR):
+        elif (reso == 'hour' and (
+                self._resolution < Resolution.RESO_HR or not is_monotonic)):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
             t1 = Timestamp(st, tz=self.tz)
             t2 = Timestamp(Timestamp(st + offsets.Hour(),
                                      tz=self.tz).value - 1)
-        elif (reso == 'minute' and
-              self._resolution < Resolution.RESO_MIN):
+        elif (reso == 'minute' and (
+                self._resolution < Resolution.RESO_MIN or not is_monotonic)):
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
             t1 = Timestamp(st, tz=self.tz)
             t2 = Timestamp(Timestamp(st + offsets.Minute(),
                                      tz=self.tz).value - 1)
+        elif (reso == 'second' and (
+                self._resolution == Resolution.RESO_SEC or not is_monotonic)):
+            st = datetime(parsed.year, parsed.month, parsed.day,
+                          hour=parsed.hour, minute=parsed.minute, second=parsed.second)
+            t1 = Timestamp(st, tz=self.tz)
+            t2 = Timestamp(Timestamp(st + offsets.Second(),
+                                     tz=self.tz).value - 1)
         else:
             raise KeyError
 
+
         stamps = self.asi8
-        left = stamps.searchsorted(t1.value, side='left')
-        right = stamps.searchsorted(t2.value, side='right')
-        return slice(left, right)
+
+        if is_monotonic:
+
+            # we are out of range
+            if len(stamps) and (
+                (use_lhs and t1.value < stamps[0] and t2.value < stamps[0]) or (
+                (use_rhs and t1.value > stamps[-1] and t2.value > stamps[-1]))):
+                raise KeyError
+
+            # a monotonic (sorted) series can be sliced
+            left = stamps.searchsorted(t1.value, side='left') if use_lhs else None
+            right = stamps.searchsorted(t2.value, side='right') if use_rhs else None
+
+            return slice(left, right)
+
+        lhs_mask = (stamps>=t1.value) if use_lhs else True
+        rhs_mask = (stamps<=t2.value) if use_rhs else True
+
+        # try to find a the dates
+        return (lhs_mask & rhs_mask).nonzero()[0]
 
     def _possibly_promote(self, other):
         if other.inferred_type == 'date':
@@ -1145,11 +1202,11 @@ class DatetimeIndex(Int64Index):
             except (KeyError, ValueError):
                 raise KeyError(key)
 
-    def _get_string_slice(self, key):
+    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
         _, parsed, reso = parse_time_string(key, freq)
-        loc = self._partial_date_slice(reso, parsed)
+        loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
     def slice_indexer(self, start=None, end=None, step=None):
@@ -1164,6 +1221,9 @@ class DatetimeIndex(Int64Index):
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError('Cannot mix time and non-time slice keys')
 
+        if isinstance(start, float) or isinstance(end, float):
+            raise TypeError('Cannot index datetime64 with float keys')
+
         return Index.slice_indexer(self, start, end, step)
 
     def slice_locs(self, start=None, end=None):
@@ -1171,20 +1231,40 @@ class DatetimeIndex(Int64Index):
         Index.slice_locs, customized to handle partial ISO-8601 string slicing
         """
         if isinstance(start, basestring) or isinstance(end, basestring):
-            try:
-                if start:
-                    start_loc = self._get_string_slice(start).start
-                else:
-                    start_loc = 0
 
-                if end:
-                    end_loc = self._get_string_slice(end).stop
-                else:
-                    end_loc = len(self)
+            if self.is_monotonic:
+                try:
+                    if start:
+                        start_loc = self._get_string_slice(start).start
+                    else:
+                        start_loc = 0
+                        
+                    if end:
+                        end_loc = self._get_string_slice(end).stop
+                    else:
+                        end_loc = len(self)
 
-                return start_loc, end_loc
-            except KeyError:
-                pass
+                    return start_loc, end_loc
+                except KeyError:
+                    pass
+
+            else:
+                # can't use a slice indexer because we are not sorted!
+                # so create an indexer directly
+                try:
+                    if start:
+                        start_loc = self._get_string_slice(start,use_rhs=False)
+                    else:
+                        start_loc = np.arange(len(self))
+                        
+                    if end:
+                        end_loc = self._get_string_slice(end,use_lhs=False)
+                    else:
+                        end_loc = np.arange(len(self))
+
+                    return start_loc, end_loc
+                except KeyError:
+                    pass
 
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError('Cannot use slice_locs with time slice keys')
@@ -1256,6 +1336,23 @@ class DatetimeIndex(Int64Index):
     weekday = dayofweek
     dayofyear = _field_accessor('dayofyear', 'doy')
     quarter = _field_accessor('quarter', 'q')
+
+    @property
+    def time(self):
+        """
+        Returns numpy array of datetime.time. The time part of the Timestamps.
+        """
+        # can't call self.map() which tries to treat func as ufunc
+        # and causes recursion warnings on python 2.6
+        return _algos.arrmap_object(self.asobject, lambda x: x.time())
+
+    @property
+    def date(self):
+        """
+        Returns numpy array of datetime.date. The date part of the Timestamps.
+        """
+        return _algos.arrmap_object(self.asobject, lambda x: x.date())
+
 
     def normalize(self):
         """
@@ -1402,7 +1499,7 @@ class DatetimeIndex(Int64Index):
 
         if self.tz is None:
             # tz naive, use tz_localize
-            raise Exception('Cannot convert tz-naive timestamps, use '
+            raise TypeError('Cannot convert tz-naive timestamps, use '
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
@@ -1417,7 +1514,7 @@ class DatetimeIndex(Int64Index):
         localized : DatetimeIndex
         """
         if self.tz is not None:
-            raise ValueError("Already tz-aware, use tz_convert to convert.")
+            raise TypeError("Already tz-aware, use tz_convert to convert.")
         tz = tools._maybe_get_tz(tz)
 
         # Convert to UTC
@@ -1538,17 +1635,21 @@ def _generate_regular_range(start, end, periods, offset):
             b = Timestamp(start).value
             e = Timestamp(end).value
             e += stride - e % stride
+            # end.tz == start.tz by this point due to _generate implementation
+            tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
             e = b + periods * stride
+            tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
             b = e - periods * stride
+            tz = end.tz
         else:
             raise NotImplementedError
 
         data = np.arange(b, e, stride, dtype=np.int64)
-        data = data.view(_NS_DTYPE)
+        data = DatetimeIndex._simple_new(data, None, tz=tz)
     else:
         if isinstance(start, Timestamp):
             start = start.to_pydatetime()
@@ -1584,7 +1685,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Frequency strings can have multiples, e.g. '5H'
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Beijing
+        Asia/Hong_Kong
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     name : str, default None
@@ -1637,6 +1738,57 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name)
+
+
+def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
+                normalize=True, name=None, **kwargs):
+    """
+    **EXPERIMENTAL** Return a fixed frequency datetime index, with
+    CustomBusinessDay as the default frequency
+
+    .. warning:: EXPERIMENTAL
+
+        The CustomBusinessDay class is not officially supported and the API is
+        likely to change in future versions. Use this at your own risk.
+
+    Parameters
+    ----------
+    start : string or datetime-like, default None
+        Left bound for generating dates
+    end : string or datetime-like, default None
+        Right bound for generating dates
+    periods : integer or None, default None
+        If None, must specify start and end
+    freq : string or DateOffset, default 'C' (CustomBusinessDay)
+        Frequency strings can have multiples, e.g. '5H'
+    tz : string or None
+        Time zone name for returning localized DatetimeIndex, for example
+        Asia/Beijing
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    name : str, default None
+        Name for the resulting index
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+
+    Notes
+    -----
+    2 of start, end, or periods must be specified
+
+    Returns
+    -------
+    rng : DatetimeIndex
+    """
+
+    if freq=='C':
+        holidays = kwargs.pop('holidays', [])
+        weekmask = kwargs.pop('weekmask', 'Mon Tue Wed Thu Fri')
+        freq = CDay(holidays=holidays, weekmask=weekmask)
+    return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
+                         tz=tz, normalize=normalize, name=name, **kwargs)
 
 
 def _to_m8(key, tz=None):
@@ -1723,7 +1875,8 @@ def _process_concat_data(to_concat, name):
             else:
                 to_concat = [x.values for x in to_concat]
 
-            klass = DatetimeIndex
+            # well, technically not a "class" anymore...oh well
+            klass = DatetimeIndex._simple_new
             kwargs = {'tz': tz}
             concat = com._concat_compat
     else:

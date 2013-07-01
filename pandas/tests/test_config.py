@@ -39,6 +39,13 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(hasattr(pd, 'reset_option'))
         self.assertTrue(hasattr(pd, 'describe_option'))
 
+    def test_is_one_of_factory(self):
+        v = self.cf.is_one_of_factory([None,12])
+
+        v(12)
+        v(None)
+        self.assertRaises(ValueError,v,1.1)
+
     def test_register_option(self):
         self.cf.register_option('a', 1, 'doc')
 
@@ -161,6 +168,44 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(self.cf.get_option('b.b'), 1.1)
 
         self.assertRaises(KeyError, self.cf.set_option, 'no.such.key', None)
+
+
+    def test_set_option_empty_args(self):
+        self.assertRaises(AssertionError, self.cf.set_option)
+
+    def test_set_option_uneven_args(self):
+        self.assertRaises(AssertionError, self.cf.set_option, 'a.b', 2, 'b.c')
+
+
+    def test_set_option_2_kwargs(self):
+        self.assertRaises(AssertionError, self.cf.set_option, 'a.b', 2,
+                          silenadf=2, asdf=2)
+
+    def test_set_option_invalid_kwargs_key(self):
+        self.assertRaises(ValueError, self.cf.set_option, 'a.b', 2,
+                          silenadf=2)
+
+    def test_set_option_invalid_kwargs_value_type(self):
+        self.assertRaises(TypeError, self.cf.set_option, 'a.b', 2,
+                          silent=2)
+
+    def test_set_option_invalid_single_argument_type(self):
+        self.assertRaises(AssertionError, self.cf.set_option, 2)
+
+    def test_set_option_multiple(self):
+        self.cf.register_option('a', 1, 'doc')
+        self.cf.register_option('b.c', 'hullo', 'doc2')
+        self.cf.register_option('b.b', None, 'doc2')
+
+        self.assertEqual(self.cf.get_option('a'), 1)
+        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        self.assertTrue(self.cf.get_option('b.b') is None)
+
+        self.cf.set_option('a', '2', 'b.c', None, 'b.b', 10.0)
+
+        self.assertEqual(self.cf.get_option('a'), '2')
+        self.assertTrue(self.cf.get_option('b.c') is None)
+        self.assertEqual(self.cf.get_option('b.b'), 10.0)
 
     def test_validation(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)

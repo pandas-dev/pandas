@@ -1,5 +1,5 @@
 # pylint: disable-msg=E1101,W0612
-from datetime import datetime, time, timedelta, tzinfo
+from datetime import datetime, time, timedelta, tzinfo, date
 import sys
 import os
 import unittest
@@ -18,8 +18,9 @@ import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 from pandas.tseries.index import bdate_range, date_range
 import pandas.tseries.tools as tools
+from pytz import NonExistentTimeError
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import assert_series_equal, assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
 
 import pandas.lib as lib
@@ -79,6 +80,7 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         self.assert_(rng_eastern.tz == pytz.timezone('US/Eastern'))
 
+
     def test_localize_utc_conversion(self):
         # Localizing to time zone should:
         #  1) check for DST ambiguities
@@ -92,13 +94,26 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
-        self.assertRaises(Exception, rng.tz_localize, 'US/Eastern')
+        # Is this really how it should fail??
+        self.assertRaises(NonExistentTimeError, rng.tz_localize, 'US/Eastern')
 
     def test_timestamp_tz_localize(self):
         stamp = Timestamp('3/11/2012 04:00')
 
         result = stamp.tz_localize('US/Eastern')
         expected = Timestamp('3/11/2012 04:00', tz='US/Eastern')
+        self.assertEquals(result.hour, expected.hour)
+        self.assertEquals(result, expected)
+
+    def test_timestamp_constructed_by_date_and_tz(self):
+        """
+        Fix Issue 2993, Timestamp cannot be constructed by datetime.date
+        and tz correctly
+        """
+
+        result = Timestamp(date(2012, 3, 11), tz='US/Eastern')
+
+        expected = Timestamp('3/11/2012', tz='US/Eastern')
         self.assertEquals(result.hour, expected.hour)
         self.assertEquals(result, expected)
 
@@ -500,7 +515,9 @@ class TestTimeZoneSupport(unittest.TestCase):
         # GH 2810 (with timezones)
         datetimes_naive   = [ ts.to_pydatetime() for ts in dr ]
         datetimes_with_tz = [ ts.to_pydatetime() for ts in dr_tz ]
-        df = DataFrame({'dr' : dr, 'dr_tz' : dr_tz, 'datetimes_naive': datetimes_naive, 'datetimes_with_tz' : datetimes_with_tz })
+        df = DataFrame({'dr' : dr, 'dr_tz' : dr_tz,
+                        'datetimes_naive': datetimes_naive,
+                        'datetimes_with_tz' : datetimes_with_tz })
         result = df.get_dtype_counts()
         expected = Series({ 'datetime64[ns]' : 3, 'object' : 1 })
         assert_series_equal(result, expected)
@@ -657,7 +674,7 @@ class TestTimeZones(unittest.TestCase):
         # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         ts = Series(1, index=rng)
-        self.assertRaises(Exception, ts.tz_localize, 'US/Eastern')
+        assertRaisesRegexp(TypeError, 'Already tz-aware', ts.tz_localize, 'US/Eastern')
 
     def test_series_frame_tz_convert(self):
         rng = date_range('1/1/2011', periods=200, freq='D',
@@ -681,7 +698,7 @@ class TestTimeZones(unittest.TestCase):
         # can't convert tz-naive
         rng = date_range('1/1/2011', periods=200, freq='D')
         ts = Series(1, index=rng)
-        self.assertRaises(Exception, ts.tz_convert, 'US/Eastern')
+        assertRaisesRegexp(TypeError, "Cannot convert tz-naive", ts.tz_convert, 'US/Eastern')
 
     def test_join_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
@@ -893,6 +910,11 @@ class TestTimeZones(unittest.TestCase):
 
         self.assert_(result.is_normalized)
         self.assert_(not rng.is_normalized)
+
+    def test_tzaware_offset(self):
+        dates = date_range('2012-11-01', periods=3, tz='US/Pacific')
+        offset = dates + offsets.Hour(5)
+        self.assertEqual(dates[0] + offsets.Hour(5), offset[0])
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

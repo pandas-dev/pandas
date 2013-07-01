@@ -4,6 +4,7 @@ Quantilization functions and related stuff
 
 from pandas.core.api import DataFrame, Series
 from pandas.core.categorical import Categorical
+from pandas.core.index import _ensure_index
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
@@ -148,6 +149,9 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
+
+    if len(algos.unique(bins)) < len(bins):
+        raise ValueError('Bin edges must be unique: %s' % repr(bins))
 
     if include_lowest:
         ids[x == bins[0]] = 1

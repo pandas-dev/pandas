@@ -88,7 +88,7 @@ See LICENSE for the license
 #define ERROR_NO_DATA                  23
 
 
-// #define VERBOSE
+/* #define VERBOSE */
 
 #if defined(VERBOSE)
 #define TRACE(X) printf X;
@@ -183,6 +183,7 @@ typedef struct parser_t {
     int allow_embedded_newline;
     int strict;                 /* raise exception on bad CSV */
 
+    int expected_fields;
     int error_bad_lines;
     int warn_bad_lines;
 
@@ -194,6 +195,8 @@ typedef struct parser_t {
     char thousands;
 
     int header; // Boolean: 1: has header, 0: no header
+    int header_start; // header row start
+    int header_end;   // header row end
 
     void *skipset;
     int skip_footer;

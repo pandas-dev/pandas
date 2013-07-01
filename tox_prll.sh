@@ -12,6 +12,10 @@
 ENVS=$(cat tox.ini | grep envlist | tr  "," " " | cut -d " " -f 3-)
 TOX_INI_PAR="tox_prll.ini"
 
+if [ x"$1" == x"fast" ]; then
+    scripts/use_build_cache.py
+fi;
+
 echo "[Creating distfile]"
 tox --sdistonly
 export DISTFILE="$(find .tox/dist -type f )"
@@ -21,3 +25,4 @@ for e in $ENVS; do
     echo "[launching tox for $e]"
     tox -c "$TOX_INI_PAR" -e "$e" &
 done
+wait

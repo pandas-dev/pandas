@@ -1,0 +1,69 @@
+{#
+
+Subset of agogo theme
+agogo/layout.html
+
+Sphinx layout template for the agogo theme, originally written
+by Andi Albrecht.
+
+:copyright: Copyright 2007-2011 by the Sphinx team, see AUTHORS.
+:license: BSD, see LICENSE for details.
+#}
+{% extends "basic/layout.html" %}
+
+{%- block content %}
+<div class="content-wrapper">
+    <div class="content">
+        <div class="document">
+            <div class="sphinxsidebar">
+                {%- block sidebar1 %}
+                {%- block sidebartoc %}
+                <h3>{{ _('Table Of Contents') }}</h3>
+                {{ toctree() }}
+                {%- endblock %}
+                {%- block sidebarsearch %}
+                <h3 style="margin-top: 1.5em;">{{ _('Search') }}</h3>
+
+                <form class="search" action="{{ pathto('search') }}" method="get">
+                    <input type="text" name="q" size="18"/>
+                    <input type="submit" value="{{ _('Go') }}"/>
+                    <input type="hidden" name="check_keywords" value="yes"/>
+                    <input type="hidden" name="area" value="default"/>
+                </form>
+                <p class="searchtip" style="font-size: 90%">
+                    {{ _('Enter search terms or a module, class or function name.') }}
+                </p>
+
+                <p>
+
+                <p>
+                    <script type="text/javascript"
+                            src="http://www.ohloh.net/p/482908/widgets/project_partner_badge.js"></script>
+                </p>
+            </div>
+            {%- endblock %}
+            {# possible location for sidebar #} {% endblock %}
+
+
+            {%- block document %}
+            <div class="documentwrapper">
+                {%- if render_sidebar %}
+                <div class="bodywrapper">
+                    {%- endif %}
+                    <div class="body">
+                        {% block body %} {% endblock %}
+                    </div>
+                    {%- if render_sidebar %}
+                </div>
+                {%- endif %}
+            </div>
+            {%- endblock %}
+
+            {%- block sidebar2 %}
+
+            {% endblock %}
+            <div class="clearer"></div>
+        </div>
+    </div>
+</div>
+{%- endblock %}

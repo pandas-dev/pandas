@@ -1,5 +1,5 @@
 """
-get_terminal_size() -- return width and height of console as a tuple
+get_terminal_size() -- return width and height of terminal as a tuple
 
 code from:
 http://stackoverflow.com/questions/566746/how-to-get-console- window-width-in-
@@ -18,6 +18,12 @@ __all__ = ['get_terminal_size']
 
 
 def get_terminal_size():
+    """
+    Detect terminal size and return tuple = (width, height).
+
+    Only to be used when running in a terminal. Note that the IPython notebook,
+    IPython zmq frontends, or IDLE do not run in a terminal,
+    """
     import platform
     current_os = platform.system()
     tuple_xy = None
@@ -111,4 +117,4 @@ def _get_terminal_size_linux():
 
 if __name__ == "__main__":
     sizex, sizey = get_terminal_size()
-    print 'width =', sizex, 'height =', sizey
+    print ('width = %s height = %s' % (sizex, sizey))

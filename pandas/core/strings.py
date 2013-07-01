@@ -154,7 +154,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan):
         If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
-    na : bool, default NaN
+    na : default NaN, fill value for missing values.
 
     Returns
     -------
@@ -559,7 +559,7 @@ def str_get(arr, i):
     -------
     items : array
     """
-    f = lambda x: x[i]
+    f = lambda x: x[i] if len(x) > i else np.nan
     return _na_map(f, arr)
 
 
@@ -661,6 +661,14 @@ class StringMethods(object):
         else:
             return self.get(key)
 
+    def __iter__(self):
+        i = 0
+        g = self.get(i)
+        while g.notnull().any():
+            yield g
+            i += 1
+            g = self.get(i)
+
     def _wrap_result(self, result):
         return Series(result, index=self.series.index,
                       name=self.series.name)
@@ -688,12 +696,13 @@ class StringMethods(object):
     @copy(str_contains)
     def contains(self, pat, case=True, flags=0, na=np.nan):
         result = str_contains(self.series, pat, case=case, flags=flags,
-                              na=np.nan)
+                              na=na)
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=-1, case=True):
-        result = str_replace(self.series, pat, repl, n=n, case=case)
+    def replace(self, pat, repl, n=-1, case=True, flags=0):
+        result = str_replace(self.series, pat, repl, n=n, case=case,
+                             flags=flags)
         return self._wrap_result(result)
 
     @copy(str_repeat)

@@ -930,6 +930,37 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
         assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
 
+    def test_stack_multiple_bug(self):
+        """ bug when some uniques are not present in the data #3170"""
+        id_col = ([1] * 3) + ([2] * 3)
+        name = (['a'] * 3) + (['b'] * 3)
+        date = pd.to_datetime(['2013-01-03', '2013-01-04', '2013-01-05'] * 2)
+        var1 = np.random.randint(0, 100, 6)
+        df = DataFrame(dict(ID=id_col, NAME=name, DATE=date, VAR1=var1))
+
+        multi = df.set_index(['DATE', 'ID'])
+        multi.columns.name = 'Params'
+        unst = multi.unstack('ID')
+        down = unst.resample('W-THU')
+
+        rs = down.stack('ID')
+        xp = unst.ix[:, ['VAR1']].resample('W-THU').stack('ID')
+        xp.columns.name = 'Params'
+        assert_frame_equal(rs, xp)
+
+    def test_stack_dropna(self):
+        # GH #3997
+        df = pd.DataFrame({'A': ['a1', 'a2'], 
+                           'B': ['b1', 'b2'], 
+                           'C': [1, 1]})
+        df = df.set_index(['A', 'B'])
+
+        stacked = df.unstack().stack(dropna=False)
+        self.assertTrue(len(stacked) > len(stacked.dropna()))
+
+        stacked = df.unstack().stack(dropna=True)
+        assert_frame_equal(stacked, stacked.dropna())
+
     def test_unstack_multiple_hierarchical(self):
         df = DataFrame(index=[[0, 0, 0, 0, 1, 1, 1, 1],
                               [0, 0, 1, 1, 0, 0, 1, 1],
@@ -1015,7 +1046,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         self.assert_(not np.isnan(joined.values).all())
 
-        assert_frame_equal(joined, expected)
+        assert_frame_equal(joined, expected, check_names=False)  # TODO what should join do with names ?
 
     def test_swaplevel(self):
         swapped = self.frame['A'].swaplevel(0, 1)
@@ -1276,7 +1307,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         expected = self.ymd.groupby([k1, k2]).mean()
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_names=False)  # TODO groupby with level_values drops names
         self.assertEquals(result.index.names, self.ymd.index.names[:2])
 
         result2 = self.ymd.groupby(level=self.ymd.index.names[:2]).mean()
@@ -1346,7 +1377,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # test roundtrip
         stacked = result.stack()
-        assert_series_equal(s.astype(np.float64),
+        assert_series_equal(s,
                             stacked.reindex(s.index))
 
         # put it at beginning
@@ -1803,6 +1834,17 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = s.groupby(s.index).first()
         self.assertEquals(len(result), 3)
+
+    def test_multiindex_set_index(self):
+        # segfault in #3308
+        d = {'t1': [2, 2.5, 3], 't2': [4, 5, 6]}
+        df = DataFrame(d)
+        tuples = [(0, 1), (0, 2), (1, 2)]
+        df['tuples'] = tuples
+
+        index = MultiIndex.from_tuples(df['tuples'])
+        # it works!
+        df.set_index(index)
 
 if __name__ == '__main__':
 

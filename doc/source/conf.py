@@ -37,7 +37,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              'numpydoc',
+              'numpydoc', # used to parse numpy-style docstrings for autodoc
               'ipython_directive',
               'ipython_console_highlighting',
               'sphinx.ext.intersphinx',
@@ -124,7 +124,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'agogo'
+html_theme = 'nature_with_gtoc'
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
@@ -243,8 +243,6 @@ autosummary_generate = glob.glob("*.rst")
 
 # extlinks alias
 extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
-                      'issue '),
-            'pull request': ('https://github.com/pydata/pandas/pulls/%s',
-                             'pull request '),
-            'wiki': ('https://github.com/pydata/pandas/pulls/%s',
+                      'GH'),
+            'wiki': ('https://github.com/pydata/pandas/wiki/%s',
                      'wiki ')}

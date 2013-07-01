@@ -12,6 +12,8 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
+from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
+from pandas.util import py3compat
 
 from pandas.lib import Timestamp
 import pandas.lib as lib
@@ -39,29 +41,28 @@ def _field_accessor(name, alias):
 
 
 class Period(object):
+    """
+    Represents an period of time
 
+    Parameters
+    ----------
+    value : Period or basestring, default None
+        The time period represented (e.g., '4Q2005')
+    freq : str, default None
+        e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
+    year : int, default None
+    month : int, default 1
+    quarter : int, default None
+    day : int, default 1
+    hour : int, default 0
+    minute : int, default 0
+    second : int, default 0
+    """
     __slots__ = ['freq', 'ordinal']
 
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
-        """
-        Represents an period of time
-
-        Parameters
-        ----------
-        value : Period or basestring, default None
-            The time period represented (e.g., '4Q2005')
-        freq : str, default None
-            e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
-        year : int, default None
-        month : int, default 1
-        quarter : int, default None
-        day : int, default 1
-        hour : int, default 0
-        minute : int, default 0
-        second : int, default 0
-        """
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
         # ('T', 5) but may be passed in as a string like '5T'
@@ -128,9 +129,16 @@ class Period(object):
 
     def __eq__(self, other):
         if isinstance(other, Period):
+            if other.freq != self.freq:
+                raise ValueError("Cannot compare non-conforming periods")
             return (self.ordinal == other.ordinal
                     and _gfc(self.freq) == _gfc(other.freq))
+        else:
+            raise TypeError(other)
         return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash((self.ordinal, self.freq))
@@ -151,6 +159,23 @@ class Period(object):
             return self.ordinal - other.ordinal
         else:  # pragma: no cover
             raise TypeError(other)
+
+    def _comp_method(func, name):
+        def f(self, other):
+            if isinstance(other, Period):
+                if other.freq != self.freq:
+                    raise ValueError("Cannot compare non-conforming periods")
+                return func(self.ordinal, other.ordinal)
+            else:
+                raise TypeError(other)
+
+        f.__name__ = name
+        return f
+
+    __lt__ = _comp_method(operator.lt, '__lt__')
+    __le__ = _comp_method(operator.le, '__le__')
+    __gt__ = _comp_method(operator.gt, '__gt__')
+    __ge__ = _comp_method(operator.ge, '__ge__')
 
     def asfreq(self, freq, how='E'):
         """
@@ -188,7 +213,7 @@ class Period(object):
         ordinal = (self + 1).start_time.value - 1
         return Timestamp(ordinal)
 
-    def to_timestamp(self, freq=None, how='start'):
+    def to_timestamp(self, freq=None, how='start',tz=None):
         """
         Return the Timestamp representation of the Period at the target
         frequency at the specified end (how) of the Period
@@ -216,7 +241,7 @@ class Period(object):
         val = self.asfreq(freq, how)
 
         dt64 = tslib.period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64)
+        return Timestamp(dt64,tz=tz)
 
     year = _period_field_accessor('year', 0)
     month = _period_field_accessor('month', 3)
@@ -240,12 +265,49 @@ class Period(object):
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
+
+        if not py3compat.PY3:
+            encoding = com.get_option("display.encoding")
+            formatted = formatted.encode(encoding)
+
         return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        encoding = com.get_option("display.encoding")
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
+        """
         base, mult = _gfc(self.freq)
         formatted = tslib.period_format(self.ordinal, base)
-        return ("%s" % formatted)
+        value = (u"%s" % formatted)
+        assert type(value) == unicode
+
+        return value
+
 
     def strftime(self, fmt):
         """
@@ -438,10 +500,13 @@ def _period_index_cmp(opname):
     def wrapper(self, other):
         if isinstance(other, Period):
             func = getattr(self.values, opname)
-            assert(other.freq == self.freq)
+            if not (other.freq == self.freq):
+                raise AssertionError()
+
             result = func(other.ordinal)
         elif isinstance(other, PeriodIndex):
-            assert(other.freq == self.freq)
+            if not (other.freq == self.freq):
+                raise AssertionError()
             return getattr(self.values, opname)(other.values)
         else:
             other = Period(other, freq=self.freq)
@@ -450,10 +515,6 @@ def _period_index_cmp(opname):
 
         return result
     return wrapper
-
-_INT64_DTYPE = np.dtype(np.int64)
-_NS_DTYPE = np.dtype('M8[ns]')
-
 
 class PeriodIndex(Int64Index):
     """
@@ -768,6 +829,21 @@ class PeriodIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return self._get_object_array()
 
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        return np.array_equal(self.asi8, other.asi8)
+
+    def tolist(self):
+        """
+        Return a list of Period objects
+        """
+        return self._get_object_array().tolist()
+
     def to_timestamp(self, freq=None, how='start'):
         """
         Cast to DatetimeIndex
@@ -881,8 +957,11 @@ class PeriodIndex(Int64Index):
             except TypeError:
                 pass
 
-            key = Period(key, self.freq).ordinal
-            return self._engine.get_loc(key)
+            key = Period(key, self.freq)
+            try:
+                return self._engine.get_loc(key.ordinal)
+            except KeyError as inst:
+                raise KeyError(key)
 
     def slice_locs(self, start=None, end=None):
         """
@@ -996,16 +1075,18 @@ class PeriodIndex(Int64Index):
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 
-    def format(self, name=False, formatter=None):
-        """
-        Render a string representation of the Index
-        """
-        header = []
+    def _format_with_header(self, header, **kwargs):
+        return header + self._format_native_types(**kwargs)
 
-        if name:
-            header.append(str(self.name) if self.name is not None else '')
+    def _format_native_types(self, na_rep=u'NaT', **kwargs):
 
-        return header + ['%s' % Period(x, freq=self.freq) for x in self]
+        values = np.array(list(self),dtype=object)
+        mask = isnull(self.values)
+        values[mask] = na_rep
+        
+        imask = -mask
+        values[imask] = np.array([ u'%s' % dt for dt in values[imask] ])
+        return values.tolist()
 
     def __array_finalize__(self, obj):
         if self.ndim == 0:  # pragma: no cover
@@ -1021,10 +1102,30 @@ class PeriodIndex(Int64Index):
         output += 'length: %d' % len(self)
         return output
 
+    def __unicode__(self):
+        output = self.__class__.__name__
+        output += u'('
+        prefix = '' if py3compat.PY3 else 'u'
+        mapper = "{0}'{{0}}'".format(prefix)
+        output += '[{0}]'.format(', '.join(map(mapper.format, self)))
+        output += ", freq='{0}'".format(self.freq)
+        output += ')'
+        return output
+
+    def __bytes__(self):
+        encoding = com.get_option('display.encoding')
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __str__(self):
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
     def take(self, indices, axis=None):
         """
         Analogous to ndarray.take
         """
+        indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
         taken = taken.view(PeriodIndex)
         taken.freq = self.freq
@@ -1070,6 +1171,25 @@ class PeriodIndex(Int64Index):
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
 
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = (self.name, self.freq)
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+        if len(state) == 2:
+            nd_state, own_state = state
+            np.ndarray.__setstate__(self, nd_state)
+            self.name = own_state[0]
+            try: # backcompat
+                self.freq = own_state[1]
+            except:
+                pass
+        else:  # pragma: no cover
+            np.ndarray.__setstate__(self, state)
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:
@@ -1129,7 +1249,8 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
             base, mult = _gfc(freq)
             if mult != 1:
                 raise ValueError('Only mult == 1 supported')
-            assert(base == FreqGroup.FR_QTR)
+            if not (base == FreqGroup.FR_QTR):
+                raise AssertionError()
 
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):

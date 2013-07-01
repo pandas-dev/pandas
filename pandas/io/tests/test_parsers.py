@@ -2,12 +2,13 @@
 
 from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
-from os.path import split as psplit
 import csv
 import os
 import sys
 import re
 import unittest
+from contextlib import closing
+from urllib2 import urlopen
 
 import nose
 
@@ -19,7 +20,10 @@ import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal, network)
+                                 assert_series_equal,
+                                 makeCustomDataframe as mkdf,
+                                 network,
+                                 ensure_clean)
 import pandas.util.testing as tm
 import pandas as pd
 
@@ -31,7 +35,7 @@ import pandas.tseries.tools as tools
 
 from numpy.testing.decorators import slow
 
-from pandas._parser import OverflowError
+from pandas.parser import OverflowError
 
 
 class ParserTests(object):
@@ -57,7 +61,7 @@ bar2,12,13,14,15
         import warnings
         warnings.filterwarnings(action='ignore', category=FutureWarning)
 
-        self.dirpath = curpath()
+        self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
@@ -264,6 +268,15 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
                            date_parser=conv.parse_date_time)
         self.assert_('nominal' in df)
 
+    def test_multiple_date_col_timestamp_parse(self):
+        data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
+05/31/2012,15:30:00.029,1306.25,8,E,0,,1306.25"""
+        result = self.read_csv(StringIO(data), sep=',', header=None,
+                               parse_dates=[[0,1]], date_parser=Timestamp)
+
+        ex_val = Timestamp('05/31/2012 15:30:00.029')
+        self.assertEqual(result['0_1'][0], ex_val)
+
     def test_single_line(self):
         # sniff separator
         buf = StringIO()
@@ -365,6 +378,21 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(rs, xp)
         self.assert_(rs.index.name == xp.index.name)
 
+    def test_date_parser_int_bug(self):
+        # #3071
+        log_file = StringIO(
+            'posix_timestamp,elapsed,sys,user,queries,query_time,rows,'
+                'accountid,userid,contactid,level,silo,method\n'
+            '1343103150,0.062353,0,4,6,0.01690,3,'
+                '12345,1,-1,3,invoice_InvoiceResource,search\n'
+        )
+
+        def f(posix_string):
+            return datetime.utcfromtimestamp(int(posix_string))
+
+        # it works!
+        read_csv(log_file, index_col=0, parse_dates=0, date_parser=f)
+
     def test_multiple_skts_example(self):
         data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
         pass
@@ -430,7 +458,9 @@ skip
 2,3,4
 """
         try:
-            it = self.read_table(StringIO(data), sep=',', header=1, comment='#', iterator=True, chunksize=1, skiprows=[2])
+            it = self.read_table(StringIO(data), sep=',', header=1,
+                                 comment='#', iterator=True, chunksize=1,
+                                 skiprows=[2])
             df = it.read(1)
             it.read(2)
             self.assert_(False)
@@ -456,6 +486,36 @@ skip
         except Exception, inst:
             self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
+    def test_passing_dtype(self):
+
+        df = DataFrame(np.random.rand(5,2),columns=list('AB'),index=['1A','1B','1C','1D','1E'])
+
+        with ensure_clean('__passing_str_as_dtype__.csv') as path:
+            df.to_csv(path)
+
+            # GH 3795
+            # passing 'str' as the dtype
+            result = pd.read_csv(path, dtype=str, index_col=0)
+            tm.assert_series_equal(result.dtypes,Series({ 'A' : 'object', 'B' : 'object' }))
+
+            # we expect all object columns, so need to convert to test for equivalence
+            result = result.astype(float)
+            tm.assert_frame_equal(result,df)
+
+            # invalid dtype
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'foo', 'B' : 'float64' },
+                              index_col=0)
+
+            # valid but we don't support it (date)
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'datetime64', 'B' : 'float64' },
+                              index_col=0)
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'datetime64', 'B' : 'float64' },
+                              index_col=0, parse_dates=['B'])
+
+            # valid but we don't support it
+            self.assertRaises(TypeError, pd.read_csv, path, dtype={'A' : 'timedelta64', 'B' : 'float64' },
+                              index_col=0)
+
     def test_quoting(self):
         bad_line_small = """printer\tresult\tvariant_name
 Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jacob
@@ -469,6 +529,47 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
         good_line_small = bad_line_small + '"'
         df = self.read_table(StringIO(good_line_small), sep='\t')
         self.assert_(len(df) == 3)
+
+    def test_non_string_na_values(self):
+        # GH3611, na_values that are not a string are an issue
+        with ensure_clean('__non_string_na_values__.csv') as path:
+            df = DataFrame({'A' : [-999, 2, 3], 'B' : [1.2, -999, 4.5]})
+            df.to_csv(path, sep=' ', index=False)
+            result1 = read_csv(path, sep= ' ', header=0, na_values=['-999.0','-999'])
+            result2 = read_csv(path, sep= ' ', header=0, na_values=[-999,-999.0])
+            result3 = read_csv(path, sep= ' ', header=0, na_values=[-999.0,-999])
+            tm.assert_frame_equal(result1,result2)
+            tm.assert_frame_equal(result2,result3)
+
+            result4 = read_csv(path, sep= ' ', header=0, na_values=['-999.0'])
+            result5 = read_csv(path, sep= ' ', header=0, na_values=['-999'])
+            result6 = read_csv(path, sep= ' ', header=0, na_values=[-999.0])
+            result7 = read_csv(path, sep= ' ', header=0, na_values=[-999])
+            tm.assert_frame_equal(result4,result3)
+            tm.assert_frame_equal(result5,result3)
+            tm.assert_frame_equal(result6,result3)
+            tm.assert_frame_equal(result7,result3)
+
+            good_compare = result3
+
+            # with an odd float format, so we can't match the string 999.0 exactly,
+            # but need float matching
+            df.to_csv(path, sep=' ', index=False, float_format = '%.3f')
+            result1 = read_csv(path, sep= ' ', header=0, na_values=['-999.0','-999'])
+            result2 = read_csv(path, sep= ' ', header=0, na_values=[-999,-999.0])
+            result3 = read_csv(path, sep= ' ', header=0, na_values=[-999.0,-999])
+            tm.assert_frame_equal(result1,good_compare)
+            tm.assert_frame_equal(result2,good_compare)
+            tm.assert_frame_equal(result3,good_compare)
+
+            result4 = read_csv(path, sep= ' ', header=0, na_values=['-999.0'])
+            result5 = read_csv(path, sep= ' ', header=0, na_values=['-999'])
+            result6 = read_csv(path, sep= ' ', header=0, na_values=[-999.0])
+            result7 = read_csv(path, sep= ' ', header=0, na_values=[-999])
+            tm.assert_frame_equal(result4,good_compare)
+            tm.assert_frame_equal(result5,good_compare)
+            tm.assert_frame_equal(result6,good_compare)
+            tm.assert_frame_equal(result7,good_compare)
 
     def test_custom_na_values(self):
         data = """A,B,C
@@ -492,6 +593,28 @@ ignore,this,row
                               skiprows=[1])
         assert_almost_equal(df3.values, expected)
 
+    def test_nat_parse(self):
+
+        # GH 3062
+        df = DataFrame(dict({
+                    'A' : np.asarray(range(10),dtype='float64'),
+                    'B' : pd.Timestamp('20010101') }))
+        df.iloc[3:6,:] = np.nan
+
+        with ensure_clean('__nat_parse_.csv') as path:
+            df.to_csv(path)
+            result = read_csv(path,index_col=0,parse_dates=['B'])
+            tm.assert_frame_equal(result,df)
+
+            expected = Series(dict( A = 'float64',B = 'datetime64[ns]'))
+            tm.assert_series_equal(expected,result.dtypes)
+
+            # test with NaT for the nan_rep
+            # we don't have a method to specif the Datetime na_rep (it defaults to '')
+            df.to_csv(path)
+            result = read_csv(path,index_col=0,parse_dates=['B'])
+            tm.assert_frame_equal(result,df)
+
     def test_skiprows_bug(self):
         # GH #505
         text = """#foo,a,b,c
@@ -514,6 +637,7 @@ ignore,this,row
                              columns=[1, 2, 3],
                              index=[datetime(2000, 1, 1), datetime(2000, 1, 2),
                                     datetime(2000, 1, 3)])
+        expected.index.name = 0
         tm.assert_frame_equal(data, expected)
         tm.assert_frame_equal(data, data2)
 
@@ -560,14 +684,21 @@ d,,f
         tm.assert_frame_equal(result, expected)
 
     def test_duplicate_columns(self):
-        data = """A,A,B,B,B
-1,2,3,4,5
-6,7,8,9,10
-11,12,13,14,15
-"""
-        df = self.read_table(StringIO(data), sep=',')
-        self.assert_(np.array_equal(df.columns,
-                                    ['A', 'A.1', 'B', 'B.1', 'B.2']))
+        for engine in ['python', 'c']:
+            data = """A,A,B,B,B
+    1,2,3,4,5
+    6,7,8,9,10
+    11,12,13,14,15
+    """
+            # check default beahviour
+            df = self.read_table(StringIO(data), sep=',',engine=engine)
+            self.assertEqual(list(df.columns), ['A', 'A.1', 'B', 'B.1', 'B.2'])
+
+            df = self.read_table(StringIO(data), sep=',',engine=engine,mangle_dupe_cols=False)
+            self.assertEqual(list(df.columns), ['A', 'A', 'B', 'B', 'B'])
+
+            df = self.read_table(StringIO(data), sep=',',engine=engine,mangle_dupe_cols=True)
+            self.assertEqual(list(df.columns), ['A', 'A.1', 'B', 'B.1', 'B.2'])
 
     def test_csv_mixed_type(self):
         data = """A,B,C
@@ -627,7 +758,7 @@ c,4,5
         idx = DatetimeIndex([datetime(2009, 1, 31, 0, 10, 0),
                              datetime(2009, 2, 28, 10, 20, 0),
                              datetime(2009, 3, 31, 8, 30, 0)]).asobject
-        idx.name = 'date'
+        idx.name = 'date_time'
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
         tm.assert_frame_equal(rs, xp)
 
@@ -636,7 +767,7 @@ c,4,5
         idx = DatetimeIndex([datetime(2009, 1, 31, 0, 10, 0),
                              datetime(2009, 2, 28, 10, 20, 0),
                              datetime(2009, 3, 31, 8, 30, 0)]).asobject
-        idx.name = 'date'
+        idx.name = 'date_time'
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
         tm.assert_frame_equal(rs, xp)
 
@@ -849,6 +980,17 @@ baz,7,8,9
         tm.assert_frame_equal(chunks[1], df[2:4])
         tm.assert_frame_equal(chunks[2], df[4:])
 
+    def test_get_chunk_passed_chunksize(self):
+        data = """A,B,C
+1,2,3
+4,5,6
+7,8,9
+1,2,3"""
+        result = self.read_csv(StringIO(data), chunksize=2)
+
+        piece = result.get_chunk()
+        self.assertEqual(len(piece), 2)
+
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
         as_list = [['A', 'B', 'C'], ['foo', '1', '2', '3'], ['bar',
@@ -896,6 +1038,24 @@ baz,7,8,9
                                   iterator=True)
         self.assert_(isinstance(treader, TextFileReader))
 
+        # stopping iteration when on chunksize is specified, GH 3967
+        data = """A,B,C
+foo,1,2,3
+bar,4,5,6
+baz,7,8,9
+"""
+        reader = self.read_csv(StringIO(data), iterator=True)
+        result = list(reader)
+        expected = DataFrame(dict(A = [1,4,7], B = [2,5,8], C = [3,6,9]), index=['foo','bar','baz'])
+        tm.assert_frame_equal(result[0], expected)
+
+        # chunksize = 1
+        reader = self.read_csv(StringIO(data), chunksize=1)
+        result = list(reader)
+        expected = DataFrame(dict(A = [1,4,7], B = [2,5,8], C = [3,6,9]), index=['foo','bar','baz'])
+        self.assert_(len(result) == 3)
+        tm.assert_frame_equal(pd.concat(result), expected)
+
     def test_header_not_first_line(self):
         data = """got,to,ignore,this,line
 got,to,ignore,this,line
@@ -913,6 +1073,49 @@ baz,12,13,14,15
         df = self.read_csv(StringIO(data), header=2, index_col=0)
         expected = self.read_csv(StringIO(data2), header=0, index_col=0)
         tm.assert_frame_equal(df, expected)
+
+    def test_header_multi_index(self):
+        expected = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
+
+        data = """\
+C0,,C_l0_g0,C_l0_g1,C_l0_g2
+
+C1,,C_l1_g0,C_l1_g1,C_l1_g2
+C2,,C_l2_g0,C_l2_g1,C_l2_g2
+C3,,C_l3_g0,C_l3_g1,C_l3_g2
+R0,R1,,,
+R_l0_g0,R_l1_g0,R0C0,R0C1,R0C2
+R_l0_g1,R_l1_g1,R1C0,R1C1,R1C2
+R_l0_g2,R_l1_g2,R2C0,R2C1,R2C2
+R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
+R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
+"""
+
+        # basic test with both engines
+        for engine in ['c','python']:
+            df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False,
+                          engine=engine)
+            tm.assert_frame_equal(df, expected)
+
+        # skipping lines in the header
+        df = read_csv(StringIO(data), header=[0,2,3,4],index_col=[0,1], tupleize_cols=False)
+        tm.assert_frame_equal(df, expected)
+
+        #### invalid options ####
+
+        # no as_recarray
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+                          index_col=[0,1], as_recarray=True, tupleize_cols=False)
+
+        # names
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+                          index_col=[0,1], names=['foo','bar'], tupleize_cols=False)
+        # usecols
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+                          index_col=[0,1], usecols=['foo','bar'], tupleize_cols=False)
+        # non-numeric index_col
+        self.assertRaises(Exception, read_csv, StringIO(data), header=[0,1,2,3],
+                          index_col=['foo','bar'], tupleize_cols=False)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
@@ -967,7 +1170,7 @@ bar,two,12,13,14,15
         df = self.read_csv(StringIO(no_header), index_col=[0, 1],
                            header=None, names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_names=False)
 
         # 2 implicit first cols
         df2 = self.read_csv(StringIO(data2))
@@ -977,7 +1180,7 @@ bar,two,12,13,14,15
         df = self.read_csv(StringIO(no_header), index_col=[1, 0], names=names,
                            header=None)
         expected = self.read_csv(StringIO(data), index_col=[1, 0])
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_names=False)
 
     def test_multi_index_parse_dates(self):
         data = """index1,index2,A,B,C
@@ -1162,11 +1365,13 @@ a,b,c,d
 
         xp = DataFrame({'b': [np.nan], 'd': [5]},
                        MultiIndex.from_tuples([(0, 1)]))
+        xp.index.names = ['a', 'c']
         df = self.read_csv(StringIO(data), na_values={}, index_col=[0, 2])
         tm.assert_frame_equal(df, xp)
 
         xp = DataFrame({'b': [np.nan], 'd': [5]},
                        MultiIndex.from_tuples([(0, 1)]))
+        xp.index.names = ['a', 'c']
         df = self.read_csv(StringIO(data), na_values={}, index_col=['a', 'c'])
         tm.assert_frame_equal(df, xp)
 
@@ -1177,9 +1382,9 @@ a,b,c,d
         try:
             # HTTP(S)
             url = ('https://raw.github.com/pydata/pandas/master/'
-                   'pandas/io/tests/salary.table')
+                   'pandas/io/tests/data/salary.table')
             url_table = self.read_table(url)
-            dirpath = curpath()
+            dirpath = tm.get_data_path()
             localtable = os.path.join(dirpath, 'salary.table')
             local_table = self.read_table(localtable)
             tm.assert_frame_equal(url_table, local_table)
@@ -1187,7 +1392,8 @@ a,b,c,d
 
         except urllib2.URLError:
             try:
-                urllib2.urlopen('http://www.google.com')
+                with closing(urlopen('http://www.google.com')) as resp:
+                    pass
             except urllib2.URLError:
                 raise nose.SkipTest
             else:
@@ -1200,7 +1406,7 @@ a,b,c,d
         # FILE
         if sys.version_info[:2] < (2, 6):
             raise nose.SkipTest("file:// not supported with Python < 2.6")
-        dirpath = curpath()
+        dirpath = tm.get_data_path()
         localtable = os.path.join(dirpath, 'salary.table')
         local_table = self.read_table(localtable)
 
@@ -1249,7 +1455,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(df2, df)
 
         df3 = self.read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
-        tm.assert_frame_equal(df3, df)
+        tm.assert_frame_equal(df3, df, check_names=False)
 
     def test_multiple_date_cols_chunked(self):
         df = self.read_csv(StringIO(self.ts_data), parse_dates={
@@ -1354,32 +1560,28 @@ A,B,C
 
         path = '__%s__.csv' % tm.rands(10)
 
-        for sep, dat in [('\t', data), (',', data2)]:
-            for enc in ['utf-16', 'utf-16le', 'utf-16be']:
-                bytes = dat.encode(enc)
-                with open(path, 'wb') as f:
-                    f.write(bytes)
+        with ensure_clean(path) as path:
+            for sep, dat in [('\t', data), (',', data2)]:
+                for enc in ['utf-16', 'utf-16le', 'utf-16be']:
+                    bytes = dat.encode(enc)
+                    with open(path, 'wb') as f:
+                        f.write(bytes)
 
-                s = BytesIO(dat.encode('utf-8'))
-                if py3compat.PY3:
-                    # somewhat False since the code never sees bytes
-                    from io import TextIOWrapper
-                    s = TextIOWrapper(s, encoding='utf-8')
+                    s = BytesIO(dat.encode('utf-8'))
+                    if py3compat.PY3:
+                        # somewhat False since the code never sees bytes
+                        from io import TextIOWrapper
+                        s = TextIOWrapper(s, encoding='utf-8')
 
-                result = self.read_csv(path, encoding=enc, skiprows=2,
-                                       sep=sep)
-                expected = self.read_csv(s, encoding='utf-8', skiprows=2,
-                                         sep=sep)
+                    result = self.read_csv(path, encoding=enc, skiprows=2,
+                                           sep=sep)
+                    expected = self.read_csv(s, encoding='utf-8', skiprows=2,
+                                             sep=sep)
 
-                tm.assert_frame_equal(result, expected)
-
-        try:
-            os.remove(path)
-        except os.error:
-            pass
+                    tm.assert_frame_equal(result, expected)
 
     def test_utf16_example(self):
-        path = os.path.join(self.dirpath, 'utf16_ex.txt')
+        path = tm.get_data_path('utf16_ex.txt')
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
@@ -1451,8 +1653,7 @@ A,B,C
         tm.assert_frame_equal(result, result2)
 
     def test_unicode_encoding(self):
-        pth = psplit(psplit(curpath())[0])[0]
-        pth = os.path.join(pth, 'tests/data/unicode_series.csv')
+        pth = tm.get_data_path('unicode_series.csv')
 
         result = self.read_csv(pth, header=None, encoding='latin-1')
         result = result.set_index(0)
@@ -1522,6 +1723,33 @@ A,B,C
         expected = DataFrame({'A': [0, 0], 'B': [0, np.nan]})
 
         tm.assert_frame_equal(result, expected)
+
+    def test_parse_integers_above_fp_precision(self):
+        data = """Numbers
+17007000002000191
+17007000002000191
+17007000002000191
+17007000002000191
+17007000002000192
+17007000002000192
+17007000002000192
+17007000002000192
+17007000002000192
+17007000002000194"""
+
+        result = self.read_csv(StringIO(data))
+        expected = DataFrame({'Numbers': [17007000002000191,
+                                          17007000002000191,
+                                          17007000002000191,
+                                          17007000002000191,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000192,
+                                          17007000002000194]})
+
+        self.assertTrue(np.array_equal(result['Numbers'], expected['Numbers']))
 
 
 class TestPythonParser(ParserTests, unittest.TestCase):
@@ -1659,6 +1887,33 @@ c   1   2   3   4
         self.assertRaises(ValueError, read_fwf, StringIO(data3),
                           colspecs=colspecs, widths=[6, 10, 10, 7])
 
+    def test_fwf_regression(self):
+        # GH 3594
+        #### turns out 'T060' is parsable as a datetime slice!
+
+        tzlist = [1,10,20,30,60,80,100]
+        ntz = len(tzlist)
+        tcolspecs = [16]+[8]*ntz
+        tcolnames = ['SST'] + ["T%03d" % z for z in tzlist[1:]]
+        data = """  2009164202000   9.5403  9.4105  8.6571  7.8372  6.0612  5.8843  5.5192
+  2009164203000   9.5435  9.2010  8.6167  7.8176  6.0804  5.8728  5.4869
+  2009164204000   9.5873  9.1326  8.4694  7.5889  6.0422  5.8526  5.4657
+  2009164205000   9.5810  9.0896  8.4009  7.4652  6.0322  5.8189  5.4379
+  2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
+"""
+
+        df = read_fwf(StringIO(data),
+                      index_col=0,
+                      header=None,
+                      names=tcolnames,
+                      widths=tcolspecs,
+                      parse_dates=True,
+                      date_parser=lambda s: datetime.strptime(s,'%Y%j%H%M%S'))
+
+        for c in df.columns:
+            res = df.loc[:,c]
+            self.assert_(len(res))
+
     def test_verbose_import(self):
         text = """a,b,c,d
 one,1,2,3
@@ -1704,32 +1959,27 @@ eight,1,2,3"""
         if PY3:
             raise nose.SkipTest
 
-        with open('__foo__.txt', 'wb') as f:
-            f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
+        with ensure_clean() as path:
+            with open(path, 'wb') as f:
+                f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
 
-        with open('__foo__.txt', 'rb') as f:
-            for line in f:
-                if 'CCC' in line:
-                    break
+            with open(path, 'rb') as f:
+                for line in f:
+                    if 'CCC' in line:
+                        break
 
-            try:
-                read_table(f, squeeze=True, header=None, engine='c')
-            except Exception:
-                pass
-            else:
-                raise ValueError('this should not happen')
+                try:
+                    read_table(f, squeeze=True, header=None, engine='c')
+                except Exception:
+                    pass
+                else:
+                    raise ValueError('this should not happen')
 
-            result = read_table(f, squeeze=True, header=None,
-                                engine='python')
+                result = read_table(f, squeeze=True, header=None,
+                                    engine='python')
 
-            expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
-            tm.assert_series_equal(result, expected)
-
-        try:
-            os.remove('__foo__.txt')
-        except os.error:
-            pass
-
+                expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
+                tm.assert_series_equal(result, expected)
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
@@ -1906,41 +2156,30 @@ a,b,c
         data = open(self.csv1, 'rb').read()
         expected = self.read_csv(self.csv1)
 
-        try:
-            tmp = gzip.GzipFile('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = gzip.GzipFile(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', compression='gzip')
+            result = self.read_csv(path, compression='gzip')
             tm.assert_frame_equal(result, expected)
 
-            result = self.read_csv(open('__tmp__', 'rb'), compression='gzip')
+            result = self.read_csv(open(path, 'rb'), compression='gzip')
             tm.assert_frame_equal(result, expected)
-        finally:
-            # try:
-            #     os.remove('__tmp__')
-            # except:
-            #     pass
-            pass
 
-        try:
-            tmp = bz2.BZ2File('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = bz2.BZ2File(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', compression='bz2')
+            result = self.read_csv(path, compression='bz2')
             tm.assert_frame_equal(result, expected)
 
-            # result = self.read_csv(open('__tmp__', 'rb'), compression='bz2')
+            # result = self.read_csv(open(path, 'rb'), compression='bz2')
             # tm.assert_frame_equal(result, expected)
 
             self.assertRaises(ValueError, self.read_csv,
-                              '__tmp__', compression='bz3')
-        finally:
-            try:
-                os.remove('__tmp__')
-            except:
-                pass
+                              path, compression='bz3')
 
     def test_decompression_regex_sep(self):
         try:
@@ -1953,35 +2192,24 @@ a,b,c
         data = data.replace(b',', b'::')
         expected = self.read_csv(self.csv1)
 
-        try:
-            tmp = gzip.GzipFile('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = gzip.GzipFile(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', sep='::', compression='gzip')
+            result = self.read_csv(path, sep='::', compression='gzip')
             tm.assert_frame_equal(result, expected)
-        finally:
-            # try:
-            #     os.remove('__tmp__')
-            # except:
-            #     pass
-            pass
 
-        try:
-            tmp = bz2.BZ2File('__tmp__', mode='wb')
+        with ensure_clean() as path:
+            tmp = bz2.BZ2File(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv('__tmp__', sep='::', compression='bz2')
+            result = self.read_csv(path, sep='::', compression='bz2')
             tm.assert_frame_equal(result, expected)
 
             self.assertRaises(ValueError, self.read_csv,
-                              '__tmp__', compression='bz3')
-        finally:
-            try:
-                os.remove('__tmp__')
-            except:
-                pass
+                              path, compression='bz3')
 
     def test_memory_map(self):
         # it works!
@@ -2060,6 +2288,63 @@ No,No,No"""
         self.assertEquals(result['Date'][1], '2012-05-12')
         self.assertTrue(result['UnitPrice'].isnull().all())
 
+    def test_parse_ragged_csv(self):
+        data = """1,2,3
+1,2,3,4
+1,2,3,4,5
+1,2
+1,2,3,4"""
+
+        nice_data = """1,2,3,,
+1,2,3,4,
+1,2,3,4,5
+1,2,,,
+1,2,3,4,"""
+        result = self.read_csv(StringIO(data), header=None,
+                               names=['a', 'b', 'c', 'd', 'e'])
+
+        expected = self.read_csv(StringIO(nice_data), header=None,
+                                 names=['a', 'b', 'c', 'd', 'e'])
+
+        tm.assert_frame_equal(result, expected)
+
+        # too many columns, cause segfault if not careful
+        data = "1,2\n3,4,5"
+
+        result = self.read_csv(StringIO(data), header=None,
+                               names=range(50))
+        expected = self.read_csv(StringIO(data), header=None,
+                                 names=range(3)).reindex(columns=range(50))
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_tokenize_CR_with_quoting(self):
+        # #3453, this doesn't work with Python parser for some reason
+
+        data = ' a,b,c\r"a,b","e,d","f,f"'
+
+        result = self.read_csv(StringIO(data), header=None)
+        expected = self.read_csv(StringIO(data.replace('\r', '\n')),
+                                 header=None)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data))
+        expected = self.read_csv(StringIO(data.replace('\r', '\n')))
+        tm.assert_frame_equal(result, expected)
+
+    def test_raise_on_no_columns(self):
+        # single newline
+        data = """
+"""
+        self.assertRaises(ValueError, self.read_csv, StringIO(data))
+
+        # test with more than a single newline
+        data = """
+
+
+"""
+        self.assertRaises(ValueError, self.read_csv, StringIO(data))
+
 
 class TestParseSQL(unittest.TestCase):
 
@@ -2128,11 +2413,6 @@ class TestParseSQL(unittest.TestCase):
 def assert_same_values_and_dtype(res, exp):
     assert(res.dtype == exp.dtype)
     assert_almost_equal(res, exp)
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
 
 
 if __name__ == '__main__':

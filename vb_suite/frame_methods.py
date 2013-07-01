@@ -125,8 +125,19 @@ def f(K=500):
         df[i] = new_col
 """
 
-frame_insert_500_columns = Benchmark('f()', setup,
-                                     start_date=datetime(2011, 1, 1))
+frame_insert_500_columns_end = Benchmark('f()', setup, start_date=datetime(2011, 1, 1))
+
+setup = common_setup + """
+N = 1000
+
+def f(K=100):
+    df = DataFrame(index=range(N))
+    new_col = np.random.randn(N)
+    for i in range(K):
+        df.insert(0,i,new_col)
+"""
+
+frame_insert_100_columns_begin = Benchmark('f()', setup, start_date=datetime(2011, 1, 1))
 
 #----------------------------------------------------------------------
 # strings methods, #2602
@@ -153,5 +164,42 @@ setup = common_setup + """
 df = pandas.DataFrame(np.random.randn(10,10000))
 """
 
-frame_wide_repr = Benchmark('repr(df)', setup,
-                                       start_date=datetime(2012, 8, 1))
+frame_repr_wide = Benchmark('repr(df)', setup,
+                            start_date=datetime(2012, 8, 1))
+
+##
+setup = common_setup + """
+df = pandas.DataFrame(np.random.randn(10000, 10))
+"""
+
+frame_repr_tall = Benchmark('repr(df)', setup,
+                            start_date=datetime(2012, 8, 1))
+
+##
+setup = common_setup + """
+df = DataFrame(randn(100000, 1))
+"""
+
+frame_xs_row = Benchmark('df.xs(50000)', setup)
+
+##
+setup = common_setup + """
+df = DataFrame(randn(1,100000))
+"""
+
+frame_xs_col = Benchmark('df.xs(50000,axis = 1)', setup)
+
+## masking
+setup = common_setup + """
+data = np.random.randn(1000, 500)
+df = DataFrame(data)
+df = df.where(df > 0) # create nans
+bools = df > 0
+mask = isnull(df)
+"""
+
+mask_bools = Benchmark('bools.mask(mask)', setup,
+                         start_date=datetime(2013,1,1))
+
+mask_floats  = Benchmark('bools.astype(float).mask(mask)', setup,
+                         start_date=datetime(2013,1,1))

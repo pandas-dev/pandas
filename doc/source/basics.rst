@@ -9,9 +9,9 @@
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
-*****************************
-Essential basic functionality
-*****************************
+==============================
+ Essential Basic Functionality
+==============================
 
 Here we discuss a lot of the essential functionality common to the pandas data
 structures. Here's how to create some of the objects used in the examples from
@@ -86,6 +86,33 @@ unlike the axis labels, cannot be assigned to.
     strings are involved, the result will be of object dtype. If there are only
     floats and integers, the resulting array will be of float dtype.
 
+.. _basics.accelerate:
+
+Accelerated operations
+----------------------
+
+Pandas has support for accelerating certain types of binary numerical and boolean operations using
+the ``numexpr`` library (starting in 0.11.0) and the ``bottleneck`` libraries.
+
+These libraries are especially useful when dealing with large data sets, and provide large
+speedups. ``numexpr`` uses smart chunking, caching, and multiple cores. ``bottleneck`` is
+a set of specialized cython routines that are especially fast when dealing with arrays that have
+``nans``.
+
+Here is a sample (using 100 column x 100,000 row ``DataFrames``):
+
+.. csv-table::
+    :header: "Operation", "0.11.0 (ms)", "Prior Vern (ms)", "Ratio to Prior"
+    :widths: 30, 30, 30, 30
+    :delim: ;
+
+    ``df1 > df2``; 13.32; 125.35;  0.1063
+    ``df1 * df2``; 21.71;  36.63;  0.5928
+    ``df1 + df2``; 22.04;  36.50;  0.6039
+
+You are highly encouraged to install both libraries. See the section
+:ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
+
 .. _basics.binop:
 
 Flexible binary operations
@@ -114,7 +141,7 @@ either match on the *index* or *columns* via the **axis** keyword:
    d = {'one' : Series(randn(3), index=['a', 'b', 'c']),
         'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
         'three' : Series(randn(3), index=['b', 'c', 'd'])}
-   df = DataFrame(d)
+   df = df_orig = DataFrame(d)
    df
    row = df.ix[1]
    column = df['two']
@@ -373,6 +400,12 @@ value, ``idxmin`` and ``idxmax`` return the first matching index:
    df3 = DataFrame([2, 1, 1, 3, np.nan], columns=['A'], index=list('edcba'))
    df3
    df3['A'].idxmin()
+
+.. note::
+
+   ``idxmin`` and ``idxmax`` are called ``argmin`` and ``argmax`` in NumPy.
+
+.. _basics.discretization:
 
 Value counts (histogramming)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -806,7 +839,6 @@ containing the data in each row:
       ...:     print '%s\n%s' % (row_index, row)
       ...:
 
-
 For instance, a contrived way to transpose the dataframe would be:
 
 .. ipython:: python
@@ -817,6 +849,18 @@ For instance, a contrived way to transpose the dataframe would be:
 
    df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
    print df2_t
+
+.. note::
+
+   ``iterrows`` does **not** preserve dtypes across the rows (dtypes are
+   preserved across columns for DataFrames). For example,
+
+    .. ipython:: python
+
+      df_iter = DataFrame([[1, 1.0]], columns=['x', 'y'])
+      row = next(df_iter.iterrows())[1]
+      print row['x'].dtype
+      print df_iter['x'].dtype
 
 itertuples
 ~~~~~~~~~~
@@ -936,8 +980,8 @@ The ``by`` argument can take a list of column names, e.g.:
 
 .. ipython:: python
 
-   df = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
-   df[['one', 'two', 'three']].sort_index(by=['one','two'])
+   df1 = DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df1[['one', 'two', 'three']].sort_index(by=['one','two'])
 
 Series has the method ``order`` (analogous to `R's order function
 <http://stat.ethz.ch/R-manual/R-patched/library/base/html/order.html>`__) which
@@ -959,10 +1003,8 @@ Some other sorting notes / nuances:
     method will likely be deprecated in a future release in favor of just using
     ``sort_index``.
 
-.. _basics.cast:
-
-Copying, type casting
----------------------
+Copying
+-------
 
 The ``copy`` method on pandas objects copies the underlying data (though not
 the axis indexes, since they are immutable) and returns a new object. Note that
@@ -978,79 +1020,204 @@ To be clear, no pandas methods have the side effect of modifying your data;
 almost all methods return new objects, leaving the original object
 untouched. If data is modified, it is because you did so explicitly.
 
-Data can be explicitly cast to a NumPy dtype by using the ``astype`` method or
-alternately passing the ``dtype`` keyword argument to the object constructor.
+.. _basics.dtypes:
+
+dtypes
+------
+
+The main types stored in pandas objects are ``float``, ``int``, ``bool``, ``datetime64[ns]``, ``timedelta[ns]``,
+and ``object``. In addition these dtypes have item sizes, e.g. ``int64`` and ``int32``. A convenient ``dtypes``
+attribute for DataFrames returns a Series with the data type of each column.
 
 .. ipython:: python
 
-   df = DataFrame(np.arange(12).reshape((4, 3)))
-   df[0].dtype
-   df.astype(float)[0].dtype
-   df = DataFrame(np.arange(12).reshape((4, 3)), dtype=float)
-   df[0].dtype
+   dft = DataFrame(dict( A = np.random.rand(3),
+                         B = 1,
+                         C = 'foo',
+                         D = Timestamp('20010102'),
+                         E = Series([1.0]*3).astype('float32'),
+			 F = False,
+			 G = Series([1]*3,dtype='int8')))
+   dft
+   dft.dtypes
 
-.. _basics.cast.infer:
-
-Inferring better types for object columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``convert_objects`` DataFrame method will attempt to convert
-``dtype=object`` columns to a better NumPy dtype. Occasionally (after
-transposing multiple times, for example), a mixed-type DataFrame will end up
-with everything as ``dtype=object``. This method attempts to fix that:
+On a ``Series`` use the ``dtype`` method.
 
 .. ipython:: python
 
-   df = DataFrame(randn(6, 3), columns=['a', 'b', 'c'])
-   df['d'] = 'foo'
-   df
-   df = df.T.T
-   df.dtypes
-   converted = df.convert_objects()
-   converted.dtypes
+   dft['A'].dtype
 
-.. _basics.serialize:
-
-Pickling and serialization
---------------------------
-
-All pandas objects are equipped with ``save`` methods which use Python's
-``cPickle`` module to save data structures to disk using the pickle format.
+If a pandas object contains data multiple dtypes *IN A SINGLE COLUMN*, the dtype of the
+column will be chosen to accommodate all of the data types (``object`` is the most
+general).
 
 .. ipython:: python
 
-   df
-   df.save('foo.pickle')
+   # these ints are coerced to floats
+   Series([1, 2, 3, 4, 5, 6.])
 
-The ``load`` function in the ``pandas`` namespace can be used to load any
-pickled pandas object (or any other pickled object) from file:
+   # string data forces an ``object`` dtype
+   Series([1, 2, 3, 6., 'foo'])
 
-
-.. ipython:: python
-
-   load('foo.pickle')
-
-There is also a ``save`` function which takes any object as its first argument:
+The method ``get_dtype_counts`` will return the number of columns of
+each type in a ``DataFrame``:
 
 .. ipython:: python
 
-   save(df, 'foo.pickle')
-   load('foo.pickle')
+   dft.get_dtype_counts()
+
+Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0).
+If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
+or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore,
+different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
 .. ipython:: python
-   :suppress:
 
-   import os
-   os.remove('foo.pickle')
+   df1 = DataFrame(randn(8, 1), columns = ['A'], dtype = 'float32')
+   df1
+   df1.dtypes
+   df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
+                         B = Series(randn(8)),
+                         C = Series(np.array(randn(8),dtype='uint8')) ))
+   df2
+   df2.dtypes
+
+defaults
+~~~~~~~~
+
+By default integer types are ``int64`` and float types are ``float64``,
+*REGARDLESS* of platform (32-bit or 64-bit). The following will all result in ``int64`` dtypes.
+
+.. ipython:: python
+
+    DataFrame([1,2],columns=['a']).dtypes
+    DataFrame({'a' : [1,2] }).dtypes
+    DataFrame({'a' : 1 }, index=range(2)).dtypes
+
+Numpy, however will choose *platform-dependent* types when creating arrays.
+The following **WILL** result in ``int32`` on 32-bit platform.
+
+.. ipython:: python
+
+    frame = DataFrame(np.array([1,2]))
+
+
+upcasting
+~~~~~~~~~
+
+Types can potentially be *upcasted* when combined with other types, meaning they are promoted
+from the current type (say ``int`` to ``float``)
+
+.. ipython:: python
+
+   df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
+   df3
+   df3.dtypes
+
+The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
+the dtype that can accomodate **ALL** of the types in the resulting homogenous dtyped numpy array. This can
+force some *upcasting*.
+
+.. ipython:: python
+
+   df3.values.dtype
+
+astype
+~~~~~~
+
+.. _basics.cast:
+
+You can use the ``astype`` method to explicity convert dtypes from one to another. These will by default return a copy,
+even if the dtype was unchanged (pass ``copy=False`` to change this behavior). In addition, they will raise an
+exception if the astype operation is invalid.
+
+Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation,
+then the more *general* one will be used as the result of the operation.
+
+.. ipython:: python
+
+   df3
+   df3.dtypes
+
+   # conversion of dtypes
+   df3.astype('float32').dtypes
+
+object conversion
+~~~~~~~~~~~~~~~~~
+
+``convert_objects`` is a method to try to force conversion of types from the ``object`` dtype to other types.
+To force conversion of specific types that are *number like*, e.g. could be a string that represents a number,
+pass ``convert_numeric=True``. This will force strings and numbers alike to be numbers if possible, otherwise
+they will be set to ``np.nan``.
+
+.. ipython:: python
+
+   df3['D'] = '1.'
+   df3['E'] = '1'
+   df3.convert_objects(convert_numeric=True).dtypes
+
+   # same, but specific dtype conversion
+   df3['D'] = df3['D'].astype('float16')
+   df3['E'] = df3['E'].astype('int32')
+   df3.dtypes
+
+To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``.
+This will convert any datetimelike object to dates, forcing other values to ``NaT``.
+This might be useful if you are reading in data which is mostly dates,
+but occasionally has non-dates intermixed and you want to represent as missing.
+
+.. ipython:: python
+
+   s = Series([datetime(2001,1,1,0,0),
+              'foo', 1.0, 1, Timestamp('20010104'),
+              '20010105'],dtype='O')
+   s
+   s.convert_objects(convert_dates='coerce')
+
+In addition, ``convert_objects`` will attempt the *soft* conversion of any *object* dtypes, meaning that if all
+the objects in a Series are of the same type, the Series will have that dtype.
+
+gotchas
+~~~~~~~
+
+Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
+See also :ref:`integer na gotchas <gotchas.intna>`
+
+.. ipython:: python
+
+   dfi = df3.astype('int32')
+   dfi['E'] = 1
+   dfi
+   dfi.dtypes
+
+   casted = dfi[dfi>0]
+   casted
+   casted.dtypes
+
+While float dtypes are unchanged.
+
+.. ipython:: python
+
+   dfa = df3.copy()
+   dfa['A'] = dfa['A'].astype('float32')
+   dfa.dtypes
+
+   casted = dfa[df2>0]
+   casted
+   casted.dtypes
+
 
 Working with package options
 ----------------------------
 
 .. _basics.working_with_options:
+.. versionadded:: 0.10.1
 
-Introduced in 0.10.0, pandas supports a new system for working with options.
+Pandas has an options system that let's you customize some aspects of it's behaviour,
+display-related options being those the user is must likely to adjust.
+
 Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``),
-
 You can get/set options directly as attributes of the top-level ``options`` attribute:
 
 .. ipython:: python
@@ -1070,9 +1237,8 @@ namespace, and they are:
 
 **Note:** developers can check out pandas/core/config.py for more info.
 
-
-but all of the functions above accept a regexp pattern (``re.search`` style) as argument,
-so passing in a substring will work - as long as it is unambiguous :
+All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
+and so passing in a substring will work - as long as it is unambiguous :
 
 .. ipython:: python
 
@@ -1083,7 +1249,7 @@ so passing in a substring will work - as long as it is unambiguous :
    get_option("display.max_rows")
 
 
-However, the following will **not work** because it matches multiple option names, e.g.``display.max_colwidth``, ``display.max_rows``, ``display.max_columns``:
+The following will **not work** because it matches multiple option names, e.g.``display.max_colwidth``, ``display.max_rows``, ``display.max_columns``:
 
 .. ipython:: python
    :okexcept:
@@ -1097,9 +1263,8 @@ However, the following will **not work** because it matches multiple option name
 **Note:** Using this form of convenient shorthand may make your code break if new options with similar names are added in future versions.
 
 
-The docstrings of all the functions document the available options, but you can also get a
-list of available options and their descriptions with ``describe_option``. When called
-with no argument ``describe_option`` will print out descriptions for all available options.
+You can get a list of available options and their descriptions with ``describe_option``. When called
+with no argument ``describe_option`` will print out the descriptions for all available options.
 
 .. ipython:: python
 
@@ -1130,7 +1295,7 @@ All options also have a default value, and you can use the ``reset_option`` to d
    get_option("display.max_rows")
 
 
-and you also set multiple options at once:
+It's also possible to reset multiple options at once:
 
 .. ipython:: python
 
@@ -1157,13 +1322,14 @@ For instance:
 .. ipython:: python
 
    set_eng_float_format(accuracy=3, use_eng_prefix=True)
-   df['a']/1.e3
-   df['a']/1.e6
+   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s/1.e3
+   s/1.e6
 
 .. ipython:: python
    :suppress:
 
-   reset_printoptions()
+   reset_option('^display\.')
 
 
 The ``set_printoptions`` function has a number of options for controlling how

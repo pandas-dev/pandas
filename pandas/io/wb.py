@@ -1,6 +1,6 @@
-import urllib2
-import warnings
+from urllib2 import urlopen
 import json
+from contextlib import closing
 import pandas
 import numpy as np
 
@@ -65,10 +65,10 @@ def download(country=['MX', 'CA', 'US'], indicator=['GDPPCKD', 'GDPPCKN'],
             bad_indicators.append(ind)
     # Warn
     if len(bad_indicators) > 0:
-        print 'Failed to obtain indicator(s): ' + '; '.join(bad_indicators)
-        print 'The data may still be available for download at http://data.worldbank.org'
+        print ('Failed to obtain indicator(s): %s' % '; '.join(bad_indicators))
+        print ('The data may still be available for download at http://data.worldbank.org')
     if len(bad_countries) > 0:
-        print 'Invalid ISO-2 codes: ' + ' '.join(bad_countries)
+        print ('Invalid ISO-2 codes: %s' % ' '.join(bad_countries))
     # Merge WDI series
     if len(data) > 0:
         out = reduce(lambda x, y: x.merge(y, how='outer'), data)
@@ -85,8 +85,8 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
         indicator + "?date=" + str(start) + ":" + str(end) + "&per_page=25000" + \
         "&format=json"
     # Download
-    response = urllib2.urlopen(url)
-    data = response.read()
+    with closing(urlopen(url)) as response:
+        data = response.read()
     # Parse JSON file
     data = json.loads(data)[1]
     country = map(lambda x: x['country']['value'], data)
@@ -102,8 +102,8 @@ def get_countries():
     '''Query information about countries
     '''
     url = 'http://api.worldbank.org/countries/all?format=json'
-    response = urllib2.urlopen(url)
-    data = response.read()
+    with closing(urlopen(url)) as response:
+        data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
     data.adminregion = map(lambda x: x['value'], data.adminregion)
@@ -118,8 +118,8 @@ def get_indicators():
     '''Download information about all World Bank data series
     '''
     url = 'http://api.worldbank.org/indicators?per_page=50000&format=json'
-    response = urllib2.urlopen(url)
-    data = response.read()
+    with closing(urlopen(url)) as response:
+        data = response.read()
     data = json.loads(data)[1]
     data = pandas.DataFrame(data)
     # Clean fields

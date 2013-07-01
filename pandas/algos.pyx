@@ -57,7 +57,7 @@ cdef extern from "src/headers/math.h":
     double fabs(double)
     int signbit(double)
 
-from . import lib
+from pandas import lib
 
 include "skiplist.pyx"
 
@@ -989,6 +989,69 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, minp=None):
                         sumyy += vy * vy
 
                 divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
+
+                if divisor != 0:
+                    result[xi, yi] = result[yi, xi] = sumx / divisor
+                else:
+                    result[xi, yi] = result[yi, xi] = np.NaN
+
+    return result
+
+#----------------------------------------------------------------------
+# Pairwise Spearman correlation
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
+    cdef:
+        Py_ssize_t i, j, xi, yi, N, K
+        ndarray[float64_t, ndim=2] result
+        ndarray[float64_t, ndim=1] maskedx
+        ndarray[float64_t, ndim=1] maskedy
+        ndarray[uint8_t, ndim=2] mask
+        int64_t nobs = 0
+        float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
+
+    N, K = (<object> mat).shape
+
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat).view(np.uint8)
+
+    for xi in range(K):
+        for yi in range(xi + 1):
+            nobs = 0
+            for i in range(N):
+                if mask[i, xi] and mask[i, yi]:
+                    nobs += 1
+
+            if nobs < minp:
+                result[xi, yi] = result[yi, xi] = np.NaN
+            else:
+                maskedx = np.empty(nobs, dtype=np.float64)
+                maskedy = np.empty(nobs, dtype=np.float64)
+                j = 0
+                for i in range(N):
+                    if mask[i, xi] and mask[i, yi]:
+                        maskedx[j] = mat[i, xi]
+                        maskedy[j] = mat[i, yi]
+                        j += 1
+                maskedx = rank_1d_float64(maskedx)
+                maskedy = rank_1d_float64(maskedy)
+
+                mean = (nobs + 1) / 2.
+
+                # now the cov numerator
+                sumx = sumxx = sumyy = 0
+
+                for i in range(nobs):
+                    vx = maskedx[i] - mean
+                    vy = maskedy[i] - mean
+
+                    sumx += vx * vy
+                    sumxx += vx * vx
+                    sumyy += vy * vy
+
+                divisor = sqrt(sumxx * sumyy)
 
                 if divisor != 0:
                     result[xi, yi] = result[yi, xi] = sumx / divisor

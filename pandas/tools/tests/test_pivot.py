@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
@@ -50,6 +50,19 @@ class TestPivotTable(unittest.TestCase):
         expected = self.data.groupby(rows + [cols])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
+    def test_pivot_table_nocols(self):
+        df = DataFrame({'rows': ['a', 'b', 'c'],
+                        'cols': ['x', 'y', 'z'],
+                        'values': [1,2,3]})
+        rs = df.pivot_table(cols='cols', aggfunc=np.sum)
+        xp = df.pivot_table(rows='cols', aggfunc=np.sum).T
+        tm.assert_frame_equal(rs, xp)
+
+        rs = df.pivot_table(cols='cols', aggfunc={'values': 'mean'})
+        xp = df.pivot_table(rows='cols', aggfunc={'values': 'mean'}).T
+        tm.assert_frame_equal(rs, xp)
+
+
     def test_pass_array(self):
         result = self.data.pivot_table('D', rows=self.data.A, cols=self.data.C)
         expected = self.data.pivot_table('D', rows='A', cols='C')
@@ -68,6 +81,26 @@ class TestPivotTable(unittest.TestCase):
         table = pivot_table(self.data, rows=rows, cols=cols)
         expected = self.data.groupby(rows + [cols]).agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
+
+    def test_pivot_dtypes(self):
+
+        # can convert dtypes
+        f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1,2,3,4], 'i' : ['a','b','a','b']})
+        self.assert_(f.dtypes['v'] == 'int64')
+
+        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.sum)
+        result = z.get_dtype_counts()
+        expected = Series(dict(int64 = 2))
+        tm.assert_series_equal(result, expected)
+
+        # cannot convert dtypes
+        f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1.5,2.5,3.5,4.5], 'i' : ['a','b','a','b']})
+        self.assert_(f.dtypes['v'] == 'float64')
+
+        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.mean)
+        result = z.get_dtype_counts()
+        expected = Series(dict(float64 = 2))
+        tm.assert_series_equal(result, expected)
 
     def test_pivot_multi_values(self):
         result = pivot_table(self.data, values=['D', 'E'],
@@ -94,6 +127,17 @@ class TestPivotTable(unittest.TestCase):
         means = f(np.mean)
         stds = f(np.std)
         expected = concat([means, stds], keys=['mean', 'std'], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_index_with_nan(self):
+        # GH 3588
+        nan = np.nan
+        df = DataFrame({"a":['R1', 'R2', nan, 'R4'], 'b':["C1", "C2", "C3" , "C4"], "c":[10, 15, nan , 20]})
+        result = df.pivot('a','b','c')
+        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan], 
+                              [nan,nan,nan,nan],[nan,nan,15,20]],
+                             index = Index(['R1','R2',nan,'R4'],name='a'),
+                             columns = Index(['C1','C2','C3','C4'],name='b'))
         tm.assert_frame_equal(result, expected)
 
     def test_margins(self):
@@ -158,7 +202,7 @@ class TestPivotTable(unittest.TestCase):
         df2 = df.rename(columns=str)
         table2 = df2.pivot_table(values='4', rows=['0', '1', '3'], cols=['2'])
 
-        tm.assert_frame_equal(table, table2)
+        tm.assert_frame_equal(table, table2, check_names=False)
 
     def test_pivot_no_level_overlap(self):
         # GH #1181

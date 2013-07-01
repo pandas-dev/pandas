@@ -56,7 +56,7 @@ class PanelOLS(OLS):
 
     def log(self, msg):
         if self._verbose:  # pragma: no cover
-            print msg
+            print (msg)
 
     def _prepare_data(self):
         """Cleans and stacks input data into DataFrame objects
@@ -101,8 +101,10 @@ class PanelOLS(OLS):
             y_regressor = y
 
         if weights is not None:
-            assert(y_regressor.index.equals(weights.index))
-            assert(x_regressor.index.equals(weights.index))
+            if not ((y_regressor.index.equals(weights.index))):
+                raise AssertionError()
+            if not ((x_regressor.index.equals(weights.index))):
+                raise AssertionError()
 
             rt_weights = np.sqrt(weights)
             y_regressor = y_regressor * rt_weights
@@ -169,7 +171,8 @@ class PanelOLS(OLS):
         # .iteritems
         iteritems = getattr(x, 'iteritems', x.items)
         for key, df in iteritems():
-            assert(isinstance(df, DataFrame))
+            if not ((isinstance(df, DataFrame))):
+                raise AssertionError()
 
             if _is_numeric(df):
                 x_converted[key] = df
@@ -637,7 +640,8 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         return (betas * x).sum(1)
 
     def _beta_matrix(self, lag=0):
-        assert(lag >= 0)
+        if not ((lag >= 0)):
+            raise AssertionError()
 
         index = self._y_trans.index
         major_labels = index.labels[0]
