@@ -98,17 +98,15 @@ parser.add_argument('-N', '--hrepeats',
                     dest='hrepeats',
                     default=1,
                     type=int,
-                    help='Implies -H, number of times to run the vbench suite on the head commit.\n'
-                    'Each iteration will yield another column in the output.'
-    )
+                    help='implies -H, number of times to run the vbench suite on the head commit.\n'
+                    'Each iteration will yield another column in the output' )
 parser.add_argument('-a', '--affinity',
                     metavar="a",
                     dest='affinity',
                     default=1,
                     type=int,
-                    help='Set processor affinity of the process. THe default is to bind to cpu/core #1 only.'
-                             'requires the "affinity" python module.'  )
-
+                    help='set processor affinity of process by default bind to cpu/core #1 only. '
+                         'Requires the "affinity" or "psutil" python module, will raise Warning otherwise')
 parser.add_argument('-u', '--burnin',
                     metavar="u",
                     dest='burnin',
@@ -388,14 +386,38 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
 
+    affinity_set = False
+
+    # try psutil first since it is more commonly present and better
+    # maintained.  Some people experienced problems with affinity package
+    # (see https://code.google.com/p/psutil/issues/detail?id=238 for more references)
     try:
-        import affinity
-        affinity.set_process_affinity_mask(0,args.affinity)
-        assert affinity.get_process_affinity_mask(0) == args.affinity
-        print("CPU affinity set to %d" % args.affinity)
+        import psutil
+        if hasattr(psutil.Process, 'set_cpu_affinity'):
+            psutil.Process(os.getpid()).set_cpu_affinity([args.affinity])
+            affinity_set = True
     except ImportError:
-        print("Warning: The 'affinity' module is not available.")
+        pass
+
+    if not affinity_set:
+        try:
+            import affinity
+            affinity.set_process_affinity_mask(0, args.affinity)
+            assert affinity.get_process_affinity_mask(0) == args.affinity
+            affinity_set = True
+        except ImportError:
+            pass
+
+    if not affinity_set:
+        import warnings
+        warnings.warn("\n\n"
+              "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+              "The 'affinity' or 'psutil' >= 0.5.0 modules are not available, results may be unreliable\n"
+              "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"
+            )
         time.sleep(2)
+    else:
+        print("CPU affinity set to %d" % args.affinity)
 
     print("\n")
     prprint("LOG_FILE = %s" % args.log_file)
