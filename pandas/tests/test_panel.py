@@ -304,14 +304,13 @@ class SafeForSparse(object):
 
             assert_frame_equal(result.minor_xs(idx),
                                op(self.panel.minor_xs(idx), xs))
-
-        check_op(operator.add, 'add')
-        check_op(operator.sub, 'subtract')
-        check_op(operator.mul, 'multiply')
+        ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'pow', 'mod']
+        if not py3compat.PY3:
+            ops.append('div')
+        for op in ops:
+            check_op(getattr(operator, op), op)
         if py3compat.PY3:
-            check_op(operator.truediv, 'divide')
-        else:
-            check_op(operator.div, 'divide')
+            check_op(operator.floordiv, 'div')
 
     def test_combinePanel(self):
         result = self.panel.add(self.panel)
@@ -1608,6 +1607,33 @@ class TestLongPanel(unittest.TestCase):
         wp = self.panel.to_panel()
         result = (self.panel + 1).to_panel()
         assert_frame_equal(wp['ItemA'] + 1, result['ItemA'])
+
+    def test_arith_flex_panel(self):
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
+        if not py3compat.PY3:
+            aliases = {}
+        else:
+            aliases = {'div': 'truediv'}
+        self.panel = self.panel.to_panel()
+        n = np.random.randint(-50, 50)
+        for op in ops:
+            try:
+                alias = aliases.get(op, op)
+                f = getattr(operator, alias)
+                result = getattr(self.panel, op)(n)
+                exp = f(self.panel, n)
+                print result, exp
+                assert_panel_equal(result, exp, check_panel_type=True)
+
+                # rops
+                r_f = lambda x, y: f(y, x)
+                result = getattr(self.panel, 'r' + op)(n)
+                exp = r_f(self.panel, n)
+                print result, exp
+                assert_panel_equal(result, exp)
+            except:
+                print("Failing operation %r" % op)
+                raise
 
     def test_sort(self):
         def is_sorted(arr):

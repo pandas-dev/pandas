@@ -121,6 +121,9 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
+def assert_isinstance(obj, kind):
+    assert isinstance(obj, kind), "Expected type %r, saw %r" % (kind, type(obj))
+
 def assert_almost_equal(a, b, check_less_precise = False):
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
@@ -144,7 +147,7 @@ def assert_almost_equal(a, b, check_less_precise = False):
     err_msg = lambda a, b: 'expected %.5f but got %.5f' % (b, a)
 
     if isnull(a):
-        np.testing.assert_(isnull(b))
+        np.testing.assert_(isnull(b), "Expected null (%r) found %r instead" % (a, b))
         return
 
     if isinstance(a, (bool, float, int, np.float32)):
@@ -218,8 +221,8 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_names=True):
     if check_frame_type:
         assert(type(left) == type(right))
-    assert(isinstance(left, DataFrame))
-    assert(isinstance(right, DataFrame))
+    assert_isinstance(left, DataFrame)
+    assert_isinstance(right, DataFrame)
 
     if check_less_precise:
         assert_almost_equal(left.columns,right.columns)

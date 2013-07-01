@@ -1,6 +1,8 @@
 # pylint: disable=W0231,E1101
+import operator
 
 import numpy as np
+from pandas.core.common import bind_method
 
 from pandas.core.index import MultiIndex
 import pandas.core.indexing as indexing
@@ -8,6 +10,7 @@ from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
 import pandas.lib as lib
+from pandas.util import py3compat
 
 
 class PandasError(Exception):
@@ -52,6 +55,70 @@ class PandasObject(object):
         raise TypeError('{0!r} objects are mutable, thus they cannot be'
                               ' hashed'.format(self.__class__.__name__))
 
+    #----------------------------------------------------------------------
+    # Arithmetic!
+    @classmethod
+    def _add_special_arithmetic_methods(cls, arith_method=None, radd_func=None, comp_method=None, bool_method=None,
+                                        use_numexpr=True):
+        """
+        Adds the full suite of special arithmetic methods (``__add__``, ``__sub__``, etc.) to the class.
+
+        Parameters
+        ----------
+        flex_arith_method : factory for flex arithmetic methods, with op string:
+            f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
+        radd_func :  Possible replacement for ``lambda x, y: y + x`` for compatibility
+        flex_comp_method : optional, factory for rich comparison - signature: f(op, name, str_rep)
+        use_numexpr : whether to accelerate with numexpr, defaults to True
+        """
+        radd_func = radd_func or operator.add
+        # in frame, special methods have default_axis = None, comp methods use 'columns'
+        new_methods = create_methods(arith_method, radd_func, comp_method, bool_method, use_numexpr, default_axis=None,
+                                     special=True)
+
+        # inplace operators (I feel like these should get passed an `inplace=True`
+        # or just be removed
+        new_methods.update(dict(
+            __iadd__=new_methods["__add__"],
+            __isub__=new_methods["__sub__"],
+            __imul__=new_methods["__mul__"],
+            __itruediv__=new_methods["__truediv__"],
+            __ipow__=new_methods["__pow__"]
+        ))
+        if not py3compat.PY3:
+            new_methods["__idiv__"] = new_methods["__div__"]
+        for name, method in new_methods.items():
+            if name not in cls.__dict__:
+                bind_method(cls, name, method)
+
+    @classmethod
+    def _add_flex_arithmetic_methods(cls, flex_arith_method, radd_func=None, flex_comp_method=None,
+                                     flex_bool_method=None, use_numexpr=True):
+        """
+        Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``) to the class.
+
+        Parameters
+        ----------
+        flex_arith_method : factory for flex arithmetic methods, with op string:
+            f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
+        radd_func :  Possible replacement for ``lambda x, y: y + x`` for compatibility
+        flex_comp_method : optional, factory for rich comparison - signature: f(op, name, str_rep)
+        use_numexpr : whether to accelerate with numexpr, defaults to True
+        """
+        radd_func = radd_func or operator.add
+        # in frame, default axis is 'columns', doesn't matter for series and panel
+        new_methods = create_methods(
+            flex_arith_method, radd_func, flex_comp_method, flex_bool_method,
+            use_numexpr, default_axis='columns', special=False)
+        new_methods.update(dict(
+            multiply=new_methods['mul'],
+            subtract=new_methods['sub'],
+            divide=new_methods['div']
+        ))
+
+        for name, method in new_methods.items():
+            if name not in cls.__dict__:
+                bind_method(cls, name, method)
 
     #----------------------------------------------------------------------
     # Axis name business
@@ -1191,3 +1258,78 @@ def truncate(self, before=None, after=None, copy=True):
         result = result.copy()
 
     return result
+
+
+
+
+def create_methods(arith_method, radd_func, comp_method, bool_method, use_numexpr, special=False, default_axis='columns'):
+    # NOTE: Only frame cares about default_axis, specifically: special methods have default axis None,
+    # whereas flex methods have default axis 'columns'
+    # if we're not using numexpr, then don't pass a str_rep
+    if use_numexpr:
+        op = lambda x: x
+    else:
+        op = lambda x: None
+    if special:
+        def names(x):
+            if x[-1] == "_":
+                return "__%s_" % x
+            else:
+                return "__%s__" % x
+    else:
+        names = lambda x: x
+    radd_func = radd_func or operator.add
+    # Inframe, all special methods have default_axis=None, flex methods have default_axis set to the default (columns)
+    new_methods = dict(
+        add=arith_method(operator.add, names('add'), op('+'), default_axis=default_axis),
+        radd=arith_method(radd_func, names('radd'), op('+'), default_axis=default_axis),
+        sub=arith_method(operator.sub, names('sub'), op('-'), default_axis=default_axis),
+        mul=arith_method(operator.mul, names('mul'), op('*'), default_axis=default_axis),
+        truediv=arith_method(operator.truediv, names('truediv'), op('/'),
+                             truediv=True, fill_zeros=np.inf, default_axis=default_axis),
+        floordiv=arith_method(operator.floordiv, names('floordiv'), op('//'),
+                              default_axis=default_axis, fill_zeros=np.inf),
+        # Causes a floating point exception in the tests when numexpr
+        # enabled, so for now no speedup
+        mod=arith_method(operator.mod, names('mod'), default_axis=default_axis,
+                         fill_zeros=np.nan),
+        pow=arith_method(operator.pow, names('pow'), op('**'), default_axis=default_axis),
+        # not entirely sure why this is necessary, but previously was included
+        # so it's here to maintain compatibility
+        rmul=arith_method(operator.mul, names('rmul'), default_axis=default_axis),
+        rsub=arith_method(lambda x, y: y - x, names('rsub'), default_axis=default_axis),
+        rtruediv=arith_method(lambda x, y: operator.truediv(y, x), names('rtruediv'), op('/'),
+                              truediv=True, fill_zeros=np.inf, default_axis=default_axis),
+        rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x), names('rfloordiv'), op('//'),
+                               default_axis=default_axis, fill_zeros=np.inf),
+        rpow=arith_method(lambda x, y: y ** x, names('rpow'), default_axis=default_axis),
+        rmod=arith_method(lambda x, y: y % x, names('rmod'), default_axis=default_axis),
+    )
+    if not py3compat.PY3:
+        new_methods["div"] = arith_method(operator.div, names('div'), op('/'),
+                                          truediv=False, fill_zeros=np.inf, default_axis=default_axis)
+        new_methods["rdiv"] = arith_method(lambda x, y: operator.div(y, x), names('rdiv'), op('/'),
+                                           truediv=False, fill_zeros=np.inf, default_axis=default_axis)
+    else:
+        new_methods["div"] = arith_method(operator.truediv, names('div'), op('/'),
+                                          truediv=True, fill_zeros=np.inf, default_axis=default_axis)
+        # Comp methods never had a default axis set
+    if comp_method:
+        new_methods.update(dict(
+            eq=comp_method(operator.eq, names('eq'), op('==')),
+            ne=comp_method(operator.ne, names('ne'), op('!=')),
+            lt=comp_method(operator.lt, names('lt'), op('<')),
+            gt=comp_method(operator.gt, names('gt'), op('>')),
+            le=comp_method(operator.le, names('le'), op('<=')),
+            ge=comp_method(operator.ge, names('ge'), op('>=')),
+        ))
+    if bool_method:
+        new_methods.update(dict(
+        and_=bool_method(operator.and_, names('and_ [&]'), op('&')),
+        or_=bool_method(operator.or_, names('or_ [|]'), op('|')),
+        # For some reason ``^`` wasn't used in original.
+        xor=bool_method(operator.xor, names('xor [^]'))
+        ))
+
+    new_methods = dict((names(k), v) for k, v in new_methods.items())
+    return new_methods

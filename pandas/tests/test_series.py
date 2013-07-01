@@ -259,7 +259,6 @@ class SafeForSparse(object):
 
 _ts = tm.makeTimeSeries()
 
-
 class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     _multiprocess_can_split_ = True
@@ -1703,7 +1702,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             tm.assert_almost_equal(result, expected)
 
         def check(series, other):
-            simple_ops = ['add', 'sub', 'mul']
+            simple_ops = ['add', 'sub', 'mul', 'floordiv', 'truediv', 'pow']
+            if not py3compat.PY3:
+                simple_ops.append('div')
 
             for opname in simple_ops:
                 _check_op(series, other, getattr(Series, opname),
@@ -1712,6 +1713,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         check(self.ts, self.ts * 2)
         check(self.ts, self.ts[::2])
         check(self.ts, 5)
+        check(tm.makeFloatSeries(), tm.makeFloatSeries())
 
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
@@ -2089,7 +2091,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
         s[::2] = np.nan
 
-        # test that comparions work
+        # test that comparisons work
         ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
         for op in ops:
             val = s[5]
@@ -2376,12 +2378,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
-        ops = [Series.add, Series.sub, Series.mul, Series.div]
-        equivs = [operator.add, operator.sub, operator.mul]
-        if py3compat.PY3:
-            equivs.append(operator.truediv)
-        else:
-            equivs.append(operator.div)
+        base_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'mod', 'pow']
+        if not py3compat.PY3:
+            base_ops.append('div')
+        ops = [getattr(Series, op) for op in base_ops]
+        equivs = [getattr(operator, op) for op in base_ops]
         fillvals = [0, 0, 1, 1]
 
         for op, equiv_op, fv in zip(ops, equivs, fillvals):
