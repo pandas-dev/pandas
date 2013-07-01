@@ -8,13 +8,13 @@ enhancements along with a large number of bug fixes.
 
 Highlites include a consistent I/O API naming scheme, routines to read html,
 write multi-indexes to csv files, read & write STATA data files, read & write JSON format
-files, Python 3 support for ``HDFStore``, filtering of groupby expressions via ``filter``, and a 
+files, Python 3 support for ``HDFStore``, filtering of groupby expressions via ``filter``, and a
 revamped ``replace`` routine that accepts regular expressions.
 
 API changes
 ~~~~~~~~~~~
 
-  - The I/O API is now much more consistent with a set of top level ``reader`` functions 
+  - The I/O API is now much more consistent with a set of top level ``reader`` functions
     accessed like ``pd.read_csv()`` that generally return a ``pandas`` object.
 
     * ``read_csv``
@@ -38,7 +38,7 @@ API changes
     * ``to_clipboard``
 
 
-  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return 
+  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
     ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`). This correct a numpy bug that treats ``integer``
     and ``float`` dtypes differently.
 
@@ -50,15 +50,15 @@ API changes
         p / p
         p / 0
 
-  - Add ``squeeze`` keyword to ``groupby`` to allow reduction from 
+  - Add ``squeeze`` keyword to ``groupby`` to allow reduction from
     DataFrame -> Series if groups are unique. This is a Regression from 0.10.1.
-    We are reverting back to the prior behavior. This means groupby will return the 
-    same shaped objects whether the groups are unique or not. Revert this issue (:issue:`2893`) 
+    We are reverting back to the prior behavior. This means groupby will return the
+    same shaped objects whether the groups are unique or not. Revert this issue (:issue:`2893`)
     with (:issue:`3596`).
 
     .. ipython:: python
 
-        df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19}, 
+        df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19},
                          {"val1":1, "val2": 27}, {"val1":1, "val2": 12}])
         def func(dataf):
             return dataf["val2"]  - dataf["val2"].mean()
@@ -96,9 +96,9 @@ API changes
     and thus you should cast to an appropriate numeric dtype if you need to
     plot something.
 
-  - Add ``colormap`` keyword to DataFrame plotting methods. Accepts either a 
-    matplotlib colormap object (ie, matplotlib.cm.jet) or a string name of such 
-    an object (ie, 'jet'). The colormap is sampled to select the color for each 
+  - Add ``colormap`` keyword to DataFrame plotting methods. Accepts either a
+    matplotlib colormap object (ie, matplotlib.cm.jet) or a string name of such
+    an object (ie, 'jet'). The colormap is sampled to select the color for each
     column. Please see :ref:`visualization.colormaps` for more information.
     (:issue:`3860`)
 
@@ -159,6 +159,18 @@ API changes
     ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
     until success is also valid
 
+  - The internal ``pandas`` class hierarchy has changed (slightly). The
+    previous ``PandasObject`` now is called ``PandasContainer`` and a new
+    ``PandasObject`` has become the baseclass for ``PandasContainer`` as well
+    as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
+    ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
+    provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
+
+  - New ``StringMixin`` that, given a ``__unicode__`` method, gets python 2 and
+    python 3 compatible string methods (``__str__``, ``__bytes__``, and
+    ``__repr__``). Plus string safety throughout. Now employed in many places
+    throughout the pandas library. (:issue:`4090`, :issue:`4092`)
+
 I/O Enhancements
 ~~~~~~~~~~~~~~~~
 
@@ -184,7 +196,7 @@ I/O Enhancements
 
     .. warning::
 
-      You may have to install an older version of BeautifulSoup4, 
+      You may have to install an older version of BeautifulSoup4,
       :ref:`See the installation docs<install.optional_dependencies>`
 
   - Added module for reading and writing Stata files: ``pandas.io.stata`` (:issue:`1512`)
@@ -203,15 +215,15 @@ I/O Enhancements
     - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
       ``read_csv``, to provide compatiblity for the pre 0.12 behavior of
       writing and reading multi-index columns via a list of tuples. The default in
-      0.12 is to write lists of tuples and *not* interpret list of tuples as a 
-      multi-index column.  
+      0.12 is to write lists of tuples and *not* interpret list of tuples as a
+      multi-index column.
 
       Note: The default behavior in 0.12 remains unchanged, but starting with 0.13,
-      the default *to* write and read multi-index columns will be in the new 
+      the default *to* write and read multi-index columns will be in the new
       format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
 
     - If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-      with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will 
+      with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will
       be *lost*.
 
       .. ipython:: python
@@ -296,8 +308,8 @@ Other Enhancements
          pd.get_option('a.b')
          pd.get_option('b.c')
 
-  - The ``filter`` method for group objects returns a subset of the original 
-    object. Suppose we want to take only elements that belong to groups with a 
+  - The ``filter`` method for group objects returns a subset of the original
+    object. Suppose we want to take only elements that belong to groups with a
     group sum greater than 2.
 
     .. ipython:: python
@@ -317,7 +329,7 @@ Other Enhancements
        dff.groupby('B').filter(lambda x: len(x) > 2)
 
     Alternatively, instead of dropping the offending groups, we can return a
-    like-indexed objects where the groups that do not pass the filter are 
+    like-indexed objects where the groups that do not pass the filter are
     filled with NaNs.
 
     .. ipython:: python
@@ -333,9 +345,9 @@ Experimental Features
 
   - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
     with custom holiday calendars and custom weekmasks. (:issue:`2301`)
-    
+
     .. note::
-        
+
        This uses the ``numpy.busdaycalendar`` API introduced in Numpy 1.7 and
        therefore requires Numpy 1.7.0 or newer.
 
@@ -416,7 +428,7 @@ Bug Fixes
     - Extend ``reindex`` to correctly deal with non-unique indices (:issue:`3679`)
     - ``DataFrame.itertuples()`` now works with frames with duplicate column
       names (:issue:`3873`)
-    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to 
+    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to
       ``reindex`` for location-based taking
 
   - ``DataFrame.from_records`` did not accept empty recarrays (:issue:`3682`)
