@@ -488,7 +488,7 @@ class DatetimeIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return tslib.ints_to_pydatetime(self.asi8, self.tz)
 
-    def __repr__(self):
+    def __unicode__(self):
         from pandas.core.format import _format_datetime64
         values = self.values
 
@@ -513,8 +513,6 @@ class DatetimeIndex(Int64Index):
         summary += tagline % (len(self), freq, self.tz)
 
         return summary
-
-    __str__ = __repr__
 
     def __reduce__(self):
         """Necessary for making this object picklable"""

@@ -17,7 +17,8 @@ from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
-from pandas.core.common import adjoin, is_list_like
+from pandas.core.base import StringMixin
+from pandas.core.common import adjoin, is_list_like, pprint_thing
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
 from pandas.core.common import _asarray_tuplesafe
@@ -218,7 +219,7 @@ def read_hdf(path_or_buf, key, **kwargs):
     # a passed store; user controls open/close
     f(path_or_buf, False)
 
-class HDFStore(object):
+class HDFStore(StringMixin):
     """
     dict-like IO interface for storing pandas objects in PyTables
     format.
@@ -315,8 +316,8 @@ class HDFStore(object):
     def __len__(self):
         return len(self.groups())
 
-    def __repr__(self):
-        output = '%s\nFile path: %s\n' % (type(self), self._path)
+    def __unicode__(self):
+        output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
 
         if len(self.keys()):
             keys   = []
@@ -326,11 +327,11 @@ class HDFStore(object):
                 try:
                     s = self.get_storer(k)
                     if s is not None:
-                        keys.append(str(s.pathname or k))
-                        values.append(str(s or 'invalid_HDFStore node'))
-                except (Exception), detail:
+                        keys.append(pprint_thing(s.pathname or k))
+                        values.append(pprint_thing(s or 'invalid_HDFStore node'))
+                except Exception as detail:
                     keys.append(k)
-                    values.append("[invalid_HDFStore node: %s]" % str(detail))
+                    values.append("[invalid_HDFStore node: %s]" % pprint_thing(detail))
 
             output += adjoin(12, keys, values)
         else:
@@ -984,7 +985,7 @@ class TableIterator(object):
         self.close()
         return results
 
-class IndexCol(object):
+class IndexCol(StringMixin):
     """ an index column description class
 
         Parameters
@@ -1050,10 +1051,9 @@ class IndexCol(object):
         self.table = table
         return self
 
-    def __repr__(self):
-        return "name->%s,cname->%s,axis->%s,pos->%s,kind->%s" % (self.name, self.cname, self.axis, self.pos, self.kind)
-
-    __str__ = __repr__
+    def __unicode__(self):
+        temp = tuple(map(pprint_thing, (self.name, self.cname, self.axis, self.pos, self.kind)))
+        return "name->%s,cname->%s,axis->%s,pos->%s,kind->%s" % temp
 
     def __eq__(self, other):
         """ compare 2 col items """
@@ -1570,7 +1570,7 @@ class GenericDataIndexableCol(DataIndexableCol):
     def get_attr(self):
         pass
 
-class Storer(object):
+class Storer(StringMixin):
     """ represent an object in my store
           facilitate read/write of various types of objects
           this is an abstract base class
@@ -1610,18 +1610,15 @@ class Storer(object):
     def pandas_type(self):
         return _ensure_decoded(getattr(self.group._v_attrs, 'pandas_type', None))
 
-    def __repr__(self):
-        """ return a pretty representatgion of myself """
+    def __unicode__(self):
+        """ return a pretty representation of myself """
         self.infer_axes()
         s = self.shape
         if s is not None:
             if isinstance(s, (list,tuple)):
-                s = "[%s]" % ','.join([ str(x) for x in s ])
+                s = "[%s]" % ','.join([pprint_thing(x) for x in s])
             return "%-12.12s (shape->%s)" % (self.pandas_type,s)
         return self.pandas_type
-
-    def __str__(self):
-        return self.__repr__()
 
     def set_object_info(self):
         """ set my pandas type & version """
@@ -3435,7 +3432,7 @@ def _need_convert(kind):
         return True
     return False
 
-class Term(object):
+class Term(StringMixin):
     """create a term object that holds a field, op, and value
 
     Parameters
@@ -3540,10 +3537,9 @@ class Term(object):
         if len(self.q):
             self.eval()
 
-    def __str__(self):
-        return "field->%s,op->%s,value->%s" % (self.field, self.op, self.value)
-
-    __repr__ = __str__
+    def __unicode__(self):
+        attrs = map(pprint_thing, (self.field, self.op, self.value))
+        return "field->%s,op->%s,value->%s" % tuple(attrs)
 
     @property
     def is_valid(self):

@@ -3,6 +3,7 @@
 import numpy as np
 
 from pandas.core.algorithms import factorize
+from pandas.core.base import PandasObject
 from pandas.core.index import Index
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -25,8 +26,7 @@ def _cat_compare_op(op):
 
     return f
 
-
-class Categorical(object):
+class Categorical(PandasObject):
     """
     Represents a categorical variable in classic R / S-plus fashion
 
@@ -134,9 +134,9 @@ class Categorical(object):
     def __len__(self):
         return len(self.labels)
 
-    def __repr__(self):
+    def __unicode__(self):
         temp = 'Categorical: %s\n%s\n%s'
-        values = np.asarray(self)
+        values = com.pprint_thing(np.asarray(self))
         levheader = 'Levels (%d): ' % len(self.levels)
         levstring = np.array_repr(self.levels,
                                   max_line_width=60)
@@ -145,9 +145,9 @@ class Categorical(object):
         lines = levstring.split('\n')
         levstring = '\n'.join([lines[0]] +
                               [indent + x.lstrip() for x in lines[1:]])
+        name = '' if self.name is None else self.name
+        return temp % (name, values, levheader + levstring)
 
-        return temp % ('' if self.name is None else self.name,
-                       repr(values), levheader + levstring)
 
     def __getitem__(self, key):
         if isinstance(key, (int, np.integer)):

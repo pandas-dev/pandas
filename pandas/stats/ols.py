@@ -10,6 +10,7 @@ from StringIO import StringIO
 import numpy as np
 
 from pandas.core.api import DataFrame, Series, isnull
+from pandas.core.base import StringMixin
 from pandas.core.common import _ensure_float64
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
@@ -22,7 +23,7 @@ import pandas.stats.moments as moments
 _FP_ERR = 1e-8
 
 
-class OLS(object):
+class OLS(StringMixin):
     """
     Runs a full sample ordinary least squares regression.
 
@@ -581,7 +582,7 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
 
         return template % params
 
-    def __repr__(self):
+    def __unicode__(self):
         return self.summary
 
     @cache_readonly

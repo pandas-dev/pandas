@@ -1,3 +1,4 @@
+from pandas.core.base import StringMixin
 from pandas.util.py3compat import StringIO
 
 import numpy as np
@@ -26,7 +27,7 @@ def fama_macbeth(**kwargs):
     return klass(**kwargs)
 
 
-class FamaMacBeth(object):
+class FamaMacBeth(StringMixin):
     def __init__(self, y, x, intercept=True, nw_lags=None,
                  nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
@@ -114,7 +115,7 @@ class FamaMacBeth(object):
 
         return buffer.getvalue()
 
-    def __repr__(self):
+    def __unicode__(self):
         return self.summary
 
     @cache_readonly

@@ -394,8 +394,7 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
 #----------------------------------------------------------------------
 # Series class
 
-
-class Series(pa.Array, generic.PandasObject):
+class Series(generic.PandasContainer, pa.Array):
     """
     One-dimensional ndarray with axis labels (including time series).
     Labels need not be unique but must be any hashable type. The object
@@ -519,10 +518,6 @@ class Series(pa.Array, generic.PandasObject):
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False):
         pass
-
-    @property
-    def _constructor(self):
-        return Series
 
     @property
     def _can_hold_na(self):
@@ -1096,28 +1091,6 @@ class Series(pa.Array, generic.PandasObject):
 
             return df.reset_index(level=level, drop=drop)
 
-    def __str__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
     def __unicode__(self):
         """
         Return a string representation for a particular DataFrame
@@ -1141,14 +1114,6 @@ class Series(pa.Array, generic.PandasObject):
         if not ( type(result) == unicode):
             raise AssertionError()
         return result
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular Series
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
 
     def _tidy_repr(self, max_vals=20):
         """

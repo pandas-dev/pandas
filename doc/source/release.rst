@@ -175,8 +175,18 @@ pandas 0.12
     ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
     until success is also valid
   - more consistency in the to_datetime return types (give string/array of string inputs) (:issue:`3888`)
+  - The internal ``pandas`` class hierarchy has changed (slightly). The
+    previous ``PandasObject`` now is called ``PandasContainer`` and a new
+    ``PandasObject`` has become the baseclass for ``PandasContainer`` as well
+    as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
+    ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
+    provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
+  - New ``StringMixin`` that, given a ``__unicode__`` method, gets python 2 and
+    python 3 compatible string methods (``__str__``, ``__bytes__``, and
+    ``__repr__``). Plus string safety throughout. Now employed in many places
+    throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
-**Experimental Feautres**
+**Experimental Features**
 
   - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
     with custom holiday calendars and custom weekmasks. (:issue:`2301`)

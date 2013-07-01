@@ -585,10 +585,6 @@ class DataFrame(NDFrame):
         return [self.index, self.columns]
 
     @property
-    def _constructor(self):
-        return self.__class__
-
-    @property
     def shape(self):
         return (len(self.index), len(self.columns))
 
@@ -653,28 +649,6 @@ class DataFrame(NDFrame):
 
         return repr_width < width
 
-    def __str__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
     def __unicode__(self):
         """
         Return a string representation for a particular DataFrame
@@ -713,14 +687,6 @@ class DataFrame(NDFrame):
             raise AssertionError()
 
         return value
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular DataFrame
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
 
     def _repr_html_(self):
         """

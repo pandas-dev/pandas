@@ -2,6 +2,7 @@ from itertools import izip
 import types
 import numpy as np
 
+from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -100,7 +101,7 @@ def _last_compat(x, axis=0):
         return _last(x)
 
 
-class GroupBy(object):
+class GroupBy(PandasObject):
     """
     Class for grouping and aggregating relational data. See aggregate,
     transform, and apply functions on this object.
@@ -200,6 +201,10 @@ class GroupBy(object):
 
     def __len__(self):
         return len(self.indices)
+
+    def __unicode__(self):
+        # TODO: Better unicode/repr for GroupBy object
+        return object.__repr__(self)
 
     @property
     def groups(self):
