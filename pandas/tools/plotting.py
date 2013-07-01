@@ -1928,7 +1928,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     if by is not None:
 
         axes = grouped_hist(data, by=by, ax=ax, grid=grid, figsize=figsize,
-                            **kwds)
+                            sharex=sharex, sharey=sharey, **kwds)
 
         for ax in axes.ravel():
             if xlabelsize is not None:
