@@ -186,10 +186,6 @@ class Panel(NDFrame):
     major_axis = lib.AxisProperty(1)
     minor_axis = lib.AxisProperty(2)
 
-    @property
-    def _constructor(self):
-        return type(self)
-
     # return the type of the slice constructor
     _constructor_sliced = DataFrame
 
@@ -466,28 +462,6 @@ class Panel(NDFrame):
     #----------------------------------------------------------------------
     # Magic methods
 
-    def __str__(self):
-        """
-        Return a string representation for a particular Panel
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if py3compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular Panel
-
-        Invoked by bytes(df) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        encoding = com.get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
     def __unicode__(self):
         """
         Return a string representation for a particular Panel
@@ -514,14 +488,6 @@ class Panel(NDFrame):
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
         return output
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular Panel
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
 
     def __iter__(self):
         return iter(getattr(self, self._info_axis))

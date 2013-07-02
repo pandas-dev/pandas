@@ -15,6 +15,7 @@ import numpy as np
 
 import sys
 import struct
+from pandas.core.base import StringMixin
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
@@ -163,7 +164,7 @@ def _datetime_to_stata_elapsed(date, fmt):
         raise ValueError("fmt %s not understood" % fmt)
 
 
-class StataMissingValue(object):
+class StataMissingValue(StringMixin):
     """
     An observation's missing value.
 
@@ -192,10 +193,12 @@ class StataMissingValue(object):
     string = property(lambda self: self._str, doc="The Stata representation of the missing value: '.', '.a'..'.z'")
     value = property(lambda self: self._value, doc='The binary representation of the missing value.')
 
-    def __str__(self):
-        return self._str
+    def __unicode__(self):
+        return self.string
 
-    __str__.__doc__ = string.__doc__
+    def __repr__(self):
+        # not perfect :-/
+        return "%s(%s)" % (self.__class__, self)
 
 
 class StataParser(object):

@@ -64,10 +64,10 @@ def _isnull_new(obj):
     if lib.isscalar(obj):
         return lib.checknull(obj)
 
-    from pandas.core.generic import PandasObject
+    from pandas.core.generic import PandasContainer
     if isinstance(obj, np.ndarray):
         return _isnull_ndarraylike(obj)
-    elif isinstance(obj, PandasObject):
+    elif isinstance(obj, PandasContainer):
         # TODO: optimize for DataFrame, etc.
         return obj.apply(isnull)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
@@ -91,10 +91,10 @@ def _isnull_old(obj):
     if lib.isscalar(obj):
         return lib.checknull_old(obj)
 
-    from pandas.core.generic import PandasObject
+    from pandas.core.generic import PandasContainer
     if isinstance(obj, np.ndarray):
         return _isnull_ndarraylike_old(obj)
-    elif isinstance(obj, PandasObject):
+    elif isinstance(obj, PandasContainer):
         # TODO: optimize for DataFrame, etc.
         return obj.apply(_isnull_old)
     elif isinstance(obj, list) or hasattr(obj, '__array__'):

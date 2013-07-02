@@ -1,10 +1,12 @@
 import numpy as np
+from pandas.core.base import PandasObject
+from pandas.core.common import pprint_thing
 
 from pandas.sparse.array import SparseArray
 import pandas._sparse as splib
 
 
-class SparseList(object):
+class SparseList(PandasObject):
     """
     Data structure for accumulating data to be converted into a
     SparseArray. Has similar API to the standard Python list
@@ -21,9 +23,9 @@ class SparseList(object):
         if data is not None:
             self.append(data)
 
-    def __repr__(self):
+    def __unicode__(self):
         contents = '\n'.join(repr(c) for c in self._chunks)
-        return '%s\n%s' % (object.__repr__(self), contents)
+        return '%s\n%s' % (object.__repr__(self), pprint_thing(contents))
 
     def __len__(self):
         return sum(len(c) for c in self._chunks)

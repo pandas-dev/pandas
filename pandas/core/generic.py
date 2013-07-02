@@ -1,20 +1,21 @@
 # pylint: disable=W0231,E1101
 
 import numpy as np
+import pandas.lib as lib
+from pandas.core.base import PandasObject
 
 from pandas.core.index import MultiIndex
 import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
-import pandas.lib as lib
 
 
 class PandasError(Exception):
     pass
 
 
-class PandasObject(object):
+class PandasContainer(PandasObject):
 
     _AXIS_NUMBERS = {
         'index': 0,
@@ -51,6 +52,12 @@ class PandasObject(object):
     def __hash__(self):
         raise TypeError('{0!r} objects are mutable, thus they cannot be'
                               ' hashed'.format(self.__class__.__name__))
+
+    def __unicode__(self):
+        # unicode representation based upon iterating over self
+        # (since, by definition, `PandasContainers` are iterable)
+        prepr = '[%s]' % ','.join(map(com.pprint_thing, self))
+        return '%s(%s)' % (self.__class__.__name__, prepr)
 
 
     #----------------------------------------------------------------------
@@ -578,9 +585,10 @@ class PandasObject(object):
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():
-    PandasObject._create_indexer(_name,_indexer)
+    PandasContainer._create_indexer(_name,_indexer)
 
-class NDFrame(PandasObject):
+
+class NDFrame(PandasContainer):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -626,15 +634,8 @@ class NDFrame(PandasObject):
         return self._constructor(mgr)
 
     @property
-    def _constructor(self):
-        return NDFrame
-
-    @property
     def axes(self):
         return self._data.axes
-
-    def __repr__(self):
-        return 'NDFrame'
 
     @property
     def values(self):

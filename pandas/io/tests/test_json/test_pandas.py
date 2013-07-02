@@ -33,7 +33,7 @@ _tsframe = DataFrame(_tsd)
 
 _mixed_frame = _frame.copy()
 
-class TestPandasObjects(unittest.TestCase):
+class TestPandasContainer(unittest.TestCase):
 
     def setUp(self):
         self.ts = tm.makeTimeSeries()
@@ -68,7 +68,7 @@ class TestPandasObjects(unittest.TestCase):
                     if type(detail) == raise_ok:
                         return
                     raise
-                    
+
             unser = unser.sort()
 
             if dtype is False:
@@ -104,7 +104,7 @@ class TestPandasObjects(unittest.TestCase):
                 _check_orient(df, "split", dtype=dtype)
                 _check_orient(df, "index", dtype=dtype)
                 _check_orient(df, "values", dtype=dtype)
-            
+
             _check_orient(df, "columns", dtype=dtype, convert_axes=False)
             _check_orient(df, "records", dtype=dtype, convert_axes=False)
             _check_orient(df, "split", dtype=dtype, convert_axes=False)
@@ -347,7 +347,7 @@ class TestPandasObjects(unittest.TestCase):
         assert_series_equal(result,ts)
 
     def test_date_format(self):
-        
+
         df = self.tsframe.copy()
         df['date'] = Timestamp('20130101')
         df_orig = df.copy()
@@ -412,7 +412,7 @@ class TestPandasObjects(unittest.TestCase):
     @network
     @slow
     def test_round_trip_exception_(self):
-		# GH 3867
+        # GH 3867
 
         df = pd.read_csv('https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv')
         s = df.to_json()
@@ -429,9 +429,9 @@ class TestPandasObjects(unittest.TestCase):
             result = read_json(url,convert_dates=True)
             for c in ['created_at','closed_at','updated_at']:
                 self.assert_(result[c].dtype == 'datetime64[ns]')
-            
+
             url = 'http://search.twitter.com/search.json?q=pandas%20python'
             result = read_json(url)
-            
+
         except urllib2.URLError:
             raise nose.SkipTest

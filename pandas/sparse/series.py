@@ -241,8 +241,9 @@ class SparseSeries(SparseArray, Series):
     def __len__(self):
         return self.sp_index.length
 
-    def __repr__(self):
-        series_rep = Series.__repr__(self)
+    def __unicode__(self):
+        # currently, unicode is same as repr...fixes infinite loop
+        series_rep = Series.__unicode__(self)
         rep = '%s\n%s' % (series_rep, repr(self.sp_index))
         return rep
 
