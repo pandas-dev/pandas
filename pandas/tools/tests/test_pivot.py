@@ -53,7 +53,7 @@ class TestPivotTable(unittest.TestCase):
     def test_pivot_table_nocols(self):
         df = DataFrame({'rows': ['a', 'b', 'c'],
                         'cols': ['x', 'y', 'z'],
-                        'values': [1,2,3]})
+                        'values': [1, 2, 3]})
         rs = df.pivot_table(cols='cols', aggfunc=np.sum)
         xp = df.pivot_table(rows='cols', aggfunc=np.sum).T
         tm.assert_frame_equal(rs, xp)
@@ -61,7 +61,6 @@ class TestPivotTable(unittest.TestCase):
         rs = df.pivot_table(cols='cols', aggfunc={'values': 'mean'})
         xp = df.pivot_table(rows='cols', aggfunc={'values': 'mean'}).T
         tm.assert_frame_equal(rs, xp)
-
 
     def test_pass_array(self):
         result = self.data.pivot_table('D', rows=self.data.A, cols=self.data.C)
@@ -85,21 +84,25 @@ class TestPivotTable(unittest.TestCase):
     def test_pivot_dtypes(self):
 
         # can convert dtypes
-        f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1,2,3,4], 'i' : ['a','b','a','b']})
+        f = DataFrame({'a': ['cat', 'bat', 'cat', 'bat'], 'v': [1, 2, 3, 4],
+                       'i': ['a', 'b', 'a', 'b']})
         self.assert_(f.dtypes['v'] == 'int64')
 
-        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.sum)
+        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0,
+                        aggfunc=np.sum)
         result = z.get_dtype_counts()
-        expected = Series(dict(int64 = 2))
+        expected = Series(dict(int64=2))
         tm.assert_series_equal(result, expected)
 
         # cannot convert dtypes
-        f = DataFrame({'a' : ['cat', 'bat', 'cat', 'bat'], 'v' : [1.5,2.5,3.5,4.5], 'i' : ['a','b','a','b']})
+        f = DataFrame({'a': ['cat', 'bat', 'cat', 'bat'],
+                       'v': [1.5, 2.5, 3.5, 4.5], 'i': ['a', 'b', 'a', 'b']})
         self.assert_(f.dtypes['v'] == 'float64')
 
-        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0, aggfunc=np.mean)
+        z = pivot_table(f, values='v', rows=['a'], cols=['i'], fill_value=0,
+                        aggfunc=np.mean)
         result = z.get_dtype_counts()
-        expected = Series(dict(float64 = 2))
+        expected = Series(dict(float64=2))
         tm.assert_series_equal(result, expected)
 
     def test_pivot_multi_values(self):
@@ -132,12 +135,14 @@ class TestPivotTable(unittest.TestCase):
     def test_pivot_index_with_nan(self):
         # GH 3588
         nan = np.nan
-        df = DataFrame({"a":['R1', 'R2', nan, 'R4'], 'b':["C1", "C2", "C3" , "C4"], "c":[10, 15, nan , 20]})
-        result = df.pivot('a','b','c')
-        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan], 
-                              [nan,nan,nan,nan],[nan,nan,15,20]],
-                             index = Index(['R1','R2',nan,'R4'],name='a'),
-                             columns = Index(['C1','C2','C3','C4'],name='b'))
+        df = DataFrame({"a": ['R1', 'R2', nan, 'R4'],
+                        'b': ["C1", "C2", "C3", "C4"],
+                        "c": [10, 15, nan, 20]})
+        result = df.pivot('a', 'b', 'c')
+        expected = DataFrame([[nan, nan, nan, nan], [nan, 10, nan, nan],
+                              [nan, nan, nan, nan], [nan, nan, 15, 20]],
+                             index=Index(['R1', 'R2', nan, 'R4'], name='a'),
+                             columns=Index(['C1', 'C2', 'C3', 'C4'], name='b'))
         tm.assert_frame_equal(result, expected)
 
     def test_margins(self):
@@ -195,7 +200,8 @@ class TestPivotTable(unittest.TestCase):
 
         d = datetime.date.min
         data = list(product(['foo', 'bar'], ['A', 'B', 'C'], ['x1', 'x2'],
-                            [d + datetime.timedelta(i) for i in xrange(20)], [1.0]))
+                            [d + datetime.timedelta(i) for i in xrange(20)],
+                            [1.0]))
         df = pandas.DataFrame(data)
         table = df.pivot_table(values=4, rows=[0, 1, 3], cols=[2])
 
