@@ -2190,7 +2190,13 @@ class DataFrame(NDFrame):
                     # copy the values
                     value = value.values.copy()
                 else:
-                    value = value.reindex(self.index).values
+
+                    # GH 4107
+                    try:
+                        value = value.reindex(self.index).values
+                    except:
+                        raise TypeError('incompatible index of inserted column '
+                                        'with frame index')
 
                 if is_frame:
                     value = value.T

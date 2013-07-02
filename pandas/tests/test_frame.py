@@ -2250,6 +2250,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assert_(type(detail) == ValueError)
             self.assert_(msg in str(detail))
 
+    def test_insert_error_msmgs(self):
+
+        # GH 4107, more descriptive error message
+        df = DataFrame(np.random.randint(0,2,(4,4)),
+                       columns=['a', 'b', 'c', 'd'])
+
+        try:
+            df['gr'] = df.groupby(['b', 'c']).count()
+        except (Exception), detail:
+            msg = 'incompatible index of inserted column with frame index'
+            self.assert_(type(detail) == TypeError)
+            self.assert_(msg in str(detail))
+
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in xrange(10)),
