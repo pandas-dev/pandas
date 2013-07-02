@@ -1,8 +1,9 @@
 import unittest
 
 import numpy as np
+from numpy.testing import assert_equal
 
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Series, Index, MultiIndex
 from pandas.tools.merge import concat
 from pandas.tools.pivot import pivot_table, crosstab
 import pandas.util.testing as tm
@@ -61,6 +62,22 @@ class TestPivotTable(unittest.TestCase):
         rs = df.pivot_table(cols='cols', aggfunc={'values': 'mean'})
         xp = df.pivot_table(rows='cols', aggfunc={'values': 'mean'}).T
         tm.assert_frame_equal(rs, xp)
+
+    def test_pivot_table_dropna(self):
+        df = DataFrame({'amount': {0: 60000, 1: 100000, 2: 50000, 3: 30000},
+                        'customer': {0: 'A', 1: 'A', 2: 'B', 3: 'C'},
+                        'month': {0: 201307, 1: 201309, 2: 201308, 3: 201310},
+                        'product': {0: 'a', 1: 'b', 2: 'c', 3: 'd'},
+                        'quantity': {0: 2000000, 1: 500000, 2: 1000000, 3: 1000000}})
+        pv_col = df.pivot_table('quantity', 'month', ['customer', 'product'], dropna=False)
+        pv_ind = df.pivot_table('quantity', ['customer', 'product'], 'month', dropna=False)
+
+        m = MultiIndex.from_tuples([(u'A', u'a'), (u'A', u'b'), (u'A', u'c'), (u'A', u'd'), 
+                                   (u'B', u'a'), (u'B', u'b'), (u'B', u'c'), (u'B', u'd'),
+                                   (u'C', u'a'), (u'C', u'b'), (u'C', u'c'), (u'C', u'd')])
+
+        assert_equal(pv_col.columns.values, m.values)
+        assert_equal(pv_ind.index.values, m.values)
 
 
     def test_pass_array(self):
@@ -373,6 +390,16 @@ class TestCrosstab(unittest.TestCase):
         expected = df.pivot_table('values', rows=['foo', 'bar'], cols='baz',
                                   aggfunc=np.sum)
         tm.assert_frame_equal(table, expected)
+
+    def test_crosstab_dropna(self):
+        # GH 3820
+        a = np.array(['foo', 'foo', 'foo', 'bar', 'bar', 'foo', 'foo'], dtype=object)
+        b = np.array(['one', 'one', 'two', 'one', 'two', 'two', 'two'], dtype=object)
+        c = np.array(['dull', 'dull', 'dull', 'dull', 'dull', 'shiny', 'shiny'], dtype=object)
+        res = crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'], dropna=False)
+        m = MultiIndex.from_tuples([('one', 'dull'), ('one', 'shiny'),
+                                    ('two', 'dull'), ('two', 'shiny')])
+        assert_equal(res.columns.values, m.values)
 
 if __name__ == '__main__':
     import nose

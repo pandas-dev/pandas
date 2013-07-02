@@ -4,12 +4,13 @@ from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex
 from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
+from pandas.tools.util import cartesian_product
 import pandas.core.common as com
 import numpy as np
 
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
-                fill_value=None, margins=False):
+                fill_value=None, margins=False, dropna=True):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
@@ -31,6 +32,8 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
         Value to replace missing values with
     margins : boolean, default False
         Add all row / columns (e.g. for subtotal / grand totals)
+    dropna : boolean, default True
+        Do not include columns whose entries are all NaN
 
     Examples
     --------
@@ -104,6 +107,19 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
         to_unstack = [agged.index.names[i]
                       for i in range(len(rows), len(keys))]
         table = agged.unstack(to_unstack)
+
+    if not dropna:
+        try:
+            m = MultiIndex.from_arrays(cartesian_product(table.index.levels))
+            table = table.reindex_axis(m, axis=0)
+        except AttributeError:
+            pass # it's a single level
+
+        try:
+            m = MultiIndex.from_arrays(cartesian_product(table.columns.levels))
+            table = table.reindex_axis(m, axis=1)
+        except AttributeError:
+            pass # it's a single level or a series
 
     if isinstance(table, DataFrame):
         if isinstance(table.columns, MultiIndex):
@@ -216,7 +232,7 @@ def _convert_by(by):
 
 
 def crosstab(rows, cols, values=None, rownames=None, colnames=None,
-             aggfunc=None, margins=False):
+             aggfunc=None, margins=False, dropna=True):
     """
     Compute a simple cross-tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
@@ -238,6 +254,8 @@ def crosstab(rows, cols, values=None, rownames=None, colnames=None,
         If passed, must match number of column arrays passed
     margins : boolean, default False
         Add row/column margins (subtotals)
+    dropna : boolean, default True
+        Do not include columns whose entries are all NaN
 
     Notes
     -----
@@ -281,13 +299,13 @@ def crosstab(rows, cols, values=None, rownames=None, colnames=None,
         df = DataFrame(data)
         df['__dummy__'] = 0
         table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
-                               aggfunc=len, margins=margins)
+                               aggfunc=len, margins=margins, dropna=dropna)
         return table.fillna(0).astype(np.int64)
     else:
         data['__dummy__'] = values
         df = DataFrame(data)
         table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
-                               aggfunc=aggfunc, margins=margins)
+                               aggfunc=aggfunc, margins=margins, dropna=dropna)
         return table
 
 
