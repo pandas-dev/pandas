@@ -101,6 +101,8 @@ pandas 0.12
   - ``read_csv`` will now throw a more informative error message when a file
     contains no columns, e.g., all newline characters
   - Added ``layout`` keyword to DataFrame.hist() for more customizable layout (:issue:`4050`)
+  - Timestamp.min and Timestamp.max now represent valid Timestamp instances instead
+    of the default datetime.min and datetime.max (respectively), thanks @SleepingPills
 
 **API Changes**
 
