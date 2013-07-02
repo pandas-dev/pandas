@@ -1941,15 +1941,10 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
-    if column is not None:
-        if not isinstance(column, (list, np.ndarray)):
-            column = [column]
-        data = data[column]
-
     if by is not None:
-        axes = grouped_hist(data, by=by, ax=ax, grid=grid, figsize=figsize,
-                            sharex=sharex, sharey=sharey, layout=layout,
-                            **kwds)
+        axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
+                            figsize=figsize, sharex=sharex, sharey=sharey,
+                            layout=layout, **kwds)
 
         for ax in axes.ravel():
             if xlabelsize is not None:
@@ -1963,6 +1958,12 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
         return axes
 
+    if column is not None:
+        if isinstance(column, basestring):
+            column = [column]
+
+        data = data[column]
+
     import matplotlib.pyplot as plt
     n = len(data.columns)
 
@@ -1972,7 +1973,8 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
         rows, cols = layout
         if rows * cols < n:
-            raise ValueError('Layout of %sx%s is incompatible with %s columns' % (rows, cols, n))
+            raise ValueError('Layout of %dx%d is incompatible with %d '
+                             'columns' % (rows, cols, n))
     else:
         rows, cols = 1, 1
         while rows * cols < n:
@@ -1980,6 +1982,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                 rows += 1
             else:
                 cols += 1
+
     fig, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False,
                           sharex=sharex, sharey=sharey, figsize=figsize)
 
