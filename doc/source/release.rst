@@ -162,6 +162,7 @@ pandas 0.13
     be lost when expanding the index. (:issue:`3742`, :issue:`4039`)
   - Fixed issue where individual ``names``, ``levels`` and ``labels`` could be
     set on ``MultiIndex`` without validation (:issue:`3714`, :issue:`4039`)
+  - Fixed (:issue:`3334`) in pivot_table. Margins did not compute if values is the index.
 
 pandas 0.12
 ===========

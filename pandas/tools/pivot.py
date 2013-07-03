@@ -2,7 +2,6 @@
 
 from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex
-from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
@@ -149,17 +148,64 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
 DataFrame.pivot_table = pivot_table
 
 
-def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
-    grand_margin = {}
-    for k, v in compat.iteritems(data[values]):
-        try:
-            if isinstance(aggfunc, compat.string_types):
-                grand_margin[k] = getattr(v, aggfunc)()
-            else:
-                grand_margin[k] = aggfunc(v)
-        except TypeError:
-            pass
+def _add_margins(table, data, values, rows, cols, aggfunc):
 
+    grand_margin = _compute_grand_margin(data, values, aggfunc)
+
+    if not values and isinstance(table, Series):
+        # If there are no values and the table is a series, then there is only
+        # one column in the data. Compute grand margin and return it.
+        row_key = ('All',) + ('',) * (len(rows) - 1) if len(rows) > 1 else 'All'
+        return table.append(Series({row_key: grand_margin['All']}))
+
+    if values:
+        marginal_result_set = _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_margin)
+        if not isinstance(marginal_result_set, tuple):
+            return marginal_result_set
+        result, margin_keys, row_margin = marginal_result_set
+    else:
+        marginal_result_set = _generate_marginal_results_without_values(table, data, rows, cols, aggfunc)
+        if not isinstance(marginal_result_set, tuple):
+            return marginal_result_set
+        result, margin_keys, row_margin = marginal_result_set
+
+    key = ('All',) + ('',) * (len(rows) - 1) if len(rows) > 1 else 'All'
+
+    row_margin = row_margin.reindex(result.columns)
+    # populate grand margin
+    for k in margin_keys:
+        if isinstance(k, compat.string_types):
+            row_margin[k] = grand_margin[k]
+        else:
+            row_margin[k] = grand_margin[k[0]]
+
+    margin_dummy = DataFrame(row_margin, columns=[key]).T
+
+    row_names = result.index.names
+    result = result.append(margin_dummy)
+    result.index.names = row_names
+
+    return result
+
+
+def _compute_grand_margin(data, values, aggfunc):
+
+    if values:
+        grand_margin = {}
+        for k, v in data[values].iteritems():
+            try:
+                if isinstance(aggfunc, compat.string_types):
+                    grand_margin[k] = getattr(v, aggfunc)()
+                else:
+                    grand_margin[k] = aggfunc(v)
+            except TypeError:
+                pass
+        return grand_margin
+    else:
+        return {'All': aggfunc(data.index)}
+
+
+def _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_margin):
     if len(cols) > 0:
         # need to "interleave" the margins
         table_pieces = []
@@ -203,23 +249,43 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
     else:
         row_margin = Series(np.nan, index=result.columns)
 
-    key = ('All',) + ('',) * (len(rows) - 1) if len(rows) > 1 else 'All'
+    return result, margin_keys, row_margin
 
-    row_margin = row_margin.reindex(result.columns)
-    # populate grand margin
-    for k in margin_keys:
-        if len(cols) > 0:
-            row_margin[k] = grand_margin[k[0]]
+
+def _generate_marginal_results_without_values(table, data, rows, cols, aggfunc):
+    if len(cols) > 0:
+        # need to "interleave" the margins
+        margin_keys = []
+
+        def _all_key():
+            if len(cols) == 1:
+                return 'All'
+            return ('All', ) + ('', ) * (len(cols) - 1)
+
+        if len(rows) > 0:
+            margin = data[rows].groupby(rows).apply(aggfunc)
+            all_key = _all_key()
+            table[all_key] = margin
+            result = table
+            margin_keys.append(all_key)
+
         else:
-            row_margin[k] = grand_margin[k]
+            margin = data.groupby(level=0, axis=0).apply(aggfunc)
+            all_key = _all_key()
+            table[all_key] = margin
+            result = table
+            margin_keys.append(all_key)
+            return result
+    else:
+        result = table
+        margin_keys = table.columns
 
-    margin_dummy = DataFrame(row_margin, columns=[key]).T
+    if len(cols):
+        row_margin = data[cols].groupby(cols).apply(aggfunc)
+    else:
+        row_margin = Series(np.nan, index=result.columns)
 
-    row_names = result.index.names
-    result = result.append(margin_dummy)
-    result.index = result.index.set_names(row_names)
-
-    return result
+    return result, margin_keys, row_margin
 
 
 def _convert_by(by):
