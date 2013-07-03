@@ -313,6 +313,7 @@ pandas 0.12
     (:issue:`4089`)
   - Fix bug where ``HDFStore`` will fail to append because of a different block
     ordering on-disk (:issue:`4096`)
+  - Better error messages on inserting incompatible columns to a frame (:issue:`4107`)
 
 
 pandas 0.11.0
