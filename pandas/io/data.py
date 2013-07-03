@@ -757,7 +757,7 @@ class Options(object):
 
             get_range = slice(start_index - above_below,
                               start_index + above_below + 1)
-            chop = df[get_range].dropna()
+            chop = df[get_range].dropna(how='all')
             chop.reset_index(inplace=True)
             data[nam] = chop
         return [data[nam] for nam in to_ret]
