@@ -3430,25 +3430,36 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         s = Series([1., 2, 3],index=['a','b','c'])
         result = s.convert_objects(convert_dates=False,convert_numeric=True)
-        assert_series_equal(s,result)
+        assert_series_equal(result, s)
 
         # force numeric conversion
         r = s.copy().astype('O')
         r['a'] = '1'
         result = r.convert_objects(convert_dates=False,convert_numeric=True)
-        assert_series_equal(s,result)
+        assert_series_equal(result, s)
 
         r = s.copy().astype('O')
         r['a'] = '1.'
         result = r.convert_objects(convert_dates=False,convert_numeric=True)
-        assert_series_equal(s,result)
+        assert_series_equal(result, s)
 
         r = s.copy().astype('O')
         r['a'] = 'garbled'
         expected = s.copy()
         expected['a'] = np.nan
         result = r.convert_objects(convert_dates=False,convert_numeric=True)
-        assert_series_equal(expected,result)
+        assert_series_equal(result, expected)
+
+        # GH 4119, not converting a mixed type (e.g.floats and object)
+        s = Series([1, 'na', 3 ,4])
+        result = s.convert_objects(convert_numeric=True)
+        expected = Series([1,np.nan,3,4])
+        assert_series_equal(result, expected)
+
+        s = Series([1, '', 3 ,4])
+        result = s.convert_objects(convert_numeric=True)
+        expected = Series([1,np.nan,3,4])
+        assert_series_equal(result, expected)
 
         # dates
         s = Series([datetime(2001,1,1,0,0), datetime(2001,1,2,0,0), datetime(2001,1,3,0,0) ])
@@ -3456,18 +3467,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         result = s.convert_objects(convert_dates=True,convert_numeric=False)
         expected = Series([Timestamp('20010101'),Timestamp('20010102'),Timestamp('20010103')],dtype='M8[ns]')
-        assert_series_equal(expected,result)
+        assert_series_equal(result, expected)
 
         result = s.convert_objects(convert_dates='coerce',convert_numeric=False)
-        assert_series_equal(expected,result)
         result = s.convert_objects(convert_dates='coerce',convert_numeric=True)
-        assert_series_equal(expected,result)
+        assert_series_equal(result, expected)
 
         expected = Series([Timestamp('20010101'),Timestamp('20010102'),Timestamp('20010103'),lib.NaT,lib.NaT,lib.NaT,Timestamp('20010104'),Timestamp('20010105')],dtype='M8[ns]')
         result = s2.convert_objects(convert_dates='coerce',convert_numeric=False)
-        assert_series_equal(expected,result)
+        assert_series_equal(result, expected)
         result = s2.convert_objects(convert_dates='coerce',convert_numeric=True)
-        assert_series_equal(expected,result)
+        assert_series_equal(result, expected)
 
         # preserver all-nans (if convert_dates='coerce')
         s = Series(['foo','bar',1,1.0],dtype='O')

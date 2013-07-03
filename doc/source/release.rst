@@ -316,6 +316,8 @@ pandas 0.12
   - Better error messages on inserting incompatible columns to a frame (:issue:`4107`)
   - Fixed bug in ``DataFrame.replace`` where a nested dict wasn't being
     iterated over when regex=False (:issue:`4115`)
+  - Fixed bug in ``convert_objects(convert_numeric=True)`` where a mixed numeric and
+    object Series/Frame was not converting properly (:issue:`4119`)
 
 
 pandas 0.11.0

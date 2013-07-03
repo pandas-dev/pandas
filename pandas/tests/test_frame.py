@@ -5476,6 +5476,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         converted = self.mixed_frame.copy()
         self.assertRaises(Exception, converted['H'].astype, 'int32')
 
+        # mixed in a single column
+        df = DataFrame(dict(s = Series([1, 'na', 3 ,4])))
+        result = df.convert_objects(convert_numeric=True)
+        expected = DataFrame(dict(s = Series([1, np.nan, 3 ,4])))
+        assert_frame_equal(result, expected)
+
     def test_convert_objects_no_conversion(self):
         mixed1 = DataFrame(
             {'a': [1, 2, 3], 'b': [4.0, 5, 6], 'c': ['x', 'y', 'z']})
