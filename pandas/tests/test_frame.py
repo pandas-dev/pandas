@@ -6737,6 +6737,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(res3, expec)
         assert_frame_equal(res4, expec)
 
+    def test_regex_replace_dict_nested_gh4115(self):
+        df = pd.DataFrame({'Type':['Q','T','Q','Q','T'], 'tmp':2})
+        expected = DataFrame({'Type': [0,1,0,0,1], 'tmp': 2})
+        assert_frame_equal(df.replace({'Type': {'Q':0,'T':1}}), expected)
+
     def test_regex_replace_list_to_scalar(self):
         mix = {'a': range(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
         df = DataFrame(mix)
