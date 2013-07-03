@@ -25,10 +25,12 @@ from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
 from pandas import date_range
 import pandas as pd
 from pandas.io.parsers import read_csv
+from pandas.parser import CParserError
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
+                                 assertRaisesRegexp,
                                  makeCustomDataframe as mkdf,
                                  ensure_clean)
 from pandas.util import py3compat
@@ -2208,47 +2210,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_constructor_error_msgs(self):
 
         # mix dict and array, wrong size
-        try:
+        def testit():
             DataFrame({'A': {'a': 'a', 'b': 'b'},
                        'B': ['a', 'b', 'c']})
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_("Mixing dicts with non-Series may lead to ambiguous ordering." in str(detail))
+        assertRaisesRegexp(ValueError, "Mixing dicts with non-Series may lead to ambiguous ordering.", testit)
 
         # wrong size ndarray, GH 3105
-        try:
+        def testit():
             DataFrame(np.arange(12).reshape((4, 3)), columns=['foo', 'bar', 'baz'],
                       index=date_range('2000-01-01', periods=3))
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_(str(detail).startswith("Shape of passed values is (3, 4), indices imply (3, 3)"))
+        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4\), indices imply \(3, 3\)", testit)
 
         # higher dim raise exception
-        try:
+        def testit():
             DataFrame(np.zeros((3, 3, 3)), columns=['A', 'B', 'C'], index=[1])
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_("Must pass 2-d input" in str(detail))
+        assertRaisesRegexp(ValueError, "Must pass 2-d input", testit)
 
         # wrong size axis labels
-        try:
+        def testit():
             DataFrame(np.random.rand(2,3), columns=['A', 'B', 'C'], index=[1])
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_(str(detail).startswith("Shape of passed values is (3, 2), indices imply (3, 1)"))
+        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 2\), indices imply \(3, 1\)", testit)
 
-        try:
+        def testit():
             DataFrame(np.random.rand(2,3), columns=['A', 'B'], index=[1, 2])
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_(str(detail).startswith("Shape of passed values is (3, 2), indices imply (2, 2)"))
+        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 2\), indices imply \(2, 2\)", testit)
 
-        try:
+        def testit():
             DataFrame({'a': False, 'b': True})
-        except (Exception), detail:
-            msg = 'If using all scalar values, you must must pass an index'
-            self.assert_(type(detail) == ValueError)
-            self.assert_(msg in str(detail))
+        assertRaisesRegexp(ValueError, 'If using all scalar values, you must must pass an index', testit)
 
     def test_insert_error_msmgs(self):
 
@@ -2256,12 +2245,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.randint(0,2,(4,4)),
                        columns=['a', 'b', 'c', 'd'])
 
-        try:
+        def testit():
             df['gr'] = df.groupby(['b', 'c']).count()
-        except (Exception), detail:
-            msg = 'incompatible index of inserted column with frame index'
-            self.assert_(type(detail) == TypeError)
-            self.assert_(msg in str(detail))
+
+        assertRaisesRegexp(TypeError, 'incompatible index of inserted column with frame index', testit)
 
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
@@ -5133,17 +5120,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             df.to_csv(path,tupleize_cols=False)
 
             # catch invalid headers
-            try:
+            def testit():
                 read_csv(path,tupleize_cols=False,header=range(3),index_col=0)
-            except (Exception), detail:
-                if not str(detail).startswith('Passed header=[0,1,2] are too many rows for this multi_index of columns'):
-                    raise AssertionError("failure in read_csv header=range(3)")
+            assertRaisesRegexp(CParserError, 'Passed header=\[0,1,2\] are too many rows for this multi_index of columns', testit)
 
-            try:
+            def testit():
                 read_csv(path,tupleize_cols=False,header=range(7),index_col=0)
-            except (Exception), detail:
-                if not str(detail).startswith('Passed header=[0,1,2,3,4,5,6], len of 7, but only 6 lines in file'):
-                    raise AssertionError("failure in read_csv header=range(7)")
+            assertRaisesRegexp(CParserError, 'Passed header=\[0,1,2,3,4,5,6\], len of 7, but only 6 lines in file', testit)
 
             for i in [3,4,5,6,7]:
                  self.assertRaises(Exception, read_csv, path, tupleize_cols=False, header=range(i), index_col=0)

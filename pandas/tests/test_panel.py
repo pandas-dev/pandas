@@ -20,6 +20,7 @@ from pandas.util.testing import (assert_panel_equal,
                                  assert_series_equal,
                                  assert_almost_equal,
                                  ensure_clean,
+                                 assertRaisesRegexp,
                                  makeCustomDataframe as mkdf
     )
 import pandas.core.panel as panelm
@@ -959,23 +960,17 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_constructor_error_msgs(self):
 
-        try:
+        def testit():
             Panel(np.random.randn(3,4,5), range(4), range(5), range(5))
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (4, 5, 5)"))
+        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(4, 5, 5\)", testit)
 
-        try:
+        def testit():
             Panel(np.random.randn(3,4,5), range(5), range(4), range(5))
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (5, 4, 5)"))
+        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(5, 4, 5\)", testit)
 
-        try:
+        def testit():
             Panel(np.random.randn(3,4,5), range(5), range(5), range(4))
-        except (Exception), detail:
-            self.assert_(type(detail) == ValueError)
-            self.assert_(str(detail).startswith("Shape of passed values is (3, 4, 5), indices imply (5, 5, 4)"))
+        assertRaisesRegexp(ValueError, "Shape of passed values is \(3, 4, 5\), indices imply \(5, 5, 4\)", testit)
 
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
@@ -1385,7 +1380,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                     reader = ExcelFile(path)
                 except ImportError:
                     raise nose.SkipTest
-                
+
                 for item, df in self.panel.iterkv():
                     recdf = reader.parse(str(item), index_col=0)
                     assert_frame_equal(df, recdf)
