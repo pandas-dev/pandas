@@ -928,7 +928,7 @@ class Series(generic.PandasContainer, pa.Array):
         return self._constructor(values, index=self.index, name=self.name,
                                  dtype=values.dtype)
 
-    def convert_objects(self, convert_dates=True, convert_numeric=True, copy=True):
+    def convert_objects(self, convert_dates=True, convert_numeric=False, copy=True):
         """
         Attempt to infer better dtype
 

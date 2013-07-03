@@ -379,11 +379,14 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
             seen_float = 1
+        elif util.is_integer_object(val):
+            floats[i] = ints[i] = val
+            seen_int = 1
         elif val is None:
             floats[i] = complexes[i] = nan
             seen_float = 1
-        elif len(val) == 0:
-            if convert_empty:
+        elif hasattr(val,'__len__') and len(val) == 0:
+            if convert_empty or coerce_numeric:
                 floats[i] = complexes[i] = nan
                 seen_float = 1
             else:
