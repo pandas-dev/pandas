@@ -91,7 +91,6 @@ class TestReadHtmlBase(TestCase):
         assert_frame_equal(res, df)
 
     @network
-    @slow
     def test_banklist_url(self):
         url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
         df1 = self.run_read_html(url, 'First Federal Bank of Florida',
@@ -101,7 +100,6 @@ class TestReadHtmlBase(TestCase):
         assert_framelist_equal(df1, df2)
 
     @network
-    @slow
     def test_spam_url(self):
         url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
                'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
@@ -332,7 +330,7 @@ class TestReadHtmlBase(TestCase):
         self.assertRaises(AssertionError, self.run_read_html, url, 'Florida',
                           skiprows=-1)
 
-    @slow
+    @network
     def test_multiple_matches(self):
         url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
         dfs = self.run_read_html(url, match='Python',
@@ -340,7 +338,6 @@ class TestReadHtmlBase(TestCase):
         self.assertGreater(len(dfs), 1)
 
     @network
-    @slow
     def test_pythonxy_plugins_table(self):
         url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
         dfs = self.run_read_html(url, match='Python',
@@ -438,8 +435,9 @@ def test_invalid_flavor():
                              flavor='not a* valid**++ flaver')
 
 
-def get_elements_from_url(url, element='table'):
+def get_elements_from_url(url, element='table', base_url="file://"):
     _skip_if_none_of(('bs4', 'html5lib'))
+    url = "".join([base_url, url])
     from bs4 import BeautifulSoup, SoupStrainer
     strainer = SoupStrainer(element)
     with closing(urlopen(url)) as f:
@@ -449,11 +447,10 @@ def get_elements_from_url(url, element='table'):
 
 @slow
 def test_bs4_finds_tables():
-    url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
-           'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
+    filepath = os.path.join(DATA_PATH, "spam.html")
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
-        assert get_elements_from_url(url, 'table')
+        assert get_elements_from_url(filepath, 'table')
 
 
 def get_lxml_elements(url, element):
@@ -465,13 +462,11 @@ def get_lxml_elements(url, element):
 
 @slow
 def test_lxml_finds_tables():
-    url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
-           'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
-    assert get_lxml_elements(url, 'table')
+    filepath = os.path.join(DATA_PATH, "spam.html")
+    assert get_lxml_elements(filepath, 'table')
 
 
 @slow
 def test_lxml_finds_tbody():
-    url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
-           'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
-    assert get_lxml_elements(url, 'tbody')
+    filepath = os.path.join(DATA_PATH, "spam.html")
+    assert get_lxml_elements(filepath, 'tbody')
