@@ -314,6 +314,8 @@ pandas 0.12
   - Fix bug where ``HDFStore`` will fail to append because of a different block
     ordering on-disk (:issue:`4096`)
   - Better error messages on inserting incompatible columns to a frame (:issue:`4107`)
+  - Fixed bug in ``DataFrame.replace`` where a nested dict wasn't being
+    iterated over when regex=False (:issue:`4115`)
 
 
 pandas 0.11.0
