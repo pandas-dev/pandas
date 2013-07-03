@@ -756,7 +756,7 @@ class ObjectBlock(Block):
             blk = super(ObjectBlock, self).replace(to_replace, value,
                                                    inplace=inplace,
                                                    filter=filter, regex=regex)
-        elif both_lists and regex:
+        elif both_lists:
             for to_rep, v in itertools.izip(to_replace, value):
                 blk[0], = blk[0]._replace_single(to_rep, v, inplace=inplace,
                                                  filter=filter, regex=regex)

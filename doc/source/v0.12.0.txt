@@ -457,6 +457,8 @@ Bug Fixes
     rewritten in an incompatible way (:issue:`4062`, :issue:`4063`)
   - Fixed bug where sharex and sharey were not being passed to grouped_hist
     (:issue:`4089`)
+  - Fixed bug in ``DataFrame.replace`` where a nested dict wasn't being
+    iterated over when regex=False (:issue:`4115`)
 
 See the :ref:`full release notes
 <release>` or issue tracker
