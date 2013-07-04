@@ -167,9 +167,12 @@ def get_store(path, mode='a', complevel=None, complib=None,
 
     Examples
     --------
+    >>> from pandas import DataFrame
+    >>> from numpy.random import randn
+    >>> bar = DataFrame(randn(10, 4))
     >>> with get_store('test.h5') as store:
-    >>>     store['foo'] = bar   # write to HDF5
-    >>>     bar = store['foo']   # retrieve
+    ...     store['foo'] = bar   # write to HDF5
+    ...     bar = store['foo']   # retrieve
     """
     store = None
     try:
@@ -262,6 +265,9 @@ class HDFStore(object):
 
     Examples
     --------
+    >>> from pandas import DataFrame
+    >>> from numpy.random import randn
+    >>> bar = DataFrame(randn(10, 4))
     >>> store = HDFStore('test.h5')
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
