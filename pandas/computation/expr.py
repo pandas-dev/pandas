@@ -110,11 +110,10 @@ class ExprVisitor(ast.NodeVisitor):
 
 class Expr(StringMixin):
     """Expr object"""
-    def __init__(self, expr, engine='numexpr', env=None, truediv=True,
-                 parsing='strict'):
+    def __init__(self, expr, engine='numexpr', env=None, truediv=True):
         self.expr = expr
         self.env = env or Scope(frame_level=2)
-        self._visitor = ExprVisitor(self.env, parsing)
+        self._visitor = ExprVisitor(self.env)
         self.terms = self.parse()
         self.engine = engine
         self.truediv = truediv
