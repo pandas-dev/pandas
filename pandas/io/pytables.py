@@ -177,7 +177,7 @@ def get_store(path, mode='a', complevel=None, complib=None,
     store = None
     try:
         store = HDFStore(path, mode=mode, complevel=complevel,
-                         complib=complib, fletcher32=False)
+                         complib=complib, fletcher32=fletcher32)
         yield store
     finally:
         if store is not None:
