@@ -5681,6 +5681,7 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
 
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
+
 def extract_index(data):
     from pandas.core.index import _union_indexes
 
@@ -5940,6 +5941,7 @@ def _homogenize(data, index, dtype=None):
         homogenized.append(v)
 
     return homogenized
+
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
