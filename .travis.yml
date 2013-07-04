@@ -10,13 +10,13 @@ env:
 matrix:
   include:
     - python: 2.7
-      env: NOSE_ARGS="slow and not network"  LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true UPLOAD=false
+      env: NOSE_ARGS="slow and not network"  LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true
     - python: 2.7
-      env: NOSE_ARGS="not slow" FULL_DEPS=true UPLOAD=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true
     - python: 3.2
-      env: NOSE_ARGS="not slow" FULL_DEPS=true UPLOAD=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true
     - python: 3.3
-      env: NOSE_ARGS="not slow" UPLOAD=true
+      env: NOSE_ARGS="not slow"
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons

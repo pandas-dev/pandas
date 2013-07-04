@@ -35,3 +35,5 @@ pandas/io/*.json
 
 .idea/pandas.iml
 .build_cache_dir
+.vagrant
+*.whl
