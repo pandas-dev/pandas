@@ -2206,7 +2206,10 @@ class DataFrame(NDFrame):
                                          'length of index')
 
                 if not isinstance(value, np.ndarray):
-                    value = com._asarray_tuplesafe(value)
+                    if isinstance(value, list) and len(value) > 0:
+                        value = com._possibly_convert_platform(value)
+                    else:
+                        value = com._asarray_tuplesafe(value)
                 elif isinstance(value, PeriodIndex):
                     value = value.asobject
                 elif value.ndim == 2:

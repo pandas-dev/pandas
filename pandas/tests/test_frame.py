@@ -4891,14 +4891,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                  s[-i] = NaT
                  s[i] = NaT
              return s
+
         # N=35000
         s1=make_dtnat_arr(chunksize+5)
         s2=make_dtnat_arr(chunksize+5,0)
+
         # s3=make_dtnat_arr(chunksize+5,0)
-        df=DataFrame(dict(a=s1,b=s2))
-        df.to_csv('/tmp/1.csv',chunksize=chunksize)
-        recons = DataFrame.from_csv('/tmp/1.csv').convert_objects('coerce')
-        assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
+        with ensure_clean('1.csv') as path:
+            df=DataFrame(dict(a=s1,b=s2))
+            df.to_csv(path,chunksize=chunksize)
+            recons = DataFrame.from_csv(path).convert_objects('coerce')
+            assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
 
         for ncols in [4]:
             base = int((chunksize// ncols or 1) or 1)
@@ -6864,7 +6867,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame([['foo', 'bar', 'bah'], ['bar', 'foo', 'bah']])
         m = {'foo': 1, 'bar': 2, 'bah': 3}
         rep = df.replace(m)
-        expec = Series([np.int_, np.int_, np.int_])
+        expec = Series([ np.int64] * 3)
         res = rep.dtypes
         assert_series_equal(expec, res)
 
@@ -10079,7 +10082,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = df.rename(columns={})
         str(result)
-
         expected = DataFrame([[1,1.1],[2, 2.2]],columns=['a','b'])
         assert_frame_equal(result,expected)
         df.insert(0, 'c', [1.3, 2.3])
