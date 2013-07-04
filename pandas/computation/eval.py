@@ -5,6 +5,8 @@ import numbers
 
 import numpy as np
 
+import six
+
 from pandas.computation.expr import Expr, Scope
 from pandas.computation.engines import _engines
 
@@ -57,7 +59,7 @@ def eval(expr, engine='numexpr', truediv=True, local_dict=None,
 
     eng = _engines[engine]
 
-    if isinstance(expr, basestring):
+    if isinstance(expr, six.string_types):
         # need to go 2 up in the call stack from the constructor since we want
         # the calling scope's variables
         env = Scope(global_dict, local_dict, frame_level=2)
@@ -72,9 +74,11 @@ def eval(expr, engine='numexpr', truediv=True, local_dict=None,
     # construct the engine and evaluate
     ret = eng(parsed_expr).evaluate()
 
-    # sanity check for a number TODO: eventually take out
+    # sanity check for a number
+    # TODO: eventually take out
+    # TODO: pytables engine will probably need a string check
     if np.isscalar(ret):
-        if not isinstance(ret, (np.number, numbers.Number, np.bool_, bool)):
-            raise TypeError('scalar result must be numeric or bool, type is '
-                            '{0!r}'.format(ret.__class__.__name__))
+        if not isinstance(ret, (np.number, np.bool_, numbers.Number)):
+            raise TypeError('scalar result must be numeric or bool, passed '
+                            'type is {0!r}'.format(ret.__class__.__name__))
     return ret
