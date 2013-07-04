@@ -278,7 +278,7 @@ class HDFStore(object):
     def __init__(self, path, mode=None, complevel=None, complib=None,
                  fletcher32=False):
         try:
-            import tables as _
+            import tables
         except ImportError:  # pragma: no cover
             raise Exception('HDFStore requires PyTables')
 
@@ -576,7 +576,7 @@ class HDFStore(object):
                 start=start,
                 stop=stop)
             nrows = len(c)
-        except (Exception) as detail:
+        except Exception:
             raise ValueError("invalid selector [%s]" % selector)
 
         def func(_start, _stop):
@@ -1235,7 +1235,6 @@ class IndexCol(StringMixin):
         """ validate this column: return the compared against itemsize """
 
         # validate this column for string truncation (or reset to the max size)
-        dtype = getattr(self, 'dtype', None)
         if _ensure_decoded(self.kind) == u'string':
 
             c = self.col
@@ -2252,7 +2251,6 @@ class SparsePanelStorer(GenericStorer):
         sdict = {}
         for name in items:
             key = 'sparse_frame_%s' % name
-            node = getattr(self.group, key)
             s = SparseFrameStorer(self.parent, getattr(self.group, key))
             s.infer_axes()
             sdict[name] = s.read()
@@ -2592,7 +2590,6 @@ class Table(Storer):
         """ create/cache the indexables if they don't exist """
         if self._indexables is None:
 
-            d = self.description
             self._indexables = []
 
             # index columns
