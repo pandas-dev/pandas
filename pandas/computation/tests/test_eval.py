@@ -17,8 +17,8 @@ import pandas as pd
 from pandas.core import common as com
 from pandas import DataFrame, Series
 from pandas.util.testing import makeCustomDataframe as mkdf
-from pandas.computation.engines import (_engines, _align_core,
-                                        _reconstruct_object)
+from pandas.computation.engines import _engines, _reconstruct_object
+from pandas.computation.align import _align_core
 from pandas.computation.ops import _binary_ops_dict, _unary_ops_dict, Term
 import pandas.computation.expr as expr
 from pandas.computation.expressions import _USE_NUMEXPR

@@ -63,7 +63,7 @@ class Term(StringMixin, NamedObjectMixin):
         self.type = type(self.value)
 
     def __unicode__(self):
-        return com.pprint_thing('{0}({1!r})'.format(self.typename, self.name))
+        return com.pprint_thing(self.name)
 
     def update(self, value):
         _update_name(self.env, self.name, value)
@@ -162,9 +162,8 @@ class BinOp(Op):
                                       ' operators are {1}'.format(op, keys))
 
     def __unicode__(self):
-        return com.pprint_thing('{0}(op={1!r}, lhs={2!r}, '
-                                'rhs={3!r})'.format(self.typename, self.op,
-                                                    self.lhs, self.rhs))
+        return com.pprint_thing('({0}) {1} ({2})'.format(self.lhs, self.op,
+                                                         self.rhs))
 
     def __call__(self, env):
         # handle truediv
@@ -240,6 +239,5 @@ class UnaryOp(Op):
         return res
 
     def __unicode__(self):
-        return com.pprint_thing('{0}(op={1!r}, '
-                                'operand={2!r})'.format(self.typename, self.op,
-                                                        self.operand))
+        return com.pprint_thing('{0}({1})'.format(self.op, self.operand))
+
