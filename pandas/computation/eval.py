@@ -48,8 +48,10 @@ def eval(expr, engine='numexpr', truediv=True, local_dict=None,
 
     Notes
     -----
-    The benefits of using ``eval`` are that very large frames that are terms in
-    long expressions are sped up, sometimes by as much as 10x.
+    * The benefits of using ``eval`` are that very large frames that are terms in
+      long expressions are sped up, sometimes by as much as 10x.
+
+    See :ref:`Enhancing performance <enhancingperf.eval>` for more details.
     """
     # make sure we're passed a valid engine
     if not engine in _engines:
