@@ -31,7 +31,7 @@ def _resolve_name(env, key):
         if not isinstance(key, basestring):
             return key
 
-        raise NameError('{0!r} is undefined'.format(key))
+        raise NameError('name {0!r} is not defined'.format(key))
 
     return res
 
