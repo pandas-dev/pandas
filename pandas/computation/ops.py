@@ -1,13 +1,15 @@
 import operator as op
-from functools import partial
 
 import numpy as np
 from pandas.util.py3compat import PY3
 import pandas.core.common as com
+from pandas.core.base import StringMixin
 
 
 _reductions = 'sum', 'prod'
-_mathops = 'sin', 'cos', 'tan'
+_mathops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p', 'pow', 'div', 'sqrt',
+            'inv', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan',
+            'arccosh', 'arcsinh', 'arctanh', 'arctan2', 'abs')
 
 
 class OperatorError(Exception):
@@ -47,23 +49,21 @@ def _update_name(env, key, value):
                 raise NameError('{0!r} is undefined'.format(key))
 
 
-def _update_names(env, mapping):
-    updater = partial(_update_name, env)
-    for key, value in mapping.iteritems():
-        updater(key, value)
+class NamedObjectMixin(object):
+    @property
+    def typename(self):
+        return com.pprint_thing(self.__class__.__name__)
 
 
-class Term(object):
-    def __init__(self, value, name, env):
-        self.value = value
+class Term(StringMixin, NamedObjectMixin):
+    def __init__(self, name, env):
         self.name = name
+        self.value = _resolve_name(env, name)
         self.env = env
-        self.type = type(value)
+        self.type = type(self.value)
 
-    def __str__(self):
-        return '{0}({1!r})'.format(self.__class__.__name__, self.name)
-
-    __repr__ = __str__
+    def __unicode__(self):
+        return com.pprint_thing('{0}({1!r})'.format(self.typename, self.name))
 
     def update(self, value):
         _update_name(self.env, self.name, value)
@@ -76,10 +76,10 @@ class Term(object):
 
 class Constant(Term):
     def __init__(self, value, env):
-        super(Constant, self).__init__(value, value, env)
+        super(Constant, self).__init__(value, env)
 
 
-class Op(object):
+class Op(NamedObjectMixin, StringMixin):
     """Hold an operator of unknown arity
     """
     def __init__(self, op, operands):
@@ -89,9 +89,13 @@ class Op(object):
     def __iter__(self):
         return iter(self.operands)
 
-    @property
-    def name(self):
-        return self.__class__.__name__
+    def __unicode__(self):
+        op = 'op={1!r}'.format(self.op)
+        operands = ', '.join('opr_{i}={opr}'.format(i=i, opr=opr)
+                             for i, opr in enumerate(self.operands))
+        return com.pprint_thing('{0}({op}, '
+                                '{operands})'.format(self.name, op=op,
+                                                     operands=operands))
 
 
 _cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='
@@ -113,14 +117,14 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast(terms, dtype):
+def _cast_inplace(terms, dtype):
     dt = np.dtype(dtype)
     for term in terms:
         # cast all the way down the tree since operands must be
         try:
-            _cast(term.operands, dtype)
+            _cast_inplace(term.operands, dtype)
         except AttributeError:
-            # we've bottomed out so cast
+            # we've bottomed out so actually do the cast
             try:
                 new_value = term.value.astype(dt)
             except AttributeError:
@@ -157,12 +161,10 @@ class BinOp(Op):
             raise BinaryOperatorError('Invalid binary operator {0}, valid'
                                       ' operators are {1}'.format(op, keys))
 
-    def __repr__(self):
+    def __unicode__(self):
         return com.pprint_thing('{0}(op={1!r}, lhs={2!r}, '
-                                'rhs={3!r})'.format(self.name, self.op,
+                                'rhs={3!r})'.format(self.typename, self.op,
                                                     self.lhs, self.rhs))
-
-    __str__ = __repr__
 
     def __call__(self, env):
         # handle truediv
@@ -197,7 +199,7 @@ class BinOp(Op):
 class Mod(BinOp):
     def __init__(self, lhs, rhs):
         super(Mod, self).__init__('%', lhs, rhs)
-        _cast(self.operands, np.float_)
+        _cast_inplace(self.operands, np.float_)
 
 
 _unary_ops_syms = '+', '-', '~'
@@ -237,7 +239,7 @@ class UnaryOp(Op):
 
         return res
 
-    def __repr__(self):
+    def __unicode__(self):
         return com.pprint_thing('{0}(op={1!r}, '
-                                'operand={2!r})'.format(self.name, self.op,
+                                'operand={2!r})'.format(self.typename, self.op,
                                                         self.operand))
