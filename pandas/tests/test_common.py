@@ -9,6 +9,7 @@ import numpy as np
 from pandas.tslib import iNaT
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
+import pandas.compat as compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull
 import pandas.compat as compat

@@ -1309,16 +1309,31 @@ class Series(generic.PandasContainer, pa.Array):
         """
         return self.view(ndarray)
 
-    def copy(self, order='C'):
+    def copy(self, order='C', deep=False):
         """
         Return new Series with copy of underlying values
+
+        Parameters
+        ----------
+        deep : boolean, default False
+            deep copy index along with data
+        order : boolean, default 'C'
+            order for underlying numpy array
 
         Returns
         -------
         cp : Series
         """
-        return Series(self.values.copy(order), index=self.index,
-                      name=self.name)
+        if deep:
+            from copy import deepcopy
+            index = self.index.copy(deep=deep)
+            name = deepcopy(self.name)
+        else:
+            index = self.index
+            name = self.name
+
+        return Series(self.values.copy(order), index=index,
+                      name=name)
 
     def tolist(self):
         """

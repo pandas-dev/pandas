@@ -12,8 +12,10 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from pandas.core.index import Index, Int64Index, MultiIndex, InvalidIndexError
-from pandas.util.testing import(assert_almost_equal, assertRaisesRegexp,
-                                assert_copy)
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
+from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
+                                 assert_copy)
 from pandas import compat
 
 import pandas.util.testing as tm
@@ -54,12 +56,18 @@ class TestIndex(unittest.TestCase):
         self.assert_(new_index.ndim == 2)
         tm.assert_isinstance(new_index, np.ndarray)
 
-    def test_deepcopy(self):
-        from copy import deepcopy
+    def test_copy_and_deepcopy(self):
+        from copy import copy, deepcopy
 
-        copy = deepcopy(self.strIndex)
-        self.assert_(copy is not self.strIndex)
-        self.assert_(copy.equals(self.strIndex))
+        for func in (copy, deepcopy):
+            idx_copy = func(self.strIndex)
+            self.assert_(idx_copy is not self.strIndex)
+            self.assert_(idx_copy.equals(self.strIndex))
+
+        new_copy = self.strIndex.copy(deep=True, name="banana")
+        self.assertEqual(new_copy.name, "banana")
+        new_copy2 = self.intIndex.copy(dtype=int)
+        self.assertEqual(new_copy2.dtype.kind, 'i')
 
     def test_duplicates(self):
         idx = Index([0, 0, 0])
@@ -88,6 +96,8 @@ class TestIndex(unittest.TestCase):
         tm.assert_isinstance(index, Index)
         self.assert_(index.name == 'name')
         assert_array_equal(arr, index)
+        arr[0] = "SOMEBIGLONGSTRING"
+        self.assertNotEqual(index[0], "SOMEBIGLONGSTRING")
 
         # what to do here?
         # arr = np.array(5.)
@@ -598,6 +608,15 @@ class TestInt64Index(unittest.TestCase):
         # scalar raise Exception
         self.assertRaises(ValueError, Int64Index, 5)
 
+        # copy
+        arr = self.index.values
+        new_index = Int64Index(arr, copy=True)
+        self.assert_(np.array_equal(new_index, self.index))
+        val = arr[0] + 3000
+        # this should not change index
+        arr[0] = val
+        self.assertNotEqual(new_index[0], val)
+
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = Int64Index(arr)
@@ -970,6 +989,35 @@ class TestMultiIndex(unittest.TestCase):
                                 labels=[major_labels, minor_labels],
                                 names=self.index_names)
 
+    def test_copy_in_constructor(self):
+        levels = np.array(["a", "b", "c"])
+        labels = np.array([1, 1, 2, 0, 0, 1, 1])
+        val = labels[0]
+        mi = MultiIndex(levels=[levels, levels], labels=[labels, labels],
+                        copy=True)
+        self.assertEqual(mi.labels[0][0], val)
+        labels[0] = 15
+        self.assertEqual(mi.labels[0][0], val)
+        val = levels[0]
+        levels[0] = "PANDA"
+        self.assertEqual(mi.levels[0][0], val)
+
+    def test_set_value_keeps_names(self):
+        # motivating example from #3742
+        lev1 = ['hans', 'hans', 'hans', 'grethe', 'grethe', 'grethe']
+        lev2 = ['1', '2', '3'] * 2
+        idx = pd.MultiIndex.from_arrays(
+            [lev1, lev2],
+            names=['Name', 'Number'])
+        df = pd.DataFrame(
+            np.random.randn(6, 4),
+            columns=['one', 'two', 'three', 'four'],
+            index=idx)
+        df = df.sortlevel()
+        self.assertEqual(df.index.names, ('Name', 'Number'))
+        df = df.set_value(('grethe', '4'), 'one', 99.34)
+        self.assertEqual(df.index.names, ('Name', 'Number'))
+
     def test_names(self):
 
         # names are assigned in __init__
@@ -1046,11 +1094,11 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(copy.labels is not original.labels)
 
         # names doesn't matter which way copied
-        self.assert_(copy.names == original.names)
+        self.assertEqual(copy.names, original.names)
         self.assert_(copy.names is not original.names)
 
         # sort order should be copied
-        self.assert_(copy.sortorder == original.sortorder)
+        self.assertEqual(copy.sortorder, original.sortorder)
 
     def test_copy(self):
         i_copy = self.index.copy()
@@ -1469,7 +1517,7 @@ class TestMultiIndex(unittest.TestCase):
 
         # create index with duplicates
         idx1 = Index(lrange(10) + lrange(10))
-        idx2 = Index(range(20))
+        idx2 = Index(lrange(20))
         assertRaisesRegexp(InvalidIndexError, "Reindexing only valid with"
                            " uniquely valued Index objects",
                            idx1.get_indexer, idx2)
@@ -1671,22 +1719,6 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(first.names, result.names)
         assertRaisesRegexp(TypeError, "other must be a MultiIndex or a list"
                            " of tuples", first.diff, [1,2,3,4,5])
-
-    def test_set_value_keeps_names(self):
-        # motivating example from #3742
-        lev1 = ['hans', 'hans', 'hans', 'grethe', 'grethe', 'grethe']
-        lev2 = ['1', '2', '3'] * 2
-        idx = pd.MultiIndex.from_arrays(
-            [lev1, lev2],
-            names=['Name', 'Number'])
-        df = pd.DataFrame(
-            np.random.randn(6, 4),
-            columns=['one', 'two', 'three', 'four'],
-            index=idx)
-        df = df.sortlevel()
-        self.assertEqual(tuple(df.index.names), ('Name', 'Number'))
-        df = df.set_value(('grethe', 'hans'), 'one', 99.34)
-        self.assertEqual(tuple(df.index.names), ('Name', 'Number'))
 
     def test_from_tuples(self):
         assertRaisesRegexp(TypeError, 'Cannot infer number of levels from'
@@ -1956,7 +1988,6 @@ def test_get_combined_index():
     from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
     assert(result.equals(Index([])))
-
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
