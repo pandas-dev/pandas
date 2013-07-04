@@ -2,11 +2,11 @@ import ast
 import sys
 from functools import partial
 
-
-from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops, Mod
+from pandas.core.base import StringMixin
+from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops
 from pandas.computation.ops import _cmp_ops_syms, _bool_ops_syms
 from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
-from pandas.computation.ops import _resolve_name, Term, Constant
+from pandas.computation.ops import Term, Constant
 
 
 class Scope(object):
@@ -51,8 +51,8 @@ class ExprVisitor(ast.NodeVisitor):
 
     def visit(self, node):
         if not (isinstance(node, ast.AST) or isinstance(node, basestring)):
-            raise AssertionError('"node" must be an AST node or a string, you'
-                                 ' passed a(n) {0}'.format(node.__class__))
+            raise TypeError('"node" must be an AST node or a string, you'
+                            ' passed a(n) {0}'.format(node.__class__))
         if isinstance(node, basestring):
             node = ast.fix_missing_locations(ast.parse(node))
         return super(ExprVisitor, self).visit(node)
@@ -81,8 +81,7 @@ class ExprVisitor(ast.NodeVisitor):
         return op(self.visit(node.operand))
 
     def visit_Name(self, node):
-        name = node.id
-        return Term(_resolve_name(self.env, name), name, self.env)
+        return Term(node.id, self.env)
 
     def visit_Num(self, node):
         return Constant(node.n, self.env)
@@ -108,16 +107,14 @@ class ExprVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node):
         raise NotImplementedError("attribute access is not yet supported")
 
-    def visit_Mod(self, node):
-        return Mod
 
-
-class Expr(object):
+class Expr(StringMixin):
     """Expr object"""
-    def __init__(self, expr, engine='numexpr', env=None, truediv=True):
+    def __init__(self, expr, engine='numexpr', env=None, truediv=True,
+                 parsing='strict'):
         self.expr = expr
         self.env = env or Scope(frame_level=2)
-        self._visitor = ExprVisitor(self.env)
+        self._visitor = ExprVisitor(self.env, parsing)
         self.terms = self.parse()
         self.engine = engine
         self.truediv = truediv
@@ -126,19 +123,12 @@ class Expr(object):
         env.locals['truediv'] = self.truediv
         return self.terms(env)
 
-    def __repr__(self):
-        return '{0} -> {1}'.format(self.expr, self.terms)
-
-    def __str__(self):
-        return self.expr
+    def __unicode__(self):
+        return unicode(self.terms)
 
     def parse(self):
         """return a Termset"""
-        try:
-            visited = self._visitor.visit(self.expr)
-        except SyntaxError as e:
-            raise e
-        return visited
+        return self._visitor.visit(self.expr)
 
     def align(self):
         """align a set of Terms"""
