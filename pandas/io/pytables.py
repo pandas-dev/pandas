@@ -182,7 +182,8 @@ def get_store(path, mode='a', complevel=None, complib=None,
 
 ### interface to/from ###
 
-def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, append=None, **kwargs):
+def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
+           append=None, **kwargs):
     """ store this object, close it if we opened it """
     if append:
         f = lambda store: store.append(key, value, **kwargs)
@@ -190,7 +191,8 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None, app
         f = lambda store: store.put(key, value, **kwargs)
 
     if isinstance(path_or_buf, basestring):
-        with get_store(path_or_buf, mode=mode, complevel=complevel, complib=complib) as store:
+        with get_store(path_or_buf, mode=mode, complevel=complevel,
+                       complib=complib) as store:
             f(store)
     else:
         f(path_or_buf)
