@@ -110,6 +110,12 @@ class Index(FrozenNDArray):
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
 
             subarr = com._asarray_tuplesafe(data, dtype=object)
+
+            # _asarray_tuplesafe does not always copy underlying data,
+            # so need to make sure that this happens
+            if copy:
+                subarr = subarr.copy()
+
         elif np.isscalar(data):
             raise TypeError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
@@ -120,7 +126,7 @@ class Index(FrozenNDArray):
         if dtype is None:
             inferred = lib.infer_dtype(subarr)
             if inferred == 'integer':
-                return Int64Index(subarr.astype('i8'), name=name)
+                return Int64Index(subarr.astype('i8'), copy=copy, name=name)
             elif inferred != 'string':
                 if (inferred.startswith('datetime') or
                         tslib.is_timestamp_array(subarr)):
@@ -144,6 +150,41 @@ class Index(FrozenNDArray):
 
     def _shallow_copy(self):
         return self.view()
+
+    def copy(self, names=None, name=None, dtype=None, deep=False):
+        """
+        Make a copy of this object.  Name and dtype sets those attributes on
+        the new object.
+
+        Parameters
+        ----------
+        name : string, optional
+        dtype : numpy dtype or pandas type
+
+        Returns
+        -------
+        copy : Index
+
+        Notes
+        -----
+        In most cases, there should be no functional difference from using
+        ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+        """
+        if names is not None and name is not None:
+            raise TypeError("Can only provide one of `names` and `name`")
+        if deep:
+            from copy import deepcopy
+            new_index = np.ndarray.__deepcopy__(self, {}).view(self.__class__)
+            name = name or deepcopy(self.name)
+        else:
+            new_index = super(Index, self).copy()
+        if name is not None:
+            names = [name]
+        if names:
+            new_index = new_index.set_names(names)
+        if dtype:
+            new_index = new_index.astype(dtype)
+        return new_index
 
     def __unicode__(self):
         """
@@ -338,10 +379,7 @@ class Index(FrozenNDArray):
             np.ndarray.__setstate__(self, state)
 
     def __deepcopy__(self, memo={}):
-        """
-        Index is not mutable, so disabling deepcopy
-        """
-        return self._shallow_copy()
+        return self.copy(deep=True)
 
     def __contains__(self, key):
         hash(key)
@@ -1440,9 +1478,9 @@ class MultiIndex(Index):
 
     Parameters
     ----------
-    levels : list or tuple of arrays
+    levels : sequence of arrays
         The unique labels for each level
-    labels : list or tuple of arrays
+    labels : sequence of arrays
         Integers for each level designating which label at each location
     sortorder : optional int
         Level of sortedness (must be lexicographically sorted by that
@@ -1455,7 +1493,8 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
 
-    def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
+    def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
+                copy=False):
         if len(levels) != len(labels):
             raise ValueError(
                 'Length of levels and labels must be the same')
@@ -1467,12 +1506,12 @@ class MultiIndex(Index):
             else:
                 name = None
 
-            return Index(levels[0], name=name).take(labels[0])
+            return Index(levels[0], name=name, copy=True).take(labels[0])
 
         # v3, 0.8.0
         subarr = np.empty(0, dtype=object).view(cls)
-        subarr._set_levels(levels)
-        subarr._set_labels(labels)
+        subarr._set_levels(levels, copy=copy)
+        subarr._set_labels(labels, copy=copy)
 
         if names is not None:
             subarr._set_names(names)
@@ -1489,13 +1528,13 @@ class MultiIndex(Index):
         return self._levels
 
 
-    def _set_levels(self, levels):
+    def _set_levels(self, levels, copy=False):
         # This is NOT part of the levels property because it should be
         # externally not allowed to set levels. User beware if you change
         # _levels directly
         if len(levels) == 0:
             raise ValueError("Must set non-zero number of levels.")
-        levels = FrozenList(_ensure_index(lev)._shallow_copy()
+        levels = FrozenList(_ensure_index(lev, copy=copy)._shallow_copy()
                             for lev in levels)
         names = self.names
         self._levels = levels
@@ -1534,10 +1573,11 @@ class MultiIndex(Index):
     def _get_labels(self):
         return self._labels
 
-    def _set_labels(self, labels):
+    def _set_labels(self, labels, copy=False):
         if len(labels) != self.nlevels:
             raise ValueError("Length of levels and labels must be the same.")
-        self._labels = FrozenList(_ensure_frozen(labs)._shallow_copy() for labs in labels)
+        self._labels = FrozenList(_ensure_frozen(labs,copy=copy)._shallow_copy()
+                                  for labs in labels)
 
     def set_labels(self, labels, inplace=False):
         """
@@ -1546,8 +1586,8 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        labels : sequence
-            new levels to apply
+        labels : sequence of arrays
+            new labels to apply
         inplace : bool
             if True, mutates in place
 
@@ -1592,6 +1632,11 @@ class MultiIndex(Index):
         This could be potentially expensive on large MultiIndex objects.
         """
         new_index = np.ndarray.copy(self)
+        if deep:
+            from copy import deepcopy
+            levels = levels if levels is not None else deepcopy(self.levels)
+            labels = labels if labels is not None else deepcopy(self.labels)
+            names = names if names is not None else deepcopy(self.names)
         if levels is not None:
             new_index = new_index.set_levels(levels)
         if labels is not None:
@@ -2831,11 +2876,13 @@ def _sparsify(label_list, start=0,sentinal=''):
     return lzip(*result)
 
 
-def _ensure_index(index_like):
+def _ensure_index(index_like, copy=False):
     if isinstance(index_like, Index):
+        if copy:
+            index_like = index_like.copy()
         return index_like
     if hasattr(index_like, 'name'):
-        return Index(index_like, name=index_like.name)
+        return Index(index_like, name=index_like.name, copy=copy)
 
     # must check for exactly list here because of strict type
     # check in clean_index_list
@@ -2849,15 +2896,27 @@ def _ensure_index(index_like):
             return MultiIndex.from_arrays(converted)
         else:
             index_like = converted
+    else:
+       # clean_index_list does the equivalent of copying
+       # so only need to do this if not list instance
+        if copy:
+            from copy import copy
+            index_like = copy(index_like)
 
     return Index(index_like)
 
-def _ensure_frozen(nd_array_like):
-    if isinstance(nd_array_like, FrozenNDArray):
-        return nd_array_like
-    else:
+
+def _ensure_frozen(nd_array_like, copy=False):
+    if not isinstance(nd_array_like, FrozenNDArray):
         arr = np.asarray(nd_array_like, dtype=np.int_)
-        return arr.view(FrozenNDArray)
+        # have to do this separately so that non-index input gets copied
+        if copy:
+            arr = arr.copy()
+        nd_array_like = arr.view(FrozenNDArray)
+    else:
+        if copy:
+            nd_array_like = nd_array_like.copy()
+    return nd_array_like
 
 
 def _validate_join_method(method):

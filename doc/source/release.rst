@@ -47,6 +47,9 @@ pandas 0.13
   - Added a more informative error message when plot arguments contain
     overlapping color and style arguments (:issue:`4402`)
   - Significant table writing performance improvements in ``HDFStore``
+  - ``Index.copy()`` and ``MultiIndex.copy()`` now accept keyword arguments to
+    change attributes (i.e., ``names``, ``levels``, ``labels``)
+    (:issue:`4039`)
   - Add ``rename`` and ``set_names`` methods to ``Index`` as well as
     ``set_names``, ``set_levels``, ``set_labels`` to ``MultiIndex``.
     (:issue:`4039`)
