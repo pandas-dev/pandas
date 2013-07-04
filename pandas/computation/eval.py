@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import numbers
 
 import numpy as np
