@@ -5,7 +5,7 @@ clean: clean_pyc
 	-find . -name '*.so' -exec rm {} \;
 
 clean_pyc:
-	-find . -name '*.pyc' -or -name '*.pyo' -exec rm {} \;
+	-find . -name '*.pyc' -exec rm {} \; -or -name '*.pyo' -exec rm {} \;
 
 tseries: pandas/lib.pyx pandas/tslib.pyx pandas/hashtable.pyx
 	python setup.py build_ext --inplace
