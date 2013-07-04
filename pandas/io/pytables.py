@@ -280,7 +280,7 @@ class HDFStore(object):
         try:
             import tables
         except ImportError:  # pragma: no cover
-            raise Exception('HDFStore requires PyTables')
+            raise ImportError('HDFStore requires PyTables')
 
         self._path = path
         if mode is None:
@@ -516,7 +516,8 @@ class HDFStore(object):
         return self.get_storer(key).read_column(column=column, **kwargs)
 
     def select_as_multiple(self, keys, where=None, selector=None, columns=None,
-                           start=None, stop=None, iterator=False, chunksize=None, auto_close=False, **kwargs):
+                           start=None, stop=None, iterator=False,
+                           chunksize=None, auto_close=False, **kwargs):
         """ Retrieve pandas objects from multiple tables
 
         Parameters
@@ -538,13 +539,15 @@ class HDFStore(object):
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
         if isinstance(keys, basestring):
-            return self.select(key=keys, where=where, columns=columns, start=start, stop=stop, iterator=iterator, chunksize=chunksize, **kwargs)
+            return self.select(key=keys, where=where, columns=columns,
+                               start=start, stop=stop, iterator=iterator,
+                               chunksize=chunksize, **kwargs)
 
         if not isinstance(keys, (list, tuple)):
-            raise Exception("keys must be a list/tuple")
+            raise TypeError("keys must be a list/tuple")
 
-        if len(keys) == 0:
-            raise Exception("keys must have a non-zero length")
+        if not len(keys):
+            raise ValueError("keys must have a non-zero length")
 
         if selector is None:
             selector = keys[0]
@@ -686,13 +689,13 @@ class HDFStore(object):
         data in the table, so be careful
         """
         if columns is not None:
-            raise Exception(
-                "columns is not a supported keyword in append, try data_columns")
+            raise TypeError("columns is not a supported keyword in append, "
+                            "try data_columns")
 
         self._write_to_group(key, value, table=True, append=True, **kwargs)
 
-    def append_to_multiple(
-            self, d, value, selector, data_columns=None, axes=None, **kwargs):
+    def append_to_multiple(self, d, value, selector, data_columns=None,
+                           axes=None, **kwargs):
         """
         Append to multiple tables
 
@@ -711,8 +714,9 @@ class HDFStore(object):
 
         """
         if axes is not None:
-            raise Exception(
-                "axes is currently not accepted as a paremter to append_to_multiple; you can create the tables indepdently instead")
+            raise TypeError("axes is currently not accepted as a parameter to"
+                            " append_to_multiple; you can create the "
+                            "tables indepdently instead")
 
         if not isinstance(d, dict):
             raise ValueError(
@@ -770,7 +774,7 @@ class HDFStore(object):
         # version requirements
         _tables()
         if not _table_supports_index:
-            raise Exception("PyTables >= 2.3 is required for table indexing")
+            raise ValueError("PyTables >= 2.3 is required for table indexing")
 
         s = self.get_storer(key)
         if s is None:
@@ -1005,8 +1009,8 @@ class TableIterator(object):
         kwargs : the passed kwargs
         """
 
-    def __init__(self, store, func, nrows, start=None,
-                 stop=None, chunksize=None, auto_close=False):
+    def __init__(self, store, func, nrows, start=None, stop=None,
+                 chunksize=None, auto_close=False):
         self.store = store
         self.func = func
         self.nrows = nrows or 0
@@ -1928,7 +1932,7 @@ class GenericStorer(Storer):
             _, index = self.read_index_node(getattr(self.group, key))
             return index
         else:  # pragma: no cover
-            raise Exception('unrecognized index variety: %s' % variety)
+            raise TypeError('unrecognized index variety: %s' % variety)
 
     def write_index(self, key, index):
         if isinstance(index, MultiIndex):
@@ -2448,7 +2452,7 @@ class Table(Storer):
                             (c, sax, oax))
 
                 # should never get here
-                raise Exception(
+                raise ValueError(
                     "invalid combinate of [%s] on appending data [%s] vs current table [%s]" %
                     (c, sv, ov))
 
@@ -2884,10 +2888,11 @@ class Table(Storer):
                 self.values_axes.append(col)
             except (NotImplementedError, ValueError, TypeError) as e:
                 raise e
-            except (Exception) as detail:
-                raise Exception(
-                    "cannot find the correct atom type -> [dtype->%s,items->%s] %s" %
-                    (b.dtype.name, b.items, str(detail)))
+            except Exception as detail:
+                raise TypeError("cannot find the correct atom type -> "
+                                "[dtype->%s,items->%s] %s" % (b.dtype.name,
+                                                              b.items,
+                                                              str(detail)))
             j += 1
 
         # validate our min_itemsize
@@ -2996,8 +3001,8 @@ class Table(Storer):
             return False
 
         if where is not None:
-            raise Exception(
-                "read_column does not currently accept a where clause")
+            raise TypeError("read_column does not currently accept a where "
+                            "clause")
 
         # find the axes
         for a in self.axes:
@@ -3052,7 +3057,7 @@ class LegacyTable(Table):
     ndim = 3
 
     def write(self, **kwargs):
-        raise Exception("write operations are not allowed on legacy tables!")
+        raise TypeError("write operations are not allowed on legacy tables!")
 
     def read(self, where=None, columns=None, **kwargs):
         """ we have n indexable columns, with an arbitrary number of data axes """
@@ -3257,17 +3262,15 @@ class AppendableTable(LegacyTable):
             args = list(indexes)
             args.extend([self.dtype, mask, search, values])
             rows = func(*args)
-        except (Exception) as detail:
-            raise Exception("cannot create row-data -> %s" % str(detail))
+        except Exception as detail:
+            raise Exception("cannot create row-data -> %s" % detail)
 
         try:
             if len(rows):
                 self.table.append(rows)
                 self.table.flush()
-        except (Exception) as detail:
-            raise Exception(
-                "tables cannot write this data -> %s" %
-                str(detail))
+        except Exception as detail:
+            raise TypeError("tables cannot write this data -> %s" % detail)
 
     def delete(self, where=None, **kwargs):
 
@@ -3499,16 +3502,15 @@ def _convert_index(index, encoding=None):
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
         return IndexCol(converted, 'datetime64', _tables().Int64Col(),
-                        freq=getattr(index, 'freq', None), tz=getattr(index, 'tz', None),
-                        index_name=index_name)
+                        freq=getattr(index, 'freq', None),
+                        tz=getattr(index, 'tz', None), index_name=index_name)
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
-        return IndexCol(
-            index.values, 'integer', atom, freq=getattr(index, 'freq', None),
-            index_name=index_name)
+        return IndexCol(index.values, 'integer', atom, freq=getattr(index,
+                        'freq', None), index_name=index_name)
 
     if isinstance(index, MultiIndex):
-        raise Exception('MultiIndex not supported here!')
+        raise TypeError('MultiIndex not supported here!')
 
     inferred_type = lib.infer_dtype(index)
 
@@ -3517,8 +3519,8 @@ def _convert_index(index, encoding=None):
     if inferred_type == 'datetime64':
         converted = values.view('i8')
         return IndexCol(converted, 'datetime64', _tables().Int64Col(),
-                        freq=getattr(index, 'freq', None), tz=getattr(index, 'tz', None),
-                        index_name=index_name)
+                        freq=getattr(index, 'freq', None),
+                        tz=getattr(index, 'tz', None), index_name=index_name)
     elif inferred_type == 'datetime':
         converted = np.array([(time.mktime(v.timetuple()) +
                                v.microsecond / 1E6) for v in values],
@@ -3536,9 +3538,8 @@ def _convert_index(index, encoding=None):
 
         converted = _convert_string_array(values, encoding)
         itemsize = converted.dtype.itemsize
-        return IndexCol(
-            converted, 'string', _tables().StringCol(itemsize), itemsize=itemsize,
-            index_name=index_name)
+        return IndexCol(converted, 'string', _tables().StringCol(itemsize),
+                        itemsize=itemsize, index_name=index_name)
     elif inferred_type == 'unicode':
         atom = _tables().ObjectAtom()
         return IndexCol(np.asarray(values, dtype='O'), 'object', atom,
