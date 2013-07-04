@@ -50,7 +50,7 @@ def _eval_from_expr(lhs, cmp1, rhs, binop, cmp2):
     f2 = _binary_ops_dict[cmp2]
     bf = _binary_ops_dict[binop]
     env = Scope()
-    typ, axes = _align_core((Term(lhs, 'lhs', env), Term(rhs, 'rhs', env)))
+    typ, axes = _align_core((Term('lhs', env), Term('rhs', env)))
     lhs, rhs = env.locals['lhs'], env.locals['rhs']
     return _reconstruct_object(typ, bf(f1(lhs, rhs), f2(lhs, rhs)), axes)
 
