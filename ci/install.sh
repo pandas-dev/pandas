@@ -53,8 +53,9 @@ if [ x"$FULL_DEPS" == x"true" ] ; then
 fi
 
 # Hard Deps
-time pip install $PIP_ARGS nose python-dateutil pytz>=2013a
-time pip install $PIP_ARGS cython==0.19.1
+for dep in nose 'python-dateutil' 'pytz>=2013a' 'cython==0.19.1'; do
+    time pip install $PIP_ARGS $dep
+done
 
 if [ ${TRAVIS_PYTHON_VERSION} == "3.3" ]; then # should be >=3,3
     time pip install $PIP_ARGS numpy==1.7.1
