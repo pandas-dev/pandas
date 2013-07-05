@@ -42,7 +42,7 @@ def fractional(x):
 
 
 def hasfractional(x):
-    return np.any(fractional(x) != 0.0)
+    return np.any(fractional(x))
 
 
 def _eval_from_expr(lhs, cmp1, rhs, binop, cmp2):
