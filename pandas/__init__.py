@@ -29,7 +29,7 @@ from pandas.sparse.api import *
 from pandas.stats.api import *
 from pandas.tseries.api import *
 from pandas.io.api import *
-from pandas.computation.api import eval
+from pandas.computation.api import *
 
 from pandas.util.testing import debug
 
