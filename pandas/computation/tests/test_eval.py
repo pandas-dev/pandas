@@ -610,6 +610,39 @@ def test_is_expr():
         check_is_expr(engine)
 
 
+def check_not_fails(engine):
+    x = True
+    assert_raises(NotImplementedError, pd.eval, 'not x', engine=engine,
+                  local_dict={'x': x})
+
+
+def test_not_fails():
+    for engine in _engines:
+        check_not_fails(engine)
+
+
+def check_and_fails(engine):
+    x, y = False, True
+    assert_raises(NotImplementedError, pd.eval, 'x and y', engine=engine,
+                  local_dict={'x': x, 'y': y})
+
+
+def test_and_fails():
+    for engine in _engines:
+        check_and_fails(engine)
+
+
+def check_or_fails(engine):
+    x, y = True, False
+    assert_raises(NotImplementedError, pd.eval, 'x or y', engine=engine,
+                  local_dict={'x': x, 'y': y})
+
+
+def test_or_fails():
+    for engine in _engines:
+        check_or_fails(engine)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
