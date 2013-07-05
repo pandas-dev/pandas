@@ -49,13 +49,7 @@ def _update_name(env, key, value):
                 raise NameError('{0!r} is undefined'.format(key))
 
 
-class NamedObjectMixin(object):
-    @property
-    def typename(self):
-        return com.pprint_thing(self.__class__.__name__)
-
-
-class Term(StringMixin, NamedObjectMixin):
+class Term(StringMixin):
     def __init__(self, name, env):
         self.name = name
         self.value = _resolve_name(env, name)
@@ -79,7 +73,11 @@ class Constant(Term):
         super(Constant, self).__init__(value, env)
 
 
-class Op(NamedObjectMixin, StringMixin):
+def _print_operand(opr):
+    return opr.name if is_term(opr) else unicode(opr)
+
+
+class Op(StringMixin):
     """Hold an operator of unknown arity
     """
     def __init__(self, op, operands):
@@ -90,12 +88,11 @@ class Op(NamedObjectMixin, StringMixin):
         return iter(self.operands)
 
     def __unicode__(self):
-        op = 'op={1!r}'.format(self.op)
-        operands = ', '.join('opr_{i}={opr}'.format(i=i, opr=opr)
-                             for i, opr in enumerate(self.operands))
-        return com.pprint_thing('{0}({op}, '
-                                '{operands})'.format(self.name, op=op,
-                                                     operands=operands))
+        """Print a generic n-ary operator and its operands"""
+        # recurse over the operands
+        parened = ('({0})'.format(_print_operand(opr))
+                   for opr in self.operands)
+        return com.pprint_thing(' {0} '.format(self.op).join(parened))
 
 
 _cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='
@@ -160,10 +157,6 @@ class BinOp(Op):
             keys = _binary_ops_dict.keys()
             raise BinaryOperatorError('Invalid binary operator {0}, valid'
                                       ' operators are {1}'.format(op, keys))
-
-    def __unicode__(self):
-        return com.pprint_thing('({0}) {1} ({2})'.format(self.lhs, self.op,
-                                                         self.rhs))
 
     def __call__(self, env):
         # handle truediv
