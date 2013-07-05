@@ -61,9 +61,6 @@ done
 
 if [ ${TRAVIS_PYTHON_VERSION} == "3.3" ]; then # should be >=3,3
     time pip install $PIP_ARGS numpy==1.7.1
-elif [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
-    # sudo apt-get $APT_ARGS install python3-numpy; # 1.6.2 or precise
-    time pip install $PIP_ARGS numpy==1.6.1
 else
     time pip install $PIP_ARGS numpy==1.6.1
 fi
@@ -71,19 +68,13 @@ fi
 # Optional Deps
 if [ x"$FULL_DEPS" == x"true" ]; then
     echo "Installing FULL_DEPS"
-   if [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
-       sudo apt-get $APT_ARGS remove python3-numpy
-   elif [ ${TRAVIS_PYTHON_VERSION} == "2.7" ]; then
-       sudo apt-get $APT_ARGS remove python-numpy
-   fi
 
+    time pip install $PIP_ARGS numexpr==2.1
     if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
         time pip install $PIP_ARGS xlwt
         time pip install $PIP_ARGS bottleneck==0.6.0
-        time pip install $PIP_ARGS numexpr==2.1
         time pip install $PIP_ARGS tables==2.3.1
     else
-        time pip install $PIP_ARGS numexpr==2.1
         time pip install $PIP_ARGS tables==3.0.0
     fi
 
