@@ -112,6 +112,7 @@ class ExprVisitor(ast.NodeVisitor):
     def visit_BoolOp(self, node):
         raise NotImplementedError("boolean operators are not yet supported")
 
+
 class Expr(StringMixin):
     """Expr object"""
     def __init__(self, expr, engine='numexpr', env=None, truediv=True):
