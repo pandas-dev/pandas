@@ -177,7 +177,7 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     ----------
     frame: DataFrame
     name: name of SQL table
-    conn: an open SQL database connection object
+    con: an open SQL database connection object
     flavor: {'sqlite', 'mysql', 'oracle'}, default 'sqlite'
     if_exists: {'fail', 'replace', 'append'}, default 'fail'
         fail: If table exists, do nothing.
