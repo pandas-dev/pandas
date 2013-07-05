@@ -182,6 +182,22 @@ class ExcelTests(unittest.TestCase):
         expected = DataFrame([[np.nan]], columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+    def test_excel_passes_na(self):
+        _skip_if_no_xlrd()
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xlsx'))
+        parsed = excel_data.parse('Sheet1', keep_default_na=False,
+                                  na_values=['apple'])
+        expected = DataFrame([['NA'], [1], ['NA'], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        parsed = excel_data.parse('Sheet1', keep_default_na=True,
+                                  na_values=['apple'])
+        expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
     def test_excel_table(self):
         _skip_if_no_xlrd()
 

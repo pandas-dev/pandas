@@ -126,7 +126,8 @@ class ExcelFile(object):
                                      na_values=na_values,
                                      thousands=thousands,
                                      chunksize=chunksize,
-                                     skip_footer=skip_footer)
+                                     skip_footer=skip_footer,
+                                     **kwds)
 
     def _should_parse(self, i, parse_cols):
 
@@ -163,7 +164,8 @@ class ExcelFile(object):
     def _parse_excel(self, sheetname, header=0, skiprows=None,
                    skip_footer=0, index_col=None, has_index_names=None,
                    parse_cols=None, parse_dates=False, date_parser=None,
-                   na_values=None, thousands=None, chunksize=None):
+                   na_values=None, thousands=None, chunksize=None,
+                   **kwds):
         from xlrd import (xldate_as_tuple, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN)
 
@@ -206,7 +208,8 @@ class ExcelFile(object):
                             date_parser=date_parser,
                             skiprows=skiprows,
                             skip_footer=skip_footer,
-                            chunksize=chunksize)
+                            chunksize=chunksize,
+                            **kwds)
 
         return parser.read()
 
