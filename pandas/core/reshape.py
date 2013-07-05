@@ -601,7 +601,7 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
 
 def melt(frame, id_vars=None, value_vars=None,
-         var_name='variable', value_name='value'):
+         var_name=None, value_name='value'):
     """
     "Unpivots" a DataFrame from wide format to long format, optionally leaving
     id variables set
@@ -611,8 +611,8 @@ def melt(frame, id_vars=None, value_vars=None,
     frame : DataFrame
     id_vars : tuple, list, or ndarray
     value_vars : tuple, list, or ndarray
-    var_name : scalar
-    value_name : scalar
+    var_name : scalar, if None uses frame.column.name or 'variable'
+    value_name : scalar, default 'value'
 
     Examples
     --------
@@ -634,6 +634,7 @@ def melt(frame, id_vars=None, value_vars=None,
     a         B          1
     b         B          3
     c         B          5
+
     """
     # TODO: what about the existing index?
     if id_vars is not None:
@@ -650,6 +651,9 @@ def melt(frame, id_vars=None, value_vars=None,
         frame = frame.ix[:, id_vars + value_vars]
     else:
         frame = frame.copy()
+
+    if var_name is None:
+        var_name = frame.columns.name if frame.columns.name is not None else 'variable'
 
     N, K = frame.shape
     K -= len(id_vars)

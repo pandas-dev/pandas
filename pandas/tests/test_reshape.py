@@ -93,6 +93,11 @@ def test_melt():
                            columns=['id1', 'id2', var_name, value_name])                  
     tm.assert_frame_equal(result19, expected19)
 
+    df1 = df.copy()
+    df1.columns.name = 'foo'
+    result20 = melt(df1)
+    assert(result20.columns.tolist() == ['foo', 'value'])
+
 def test_convert_dummies():
     df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                           'foo', 'bar', 'foo', 'foo'],
