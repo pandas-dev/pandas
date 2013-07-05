@@ -25,6 +25,7 @@ pip install wheel
 # comment this line to disable the fetching of wheel files
 PIP_ARGS+=" -I --use-wheel --find-links=https://cache27-pypandas.rhcloud.com/"
 
+SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
 # Force virtualenv to accpet system_site_packages
 rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
@@ -57,6 +58,7 @@ for dep in nose 'python-dateutil' 'pytz>=2013a' 'cython==0.19.1'; do
     time pip install $PIP_ARGS $dep
 done
 
+
 if [ ${TRAVIS_PYTHON_VERSION} == "3.3" ]; then # should be >=3,3
     time pip install $PIP_ARGS numpy==1.7.1
 elif [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
@@ -69,6 +71,11 @@ fi
 # Optional Deps
 if [ x"$FULL_DEPS" == x"true" ]; then
     echo "Installing FULL_DEPS"
+   if [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
+       sudo apt-get $APT_ARGS remove python3-numpy
+   elif [ ${TRAVIS_PYTHON_VERSION} == "2.7" ]; then
+       sudo apt-get $APT_ARGS remove python-numpy
+   fi
 
     if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
         time pip install $PIP_ARGS xlwt
