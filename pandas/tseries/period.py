@@ -469,7 +469,6 @@ def dt64arr_to_periodarr(data, freq, tz):
 
 # --- Period index sketch
 
-
 def _period_index_cmp(opname):
     """
     Wrap comparison operations to convert datetime-like to datetime64
@@ -492,6 +491,7 @@ def _period_index_cmp(opname):
 
         return result
     return wrapper
+
 
 class PeriodIndex(Int64Index):
     """
@@ -791,10 +791,12 @@ class PeriodIndex(Int64Index):
     # Especially important for group-by functionality
     def map(self, f):
         try:
-            return f(self)
-        except:
-            values = self._get_object_array()
-            return _algos.arrmap_object(values, f)
+            result = f(self)
+            if not isinstance(result, np.ndarray):
+                raise TypeError
+            return result
+        except Exception:
+            return _algos.arrmap_object(self.asobject, f)
 
     def _get_object_array(self):
         freq = self.freq
@@ -1168,6 +1170,7 @@ class PeriodIndex(Int64Index):
                 pass
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
+
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:

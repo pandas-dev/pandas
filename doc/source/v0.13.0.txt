@@ -24,6 +24,9 @@ Bug Fixes
   - The ``by`` argument now works correctly with the ``layout`` argument
     (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
 
+  - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
+    representation of the index (:issue:`4136`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.

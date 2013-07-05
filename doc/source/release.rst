@@ -48,6 +48,8 @@ pandas 0.13
     with a different block ordering (:issue:`4096`)
   - The ``by`` argument now works correctly with the ``layout`` argument
     (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
+  - Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
+    representation of the index (:issue:`4136`)
 
 pandas 0.12
 ===========
