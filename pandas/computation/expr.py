@@ -77,6 +77,8 @@ class ExprVisitor(ast.NodeVisitor):
         return op(left, right)
 
     def visit_UnaryOp(self, node):
+        if isinstance(node.op, ast.Not):
+            raise NotImplementedError("not operator not yet supported")
         op = self.visit(node.op)
         return op(self.visit(node.operand))
 
@@ -107,6 +109,8 @@ class ExprVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node):
         raise NotImplementedError("attribute access is not yet supported")
 
+    def visit_BoolOp(self, node):
+        raise NotImplementedError("boolean operators are not yet supported")
 
 class Expr(StringMixin):
     """Expr object"""
