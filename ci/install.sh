@@ -93,6 +93,7 @@ if [ x"$FULL_DEPS" == x"true" ]; then
       time sudo apt-get $APT_ARGS remove python-lxml
     fi
 
+    pip install $PIP_ARGS lxml
     # fool statsmodels into thinking pandas was already installed
     # so it won't refuse to install itself.
 
