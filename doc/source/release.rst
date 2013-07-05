@@ -135,6 +135,8 @@ pandas 0.13
   - Raise on set indexing with a Panel and a Panel as a value which needs alignment (:issue:`3777`)
   - frozenset objects now raise in the ``Series`` constructor (:issue:`4482`,
     :issue:`4480`)
+  - Fixed bug where timedelta and timedelta64 were treated differently when
+    being add to a Series (:issue:`4135`)
 
 pandas 0.12
 ===========
@@ -460,6 +462,7 @@ pandas 0.12
   - Fixed bug where html5lib wasn't being properly skipped (:issue:`4265`)
   - Fixed bug where get_data_famafrench wasn't using the correct file edges
     (:issue:`4281`)
+
 
 pandas 0.11.0
 =============

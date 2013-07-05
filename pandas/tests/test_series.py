@@ -1,10 +1,10 @@
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime, timedelta, date
-import os
+from datetime import datetime, timedelta
 import operator
 import unittest
 import string
+from itertools import starmap, product
 
 import nose
 
@@ -21,6 +21,7 @@ import pandas.core.config as cf
 import pandas.core.series as smod
 import pandas.lib as lib
 
+from pandas.core import common as com
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
@@ -1393,7 +1394,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         new_ts = pickle.loads(pickle.dumps(ts))
         self.assertEqual(new_ts.index.freq,'M')
 
-
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
@@ -2019,7 +2019,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         #result = np.abs(s1-s2)
         #assert_frame_equal(result,expected)
 
-        result = (s1-s2).abs()
+        d = s1 - s2
+        result = d.abs()
         assert_series_equal(result,expected)
 
         # max/min
@@ -2031,6 +2032,32 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([timedelta(1)],dtype='timedelta64[ns]')
         assert_series_equal(result,expected)
 
+    def test_timedelta64_equal_timedelta_supported_ops(self):
+        ser = Series([Timestamp('20130301'), Timestamp('20130228 23:00:00'),
+                      Timestamp('20130228 22:00:00'),
+                      Timestamp('20130228 21:00:00')])
+
+        intervals = 'D', 'h', 'm', 's', 'us'
+        npy16_mappings = {'D': 24 * 60 * 60 * 1000000, 'h': 60 * 60 * 1000000,
+                          'm': 60 * 1000000, 's': 1000000, 'us': 1}
+
+        def timedelta64(*args):
+            if com._np_version_under1p7:
+                coeffs = np.array(args)
+                terms = np.array([npy16_mappings[interval]
+                                  for interval in intervals])
+                return np.timedelta64(coeffs.dot(terms))
+            return sum(starmap(np.timedelta64, zip(args, intervals)))
+
+        for op, d, h, m, s, us in product([operator.add, operator.sub],
+                                          *([range(2)] * 5)):
+            nptd = timedelta64(d, h, m, s, us)
+            pytd = timedelta(days=d, hours=h, minutes=m, seconds=s,
+                             microseconds=us)
+            lhs = op(ser, nptd)
+            rhs = op(ser, pytd)
+
+            assert_series_equal(lhs, rhs)
 
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core import common as com
@@ -3210,7 +3237,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):
-        from pandas import period_range, Period
+        from pandas import period_range
         N = 50
         rng = period_range('1/1/1990', periods=N, freq='H')
         ts = Series(np.random.randn(N), index=rng)
