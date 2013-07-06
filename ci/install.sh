@@ -23,7 +23,7 @@ pip Install -I https://bitbucket.org/pypa/setuptools/downloads/setuptools-0.8b6.
 pip install wheel
 
 # comment this line to disable the fetching of wheel files
-PIP_ARGS+=" -I --use-wheel --find-links=https://cache27-pypandas.rhcloud.com/"
+PIP_ARGS+=" --use-wheel --find-links=https://cache27-pypandas.rhcloud.com/"
 
 SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
 # Force virtualenv to accpet system_site_packages

@@ -34,7 +34,7 @@ except ImportError:
     _have_setuptools = False
 
 setuptools_kwargs = {}
-min_numpy_ver = '1.6.1'
+min_numpy_ver = '1.6'
 if sys.version_info[0] >= 3:
 
     if sys.version_info[1] >= 3:  # 3.3 needs numpy 1.7+
