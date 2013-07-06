@@ -581,6 +581,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('df1', df.ix[:, 2:])
             tm.assert_frame_equal(store['df1'], df)
 
+            result = store.select('df1', '(columns=A) | (columns=B)')
             result = store.select('df1', 'columns=A')
             expected = df.reindex(columns=['A'])
             tm.assert_frame_equal(expected, result)
@@ -1574,6 +1575,44 @@ class TestHDFStore(unittest.TestCase):
             expected = p4d.truncate(after='20000108').reindex(
                 minor=['A', 'B'], items=['ItemA', 'ItemB'])
             tm.assert_panel4d_equal(result, expected)
+
+            # valid terms
+            terms = [
+                dict(field='major_axis', op='>', value='20121114'),
+                ('major_axis', '20121114'),
+                ('major_axis', '>', '20121114'),
+                (('major_axis', ['20121114', '20121114']),),
+                ('major_axis', datetime.datetime(2012, 11, 14)),
+                'major_axis> 20121114',
+                'major_axis >20121114',
+                'major_axis > 20121114',
+                (('minor_axis', ['A', 'B']),),
+                (('minor_axis', ['A', 'B']),),
+                ((('minor_axis', ['A', 'B']),),),
+                (('items', ['ItemA', 'ItemB']),),
+                ('items=ItemA'),
+                ]
+
+            for t in terms:
+                store.select('wp', t)
+                store.select('p4d', t)
+
+            # valid for p4d only
+            terms = [
+                (('labels', '=', ['l1', 'l2']),),
+                Term('labels', '=', ['l1', 'l2']),
+                ]
+
+            for t in terms:
+                store.select('p4d', t)
+
+    def test_eval(self):
+        """ test evaluation using new terms """
+
+        with ensure_clean(self.path) as store:
+
+            wp = tm.makePanel()
+            p4d = tm.makePanel4D()
 
             # valid terms
             terms = [

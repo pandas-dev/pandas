@@ -24,43 +24,43 @@ class BinaryOperatorError(OperatorError):
     pass
 
 
-def _resolve_name(env, key):
-    res = env.locals.get(key, env.globals.get(key))
-
-    if res is None:
-        if not isinstance(key, basestring):
-            return key
-
-        raise NameError('name {0!r} is not defined'.format(key))
-
-    return res
-
-
-def _update_name(env, key, value):
-    if isinstance(key, basestring):
-        try:
-            del env.locals[key]
-            env.locals[key] = value
-        except KeyError:
-            try:
-                del env.globals[key]
-                env.globals[key] = value
-            except KeyError:
-                raise NameError('{0!r} is undefined'.format(key))
-
-
 class Term(StringMixin):
-    def __init__(self, name, env):
+    def __init__(self, name, env, side=None):
         self.name = name
-        self.value = _resolve_name(env, name)
         self.env = env
+        self.side = side
+        self.value = self._resolve_name()
         self.type = type(self.value)
 
     def __unicode__(self):
         return com.pprint_thing(self.name)
 
+    def _resolve_name(self):
+        env = self.env
+        key = self.name
+        res = env.locals.get(key, env.globals.get(key))
+
+        if res is None:
+            if not isinstance(key, basestring):
+                return key
+
+            raise NameError('name {0!r} is not defined'.format(key))
+        return res
+
     def update(self, value):
-        _update_name(self.env, self.name, value)
+        env = self.env
+        key = self.name
+        if isinstance(key, basestring):
+            try:
+                del env.locals[key]
+                env.locals[key] = value
+            except KeyError:
+                try:
+                    del env.globals[key]
+                    env.globals[key] = value
+                except KeyError:
+                    raise NameError('{0!r} is undefined'.format(key))
+
         self.value = value
 
     @property

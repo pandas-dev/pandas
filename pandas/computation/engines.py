@@ -75,5 +75,4 @@ class PythonEngine(AbstractEngine):
     def _evaluate(self, env):
         pass
 
-
-_engines = {'numexpr': NumExprEngine, 'python': PythonEngine}
+_engines = {'numexpr': NumExprEngine, 'python': PythonEngine }
