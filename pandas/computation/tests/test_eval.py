@@ -52,7 +52,9 @@ def _eval_from_expr(lhs, cmp1, rhs, binop, cmp2):
     env = Scope()
     typ, axes = _align_core((Term('lhs', env), Term('rhs', env)))
     lhs, rhs = env.locals['lhs'], env.locals['rhs']
-    return _reconstruct_object(typ, bf(f1(lhs, rhs), f2(lhs, rhs)), axes)
+    ret_type = np.result_type(lhs, rhs)
+    return _reconstruct_object(typ, bf(f1(lhs, rhs), f2(lhs, rhs)), axes,
+                               ret_type)
 
 
 def _eval_single_bin(lhs, cmp1, rhs, has_neg_frac):
