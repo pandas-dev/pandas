@@ -13,7 +13,6 @@ from pandas.computation.ops import _cmp_ops_syms, _bool_ops_syms
 from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
 from pandas.computation.ops import Term, Constant
 
-
 class Scope(object):
     __slots__ = 'globals', 'locals'
 
@@ -25,7 +24,6 @@ class Scope(object):
             self.locals = lcls or frame.f_locals.copy()
         finally:
             del frame
-
 
 class ExprParserError(Exception):
     pass
@@ -80,15 +78,28 @@ class ExprVisitor(ast.NodeVisitor):
                     lambda node, unary_op=unary_op: partial(UnaryOp, unary_op))
         self.env = env
 
-    def visit(self, node):
+    def generic_visit(self, node, **kwargs):
+        """Called if no explicit visitor function exists for a node."""
+        for field, value in iter_fields(node):
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, AST):
+                        self.visit(item, **kwargs)
+            elif isinstance(value, AST):
+                self.visit(value, **kwargs)
+
+    def visit(self, node, **kwargs):
         if not (isinstance(node, ast.AST) or isinstance(node, basestring)):
             raise TypeError('"node" must be an AST node or a string, you'
                             ' passed a(n) {0}'.format(node.__class__))
         if isinstance(node, basestring):
             node = ast.fix_missing_locations(ast.parse(preparse(node)))
-        return super(ExprVisitor, self).visit(node)
 
-    def visit_Module(self, node):
+        method = 'visit_' + node.__class__.__name__
+        visitor = getattr(self, method, self.generic_visit)
+        return visitor(node, **kwargs)
+
+    def visit_Module(self, node, **kwargs):
         if len(node.body) != 1:
             raise ExprParserError('only a single expression is allowed')
 
@@ -96,43 +107,43 @@ class ExprVisitor(ast.NodeVisitor):
         if not isinstance(expr, (ast.Expr, ast.Assign)):
             raise SyntaxError('only expressions are allowed')
 
-        return self.visit(expr)
+        return self.visit(expr, **kwargs)
 
-    def visit_Expr(self, node):
-        return self.visit(node.value)
+    def visit_Expr(self, node, **kwargs):
+        return self.visit(node.value, **kwargs)
 
-    def visit_BinOp(self, node):
+    def visit_BinOp(self, node, **kwargs):
         op = self.visit(node.op)
-        left = self.visit(node.left)
-        right = self.visit(node.right)
+        left = self.visit(node.left,side='left')
+        right = self.visit(node.right,side='right')
         return op(left, right)
 
-    def visit_UnaryOp(self, node):
+    def visit_UnaryOp(self, node, **kwargs):
         if isinstance(node.op, ast.Not):
             raise NotImplementedError("not operator not yet supported")
         op = self.visit(node.op)
         return op(self.visit(node.operand))
 
-    def visit_Name(self, node):
+    def visit_Name(self, node, **kwargs):
         return Term(node.id, self.env)
 
-    def visit_Num(self, node):
+    def visit_Num(self, node, **kwargs):
         return Constant(node.n, self.env)
 
-    def visit_Compare(self, node):
+    def visit_Compare(self, node, **kwargs):
         ops = node.ops
         comps = node.comparators
         if len(ops) != 1:
             raise ExprParserError('chained comparisons not supported')
-        return self.visit(ops[0])(self.visit(node.left), self.visit(comps[0]))
+        return self.visit(ops[0])(self.visit(node.left,side='left'), self.visit(comps[0],side='right'))
 
-    def visit_Assign(self, node):
+    def visit_Assign(self, node, **kwargs):
         cmpr = ast.copy_location(ast.Compare(ops=[ast.Eq()],
                                              left=node.targets[0],
                                              comparators=[node.value]), node)
         return self.visit(cmpr)
 
-    def visit_Call(self, node):
+    def visit_Call(self, node, **kwargs):
         if not isinstance(node.func, ast.Name):
             raise TypeError("Only named functions are supported")
 
@@ -143,10 +154,10 @@ class ExprVisitor(ast.NodeVisitor):
 
         raise NotImplementedError("function calls not yet supported")
 
-    def visit_Attribute(self, node):
+    def visit_Attribute(self, node, **kwargs):
         raise NotImplementedError("attribute access is not yet supported")
 
-    def visit_BoolOp(self, node):
+    def visit_BoolOp(self, node, **kwargs):
         raise NotImplementedError("boolean operators are not yet supported")
 
 
