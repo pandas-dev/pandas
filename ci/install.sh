@@ -96,6 +96,9 @@ if [ x"$FULL_DEPS" == x"true" ]; then
     # fool statsmodels into thinking pandas was already installed
     # so it won't refuse to install itself.
 
+    SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
+    echo "Using SITE_PKG_DIR: $SITE_PKG_DIR"
+
     mkdir  $SITE_PKG_DIR/pandas
     touch $SITE_PKG_DIR/pandas/__init__.py
     echo "version='0.10.0-phony'" >  $SITE_PKG_DIR/pandas/version.py
