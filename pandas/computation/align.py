@@ -163,6 +163,7 @@ def _filter_terms(flat):
 
 
 def _align(terms, env):
+
     # flatten the parse tree (a nested list)
     terms = list(flatten(terms))
 
@@ -181,7 +182,7 @@ def _align(terms, env):
     return typ, axes
 
 
-def _reconstruct_object(typ, obj, axes):
+def _reconstruct_object(typ, obj, axes, dtype):
     """Reconstruct an object given its type, raw value, and possibly empty
     (None) axes.
 
@@ -200,20 +201,20 @@ def _reconstruct_object(typ, obj, axes):
         An object of type ``typ`` with the value `obj` and possible axes
         `axes`.
     """
+    #import ipdb; ipdb.set_trace()
     try:
-        # handle numpy dtypes
         typ = typ.type
     except AttributeError:
         pass
 
     if (not isinstance(typ, partial) and
         issubclass(typ, pd.core.generic.PandasObject)):
-        return typ(obj, **axes)
+        return typ(obj, dtype=dtype, **axes)
 
-    ret_value = typ(obj)
+    ret_value = typ(obj).astype(dtype)
 
     try:
-        return ret_value.item()
-    except (AttributeError, ValueError):
-        return ret_value
-
+        ret = ret_value.item()
+    except ValueError:
+        ret = ret_value
+    return ret

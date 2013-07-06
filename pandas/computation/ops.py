@@ -4,6 +4,7 @@ import numpy as np
 from pandas.util.py3compat import PY3
 import pandas.core.common as com
 from pandas.core.base import StringMixin
+from pandas.computation.common import flatten
 
 
 _reductions = 'sum', 'prod'
@@ -46,15 +47,25 @@ def _update_name(env, key, value):
                 del env.globals[key]
                 env.globals[key] = value
             except KeyError:
-                raise NameError('{0!r} is undefined'.format(key))
+                raise NameError('name {0!r} is not defined'.format(key))
 
 
 class Term(StringMixin):
     def __init__(self, name, env):
         self.name = name
-        self.value = _resolve_name(env, name)
         self.env = env
-        self.type = type(self.value)
+        self.value = _resolve_name(self.env, self.name)
+
+        try:
+            # ndframe potentially very slow for large, mixed dtype frames
+            self.type = self.value.values.dtype
+        except AttributeError:
+            try:
+                # ndarray
+                self.type = self.value.dtype
+            except AttributeError:
+                # scalar
+                self.type = type(self.value)
 
     def __unicode__(self):
         return com.pprint_thing(self.name)
@@ -88,15 +99,23 @@ class Op(StringMixin):
         return iter(self.operands)
 
     def __unicode__(self):
-        """Print a generic n-ary operator and its operands"""
+        """Print a generic n-ary operator and its operands using infix
+        notation"""
         # recurse over the operands
         parened = ('({0})'.format(_print_operand(opr))
                    for opr in self.operands)
         return com.pprint_thing(' {0} '.format(self.op).join(parened))
 
+    @property
+    def return_type(self):
+        # clobber types to bool if the op is a boolean operator
+        if self.op in (_cmp_ops_syms + _bool_ops_syms):
+            return np.bool_
+        return np.result_type(*(term.type for term in flatten(self)))
 
-_cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='
-_cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne
+
+_cmp_ops_syms = '>', '<', '>=', '<=', '==', '!=', '='
+_cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne, op.eq
 _cmp_ops_dict = dict(zip(_cmp_ops_syms, _cmp_ops_funcs))
 
 _bool_ops_syms = '&', '|'
