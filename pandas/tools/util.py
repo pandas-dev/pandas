@@ -18,11 +18,15 @@ def cartesian_product(X):
  	array([1, 2, 1, 2, 1, 2])]
 
     '''
-    lenX = map(len, X)
-    cumprodX = np.cumproduct(lenX)
-    a = np.insert(cumprodX, 0, 1)
-    b = a[-1] / a[1:]
-    return [np.tile(np.repeat(x, b[i]), 
-    	            np.product(a[i]))
-               for i, x in enumerate(X)]
 
+    lenX = np.fromiter((len(x) for x in X), dtype=int)
+    cumprodX = np.cumproduct(lenX)
+
+    a = np.roll(cumprodX, 1)
+    a[0] = 1
+
+    b = cumprodX[-1] / cumprodX
+
+    return [np.tile(np.repeat(x, b[i]), 
+                    np.product(a[i]))
+               for i, x in enumerate(X)]
