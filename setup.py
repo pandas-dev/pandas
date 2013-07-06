@@ -85,7 +85,7 @@ try:
 except ImportError:
     cython = False
 
-from os.path import splitext, basename, join as pjoin
+from os.path import join as pjoin
 
 
 class build_ext(_build_ext):
@@ -502,6 +502,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       packages=['pandas',
                 'pandas.compat',
+                'pandas.computation',
                 'pandas.core',
                 'pandas.io',
                 'pandas.rpy',
