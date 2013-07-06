@@ -1653,7 +1653,9 @@ class MultiIndex(Index):
         num = self._get_level_number(level)
         unique_vals = self.levels[num]  # .values
         labels = self.labels[num]
-        return unique_vals.take(labels)
+        values = unique_vals.take(labels)
+        values.name = self.names[num]
+        return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep='NaN', formatter=None):

@@ -617,24 +617,42 @@ def melt(frame, id_vars=None, value_vars=None,
 
     Examples
     --------
+    >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
+              'B': {0: 1, 1: 3, 2: 5},
+              'C': {0: 2, 1: 4, 2: 6}})
+
     >>> df
-    A B C
-    a 1 2
-    b 3 4
-    c 5 6
+       A  B  C
+    0  a  1  2
+    1  b  3  4
+    2  c  5  6
 
     >>> melt(df, id_vars=['A'], value_vars=['B'])
-    A variable value
-    a        B     1
-    b        B     3
-    c        B     5
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
     
     >>> melt(df, id_vars=['A'], value_vars=['B'],
     ... var_name='myVarname', value_name='myValname')
-    A myVarname  myValname
-    a         B          1
-    b         B          3
-    c         B          5
+       A myVarname  myValname
+    0  a         B          1
+    1  b         B          3
+    2  c         B          5
+
+    >>> df.columns = [list('ABC'), list('DEF')]
+
+    >>> melt(df, col_level=0, id_vars=['A'], value_vars=['B'])
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+
+    >>> melt(df, id_vars=[('A', 'D')], value_vars=[('B', 'E')])
+      (A, D) variable_0 variable_1  value
+    0      a          B          E      1
+    1      b          B          E      3
+    2      c          B          E      5
 
     """
     # TODO: what about the existing index?
@@ -653,11 +671,17 @@ def melt(frame, id_vars=None, value_vars=None,
     else:
         frame = frame.copy()
 
-    if col_level:  # allow list?
+    if col_level is not None:  # allow list or other?
         frame.columns = frame.columns.get_level_values(col_level) #  frame is a copy
 
     if var_name is None:
-        var_name = frame.columns.name if frame.columns.name is not None else 'variable'
+        if isinstance(frame.columns, MultiIndex):
+            if len(frame.columns.names) == len(set(frame.columns.names)):
+                var_name = frame.columns.names
+            else:
+                var_name = ['variable_%s' % i for i in range(len(frame.columns.names))]
+        else:
+            var_name = frame.columns.name if frame.columns.name is not None else 'variable'
 
     N, K = frame.shape
     K -= len(id_vars)
@@ -666,11 +690,18 @@ def melt(frame, id_vars=None, value_vars=None,
     for col in id_vars:
         mdata[col] = np.tile(frame.pop(col).values, K)
 
-    mcolumns = id_vars + [var_name, value_name]
+    if isinstance(var_name, list):
+        mcolumns = id_vars + var_name + [value_name]
+    else:
+        mcolumns = id_vars + [var_name, value_name]
 
     mdata[value_name] = frame.values.ravel('F')
-    mdata[var_name] = np.asarray(frame.columns).repeat(N)
-    
+    if isinstance(frame.columns, MultiIndex):
+        for i, col in enumerate(var_name):
+            mdata[col] = np.asarray(frame.columns.get_level_values(i)).repeat(N)
+    else: # assume isinstance(frame.columns, Index):
+        mdata[var_name] = np.asarray(frame.columns).repeat(N)
+
     return DataFrame(mdata, columns=mcolumns)
 
 

@@ -1029,6 +1029,8 @@ class TestMultiIndex(unittest.TestCase):
         expected = ['foo', 'foo', 'bar', 'baz', 'qux', 'qux']
         self.assert_(np.array_equal(result, expected))
 
+        self.assertEquals(result.name, 'first')
+
         result = self.index.get_level_values('first')
         expected = self.index.get_level_values(0)
         self.assert_(np.array_equal(result, expected))
