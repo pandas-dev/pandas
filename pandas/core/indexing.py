@@ -608,7 +608,7 @@ class _NDFrameIndexer(object):
                 mask = check == -1
                 if mask.any():
                     raise KeyError('%s not in index' % objarr[mask])
-            
+
                 return indexer
 
         else:
@@ -1100,9 +1100,14 @@ def _check_slice_bounds(slobj, values):
 
 def _maybe_droplevels(index, key):
     # drop levels
+    original_index = index
     if isinstance(key, tuple):
         for _ in key:
-            index = index.droplevel(0)
+            try:
+                index = index.droplevel(0)
+            except:
+                # we have dropped too much, so back out
+                return original_index
     else:
         index = index.droplevel(0)
 

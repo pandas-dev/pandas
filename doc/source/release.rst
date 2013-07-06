@@ -318,6 +318,8 @@ pandas 0.12
     iterated over when regex=False (:issue:`4115`)
   - Fixed bug in ``convert_objects(convert_numeric=True)`` where a mixed numeric and
     object Series/Frame was not converting properly (:issue:`4119`)
+  - Fixed bugs in multi-index selection with column multi-index and duplicates
+    (:issue:`4145`, :issue:`4146`)
 
 
 pandas 0.11.0
