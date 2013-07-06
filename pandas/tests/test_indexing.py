@@ -1094,8 +1094,12 @@ class TestIndexing(unittest.TestCase):
         # GH 4146, not returning a block manager when selecting a unique index
         # from a duplicate index
         expected = DataFrame([['a',1,1]],index=['A1'],columns=['h1','h3','h5'],).T
-        df3 = df2['A']
-        result = df3['A1']
+        result = df2['A']['A1']
+        assert_frame_equal(result,expected)
+
+        # selecting a non_unique from the 2nd level
+        expected = DataFrame([['d',4,4],['e',5,5]],index=Index(['B2','B2'],name='sub'),columns=['h1','h3','h5'],).T
+        result = df2['A']['B2']
         assert_frame_equal(result,expected)
 
 if __name__ == '__main__':
