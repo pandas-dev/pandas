@@ -258,11 +258,10 @@ Updated PyTables Support
    store.append('wp',wp)
 
    # selecting via A QUERY
-   store.select('wp',
-     [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
+   store.select('wp', "major_axis>20000102 & minor_axis=['A','B']")
 
    # removing data from tables
-   store.remove('wp', [ 'major_axis', '>', wp.major_axis[3] ])
+   store.remove('wp', 'major_axis>wp.major_axis[3]')
    store.select('wp')
 
    # deleting a store

@@ -28,15 +28,16 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _coerce_to_dtypes, _DATELIKE_DTYPES, is_list_like)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import (_NDFrameIndexer, _maybe_droplevels,
-                                  _convert_to_index_sliceable, _check_bool_indexer,
-                                  _maybe_convert_indices)
+from pandas.core.indexing import (_maybe_droplevels,
+                                  _convert_to_index_sliceable,
+                                  _check_bool_indexer, _maybe_convert_indices)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series, _radd_compat
 from pandas.sparse.array import SparseArray
 import pandas.computation.expressions as expressions
+from pandas.computation.eval import eval as _eval
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
@@ -55,7 +56,6 @@ import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 
 import pandas.lib as lib
-import pandas.tslib as tslib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option, set_option
@@ -1897,6 +1897,18 @@ class DataFrame(NDFrame):
         if key.values.dtype != np.bool_:
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
+
+    def query(self, expr, **kwargs):
+        resolvers = kwargs.get('resolvers', None)
+        if resolvers is None:
+            index_resolvers = {}
+            if self.index.name is not None:
+                index_resolvers[self.index.name] = self.index
+            index_resolvers.update({'index': self.index,
+                                    'columns': self.columns})
+            resolvers = [self, index_resolvers]
+            kwargs.update({'resolvers': resolvers})
+        return self[_eval(expr, **kwargs)]
 
     def _slice(self, slobj, axis=0, raise_on_error=False):
         axis = self._get_block_manager_axis(axis)
@@ -4598,6 +4610,7 @@ class DataFrame(NDFrame):
 
 DataFrame._setup_axes(
     ['index', 'columns'], info_axis=1, stat_axis=0, axes_are_reversed=True)
+
 
 _EMPTY_SERIES = Series([])
 

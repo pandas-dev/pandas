@@ -1,6 +1,8 @@
 import operator as op
 
 import numpy as np
+
+import pandas as pd
 from pandas.util.py3compat import PY3
 import pandas.core.common as com
 from pandas.core.base import StringMixin
@@ -25,36 +27,12 @@ class BinaryOperatorError(OperatorError):
     pass
 
 
-def _resolve_name(env, key):
-    res = env.locals.get(key, env.globals.get(key))
-
-    if res is None:
-        if not isinstance(key, basestring):
-            return key
-
-        raise NameError('name {0!r} is not defined'.format(key))
-
-    return res
-
-
-def _update_name(env, key, value):
-    if isinstance(key, basestring):
-        try:
-            del env.locals[key]
-            env.locals[key] = value
-        except KeyError:
-            try:
-                del env.globals[key]
-                env.globals[key] = value
-            except KeyError:
-                raise NameError('name {0!r} is not defined'.format(key))
-
-
 class Term(StringMixin):
-    def __init__(self, name, env):
+    def __init__(self, name, env, side=None):
         self.name = name
         self.env = env
-        self.value = _resolve_name(self.env, self.name)
+        self.side = side
+        self.value = self._resolve_name()
 
         try:
             # ndframe potentially very slow for large, mixed dtype frames
@@ -70,8 +48,39 @@ class Term(StringMixin):
     def __unicode__(self):
         return com.pprint_thing(self.name)
 
+    def _resolve_name(self):
+        env = self.env
+        key = self.name
+        res = env.resolver(key)
+        self.update(res)
+
+        if res is None:
+            if not isinstance(key, basestring):
+                return key
+            raise NameError('name {0!r} is not defined'.format(key))
+
+        if isinstance(res, pd.Panel):
+            raise NotImplementedError("Panel objects are not supported with "
+                                      "eval")
+        return res
+
     def update(self, value):
-        _update_name(self.env, self.name, value)
+        env = self.env
+        key = self.name
+        if isinstance(key, basestring):
+            try:
+                del env.locals[key]
+                env.locals[key] = value
+            except KeyError:
+                if key in env.resolver_keys:
+                    env.locals[key] = value
+                else:
+                    try:
+                        del env.globals[key]
+                        env.globals[key] = value
+                    except KeyError:
+                        raise NameError('{0!r} is undefined'.format(key))
+
         self.value = value
 
     @property
@@ -83,6 +92,9 @@ class Constant(Term):
     def __init__(self, value, env):
         super(Constant, self).__init__(value, env)
 
+    def _resolve_name(self):
+        return self.name
+
 
 def _print_operand(opr):
     return opr.name if is_term(opr) else unicode(opr)
@@ -91,7 +103,7 @@ def _print_operand(opr):
 class Op(StringMixin):
     """Hold an operator of unknown arity
     """
-    def __init__(self, op, operands):
+    def __init__(self, op, operands, *args, **kwargs):
         self.op = op
         self.operands = operands
 
@@ -114,8 +126,8 @@ class Op(StringMixin):
         return np.result_type(*(term.type for term in flatten(self)))
 
 
-_cmp_ops_syms = '>', '<', '>=', '<=', '==', '!=', '='
-_cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne, op.eq
+_cmp_ops_syms = '>', '<', '>=', '<=', '==', '!='
+_cmp_ops_funcs = op.gt, op.lt, op.ge, op.le, op.eq, op.ne
 _cmp_ops_dict = dict(zip(_cmp_ops_syms, _cmp_ops_funcs))
 
 _bool_ops_syms = '&', '|'
@@ -165,7 +177,7 @@ class BinOp(Op):
     left : str or Op
     right : str or Op
     """
-    def __init__(self, op, lhs, rhs):
+    def __init__(self, op, lhs, rhs, **kwargs):
         super(BinOp, self).__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -208,8 +220,8 @@ class BinOp(Op):
 
 
 class Mod(BinOp):
-    def __init__(self, lhs, rhs):
-        super(Mod, self).__init__('%', lhs, rhs)
+    def __init__(self, lhs, rhs, *args, **kwargs):
+        super(Mod, self).__init__('%', lhs, rhs, *args, **kwargs)
         _cast_inplace(self.operands, np.float_)
 
 

@@ -1962,7 +1962,7 @@ storing/selecting from homogeneous index DataFrames.
         store.select('df_mi')
 
         # the levels are automatically included as data columns
-        store.select('df_mi', Term('foo=bar'))
+        store.select('df_mi', 'foo=bar')
 
 
 .. _io.hdf5-query:
@@ -1970,49 +1970,80 @@ storing/selecting from homogeneous index DataFrames.
 Querying a Table
 ~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   This query capabilities have changed substantially starting in ``0.13.0``.
+   Queries from prior version are accepted (with a ``DeprecationWarning``) printed
+   if its not string-like.
+
 ``select`` and ``delete`` operations have an optional criterion that can
 be specified to select/delete only a subset of the data. This allows one
 to have a very large on-disk table and retrieve only a portion of the
 data.
 
-A query is specified using the ``Term`` class under the hood.
+A query is specified using the ``Term`` class under the hood, as a boolean expression.
 
-   - 'index' and 'columns' are supported indexers of a DataFrame
-   - 'major_axis', 'minor_axis', and 'items' are supported indexers of
+   - ``index`` and ``columns`` are supported indexers of a DataFrame
+   - ``major_axis``, ``minor_axis``, and ``items`` are supported indexers of
      the Panel
+   - if ``data_columns`` are specified, these can be used as additional indexers
 
-Valid terms can be created from ``dict, list, tuple, or
-string``. Objects can be embeded as values. Allowed operations are: ``<,
-<=, >, >=, =, !=``. ``=`` will be inferred as an implicit set operation
-(e.g. if 2 or more values are provided). The following are all valid
-terms.
+Valid comparison operators are:
 
-       - ``dict(field = 'index', op = '>', value = '20121114')``
-       - ``('index', '>', '20121114')``
-       - ``'index > 20121114'``
-       - ``('index', '>', datetime(2012, 11, 14))``
-       - ``('index', ['20121114', '20121115'])``
-       - ``('major_axis', '=', Timestamp('2012/11/14'))``
-       - ``('minor_axis', ['A', 'B'])``
+   - ``=, ==, !=, >, >=, <, <=``
 
-Queries are built up using a list of ``Terms`` (currently only
-**anding** of terms is supported). An example query for a panel might be
-specified as follows.  ``['major_axis>20000102', ('minor_axis', '=',
-['A', 'B']) ]``. This is roughly translated to: `major_axis must be
-greater than the date 20000102 and the minor_axis must be A or B`
+Valid boolean expressions are combined with:
+
+   - ``|`` : or
+   - ``&`` : and
+   - ``(`` and ``)`` : for grouping
+
+These rules are similar to how boolean expressions are used in pandas for indexing.
+
+.. note::
+
+   - ``=`` will be automatically expanded to the comparison operator ``==``
+   - ``~`` is the not operator, but can only be used in very limited circumstances
+   - If a list/tuple of expressions are passed they will be combined via ``&``.
+
+The following are valid expressions:
+
+   - ``'index>=date'``
+   - ``"columns=['A', 'D']"``
+   - ``'columns=A'``
+   - ``'columns==A'``
+   - ``"~(columns=['A','B'])"``
+   - ``'index>df.index[3] & string="bar"'``
+   - ``'(index>df.index[3] & index<=df.index[6]) | string="bar"'``
+   - ``"ts>=Timestamp('2012-02-01')"``
+   - ``"major_axis>=20130101"``
+
+The ``indexers`` are on the left-hand side of the sub-expression:
+
+   - ``columns``, ``major_axis``, ``ts``
+
+The right-hand side of the sub-expression (after a comparsion operator), can be:
+
+   - functions that will be evaluated, e.g. ``Timestamp('2012-02-01')``
+   - strings, e.g. ``"bar"``
+   - date-like, e.g. ``20130101``, or ``"20130101"``
+   - lists, e.g. ``"['A','B']"``
+   - variables that are defined in the local names space, e.g. ``date``
+
+Here is an example:
 
 .. ipython:: python
 
    store.append('wp',wp)
    store
-   store.select('wp', [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A', 'B']) ])
+   store.select('wp', "major_axis>Timestamp('20000102') & minor_axis=['A', 'B']")
 
 The ``columns`` keyword can be supplied to select a list of columns to be returned,
-this is equivalent to passing a ``Term('columns', list_of_columns_to_filter)``:
+this is equivalent to passing a ``'columns=list_of_columns_to_filter'``:
 
 .. ipython:: python
 
-   store.select('df', columns=['A', 'B'])
+   store.select('df', "columns=['A', 'B']")
 
 ``start`` and ``stop`` parameters can be specified to limit the total search
 space. These are in terms of the total number of rows in a table.
@@ -2023,8 +2054,7 @@ space. These are in terms of the total number of rows in a table.
    wp.to_frame()
 
    # limiting the search
-   store.select('wp',[ Term('major_axis>20000102'),
-                       Term('minor_axis', '=', ['A','B']) ],
+   store.select('wp',"major_axis>20000102 & minor_axis=['A','B']",
                 start=0, stop=10)
 
 .. _io.hdf5-timedelta:
@@ -2057,10 +2087,13 @@ You can create/modify an index for a table with ``create_table_index``
 after data is already in the table (after and ``append/put``
 operation). Creating a table index is **highly** encouraged. This will
 speed your queries a great deal when you use a ``select`` with the
-indexed dimension as the ``where``. **Indexes are automagically created
-(starting 0.10.1)** on the indexables and any data columns you
-specify. This behavior can be turned off by passing ``index=False`` to
-``append``.
+indexed dimension as the ``where``.
+
+.. note::
+
+   Indexes are automagically created (starting ``0.10.1``) on the indexables
+   and any data columns you specify. This behavior can be turned off by passing
+   ``index=False`` to ``append``.
 
 .. ipython:: python
 
@@ -2117,7 +2150,7 @@ create a new table!)
 Iterator
 ~~~~~~~~
 
-Starting in 0.11, you can pass, ``iterator=True`` or ``chunksize=number_in_a_chunk``
+Starting in ``0.11.0``, you can pass, ``iterator=True`` or ``chunksize=number_in_a_chunk``
 to ``select`` and ``select_as_multiple`` to return an iterator on the results.
 The default is 50,000 rows returned in a chunk.
 
@@ -2151,7 +2184,7 @@ Advanced Queries
 To retrieve a single indexable or data column, use the
 method ``select_column``. This will, for example, enable you to get the index
 very quickly. These return a ``Series`` of the result, indexed by the row number.
-These do not currently accept the ``where`` selector (coming soon)
+These do not currently accept the ``where`` selector.
 
 .. ipython:: python
 

@@ -21,8 +21,7 @@ class AbstractEngine(object):
 
     def evaluate(self):
         if not self._is_aligned:
-            self.result_type, self.aligned_axes = _align(self.expr.terms,
-                                                         self.expr.env)
+            self.result_type, self.aligned_axes = _align(self.expr.terms)
 
         res = self._evaluate(self.expr.env)
         return _reconstruct_object(self.result_type, res, self.aligned_axes,
@@ -77,4 +76,4 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines = {'numexpr': NumExprEngine, 'python': PythonEngine}
+_engines = {'numexpr': NumExprEngine, 'python': PythonEngine }

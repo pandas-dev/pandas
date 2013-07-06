@@ -30,7 +30,7 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Timestamp, Period)
+                             MultiIndex, DatetimeIndex, Timestamp)
 from pandas import date_range
 import pandas as pd
 from pandas.io.parsers import read_csv
@@ -44,6 +44,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  ensure_clean)
 from pandas.core.indexing import IndexingError
 from pandas.core.common import PandasError
+from pandas.util.compat import OrderedDict
 
 import pandas.util.testing as tm
 import pandas.lib as lib
@@ -2119,7 +2120,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # this is ok
         df['foo2'] = np.ones((4,2)).tolist()
 
-
     def test_constructor_dtype_nocast_view(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
@@ -3165,7 +3165,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a', 'c'])
         with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
             DataFrame('a', [1, 2], ['a', 'c'], float)
-
 
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
@@ -5237,8 +5236,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                 _do_test(mkdf(nrows, ncols,c_idx_nlevels=2),path,cnlvl=2)
                 _do_test(mkdf(nrows, ncols,r_idx_nlevels=2,c_idx_nlevels=2),
                          path,rnlvl=2,cnlvl=2)
-
-
 
     def test_to_csv_from_csv_w_some_infs(self):
 
@@ -8098,6 +8095,45 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expec = DataFrame([[nan, 2]])
         assert_frame_equal(res, expec)
 
+    def test_query(self):
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest
+        # comparison
+        df = DataFrame(np.random.randn(10, 3), columns=['a', 'b', 'c'])
+        assert_frame_equal(df.query('a < b'), df[df.a < df.b])
+
+        # arith ops
+        assert_frame_equal(df.query('a + b > b * c'),
+                           df[df.a + df.b > df.b * df.c])
+
+        local_dict = dict(df.iteritems())
+        local_dict.update({'df': df})
+        self.assertRaises(NameError, df.query, 'a < d & b < f',
+                          local_dict=local_dict)
+
+        # make sure that it's not just because we didn't pass the locals in
+        self.assertRaises(AssertionError, self.assertRaises, NameError,
+                          df.query, 'a < b', local_dict=local_dict)
+
+    def test_query_index(self):
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest
+
+        df = DataFrame(np.random.randn(10, 3), index=Index(range(10),
+                                                           name='blob'),
+                       columns=['a', 'b', 'c'])
+        assert_frame_equal(df.query('index < b'), df[df.index < df.b])
+        assert_frame_equal(df.query('index < 5'), df[df.index < 5])
+        assert_frame_equal(df.query('(blob < 5) & (a < b)'), df[(df.index < 5)
+                                                                & (df.a <
+                                                                   df.b)])
+        assert_frame_equal(df.query('blob < b'), df[df.index < df.b])
+
+
     #----------------------------------------------------------------------
     # Transposing
     def test_transpose(self):
@@ -8227,7 +8263,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         the_diff = tf.diff(1)
         assert_series_equal(the_diff['A'],
                             tf['A'] - tf['A'].shift(1))
-
 
     def test_diff_mixed_dtype(self):
         df = DataFrame(np.random.randn(5, 3))
@@ -10136,7 +10171,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df3.get_dtype_counts()
         expected = Series({'float64' : 2, 'object' : 2})
         assert_series_equal(result, expected)
-
 
     def test_reset_index(self):
         stacked = self.frame.stack()[::2]

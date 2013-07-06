@@ -3,10 +3,11 @@
 import unittest
 import itertools
 from itertools import product
+import ast
 
 import nose
 from nose.tools import assert_raises, assert_tuple_equal
-from nose.tools import assert_true, assert_false
+from nose.tools import assert_true, assert_false, assert_equal
 
 from numpy.random import randn, rand
 import numpy as np
@@ -15,12 +16,14 @@ from numpy.testing.decorators import slow
 
 import pandas as pd
 from pandas.core import common as com
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Panel
 from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.computation.engines import _engines, _reconstruct_object
 from pandas.computation.align import _align_core
+from pandas.computation.expr import NumExprVisitor, PythonExprVisitor
 from pandas.computation.ops import _binary_ops_dict, _unary_ops_dict, Term
 import pandas.computation.expr as expr
+from pandas.computation import pytables
 from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.computation.eval import Scope
 from pandas.util.testing import assert_frame_equal, randbool
@@ -96,7 +99,6 @@ def _series_and_2d_ndarray(lhs, rhs):
             > 1)
 
 
-# Smoke testing
 class TestBasicEval(unittest.TestCase):
 
     @classmethod
@@ -643,6 +645,86 @@ def check_or_fails(engine):
 def test_or_fails():
     for engine in _engines:
         check_or_fails(engine)
+
+
+_visitors = {'numexpr': NumExprVisitor, 'python': PythonExprVisitor,
+             'pytables': pytables.ExprVisitor}
+
+
+def check_disallowed_nodes(engine):
+    """make sure the disallowed decorator works"""
+    VisitorClass = _visitors[engine]
+    uns_ops = VisitorClass.unsupported_nodes
+    inst = VisitorClass('x + 1')
+    for ops in uns_ops:
+        assert_raises(NotImplementedError, getattr(inst, ops), inst, ast.AST())
+
+
+def test_disallowed_nodes():
+    for engine in ('pytables', 'numexpr', 'python'):
+        check_disallowed_nodes(engine)
+
+
+def check_simple_ops(engine):
+    ops = '+', '*', '/', '-', '%', '**'
+
+    for op in ops:
+        expec = _eval_single_bin(1, op, 1, engine_has_neg_frac(engine))
+        x = pd.eval('1 {0} 1'.format(op), engine=engine)
+        assert_equal(x, expec)
+
+        expec = _eval_single_bin(x, op, 1, engine_has_neg_frac(engine))
+        y = pd.eval('x {0} 1'.format(op), engine=engine)
+        assert_equal(y, expec)
+
+        expec = _eval_single_bin(1, op, x + 1, engine_has_neg_frac(engine))
+        y = pd.eval('1 {0} (x + 1)'.format(op), engine=engine)
+        assert_equal(y, expec)
+
+
+def test_simple_ops():
+    for engine in _engines:
+        check_simple_ops(engine)
+
+
+def check_no_new_locals(engine):
+    x = 1
+    lcls = locals().copy()
+    pd.eval('x + 1', local_dict=lcls)
+    lcls2 = locals().copy()
+    lcls2.pop('lcls')
+    assert_equal(lcls, lcls2)
+
+
+def test_no_new_locals():
+    for engine in _engines:
+        check_no_new_locals(engine)
+
+
+def check_no_new_globals(engine):
+    x = 1
+    gbls = globals().copy()
+    pd.eval('x + 1')
+    gbls2 = globals().copy()
+    assert_equal(gbls, gbls2)
+
+
+def test_no_new_globals():
+    for engine in _engines:
+        check_no_new_globals(engine)
+
+
+def check_panel_fails(engine):
+    x = Panel(randn(3, 4, 5))
+    y = Series(randn(10))
+    assert_raises(NotImplementedError, pd.eval, 'x + y', local_dict={'x': x,
+                                                                     'y': y},
+                  engine=engine)
+
+
+def test_panel_fails():
+    for engine in _engines:
+        check_panel_fails(engine)
 
 
 if __name__ == '__main__':
