@@ -1660,18 +1660,23 @@ class BlockManager(PandasObject):
 
             # duplicate index but only a single result
             if com.is_integer(indexer):
+
                 b, loc = ref_locs[indexer]
-                return b.iget(loc)
+                values = [ b.iget(loc) ]
+                index = Index([ self.items[indexer] ])
+
+            # we have a multiple result, potentially across blocks
             else:
 
-                # we have a multiple result, potentially across blocks
                 values = [ block.iget(i) for block, i in ref_locs[indexer] ]
                 index = self.items[indexer]
-                axes  = [ index ] + self.axes[1:]
-                blocks = form_blocks(values, index, axes)
-                mgr = BlockManager(blocks, axes)
-                mgr._consolidate_inplace()
-                return mgr
+
+            # create and return a new block manager
+            axes  = [ index ] + self.axes[1:]
+            blocks = form_blocks(values, index, axes)
+            mgr = BlockManager(blocks, axes)
+            mgr._consolidate_inplace()
+            return mgr
 
     def iget(self, i):
         item = self.items[i]

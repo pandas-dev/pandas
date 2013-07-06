@@ -2,6 +2,7 @@
 import unittest
 import nose
 import itertools
+from StringIO import StringIO
 
 from numpy import random, nan
 from numpy.random import randn
@@ -45,7 +46,7 @@ def _get_value(f, i, values=False):
     # check agains values
     if values:
         return f.values[i]
-     
+
     # this is equiv of f[col][row].....
     #v = f
     #for a in reversed(i):
@@ -70,7 +71,7 @@ def _get_result(obj, method, key, axis):
         xp  = getattr(obj, method).__getitem__(_axify(obj,key,axis))
     except:
         xp  = getattr(obj, method).__getitem__(key)
-        
+
     return xp
 
 def _axify(obj, key, axis):
@@ -127,11 +128,11 @@ class TestIndexing(unittest.TestCase):
             setattr(self,o,d)
 
     def check_values(self, f, func, values = False):
-           
+
         if f is None: return
         axes = f.axes
         indicies = itertools.product(*axes)
-        
+
         for i in indicies:
             result = getattr(f,func)[i]
 
@@ -194,7 +195,7 @@ class TestIndexing(unittest.TestCase):
                 if fails is True:
                     if result == 'fail':
                         result = 'ok (fail)'
-                    
+
                 if not result.startswith('ok'):
                     raise AssertionError(_print(result))
 
@@ -212,7 +213,7 @@ class TestIndexing(unittest.TestCase):
                         result = 'ok (%s)' % type(detail).__name__
                         _print(result)
                         return
-                
+
                 result = type(detail).__name__
                 raise AssertionError(_print(result, error = detail))
 
@@ -244,14 +245,14 @@ class TestIndexing(unittest.TestCase):
                     obj = d[t]
                     if obj is not None:
                         obj = obj.copy()
-                        
+
                         k2 = key2
                         _eq(t, o, a, obj, key1, k2)
 
     def test_at_and_iat_get(self):
 
         def _check(f, func, values = False):
-            
+
             if f is not None:
                 indicies = _generate_indices(f, values)
                 for i in indicies:
@@ -260,7 +261,7 @@ class TestIndexing(unittest.TestCase):
                     assert_almost_equal(result, expected)
 
         for o in self._objs:
-            
+
             d = getattr(self,o)
 
             # iat
@@ -274,11 +275,11 @@ class TestIndexing(unittest.TestCase):
             _check(d['labels'],'at')
             _check(d['ts'],    'at')
             _check(d['floats'],'at')
-                
+
     def test_at_and_iat_set(self):
 
         def _check(f, func, values = False):
-            
+
             if f is not None:
                 indicies = _generate_indices(f, values)
                 for i in indicies:
@@ -287,7 +288,7 @@ class TestIndexing(unittest.TestCase):
                     assert_almost_equal(expected, 1)
 
         for t in self._objs:
-            
+
             d = getattr(self,t)
 
             _check(d['ints'],'iat',values=True)
@@ -302,12 +303,12 @@ class TestIndexing(unittest.TestCase):
             _check(d['floats'],'at')
 
     def test_at_timestamp(self):
-            
+
         # as timestamp is not a tuple!
         dates = date_range('1/1/2000', periods=8)
         df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
         s = df['A']
-        
+
         result = s.at[dates[5]]
         xp     = s.values[5]
         self.assert_(result == xp)
@@ -320,7 +321,7 @@ class TestIndexing(unittest.TestCase):
         # integer
         self.check_result('integer', 'iloc', 2, 'ix', { 0 : 4, 1: 6, 2: 8 }, typs = ['ints'])
         self.check_result('integer', 'iloc', 2, 'indexer', 2, typs = ['labels','mixed','ts','floats','empty'], fails = IndexError)
-        
+
     def test_iloc_getitem_neg_int(self):
 
         # neg integer
@@ -332,7 +333,7 @@ class TestIndexing(unittest.TestCase):
         # list of ints
         self.check_result('list int', 'iloc', [0,1,2], 'ix', { 0 : [0,2,4], 1 : [0,3,6], 2: [0,4,8] }, typs = ['ints'])
         self.check_result('list int', 'iloc', [0,1,2], 'indexer', [0,1,2], typs = ['labels','mixed','ts','floats','empty'], fails = IndexError)
- 
+
     def test_iloc_getitem_dups(self):
 
         # no dups in panel (bug?)
@@ -378,7 +379,7 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_iloc_multiindex(self):
-        df = DataFrame(np.random.randn(3, 3), 
+        df = DataFrame(np.random.randn(3, 3),
                        columns=[[2,2,4],[6,8,10]],
                        index=[[4,4,8],[8,10,12]])
 
@@ -415,7 +416,7 @@ class TestIndexing(unittest.TestCase):
 
         # out of range label
         self.check_result('label range', 'loc', 'f', 'ix', 'f', typs = ['ints','labels','mixed','ts','floats'], fails=KeyError)
-        
+
     def test_loc_getitem_label_list(self):
 
         # list of labels
@@ -426,7 +427,7 @@ class TestIndexing(unittest.TestCase):
         self.check_result('list lbl', 'loc', ['A','B','C'], 'ix', ['A','B','C'], typs = ['labels'], axes=1)
         self.check_result('list lbl', 'loc', ['Z','Y','W'], 'ix', ['Z','Y','W'], typs = ['labels'], axes=2)
         self.check_result('list lbl', 'loc', [2,8,'null'], 'ix', [2,8,'null'], typs = ['mixed'], axes=0)
-        self.check_result('list lbl', 'loc', [Timestamp('20130102'),Timestamp('20130103')], 'ix', 
+        self.check_result('list lbl', 'loc', [Timestamp('20130102'),Timestamp('20130103')], 'ix',
                           [Timestamp('20130102'),Timestamp('20130103')], typs = ['ts'], axes=0)
 
         # fails
@@ -434,7 +435,7 @@ class TestIndexing(unittest.TestCase):
         self.check_result('list lbl', 'loc', [0,2,3], 'ix', [0,2,3], typs = ['ints'], axes=0, fails = KeyError)
         self.check_result('list lbl', 'loc', [3,6,7], 'ix', [3,6,9], typs = ['ints'], axes=1, fails = KeyError)
         self.check_result('list lbl', 'loc', [4,8,10], 'ix', [4,8,12], typs = ['ints'], axes=2, fails = KeyError)
- 
+
         # array like
         self.check_result('array like', 'loc', Series(index=[0,2,4]).index, 'ix', [0,2,4], typs = ['ints'], axes=0)
         self.check_result('array like', 'loc', Series(index=[3,6,9]).index, 'ix', [3,6,9], typs = ['ints'], axes=1)
@@ -449,10 +450,10 @@ class TestIndexing(unittest.TestCase):
 
     def test_loc_getitem_int_slice(self):
 
-        # int slices in int 
+        # int slices in int
         self.check_result('int slice1', 'loc', slice(2,4), 'ix', { 0 : [2,4], 1: [3,6], 2: [4,8] }, typs = ['ints'], fails=KeyError)
 
-        # ok 
+        # ok
         self.check_result('int slice2', 'loc', slice(2,4), 'ix', [2,4], typs = ['ints'], axes = 0)
         self.check_result('int slice2', 'loc', slice(3,6), 'ix', [3,6], typs = ['ints'], axes = 1)
         self.check_result('int slice2', 'loc', slice(4,8), 'ix', [4,8], typs = ['ints'], axes = 2)
@@ -589,7 +590,7 @@ class TestIndexing(unittest.TestCase):
         result = df.iloc[s.index]
         expected = df.ix[[2,4,6,8]]
         assert_frame_equal(result, expected)
-        
+
         # out-of-bounds slice
         self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(None),slice(1,5,None)]))
         self.assertRaises(IndexError, df.iloc.__getitem__, tuple([slice(None),slice(-5,3,None)]))
@@ -648,7 +649,7 @@ class TestIndexing(unittest.TestCase):
                                                               ['A', 'A', 'B']],
                               index=[['i', 'i', 'j', 'k'], ['X', 'X', 'Y','Y']])
 
-        mi_int    = DataFrame(np.random.randn(3, 3), 
+        mi_int    = DataFrame(np.random.randn(3, 3),
                               columns=[[2,2,4],[6,8,10]],
                               index=[[4,4,8],[8,10,12]])
 
@@ -679,7 +680,7 @@ class TestIndexing(unittest.TestCase):
                                                               ['A', 'A', 'B']],
                               index=[['i', 'i', 'j'], ['X', 'X', 'Y']])
 
-        mi_int    = DataFrame(np.random.randn(3, 3), 
+        mi_int    = DataFrame(np.random.randn(3, 3),
                               columns=[[2,2,4],[6,8,10]],
                               index=[[4,4,8],[8,10,12]])
 
@@ -749,7 +750,7 @@ class TestIndexing(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
- 
+
         # GH3216
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df['c'] = np.nan
@@ -761,7 +762,7 @@ class TestIndexing(unittest.TestCase):
 
     def test_setitem_iloc(self):
 
-        
+
         # setitem with an iloc list
         df = DataFrame(np.arange(9).reshape((3, 3)), index=["A", "B", "C"], columns=["A", "B", "C"])
         df.iloc[[0,1],[1,2]]
@@ -830,20 +831,20 @@ class TestIndexing(unittest.TestCase):
         self.assert_(df.iloc[0,2] == '-----')
 
         #if I look at df, then element [0,2] equals '_'. If instead I type df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I get '_'.
-                
+
 
     def test_set_index_nan(self):
 
         # GH 3586
-        df = DataFrame({'PRuid': {17: 'nonQC', 18: 'nonQC', 19: 'nonQC', 20: '10', 21: '11', 22: '12', 23: '13', 
-                                  24: '24', 25: '35', 26: '46', 27: '47', 28: '48', 29: '59', 30: '10'}, 
-                        'QC': {17: 0.0, 18: 0.0, 19: 0.0, 20: nan, 21: nan, 22: nan, 23: nan, 24: 1.0, 25: nan, 
-                               26: nan, 27: nan, 28: nan, 29: nan, 30: nan}, 
-                        'data': {17: 7.9544899999999998, 18: 8.0142609999999994, 19: 7.8591520000000008, 20: 0.86140349999999999, 
+        df = DataFrame({'PRuid': {17: 'nonQC', 18: 'nonQC', 19: 'nonQC', 20: '10', 21: '11', 22: '12', 23: '13',
+                                  24: '24', 25: '35', 26: '46', 27: '47', 28: '48', 29: '59', 30: '10'},
+                        'QC': {17: 0.0, 18: 0.0, 19: 0.0, 20: nan, 21: nan, 22: nan, 23: nan, 24: 1.0, 25: nan,
+                               26: nan, 27: nan, 28: nan, 29: nan, 30: nan},
+                        'data': {17: 7.9544899999999998, 18: 8.0142609999999994, 19: 7.8591520000000008, 20: 0.86140349999999999,
                                  21: 0.87853110000000001, 22: 0.8427041999999999, 23: 0.78587700000000005, 24: 0.73062459999999996,
-                                 25: 0.81668560000000001, 26: 0.81927080000000008, 27: 0.80705009999999999, 28: 0.81440240000000008, 
-                                 29: 0.80140849999999997, 30: 0.81307740000000006}, 
-                        'year': {17: 2006, 18: 2007, 19: 2008, 20: 1985, 21: 1985, 22: 1985, 23: 1985, 
+                                 25: 0.81668560000000001, 26: 0.81927080000000008, 27: 0.80705009999999999, 28: 0.81440240000000008,
+                                 29: 0.80140849999999997, 30: 0.81307740000000006},
+                        'year': {17: 2006, 18: 2007, 19: 2008, 20: 1985, 21: 1985, 22: 1985, 23: 1985,
                                  24: 1985, 25: 1985, 26: 1985, 27: 1985, 28: 1985, 29: 1985, 30: 1986}}).reset_index()
 
         result = df.set_index(['year','PRuid','QC']).reset_index().reindex(columns=df.columns)
@@ -871,7 +872,7 @@ class TestIndexing(unittest.TestCase):
         self.assert_(p.iloc[1, 1, :3].shape == (3,))
         self.assert_(p.iloc[1, :3, 1].shape == (3,))
         self.assert_(p.iloc[:3, 1, 1].shape == (3,))
-      
+
     def test_multi_assign(self):
 
         # GH 3626, an assignement of a sub-df to a df
@@ -892,7 +893,7 @@ class TestIndexing(unittest.TestCase):
                               'PF':[0,0,0,0,1,1],
                               'col1':Series([0,1,4,6,8,10]),
                               'col2':[12,7,16,np.nan,20,22]})
-        
+
 
         # frame on rhs
         df2.ix[mask, cols]= dft.ix[mask, cols]
@@ -1006,7 +1007,7 @@ class TestIndexing(unittest.TestCase):
         ## https://groups.google.com/forum/?fromgroups#!topic/pydata/zTm2No0crYs
 
         # these are going to raise becuase the we are non monotonic
-        df = DataFrame({'A' : [1,2,3,4,5,6], 'B' : [3,4,5,6,7,8]}, index = [0,1,0,1,2,3]) 
+        df = DataFrame({'A' : [1,2,3,4,5,6], 'B' : [3,4,5,6,7,8]}, index = [0,1,0,1,2,3])
         self.assertRaises(KeyError, df.loc.__getitem__, tuple([slice(1,None)]))
         self.assertRaises(KeyError, df.loc.__getitem__, tuple([slice(0,None)]))
         self.assertRaises(KeyError, df.loc.__getitem__, tuple([slice(1,2)]))
@@ -1066,6 +1067,36 @@ class TestIndexing(unittest.TestCase):
         result = df2.loc[idx]
         assert_frame_equal(result, expected)
 
+    def test_mi_access(self):
+
+        # GH 4145
+        data = """h1 main  h3 sub  h5
+0  a    A   1  A1   1
+1  b    B   2  B1   2
+2  c    B   3  A1   3
+3  d    A   4  B2   4
+4  e    A   5  B2   5
+5  f    B   6  A2   6
+"""
+
+        df = pd.read_csv(StringIO(data),sep='\s+',index_col=0)
+        df2 = df.set_index(['main', 'sub']).T.sort_index(1)
+        index = Index(['h1','h3','h5'])
+        columns = MultiIndex.from_tuples([('A','A1')],names=['main','sub'])
+        expected = DataFrame([['a',1,1]],index=columns,columns=index).T
+
+        result = df2.loc[:,('A','A1')]
+        assert_frame_equal(result,expected)
+
+        result = df2[('A','A1')]
+        assert_frame_equal(result,expected)
+
+        # GH 4146, not returning a block manager when selecting a unique index
+        # from a duplicate index
+        expected = DataFrame([['a',1,1]],index=['A1'],columns=['h1','h3','h5'],).T
+        df3 = df2['A']
+        result = df3['A1']
+        assert_frame_equal(result,expected)
 
 if __name__ == '__main__':
     import nose
