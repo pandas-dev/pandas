@@ -1,6 +1,11 @@
 import ast
 import sys
+import itertools
+import tokenize
+import re
+from cStringIO import StringIO
 from functools import partial
+
 
 from pandas.core.base import StringMixin
 from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops
@@ -26,12 +31,38 @@ class ExprParserError(Exception):
     pass
 
 
+def _rewrite_assign(source):
+    res = []
+    g = tokenize.generate_tokens(StringIO(source).readline)
+    for toknum, tokval, _, _, _ in g:
+        res.append((toknum, '==' if tokval == '=' else tokval))
+    return tokenize.untokenize(res)
+
+
+def _parenthesize_booleans(source, ops='|&'):
+    res = source
+    for op in ops:
+        terms = res.split(op)
+
+        t = []
+        for term in terms:
+            t.append('({0})'.format(term))
+
+        res = op.join(t)
+    return res
+
+
+def preparse(source):
+    return _parenthesize_booleans(_rewrite_assign(source))
+
+
 class ExprVisitor(ast.NodeVisitor):
     """Custom ast walker
     """
     bin_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
-    bin_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd', 'BitOr',
-                    'Add', 'Sub', 'Mult', 'Div', 'Pow', 'FloorDiv', 'Mod')
+    bin_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', None,
+                    'BitAnd', 'BitOr', 'Add', 'Sub', 'Mult', 'Div', 'Pow',
+                    'FloorDiv', 'Mod')
     bin_op_nodes_map = dict(zip(bin_ops, bin_op_nodes))
 
     unary_ops = _unary_ops_syms
@@ -39,7 +70,7 @@ class ExprVisitor(ast.NodeVisitor):
     unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
 
     def __init__(self, env):
-        for bin_op in self.bin_ops:
+        for bin_op in itertools.ifilter(lambda x: x is not None, self.bin_ops):
             setattr(self, 'visit_{0}'.format(self.bin_op_nodes_map[bin_op]),
                     lambda node, bin_op=bin_op: partial(BinOp, bin_op))
 
@@ -54,7 +85,7 @@ class ExprVisitor(ast.NodeVisitor):
             raise TypeError('"node" must be an AST node or a string, you'
                             ' passed a(n) {0}'.format(node.__class__))
         if isinstance(node, basestring):
-            node = ast.fix_missing_locations(ast.parse(node))
+            node = ast.fix_missing_locations(ast.parse(preparse(node)))
         return super(ExprVisitor, self).visit(node)
 
     def visit_Module(self, node):
@@ -62,7 +93,7 @@ class ExprVisitor(ast.NodeVisitor):
             raise ExprParserError('only a single expression is allowed')
 
         expr = node.body[0]
-        if not isinstance(expr, ast.Expr):
+        if not isinstance(expr, (ast.Expr, ast.Assign)):
             raise SyntaxError('only expressions are allowed')
 
         return self.visit(expr)
@@ -94,6 +125,12 @@ class ExprVisitor(ast.NodeVisitor):
         if len(ops) != 1:
             raise ExprParserError('chained comparisons not supported')
         return self.visit(ops[0])(self.visit(node.left), self.visit(comps[0]))
+
+    def visit_Assign(self, node):
+        cmpr = ast.copy_location(ast.Compare(ops=[ast.Eq()],
+                                             left=node.targets[0],
+                                             comparators=[node.value]), node)
+        return self.visit(cmpr)
 
     def visit_Call(self, node):
         if not isinstance(node.func, ast.Name):
