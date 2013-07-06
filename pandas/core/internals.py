@@ -1554,6 +1554,12 @@ class BlockManager(PandasObject):
 
         return result
 
+    def maybe_changed(self, item, value):
+        """ our obj may have changed dtype """
+        current = self.get(item)
+        if current.dtype != value.dtype:
+            self.set(item, value)
+
     def xs(self, key, axis=1, copy=True):
         if axis < 1:
             raise AssertionError('Can only take xs across axis >= 1, got %d'
