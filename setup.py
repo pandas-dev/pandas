@@ -54,7 +54,6 @@ if sys.version_info[0] >= 3:
                  "\n$ pip install distribute")
 
 else:
-    min_numpy_ver = '1.6.1'
     setuptools_kwargs = {
         'install_requires': ['python-dateutil',
                              'pytz',

@@ -23,8 +23,9 @@ pip Install -I https://bitbucket.org/pypa/setuptools/downloads/setuptools-0.8b6.
 pip install wheel
 
 # comment this line to disable the fetching of wheel files
-PIP_ARGS+=" -I --use-wheel --find-links=https://cache27-pypandas.rhcloud.com/"
+PIP_ARGS+=" --use-wheel --find-links=https://cache27-pypandas.rhcloud.com/"
 
+SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
 # Force virtualenv to accpet system_site_packages
 rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
@@ -57,11 +58,9 @@ for dep in nose 'python-dateutil' 'pytz>=2013a' 'cython==0.19.1'; do
     time pip install $PIP_ARGS $dep
 done
 
+
 if [ ${TRAVIS_PYTHON_VERSION} == "3.3" ]; then # should be >=3,3
     time pip install $PIP_ARGS numpy==1.7.1
-elif [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
-    # sudo apt-get $APT_ARGS install python3-numpy; # 1.6.2 or precise
-    time pip install $PIP_ARGS numpy==1.6.1
 else
     time pip install $PIP_ARGS numpy==1.6.1
 fi
@@ -70,13 +69,12 @@ fi
 if [ x"$FULL_DEPS" == x"true" ]; then
     echo "Installing FULL_DEPS"
 
+    time pip install $PIP_ARGS numexpr==2.1
     if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
         time pip install $PIP_ARGS xlwt
         time pip install $PIP_ARGS bottleneck==0.6.0
-        time pip install $PIP_ARGS numexpr==2.1
         time pip install $PIP_ARGS tables==2.3.1
     else
-        time pip install $PIP_ARGS numexpr==2.1
         time pip install $PIP_ARGS tables==3.0.0
     fi
 
