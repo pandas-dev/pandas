@@ -15,85 +15,42 @@
 
 echo "inside $0"
 
-# Install Dependencie
+# Install Dependencies
 # as of pip 1.4rc2, wheel files are still being broken regularly, this is a known good
 # commit. should revert to pypi when a final release is out
 pip install -I git+https://github.com/pypa/pip@42102e9deaea99db08b681d06906c2945f6f95e2#egg=pip
-pip Install -I https://bitbucket.org/pypa/setuptools/downloads/setuptools-0.8b6.tar.gz
+pv="${TRAVIS_PYTHON_VERSION:0:1}"
+[ "$pv" == "2" ] && pv=""
+[ "$pv" == "2" ] && DISTRIBUTE_VERSION="==0.6.35"
+
+pip install -I distribute${DISTRIBUTE_VERSION}
 pip install wheel
 
 # comment this line to disable the fetching of wheel files
-#PIP_ARGS+=" -I --use-wheel --find-links=https://cache27-pypandas.rhcloud.com/"
+PIP_ARGS+=" -I --use-wheel --find-links=http://cache27diy-cpycloud.rhcloud.com/${TRAVIS_PYTHON_VERSION}${JOB_TAG}/"
 
 # Force virtualenv to accpet system_site_packages
 rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
-if [ x"$LOCALE_OVERRIDE" != x"" ]; then
+
+if [ -n "$LOCALE_OVERRIDE" ]; then
     # make sure the locale is available
     # probably useless, since you would need to relogin
     sudo locale-gen "$LOCALE_OVERRIDE"
-fi;
-
-#scipy is not included in the cached venv
-if [ x"$FULL_DEPS" == x"true" ] ; then
-   # for pytables gets the lib as well
-  time sudo apt-get $APT_ARGS install libhdf5-serial-dev
-
-   if [ ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
-     time sudo apt-get $APT_ARGS install python3-bs4
-   elif [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-     time sudo apt-get $APT_ARGS install python-bs4
-   fi
-
-   if [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
-       time sudo apt-get $APT_ARGS install python3-scipy
-   elif [ ${TRAVIS_PYTHON_VERSION} == "2.7" ]; then
-       time sudo apt-get $APT_ARGS install python-scipy
-   fi
 fi
 
-# Hard Deps
-for dep in nose 'python-dateutil' 'pytz>=2013a' 'cython==0.19.1'; do
-    time pip install $PIP_ARGS $dep
-done
-
-if [ ${TRAVIS_PYTHON_VERSION} == "3.3" ]; then # should be >=3,3
-    time pip install $PIP_ARGS numpy==1.7.1
-elif [ ${TRAVIS_PYTHON_VERSION} == "3.2" ]; then
-    # sudo apt-get $APT_ARGS install python3-numpy; # 1.6.2 or precise
-    time pip install $PIP_ARGS numpy==1.6.1
-else
-    time pip install $PIP_ARGS numpy==1.6.1
-fi
+time pip install $PIP_ARGS -r ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt
 
 # Optional Deps
 if [ x"$FULL_DEPS" == x"true" ]; then
     echo "Installing FULL_DEPS"
+   # for pytables gets the lib as well
+    time sudo apt-get $APT_ARGS install libhdf5-serial-dev
+    time sudo apt-get $APT_ARGS install python${pv}-bs4
+    time sudo apt-get $APT_ARGS install python${pv}-scipy
 
-    if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-        time pip install $PIP_ARGS xlwt
-        time pip install $PIP_ARGS bottleneck==0.6.0
-        time pip install $PIP_ARGS numexpr==2.1
-        time pip install $PIP_ARGS tables==2.3.1
-    else
-        time pip install $PIP_ARGS numexpr==2.1
-        time pip install $PIP_ARGS tables==3.0.0
-    fi
+    time sudo apt-get $APT_ARGS remove python${pv}-lxml
 
-    time pip install $PIP_ARGS matplotlib==1.2.1
-    time pip install $PIP_ARGS openpyxl
-    time pip install $PIP_ARGS xlrd>=0.9.0
-    time pip install $PIP_ARGS 'http://downloads.sourceforge.net/project/pytseries/scikits.timeseries/0.91.3/scikits.timeseries-0.91.3.tar.gz?r='
-    time pip install $PIP_ARGS patsy
-    time pip install $PIP_ARGS html5lib
-
-    if [ ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
-      time sudo apt-get $APT_ARGS remove python3-lxml
-    elif [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      time sudo apt-get $APT_ARGS remove python-lxml
-    fi
-
-    pip install $PIP_ARGS lxml
     # fool statsmodels into thinking pandas was already installed
     # so it won't refuse to install itself.
 

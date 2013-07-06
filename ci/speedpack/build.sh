@@ -6,93 +6,71 @@
 #
 # Runtime can be up to an hour or more.
 
-echo "Running build.sh..."
+echo "Building wheels..."
+
+# print a trace for everything; RTFM
 set -x
 
-WHEEL_DIR=/wheelhouse
-VERSIONS="2.6 2.7 3.2 3.3"
-SCRIPT_FILE="/tmp/run.sh"
-PARALLEL=false
-
-export PIP_ARGS=" --download-cache /tmp -w $WHEEL_DIR --use-wheel --find-links=$WHEEL_DIR"
-
+# install and update some basics
 apt-get update
 apt-get install python-software-properties git -y
 apt-add-repository ppa:fkrull/deadsnakes -y
 apt-get update
 
+# install some deps and virtualenv
 apt-get install python-pip libfreetype6-dev libpng12-dev -y
 pip install virtualenv
 apt-get install libhdf5-serial-dev g++ -y
+apt-get build-dep python-lxml -y
 
+export PYTHONIOENCODING='utf-8'
 
-function generate_wheels {
-	VER=$1
-	set -x
+function generate_wheels() {
+    # get the requirements file
+    local reqfile="$1"
 
-	if [ x"$VIRTUAL_ENV" != x"" ]; then
-		deactivate
-	fi
+    # get the python version
+    local TAG=$(echo $reqfile |  grep -Po "(\d\.?[\d\-](_\w+)?)")
 
-	cd ~/
-	sudo rm -Rf venv-$VER
-	virtualenv -p python$VER venv-$VER
-	source venv-$VER/bin/activate
+    # base dir for wheel dirs
+    local WHEELSTREET=/wheelhouse
+    local WHEELHOUSE="$WHEELSTREET/$TAG"
 
-	pip install -I --download-cache /tmp git+https://github.com/pypa/pip@42102e9d#egg=pip
-	pip install -I --download-cache  /tmp https://bitbucket.org/pypa/setuptools/downloads/setuptools-0.8b6.tar.gz
-	pip install -I --download-cache /tmp wheel
+    local PY_VER="${TAG:0:3}"
+    local PY_MAJOR="${PY_VER:0:1}"
+    local PIP_ARGS="--use-wheel --find-links=$WHEELHOUSE --download-cache /tmp"
 
-	export INCLUDE_PATH=/usr/include/python$VER/
-	export C_INCLUDE_PATH=/usr/include/python$VER/
-	pip wheel $PIP_ARGS cython==0.19.1
-	pip install --use-wheel --find-links=$WHEEL_DIR cython==0.19.1
+    # install the python version if not installed
+    apt-get install python$PY_VER python$PY_VER-dev -y
 
-	pip wheel $PIP_ARGS numpy==1.6.1
-	pip wheel $PIP_ARGS numpy==1.7.1
-	pip install --use-wheel --find-links=$WHEEL_DIR numpy==1.7.1
-	pip wheel $PIP_ARGS bottleneck==0.6.0
+    # create a new virtualenv
+    rm -Rf /tmp/venv
+    virtualenv -p python$PY_VER /tmp/venv
+    source /tmp/venv/bin/activate
 
-	pip wheel $PIP_ARGS numexpr==1.4.2
-	pip install --use-wheel --find-links=$WHEEL_DIR numexpr==1.4.2
-	pip wheel $PIP_ARGS tables==2.3.1
-	pip wheel $PIP_ARGS tables==2.4.0
+    # install pip setuptools
+    pip install -I --download-cache /tmp 'git+https://github.com/pypa/pip@42102e9d#egg=pip'
+    DISTRIBUTE_VERSION=
+    if [ "${PY_MAJOR}" == "2" ]; then
+        DISTRIBUTE_VERSION="==0.6.35"
+    fi
+    pip install -I --download-cache /tmp distribute${DISTRIBUTE_VERSION}
+    pip install -I --download-cache /tmp wheel
 
-	pip uninstall numexpr -y
-	pip wheel $PIP_ARGS numexpr==2.1
-	pip install --use-wheel --find-links=$WHEEL_DIR numexpr==2.1
-	pip wheel $PIP_ARGS tables==3.0.0
-	pip uninstall numexpr -y
+    # make the dir if it doesn't exist
+    mkdir -p $WHEELHOUSE
 
-	pip wheel $PIP_ARGS matplotlib==1.2.1
+    # put the requirements file in the wheelhouse
+    cp $reqfile $WHEELHOUSE
+
+    # install and build the wheels
+    cat $reqfile | while read N; do
+        pip wheel $PIP_ARGS --wheel-dir=$WHEELHOUSE $N
+        pip install $PIP_ARGS --no-index $N
+    done
 }
 
 
-for VER in $VERSIONS ; do
-	apt-get install python$VER python$VER-dev -y
+for reqfile in $(ls -1 /reqf/requirements-*.*); do
+    generate_wheels "$reqfile"
 done
-
-if $PARALLEL; then
-	echo '#!/bin/bash' > $SCRIPT_FILE
-	echo "export WHEEL_DIR=$WHEEL_DIR" >> $SCRIPT_FILE
-	echo "export PIP_ARGS='$PIP_ARGS'">> $SCRIPT_FILE
-
-	declare -f generate_wheels >>  $SCRIPT_FILE
-	echo 'generate_wheels $1' >> $SCRIPT_FILE
-	chmod u+x $SCRIPT_FILE
-
-	pip install -I --download-cache /tmp git+https://github.com/pypa/pip@42102e9d#egg=pip
-	pip install --download-cache /tmp --no-install wheel
-	pip install --download-cache /tmp --no-install https://bitbucket.org/pypa/setuptools/downloads/setuptools-0.8b6.tar.gz
-
-	for VER in 2.6 2.7 3.2 3.3 ; do
-		$SCRIPT_FILE  $VER &
-	done
-
-	wait
-
-else
-	for VER in 2.6 2.7 3.2 3.3 ; do
-		generate_wheels $VER
-	done
-fi
