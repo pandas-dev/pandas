@@ -75,13 +75,14 @@ pandas 0.12
   - Simplified the API and added a describe method to Categorical
   - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame (:issue:`3649`),
-    thanks @hoechenberger
+    thanks @hoechenberger. If ``var_name`` is not specified and ``dataframe.columns.name`` 
+    is not None, then this will be used as the ``var_name`` (:issue:`4144`).
   - clipboard functions use pyperclip (no dependencies on Windows, alternative
     dependencies offered for Linux) (:issue:`3837`).
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
     if the associated objects have have a dtype of ``object`` (:issue:`1818`,
-    :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object arrays to
-    numeric arrays if possible so that you can still plot, for example, an
+    :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object
+    arrays to numeric arrays if possible so that you can still plot, for example, an
     object array with floats. This happens before any drawing takes place which
     elimnates any spurious plots from showing up.
   - Added Faq section on repr display options, to help users customize their setup.
