@@ -25,7 +25,8 @@ class AbstractEngine(object):
                                                          self.expr.env)
 
         res = self._evaluate(self.expr.env)
-        return _reconstruct_object(self.result_type, res, self.aligned_axes)
+        return _reconstruct_object(self.result_type, res, self.aligned_axes,
+                                   self.expr.terms.return_type)
 
     @property
     def _is_aligned(self):
