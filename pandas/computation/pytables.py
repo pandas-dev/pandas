@@ -309,8 +309,11 @@ class ExprVisitor(expr.ExprVisitor):
         attr = node.attr
         value = node.value
 
-        # resolve the value
-        return getattr(self.visit(value).value,attr)
+        ctx = node.ctx.__class__
+        if ctx == ast.Load:
+            # resolve the value
+            return getattr(self.visit(value).value,attr)
+        raise ValueError("Invalid Attribute context {0}".format(ctx.__name__))
 
     def visit_Call(self, node, **kwargs):
         if not isinstance(node.func, ast.Name):

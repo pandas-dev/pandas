@@ -78,15 +78,8 @@ class ExprVisitor(ast.NodeVisitor):
                     lambda node, unary_op=unary_op: partial(UnaryOp, unary_op))
         self.env = env
 
-    def generic_visit(self, node, **kwargs):
-        """Called if no explicit visitor function exists for a node."""
-        for field, value in ast.iter_fields(node):
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, ast.AST):
-                        self.visit(item, **kwargs)
-            elif isinstance(value, ast.AST):
-                self.visit(value, **kwargs)
+    def not_implemented(self, s):
+        raise NotImplementedError("{0} not yet supported".format(s))
 
     def visit(self, node, **kwargs):
         if not (isinstance(node, ast.AST) or isinstance(node, basestring)):
@@ -98,8 +91,7 @@ class ExprVisitor(ast.NodeVisitor):
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, None)
         if visitor is None:
-            visitor = self.generic_visit
-            print method
+            self.not_implemented("ast visitor [{0}]".format(method))
         return visitor(node, **kwargs)
 
     def visit_Module(self, node, **kwargs):
@@ -123,7 +115,7 @@ class ExprVisitor(ast.NodeVisitor):
 
     def visit_UnaryOp(self, node, **kwargs):
         if isinstance(node.op, ast.Not):
-            raise NotImplementedError("not operator not yet supported")
+            self.not_implemented('not operator')
         op = self.visit(node.op)
         return op(self.visit(node.operand))
 
@@ -135,6 +127,9 @@ class ExprVisitor(ast.NodeVisitor):
 
     def visit_Num(self, node, **kwargs):
         return Constant(node.n, self.env)
+
+    def visit_Str(self, node, **kwargs):
+        return Value(node.s, self.env)
 
     def visit_Index(self, node, **kwargs):
         """ df.index[4] """
@@ -183,13 +178,13 @@ class ExprVisitor(ast.NodeVisitor):
         if node.func.id not in valid_ops:
             raise ValueError("Only {0} are supported".format(valid_ops))
 
-        raise NotImplementedError("function calls not yet supported")
+        self.not_implemented('function calls')
 
     def visit_Attribute(self, node, **kwargs):
-        raise NotImplementedError("attribute access is not yet supported")
+        self.not_implemented('attribute access')
 
     def visit_BoolOp(self, node, **kwargs):
-        raise NotImplementedError("boolean operators are not yet supported")
+        self.not_implemented('boolean operators')
 
 
 class Expr(StringMixin):
