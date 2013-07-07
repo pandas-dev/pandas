@@ -80,12 +80,12 @@ class ExprVisitor(ast.NodeVisitor):
 
     def generic_visit(self, node, **kwargs):
         """Called if no explicit visitor function exists for a node."""
-        for field, value in iter_fields(node):
+        for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
-                    if isinstance(item, AST):
+                    if isinstance(item, ast.AST):
                         self.visit(item, **kwargs)
-            elif isinstance(value, AST):
+            elif isinstance(value, ast.AST):
                 self.visit(value, **kwargs)
 
     def visit(self, node, **kwargs):
