@@ -593,7 +593,7 @@ class TestHDFStore(unittest.TestCase):
 
             # this isn't supported
             self.assertRaises(TypeError, store.select, 'df1', (
-                    'columns=A', Term('index', '>', df.index[4])))
+                    'columns=A', Term('index>df.index[4]')))
 
     def test_append_with_different_block_ordering(self):
 
@@ -816,7 +816,7 @@ class TestHDFStore(unittest.TestCase):
 
             # data column searching (with an indexable and a data_columns)
             result = store.select(
-                'df', [Term('B>0'), Term('index', '>', df.index[3])])
+                'df', [Term('B>0'), Term('index>df.index[3]')])
             df_new = df.reindex(index=df.index[4:])
             expected = df_new[df_new.B > 0]
             tm.assert_frame_equal(result, expected)
@@ -828,7 +828,7 @@ class TestHDFStore(unittest.TestCase):
             df_new['string'][5:6] = 'bar'
             _maybe_remove(store, 'df')
             store.append('df', df_new, data_columns=['string'])
-            result = store.select('df', [Term('string', '=', 'foo')])
+            result = store.select('df', [Term('string=foo')])
             expected = df_new[df_new.string == 'foo']
             tm.assert_frame_equal(result, expected)
 
@@ -2668,7 +2668,7 @@ class TestHDFStore(unittest.TestCase):
             # old version warning
             warnings.filterwarnings('ignore', category=IncompatibilityWarning)
             self.assertRaises(
-                Exception, store.select, 'wp1', Term('minor_axis', '=', 'B'))
+                Exception, store.select, 'wp1', Term('minor_axis=B'))
 
             df2 = store.select('df2')
             store.select('df2', Term('index', '>', df2.index[2]))

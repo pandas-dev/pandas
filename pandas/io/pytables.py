@@ -3714,14 +3714,15 @@ class Selection(object):
         if where is None:
             return None
 
-        import pdb; pd.set_trace()
-        if isinstance(where, basestring):
-            pass
-        elif isinstance(where, (list, tuple)):
+        lcls = dict()
+        if isinstance(where, (list, tuple)):
+            for w in where:
+                if isinstance(w, Term):
+                    lcls.update(w.env.locals)
             where = ' & ' .join([ "(%s)" % w for w in where])
 
         queryables = self.table.queryables()
-        return Expr(where, queryables=queryables, encoding=self.table.encoding)
+        return Expr(where, queryables=queryables, encoding=self.table.encoding, lcls=lcls)
 
     def select(self):
         """
