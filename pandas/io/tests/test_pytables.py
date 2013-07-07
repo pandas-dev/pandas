@@ -1551,19 +1551,20 @@ class TestHDFStore(unittest.TestCase):
                 ["minor=['A', 'B']"],
                 ["index=['20121114']"],
                 ["index=['20121114', '20121114']"],
+                ['major=20121114'],                  # passing an integer as the value
                 ]
             for t in terms:
-                self.assertRaises(Exception, store.select, 'wp', t)
+                self.assertRaises(ValueError, store.select, 'wp', t)
 
-            self.assertRaises(Exception, Term.__init__)
-            self.assertRaises(Exception, Term.__init__, 'blah')
-            self.assertRaises(Exception, Term.__init__, 'index')
+            self.assertRaises(TypeError, Term.__init__)
+            self.assertRaises(TypeError, Term.__init__, 'blah')
+            self.assertRaises(TypeError, Term.__init__, 'index')
             self.assertRaises(TypeError, Term.__init__, 'index', '==')
             self.assertRaises(TypeError, Term.__init__, 'index', '>', 5)
 
             # panel
             result = store.select('wp', [Term(
-                        'major_axis<20000108'), Term("minor_axis=['A', 'B']")])
+                        'major_axis<"20000108"'), Term("minor_axis=['A', 'B']")])
             expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
             tm.assert_panel_equal(result, expected)
 
@@ -2274,7 +2275,7 @@ class TestHDFStore(unittest.TestCase):
             tm.assert_panel_equal(result, expected)
 
             result = store.select(
-                'wp', ['major_axis>=20000124', ("minor_axis=['A', 'B']")])
+                'wp', ['major_axis>="20000124"', ("minor_axis=['A', 'B']")])
             expected = wp.truncate(before='20000124').reindex(minor=['A', 'B'])
             tm.assert_panel_equal(result, expected)
 
@@ -2290,7 +2291,6 @@ class TestHDFStore(unittest.TestCase):
             crit2 = ("columns=['A', 'D']")
             crit3 = ('columns=A')
 
-            import pdb; pdb.set_trace()
             result = store.select('frame', [crit1, crit2])
             expected = df.ix[date:, ['A', 'D']]
             tm.assert_frame_equal(result, expected)

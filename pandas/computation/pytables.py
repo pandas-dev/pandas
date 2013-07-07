@@ -134,6 +134,9 @@ class BinOp(ops.BinOp):
 
         kind = _ensure_decoded(self.kind)
         if kind == u'datetime64' or kind == u'datetime':
+
+            if isinstance(v, (int, float)):
+                raise ValueError("cannot index datelike with an integer/float value")
             v = lib.Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
@@ -340,7 +343,7 @@ class Expr(expr.Expr):
 
     Parameters
     ----------
-    field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
+    where : string term expression, Expr, or list-like of Exprs
     queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
     encoding : an encoding that will encode the query terms
 
@@ -352,24 +355,31 @@ class Expr(expr.Expr):
     --------
     """
 
-    def __init__(self, expression, queryables=None, encoding=None, lcls=None):
-        if isinstance(expression, Expr):
-            expression = str(expression)
-        self.expr = expression
+    def __init__(self, where, queryables=None, encoding=None, scope_level=None):
+        self.encoding = encoding
         self.condition = None
         self.filter = None
         self.terms = None
         self._visitor = None
 
-        # add current locals scope
-        frame = inspect.currentframe()
-        try:
-            if lcls is None:
-                lcls = dict()
-            lcls.update(frame.f_back.f_locals)
-            self.env = Scope(lcls = lcls)
-        finally:
-            del frame
+        # capture the environement if needed
+        lcls = dict()
+        if isinstance(where, Expr):
+
+            lcls.update(where.env.locals)
+            where = str(where)
+
+        elif isinstance(where, (list, tuple)):
+
+            for w in where:
+                if isinstance(w, Expr):
+                    lcls.update(w.env.locals)
+
+            where = ' & ' .join([ "(%s)" % w for w in where])
+
+        self.expr = where
+        self.env = Scope(lcls = lcls)
+        self.env.update(scope_level)
 
         if queryables is not None:
 

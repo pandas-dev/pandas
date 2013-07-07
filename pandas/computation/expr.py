@@ -1,5 +1,5 @@
 import ast
-import sys
+import sys, inspect
 import itertools
 import tokenize
 import re
@@ -24,6 +24,27 @@ class Scope(object):
             self.locals = lcls or frame.f_locals.copy()
         finally:
             del frame
+
+
+    def update(self, scope_level=None):
+
+        # we are always 2 levels below the caller
+        # plus the caller maybe below the env level
+        # in which case we need addtl levels
+        sl = 2
+        if scope_level is not None:
+            sl += scope_level
+
+        # add current locals scope
+        frame = inspect.currentframe()
+        try:
+            while(sl>0):
+                frame = frame.f_back
+                sl -= 1
+            self.locals.update(frame.f_locals)
+        finally:
+            del frame
+
 
 class ExprParserError(Exception):
     pass
@@ -120,7 +141,7 @@ class ExprVisitor(ast.NodeVisitor):
         return op(self.visit(node.operand))
 
     def visit_List(self, node, **kwargs):
-        return Value([ self.visit(e) for e in node.elts ], self.env)
+        return Value([ self.visit(e).value for e in node.elts ], self.env)
 
     def visit_Name(self, node, **kwargs):
         return Term(node.id, self.env)
