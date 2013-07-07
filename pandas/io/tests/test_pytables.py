@@ -581,20 +581,19 @@ class TestHDFStore(unittest.TestCase):
             store.append('df1', df.ix[:, 2:])
             tm.assert_frame_equal(store['df1'], df)
 
-            result = store.select('df1', '(columns=A) | (columns=B)')
             result = store.select('df1', 'columns=A')
             expected = df.reindex(columns=['A'])
+            tm.assert_frame_equal(expected, result)
+
+            # selection on the non-indexable
+            result = store.select(
+                'df1', ('columns=A', Term('index=df.index[0:4]')))
+            expected = df.reindex(columns=['A'], index=df.index[0:4])
             tm.assert_frame_equal(expected, result)
 
             # this isn't supported
             self.assertRaises(TypeError, store.select, 'df1', (
                     'columns=A', Term('index', '>', df.index[4])))
-
-            # selection on the non-indexable
-            result = store.select(
-                'df1', ('columns=A', Term('index', '=', df.index[0:4])))
-            expected = df.reindex(columns=['A'], index=df.index[0:4])
-            tm.assert_frame_equal(expected, result)
 
     def test_append_with_different_block_ordering(self):
 
