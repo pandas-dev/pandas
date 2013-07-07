@@ -91,6 +91,9 @@ class Value(Term):
         self.value = value
         self.type = type(self.value)
 
+    def __unicode__(self):
+        return com.pprint_thing(self.value)
+
 def _print_operand(opr):
     return opr.name if is_term(opr) else unicode(opr)
 

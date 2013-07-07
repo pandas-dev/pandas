@@ -58,6 +58,21 @@ def _ensure_encoding(encoding):
             encoding = _default_encoding
     return encoding
 
+Term = Expr
+
+def _ensure_term(where):
+    """ ensure that the where is a Term or a list of Term
+        this makes sure that we are capturing the scope of variables
+        that are passed """
+
+    # create the terms here with a frame_level=2 (we are 2 levels down)
+    if isinstance(where, (list, tuple)):
+        where = [ w if isinstance(w, Term) else Term(w, scope_level=2) for w in where if w is not None ]
+    elif where is None or isinstance(where, Coordinates):
+        pass
+    elif not isinstance(where, Term):
+        where = Term(where, scope_level=2)
+    return where
 
 class IncompatibilityWarning(Warning):
     pass
@@ -461,6 +476,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # create the storer and axes
+        where = _ensure_term(where)
         s = self._create_storer(group)
         s.infer_axes()
 
@@ -492,6 +508,7 @@ class HDFStore(StringMixin):
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
         """
+        where = _ensure_term(where)
         return self.get_storer(key).read_coordinates(where=where, start=start, stop=stop, **kwargs)
 
     def unique(self, key, column, **kwargs):
@@ -537,6 +554,7 @@ class HDFStore(StringMixin):
         """
 
         # default to single select
+        where = _ensure_term(where)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
             keys = keys[0]
         if isinstance(keys, basestring):
@@ -640,6 +658,7 @@ class HDFStore(StringMixin):
         raises KeyError if key is not a valid store
 
         """
+        where = _ensure_term(where)
         try:
             s = self.get_storer(key)
         except:
@@ -3653,8 +3672,6 @@ def _need_convert(kind):
         return True
     return False
 
-Term = Expr
-
 class Coordinates(object):
 
     """ holds a returned coordinates list, useful to select the same rows from different tables
@@ -3714,16 +3731,7 @@ class Selection(object):
         if where is None:
             return None
 
-        lcls = dict()
-        if isinstance(where, (list, tuple)):
-            for w in where:
-                if isinstance(w, Term):
-                    lcls.update(w.env.locals)
-
-            where = ' & ' .join([ "(%s)" % w for w in where])
-
-        queryables = self.table.queryables()
-        return Expr(where, queryables=queryables, encoding=self.table.encoding, lcls=lcls)
+        return Expr(where, queryables=self.table.queryables(), encoding=self.table.encoding)
 
     def select(self):
         """
