@@ -1494,7 +1494,8 @@ any pickled pandas object (or any other pickled object) from file:
 Excel files
 -----------
 
-The ``read_excel`` method can read an Excel 2003 file using the ``xlrd`` Python
+The ``read_excel`` method can read Excel 2003 (``.xls``) and
+Excel 2007 (``.xlsx``) files using the ``xlrd`` Python
 module and use the same parsing code as the above to convert tabular data into
 a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
@@ -1515,9 +1516,6 @@ advanced strategies
      .. code-block:: python
 
         read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
-
-To read sheets from an Excel 2007 file, you can pass a filename with a ``.xlsx``
-extension, in which case the ``openpyxl`` module will be used to read the file.
 
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. `read_excel` takes
