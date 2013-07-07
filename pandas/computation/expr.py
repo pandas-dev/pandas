@@ -6,12 +6,14 @@ import re
 from cStringIO import StringIO
 from functools import partial
 
-
 from pandas.core.base import StringMixin
 from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops
 from pandas.computation.ops import _cmp_ops_syms, _bool_ops_syms
 from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
 from pandas.computation.ops import Term, Constant, Value
+
+from pandas import Timestamp
+import datetime
 
 class Scope(object):
     __slots__ = 'globals', 'locals'
@@ -25,6 +27,9 @@ class Scope(object):
         finally:
             del frame
 
+        # add some usefule defaults
+        self.globals['Timestamp'] = Timestamp
+        self.globals['datetime'] = datetime
 
     def update(self, scope_level=None):
 

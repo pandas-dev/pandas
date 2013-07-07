@@ -46,6 +46,8 @@ class Term(ops.Term):
 
 class BinOp(ops.BinOp):
 
+    _max_selectors = 31
+
     def __init__(self, op, lhs, rhs, queryables, encoding):
         super(BinOp, self).__init__(op, lhs, rhs)
         self.queryables = queryables
@@ -136,7 +138,7 @@ class BinOp(ops.BinOp):
         if kind == u'datetime64' or kind == u'datetime':
 
             if isinstance(v, (int, float)):
-                raise ValueError("cannot index datelike with an integer/float value")
+                v = stringify(v)
             v = lib.Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
@@ -181,11 +183,28 @@ class FilterBinOp(BinOp):
         if not self.is_valid:
             raise ValueError("query term is not valid [%s]" % self)
 
-        if self.is_in_table:
-            return None
-
         rhs = self.conform(self.rhs)
         values = [TermValue(v, v, self.kind) for v in rhs]
+
+        if self.is_in_table:
+
+            # if too many values to create the expression, use a filter instead
+            if self.op in ['==', '!='] and len(values) > self._max_selectors:
+
+                # our filter op expression
+                if self.op == '!=':
+                    filter_op = lambda axis, vals: not axis.isin(vals)
+                else:
+                    filter_op = lambda axis, vals: axis.isin(vals)
+
+                self.filter = (
+                    self.lhs,
+                    filter_op,
+                    Index([v.value for v in values]))
+
+                return self
+
+            return None
 
         # equality conditions
         if self.op in ['==', '!=']:
@@ -219,8 +238,6 @@ class JointFilterBinOp(FilterBinOp):
 
 class ConditionBinOp(BinOp):
 
-    _max_selectors = 31
-
     def __unicode__(self):
         return com.pprint_thing("[Condition : [{0}]]".format(self.condition))
 
@@ -246,12 +263,6 @@ class ConditionBinOp(BinOp):
         # equality conditions
         if self.op in ['==', '!=']:
 
-            # our filter op expression
-            if self.op == '!=':
-                filter_op = lambda axis, vals: not axis.isin(vals)
-            else:
-                filter_op = lambda axis, vals: axis.isin(vals)
-
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
@@ -259,6 +270,7 @@ class ConditionBinOp(BinOp):
 
             # use a filter after reading
             else:
+
                 return None
 
         else:
@@ -319,13 +331,33 @@ class ExprVisitor(expr.ExprVisitor):
         raise ValueError("Invalid Attribute context {0}".format(ctx.__name__))
 
     def visit_Call(self, node, **kwargs):
-        if not isinstance(node.func, ast.Name):
-            raise TypeError("Only named functions are supported")
 
-        res = self.visit(node.func)
+        # this can happen with: datetime.datetime
+        if isinstance(node.func, ast.Attribute):
+            res = self.visit_Attribute(node.func)
+        elif not isinstance(node.func, ast.Name):
+            raise TypeError("Only named functions are supported")
+        else:
+            res = self.visit(node.func)
+
         if res is None:
             raise ValueError("Invalid function call {0}".format(node.func.id))
-        return res
+        if hasattr(res,'value'):
+            res = res.value
+
+        args = [self.visit(targ).value for targ in node.args]
+        if node.starargs is not None:
+            args = args + self.visit(node.starargs).value
+
+        keywords = {}
+        for key in node.keywords:
+            if not isinstance(key, ast.keyword):
+                raise ValueError("keyword error in function call '{0}'".format(node.func.id))
+            keywords[key.arg] = self.visit(key.value).value
+        if node.kwargs is not None:
+            keywords.update(self.visit(node.kwargs).value)
+
+        return Value(res(*args,**keywords),self.env)
 
     def visit_Compare(self, node, **kwargs):
         ops = node.ops
@@ -399,8 +431,14 @@ class Expr(expr.Expr):
     def evaluate(self):
         """ create and return the numexpr condition and filter """
 
-        self.condition = self.terms.prune(ConditionBinOp)
-        self.filter = self.terms.prune(FilterBinOp)
+        try:
+            self.condition = self.terms.prune(ConditionBinOp)
+        except AttributeError:
+            raise ValueError("cannot process node for the condition [{0}]".format(self))
+        try:
+            self.filter = self.terms.prune(FilterBinOp)
+        except AttributeError:
+            raise ValueError("cannot process node for the filter [{0}]".format(self))
 
         return self.condition, self.filter
 
