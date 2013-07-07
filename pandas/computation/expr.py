@@ -136,13 +136,19 @@ class ExprVisitor(ast.NodeVisitor):
     def visit_Num(self, node, **kwargs):
         return Constant(node.n, self.env)
 
+    def visit_Index(self, node, **kwargs):
+        """ df.index[4] """
+        return self.visit(node.value).value
+
     def visit_Subscript(self, node, **kwargs):
+        """ df.index[4:6] """
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
 
         return Value(value[slobj],self.env)
 
     def visit_Slice(self, node, **kwargs):
+        """ df.index[slice(4,6)] """
         lower = node.lower
         if lower is not None:
             lower = self.visit(lower).value

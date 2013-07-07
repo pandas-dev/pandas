@@ -797,7 +797,6 @@ class TestHDFStore(unittest.TestCase):
 
     def test_append_with_data_columns(self):
 
-        import pdb; pdb.set_trace()
         with ensure_clean(self.path) as store:
             df = tm.makeTimeDataFrame()
             df.loc[:,'B'].iloc[0] = 1.
