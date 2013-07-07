@@ -11,7 +11,7 @@ from pandas.core.base import StringMixin
 from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops
 from pandas.computation.ops import _cmp_ops_syms, _bool_ops_syms
 from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
-from pandas.computation.ops import Term, Constant
+from pandas.computation.ops import Term, Constant, Value
 
 class Scope(object):
     __slots__ = 'globals', 'locals'
@@ -96,7 +96,10 @@ class ExprVisitor(ast.NodeVisitor):
             node = ast.fix_missing_locations(ast.parse(preparse(node)))
 
         method = 'visit_' + node.__class__.__name__
-        visitor = getattr(self, method, self.generic_visit)
+        visitor = getattr(self, method, None)
+        if visitor is None:
+            visitor = self.generic_visit
+            print method
         return visitor(node, **kwargs)
 
     def visit_Module(self, node, **kwargs):
@@ -124,11 +127,33 @@ class ExprVisitor(ast.NodeVisitor):
         op = self.visit(node.op)
         return op(self.visit(node.operand))
 
+    def visit_List(self, node, **kwargs):
+        return Value([ self.visit(e) for e in node.elts ], self.env)
+
     def visit_Name(self, node, **kwargs):
         return Term(node.id, self.env)
 
     def visit_Num(self, node, **kwargs):
         return Constant(node.n, self.env)
+
+    def visit_Subscript(self, node, **kwargs):
+        value = self.visit(node.value)
+        slobj = self.visit(node.slice)
+
+        return Value(value[slobj],self.env)
+
+    def visit_Slice(self, node, **kwargs):
+        lower = node.lower
+        if lower is not None:
+            lower = self.visit(lower).value
+        upper = node.upper
+        if upper is not None:
+            upper = self.visit(upper).value
+        step = node.step
+        if step is not None:
+            step = self.visit(step).value
+
+        return slice(lower,upper,step)
 
     def visit_Compare(self, node, **kwargs):
         ops = node.ops

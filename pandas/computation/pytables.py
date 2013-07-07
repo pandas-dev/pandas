@@ -166,6 +166,10 @@ class FilterBinOp(BinOp):
     def __unicode__(self):
         return com.pprint_thing("[Filter : [{0}] -> [{1}]".format(self.filter[0],self.filter[1]))
 
+    def format(self):
+        """ return the actual filter format """
+        return [ self.filter ]
+
     def evaluate(self):
 
         if not isinstance(self.lhs,basestring):
@@ -203,6 +207,9 @@ class FilterBinOp(BinOp):
         return self
 
 class JointFilterBinOp(FilterBinOp):
+
+    def format(self):
+        raise NotImplementedError("unable to collapse Joint Filters")
 
     def evaluate(self):
         return self
@@ -298,6 +305,22 @@ class ExprVisitor(expr.ExprVisitor):
         body = node.body[0]
         return self.visit(body)
 
+    def visit_Attribute(self, node, **kwargs):
+        attr = node.attr
+        value = node.value
+
+        # resolve the value
+        return getattr(self.visit(value).value,attr)
+
+    def visit_Call(self, node, **kwargs):
+        if not isinstance(node.func, ast.Name):
+            raise TypeError("Only named functions are supported")
+
+        res = self.visit(node.func)
+        if res is None:
+            raise ValueError("Invalid function call {0}".format(node.func.id))
+        return res
+
     def visit_Compare(self, node, **kwargs):
         ops = node.ops
         comps = node.comparators
@@ -307,36 +330,6 @@ class ExprVisitor(expr.ExprVisitor):
 
     def visit_Name(self, node, side=None, **kwargs):
         return Term(node.id, self.env, side=side)
-
-    def visit_Attribute(self, node, **kwargs):
-        attr = node.attr
-        value = node.value
-
-        # resolve the value
-        return getattr(self.visit(value).value,attr)
-
-    def visit_Subscript(self, node, **kwargs):
-        value = self.visit(node.value)
-        slobj = self.visit(node.slice)
-
-        return Value(value[slobj],self.env)
-
-    def visit_Slice(self, node, **kwargs):
-        lower = node.lower
-        if lower is not None:
-            lower = self.visit(lower).value
-        upper = node.upper
-        if upper is not None:
-            upper = self.visit(upper).value
-        step = node.step
-        if step is not None:
-            step = self.visit(step).value
-
-        return slice(lower,upper,step)
-
-    def visit_BoolOp(self, node, **kwargs):
-        import pdb; pdb.set_trace()
-        raise NotImplementedError("boolean operators are not yet supported")
 
 class Expr(expr.Expr):
 
@@ -395,6 +388,7 @@ class Expr(expr.Expr):
 
         self.condition = self.terms.prune(ConditionBinOp)
         self.filter = self.terms.prune(FilterBinOp)
+
         return self.condition, self.filter
 
 class TermValue(object):
