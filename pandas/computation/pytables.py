@@ -1,11 +1,23 @@
-import sys
+import sys, inspect
 import re
 import ast
 from functools import partial
+import numpy as np
+from datetime import datetime
+import time
 
+import pandas
+import pandas.core.common as com
+import pandas.lib as lib
 from pandas.computation import expr, ops
 from pandas.computation.ops import is_term
 from pandas.computation.expr import ExprParserError
+
+def _ensure_decoded(s):
+    """ if we have bytes, decode them to unicde """
+    if isinstance(s, np.bytes_):
+        s = s.decode('UTF-8')
+    return s
 
 class Scope(expr.Scope):
     __slots__ = 'globals', 'locals', 'queryables'
@@ -21,7 +33,7 @@ class Term(ops.Term):
 
     def _resolve_name(self):
 
-        # must be a queryable
+        # must be a queryables
         if self.side == 'left':
             if self.name not in self.env.queryables:
                 raise NameError('name {0!r} is not defined'.format(self.name))
@@ -30,196 +42,76 @@ class Term(ops.Term):
         # resolve the rhs (and allow to be None)
         return self.env.locals.get(self.name, self.env.globals.get(self.name,self.name))
 
-def format_value(q, lhs, v):
-    """ given a queryable, a lhs name and value, return a formatted value """
-    return v
-
 class BinOp(ops.BinOp):
 
-    def __call__(self, q):
+    def __init__(self, op, lhs, rhs, queryables, encoding):
+        super(BinOp, self).__init__(op, lhs, rhs)
+        self.queryables = queryables
+        self.encoding = encoding
+        self.filter = None
+        self.condition = None
+
+    def prune(self, klass):
+
+        def pr(left, right):
+            """ create and return a new specilized BinOp from myself """
+
+            if left is None:
+                return right
+            elif right is None:
+                return left
+
+            k = klass
+            if isinstance(left, ConditionBinOp):
+                if isinstance(left, ConditionBinOp) and isinstance(right, ConditionBinOp):
+                    k = JointConditionBinOp
+                elif isinstance(left, k):
+                    return left
+                elif isinstance(right, k):
+                    return right
+
+            elif isinstance(left, FilterBinOp):
+                if isinstance(left, FilterBinOp) and isinstance(right, FilterBinOp):
+                    k = JointFilterBinOp
+                elif isinstance(left, k):
+                    return left
+                elif isinstance(right, k):
+                    return right
+
+            return k(self.op, left, right, queryables=self.queryables, encoding=self.encoding).evaluate()
+
         left, right = self.lhs, self.rhs
 
-        # base cases
         if is_term(left) and is_term(right):
-            res = "(%s %s %s)" % (left.value,self.op,format_value(q, left.value, right.value))
+            res = pr(left.value,right.value)
         elif not is_term(left) and is_term(right):
-            res = "(%s %s %s)" % (left(q),self.op,right.value)
+            res = pr(left.prune(klass),right.value)
         elif is_term(left) and not is_term(right):
-            res = "(%s %s %s)" % (left.value,self.op,right(q))
+            res = pr(left.value,right.prune(klass))
         elif not (is_term(left) or is_term(right)):
-            res = "(%s %s %s)" % (left(q),self.op,right(q))
+            res = pr(left.prune(klass),right.prune(klass))
 
         return res
-
-class UnaryOp(ops.UnaryOp):
-    def __call__(self, q):
-        operand = self.operand
-        v = operand.value if is_term(operand) else operand
-        return "%s (%s)" % (operand,v)
-
-class ExprVisitor(expr.ExprVisitor):
-
-    bin_ops = '>', '<', '>=', '<=', '==', '!=', '&', '|'
-    bin_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd', 'BitOr')
-    bin_op_nodes_map = dict(zip(bin_ops, bin_op_nodes))
-
-    unary_ops =  ['~']
-    unary_op_nodes = 'Invert'
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
-
-    def __init__(self, env):
-        for bin_op in self.bin_ops:
-            setattr(self, 'visit_{0}'.format(self.bin_op_nodes_map[bin_op]),
-                    lambda node, bin_op=bin_op: partial(BinOp, bin_op))
-
-        for unary_op in self.unary_ops:
-            setattr(self,
-                    'visit_{0}'.format(self.unary_op_nodes_map[unary_op]),
-                    lambda node, unary_op=unary_op: partial(UnaryOp, unary_op))
-        self.env = env
-
-    def visit_Module(self, node, **kwargs):
-        if len(node.body) != 1:
-            raise ExprParserError('only a single expression is allowed')
-
-        body = node.body[0]
-        return self.visit(body)
-
-    def visit_Compare(self, node, **kwargs):
-        ops = node.ops
-        comps = node.comparators
-        for op, comp in zip(ops, comps):
-            node = self.visit(op)(self.visit(node.left,side='left'), self.visit(comp,side='right'))
-        return node
-
-    def visit_Name(self, node, side=None, **kwargs):
-        return Term(node.id, self.env, side=side)
-
-class Expr(expr.Expr):
-
-    """ hold a pytables like expression, comprised of possibly multiple 'terms'
-
-    Parameters
-    ----------
-    field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
-    queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
-    encoding : an encoding that will encode the query terms
-
-    Returns
-    -------
-    an Expr object
-
-    Examples
-    --------
-    """
-
-    _max_selectors = 31
-
-    def __init__(self, expression, queryables=None, encoding=None):
-        self.expr = self.pre_parse(expression)
-        self.env = Scope(queryables=queryables,frame_level=2)
-        self._visitor = ExprVisitor(self.env)
-        self.terms = self.parse()
-        self.encoding = encoding
-        self.condition = None
-        self.filter = None
-
-    def pre_parse(self, expression):
-        """ transform = to == """
-        expression = re.sub("=+","==",expression)
-        return expression
-
-    def evaluate(self):
-        """ create and return the numexpr condition and filter """
-        import pdb; pdb.set_trace()
-        terms = []
-        filter = []
-
-        self.terms(self.env)
-        #for t in self.terms:
-
-        terms = [t for t in self.terms if t.condition is not None]
-        if len(terms):
-            self.condition = "(%s)" % ' & '.join(
-                [t.condition for t in terms])
-            self.filter = []
-            for t in self.terms:
-                if t.filter is not None:
-                    self.filter.append(t.filter)
-
 
     @property
     def is_valid(self):
         """ return True if this is a valid field """
-        return self.field in self.q
+        return self.lhs in self.queryables
 
     @property
     def is_in_table(self):
         """ return True if this is a valid column name for generation (e.g. an actual column in the table) """
-        return self.q.get(self.field) is not None
+        return self.queryables.get(self.lhs) is not None
 
     @property
     def kind(self):
         """ the kind of my field """
-        return self.q.get(self.field)
+        return self.queryables.get(self.lhs)
 
     def generate(self, v):
         """ create and return the op string for this TermValue """
         val = v.tostring(self.encoding)
-        return "(%s %s %s)" % (self.field, self.op, val)
-
-        """ set the numexpr expression for this term """
-
-        if not self.is_valid:
-            raise ValueError("query term is not valid [%s]" % str(self))
-
-        # convert values if we are in the table
-        if self.is_in_table:
-            values = [self.convert_value(v) for v in self.value]
-        else:
-            values = [TermValue(v, v, self.kind) for v in self.value]
-
-        # equality conditions
-        if self.op in ['==', '!=']:
-
-            # our filter op expression
-            if self.op == '!=':
-                filter_op = lambda axis, vals: not axis.isin(vals)
-            else:
-                filter_op = lambda axis, vals: axis.isin(vals)
-
-            if self.is_in_table:
-
-                # too many values to create the expression?
-                if len(values) <= self._max_selectors:
-                    vs = [self.generate(v) for v in values]
-                    self.condition = "(%s)" % ' | '.join(vs)
-
-                # use a filter after reading
-                else:
-                    self.filter = (
-                        self.field,
-                        filter_op,
-                        Index([v.value for v in values]))
-
-            else:
-
-                self.filter = (
-                    self.field,
-                    filter_op,
-                    Index([v.value for v in values]))
-
-        else:
-
-            if self.is_in_table:
-
-                self.condition = self.generate(values[0])
-
-            else:
-
-                raise TypeError(
-                    "passing a filterable condition to a non-table indexer [%s]" %
-                    str(self))
+        return "(%s %s %s)" % (self.lhs, self.op, val)
 
     def convert_value(self, v):
         """ convert the expression that is in the term to something that is accepted by pytables """
@@ -259,6 +151,220 @@ class Expr(expr.Expr):
         # string quoting
         return TermValue(v, stringify(v), u'string')
 
+class FilterBinOp(BinOp):
+
+    def __unicode__(self):
+        return com.pprint_thing("[Filter : [{0}] -> [{1}]".format(self.filter[0],self.filter[1]))
+
+    def evaluate(self):
+
+        if not isinstance(self.lhs,basestring):
+            return self
+
+        if not self.is_valid:
+            raise ValueError("query term is not valid [%s]" % self)
+
+        if self.is_in_table:
+            return None
+
+        import pdb; pdb.set_trace()
+
+        if not isinstance(self.rhs, list):
+            self.rhs = [ self.rhs ]
+        values = [TermValue(v, v, self.kind) for v in self.rhs]
+
+        # equality conditions
+        if self.op in ['==', '!=']:
+
+            # our filter op expression
+            if self.op == '!=':
+                filter_op = lambda axis, vals: not axis.isin(vals)
+            else:
+                filter_op = lambda axis, vals: axis.isin(vals)
+
+            self.filter = (
+                self.lhs,
+                filter_op,
+                Index([v.value for v in values]))
+
+        else:
+
+            raise TypeError(
+                "passing a filterable condition to a non-table indexer [%s]" %
+                self)
+
+        return self
+
+class JointFilterBinOp(FilterBinOp):
+
+    def evaluate(self):
+        return self
+
+class ConditionBinOp(BinOp):
+
+    _max_selectors = 31
+
+    def __unicode__(self):
+        return com.pprint_thing("[Condition : [{0}]]".format(self.condition))
+
+    def format(self):
+        """ return the actual ne format """
+        return self.condition
+
+    def evaluate(self):
+
+        if not isinstance(self.lhs,basestring):
+            return self
+
+        if not self.is_valid:
+            raise ValueError("query term is not valid [%s]" % self)
+
+        # convert values if we are in the table
+        if not self.is_in_table:
+            return None
+
+        if not isinstance(self.rhs, list):
+            self.rhs = [ self.rhs ]
+        values = [self.convert_value(v) for v in self.rhs]
+
+        # equality conditions
+        if self.op in ['==', '!=']:
+
+            # our filter op expression
+            if self.op == '!=':
+                filter_op = lambda axis, vals: not axis.isin(vals)
+            else:
+                filter_op = lambda axis, vals: axis.isin(vals)
+
+            # too many values to create the expression?
+            if len(values) <= self._max_selectors:
+                vs = [self.generate(v) for v in values]
+                self.condition = "(%s)" % ' | '.join(vs)
+
+            # use a filter after reading
+            else:
+                return None
+
+        else:
+
+            self.condition = self.generate(values[0])
+
+        return self
+
+class JointConditionBinOp(ConditionBinOp):
+
+    def evaluate(self):
+        self.condition = "(%s %s %s)" % (self.lhs.condition,self.op,self.rhs.condition)
+        return self
+
+class UnaryOp(ops.UnaryOp):
+
+    def apply(self, func):
+        operand = self.operand
+        v = operand.value if is_term(operand) else operand
+        return "%s (%s)" % (operand,v)
+
+class ExprVisitor(expr.ExprVisitor):
+
+    bin_ops = '>', '<', '>=', '<=', '==', '!=', '&', '|'
+    bin_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd', 'BitOr')
+    bin_op_nodes_map = dict(zip(bin_ops, bin_op_nodes))
+
+    unary_ops =  ['~']
+    unary_op_nodes = 'Invert'
+    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+
+    def __init__(self, env, **kwargs):
+        for bin_op in self.bin_ops:
+            setattr(self, 'visit_{0}'.format(self.bin_op_nodes_map[bin_op]),
+                    lambda node, bin_op=bin_op: partial(BinOp, bin_op, **kwargs))
+
+        for unary_op in self.unary_ops:
+            setattr(self,
+                    'visit_{0}'.format(self.unary_op_nodes_map[unary_op]),
+                    lambda node, unary_op=unary_op: partial(UnaryOp, unary_op))
+        self.env = env
+
+    def visit_Module(self, node, **kwargs):
+        if len(node.body) != 1:
+            raise ExprParserError('only a single expression is allowed')
+
+        body = node.body[0]
+        return self.visit(body)
+
+    def visit_Compare(self, node, **kwargs):
+        ops = node.ops
+        comps = node.comparators
+        for op, comp in zip(ops, comps):
+            node = self.visit(op)(self.visit(node.left,side='left'), self.visit(comp,side='right'))
+        return node
+
+    def visit_Name(self, node, side=None, **kwargs):
+        return Term(node.id, self.env, side=side)
+
+    def visit_Attribute(self, node, **kwargs):
+        import pdb; pdb.set_trace()
+        raise NotImplementedError("attribute access is not yet supported")
+
+    def visit_BoolOp(self, node, **kwargs):
+        import pdb; pdb.set_trace()
+        raise NotImplementedError("boolean operators are not yet supported")
+
+class Expr(expr.Expr):
+
+    """ hold a pytables like expression, comprised of possibly multiple 'terms'
+
+    Parameters
+    ----------
+    field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
+    queryables : a kinds map (dict of column name -> kind), or None i column is non-indexable
+    encoding : an encoding that will encode the query terms
+
+    Returns
+    -------
+    an Expr object
+
+    Examples
+    --------
+    """
+
+    def __init__(self, expression, queryables=None, encoding=None, env=None):
+        self.expr = expression
+        self.condition = None
+        self.filter = None
+        self.terms = None
+        self._visitor = None
+
+        if env is None:
+            frame = inspect.currentframe()
+            try:
+                env = Scope(lcls = frame.f_back.f_locals.copy())
+            finally:
+                del frame
+        self.env = env
+
+        if queryables is not None:
+            self.env.queryables.update(queryables)
+            self._visitor = ExprVisitor(self.env, queryables=queryables, encoding=encoding)
+            self.expr = self.pre_parse(self.expr)
+            self.terms = self.parse()
+
+    def __unicode__(self):
+        if self.terms is not None:
+            return unicode(self.terms)
+        return self.expr
+
+    def pre_parse(self, expression):
+        """ transform = to == """
+        expression = re.sub("=+","==",expression)
+        return expression
+
+    def evaluate(self):
+        """ create and return the numexpr condition and filter """
+
+        self.condition = self.terms.prune(ConditionBinOp)
+        self.filter = self.terms.prune(FilterBinOp)
+        return self.condition, self.filter
 
 class TermValue(object):
 

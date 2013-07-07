@@ -3714,10 +3714,11 @@ class Selection(object):
         if where is None:
             return None
 
+        import pdb; pd.set_trace()
         if isinstance(where, basestring):
             pass
         elif isinstance(where, (list, tuple)):
-            where = ' & ' .join([ "(%s)" for w in where])
+            where = ' & ' .join([ "(%s)" % w for w in where])
 
         queryables = self.table.queryables()
         return Expr(where, queryables=queryables, encoding=self.table.encoding)
@@ -3727,7 +3728,7 @@ class Selection(object):
         generate the selection
         """
         if self.condition is not None:
-            return self.table.table.readWhere(self.condition, start=self.start, stop=self.stop)
+            return self.table.table.readWhere(self.condition.format(), start=self.start, stop=self.stop)
         elif self.coordinates is not None:
             return self.table.table.readCoordinates(self.coordinates)
         return self.table.table.read(start=self.start, stop=self.stop)
@@ -3739,7 +3740,7 @@ class Selection(object):
         if self.condition is None:
             return np.arange(self.table.nrows)
 
-        return self.table.table.getWhereList(self.condition, start=self.start, stop=self.stop, sort=True)
+        return self.table.table.getWhereList(self.condition.format(), start=self.start, stop=self.stop, sort=True)
 
 
 # utilities ###
