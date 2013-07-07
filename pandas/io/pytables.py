@@ -2913,8 +2913,8 @@ class Table(Storer):
             obj = obj.reindex_axis(labels, axis=axis, copy=False)
 
         # apply the selection filters (but keep in the same order)
-        if self.selection.filter:
-            for field, op, filt in self.selection.filter:
+        if self.selection.filter is not None:
+            for field, op, filt in self.selection.filter.format():
 
                 def process_filter(field, filt):
 
@@ -3719,6 +3719,7 @@ class Selection(object):
             for w in where:
                 if isinstance(w, Term):
                     lcls.update(w.env.locals)
+
             where = ' & ' .join([ "(%s)" % w for w in where])
 
         queryables = self.table.queryables()
