@@ -83,6 +83,13 @@ class Constant(Term):
     def __init__(self, value, env):
         super(Constant, self).__init__(value, env)
 
+class Value(Term):
+    """ a resolved value """
+    def __init__(self, value, env, name=None):
+        self.name = name
+        self.env = env
+        self.value = value
+        self.type = type(self.value)
 
 def _print_operand(opr):
     return opr.name if is_term(opr) else unicode(opr)

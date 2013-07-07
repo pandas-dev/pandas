@@ -10,8 +10,10 @@ import pandas
 import pandas.core.common as com
 import pandas.lib as lib
 from pandas.computation import expr, ops
-from pandas.computation.ops import is_term
+from pandas.computation.ops import is_term, Value
 from pandas.computation.expr import ExprParserError
+from pandas import Index
+from pandas.core.common import is_list_like
 
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicde """
@@ -93,6 +95,14 @@ class BinOp(ops.BinOp):
 
         return res
 
+    def conform(self, rhs):
+        """ inplace conform rhs """
+        if not is_list_like(rhs):
+            rhs = [ rhs ]
+        if hasattr(self.rhs,'ravel'):
+            rhs = rhs.ravel()
+        return rhs
+
     @property
     def is_valid(self):
         """ return True if this is a valid field """
@@ -167,11 +177,8 @@ class FilterBinOp(BinOp):
         if self.is_in_table:
             return None
 
-        import pdb; pdb.set_trace()
-
-        if not isinstance(self.rhs, list):
-            self.rhs = [ self.rhs ]
-        values = [TermValue(v, v, self.kind) for v in self.rhs]
+        rhs = self.conform(self.rhs)
+        values = [TermValue(v, v, self.kind) for v in rhs]
 
         # equality conditions
         if self.op in ['==', '!=']:
@@ -223,9 +230,8 @@ class ConditionBinOp(BinOp):
         if not self.is_in_table:
             return None
 
-        if not isinstance(self.rhs, list):
-            self.rhs = [ self.rhs ]
-        values = [self.convert_value(v) for v in self.rhs]
+        rhs = self.conform(self.rhs)
+        values = [self.convert_value(v) for v in rhs]
 
         # equality conditions
         if self.op in ['==', '!=']:
@@ -303,8 +309,30 @@ class ExprVisitor(expr.ExprVisitor):
         return Term(node.id, self.env, side=side)
 
     def visit_Attribute(self, node, **kwargs):
-        import pdb; pdb.set_trace()
-        raise NotImplementedError("attribute access is not yet supported")
+        attr = node.attr
+        value = node.value
+
+        # resolve the value
+        return getattr(self.visit(value).value,attr)
+
+    def visit_Subscript(self, node, **kwargs):
+        value = self.visit(node.value)
+        slobj = self.visit(node.slice)
+
+        return Value(value[slobj],self.env)
+
+    def visit_Slice(self, node, **kwargs):
+        lower = node.lower
+        if lower is not None:
+            lower = self.visit(lower).value
+        upper = node.upper
+        if upper is not None:
+            upper = self.visit(upper).value
+        step = node.step
+        if step is not None:
+            step = self.visit(step).value
+
+        return slice(lower,upper,step)
 
     def visit_BoolOp(self, node, **kwargs):
         import pdb; pdb.set_trace()
@@ -328,36 +356,39 @@ class Expr(expr.Expr):
     --------
     """
 
-    def __init__(self, expression, queryables=None, encoding=None, env=None):
+    def __init__(self, expression, queryables=None, encoding=None, lcls=None):
+        if isinstance(expression, Expr):
+            expression = str(expression)
         self.expr = expression
         self.condition = None
         self.filter = None
         self.terms = None
         self._visitor = None
 
-        if env is None:
-            frame = inspect.currentframe()
-            try:
-                env = Scope(lcls = frame.f_back.f_locals.copy())
-            finally:
-                del frame
-        self.env = env
+        # add current locals scope
+        frame = inspect.currentframe()
+        try:
+            if lcls is None:
+                lcls = dict()
+            lcls.update(frame.f_back.f_locals)
+            self.env = Scope(lcls = lcls)
+        finally:
+            del frame
 
         if queryables is not None:
+
+            # if using the old format, this will raise
+            if not isinstance(queryables, dict):
+                raise TypeError("Expr must be called with a single-string expression")
+
             self.env.queryables.update(queryables)
             self._visitor = ExprVisitor(self.env, queryables=queryables, encoding=encoding)
-            self.expr = self.pre_parse(self.expr)
             self.terms = self.parse()
 
     def __unicode__(self):
         if self.terms is not None:
             return unicode(self.terms)
         return self.expr
-
-    def pre_parse(self, expression):
-        """ transform = to == """
-        expression = re.sub("=+","==",expression)
-        return expression
 
     def evaluate(self):
         """ create and return the numexpr condition and filter """
