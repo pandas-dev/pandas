@@ -229,7 +229,7 @@ def read_hdf(path_or_buf, key, **kwargs):
     f(path_or_buf, False)
 
 
-class HDFStore(object):
+class HDFStore(StringMixin):
 
     """
     dict-like IO interface for storing pandas objects in PyTables
