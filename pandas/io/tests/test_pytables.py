@@ -20,7 +20,6 @@ from pandas.tests.test_frame import assert_frame_equal
 from pandas import concat, Timestamp
 from pandas.util import py3compat
 
-
 try:
     import tables
 except ImportError:
@@ -1551,15 +1550,27 @@ class TestHDFStore(unittest.TestCase):
             self.assertRaises(NameError, store.select, 'wp', ["index=['20121114']"])
             self.assertRaises(NameError, store.select, 'wp', ["index=['20121114', '20121114']"])
 
+            # deprecations
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                Term('index','==')
+
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                Term('index', '>', 5)
+
             self.assertRaises(TypeError, Term)
-            self.assertRaises(TypeError, Term, 'index', '==')
-            self.assertRaises(TypeError, Term, 'index', '>', 5)
 
             # panel
             result = store.select('wp', [Term(
                         'major_axis<"20000108"'), Term("minor_axis=['A', 'B']")])
             expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
             tm.assert_panel_equal(result, expected)
+
+            # with deprecation
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                result = store.select('wp', [Term(
+                    'major_axis','<',"20000108"), Term("minor_axis=['A', 'B']")])
+                expected = wp.truncate(after='20000108').reindex(minor=['A', 'B'])
+                tm.assert_panel_equal(result, expected)
 
             # p4d
             result = store.select('p4d', [Term('major_axis<"20000108"'),

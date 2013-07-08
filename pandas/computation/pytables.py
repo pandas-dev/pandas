@@ -390,7 +390,24 @@ class Expr(expr.Expr):
     --------
     """
 
-    def __init__(self, where, queryables=None, encoding=None, scope_level=None):
+    def __init__(self, where, op=None, value=None, queryables=None, encoding=None, scope_level=None):
+
+        # try to be back compat
+        if op is not None:
+            if not isinstance(where, basestring):
+                raise TypeError("where must be passed as a string if op/value are passed")
+            if isinstance(op, Expr):
+                raise TypeError("invalid op passed, must be a string")
+            where = "{0}{1}".format(where,op)
+            if value is not None:
+                if isinstance(value, Expr):
+                    raise TypeError("invalid value passed, must be a string")
+                where = "{0}{1}".format(where,value)
+
+            import warnings
+            warnings.warn("passing multiple values to Expre is deprecated "
+                          "pass the where as a single string", DeprecationWarning)
+
         self.encoding = encoding
         self.condition = None
         self.filter = None
@@ -417,10 +434,6 @@ class Expr(expr.Expr):
         self.env.update(scope_level)
 
         if queryables is not None:
-
-            # if using the old format, this will raise
-            if not isinstance(queryables, dict):
-                raise TypeError("Expr must be called with a single-string expression")
 
             self.env.queryables.update(queryables)
             self._visitor = ExprVisitor(self.env, queryables=queryables, encoding=encoding)

@@ -54,6 +54,7 @@ class Scope(object):
                 self.locals.update(f.f_locals)
         finally:
             del frame
+            del frames
 
 class ExprParserError(Exception):
     pass
