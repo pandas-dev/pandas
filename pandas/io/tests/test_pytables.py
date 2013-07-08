@@ -1551,11 +1551,9 @@ class TestHDFStore(unittest.TestCase):
             self.assertRaises(NameError, store.select, 'wp', ["index=['20121114']"])
             self.assertRaises(NameError, store.select, 'wp', ["index=['20121114', '20121114']"])
 
-            self.assertRaises(TypeError, Term.__init__)
-            self.assertRaises(TypeError, Term.__init__, 'blah')
-            self.assertRaises(TypeError, Term.__init__, 'index')
-            self.assertRaises(TypeError, Term.__init__, 'index', '==')
-            self.assertRaises(TypeError, Term.__init__, 'index', '>', 5)
+            self.assertRaises(TypeError, Term)
+            self.assertRaises(TypeError, Term, 'index', '==')
+            self.assertRaises(TypeError, Term, 'index', '>', 5)
 
             # panel
             result = store.select('wp', [Term(

@@ -40,16 +40,20 @@ class Scope(object):
         if scope_level is not None:
             sl += scope_level
 
-        # add current locals scope
+        # add sl frames to the scope starting with the
+        # most distant and overwritting with more current
+        # makes sure that we can capture variable scope
         frame = inspect.currentframe()
         try:
-            while(sl>0):
+            frames = []
+            while(sl>=0):
                 frame = frame.f_back
                 sl -= 1
-            self.locals.update(frame.f_locals)
+                frames.append(frame)
+            for f in frames[::-1]:
+                self.locals.update(f.f_locals)
         finally:
             del frame
-
 
 class ExprParserError(Exception):
     pass

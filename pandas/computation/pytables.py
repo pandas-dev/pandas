@@ -17,7 +17,7 @@ from pandas.core.common import is_list_like
 
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicde """
-    if isinstance(s, np.bytes_):
+    if isinstance(s, (np.bytes_, bytes)):
         s = s.decode('UTF-8')
     return s
 
@@ -139,6 +139,7 @@ class BinOp(ops.BinOp):
 
             if isinstance(v, (int, float)):
                 v = stringify(v)
+            v = _ensure_decoded(v)
             v = lib.Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert('UTC')
@@ -295,12 +296,7 @@ class UnaryOp(ops.UnaryOp):
 class ExprVisitor(expr.ExprVisitor):
 
     bin_ops = '>', '<', '>=', '<=', '==', '!=', '&', '|'
-    bin_op_nodes = ('Gt', 'Lt', 'GtE', 'LtE', 'Eq', 'NotEq', 'BitAnd', 'BitOr')
-    bin_op_nodes_map = dict(zip(bin_ops, bin_op_nodes))
-
-    unary_ops =  ['~']
-    unary_op_nodes = 'Invert'
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_ops =  ['-','~']
 
     def __init__(self, env, **kwargs):
         for bin_op in self.bin_ops:
@@ -368,6 +364,13 @@ class ExprVisitor(expr.ExprVisitor):
 
     def visit_Name(self, node, side=None, **kwargs):
         return Term(node.id, self.env, side=side)
+
+    def visit_UnaryOp(self, node, **kwargs):
+        if isinstance(node.op, ast.Not):
+            return UnaryOp(node.op,self.visit(node.operand))
+        elif isinstance(node.op, ast.USub):
+            return Value(-self.visit(node.operand).value,self.env)
+        self.not_implemented("{0} unary operations".format(node.op))
 
 class Expr(expr.Expr):
 
