@@ -37,3 +37,4 @@ pandas/io/*.json
 .build_cache_dir
 .vagrant
 *.whl
+**/wheelhouse/*
