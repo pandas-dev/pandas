@@ -912,7 +912,8 @@ class DatetimeIndex(Int64Index):
         See Index.join
         """
         if (not isinstance(other, DatetimeIndex) and len(other) > 0 and
-            other.inferred_type != 'mixed-integer'):
+            other.inferred_type not in ('floating', 'mixed-integer',
+                                        'mixed-integer-float', 'mixed')):
             try:
                 other = DatetimeIndex(other)
             except TypeError:
