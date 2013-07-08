@@ -7,6 +7,7 @@ Vagrant.configure("2") do |config|
 #  config.vbguest.auto_update = true
 #  config.vbguest.no_remote = true
 
+  config.vm.synced_folder File.expand_path("..", Dir.pwd), "/reqf"
   config.vm.synced_folder "wheelhouse", "/wheelhouse"
 
   config.vm.provider :virtualbox do |vb|
