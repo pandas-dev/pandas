@@ -793,17 +793,40 @@ class TestTimeSeries(unittest.TestCase):
         xp = datetime(2001, 1, 1)
         self.assert_(rs, xp)
 
+    def test_dayfirst(self):
+
+        # GH 3341
+        result = to_datetime('13-01-2012', dayfirst=True)
+        expected = Timestamp('20120113')
+        self.assert_(result == expected)
+
+        #### dayfirst is essentially broken
+        #### to_datetime('01-13-2012', dayfirst=True)
+        #### self.assertRaises(ValueError, to_datetime('01-13-2012', dayfirst=True))
+
     def test_to_datetime_format(self):
         values = ['1/1/2000', '1/2/2000', '1/3/2000']
 
-        def _parse_format(fmt, values):
-            return to_datetime([datetime.strptime(x, fmt)
-                                for x in values])
+        results1 = [ Timestamp('20000101'), Timestamp('20000201'),
+                     Timestamp('20000301') ]
+        results2 = [ Timestamp('20000101'), Timestamp('20000102'),
+                     Timestamp('20000103') ]
+        for vals, expecteds in [ (values, (Index(results1), Index(results2))),
+                                 (Series(values),(Series(results1), Series(results2))),
+                                 (values[0], (results1[0], results2[0])),
+                                 (values[1], (results1[1], results2[1])),
+                                 (values[2], (results1[2], results2[2])) ]:
 
-        for fmt in ['%d/%m/%Y', '%m/%d/%Y']:
-            result = to_datetime(values, format=fmt)
-            expected = _parse_format(fmt, values)
-            self.assert_(result.equals(expected))
+            for i, fmt in enumerate(['%d/%m/%Y', '%m/%d/%Y']):
+                result = to_datetime(vals, format=fmt)
+                expected = expecteds[i]
+
+                if isinstance(expected, Series):
+                    assert_series_equal(result, Series(expected))
+                elif isinstance(expected, Timestamp):
+                    self.assert_(result == expected)
+                else:
+                    self.assert_(result.equals(expected))
 
     def test_to_datetime_format_microsecond(self):
         val = '01-Apr-2011 00:00:01.978'
@@ -2812,10 +2835,10 @@ class TestTimestamp(unittest.TestCase):
         # nan
         result = Timestamp(np.nan)
         self.assert_(result is NaT)
-        
+
         result = Timestamp(None)
         self.assert_(result is NaT)
-        
+
         result = Timestamp(iNaT)
         self.assert_(result is NaT)
 
