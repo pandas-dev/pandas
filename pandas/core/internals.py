@@ -14,7 +14,7 @@ from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas.core.expressions as expressions
+import pandas.computation.expressions as expressions
 
 from pandas.tslib import Timestamp
 from pandas.util import py3compat
