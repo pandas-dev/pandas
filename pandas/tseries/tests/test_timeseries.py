@@ -805,6 +805,13 @@ class TestTimeSeries(unittest.TestCase):
             expected = _parse_format(fmt, values)
             self.assert_(result.equals(expected))
 
+    def test_to_datetime_format_microsecond(self):
+        val = '01-Apr-2011 00:00:01.978'
+        format = '%d-%b-%Y %H:%M:%S.%f'
+        result = to_datetime(val, format=format)
+        exp = dt.datetime.strptime(val, format)
+        self.assert_(result == exp)
+
     def test_to_datetime_on_datetime64_series(self):
         # #2699
         s = Series(date_range('1/1/2000', periods=10))
