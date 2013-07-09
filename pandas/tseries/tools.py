@@ -61,6 +61,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         Errors are ignored by default (values left untouched)
     dayfirst : boolean, default False
         If True parses dates with the day first, eg 20/01/2005
+        Warning: dayfirst=True is not strict, but will prefer to parse
+        with day first (this is a known bug).
     utc : boolean, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well)
