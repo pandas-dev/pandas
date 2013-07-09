@@ -76,12 +76,26 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     -------
     ret : datetime if parsing succeeded
     """
+    from pandas import Timestamp
     from pandas.core.series import Series
     from pandas.tseries.index import DatetimeIndex
 
-    def _convert_f(arg):
-        arg = com._ensure_object(arg)
+    def _convert_listlike(arg, box):
 
+        if isinstance(arg, (list,tuple)):
+            arg = np.array(arg, dtype='O')
+
+        if com.is_datetime64_dtype(arg):
+            if box and not isinstance(arg, DatetimeIndex):
+                try:
+                    return DatetimeIndex(arg, tz='utc' if utc else None)
+                except ValueError, e:
+                    values, tz = tslib.datetime_to_datetime64(arg)
+                    return DatetimeIndex._simple_new(values, None, tz=tz)
+
+            return arg
+
+        arg = com._ensure_object(arg)
         try:
             if format is not None:
                 result = tslib.array_strptime(arg, format)
@@ -92,6 +106,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
             if com.is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz='utc' if utc else None)
             return result
+
         except ValueError, e:
             try:
                 values, tz = tslib.datetime_to_datetime64(arg)
@@ -99,37 +114,17 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
             except (ValueError, TypeError):
                 raise e
 
-    def _convert_listlike(arg):        
-        if isinstance(arg, list):
-            arg = np.array(arg, dtype='O')
-
-        if com.is_datetime64_dtype(arg):
-            if box and not isinstance(arg, DatetimeIndex):
-                try:
-                    return DatetimeIndex(arg, tz='utc' if utc else None)
-                except ValueError, e:
-                    try:
-                        values, tz = tslib.datetime_to_datetime64(arg)
-                        return DatetimeIndex._simple_new(values, None, tz=tz)
-                    except (ValueError, TypeError):
-                        raise e
-                return arg
-
-        return _convert_f(arg)
-
     if arg is None:
         return arg
-    elif isinstance(arg, datetime):
+    elif isinstance(arg, Timestamp):
         return arg
     elif isinstance(arg, Series):
-        values = arg.values
-        if not com.is_datetime64_dtype(values):
-            values = _convert_f(values)
+        values = _convert_listlike(arg.values, box=False)
         return Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (np.ndarray, list)):
-        return _convert_listlike(arg)
+    elif com.is_list_like(arg):
+        return _convert_listlike(arg, box=box)
 
-    return _convert_listlike(np.array([ arg ], dtype='O'))[0]
+    return _convert_listlike(np.array([ arg ]), box=box)[0]
 
 class DateParseError(ValueError):
     pass
