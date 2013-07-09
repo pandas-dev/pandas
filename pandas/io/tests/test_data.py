@@ -117,8 +117,6 @@ class TestYahoo(unittest.TestCase):
     @network
     def test_get_quote_string(self):
         df = web.get_quote_yahoo('GOOG')
-        df2 = web.get_quote_yahoo('GOOG')
-        assert_frame_equal(df, df2)
 
     @network
     def test_get_quote_stringlist(self):
