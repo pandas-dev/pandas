@@ -123,9 +123,9 @@ They can take a number of arguments:
     Because it has to essentially scan through the data again, this causes a
     significant performance hit so only use if necessary.
   - ``lineterminator`` : string (length 1), default ``None``, Character to break file into lines. Only valid with C parser
-  - ``quotechar`` : string, The character to used to denote the start and end of a quoted item. 
+  - ``quotechar`` : string, The character to used to denote the start and end of a quoted item.
     Quoted items can include the delimiter and it will be ignored.
-  - ``quoting`` : int, 
+  - ``quoting`` : int,
     Controls whether quotes should be recognized. Values are taken from `csv.QUOTE_*` values.
     Acceptable values are 0, 1, 2, and 3 for QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONE, and QUOTE_NONNUMERIC, respectively.
   - ``skipinitialspace`` : boolean, default ``False``, Skip spaces after delimiter
@@ -147,9 +147,9 @@ They can take a number of arguments:
   - ``verbose``: show number of NA values inserted in non-numeric columns
   - ``squeeze``: if True then output with only one column is turned into Series
   - ``error_bad_lines``: if False then any lines causing an error will be skipped :ref:`bad lines <io.bad_lines>`
-  - ``usecols``: a subset of columns to return, results in much faster parsing 
+  - ``usecols``: a subset of columns to return, results in much faster parsing
     time and lower memory usage.
-  - ``mangle_dupe_cols``: boolean, default True, then duplicate columns will be specified 
+  - ``mangle_dupe_cols``: boolean, default True, then duplicate columns will be specified
     as 'X.0'...'X.N', rather than 'X'...'X'
   - ``tupleize_cols``: boolean, default True, if False, convert a list of tuples
     to a multi-index of columns, otherwise, leave the column index as a list of tuples
@@ -783,8 +783,8 @@ to do as before:
    os.remove('foo.csv')
 
 
-Reading DataFrame objects with ``MultiIndex``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Reading an index with a ``MultiIndex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _io.csv_multiindex:
 
@@ -795,7 +795,8 @@ Suppose you have data indexed by two columns:
    print open('data/mindex_ex.csv').read()
 
 The ``index_col`` argument to ``read_csv`` and ``read_table`` can take a list of
-column numbers to turn multiple columns into a ``MultiIndex``:
+column numbers to turn multiple columns into a ``MultiIndex`` for the index of the
+returned object:
 
 .. ipython:: python
 
@@ -805,12 +806,12 @@ column numbers to turn multiple columns into a ``MultiIndex``:
 
 .. _io.multi_index_columns:
 
-Specifying a multi-index columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Reading columns with a ``MultiIndex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By specifying list of row locations for the ``header`` argument, you
-can read in a multi-index for the columns. Specifying non-consecutive
-rows will skip the interveaing rows.
+can read in a ``MultiIndex`` for the columns. Specifying non-consecutive
+rows will skip the interveaning rows.
 
 .. ipython:: python
 
@@ -820,8 +821,8 @@ rows will skip the interveaing rows.
    print open('mi.csv').read()
    pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1],tupleize_cols=False)
 
-Note: The default behavior in 0.12 remains unchanged (``tupleize_cols=True``),
-but starting with 0.12, the default *to* write and read multi-index columns will be in the new 
+Note: The default behavior in 0.12 remains unchanged (``tupleize_cols=True``) from prior versions,
+but starting with 0.13, the default *to* write and read multi-index columns will be in the new
 format (``tupleize_cols=False``)
 
 Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
@@ -958,7 +959,7 @@ Read and write ``JSON`` format files.
 
 Writing JSON
 ~~~~~~~~~~~~
- 
+
 A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
 with optional parameters:
 
@@ -1100,7 +1101,7 @@ I like my string indicies
    si.index
    si.columns
    json = si.to_json()
-   
+
    sij = pd.read_json(json,convert_axes=False)
    sij
    sij.index
@@ -1433,18 +1434,18 @@ And then import the data directly to a DataFrame by calling:
 
    clipdf
 
-The ``to_clipboard`` method can be used to write the contents of a DataFrame to 
-the clipboard. Following which you can paste the clipboard contents into other 
+The ``to_clipboard`` method can be used to write the contents of a DataFrame to
+the clipboard. Following which you can paste the clipboard contents into other
 applications (CTRL-V on many operating systems). Here we illustrate writing a
 DataFrame into clipboard and reading it back.
 
 .. ipython:: python
-    
+
     df=pd.DataFrame(randn(5,3))
     df
     df.to_clipboard()
     pd.read_clipboard()
-    
+
 We can see that we got the same content back, which we had earlier written to the clipboard.
 
 .. note::
@@ -1510,7 +1511,7 @@ advanced strategies
          xls = ExcelFile('path_to_file.xls')
          xls.parse('Sheet1', index_col=None, na_values=['NA'])
 
-   Replaced by 
+   Replaced by
 
      .. code-block:: python
 
@@ -2430,7 +2431,7 @@ Writing to STATA format
 
 .. _io.stata_writer:
 
-The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame 
+The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
 into a .dta file. The format version of this file is always the latest one, 115.
 
 .. ipython:: python
@@ -2458,9 +2459,9 @@ converting them to a DataFrame which is returned:
 
 Currently the ``index`` is retrieved as a column on read back.
 
-The parameter ``convert_categoricals`` indicates wheter value labels should be 
-read and used to create a ``Categorical`` variable from them. Value labels can 
-also be retrieved by the function ``variable_labels``, which requires data to be 
+The parameter ``convert_categoricals`` indicates wheter value labels should be
+read and used to create a ``Categorical`` variable from them. Value labels can
+also be retrieved by the function ``variable_labels``, which requires data to be
 called before (see ``pandas.io.stata.StataReader``).
 
 The StataReader supports .dta Formats 104, 105, 108, 113-115.
@@ -2471,7 +2472,7 @@ Alternatively, the function :func:`~pandas.io.stata.read_stata` can be used
 
    import os
    os.remove('stata.dta')
-   
+
 Data Reader
 -----------
 

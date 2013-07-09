@@ -1,9 +1,9 @@
 .. _whatsnew_0120:
 
-v0.12.0 (June ??, 2013)
+v0.12.0 (July ??, 2013)
 ------------------------
 
-This is a minor release from 0.11.0 and includes several new features and
+This is a major release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
 Highlites include a consistent I/O API naming scheme, routines to read html,
@@ -207,19 +207,19 @@ I/O Enhancements
     accessable via ``read_json`` top-level function for reading,
     and ``to_json`` DataFrame method for writing, :ref:`See the docs<io.json>`
 
-  - Multi-index column support for reading and writing csv format files
+  - ``MultiIndex`` column support for reading and writing csv format files
 
     - The ``header`` option in ``read_csv`` now accepts a
       list of the rows from which to read the index.
 
     - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
       ``read_csv``, to provide compatiblity for the pre 0.12 behavior of
-      writing and reading multi-index columns via a list of tuples. The default in
+      writing and reading ``MultIndex`` columns via a list of tuples. The default in
       0.12 is to write lists of tuples and *not* interpret list of tuples as a
-      multi-index column.
+      ``MultiIndex`` column.
 
-      Note: The default behavior in 0.12 remains unchanged, but starting with 0.13,
-      the default *to* write and read multi-index columns will be in the new
+      Note: The default behavior in 0.12 remains unchanged from prior versions, but starting with 0.13,
+      the default *to* write and read ``MultiIndex`` columns will be in the new
       format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
 
     - If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
