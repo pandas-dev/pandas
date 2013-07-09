@@ -1622,8 +1622,8 @@ class Storer(StringMixin):
 
     def set_object_info(self):
         """ set my pandas type & version """
-        self.attrs.pandas_type = self.pandas_kind
-        self.attrs.pandas_version = _version
+        self.attrs.pandas_type = str(self.pandas_kind)
+        self.attrs.pandas_version = str(_version)
         self.set_version()
 
     def copy(self):
@@ -2377,7 +2377,7 @@ class Table(Storer):
 
     def set_attrs(self):
         """ set our table type & indexables """
-        self.attrs.table_type   = self.table_type
+        self.attrs.table_type   = str(self.table_type)
         self.attrs.index_cols   = self.index_cols()
         self.attrs.values_cols  = self.values_cols()
         self.attrs.non_index_axes = self.non_index_axes
