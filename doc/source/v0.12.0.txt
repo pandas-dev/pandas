@@ -459,7 +459,9 @@ Bug Fixes
     (:issue:`4089`)
   - Fixed bug in ``DataFrame.replace`` where a nested dict wasn't being
     iterated over when regex=False (:issue:`4115`)
-
+  - Fixed bug in the parsing of microseconds when using the ``format`` 
+    argument in ``to_datetime`` (:issue:`4152`)
+    
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
