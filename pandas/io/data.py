@@ -312,7 +312,12 @@ def _dl_mult_symbols(symbols, start, end, chunksize, retry_count, pause,
                               'NaN.'.format(sym), SymbolWarning)
                 stocks[sym] = np.nan
 
-    return Panel(stocks).swapaxes('items', 'minor')
+    try:
+        return Panel(stocks).swapaxes('items', 'minor')
+    except AttributeError:
+        # cannot construct a panel with just 1D nans indicating no data
+        raise RemoteDataError("No data fetched using "
+                              "{0!r}".format(method.__name__))
 
 
 _source_functions = {'google': _get_hist_google, 'yahoo': _get_hist_yahoo}
