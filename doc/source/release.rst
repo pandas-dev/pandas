@@ -321,7 +321,8 @@ pandas 0.12
     object Series/Frame was not converting properly (:issue:`4119`)
   - Fixed bugs in multi-index selection with column multi-index and duplicates
     (:issue:`4145`, :issue:`4146`)
-
+  - Fixed bug in the parsing of microseconds when using the ``format`` 
+    argument in ``to_datetime`` (:issue:`4152`)
 
 pandas 0.11.0
 =============

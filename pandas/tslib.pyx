@@ -1049,8 +1049,7 @@ def array_strptime(ndarray[object] values, object fmt):
         Py_ssize_t i, n = len(values)
         pandas_datetimestruct dts
         ndarray[int64_t] iresult
-        int year, month, day, minute, hour, second, weekday, julian
-        float64_t fraction
+        int year, month, day, minute, hour, second, fraction, weekday, julian
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -1247,7 +1246,7 @@ def array_strptime(ndarray[object] values, object fmt):
         dts.hour = hour
         dts.min = minute
         dts.sec = second
-        dts.us = int(fraction * 1000000)
+        dts.us = fraction
 
         iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
         _check_dts_bounds(iresult[i], &dts)
