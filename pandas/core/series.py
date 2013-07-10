@@ -751,11 +751,12 @@ class Series(generic.PandasContainer, pa.Array):
 
         if len(other) != len(ser):
             icond = ~cond
-
+            print "First", other
             # GH 2745
             # treat like a scalar
             if len(other) == 1:
-                other = np.repeat(other, len(ser))
+                other = np.array(other[0])
+                print "EQ 1", other
 
             # GH 3235
             # match True cond to other
@@ -767,7 +768,10 @@ class Series(generic.PandasContainer, pa.Array):
                 other = new_other
 
             else:
+                print "Raising", other
                 raise ValueError('Length of replacements must equal series length')
+                
+            print "Finished", other
 
         change = ser if inplace else None
         com._maybe_upcast_putmask(ser,~cond,other,change=change)
