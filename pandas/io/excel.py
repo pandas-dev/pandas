@@ -37,6 +37,11 @@ def read_excel(path_or_buf, sheetname, kind=None, **kwds):
           column ranges (e.g. "A:E" or "A,C,E:F")
     na_values : list-like, default None
         List of additional strings to recognize as NA/NaN
+    keep_default_na : bool, default True
+        If na_values are specified and keep_default_na is False the default NaN
+        values are overridden, otherwise they're appended to
+    verbose : boolean, default False
+        Indicate number of NA values placed in non-numeric columns
 
     Returns
     -------
@@ -101,6 +106,11 @@ class ExcelFile(object):
               column ranges (e.g. "A:E" or "A,C,E:F")
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
+        keep_default_na : bool, default True
+            If na_values are specified and keep_default_na is False the default NaN
+            values are overridden, otherwise they're appended to
+        verbose : boolean, default False
+            Indicate number of NA values placed in non-numeric columns
 
         Returns
         -------
