@@ -324,6 +324,9 @@ pandas 0.12
     (:issue:`4145`, :issue:`4146`)
   - Fixed bug in the parsing of microseconds when using the ``format`` 
     argument in ``to_datetime`` (:issue:`4152`)
+  - Fixed bug in ``Series.where`` where broadcasting a single element input vector
+    to the length of the series resulted in multiplying the value
+    inside the input (:issue:`4192`)
 
 pandas 0.11.0
 =============

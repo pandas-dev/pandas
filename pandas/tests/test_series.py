@@ -1090,11 +1090,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([0,2])
         assert_series_equal(s,expected)
 
-        s = Series([1,2])
-        s[[True, False]] = [0]
-        expected = Series([0,2])
-        assert_series_equal(s,expected)
-
         # failures
         self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]), [0,2,3])
         self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]), [])
@@ -1142,6 +1137,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(np.arange(10))
         mask = s > 5
         self.assertRaises(ValueError, s.__setitem__, mask, ([0]*5,))
+        
+    def test_where_broadcast(self):
+        # Test a variety of differently sized series
+        for size in range(2, 6):
+            # Test a variety of boolean indices
+            for selection in [np.resize([True, False, False, False, False], size), # First element should be set
+                              np.resize([True, False], size), # Set alternating elements]
+                              np.resize([False], size)]: # No element should be set
+                # Test a variety of different numbers as content
+                for item in [2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min]:
+                    # Test numpy arrays, lists and tuples as the input to be broadcast
+                    for arr in [np.array([item]), [item], (item,)]:
+                        data = np.arange(size, dtype=float)
+                        s = Series(data)
+                        s[selection] = arr
+                        # Construct the expected series by taking the source data or item based on the selection
+                        expected = Series([item if use_item else data[i] for i, use_item in enumerate(selection)])
+                        assert_series_equal(s,expected)
 
     def test_where_inplace(self):
         s = Series(np.random.randn(5))
