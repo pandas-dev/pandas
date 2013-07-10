@@ -1,7 +1,10 @@
+from __future__ import with_statement
 from pandas.util.py3compat import StringIO
 import unittest
 import sqlite3
 import sys
+
+import warnings
 
 import nose
 
@@ -297,7 +300,9 @@ class TestMySQL(unittest.TestCase):
         drop_sql = "DROP TABLE IF EXISTS test"
         create_sql = sql.get_schema(frame, 'test', 'mysql')
         cur = self.db.cursor()
-        cur.execute(drop_sql)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Unknown table.*")
+            cur.execute(drop_sql)
         cur.execute(create_sql)
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
 
@@ -388,7 +393,9 @@ class TestMySQL(unittest.TestCase):
         _skip_if_no_MySQLdb()
         drop_sql = "DROP TABLE IF EXISTS test_table"
         cur = self.db.cursor()
-        cur.execute(drop_sql)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Unknown table.*")
+            cur.execute(drop_sql)
         sql.write_frame(frame, name='test_table', con=self.db, flavor='mysql')
         result = sql.read_frame("select * from test_table", self.db)
 
@@ -405,7 +412,9 @@ class TestMySQL(unittest.TestCase):
         frame2['Idx'] = index
         drop_sql = "DROP TABLE IF EXISTS test_table2"
         cur = self.db.cursor()
-        cur.execute(drop_sql)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Unknown table.*")
+            cur.execute(drop_sql)
         sql.write_frame(frame2, name='test_table2', con=self.db, flavor='mysql')
         result = sql.read_frame("select * from test_table2", self.db,
                                 index_col='Idx')
