@@ -96,7 +96,12 @@ class UltraJSONTests(TestCase):
         sut = {u'a': 4.56}
         encoded = ujson.encode(sut)
         decoded = ujson.decode(encoded)
-        self.assertNotEqual(sut, decoded)
+
+        # Roundtrip works on 32-bit / fails on 64-bit
+        if sys.maxsize < 2**32:
+            self.assertEqual(sut, decoded)
+        else:
+            self.assertNotEqual(sut, decoded)
 
     def test_decimalDecodeTestPrecise(self):
         sut = {u'a': 4.56}
@@ -1396,25 +1401,27 @@ class PandasJSONTests(TestCase):
 
 
     def test_decodeFloatingPointAdditionalTests(self):
-        self.assertEquals(-1.1234567893, ujson.loads("-1.1234567893"))
-        self.assertEquals(-1.234567893, ujson.loads("-1.234567893"))
-        self.assertEquals(-1.34567893, ujson.loads("-1.34567893"))
-        self.assertEquals(-1.4567893, ujson.loads("-1.4567893"))
-        self.assertEquals(-1.567893, ujson.loads("-1.567893"))
-        self.assertEquals(-1.67893, ujson.loads("-1.67893"))
-        self.assertEquals(-1.7893, ujson.loads("-1.7893"))
-        self.assertEquals(-1.893, ujson.loads("-1.893"))
-        self.assertEquals(-1.3, ujson.loads("-1.3"))
+        places = 15
 
-        self.assertEquals(1.1234567893, ujson.loads("1.1234567893"))
-        self.assertEquals(1.234567893, ujson.loads("1.234567893"))
-        self.assertEquals(1.34567893, ujson.loads("1.34567893"))
-        self.assertEquals(1.4567893, ujson.loads("1.4567893"))
-        self.assertEquals(1.567893, ujson.loads("1.567893"))
-        self.assertEquals(1.67893, ujson.loads("1.67893"))
-        self.assertEquals(1.7893, ujson.loads("1.7893"))
-        self.assertEquals(1.893, ujson.loads("1.893"))
-        self.assertEquals(1.3, ujson.loads("1.3"))
+        self.assertAlmostEquals(-1.1234567893, ujson.loads("-1.1234567893"), places=places)
+        self.assertAlmostEquals(-1.234567893, ujson.loads("-1.234567893"), places=places)
+        self.assertAlmostEquals(-1.34567893, ujson.loads("-1.34567893"), places=places)
+        self.assertAlmostEquals(-1.4567893, ujson.loads("-1.4567893"), places=places)
+        self.assertAlmostEquals(-1.567893, ujson.loads("-1.567893"), places=places)
+        self.assertAlmostEquals(-1.67893, ujson.loads("-1.67893"), places=places)
+        self.assertAlmostEquals(-1.7893, ujson.loads("-1.7893"), places=places)
+        self.assertAlmostEquals(-1.893, ujson.loads("-1.893"), places=places)
+        self.assertAlmostEquals(-1.3, ujson.loads("-1.3"), places=places)
+
+        self.assertAlmostEquals(1.1234567893, ujson.loads("1.1234567893"), places=places)
+        self.assertAlmostEquals(1.234567893, ujson.loads("1.234567893"), places=places)
+        self.assertAlmostEquals(1.34567893, ujson.loads("1.34567893"), places=places)
+        self.assertAlmostEquals(1.4567893, ujson.loads("1.4567893"), places=places)
+        self.assertAlmostEquals(1.567893, ujson.loads("1.567893"), places=places)
+        self.assertAlmostEquals(1.67893, ujson.loads("1.67893"), places=places)
+        self.assertAlmostEquals(1.7893, ujson.loads("1.7893"), places=places)
+        self.assertAlmostEquals(1.893, ujson.loads("1.893"), places=places)
+        self.assertAlmostEquals(1.3, ujson.loads("1.3"), places=places)
 
     def test_encodeBigSet(self):
         s = set()
