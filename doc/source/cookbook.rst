@@ -191,6 +191,9 @@ Timeseries
 `Between times
 <http://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__
 
+`Using indexer between time
+<http://stackoverflow.com/questions/17559885/pandas-dataframe-mask-based-on-index>`__
+
 `Vectorized Lookup
 <http://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
@@ -266,6 +269,9 @@ The :ref:`Plotting <visualization>` docs.
 
 `Plotting a heatmap
 <http://stackoverflow.com/questions/17050202/plot-timeseries-of-histograms-in-python>`__
+
+`Annotate a time-series plot
+<http://stackoverflow.com/questions/11067368/annotate-time-series-plot-in-matplotlib>`__
 
 Data In/Out
 -----------
