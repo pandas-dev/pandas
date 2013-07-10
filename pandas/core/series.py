@@ -755,7 +755,7 @@ class Series(generic.PandasContainer, pa.Array):
             # GH 2745
             # treat like a scalar
             if len(other) == 1:
-                other = np.array(other[0]*len(ser))
+                other = np.array(other[0])
 
             # GH 3235
             # match True cond to other

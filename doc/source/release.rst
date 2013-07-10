@@ -72,11 +72,11 @@ pandas 0.12
     - support python3 (via ``PyTables 3.0.0``) (:issue:`3750`)
   - Add modulo operator to Series, DataFrame
   - Add ``date`` method to DatetimeIndex
-  - Add ``dropna`` argument to pivot_table (:issue: `3820`) 
+  - Add ``dropna`` argument to pivot_table (:issue: `3820`)
   - Simplified the API and added a describe method to Categorical
   - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame (:issue:`3649`),
-    thanks @hoechenberger. If ``var_name`` is not specified and ``dataframe.columns.name`` 
+    thanks @hoechenberger. If ``var_name`` is not specified and ``dataframe.columns.name``
     is not None, then this will be used as the ``var_name`` (:issue:`4144`).
   - clipboard functions use pyperclip (no dependencies on Windows, alternative
     dependencies offered for Linux) (:issue:`3837`).
@@ -322,10 +322,13 @@ pandas 0.12
     object Series/Frame was not converting properly (:issue:`4119`)
   - Fixed bugs in multi-index selection with column multi-index and duplicates
     (:issue:`4145`, :issue:`4146`)
-  - Fixed bug in the parsing of microseconds when using the ``format`` 
+  - Fixed bug in the parsing of microseconds when using the ``format``
     argument in ``to_datetime`` (:issue:`4152`)
   - Fixed bug in ``PandasAutoDateLocator`` where ``invert_xaxis`` triggered
     incorrectly ``MilliSecondLocator``  (:issue:`3990`)
+  - Fixed bug in ``Series.where`` where broadcasting a single element input vector
+    to the length of the series resulted in multiplying the value
+    inside the input (:issue:`4192`)
 
 pandas 0.11.0
 =============
