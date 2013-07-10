@@ -40,6 +40,9 @@ install:
   - echo "Waldo2"
   - ci/install.sh
 
+before_script:
+  - mysql -e 'create database pandas_nosetest;'
+
 script:
   - echo "Waldo3"
   - ci/script.sh
