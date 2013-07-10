@@ -148,6 +148,9 @@ def read_frame(sql, con, index_col=None, coerce_float=True, params=None):
     con: DB connection object, optional
     index_col: string, optional
         column name to use for the returned DataFrame object.
+    coerce_float : boolean, default True
+        Attempt to convert values to non-string, non-numeric objects (like
+        decimal.Decimal) to floating point, useful for SQL result sets
     params: list or tuple, optional
         List of parameters to pass to execute method.
     """
