@@ -72,6 +72,7 @@ pandas 0.12
     - support python3 (via ``PyTables 3.0.0``) (:issue:`3750`)
   - Add modulo operator to Series, DataFrame
   - Add ``date`` method to DatetimeIndex
+  - Add ``dropna`` argument to pivot_table (:issue: `3820`) 
   - Simplified the API and added a describe method to Categorical
   - ``melt`` now accepts the optional parameters ``var_name`` and ``value_name``
     to specify custom column names of the returned DataFrame (:issue:`3649`),
