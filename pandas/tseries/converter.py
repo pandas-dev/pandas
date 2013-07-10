@@ -244,7 +244,7 @@ class PandasAutoDateLocator(dates.AutoDateLocator):
         num_sec = (delta.hours * 60.0 + delta.minutes) * 60.0 + delta.seconds
         tot_sec = num_days * 86400. + num_sec
 
-        if tot_sec < self.minticks:
+        if abs(tot_sec) < self.minticks:
             self._freq = -1
             locator = MilliSecondLocator(self.tz)
             locator.set_axis(self.axis)
