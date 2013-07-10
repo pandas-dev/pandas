@@ -621,6 +621,8 @@ class IpythonDirective(Directive):
 
     shell = EmbeddedSphinxShell()
 
+    seen_docs = set()
+
     def get_config_options(self):
         # contains sphinx configuration variables
         config = self.state.document.settings.env.config
@@ -644,6 +646,12 @@ class IpythonDirective(Directive):
         return savefig_dir, source_dir, rgxin, rgxout, promptin, promptout
 
     def setup(self):
+
+        if not self.state.document.current_source in self.seen_docs:
+            self.shell.IP.history_manager.reset()
+            self.shell.IP.execution_count = 1
+            self.seen_docs.add(self.state.document.current_source)
+
         # get config values
         (savefig_dir, source_dir, rgxin,
                 rgxout, promptin, promptout) = self.get_config_options()
