@@ -324,6 +324,8 @@ pandas 0.12
     (:issue:`4145`, :issue:`4146`)
   - Fixed bug in the parsing of microseconds when using the ``format`` 
     argument in ``to_datetime`` (:issue:`4152`)
+  - Fixed bug in ``PandasAutoDateLocator`` where ``invert_xaxis`` triggered
+    incorrectly ``MilliSecondLocator``  (:issue:`3990`)
 
 pandas 0.11.0
 =============
