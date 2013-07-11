@@ -1,490 +1,406 @@
 from __future__ import print_function
+import unittest
 import sqlite3
-import sys
-
-import warnings
-
-import nose
+import csv
+import os
 
 import numpy as np
 
-from pandas.core.datetools import format as date_format
-from pandas.core.api import DataFrame, isnull
-from pandas.compat import StringIO, range, lrange
-import pandas.compat as compat
+#from pandas.core.datetools import format as date_format
+from pandas import DataFrame
+from pandas.compat import range, lrange, iteritems
+
 
 import pandas.io.sql as sql
 import pandas.util.testing as tm
-from pandas import Series, Index, DataFrame
-from datetime import datetime
 
-_formatters = {
-    datetime: lambda dt: "'%s'" % date_format(dt),
-    str: lambda x: "'%s'" % x,
-    np.str_: lambda x: "'%s'" % x,
-    compat.text_type: lambda x: "'%s'" % x,
-    compat.binary_type: lambda x: "'%s'" % x,
-    float: lambda x: "%.8f" % x,
-    int: lambda x: "%s" % x,
-    type(None): lambda x: "NULL",
-    np.float64: lambda x: "%.10f" % x,
-    bool: lambda x: "'%s'" % x,
-}
+import sqlalchemy
 
-def format_query(sql, *args):
-    """
 
-    """
-    processed_args = []
-    for arg in args:
-        if isinstance(arg, float) and isnull(arg):
-            arg = None
-
-        formatter = _formatters[type(arg)]
-        processed_args.append(formatter(arg))
-
-    return sql % tuple(processed_args)
-
-def _skip_if_no_MySQLdb():
-    try:
-        import MySQLdb
-    except ImportError:
-        raise nose.SkipTest('MySQLdb not installed, skipping')
-
-class TestSQLite(tm.TestCase):
+class TestSQLAlchemy(unittest.TestCase):
+    '''
+    Test the sqlalchemy backend against an in-memory sqlite database.
+    Assume that sqlalchemy takes case of the DB specifics
+    '''
 
     def setUp(self):
-        self.db = sqlite3.connect(':memory:')
+        self.engine = sqlalchemy.create_engine('sqlite:///:memory:')
+        self._load_iris_data(self.engine)
 
-    def test_basic(self):
-        frame = tm.makeTimeDataFrame()
-        self._check_roundtrip(frame)
+        self.test_frame_time = tm.makeTimeDataFrame()
+        self._load_test1_data()
 
-    def test_write_row_by_row(self):
-        frame = tm.makeTimeDataFrame()
-        frame.ix[0, 0] = np.nan
-        create_sql = sql.get_schema(frame, 'test', 'sqlite')
-        cur = self.db.cursor()
-        cur.execute(create_sql)
+    def _load_iris_data(self, engine):
+        self.dirpath = tm.get_data_path()
+        iris_csv_file = os.path.join(self.dirpath, 'iris.csv')
+        engine.execute("""CREATE TABLE iris (
+                `SepalLength` REAL,
+                `SepalWidth` REAL,
+                `PetalLength` REAL,
+                `PetalWidth` REAL,
+                `Name` TEXT
+            )""")
 
-        cur = self.db.cursor()
+        with open(iris_csv_file, 'rU') as iris_csv:
+            r = csv.reader(iris_csv)
+            next(r)  # skip header row
+            ins = """
+                INSERT INTO iris
+                VALUES(?, ?, ?, ?, ?)
+                """
+            for row in r:
+                engine.execute(ins, *row)
 
-        ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
-            fmt_sql = format_query(ins, *row)
-            sql.tquery(fmt_sql, cur=cur)
+    def _load_test1_data(self):
+        test1_csv_file = os.path.join(self.dirpath, 'test1.csv')
 
-        self.db.commit()
+        with open(test1_csv_file, 'rU') as test1_csv:
+            dr = csv.DictReader(test1_csv)
+            self.test_frame1 = DataFrame(list(dr))
 
-        result = sql.read_frame("select * from test", con=self.db)
-        result.index = frame.index
-        tm.assert_frame_equal(result, frame)
+    def _test_iris_loaded_frame(self, iris_frame):
+        pytype = iris_frame.dtypes[0].type
+        row = iris_frame.iloc[0]
 
-    def test_execute(self):
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'sqlite')
-        cur = self.db.cursor()
-        cur.execute(create_sql)
-        ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
+        self.assertTrue(issubclass(pytype, np.floating), 'Loaded frame has incorrect type')
+        tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
-        row = frame.ix[0]
-        sql.execute(ins, self.db, params=tuple(row))
-        self.db.commit()
+    def test_read_sql(self):
+        iris_frame = sql.read_sql("SELECT * FROM iris", con=self.engine)
+        self._test_iris_loaded_frame(iris_frame)
 
-        result = sql.read_frame("select * from test", self.db)
-        result.index = frame.index[:1]
-        tm.assert_frame_equal(result, frame[:1])
+    def test_read_table(self):
+        iris_frame = sql.read_table("iris", con=self.engine)
+        self._test_iris_loaded_frame(iris_frame)
 
-    def test_schema(self):
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'sqlite')
-        lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(' ')
-            if len(tokens) == 2 and tokens[0] == 'A':
-                self.assert_(tokens[1] == 'DATETIME')
+    def test_to_sql(self):
+        # Nuke table
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
 
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'sqlite', keys=['A', 'B'],)
-        lines = create_sql.splitlines()
-        self.assert_('PRIMARY KEY (A,B)' in create_sql)
-        cur = self.db.cursor()
-        cur.execute(create_sql)
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.engine)
+        self.assertTrue(self.engine.has_table('test_frame1'), 'Table not written to DB')
 
-    def test_execute_fail(self):
-        create_sql = """
-        CREATE TABLE test
-        (
-        a TEXT,
-        b TEXT,
-        c REAL,
-        PRIMARY KEY (a, b)
-        );
-        """
-        cur = self.db.cursor()
-        cur.execute(create_sql)
+        # Nuke table
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
 
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.db)
-        sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.db)
+    def test_to_sql_fail(self):
+        # Nuke table
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
 
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.execute,
-                              'INSERT INTO test VALUES("foo", "bar", 7)',
-                              self.db)
-        finally:
-            sys.stdout = sys.__stdout__
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.engine, if_exists='fail')
+        self.assertTrue(self.engine.has_table('test_frame1'), 'Table not written to DB')
 
-    def test_execute_closed_connection(self):
-        create_sql = """
-        CREATE TABLE test
-        (
-        a TEXT,
-        b TEXT,
-        c REAL,
-        PRIMARY KEY (a, b)
-        );
-        """
-        cur = self.db.cursor()
-        cur.execute(create_sql)
+        self.assertRaises(ValueError, sql.to_sql, self.test_frame1, 'test_frame1', con=self.engine, if_exists='fail')
 
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.db)
-        self.db.close()
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.tquery, "select * from test",
-                              con=self.db)
-        finally:
-            sys.stdout = sys.__stdout__
+        # Nuke table
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
 
-    def test_na_roundtrip(self):
-        pass
+    def test_to_sql_replace(self):
+        # Nuke table just in case
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.engine, if_exists='fail')
+        # Add to table again
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.engine, if_exists='replace')
+        self.assertTrue(self.engine.has_table('test_frame1'), 'Table not written to DB')
 
-    def _check_roundtrip(self, frame):
-        sql.write_frame(frame, name='test_table', con=self.db)
-        result = sql.read_frame("select * from test_table", self.db)
+        num_entries = len(self.test_frame1)
 
-        # HACK! Change this once indexes are handled properly.
-        result.index = frame.index
+        result = self.engine.execute("SELECT count(*) AS count_1 FROM test_frame1").fetchone()
+        num_rows = result[0]
 
-        expected = frame
-        tm.assert_frame_equal(result, expected)
+        self.assertEqual(num_rows, num_entries, "not the same number of rows as entries")
 
-        frame['txt'] = ['a'] * len(frame)
-        frame2 = frame.copy()
-        frame2['Idx'] = Index(lrange(len(frame2))) + 10
-        sql.write_frame(frame2, name='test_table2', con=self.db)
-        result = sql.read_frame("select * from test_table2", self.db,
-                                index_col='Idx')
-        expected = frame.copy()
-        expected.index = Index(lrange(len(frame2))) + 10
-        expected.index.name = 'Idx'
-        print(expected.index.names)
-        print(result.index.names)
-        tm.assert_frame_equal(expected, result)
+        # Nuke table
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
+
+    def test_to_sql_append(self):
+        # Nuke table just in case
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.engine, if_exists='fail')
+        # Add to table again
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.engine, if_exists='append')
+        self.assertTrue(self.engine.has_table('test_frame1'), 'Table not written to DB')
+
+        num_entries = 2*len(self.test_frame1)
+        result = self.engine.execute("SELECT count(*) AS count_1 FROM test_frame1").fetchone()
+        num_rows = result[0]
+
+        self.assertEqual(num_rows, num_entries, "not the same number of rows as entries")
+
+        # Nuke table
+        self.engine.execute("DROP TABLE IF EXISTS test_frame1")
+
+    def test_create_table(self):
+        temp_engine = sqlalchemy.create_engine('sqlite:///:memory:')
+        temp_frame = DataFrame({'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
+
+        pandasSQL = sql.PandasSQLWithEngine(temp_engine)
+        pandasSQL._create_table(temp_frame, 'temp_frame')
+
+        self.assertTrue(temp_engine.has_table('temp_frame'), 'Table not written to DB')
+
+    def test_drop_table(self):
+        temp_engine = sqlalchemy.create_engine('sqlite:///:memory:')
+
+        temp_frame = DataFrame({'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
+
+        pandasSQL = sql.PandasSQLWithEngine(temp_engine)
+        pandasSQL._create_table(temp_frame, 'temp_frame')
+
+        self.assertTrue(temp_engine.has_table('temp_frame'), 'Table not written to DB')
+
+        pandasSQL._drop_table('temp_frame')
+
+        self.assertFalse(temp_engine.has_table('temp_frame'), 'Table not deleted from DB')
+
+    def test_roundtrip(self):
+        #temp_engine = sqlalchemy.create_engine('sqlite:///:memory:')
+
+        sql.to_sql(self.test_frame1, 'test_frame_roundtrip', con=self.engine)
+        result = sql.read_table('test_frame_roundtrip', con=self.engine)
+
+        # HACK!
+        result.index = self.test_frame1.index
+
+        tm.assert_frame_equal(result, self.test_frame1)
+
+    def test_execute_sql(self):
+        # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
+        iris_results = sql.execute("SELECT * FROM iris", con=self.engine)
+        row = iris_results.fetchone()
+        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_tquery(self):
-        frame = tm.makeTimeDataFrame()
-        sql.write_frame(frame, name='test_table', con=self.db)
-        result = sql.tquery("select A from test_table", self.db)
-        expected = frame.A
-        result = Series(result, frame.index)
-        tm.assert_series_equal(result, expected)
+        iris_results = sql.tquery("SELECT * FROM iris", con=self.engine)
+        row = iris_results[0]
+        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
-                              'select * from blah', con=self.db)
-
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
-                              'select * from blah', con=self.db, retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_uquery(self):
-        frame = tm.makeTimeDataFrame()
-        sql.write_frame(frame, name='test_table', con=self.db)
-        stmt = 'INSERT INTO test_table VALUES(2.314, -123.1, 1.234, 2.3)'
-        self.assertEqual(sql.uquery(stmt, con=self.db), 1)
-
-        try:
-            sys.stdout = StringIO()
-
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
-                              'insert into blah values (1)', con=self.db)
-
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
-                              'insert into blah values (1)', con=self.db,
-                              retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_keyword_as_column_names(self):
-        '''
-        '''
-        df = DataFrame({'From':np.ones(5)})
-        sql.write_frame(df, con = self.db, name = 'testkeywords')
-
-    def test_onecolumn_of_integer(self):
-        '''
-        GH 3628
-        a column_of_integers dataframe should transfer well to sql
-        '''
-        mono_df=DataFrame([1 , 2], columns=['c0'])
-        sql.write_frame(mono_df, con = self.db, name = 'mono_df')
-        # computing the sum via sql
-        con_x=self.db
-        the_sum=sum([my_c0[0] for  my_c0 in con_x.execute("select * from mono_df")])
-        # it should not fail, and gives 3 ( Issue #3628 )
-        self.assertEqual(the_sum , 3)
-
-        result = sql.read_frame("select * from mono_df",con_x)
-        tm.assert_frame_equal(result,mono_df)
+# --- Test SQLITE fallback
 
 
-class TestMySQL(tm.TestCase):
+class TestSQLite(unittest.TestCase):
+    '''
+    Test the sqlalchemy backend against an in-memory sqlite database.
+    Assume that sqlalchemy takes case of the DB specifics
+    '''
 
     def setUp(self):
-        _skip_if_no_MySQLdb()
-        import MySQLdb
+        self.conn = sqlite3.connect(':memory:')
+        self.pandasSQL = sql.PandasSQLWithCon(self.conn, 'sqlite')
+
+        self._load_iris_data(self.conn)
+
+        self.test_frame_time = tm.makeTimeDataFrame()
+        self._load_test1_data()
+
+    def _load_iris_data(self, conn):
+        self.dirpath = tm.get_data_path()
+        iris_csv_file = os.path.join(self.dirpath, 'iris.csv')
+        cur = conn.cursor()
+        cur.execute("""CREATE TABLE iris (
+                `SepalLength` REAL,
+                `SepalWidth` REAL,
+                `PetalLength` REAL,
+                `PetalWidth` REAL,
+                `Name` TEXT
+            )""")
+
+        with open(iris_csv_file, 'rU') as iris_csv:
+            r = csv.reader(iris_csv)
+            next(r)  # skip header row
+            ins = """
+                INSERT INTO iris
+                VALUES(?, ?, ?, ?, ?)
+                """
+            for row in r:
+                cur.execute(ins, row)
+        conn.commit()
+
+    def _load_test1_data(self):
+        test1_csv_file = os.path.join(self.dirpath, 'test1.csv')
+
+        with open(test1_csv_file, 'rU') as test1_csv:
+            dr = csv.DictReader(test1_csv)
+            self.test_frame1 = DataFrame(list(dr))
+
+    def test_read_sql(self):
+        iris_frame = sql.read_sql("SELECT * FROM iris", con=self.conn)
+        pytype = iris_frame.dtypes[0].type
+        row = iris_frame.iloc[0]
+
+        self.assertTrue(issubclass(pytype, np.floating), 'Loaded frame has incorrect type')
+        tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+
+    def test_to_sql(self):
+        # Nuke table
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+        
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.conn, flavor='sqlite')
+        self.assertTrue(self.pandasSQL.has_table('test_frame1'), 'Table not written to DB')
+
+        # Nuke table
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+
+    def test_to_sql_fail(self):
+        # Nuke table
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.conn, if_exists='fail', flavor='sqlite')
+        self.assertTrue(self.pandasSQL.has_table('test_frame1'), 'Table not written to DB')
+
+        self.assertRaises(ValueError, sql.to_sql, self.test_frame1, 'test_frame1', con=self.conn, if_exists='fail')
+
+        # Nuke table
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+
+    def test_to_sql_replace(self):
+        # Nuke table just in case
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.conn, if_exists='fail', flavor='sqlite')
+        # Add to table again
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.conn, if_exists='replace')
+        self.assertTrue(self.pandasSQL.has_table('test_frame1'), 'Table not written to DB')
+
+        num_entries = len(self.test_frame1)
+
+        result = self.conn.execute("SELECT count(*) AS count_1 FROM test_frame1").fetchone()
+        num_rows = result[0]
+
+        self.assertEqual(num_rows, num_entries, "not the same number of rows as entries")
+
+        # Nuke table
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+
+    def test_to_sql_append(self):
+        # Nuke table just in case
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.conn, if_exists='fail', flavor='sqlite')
+
+        # Add to table again
+        sql.to_sql(self.test_frame1, 'test_frame1', con=self.conn, if_exists='append')
+        self.assertTrue(self.pandasSQL.has_table('test_frame1'), 'Table not written to DB')
+
+        num_entries = 2*len(self.test_frame1)
+        result = self.conn.execute("SELECT count(*) AS count_1 FROM test_frame1").fetchone()
+        num_rows = result[0]
+
+        self.assertEqual(num_rows, num_entries, "not the same number of rows as entries")
+
+        # Nuke table
+        cur = self.conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS test_frame1")
+        self.conn.commit()
+
+    def test_create_table(self):
+        temp_conn = sqlite3.connect(':memory:')
+        temp_frame = DataFrame({'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
+
+        pandasSQL = sql.PandasSQLWithCon(temp_conn, 'sqlite')
+        pandasSQL._create_table(temp_frame, 'temp_frame')
+
+        self.assertTrue(pandasSQL.has_table('temp_frame'), 'Table not written to DB')
+
+    def test_drop_table(self):
+        temp_conn = sqlite3.connect(':memory:')
+
+        temp_frame = DataFrame({'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]})
+
+        pandasSQL = sql.PandasSQLWithCon(temp_conn, 'sqlite')
+        pandasSQL._create_table(temp_frame, 'temp_frame')
+
+        self.assertTrue(pandasSQL.has_table('temp_frame'), 'Table not written to DB')
+
+        pandasSQL._drop_table('temp_frame')
+
+        self.assertFalse(pandasSQL.has_table('temp_frame'), 'Table not deleted from DB')
+
+    def test_roundtrip(self):
+
+        sql.to_sql(self.test_frame1, 'test_frame_roundtrip', con=self.conn, flavor='sqlite')
+        result = sql.read_sql('SELECT * FROM test_frame_roundtrip', con=self.conn, flavor='sqlite')
+
+        # HACK!
+        result.index = self.test_frame1.index
+
+        tm.assert_frame_equal(result, self.test_frame1)
+
+    def test_execute_sql(self):
+        # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
+        iris_results = sql.execute("SELECT * FROM iris", con=self.conn, flavor='sqlite')
+        row = iris_results.fetchone()
+        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+
+    def test_tquery(self):
+        iris_results = sql.tquery("SELECT * FROM iris", con=self.conn, flavor='sqlite')
+        row = iris_results[0]
+        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+
+
+
+
+"""
+class TestSQLA_pymysql(TestSQLAlchemy):
+    def setUp(self):
+        raise nose.SkipTest("MySQLdb was not installed")
+
+    def set_flavor_engine(self):
+        # if can't import should skip all tests
         try:
-            # Try Travis defaults.
-            # No real user should allow root access with a blank password.
-            self.db = MySQLdb.connect(host='localhost', user='root', passwd='',
-                                    db='pandas_nosetest')
-        except:
-            pass
-        else:
-            return
+            import pymysql
+        except ImportError:
+            raise nose.SkipTest("pymysql was not installed")
+
         try:
-            self.db = MySQLdb.connect(read_default_group='pandas')
-        except MySQLdb.ProgrammingError as e:
+            self.engine = sqlalchemy.create_engine("mysql+pymysql://root:@localhost/pandas_nosetest")
+        except pymysql.Error as e:
+            raise nose.SkipTest(
+                "Cannot connect to database. "
+                "Create a group of conn parameters under the heading "
+                "[pandas] in your system's mysql default file, "
+                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+        except pymysql.ProgrammingError as e:
             raise nose.SkipTest(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
-        except MySQLdb.Error as e:
+
+
+class TestSQLA_MySQLdb(TestSQLAlchemy):
+    def setUp(self):
+        raise nose.SkipTest("MySQLdb was not installed")
+
+    def set_flavor_engine(self):
+        # if can't import should skip all tests
+        try:
+            import MySQLdb
+        except ImportError:
+            raise nose.SkipTest("MySQLdb was not installed")
+
+        try:
+            self.engine = sqlalchemy.create_engine("mysql+mysqldb://root:@localhost/pandas_nosetest")
+        except MySQLdb.Error:
             raise nose.SkipTest(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
-
-    def test_basic(self):
-        _skip_if_no_MySQLdb()
-        frame = tm.makeTimeDataFrame()
-        self._check_roundtrip(frame)
-
-    def test_write_row_by_row(self):
-        _skip_if_no_MySQLdb()
-        frame = tm.makeTimeDataFrame()
-        frame.ix[0, 0] = np.nan
-        drop_sql = "DROP TABLE IF EXISTS test"
-        create_sql = sql.get_schema(frame, 'test', 'mysql')
-        cur = self.db.cursor()
-        cur.execute(drop_sql)
-        cur.execute(create_sql)
-        ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
-            fmt_sql = format_query(ins, *row)
-            sql.tquery(fmt_sql, cur=cur)
-
-        self.db.commit()
-
-        result = sql.read_frame("select * from test", con=self.db)
-        result.index = frame.index
-        tm.assert_frame_equal(result, frame)
-
-    def test_execute(self):
-        _skip_if_no_MySQLdb()
-        frame = tm.makeTimeDataFrame()
-        drop_sql = "DROP TABLE IF EXISTS test"
-        create_sql = sql.get_schema(frame, 'test', 'mysql')
-        cur = self.db.cursor()
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Unknown table.*")
-            cur.execute(drop_sql)
-        cur.execute(create_sql)
-        ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-
-        row = frame.ix[0]
-        sql.execute(ins, self.db, params=tuple(row))
-        self.db.commit()
-
-        result = sql.read_frame("select * from test", self.db)
-        result.index = frame.index[:1]
-        tm.assert_frame_equal(result, frame[:1])
-
-    def test_schema(self):
-        _skip_if_no_MySQLdb()
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, 'test', 'mysql')
-        lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(' ')
-            if len(tokens) == 2 and tokens[0] == 'A':
-                self.assert_(tokens[1] == 'DATETIME')
-
-        frame = tm.makeTimeDataFrame()
-        drop_sql = "DROP TABLE IF EXISTS test"
-        create_sql = sql.get_schema(frame, 'test', 'mysql', keys=['A', 'B'],)
-        lines = create_sql.splitlines()
-        self.assert_('PRIMARY KEY (A,B)' in create_sql)
-        cur = self.db.cursor()
-        cur.execute(drop_sql)
-        cur.execute(create_sql)
-
-    def test_execute_fail(self):
-        _skip_if_no_MySQLdb()
-        drop_sql = "DROP TABLE IF EXISTS test"
-        create_sql = """
-        CREATE TABLE test
-        (
-        a TEXT,
-        b TEXT,
-        c REAL,
-        PRIMARY KEY (a(5), b(5))
-        );
-        """
-        cur = self.db.cursor()
-        cur.execute(drop_sql)
-        cur.execute(create_sql)
-
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.db)
-        sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.db)
-
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.execute,
-                              'INSERT INTO test VALUES("foo", "bar", 7)',
-                              self.db)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_execute_closed_connection(self):
-        _skip_if_no_MySQLdb()
-        drop_sql = "DROP TABLE IF EXISTS test"
-        create_sql = """
-        CREATE TABLE test
-        (
-        a TEXT,
-        b TEXT,
-        c REAL,
-        PRIMARY KEY (a(5), b(5))
-        );
-        """
-        cur = self.db.cursor()
-        cur.execute(drop_sql)
-        cur.execute(create_sql)
-
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.db)
-        self.db.close()
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.tquery, "select * from test",
-                              con=self.db)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_na_roundtrip(self):
-        _skip_if_no_MySQLdb()
-        pass
-
-    def _check_roundtrip(self, frame):
-        _skip_if_no_MySQLdb()
-        drop_sql = "DROP TABLE IF EXISTS test_table"
-        cur = self.db.cursor()
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Unknown table.*")
-            cur.execute(drop_sql)
-        sql.write_frame(frame, name='test_table', con=self.db, flavor='mysql')
-        result = sql.read_frame("select * from test_table", self.db)
-
-        # HACK! Change this once indexes are handled properly.
-        result.index = frame.index
-        result.index.name = frame.index.name
-
-        expected = frame
-        tm.assert_frame_equal(result, expected)
-
-        frame['txt'] = ['a'] * len(frame)
-        frame2 = frame.copy()
-        index = Index(lrange(len(frame2))) + 10
-        frame2['Idx'] = index
-        drop_sql = "DROP TABLE IF EXISTS test_table2"
-        cur = self.db.cursor()
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Unknown table.*")
-            cur.execute(drop_sql)
-        sql.write_frame(frame2, name='test_table2', con=self.db, flavor='mysql')
-        result = sql.read_frame("select * from test_table2", self.db,
-                                index_col='Idx')
-        expected = frame.copy()
-
-        # HACK! Change this once indexes are handled properly.
-        expected.index = index
-        expected.index.names = result.index.names
-        tm.assert_frame_equal(expected, result)
-
-    def test_tquery(self):
-        try:
-            import MySQLdb
-        except ImportError:
-            raise nose.SkipTest("no MySQLdb")
-        frame = tm.makeTimeDataFrame()
-        drop_sql = "DROP TABLE IF EXISTS test_table"
-        cur = self.db.cursor()
-        cur.execute(drop_sql)
-        sql.write_frame(frame, name='test_table', con=self.db, flavor='mysql')
-        result = sql.tquery("select A from test_table", self.db)
-        expected = frame.A
-        result = Series(result, frame.index)
-        tm.assert_series_equal(result, expected)
-
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
-                              'select * from blah', con=self.db)
-
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
-                              'select * from blah', con=self.db, retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_uquery(self):
-        try:
-            import MySQLdb
-        except ImportError:
-            raise nose.SkipTest("no MySQLdb")
-        frame = tm.makeTimeDataFrame()
-        drop_sql = "DROP TABLE IF EXISTS test_table"
-        cur = self.db.cursor()
-        cur.execute(drop_sql)
-        sql.write_frame(frame, name='test_table', con=self.db, flavor='mysql')
-        stmt = 'INSERT INTO test_table VALUES(2.314, -123.1, 1.234, 2.3)'
-        self.assertEqual(sql.uquery(stmt, con=self.db), 1)
-
-        try:
-            sys.stdout = StringIO()
-
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
-                              'insert into blah values (1)', con=self.db)
-
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
-                              'insert into blah values (1)', con=self.db,
-                              retry=True)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    def test_keyword_as_column_names(self):
-        '''
-        '''
-        _skip_if_no_MySQLdb()
-        df = DataFrame({'From':np.ones(5)})
-        sql.write_frame(df, con = self.db, name = 'testkeywords',
-                        if_exists='replace', flavor='mysql')
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)
+        except MySQLdb.ProgrammingError:
+            raise nose.SkipTest(
+                "Create a group of connection parameters under the heading "
+                "[pandas] in your system's mysql default file, "
+                "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+"""
