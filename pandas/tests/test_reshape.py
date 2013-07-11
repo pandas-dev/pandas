@@ -10,6 +10,7 @@ import unittest
 import nose
 
 from pandas import DataFrame
+import pandas as pd
 
 from numpy import nan
 import numpy as np
@@ -29,6 +30,12 @@ class TestMelt(unittest.TestCase):
 
         self.var_name = 'var'
         self.value_name = 'val'
+
+        self.df1 = pd.DataFrame([[ 1.067683, -1.110463,  0.20867 ],
+                                 [-1.321405,  0.368915, -1.055342],
+                                 [-0.807333,  0.08298 , -0.873361]])
+        self.df1.columns = [list('ABC'), list('abc')]
+        self.df1.columns.names = ['CAP', 'low']
 
     def test_default_col_names(self):
         result = melt(self.df)
@@ -127,6 +134,17 @@ class TestMelt(unittest.TestCase):
         self.df.columns.name = 'foo'
         result20 = melt(self.df)
         self.assertEqual(result20.columns.tolist(), ['foo', 'value'])
+
+    def test_col_level(self):
+        res1 = melt(self.df1, col_level=0)
+        res2 = melt(self.df1, col_level='CAP')
+        self.assertEqual(res1.columns.tolist(), ['CAP', 'value'])
+        self.assertEqual(res1.columns.tolist(), ['CAP', 'value'])
+
+    def test_multiindex(self):
+        res = pd.melt(self.df1)
+        self.assertEqual(res.columns.tolist(), ['CAP', 'low', 'value'])
+
 
 class TestConvertDummies(unittest.TestCase):
     def test_convert_dummies(self):
