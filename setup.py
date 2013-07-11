@@ -43,7 +43,7 @@ if sys.version_info[0] >= 3:
     setuptools_kwargs = {'use_2to3': True,
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
-                                              'pytz',
+                                              'pytz >= 2011k',
                                               'numpy >= %s' % min_numpy_ver],
                          'setup_requires': ['numpy >= %s' % min_numpy_ver],
                          'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
@@ -57,7 +57,7 @@ else:
     min_numpy_ver = '1.6.1'
     setuptools_kwargs = {
         'install_requires': ['python-dateutil',
-                             'pytz',
+                            'pytz >= 2011k',
                              'numpy >= %s' % min_numpy_ver],
         'setup_requires': ['numpy >= %s' % min_numpy_ver],
         'zip_safe': False,
