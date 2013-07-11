@@ -133,7 +133,9 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
     return result
 
 
-def read_frame(sql, con, index_col=None, coerce_float=True, params=None):
+def read_sql(sql, con=None, index_col=None, 
+             user=None, passwd=None, host=None, db=None, flavor=None,
+             coerce_float=True, params=None):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
@@ -145,9 +147,19 @@ def read_frame(sql, con, index_col=None, coerce_float=True, params=None):
     ----------
     sql: string
         SQL query to be executed
-    con: DB connection object, optional
+    con : Connection object, SQLAlchemy Engine object, or a filepath (sqlite 
+        only). Alternatively, specify a user, passwd, host, and db below.
     index_col: string, optional
         column name to use for the returned DataFrame object.
+    user: username for database authentication
+        only needed if a Connection, Engine, or filepath are not given
+    passwd: password for database authentication
+        only needed if a Connection, Engine, or filepath are not given
+    host: host for database connection
+        only needed if a Connection, Engine, or filepath are not given
+    db: database name
+        only needed if a Connection, Engine, or filepath are not given
+    flavor : string specifying the flavor of SQL to use
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
@@ -169,8 +181,8 @@ def read_frame(sql, con, index_col=None, coerce_float=True, params=None):
 
     return result
 
-frame_query = read_frame
-read_sql = read_frame
+frame_query = read_sql
+read_frame = read_sql
 
 def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """
