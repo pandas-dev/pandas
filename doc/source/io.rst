@@ -1651,11 +1651,6 @@ Closing a Store, Context Manager
    import os
    os.remove('store.h5')
 
-
-These stores are **not** appendable once written (though you can simply
-remove them and rewrite). Nor are they **queryable**; they must be
-retrieved in their entirety.
-
 Read/Write API
 ~~~~~~~~~~~~~~
 
@@ -1674,10 +1669,33 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
 
    os.remove('store_tl.h5')
 
+.. _io.hdf5-storer:
+
+Storer Format
+~~~~~~~~~~~~~
+
+The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
+the ``storer`` format. These types of stores are are **not** appendable once written (though you can simply
+remove them and rewrite). Nor are they **queryable**; they must be
+retrieved in their entirety. These offer very fast writing and slightly faster reading than ``table`` stores.
+
+.. warning::
+
+   A ``storer`` format will raise a ``TypeError`` if you try to retrieve using a ``where`` .
+
+   .. code-block:: python
+
+       DataFrame(randn(10,2)).to_hdf('test_storer.h5','df')
+
+       pd.read_hdf('test_storer.h5','df',where='index>5')
+       TypeError: cannot pass a where specification when reading a non-table
+                  this store must be selected in its entirety
+
+
 .. _io.hdf5-table:
 
-Storing in Table format
-~~~~~~~~~~~~~~~~~~~~~~~
+Table Format
+~~~~~~~~~~~~
 
 ``HDFStore`` supports another ``PyTables`` format on disk, the ``table``
 format. Conceptually a ``table`` is shaped very much like a DataFrame,
@@ -1707,6 +1725,10 @@ supported.
 
    # the type of stored data
    store.root.df._v_attrs.pandas_type
+
+.. note::
+
+   You can also create a ``table`` by passing ``table=True`` to a ``put`` operation.
 
 .. _io.hdf5-keys:
 
@@ -2121,9 +2143,6 @@ Notes & Caveats
      in a string, or a ``NaT`` in a datetime-like column counts as having
      a value), then those rows **WILL BE DROPPED IMPLICITLY**. This limitation
      *may* be addressed in the future.
-   - You can not append/select/delete to a non-table (table creation is
-     determined on the first append, or by passing ``table=True`` in a
-     put operation)
    - ``HDFStore`` is **not-threadsafe for writing**. The underlying
      ``PyTables`` only supports concurrent reads (via threading or
      processes). If you need reading and writing *at the same time*, you

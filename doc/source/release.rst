@@ -113,7 +113,7 @@ pandas 0.12
     - When removing an object, ``remove(key)`` raises
       ``KeyError`` if the key is not a valid store object.
     - raise a ``TypeError`` on passing ``where`` or ``columns``
-      to select with a Storer; these are invalid parameters at this time
+      to select with a Storer; these are invalid parameters at this time (:issue:`4189`)
     - can now specify an ``encoding`` option to ``append/put``
       to enable alternate encodings (:issue:`3750`)
     - enable support for ``iterator/chunksize`` with ``read_hdf``
