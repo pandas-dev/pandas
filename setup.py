@@ -199,19 +199,20 @@ if not ISRELEASED:
     try:
         import subprocess
         try:
-            pipe = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
+            pipe = subprocess.Popen(["git", "describe", "HEAD"],
                                     stdout=subprocess.PIPE).stdout
         except OSError:
             # msysgit compatibility
             pipe = subprocess.Popen(
-                ["git.cmd", "rev-parse", "--short", "HEAD"],
+                ["git.cmd", "describe", "HEAD"],
                 stdout=subprocess.PIPE).stdout
         rev = pipe.read().strip()
         # makes distutils blow up on Python 2.7
         if sys.version_info[0] >= 3:
             rev = rev.decode('ascii')
 
-        FULLVERSION += "-%s" % rev
+        FULLVERSION = rev
+
     except:
         warnings.warn("WARNING: Couldn't get git revision")
 else:
