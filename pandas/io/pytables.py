@@ -1746,9 +1746,11 @@ class GenericStorer(Storer):
 
     def validate_read(self, kwargs):
         if kwargs.get('columns') is not None:
-            raise TypeError("cannot pass a column specification when reading a Storer")
+            raise TypeError("cannot pass a column specification when reading a non-table "
+                            "this store must be selected in its entirety")
         if kwargs.get('where') is not None:
-            raise TypeError("cannot pass a where specification when reading a Storer")
+            raise TypeError("cannot pass a where specification when reading from a non-table "
+                            "this store must be selected in its entirety")
 
     @property
     def is_exists(self):
