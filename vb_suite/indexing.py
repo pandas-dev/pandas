@@ -61,23 +61,26 @@ statement = "df[col][idx]"
 bm_df_getitem2 = Benchmark(statement, setup,
                            name='datamatrix_getitem_scalar')
 
-setup = common_setup + """
-try:
-    klass = DataMatrix
-except:
-    klass = DataFrame
 
+#----------------------------------------------------------------------
+# ix get scalar
+
+setup = common_setup + """
 index = [tm.rands(10) for _ in xrange(1000)]
 columns = [tm.rands(10) for _ in xrange(30)]
-df = klass(np.random.rand(1000, 30), index=index,
+df = DataFrame(np.random.randn(1000, 30), index=index,
                columns=columns)
 idx = index[100]
 col = columns[10]
 """
-statement = "df.get_value(idx, col)"
-bm_df_getitem3 = Benchmark(statement, setup,
-                           name='dataframe_get_value',
-                           start_date=datetime(2011, 11, 12))
+
+indexing_frame_get_value_ix = Benchmark("df.ix[idx,col]", setup,
+                                        name='indexing_frame_get_value_ix',
+                                        start_date=datetime(2011, 11, 12))
+
+indexing_frame_get_value = Benchmark("df.get_value(idx,col)", setup,
+                                     name='indexing_frame_get_value',
+                                     start_date=datetime(2011, 11, 12))
 
 #----------------------------------------------------------------------
 # Boolean DataFrame row selection
