@@ -14,3 +14,4 @@ html5lib==1.0b2
 lxml==3.2.1
 scipy==0.10.0
 beautifulsoup4==4.2.1
+sqlalchemy==0.8
