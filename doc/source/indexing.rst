@@ -32,7 +32,7 @@ attention in this area. Expect more work to be invested higher-dimensional data
 structures (including Panel) in the future, especially in label-based advanced
 indexing.
 
-.. note:: 
+.. note::
 
    The Python and NumPy indexing operators ``[]`` and attribute operator ``.`` provide quick and easy access to pandas data structures
    across a wide range of use cases. This makes interactive work intuitive, as
@@ -43,7 +43,7 @@ indexing.
    that you take advantage of the optimized pandas data access methods exposed in this chapter.
 
    In addition, whether a copy or a reference is returned for a selection operation, may depend on the context.
-   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>` 
+   See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
@@ -69,7 +69,7 @@ three types of multi-axis indexing.
   - A list or array of integers ``[4, 3, 0]``
   - A slice object with ints ``1:7``
 
-  See more at :ref:`Selection by Position <indexing.integer>` 
+  See more at :ref:`Selection by Position <indexing.integer>`
 
 - ``.ix`` supports mixed integer and label based access. It is primarily label based, but will fallback to integer positional access. ``.ix`` is the most general
   and will support any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes. ``.ix`` is especially useful when dealing with mixed positional and label
@@ -449,7 +449,7 @@ more complex criteria:
    # Multiple criteria
    df2[criterion & (df2['b'] == 'x')]
 
-Note, with the choice methods :ref:`Selection by Label <indexing.label>`, :ref:`Selection by Position <indexing.integer>`, 
+Note, with the choice methods :ref:`Selection by Label <indexing.label>`, :ref:`Selection by Position <indexing.integer>`,
 and :ref:`Advanced Indexing <indexing.advanced>` you may select along more than one axis using boolean vectors combined with other indexing expressions.
 
 .. ipython:: python
@@ -503,7 +503,7 @@ This can be done intuitively like so:
    df2[df2 < 0] = 0
    df2
 
-Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame), 
+Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame),
 such that partial selection with setting is possible. This is analagous to
 partial setting via ``.ix`` (but on the contents rather than the axis labels)
 
@@ -513,7 +513,7 @@ partial setting via ``.ix`` (but on the contents rather than the axis labels)
    df2[ df2[1:4] > 0 ] = 3
    df2
 
-By default, ``where`` returns a modified copy of the data. There is an 
+By default, ``where`` returns a modified copy of the data. There is an
 optional parameter ``inplace`` so that the original data can be modified
 without creating a copy:
 
@@ -788,7 +788,7 @@ In chained expressions, the order may determine whether a copy is returned or no
    dfb[dfb.a.str.startswith('o')]['c'] = 42  # goes to copy (will be lost)
    dfb['c'][dfb.a.str.startswith('o')] = 42  # passed via reference (will stay)
 
-When assigning values to subsets of your data, thus, make sure to either use the 
+When assigning values to subsets of your data, thus, make sure to either use the
 pandas access methods or explicitly handle the assignment creating a copy.
 
 Fallback indexing
@@ -796,27 +796,27 @@ Fallback indexing
 
 .. _indexing.fallback:
 
-Float indexes should be used only with caution. If you have a float indexed 
+Float indexes should be used only with caution. If you have a float indexed
 ``DataFrame`` and try to select using an integer, the row that Pandas returns
-might not be what you expect. Pandas first attempts to use the *integer* 
-as a *label* location, but fails to find a match (because the types 
+might not be what you expect. Pandas first attempts to use the *integer*
+as a *label* location, but fails to find a match (because the types
 are not equal). Pandas then falls back to back to positional indexing.
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.random.randn(4,4), 
+    df = pd.DataFrame(np.random.randn(4,4),
         columns=list('ABCD'), index=[1.0, 2.0, 3.0, 4.0])
     df
     df.ix[1]
 
 To select the row you do expect, instead use a float label or
-use ``iloc``. 
+use ``iloc``.
 
 .. ipython:: python
 
     df.ix[1.0]
     df.iloc[0]
-    
+
 Instead of using a float index, it is often better to
 convert to an integer index:
 
@@ -1361,7 +1361,7 @@ incompatible the new object internals are with the ``Index`` functions):
   - ``get_indexer``: Computes the indexing vector for reindexing / data
     alignment purposes. See the source / docstrings for more on this
   - ``get_indexer_non_unique``: Computes the indexing vector for reindexing / data
-    alignment purposes when the index is non-unique. See the source / docstrings 
+    alignment purposes when the index is non-unique. See the source / docstrings
     for more on this
   - ``reindex``: Does any pre-conversion of the input index then calls
     ``get_indexer``

@@ -968,18 +968,24 @@ with optional parameters:
 - ``orient`` :
 
   Series :
-    default is 'index', allowed values are: {'split','records','index'}
+      - default is ``index``
+      - allowed values are {``split``, ``records``, ``index``}
 
-  DataFrame :
-    default is 'columns', allowed values are: {'split','records','index','columns','values'}
+  DataFrame
+      - default is ``columns``
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
 
   The format of the JSON string
 
-    * split : dict like {index -> [index], columns -> [columns], data -> [values]}
-    * records : list like [{column -> value}, ... , {column -> value}]
-    * index : dict like {index -> {column -> value}}
-    * columns : dict like {column -> {index -> value}}
-    * values : just the values array
+  .. csv-table::
+     :widths: 20, 150
+     :delim: ;
+
+     ``split``; dict like {index -> [index], columns -> [columns], data -> [values]}
+     ``records``; list like [{column -> value}, ... , {column -> value}]
+     ``index``; dict like {index -> {column -> value}}
+     ``columns``; dict like {column -> {index -> value}}
+     ``values``; just the values array
 
 - ``date_format`` : type of date conversion (epoch = epoch milliseconds, iso = ISO8601), default is epoch
 - ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
@@ -1029,18 +1035,24 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``orient`` :
 
   Series :
-    default is 'index', allowed values are: {'split','records','index'}
+      - default is ``index``
+      - allowed values are {``split``, ``records``, ``index``}
 
-  DataFrame :
-    default is 'columns', allowed values are: {'split','records','index','columns','values'}
+  DataFrame
+      - default is ``columns``
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
 
   The format of the JSON string
 
-    * split : dict like {index -> [index], columns -> [columns], data -> [values]}
-    * records : list like [{column -> value}, ... , {column -> value}]
-    * index : dict like {index -> {column -> value}}
-    * columns : dict like {column -> {index -> value}}
-    * values : just the values array
+  .. csv-table::
+     :widths: 20, 150
+     :delim: ;
+
+     ``split``; dict like {index -> [index], columns -> [columns], data -> [values]}
+     ``records``; list like [{column -> value}, ... , {column -> value}]
+     ``index``; dict like {index -> {column -> value}}
+     ``columns``; dict like {column -> {index -> value}}
+     ``values``; just the values array
 
 - ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
