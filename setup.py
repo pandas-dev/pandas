@@ -211,7 +211,7 @@ if not ISRELEASED:
         if sys.version_info[0] >= 3:
             rev = rev.decode('ascii')
 
-        FULLVERSION = rev
+        FULLVERSION = rev.lstrip('v')
 
     except:
         warnings.warn("WARNING: Couldn't get git revision")
