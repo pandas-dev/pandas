@@ -78,6 +78,7 @@ pandas 0.12
     to specify custom column names of the returned DataFrame (:issue:`3649`),
     thanks @hoechenberger. If ``var_name`` is not specified and ``dataframe.columns.name``
     is not None, then this will be used as the ``var_name`` (:issue:`4144`).
+    Also support for MultiIndex columns.
   - clipboard functions use pyperclip (no dependencies on Windows, alternative
     dependencies offered for Linux) (:issue:`3837`).
   - Plotting functions now raise a ``TypeError`` before trying to plot anything

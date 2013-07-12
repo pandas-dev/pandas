@@ -5,19 +5,20 @@ import itertools
 
 import numpy as np
 
+import six
+
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
 from pandas.core.categorical import Categorical
 from pandas.core.common import (notnull, _ensure_platform_int, _maybe_promote,
-                                _maybe_upcast, isnull)
+                                isnull)
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
 import pandas.core.common as com
 import pandas.algos as algos
-from pandas import lib
 
-from pandas.core.index import MultiIndex, Index
+from pandas.core.index import MultiIndex
 
 
 class ReshapeError(Exception):
@@ -35,21 +36,26 @@ class _Unstacker(object):
 
     Examples
     --------
+    >>> import pandas as pd
+    >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
+    ...                                    ('two', 'a'), ('two', 'b')])
+    >>> s = pd.Series(np.arange(1.0, 5.0), index=index)
     >>> s
-    one  a   1.
-    one  b   2.
-    two  a   3.
-    two  b   4.
+    one  a   1
+         b   2
+    two  a   3
+         b   4
+    dtype: float64
 
     >>> s.unstack(level=-1)
          a   b
-    one  1.  2.
-    two  3.  4.
+    one  1  2
+    two  3  4
 
     >>> s.unstack(level=0)
        one  two
-    a  1.   2.
-    b  3.   4.
+    a  1   2
+    b  3   4
 
     Returns
     -------
@@ -159,7 +165,7 @@ class _Unstacker(object):
                     values[j] = orig_values[i]
             else:
                 index = index.take(self.unique_groups)
-        
+
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
@@ -601,7 +607,7 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
 
 
 def melt(frame, id_vars=None, value_vars=None,
-         var_name=None, value_name='value'):
+         var_name=None, value_name='value', col_level=None):
     """
     "Unpivots" a DataFrame from wide format to long format, optionally leaving
     id variables set
@@ -613,27 +619,47 @@ def melt(frame, id_vars=None, value_vars=None,
     value_vars : tuple, list, or ndarray
     var_name : scalar, if None uses frame.column.name or 'variable'
     value_name : scalar, default 'value'
+    col_level : scalar, if columns are a MultiIndex then use this level to melt
 
     Examples
     --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
+    ...                    'B': {0: 1, 1: 3, 2: 5},
+    ...                    'C': {0: 2, 1: 4, 2: 6}})
+
     >>> df
-    A B C
-    a 1 2
-    b 3 4
-    c 5 6
+       A  B  C
+    0  a  1  2
+    1  b  3  4
+    2  c  5  6
 
     >>> melt(df, id_vars=['A'], value_vars=['B'])
-    A variable value
-    a        B     1
-    b        B     3
-    c        B     5
-    
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+
     >>> melt(df, id_vars=['A'], value_vars=['B'],
     ... var_name='myVarname', value_name='myValname')
-    A myVarname  myValname
-    a         B          1
-    b         B          3
-    c         B          5
+       A myVarname  myValname
+    0  a         B          1
+    1  b         B          3
+    2  c         B          5
+
+    >>> df.columns = [list('ABC'), list('DEF')]
+
+    >>> melt(df, col_level=0, id_vars=['A'], value_vars=['B'])
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+
+    >>> melt(df, id_vars=[('A', 'D')], value_vars=[('B', 'E')])
+      (A, D) variable_0 variable_1  value
+    0      a          B          E      1
+    1      b          B          E      3
+    2      c          B          E      5
 
     """
     # TODO: what about the existing index?
@@ -652,8 +678,21 @@ def melt(frame, id_vars=None, value_vars=None,
     else:
         frame = frame.copy()
 
+    if col_level is not None:  # allow list or other?
+        frame.columns = frame.columns.get_level_values(col_level) #  frame is a copy
+
     if var_name is None:
-        var_name = frame.columns.name if frame.columns.name is not None else 'variable'
+        if isinstance(frame.columns, MultiIndex):
+            if len(frame.columns.names) == len(set(frame.columns.names)):
+                var_name = frame.columns.names
+            else:
+                var_name = ['variable_%s' % i for i in
+                            xrange(len(frame.columns.names))]
+        else:
+            var_name = [frame.columns.name if frame.columns.name is not None
+                        else 'variable']
+    if isinstance(var_name, six.string_types):
+        var_name = [var_name]
 
     N, K = frame.shape
     K -= len(id_vars)
@@ -662,11 +701,13 @@ def melt(frame, id_vars=None, value_vars=None,
     for col in id_vars:
         mdata[col] = np.tile(frame.pop(col).values, K)
 
-    mcolumns = id_vars + [var_name, value_name]
+    mcolumns = id_vars + var_name + [value_name]
 
     mdata[value_name] = frame.values.ravel('F')
-    mdata[var_name] = np.asarray(frame.columns).repeat(N)
-    
+    for i, col in enumerate(var_name):
+        # asanyarray will keep the columns as an Index
+        mdata[col] = np.asanyarray(frame.columns.get_level_values(i)).repeat(N)
+
     return DataFrame(mdata, columns=mcolumns)
 
 
@@ -683,13 +724,16 @@ def lreshape(data, groups, dropna=True, label=None):
 
     Examples
     --------
+    >>> import pandas as pd
+    >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],
+    ...                      'team': ['Red Sox', 'Yankees'],
+    ...                      'year1': [2007, 2008], 'year2': [2008, 2008]})
     >>> data
        hr1  hr2     team  year1  year2
     0  514  545  Red Sox   2007   2008
     1  573  526  Yankees   2007   2008
 
-    >>> pd.lreshape(data, {'year': ['year1', 'year2'],
-                           'hr': ['hr1', 'hr2']})
+    >>> pd.lreshape(data, {'year': ['year1', 'year2'], 'hr': ['hr1', 'hr2']})
           team   hr  year
     0  Red Sox  514  2007
     1  Yankees  573  2007
