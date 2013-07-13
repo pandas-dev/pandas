@@ -8,23 +8,18 @@ import re
 import numbers
 import urllib2
 import urlparse
-import contextlib
 import collections
 
-
-try:
-    from importlib import import_module
-except ImportError:
-    import_module = __import__
+from distutils.version import LooseVersion
 
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, isnull
-from pandas.io.common import _is_url
+from pandas.io.common import _is_url, urlopen
 
 
 try:
-    import_module('bs4')
+    import bs4
 except ImportError:
     _HAS_BS4 = False
 else:
@@ -32,7 +27,7 @@ else:
 
 
 try:
-    import_module('lxml')
+    import lxml
 except ImportError:
     _HAS_LXML = False
 else:
@@ -40,7 +35,7 @@ else:
 
 
 try:
-    import_module('html5lib')
+    import html5lib
 except ImportError:
     _HAS_HTML5LIB = False
 else:
@@ -119,7 +114,7 @@ def _read(io):
     """
     if _is_url(io):
         try:
-            with contextlib.closing(urllib2.urlopen(io)) as url:
+            with urlopen(io) as url:
                 raw_text = url.read()
         except urllib2.URLError:
             raise ValueError('Invalid URL: "{0}"'.format(io))
@@ -131,7 +126,8 @@ def _read(io):
     elif isinstance(io, basestring):
         raw_text = io
     else:
-        raise ValueError("Cannot read object of type '{0}'".format(type(io)))
+        raise TypeError("Cannot read object of type "
+                        "'{0.__class__.__name__!r}'".format(io))
     return raw_text
 
 
@@ -414,6 +410,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         element_name = self._strainer.name
         tables = doc.find_all(element_name, attrs=attrs)
         if not tables:
+            # known sporadically working release
             raise AssertionError('No tables found')
 
         mts = [table.find(text=match) for table in tables]
@@ -429,7 +426,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _setup_build_doc(self):
         raw_text = _read(self.io)
         if not raw_text:
-            raise AssertionError('No text parsed from document')
+            raise AssertionError('No text parsed from document: '
+                                 '{0}'.format(self.io))
         return raw_text
 
     def _build_doc(self):
@@ -721,6 +719,14 @@ def _parser_dispatch(flavor):
             raise ImportError("html5lib not found please install it")
         if not _HAS_BS4:
             raise ImportError("bs4 not found please install it")
+        if bs4.__version__ == LooseVersion('4.2.0'):
+            raise AssertionError("You're using a version"
+                                 " of BeautifulSoup4 (4.2.0) that has been"
+                                 " known to cause problems on certain"
+                                 " operating systems such as Debian. "
+                                 "Please install a version of"
+                                 " BeautifulSoup4 != 4.2.0, both earlier"
+                                 " and later releases will work.")
     else:
         if not _HAS_LXML:
             raise ImportError("lxml not found please install it")

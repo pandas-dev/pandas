@@ -106,6 +106,8 @@ pandas 0.12
   - Added ``layout`` keyword to DataFrame.hist() for more customizable layout (:issue:`4050`)
   - Timestamp.min and Timestamp.max now represent valid Timestamp instances instead
     of the default datetime.min and datetime.max (respectively), thanks @SleepingPills
+  - ``read_html`` now raises when no tables are found and BeautifulSoup==4.2.0
+    is detected (:issue:`4214`)
 
 **API Changes**
 
