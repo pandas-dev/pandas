@@ -27,6 +27,7 @@ randn = np.random.randn
 from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+from numpy.testing import assert_array_equal
 
 
 class TestPeriodProperties(TestCase):
@@ -463,6 +464,7 @@ class TestPeriodProperties(TestCase):
         self.assert_(p.freq == 'S')
 
         self.assertRaises(ValueError, Period, '2007-01-01 07:10:15.123456')
+
 
 def noWrap(item):
     return item
@@ -1723,11 +1725,11 @@ class TestPeriodIndex(TestCase):
 
     def test_negative_ordinals(self):
         p = Period(ordinal=-1000, freq='A')
-
         p = Period(ordinal=0, freq='A')
 
-        idx = PeriodIndex(ordinal=[-1, 0, 1], freq='A')
-        idx = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq='A')
+        idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq='A')
+        idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq='A')
+        assert_array_equal(idx1,idx2)
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -1947,7 +1949,7 @@ class TestPeriodIndex(TestCase):
 
         end_intv = Period('2006-12-31', 'W')
         i1 = PeriodIndex(end=end_intv, periods=10)
-        self._check_all_fields(pi)
+        self._check_all_fields(i1)
 
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute',
@@ -2046,6 +2048,11 @@ class TestPeriodIndex(TestCase):
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         new_prng = pickle.loads(pickle.dumps(prng))
         self.assertEqual(new_prng.freq,'M')
+
+    def test_slice_keep_name(self):
+        idx = period_range('20010101', periods=10, freq='D', name='bob')
+        self.assertEqual(idx.name, idx[1:].name)
+
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
@@ -2152,8 +2159,6 @@ class TestComparisons(unittest.TestCase):
 
     def test_greaterEqual_Raises_Value(self):
         self.assertRaises(ValueError, self.january1.__ge__, self.day)
-
-    def test_greaterEqual_Raises_Value(self):
         self.assertRaises(TypeError, self.january1.__ge__, 1)
 
     def test_smallerEqual(self):
@@ -2178,6 +2183,7 @@ class TestComparisons(unittest.TestCase):
         periods = [self.march, self.january1, self.february]
         correctPeriods = [self.january1, self.february, self.march]
         self.assertEqual(sorted(periods), correctPeriods)
+
 
 if __name__ == '__main__':
     import nose

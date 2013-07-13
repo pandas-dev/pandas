@@ -14,7 +14,6 @@ from pandas.core.base import PandasObject
 from pandas.util.decorators import cache_readonly
 from pandas.core.common import isnull
 import pandas.core.common as com
-from pandas.util import py3compat
 from pandas.core.config import get_option
 
 
@@ -908,7 +907,7 @@ class Index(PandasObject, np.ndarray):
 
             if self.equals(target):
                 indexer = None
-                
+
                 # to avoid aliasing an existing index
                 if copy_if_needed and target.name != self.name and self.name is not None:
                     if target.name is None:
@@ -1215,7 +1214,7 @@ class Index(PandasObject, np.ndarray):
         else:
             try:
                 start_slice = self.get_loc(start)
-                
+
                 if not is_unique:
 
                     # get_loc will return a boolean array for non_uniques
@@ -2793,6 +2792,7 @@ def _get_consensus_names(indexes):
     if len(consensus_names) == 1:
         return list(list(consensus_names)[0])
     return [None] * indexes[0].nlevels
+
 
 def _maybe_box(idx):
     from pandas.tseries.api import DatetimeIndex, PeriodIndex

@@ -336,6 +336,8 @@ pandas 0.12
   - Fixed bug in plotting that wasn't raising on invalid colormap for
     matplotlib 1.1.1 (:issue:`4215`)
   - Fixed the legend displaying in ``DataFrame.plot(kind='kde')`` (:issue:`4216`)
+  - Fixed bug where Index slices weren't carrying the name attribute
+    (:issue:`4226`)
 
 pandas 0.11.0
 =============
