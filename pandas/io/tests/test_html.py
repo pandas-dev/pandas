@@ -2,18 +2,24 @@ import os
 import re
 from cStringIO import StringIO
 from unittest import TestCase
-from urllib2 import urlopen
-from contextlib import closing
 import warnings
+from distutils.version import LooseVersion
 
 import nose
+from nose.tools import assert_raises
 
 import numpy as np
 from numpy.random import rand
 from numpy.testing.decorators import slow
 
-from pandas.io.html import read_html, import_module
-from pandas.io.html import _remove_whitespace
+try:
+    from importlib import import_module
+except ImportError:
+    import_module = __import__
+
+from pandas.io.html import read_html
+from pandas.io.common import urlopen
+
 from pandas import DataFrame, MultiIndex, read_csv, Timestamp
 from pandas.util.testing import (assert_frame_equal, network,
                                  get_data_path)
@@ -60,14 +66,26 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         assert not frame_i.empty, 'frames are both empty'
 
 
+def test_bs4_version_fails():
+    _skip_if_no('bs4')
+    import bs4
+    if bs4.__version__ == LooseVersion('4.2.0'):
+        assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
+                                                              "spam.html"),
+                      flavor='bs4')
+
+
 class TestReadHtmlBase(TestCase):
     def run_read_html(self, *args, **kwargs):
-        self.try_skip()
         kwargs['flavor'] = kwargs.get('flavor', self.flavor)
         return read_html(*args, **kwargs)
 
     def try_skip(self):
         _skip_if_none_of(('bs4', 'html5lib'))
+        import bs4
+        if (bs4.__version__ == LooseVersion('4.2.0') and
+            self.flavor != ['lxml']):
+            raise nose.SkipTest
 
     def setup_data(self):
         self.spam_data = os.path.join(DATA_PATH, 'spam.html')
@@ -77,6 +95,7 @@ class TestReadHtmlBase(TestCase):
         self.flavor = 'bs4'
 
     def setUp(self):
+        self.try_skip()
         self.setup_data()
         self.setup_flavor()
 
@@ -347,6 +366,7 @@ class TestReadHtmlBase(TestCase):
 
     @slow
     def test_banklist_header(self):
+        from pandas.io.html import _remove_whitespace
         def try_remove_ws(x):
             try:
                 return _remove_whitespace(x)
@@ -438,10 +458,9 @@ def test_invalid_flavor():
 def get_elements_from_url(url, element='table', base_url="file://"):
     _skip_if_none_of(('bs4', 'html5lib'))
     url = "".join([base_url, url])
-    from bs4 import BeautifulSoup, SoupStrainer
-    strainer = SoupStrainer(element)
-    with closing(urlopen(url)) as f:
-        soup = BeautifulSoup(f, features='html5lib', parse_only=strainer)
+    from bs4 import BeautifulSoup
+    with urlopen(url) as f:
+        soup = BeautifulSoup(f, features='html5lib')
     return soup.find_all(element)
 
 
