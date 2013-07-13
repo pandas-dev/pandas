@@ -543,6 +543,8 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.plot, kind='kde')
         _check_plot_works(df.plot, kind='kde', subplots=True)
+        ax = df.plot(kind='kde')
+        self.assert_(ax.get_legend() is not None)
         axes = df.plot(kind='kde', logy=True, subplots=True)
         for ax in axes:
             self.assert_(ax.get_yscale() == 'log')
