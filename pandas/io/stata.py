@@ -327,8 +327,16 @@ class StataReader(StataParser):
             typlist = [ord(self.path_or_buf.read(1)) for i in range(self.nvar)]
         else:
             typlist = [self.OLD_TYPE_MAPPING[self._decode_bytes(self.path_or_buf.read(1))] for i in range(self.nvar)]
-        self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
+
+        try:
+            self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
+        except:
+            raise ValueError("cannot convert stata types [{0}]".format(','.join(typlist)))
+        try:
+            self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
+        except:
+            raise ValueError("cannot convert stata dtypes [{0}]".format(','.join(typlist)))
+
         if self.format_version > 108:
             self.varlist = [self._null_terminate(self.path_or_buf.read(33)) for i in range(self.nvar)]
         else:
