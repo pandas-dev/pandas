@@ -55,9 +55,7 @@ def execute(sql, con, retry=True, cur=None, params=None):
         except Exception:  # pragma: no cover
             pass
 
-        print ('Error on sql %s' % sql)
-        raise
-
+        raise DatabaseError('Error on sql %s' % sql)
 
 def _safe_fetch(cur):
     try:
