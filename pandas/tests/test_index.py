@@ -13,7 +13,6 @@ from numpy.testing import assert_array_equal
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
-import pandas.core.common as com
 
 import pandas.util.testing as tm
 import pandas.core.config as cf
@@ -551,6 +550,10 @@ class TestIndex(unittest.TestCase):
         result = self.strIndex.get_level_values(0)
         self.assert_(result.equals(self.strIndex))
 
+    def test_slice_keep_name(self):
+        idx = Index(['a', 'b'], name='asdf')
+        self.assertEqual(idx.name, idx[1:].name)
+
 
 class TestInt64Index(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -917,6 +920,10 @@ class TestInt64Index(unittest.TestCase):
             bytes(idx)
         else:
             str(idx)
+
+    def test_slice_keep_name(self):
+        idx = Int64Index([1, 2], name='asdf')
+        self.assertEqual(idx.name, idx[1:].name)
 
 
 class TestMultiIndex(unittest.TestCase):
@@ -1537,7 +1544,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(first.equals(result))
         self.assertEqual(first.names, result.names)
 
-        # name from non-empty array 
+        # name from non-empty array
         result = first.diff([('foo', 'one')])
         expected = pd.MultiIndex.from_tuples([('bar', 'one'), ('baz', 'two'), ('foo', 'two'),
                                               ('qux', 'one'), ('qux', 'two')])
@@ -1789,14 +1796,18 @@ class TestMultiIndex(unittest.TestCase):
         else:
             str(idx)
 
+    def test_slice_keep_name(self):
+        x = MultiIndex.from_tuples([('a', 'b'), (1, 2), ('c', 'd')],
+                                   names=['x', 'y'])
+        self.assertEqual(x[1:].names, x.names)
+
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
     assert(result.equals(Index([])))
 
+
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)

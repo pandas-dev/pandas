@@ -32,8 +32,10 @@ import pandas.tslib as tslib
 import pandas.index as _index
 
 import cPickle as pickle
+from pandas import read_pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
+from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
 import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
@@ -260,10 +262,12 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         # this is a single date, so will raise
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)
 
+
 def assert_range_equal(left, right):
     assert(left.equals(right))
     assert(left.freq == right.freq)
     assert(left.tz == right.tz)
+
 
 class TestTimeSeries(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -1295,7 +1299,6 @@ class TestTimeSeries(unittest.TestCase):
     def test_to_period_tz(self):
         _skip_if_no_pytz()
         from dateutil.tz import tzlocal
-        from pandas.tseries.period import period_range
         from pytz import utc as UTC
 
         xp = date_range('1/1/2000', '4/1/2000').to_period()
@@ -1949,7 +1952,15 @@ class TestDatetimeIndex(unittest.TestCase):
         joined = cols.join(df.columns)
         self.assertEqual(cols.dtype, np.dtype('O'))
         self.assertEqual(cols.dtype, joined.dtype)
-        self.assert_(np.array_equal(cols.values, joined.values))
+        assert_array_equal(cols.values, joined.values)
+
+    def test_slice_keeps_name(self):
+        # GH4226
+        st = pd.Timestamp('2013-07-01 00:00:00', tz='America/Los_Angeles')
+        et = pd.Timestamp('2013-07-02 00:00:00', tz='America/Los_Angeles')
+        dr = pd.date_range(st, et, freq='H', name='timebucket')
+        self.assertEqual(dr[1:].name, dr.name)
+
 
 class TestLegacySupport(unittest.TestCase):
     _multiprocess_can_split_ = True
@@ -1971,7 +1982,6 @@ class TestLegacySupport(unittest.TestCase):
 
     def test_pass_offset_warn(self):
         from StringIO import StringIO
-        import sys
         buf = StringIO()
 
         sys.stderr = buf
@@ -2064,7 +2074,7 @@ class TestLegacySupport(unittest.TestCase):
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'daterange_073.pickle')
 
-        rng = com.load(filepath)
+        rng = read_pickle(filepath)
         self.assert_(type(rng[0]) == datetime)
         self.assert_(isinstance(rng.offset, offsets.BDay))
         self.assert_(rng.values.dtype == object)
@@ -2934,6 +2944,7 @@ class TestTimestamp(unittest.TestCase):
         d = {datetime(2011, 1, 1): 5}
         stamp = Timestamp(datetime(2011, 1, 1))
         self.assertEquals(d[stamp], 5)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
