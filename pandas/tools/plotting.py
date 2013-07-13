@@ -1172,7 +1172,7 @@ class KdePlot(MPLPlot):
             ax.grid(self.grid)
 
     def _post_plot_logic(self):
-        if self.subplots and self.legend:
+        if self.legend:
             for ax in self.axes:
                 ax.legend(loc='best')
 
