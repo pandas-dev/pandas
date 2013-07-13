@@ -91,14 +91,17 @@ mpl_stylesheet = {
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
-def _get_standard_colors(num_colors=None, colormap=None,
-                        color_type='default', color=None):
+def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
+                         color=None):
     import matplotlib.pyplot as plt
 
     if color is None and colormap is not None:
         if isinstance(colormap, basestring):
             import matplotlib.cm as cm
+            cmap = colormap
             colormap = cm.get_cmap(colormap)
+            if colormap is None:
+                raise ValueError("Colormap {0} is not recognized".format(cmap))
         colors = map(colormap, np.linspace(0, 1, num=num_colors))
     elif color is not None:
         if colormap is not None:
