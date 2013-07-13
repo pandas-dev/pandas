@@ -201,6 +201,7 @@ pandas 0.12
   - Fixed an esoteric excel reading bug, xlrd>= 0.9.0 now required for excel
     support. Should provide python3 support (for reading) which has been
     lacking. (:issue:`3164`)
+  - Disallow Series constructor called with MultiIndex which caused segfault (:issue:`4187`)
   - Allow unioning of date ranges sharing a timezone (:issue:`3491`)
   - Fix to_csv issue when having a large number of rows and ``NaT`` in some
     columns (:issue:`3437`)

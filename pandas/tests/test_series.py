@@ -311,6 +311,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         xp = 'Series'
         self.assertEqual(rs, xp)
 
+        # raise on MultiIndex GH4187
+        m = MultiIndex.from_arrays([[1, 2], [3,4]])
+        self.assertRaises(NotImplementedError, Series, m)
+
     def test_constructor_empty(self):
         empty = Series()
         empty2 = Series([])

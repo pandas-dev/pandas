@@ -432,6 +432,9 @@ class Series(generic.PandasContainer, pa.Array):
         if data is None:
             data = {}
 
+        if isinstance(data, MultiIndex):
+            raise NotImplementedError
+
         if index is not None:
             index = _ensure_index(index)
 
