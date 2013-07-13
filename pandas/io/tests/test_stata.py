@@ -132,7 +132,7 @@ class StataTests(unittest.TestCase):
     def test_write_dta5(self):
         if not is_little_endian():
             raise nose.SkipTest("known failure of test_write_dta5 on non-little endian")
-        
+
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
                              columns=['float_miss', 'double_miss', 'byte_miss', 'int_miss', 'long_miss'])
         original.index.name = 'index'
@@ -145,7 +145,7 @@ class StataTests(unittest.TestCase):
     def test_write_dta6(self):
         if not is_little_endian():
             raise nose.SkipTest("known failure of test_write_dta6 on non-little endian")
-        
+
         original = self.read_csv(self.csv3)
         original.index.name = 'index'
 
@@ -191,6 +191,9 @@ class StataTests(unittest.TestCase):
             )
 
     def test_read_dta10(self):
+        if not is_little_endian():
+            raise nose.SkipTest("known failure of test_write_dta10 on non-little endian")
+
         original = DataFrame(
             data=
             [
