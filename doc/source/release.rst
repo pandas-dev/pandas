@@ -331,6 +331,8 @@ pandas 0.12
   - Fixed bug in ``Series.where`` where broadcasting a single element input vector
     to the length of the series resulted in multiplying the value
     inside the input (:issue:`4192`)
+  - Fixed bug in plotting that wasn't raising on invalid colormap for
+    matplotlib 1.1.1 (:issue:`4215`)
 
 pandas 0.11.0
 =============

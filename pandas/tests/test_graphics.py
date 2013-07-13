@@ -990,8 +990,7 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
             pass
 
     def test_invalid_colormap(self):
-        df = DataFrame(np.random.randn(500, 2), columns=['A', 'B'])
-
+        df = DataFrame(np.random.randn(3, 2), columns=['A', 'B'])
         self.assertRaises(ValueError, df.plot, colormap='invalid_colormap')
 
 
