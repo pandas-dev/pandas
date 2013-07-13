@@ -45,7 +45,7 @@ DEFAULT_MIN_DURATION = 0.01
 HEAD_COL="head[ms]"
 BASE_COL="base[ms]"
 
-parser = argparse.ArgumentParser(description='Use vbench to generate a report comparing performance between two commits.')
+parser = argparse.ArgumentParser(description='Use vbench to measure and compare the performance of commits.')
 parser.add_argument('-H', '--head',
                     help='Execute vbenches using the currently checked out copy.',
                     dest='head',
@@ -64,7 +64,7 @@ parser.add_argument('-m', '--min-duration',
 parser.add_argument('-o', '--output',
                     metavar="<file>",
                     dest='log_file',
-                    help='path of file in which to save the textual report (default: vb_suite.log).')
+                    help='Path of file in which to save the textual report (default: vb_suite.log).')
 parser.add_argument('-d', '--outdf',
                     metavar="FNAME",
                     dest='outdf',
@@ -74,57 +74,57 @@ parser.add_argument('-r', '--regex',
                     metavar="REGEX",
                     dest='regex',
                     default="",
-                    help='regex pat, only tests whose name matches the regext will be run.')
+                    help='Regex pat, only tests whose name matches the regext will be run.')
 parser.add_argument('-s', '--seed',
                     metavar="SEED",
                     dest='seed',
                     default=1234,
                     type=int,
-                    help='integer value to seed PRNG with')
+                    help='Integer value to seed PRNG with')
 parser.add_argument('-n', '--repeats',
                     metavar="N",
                     dest='repeats',
                     default=3,
                     type=int,
-                    help='number of times to run each vbench, result value is the best of')
+                    help='Number of times to run each vbench, result value is the best of')
 parser.add_argument('-c', '--ncalls',
                     metavar="N",
                     dest='ncalls',
                     default=3,
                     type=int,
-                    help='number of calls to in each repetition of a vbench')
+                    help='Number of calls to in each repetition of a vbench')
 parser.add_argument('-N', '--hrepeats',
                     metavar="N",
                     dest='hrepeats',
                     default=1,
                     type=int,
-                    help='implies -H, number of times to run the vbench suite on the head\n'
-                    'each iteration will yield another column in the output'
+                    help='Implies -H, number of times to run the vbench suite on the head commit.\n'
+                    'Each iteration will yield another column in the output.'
     )
 parser.add_argument('-a', '--affinity',
                     metavar="a",
                     dest='affinity',
                     default=1,
                     type=int,
-                    help='set processor affinity of processm by default bind to cpu/core #1 only'
-                             'requires the "affinity" python module , will raise Warning otherwise'  )
+                    help='Set processor affinity of the process. THe default is to bind to cpu/core #1 only.'
+                             'requires the "affinity" python module.'  )
 
 parser.add_argument('-u', '--burnin',
                     metavar="u",
                     dest='burnin',
                     default=1,
                     type=int,
-                    help='number of extra iteration per benchmark to perform first, then throw away. '  )
+                    help='Number of extra iteration per benchmark to perform first, then throw away. '  )
 
 parser.add_argument('-S', '--stats',
                     default=False,
                     action='store_true',
-                    help='when specified with -N, prints s.describe() per vbench. '  )
+                    help='when specified with -N, prints the output of describe() per vbench results. '  )
 
 parser.add_argument('-q', '--quiet',
                     default=False,
                     action='store_true',
-                    help='suppress report output to stdout. '  )
+                    help='Suppress report output to stdout. '  )
 
 def get_results_df(db, rev):
     """Takes a git commit hash and returns a Dataframe of benchmark results
@@ -189,7 +189,7 @@ def profile_comparative(benchmarks):
         prprint('Baseline [%s] : %s\n' % (h_baseline,
                 repo.messages.get(h_baseline, "")))
 
-        prprint("removing any previous measurements for the commits.")
+        prprint("Removing any previous measurements for the commits.")
         db.delete_rev_results(h_baseline)
         db.delete_rev_results(h_head)
 
@@ -394,11 +394,7 @@ def main():
         assert affinity.get_process_affinity_mask(0) == args.affinity
         print("CPU affinity set to %d" % args.affinity)
     except ImportError:
-        import warnings
-        print("\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"+
-                      "The 'affinity' module is not available, results may be unreliable\n" +
-                      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"
-            )
+        print("Warning: The 'affinity' module is not available.")
         time.sleep(2)
 
     print("\n")
@@ -433,8 +429,10 @@ def main():
 # need to be able to reference any commit.
 # modified from vbench.git
 def _parse_commit_log(this,repo_path,base_commit=None):
-    from vbench.git import parser, _convert_timezones
+    from vbench.git import _convert_timezones
     from pandas import Series
+    from dateutil import parser as dparser
+
     git_cmd = 'git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path)
     githist = git_cmd + ('log --graph --pretty=format:'+
                          '\"::%h::%cd::%s::%an\"'+
@@ -455,7 +453,7 @@ def _parse_commit_log(this,repo_path,base_commit=None):
         _, sha, stamp, message, author = line.split('::', 4)
 
         # parse timestamp into datetime object
-        stamp = parser.parse(stamp)
+        stamp = dparser.parse(stamp)
 
         shas.append(sha)
         timestamps.append(stamp)
