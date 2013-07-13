@@ -91,7 +91,7 @@ def tquery(sql, con=None, cur=None, retry=True):
         try:
             cur.close()
             con.commit()
-        except Exception, e:
+        except Exception as e:
             excName = e.__class__.__name__
             if excName == 'OperationalError':  # pragma: no cover
                 print ('Failed to commit, may need to restart interpreter')
@@ -121,7 +121,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
     result = cur.rowcount
     try:
         con.commit()
-    except Exception, e:
+    except Exception as e:
         excName = e.__class__.__name__
         if excName != 'OperationalError':
             raise

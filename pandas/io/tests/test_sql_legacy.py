@@ -1,5 +1,5 @@
 from __future__ import with_statement
-from pandas.util.py3compat import StringIO
+from pandas.compat import StringIO
 import unittest
 import sqlite3
 import sys
@@ -12,8 +12,11 @@ import numpy as np
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
+from pandas.compat import StringIO, range, lrange
+import pandas.compat as compat
 
 import pandas.io.sql as sql
+from pandas.io.sql import DatabaseError
 import pandas.util.testing as tm
 from pandas import Series, Index, DataFrame
 from datetime import datetime
@@ -193,10 +196,10 @@ class TestSQLite(unittest.TestCase):
 
         try:
             sys.stdout = StringIO()
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'select * from blah', con=self.db)
 
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'select * from blah', con=self.db, retry=True)
         finally:
             sys.stdout = sys.__stdout__
@@ -210,10 +213,10 @@ class TestSQLite(unittest.TestCase):
         try:
             sys.stdout = StringIO()
 
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'insert into blah values (1)', con=self.db)
 
-            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'insert into blah values (1)', con=self.db,
                               retry=True)
         finally:
@@ -445,10 +448,10 @@ class TestMySQL(unittest.TestCase):
 
         try:
             sys.stdout = StringIO()
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'select * from blah', con=self.db)
 
-            self.assertRaises(MySQLdb.ProgrammingError, sql.tquery,
+            self.assertRaises(DatabaseError, sql.tquery,
                               'select * from blah', con=self.db, retry=True)
         finally:
             sys.stdout = sys.__stdout__
