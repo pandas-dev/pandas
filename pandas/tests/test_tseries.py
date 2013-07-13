@@ -565,9 +565,9 @@ class TestTypeInference(unittest.TestCase):
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
-        self.assertEqual(result, 'empty')
+        self.assertEqual(result, 'integer')
 
-        result = lib.infer_dtype(np.array([], dtype='O'))
+        result = lib.infer_dtype([])
         self.assertEqual(result, 'empty')
 
     def test_integers(self):
