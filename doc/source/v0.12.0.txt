@@ -465,7 +465,8 @@ Bug Fixes
     incorrectly ``MilliSecondLocator``  (:issue:`3990`)
   - Fixed bug in plotting that wasn't raising on invalid colormap for
     matplotlib 1.1.1 (:issue:`4215`)
-    
+  - Fixed the legend displaying in ``DataFrame.plot(kind='kde')`` (:issue:`4216`)
+
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
