@@ -463,6 +463,8 @@ Bug Fixes
     argument in ``to_datetime`` (:issue:`4152`)
   - Fixed bug in ``PandasAutoDateLocator`` where ``invert_xaxis`` triggered
     incorrectly ``MilliSecondLocator``  (:issue:`3990`)
+  - Fixed bug in plotting that wasn't raising on invalid colormap for
+    matplotlib 1.1.1 (:issue:`4215`)
     
 See the :ref:`full release notes
 <release>` or issue tracker
