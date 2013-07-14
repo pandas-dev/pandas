@@ -2,7 +2,6 @@ import operator as op
 
 import numpy as np
 
-import pandas as pd
 from pandas.util.py3compat import PY3
 import pandas.core.common as com
 from pandas.core.base import StringMixin
@@ -34,19 +33,11 @@ class Term(StringMixin):
         self.side = side
         self.value = self._resolve_name()
 
-        try:
-            # ndframe potentially very slow for large, mixed dtype frames
-            self.type = self.value.values.dtype
-        except AttributeError:
-            try:
-                # ndarray
-                self.type = self.value.dtype
-            except AttributeError:
-                # scalar
-                self.type = type(self.value)
-
     def __unicode__(self):
         return com.pprint_thing(self.name)
+
+    def __call__(self, *args, **kwargs):
+        return self.value
 
     def _resolve_name(self):
         env = self.env
@@ -59,9 +50,9 @@ class Term(StringMixin):
                 return key
             raise NameError('name {0!r} is not defined'.format(key))
 
-        if isinstance(res, pd.Panel):
-            raise NotImplementedError("Panel objects are not supported with "
-                                      "eval")
+        if hasattr(res, 'ndim') and res.ndim > 2:
+            raise NotImplementedError("N-dimensional objects, where N > 2, are"
+                                      " not supported with eval")
         return res
 
     def update(self, value):
@@ -79,13 +70,29 @@ class Term(StringMixin):
                         del env.globals[key]
                         env.globals[key] = value
                     except KeyError:
-                        raise NameError('{0!r} is undefined'.format(key))
+                        raise NameError('name {0!r} is not '
+                                        'defined'.format(key))
 
         self.value = value
 
     @property
     def isscalar(self):
         return np.isscalar(self.value)
+
+    @property
+    def type(self):
+        try:
+            # ndframe potentially very slow for large, mixed dtype frames
+            return self.value.values.dtype
+        except AttributeError:
+            try:
+                # ndarray
+                return self.value.dtype
+            except AttributeError:
+                # scalar
+                return type(self.value)
+
+    return_type = type
 
 
 class Constant(Term):
@@ -138,6 +145,11 @@ _arith_ops_syms = '+', '-', '*', '/', '**', '//', '%'
 _arith_ops_funcs = (op.add, op.sub, op.mul, op.truediv if PY3 else op.div,
                     op.pow, op.floordiv, op.mod)
 _arith_ops_dict = dict(zip(_arith_ops_syms, _arith_ops_funcs))
+
+_special_case_arith_ops_syms = '**', '//', '%'
+_special_case_arith_ops_funcs = op.pow, op.floordiv, op.mod
+_special_case_arith_ops_dict = dict(zip(_special_case_arith_ops_syms,
+                                        _special_case_arith_ops_funcs))
 
 _binary_ops_dict = {}
 

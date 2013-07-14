@@ -76,4 +76,4 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines = {'numexpr': NumExprEngine, 'python': PythonEngine }
+_engines = {'numexpr': NumExprEngine, 'python': PythonEngine}

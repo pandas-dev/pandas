@@ -225,8 +225,8 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. note::
 
-    Loop like this would be *extremely* slow in python, but in cython looping over
-    numpy arrays is *fast*.
+    Loops like this would be *extremely* slow in python, but in Cython looping
+    over numpy arrays is *fast*.
 
 .. ipython:: python
 
@@ -289,3 +289,154 @@ Further topics
 - Loading C modules into cython.
 
 Read more in the `cython docs <http://docs.cython.org/>`__.
+
+.. _enhancingperf.eval:
+
+Expression Evaluation via :func:`~pandas.computation.eval.eval`
+---------------------------------------------------------------
+
+New in pandas v0.13 a top-level function :func:`~pandas.computation.eval.eval`
+implements expression evaluation of expressions containing
+:class:`~pandas.core.series.Series` and :class:`~pandas.core.frame.DataFrame`
+objects.
+
+.. note::
+
+   To benefit from using :func:`~pandas.computation.eval.eval` you need to
+   install ``numexpr``. See the :ref:`recommended dependencies section
+   <install.recommended_dependencies>` for more details.
+
+The major benefit of using :func:`~pandas.computation.eval.eval` for expression
+evaluation rather than just straight-up Python is two-fold: large
+:class:`~pandas.core.frame.DataFrame` objects are evaluated more efficiently
+and large expressions are evaluated all at once by the underlying engine (by
+default ``numexpr`` is used for evaluation).
+
+.. note::
+
+   You should not use :func:`~pandas.computation.eval.eval` for simple
+   expressions or for expressions involving small DataFrames. In fact,
+   :func:`~pandas.computation.eval.eval` is many orders of magnitude slower for
+   smaller expressions/objects than plain ole' Python. A good rule of thumb is
+   to only use :func:`~pandas.computation.eval.eval` when you have a
+   :class:`~pandas.core.frame.DataFrame` with more than 10,000 rows.
+
+
+:func:`~pandas.computation.eval.eval` supports all arithmetic expressions
+supported by the engine (by default the engine is ``numexpr``). The ``numexpr``
+engine uses ``numexpr`` under the hood to evaluate expressions efficiently,
+while allowing a slightly modified, and we think more intuitive syntax for
+expressions.
+
+
+.. note::
+
+   The larger the frame and the larger the expression the more speedup you will
+   see from using :func:`~pandas.computation.eval.eval`.
+
+
+:func:`~pandas.computation.eval.eval` Examples
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:func:`~pandas.computation.eval.eval` works wonders for expressions containing
+large arrays
+
+First let's create 4 decent-sized arrays to play with:
+
+.. ipython:: python
+
+   import pandas as pd
+   from pandas import DataFrame, Series
+   from numpy.random import randn
+   import numpy as np
+   nrows, ncols = 20000, 100
+   df1, df2, df3, df4 = [DataFrame(randn(nrows, ncols)) for _ in xrange(4)]
+
+
+Now let's compare adding them together using plain ol' Python versus
+:func:`~pandas.computation.eval.eval`:
+
+
+.. ipython:: python
+
+   %timeit df1 + df2 + df3 + df4
+
+.. ipython:: python
+
+   %timeit pd.eval('df1 + df2 + df3 + df4')
+
+
+Now let's do the same thing but with comparisons:
+
+.. ipython:: python
+
+   %timeit (df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)
+
+.. ipython:: python
+
+   %timeit pd.eval('(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)')
+
+
+:func:`~pandas.computation.eval.eval` also works with "unaligned" pandas
+objects:
+
+
+.. ipython:: python
+
+   s = Series(randn(50))
+   %timeit df1 + df2 + df3 + df4 + s
+
+.. ipython:: python
+
+   %timeit pd.eval('df1 + df2 + df3 + df4 + s')
+
+There are also two different flavors of parsers and and two different engines
+to use as the backend.
+
+:func:`~pandas.computation.eval.eval` Parsers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The default ``"pandas"`` parser allows a bit more intuitive (we think) syntax
+for expressing query-like operations (comparisons, conjunctions and
+disjunctions). In particular, the precedence of the ``&`` and ``|`` operators
+is made equal to the precedence of the corresponding boolean operations ``and``
+and ``or``.
+
+For example, the above conjunction can be written without
+parentheses. Alternatively, you can use the ``'python'`` parser to enforce
+strict Python semantics.
+
+.. ipython:: python
+
+   expr = '(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)'
+   x = pd.eval(expr, parser='python')
+   expr_no_parens = 'df1 > 0 & df2 > 0 & df3 > 0 & df4 > 0'
+   y = pd.eval(expr_no_parens, parser='pandas')
+   np.all(x == y)
+
+
+:func:`~pandas.computation.eval.eval` Backends
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There's also the option to make :func:`~pandas.computation.eval.eval` operate
+identical to plain ol' Python.
+
+.. note::
+
+   Using the ``'python'`` engine is generally *not* useful, except for
+   comparing performance and testing other
+   :func:`~pandas.computation.eval.eval` engines against it. You will acheive
+   **no** performance benefits using :func:`~pandas.computation.eval.eval` with
+   ``engine='python'``.
+
+You can see this by using :func:`~pandas.computation.eval.eval` with the
+``'python'`` engine is actually a bit slower (not by much) than evaluating the
+same expression in Python:
+
+.. ipython:: python
+
+   %timeit df1 + df2 + df3 + df4
+
+.. ipython:: python
+
+   %timeit pd.eval('df1 + df2 + df3 + df4', engine='python')

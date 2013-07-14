@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import unittest
-import itertools
+import functools
+import numbers
 from itertools import product
 import ast
 
@@ -18,15 +19,17 @@ import pandas as pd
 from pandas.core import common as com
 from pandas import DataFrame, Series, Panel
 from pandas.util.testing import makeCustomDataframe as mkdf
-from pandas.computation.engines import _engines, _reconstruct_object
-from pandas.computation.align import _align_core
-from pandas.computation.expr import NumExprVisitor, PythonExprVisitor
-from pandas.computation.ops import _binary_ops_dict, _unary_ops_dict, Term
+from pandas.computation.engines import _engines
+from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
+from pandas.computation.ops import (_binary_ops_dict, _unary_ops_dict,
+                                    _special_case_arith_ops_syms,
+                                    _arith_ops_syms)
 import pandas.computation.expr as expr
 from pandas.computation import pytables
 from pandas.computation.expressions import _USE_NUMEXPR
 from pandas.computation.eval import Scope
-from pandas.util.testing import assert_frame_equal, randbool
+from pandas.util.testing import (assert_frame_equal, randbool,
+                                 assertRaisesRegexp)
 from pandas.util.py3compat import PY3
 
 
@@ -39,30 +42,9 @@ def engine_has_neg_frac(engine):
     return _engines[engine].has_neg_frac
 
 
-def fractional(x):
-    frac, _ = np.modf(np.asanyarray(x))
-    return frac
-
-
-def hasfractional(x):
-    return np.any(fractional(x))
-
-
-def _eval_from_expr(lhs, cmp1, rhs, binop, cmp2):
-    f1 = _binary_ops_dict[cmp1]
-    f2 = _binary_ops_dict[cmp2]
-    bf = _binary_ops_dict[binop]
-    env = Scope()
-    typ, axes = _align_core((Term('lhs', env), Term('rhs', env)))
-    lhs, rhs = env.locals['lhs'], env.locals['rhs']
-    ret_type = np.result_type(lhs, rhs)
-    return _reconstruct_object(typ, bf(f1(lhs, rhs), f2(lhs, rhs)), axes,
-                               ret_type)
-
-
-def _eval_single_bin(lhs, cmp1, rhs, has_neg_frac):
+def _eval_single_bin(lhs, cmp1, rhs, engine):
     c = _binary_ops_dict[cmp1]
-    if has_neg_frac:
+    if engine_has_neg_frac(engine):
         try:
             result = c(lhs, rhs)
         except ValueError:
@@ -72,55 +54,57 @@ def _eval_single_bin(lhs, cmp1, rhs, has_neg_frac):
     return result
 
 
-def isframe(x):
-    return isinstance(x, pd.DataFrame)
-
-
-def isseries(x):
-    return isinstance(x, pd.Series)
-
-
-def are_compatible_types(op, lhs, rhs):
-    if op in ('&', '|'):
-        if isframe(lhs) and isseries(rhs) or isframe(rhs) and isseries(lhs):
-            return False
-    return True
-
-
-def _eval_bin_and_unary(unary, lhs, arith1, rhs):
-    binop = _binary_ops_dict[arith1]
-    unop = expr._unary_ops_dict[unary]
-    return unop(binop(lhs, rhs))
-
-
 def _series_and_2d_ndarray(lhs, rhs):
     return (com.is_series(lhs) and isinstance(rhs, np.ndarray) and rhs.ndim > 1
             or com.is_series(rhs) and isinstance(lhs, np.ndarray) and lhs.ndim
             > 1)
 
 
-class TestBasicEval(unittest.TestCase):
+def skip_incompatible_operand(f):
+    @functools.wraps(f)
+    def wrapper(self, lhs, arith1, rhs, *args, **kwargs):
+        if _series_and_2d_ndarray(lhs, rhs):
+            self.assertRaises(Exception, pd.eval, 'lhs {0} rhs'.format(arith1),
+                              local_dict={'lhs': lhs, 'rhs': rhs},
+                              engine=self.engine)
+        else:
+            f(self, lhs, arith1, rhs, *args, **kwargs)
+    return wrapper
+
+
+_good_arith_ops = tuple(set(_arith_ops_syms) -
+                        set(_special_case_arith_ops_syms))
+
+
+class TestEvalPandas(unittest.TestCase):
 
     @classmethod
-    def setUpClass(self):
-        self.cmp_ops = expr._cmp_ops_syms
-        self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = expr._bool_ops_syms
-        self.arith_ops = tuple(o for o in expr._arith_ops_syms if o != '//')
-        self.unary_ops = '+', '-'
+    def setUpClass(cls):
+        cls.cmp_ops = expr._cmp_ops_syms
+        cls.cmp2_ops = cls.cmp_ops[::-1]
+        cls.bin_ops = expr._bool_ops_syms
+        cls.special_case_ops = _special_case_arith_ops_syms
+        cls.arith_ops = _good_arith_ops
+        cls.unary_ops = '+', '-'
 
     def set_current_engine(self):
         self.engine = 'numexpr'
 
     def setup_data(self):
-        nan_df = DataFrame(rand(10, 5))
-        nan_df[nan_df > 0.5] = np.nan
-        self.lhses = (DataFrame(randn(10, 5)), Series(randn(5)), randn(),
-                      np.float64(randn()), randn(10, 5), randn(5), np.nan,
-                      Series([1, 2, np.nan, np.nan, 5]), nan_df)
-        self.rhses = (DataFrame(randn(10, 5)), Series(randn(5)), randn(),
-                      np.float64(randn()), randn(10, 5), randn(5), np.nan,
-                      Series([1, 2, np.nan, np.nan, 5]), nan_df)
+        nan_df1 = DataFrame(rand(10, 5))
+        nan_df1[nan_df1 > 0.5] = np.nan
+        nan_df2 = DataFrame(rand(10, 5))
+        nan_df2[nan_df2 > 0.5] = np.nan
+
+        self.pandas_lhses = (DataFrame(randn(10, 5)), Series(randn(5)),
+                             Series([1, 2, np.nan, np.nan, 5]), nan_df1)
+        self.pandas_rhses = (DataFrame(randn(10, 5)), Series(randn(5)),
+                             Series([1, 2, np.nan, np.nan, 5]), nan_df2)
+        self.scalar_lhses = randn(), np.float64(randn()), np.nan
+        self.scalar_rhses = randn(), np.float64(randn()), np.nan
+
+        self.lhses = self.pandas_lhses + self.scalar_lhses
+        self.rhses = self.pandas_rhses + self.scalar_rhses
 
     def setUp(self):
         try:
@@ -135,131 +119,148 @@ class TestBasicEval(unittest.TestCase):
 
     @slow
     def test_complex_cmp_ops(self):
-        self.setUp()
-        lhses, rhses = self.lhses, self.rhses
-        args = itertools.product(lhses, self.cmp_ops, rhses, self.bin_ops,
-                                 self.cmp2_ops)
-        for lhs, cmp1, rhs, binop, cmp2 in args:
-            self._create_cmp_op_t(lhs, cmp1, rhs, binop, cmp2)
+        for lhs, cmp1, rhs, binop, cmp2 in product(self.lhses, self.cmp_ops,
+                                                   self.rhses, self.bin_ops,
+                                                   self.cmp2_ops):
+            self.check_complex_cmp_op(lhs, cmp1, rhs, binop, cmp2)
 
     def test_simple_cmp_ops(self):
         bool_lhses = (DataFrame(randbool(size=(10, 5))),
                       Series(randbool((5,))), randbool())
         bool_rhses = (DataFrame(randbool(size=(10, 5))),
                       Series(randbool((5,))), randbool())
-        args = itertools.product(bool_lhses, bool_rhses, self.cmp_ops)
-        for lhs, rhs, cmp_op in args:
-            self._create_simple_cmp_op_t(lhs, rhs, cmp_op)
+        for lhs, rhs, cmp_op in product(bool_lhses, bool_rhses, self.cmp_ops):
+            self.check_simple_cmp_op(lhs, cmp_op, rhs)
 
+    @slow
     def test_binary_arith_ops(self):
-        self.setUp()
-        lhses = DataFrame(randn(10, 5)), Series(randn(5)), randn()
-        rhses = DataFrame(randn(10, 5)), Series(randn(5)), randn()
-        args = itertools.product(lhses, self.arith_ops, rhses)
-        for lhs, op, rhs in args:
-            self._create_arith_op_t(lhs, op, rhs)
+        for lhs, op, rhs in product(self.lhses, self.arith_ops, self.rhses):
+            self.check_binary_arith_op(lhs, op, rhs)
 
+    def test_modulus(self):
+        for lhs, rhs in product(self.lhses, self.rhses):
+            self.check_modulus(lhs, '%', rhs)
+
+    def test_floor_division(self):
+        for lhs, rhs in product(self.lhses, self.rhses):
+            self.check_floor_division(lhs, '//', rhs)
+
+    def test_pow(self):
+        for lhs, rhs in product(self.lhses, self.rhses):
+            self.check_pow(lhs, '**', rhs)
+
+    @slow
     def test_unary_arith_ops(self):
-        self.setUp()
-        lhses = DataFrame(randn(10, 5)), Series(randn(5)), randn()
-        rhses = DataFrame(randn(10, 5)), Series(randn(5)), randn()
-        aops = tuple(aop for aop in self.arith_ops if aop not in '+-')
-        args = itertools.product(self.unary_ops, lhses, aops, rhses)
-        for unary_op, lhs, arith_op, rhs in args:
-            self._create_unary_arith_op_t(unary_op, lhs, arith_op, rhs)
+        for unary_op, lhs, arith_op, rhs in product(self.unary_ops, self.lhses,
+                                                    self.arith_ops,
+                                                    self.rhses):
+            self.check_unary_arith_op(lhs, arith_op, rhs, unary_op)
 
-    def test_invert(self):
-        self.setUp()
-        lhses = DataFrame(randn(10, 5)), Series(randn(5)), randn()
-        rhses = DataFrame(randn(10, 5)), Series(randn(5)), randn()
-        args = itertools.product(lhses, self.cmp_ops, rhses)
-        for lhs, op, rhs in args:
-            self._create_invert_op_t(lhs, op, rhs)
+    @slow
+    def test_single_invert_op(self):
+        for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
+            self.check_single_invert_op(lhs, op, rhs)
 
-    def _create_cmp_op_t(self, lhs, cmp1, rhs, binop, cmp2):
+    @slow
+    def test_compound_invert_op(self):
+        for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
+            self.check_compound_invert_op(lhs, op, rhs)
+
+    @skip_incompatible_operand
+    def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
                                                                 binop=binop,
                                                                 cmp2=cmp2)
-        if _series_and_2d_ndarray(lhs, rhs):
-            self.assertRaises(Exception, _eval_from_expr, lhs, cmp1, rhs,
-                              binop, cmp2)
-            self.assertRaises(Exception, pd.eval, ex, engine=self.engine)
-        else:
-            expected = _eval_from_expr(lhs, cmp1, rhs, binop, cmp2)
-            result = pd.eval(ex, engine=self.engine)
-            assert_array_equal(result, expected)
+        lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+        rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
+        expected = _eval_single_bin(lhs_new, binop, rhs_new, self.engine)
+        result = pd.eval(ex, engine=self.engine)
+        assert_array_equal(result, expected)
 
-    def _create_simple_cmp_op_t(self, lhs, rhs, cmp1):
+    @skip_incompatible_operand
+    def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = 'lhs {0} rhs'.format(cmp1)
+        expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
+        result = pd.eval(ex, engine=self.engine)
+        assert_array_equal(result, expected)
 
-        if are_compatible_types(cmp1, lhs, rhs):
-            expected = _eval_single_bin(lhs, cmp1, rhs,
-                                        engine_has_neg_frac(self.engine))
-            result = pd.eval(ex, engine=self.engine)
-            assert_array_equal(result, expected)
-        else:
-            assert_raises(TypeError, _eval_single_bin, lhs, cmp1, rhs,
-                          engine_has_neg_frac(self.engine))
-
-    def _create_arith_op_t(self, lhs, arith1, rhs):
+    @skip_incompatible_operand
+    def check_binary_arith_op(self, lhs, arith1, rhs):
         ex = 'lhs {0} rhs'.format(arith1)
-        nan_frac_neg = (arith1 == '**' and np.any(lhs < 0) and
-                        hasfractional(rhs) and np.isscalar(lhs) and
-                        np.isscalar(rhs) and
-                        not (isinstance(lhs, tuple(np.typeDict.values()))
-                             or isinstance(rhs, tuple(np.typeDict.values()))))
-        if nan_frac_neg and not engine_has_neg_frac(self.engine):
-                assert_raises(ValueError, pd.eval, ex, engine=self.engine,
-                              local_dict=locals(), global_dict=globals())
-        else:
-            result = pd.eval(ex, engine=self.engine)
+        result = pd.eval(ex, engine=self.engine)
+        expected = _eval_single_bin(lhs, arith1, rhs, self.engine)
+        assert_array_equal(result, expected)
+        ex = 'lhs {0} rhs {0} rhs'.format(arith1)
+        result = pd.eval(ex, engine=self.engine)
+        nlhs = _eval_single_bin(lhs, arith1, rhs,
+                                self.engine)
+        self.check_alignment(result, nlhs, rhs, arith1)
 
-            if arith1 != '//':
-                expected = _eval_single_bin(lhs, arith1, rhs,
-                                            engine_has_neg_frac(self.engine))
-                # roundoff error with modulus
-                if arith1 == '%':
-                    assert_allclose(result, expected)
+    def check_alignment(self, result, nlhs, ghs, op):
+        try:
+            nlhs, ghs = nlhs.align(ghs)
+        except (ValueError, TypeError, AttributeError):
+            # ValueError: series frame or frame series align
+            # TypeError, AttributeError: series or frame with scalar align
+            pass
+        else:
+            expected = self.ne.evaluate('nlhs {0} ghs'.format(op))
+            assert_array_equal(result, expected)
+
+    # the following 3 tests require special casing
+
+    @skip_incompatible_operand
+    def check_modulus(self, lhs, arith1, rhs):
+        ex = 'lhs {0} rhs'.format(arith1)
+        result = pd.eval(ex, engine=self.engine)
+        expected = lhs % rhs
+        assert_allclose(result, expected)
+        expected = self.ne.evaluate('expected {0} rhs'.format(arith1))
+        assert_allclose(result, expected)
+
+    @skip_incompatible_operand
+    def check_floor_division(self, lhs, arith1, rhs):
+        ex = 'lhs {0} rhs'.format(arith1)
+
+        if self.engine == 'python':
+            res = pd.eval(ex, engine=self.engine)
+            expected = lhs // rhs
+            assert_array_equal(res, expected)
+        else:
+            self.assertRaises(TypeError, pd.eval, ex, local_dict={'lhs': lhs,
+                                                                  'rhs': rhs},
+                              engine=self.engine)
+
+    def get_expected_pow_result(self, lhs, rhs):
+        try:
+            expected = _eval_single_bin(lhs, '**', rhs, self.engine)
+        except ValueError as e:
+            msg = 'negative number cannot be raised to a fractional power'
+            if e.message == msg:
+                if self.engine == 'python':
+                    raise nose.SkipTest(e.message)
                 else:
-                    assert_array_equal(result, expected)
-
-            # sanity check on recursive parsing
-            try:
-                ghs = rhs.copy()
-            except AttributeError:
-                ghs = rhs
-
-        if nan_frac_neg and not engine_has_neg_frac(self.engine):
-            assert_raises(ValueError, pd.eval, ex, engine=self.engine,
-                          local_dict=locals(), global_dict=globals())
-        else:
-            if arith1 == '**':
-                ex = '(lhs {0} rhs) {0} ghs'.format(arith1)
+                    expected = np.nan
+            # raise on other, possibly valid ValueErrors
             else:
-                ex = 'lhs {0} rhs {0} ghs'.format(arith1)
-            result = pd.eval(ex, engine=self.engine)
+                raise
+        return expected
 
-            try:
-                nlhs = _eval_single_bin(lhs, arith1, rhs,
-                                        engine_has_neg_frac(self.engine))
-            except ValueError:
-                assert_raises(ValueError, _eval_single_bin, lhs, arith1, rhs,
-                              engine_has_neg_frac(self.engine))
-            else:
-                try:
-                    nlhs, ghs = nlhs.align(ghs)
-                except:
-                    pass
-                if arith1 != '//':
-                    expected = self.ne.evaluate('nlhs {0} ghs'.format(arith1))
+    @skip_incompatible_operand
+    def check_pow(self, lhs, arith1, rhs):
+        ex = 'lhs {0} rhs'.format(arith1)
+        expected = self.get_expected_pow_result(lhs, rhs)
+        result = pd.eval(ex, engine=self.engine)
+        assert_array_equal(result, expected)
 
-                    # roundoff error with modulus
-                    if arith1 == '%':
-                        assert_allclose(result, expected)
-                    else:
-                        assert_array_equal(result, expected)
+        ex = '(lhs {0} rhs) {0} rhs'.format(arith1)
+        result = pd.eval(ex, engine=self.engine)
+        expected = self.get_expected_pow_result(
+            self.get_expected_pow_result(lhs, rhs), rhs)
+        assert_array_equal(result, expected)
 
-    def _create_invert_op_t(self, lhs, cmp1, rhs):
+    @skip_incompatible_operand
+    def check_single_invert_op(self, lhs, cmp1, rhs):
         # simple
         for el in (lhs, rhs):
             try:
@@ -273,33 +274,33 @@ class TestBasicEval(unittest.TestCase):
             for engine in self.current_engines:
                 assert_array_equal(result, pd.eval('~elb', engine=engine))
 
+    @skip_incompatible_operand
+    def check_compound_invert_op(self, lhs, cmp1, rhs):
         # compound
         ex = '~(lhs {0} rhs)'.format(cmp1)
         if np.isscalar(lhs) and np.isscalar(rhs):
             lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
-        expected = ~_eval_single_bin(lhs, cmp1, rhs,
-                                     engine_has_neg_frac(self.engine))
+        expected = ~_eval_single_bin(lhs, cmp1, rhs, self.engine)
         result = pd.eval(ex, engine=self.engine)
         assert_array_equal(expected, result)
 
-        # make sure the other engines work
+        # make sure the other engines work the same as this one
         for engine in self.current_engines:
             ev = pd.eval(ex, engine=self.engine)
             assert_array_equal(ev, result)
 
-    def _create_unary_arith_op_t(self, unary_op, lhs, arith1, rhs):
+    @skip_incompatible_operand
+    def check_unary_arith_op(self, lhs, arith1, rhs, unary_op):
         # simple
         ex = '{0}lhs'.format(unary_op, arith1)
         f = _unary_ops_dict[unary_op]
-        bad_types = tuple(np.typeDict.values())
+        bad_types = np.floating, float, numbers.Real
 
-        nan_frac_neg = (arith1 == '**' and
-                        np.any(lhs < 0) and
-                        hasfractional(rhs) and
-                        np.isscalar(lhs) and np.isscalar(rhs) and
-                        not (isinstance(lhs, bad_types) or
-                             isinstance(rhs, bad_types))
-                        and not engine_has_neg_frac(self.engine))
+        if isinstance(lhs, bad_types):
+            raise nose.SkipTest("Incompatiable type for ~ operator")
+        if isinstance(rhs, bad_types):
+            raise nose.SkipTest("Incompatiable type for ~ operator")
+
         try:
             expected = f(lhs.values)
         except AttributeError:
@@ -311,40 +312,23 @@ class TestBasicEval(unittest.TestCase):
             assert_array_equal(result, pd.eval(ex, engine=engine))
 
         ex = '{0}(lhs {1} rhs)'.format(unary_op, arith1)
-
-        if nan_frac_neg:
-            assert_raises(ValueError, pd.eval, ex, engine=self.engine,
-                          local_dict=locals(), global_dict=globals())
-        else:
-            # compound
-            result = pd.eval(ex, engine=self.engine)
-
-            #(lhs, rhs), _ = _align((lhs, rhs))
-            #if arith1 != '//':
-                #expected = self.ne.evaluate(ex)
-                #assert_array_equal(result, expected)
-            #else:
-                #assert_raises(TypeError, self.ne.evaluate, ex)
-
-            #for engine in self.current_engines:
-                #if arith1 != '//':
-                    #if engine_has_neg_frac(engine):
-                        #assert_array_equal(result, pd.eval(ex, engine=engine))
-                #else:
-                    #assert_raises(TypeError, pd.eval, ex, engine=engine,
-                                  #local_dict=locals(), global_dict=globals())
+        result = pd.eval(ex, engine=self.engine)
 
 
-class TestBasicEvalPython(TestBasicEval):
+class TestEvalPython(TestEvalPandas):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.cmp_ops = expr._cmp_ops_syms
-        cls.cmp2_ops = cls.cmp_ops[::-1]
-        cls.bin_ops = expr._bool_ops_syms
-        cls.arith_ops = expr._arith_ops_syms
-        cls.unary_ops = '+', '-'
+    def set_current_engine(self):
+        self.engine = 'python'
 
+
+class TestEvalPandasWithMixedTypeOperands(TestEvalPandas):
+    def setup_data(self):
+        super(TestEvalPandasWithMixedTypeOperands, self).setup_data()
+        self.lhses += randn(10, 5), randn(5)
+        self.rhses += randn(10, 5), randn(5)
+
+
+class TestEvalPythonWithMixedTypeOperands(TestEvalPandasWithMixedTypeOperands):
     def set_current_engine(self):
         self.engine = 'python'
 
@@ -373,7 +357,7 @@ def check_align_nested_unary_op(engine):
     skip_numexpr_engine(engine)
     s = 'df * ~2'
     df = mkdf(10, 10, data_gen_f=f)
-    res = pd.eval(s, engine)
+    res = pd.eval(s, engine=engine)
     assert_frame_equal(res, df * ~2)
 
 
@@ -450,7 +434,6 @@ def check_basic_series_frame_alignment(engine, r_idx_type, c_idx_type,
         assert_frame_equal(res, expected)
 
 
-@slow
 def check_basic_series_frame_alignment_datetime(engine, r_idx_type, c_idx_type,
                                                 index_name):
     skip_numexpr_engine(engine)
@@ -502,6 +485,7 @@ def test_series_frame_commutativity():
                                          index_name)
 
 
+@slow
 def test_basic_frame_series_alignment():
     args = product(_engines, INDEX_TYPES, INDEX_TYPES, ('index', 'columns'))
     for engine, r_idx_type, c_idx_type, index_name in args:
@@ -518,6 +502,7 @@ def test_basic_series_frame_alignment_datetime():
                                                     c_idx_type, index_name)
 
 
+@slow
 def test_basic_series_frame_alignment():
     args = product(_engines, INDEX_TYPES, INDEX_TYPES, ('index', 'columns'))
     for engine, r_idx_type, c_idx_type, index_name in args:
@@ -647,13 +632,13 @@ def test_or_fails():
         check_or_fails(engine)
 
 
-_visitors = {'numexpr': NumExprVisitor, 'python': PythonExprVisitor,
-             'pytables': pytables.ExprVisitor}
+_parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
+             'pandas': PandasExprVisitor}
 
 
-def check_disallowed_nodes(engine):
+def check_disallowed_nodes(visitor):
     """make sure the disallowed decorator works"""
-    VisitorClass = _visitors[engine]
+    VisitorClass = _parsers[visitor]
     uns_ops = VisitorClass.unsupported_nodes
     inst = VisitorClass('x + 1')
     for ops in uns_ops:
@@ -661,30 +646,57 @@ def check_disallowed_nodes(engine):
 
 
 def test_disallowed_nodes():
-    for engine in ('pytables', 'numexpr', 'python'):
-        check_disallowed_nodes(engine)
+    for visitor in _parsers:
+        check_disallowed_nodes(visitor)
 
 
-def check_simple_ops(engine):
-    ops = '+', '*', '/', '-', '%', '**'
+def check_simple_arith_ops(engine):
+    ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
-    for op in ops:
-        expec = _eval_single_bin(1, op, 1, engine_has_neg_frac(engine))
+    for op in filter(lambda x: x != '//', ops):
+        expec = _eval_single_bin(1, op, 1, engine)
         x = pd.eval('1 {0} 1'.format(op), engine=engine)
         assert_equal(x, expec)
 
-        expec = _eval_single_bin(x, op, 1, engine_has_neg_frac(engine))
+        expec = _eval_single_bin(x, op, 1, engine)
         y = pd.eval('x {0} 1'.format(op), engine=engine)
         assert_equal(y, expec)
 
-        expec = _eval_single_bin(1, op, x + 1, engine_has_neg_frac(engine))
+        expec = _eval_single_bin(1, op, x + 1, engine)
         y = pd.eval('1 {0} (x + 1)'.format(op), engine=engine)
         assert_equal(y, expec)
 
 
-def test_simple_ops():
+def check_simple_bool_ops(engine):
+    for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True,
+                                                                     False)):
+        expec = _eval_single_bin(lhs, op, rhs, engine)
+        x = pd.eval('lhs {0} rhs'.format(op), engine=engine)
+        assert_equal(x, expec)
+
+
+def check_bool_ops_with_constants(engine):
+    asteval = ast.literal_eval
+    for op, lhs, rhs in product(expr._bool_ops_syms, ('True', 'False'),
+                                ('True', 'False')):
+        expec = _eval_single_bin(asteval(lhs), op, asteval(rhs), engine)
+        x = pd.eval('{0} {1} {2}'.format(lhs, op, rhs), engine=engine)
+        assert_equal(x, expec)
+
+
+def test_simple_arith_ops():
     for engine in _engines:
-        check_simple_ops(engine)
+        check_simple_arith_ops(engine)
+
+
+def test_simple_bool_ops():
+    for engine in _engines:
+        check_simple_bool_ops(engine)
+
+
+def test_bool_ops_with_constants():
+    for engine in _engines:
+        check_bool_ops_with_constants(engine)
 
 
 def check_no_new_locals(engine):
@@ -725,6 +737,52 @@ def check_panel_fails(engine):
 def test_panel_fails():
     for engine in _engines:
         check_panel_fails(engine)
+
+
+def check_4d_ndarray_fails(engine):
+    x = randn(3, 4, 5, 6)
+    y = Series(randn(10))
+    assert_raises(NotImplementedError, pd.eval, 'x + y', local_dict={'x': x,
+                                                                     'y': y},
+                  engine=engine)
+
+
+def test_4d_ndarray_fails():
+    for engine in _engines:
+        check_4d_ndarray_fails(engine)
+
+
+def check_constant(engine):
+    x = pd.eval('1', engine=engine)
+    assert_equal(x, 1)
+
+
+def test_constant():
+    for engine in _engines:
+        check_constant(engine)
+
+
+def check_single_variable(engine):
+    df = DataFrame(randn(10, 2))
+    df2 = pd.eval('df', engine=engine)
+    assert_frame_equal(df, df2)
+
+
+def test_single_variable():
+    for engine in _engines:
+        check_single_variable(engine)
+
+
+def test_invalid_engine():
+    assertRaisesRegexp(KeyError, 'Invalid engine \'asdf\' passed',
+                       pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
+                       engine='asdf')
+
+
+def test_invalid_parser():
+    assertRaisesRegexp(KeyError, 'Invalid parser \'asdf\' passed',
+                       pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
+                       parser='asdf')
 
 
 if __name__ == '__main__':

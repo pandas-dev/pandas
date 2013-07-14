@@ -1006,6 +1006,77 @@ convert to an integer index:
     df_new[(df_new['index'] >= 1.0) & (df_new['index'] < 2)]
 
 
+.. _indexing.query:
+
+The ``query`` Method
+~~~~~~~~~~~~~~~~~~~~
+New in pandas v0.13, :class:`~pandas.core.frame.DataFrame` objects have a
+:meth:`~pandas.core.frame.DataFrame.query` method that allows selection using a
+string consisting of columns of the calling
+:class:`~pandas.core.frame.DataFrame`.
+
+
+
+.. _indexing.class:
+
+Index objects
+-------------
+
+The pandas Index class and its subclasses can be viewed as implementing an
+*ordered set* in addition to providing the support infrastructure necessary for
+lookups, data alignment, and reindexing. The easiest way to create one directly
+is to pass a list or other sequence to ``Index``:
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'])
+   index
+   'd' in index
+
+You can also pass a ``name`` to be stored in the index:
+
+
+.. ipython:: python
+
+   index = Index(['e', 'd', 'a', 'b'], name='something')
+   index.name
+
+Starting with pandas 0.5, the name, if set, will be shown in the console
+display:
+
+.. ipython:: python
+
+   index = Index(list(range(5)), name='rows')
+   columns = Index(['A', 'B', 'C'], name='cols')
+   df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
+   df
+   df['A']
+
+
+Set operations on Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _indexing.set_ops:
+
+The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
+(-)``. These can be directly called as instance methods or used via overloaded
+operators:
+
+.. ipython:: python
+
+   a = Index(['c', 'b', 'a'])
+   b = Index(['c', 'e', 'd'])
+   a.union(b)
+   a | b
+   a & b
+   a - b
+
+``isin`` method of Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One additional operation is the ``isin`` method that works analogously to the
+``Series.isin`` method found :ref:`here <indexing.boolean>`.
+
 .. _indexing.hierarchical:
 
 Hierarchical indexing (MultiIndex)
@@ -1354,65 +1425,6 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
-.. _indexing.class:
-
-Index objects
--------------
-
-The pandas Index class and its subclasses can be viewed as implementing an
-*ordered set* in addition to providing the support infrastructure necessary for
-lookups, data alignment, and reindexing. The easiest way to create one directly
-is to pass a list or other sequence to ``Index``:
-
-.. ipython:: python
-
-   index = Index(['e', 'd', 'a', 'b'])
-   index
-   'd' in index
-
-You can also pass a ``name`` to be stored in the index:
-
-
-.. ipython:: python
-
-   index = Index(['e', 'd', 'a', 'b'], name='something')
-   index.name
-
-Starting with pandas 0.5, the name, if set, will be shown in the console
-display:
-
-.. ipython:: python
-
-   index = Index(list(range(5)), name='rows')
-   columns = Index(['A', 'B', 'C'], name='cols')
-   df = DataFrame(np.random.randn(5, 3), index=index, columns=columns)
-   df
-   df['A']
-
-
-Set operations on Index objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _indexing.set_ops:
-
-The three main operations are ``union (|)``, ``intersection (&)``, and ``diff
-(-)``. These can be directly called as instance methods or used via overloaded
-operators:
-
-.. ipython:: python
-
-   a = Index(['c', 'b', 'a'])
-   b = Index(['c', 'e', 'd'])
-   a.union(b)
-   a | b
-   a & b
-   a - b
-
-``isin`` method of Index objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-One additional operation is the ``isin`` method that works analogously to the
-``Series.isin`` method found :ref:`here <indexing.boolean>`.
 
 Setting index metadata (``name(s)``, ``levels``, ``labels``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -8,10 +8,11 @@ from cStringIO import StringIO
 from functools import partial
 
 from pandas.core.base import StringMixin
-from pandas.computation.ops import BinOp, UnaryOp, _reductions, _mathops
-from pandas.computation.ops import _cmp_ops_syms, _bool_ops_syms
-from pandas.computation.ops import _arith_ops_syms, _unary_ops_syms
-from pandas.computation.ops import Term, Constant
+from pandas.core import common as com
+from pandas.computation.ops import (BinOp, UnaryOp, _reductions, _mathops,
+                                    _cmp_ops_syms, _bool_ops_syms,
+                                    _arith_ops_syms, _unary_ops_syms, Term,
+                                    Constant)
 
 import pandas.lib as lib
 import datetime
@@ -33,6 +34,10 @@ class Scope(object):
         # add some useful defaults
         self.globals['Timestamp'] = lib.Timestamp
         self.globals['datetime'] = datetime
+
+        # SUCH a hack
+        self.globals['True'] = True
+        self.globals['False'] = False
 
         self.resolvers = resolvers or []
         self.resolver_keys = set(reduce(operator.add, (list(o.keys()) for o in
@@ -219,8 +224,15 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.preparser = preparser
 
     def visit(self, node, **kwargs):
+        parse = lambda x: ast.fix_missing_locations(ast.parse(x))
         if isinstance(node, basestring):
-            node = ast.fix_missing_locations(ast.parse(self.preparser(node)))
+            clean = self.preparser(node)
+        elif isinstance(node, ast.AST):
+            clean = node
+        else:
+            raise TypeError("Cannot visit objects of type {0!r}"
+                            "".format(node.__class__.__name__))
+        node = parse(clean)
 
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, None)
@@ -262,7 +274,6 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Index(self, node, **kwargs):
         """ df.index[4] """
         return self.visit(node.value)
-
 
     def visit_Subscript(self, node, **kwargs):
         """ df.index[4:6] """
@@ -344,21 +355,16 @@ class BaseExprVisitor(ast.NodeVisitor):
         return node
 
 
-_numexpr_not_supported = frozenset(['Assign', 'BoolOp', 'Not', 'Str', 'Slice',
-                                    'Index', 'Subscript', 'Tuple', 'List',
-                                    'Dict', 'Call'])
+_python_not_supported = frozenset(['Assign', 'BoolOp', 'Not', 'Str', 'Slice',
+                                   'Index', 'Subscript', 'Tuple', 'List',
+                                   'Dict', 'Call'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
-@disallow(_unsupported_nodes | _numexpr_not_supported)
-class NumExprVisitor(BaseExprVisitor):
-    def __init__(self, env, preparser=None):
-        if preparser is not None:
-            raise ValueError("only strict numexpr syntax is supported")
-        preparser = lambda x: x
-        super(NumExprVisitor, self).__init__(env, preparser)
+@disallow(_unsupported_nodes | _python_not_supported)
+class PandasExprVisitor(BaseExprVisitor):
+    def __init__(self, env, preparser=_preparse):
+        super(PandasExprVisitor, self).__init__(env, preparser)
 
-
-_python_not_supported = _numexpr_not_supported
 
 @disallow(_unsupported_nodes | _python_not_supported)
 class PythonExprVisitor(BaseExprVisitor):
@@ -369,10 +375,11 @@ class Expr(StringMixin):
 
     """Expr object"""
 
-    def __init__(self, expr, engine='numexpr', env=None, truediv=True):
+    def __init__(self, expr, engine='numexpr', parser='pandas', env=None,
+                 truediv=True):
         self.expr = expr
         self.env = env or Scope(frame_level=2)
-        self._visitor = _visitors[engine](self.env)
+        self._visitor = _parsers[parser](self.env)
         self.terms = self.parse()
         self.engine = engine
         self.truediv = truediv
@@ -382,7 +389,7 @@ class Expr(StringMixin):
         return self.terms(env)
 
     def __unicode__(self):
-        return unicode(self.terms)
+        return com.pprint_thing(self.terms)
 
     def __len__(self):
         return len(self.expr)
@@ -396,6 +403,18 @@ class Expr(StringMixin):
         return self.terms.align(self.env)
 
 
+def maybe_expression(s, kind='python'):
+    """ loose checking if s is an expression """
+    if not isinstance(s, basestring):
+        return False
+    try:
+        visitor = _parsers[kind]
+        # make sure we have an op at least
+        return any(op in s for op in visitor.binary_ops)
+    except:
+        return False
+
+
 def isexpr(s, check_names=True):
     try:
         Expr(s)
@@ -407,4 +426,4 @@ def isexpr(s, check_names=True):
         return True
 
 
-_visitors = {'python': PythonExprVisitor, 'numexpr': NumExprVisitor}
+_parsers = {'python': PythonExprVisitor, 'pandas': PandasExprVisitor}
