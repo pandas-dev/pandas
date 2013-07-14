@@ -626,7 +626,7 @@ Plotting
    ts = pd.Series(randn(1000), index=pd.date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
-   @savefig series_plot_basic.png width=6in
+   @savefig series_plot_basic.png
    ts.plot()
 
 On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
@@ -637,7 +637,7 @@ On DataFrame, ``plot`` is a convenience to plot all of the columns with labels:
                      columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
-   @savefig frame_plot_basic.png width=6in
+   @savefig frame_plot_basic.png
    plt.figure(); df.plot(); plt.legend(loc='best')
 
 Getting Data In/Out

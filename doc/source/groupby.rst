@@ -450,7 +450,7 @@ We can also visually compare the original and transformed data sets.
 
    compare = DataFrame({'Original': ts, 'Transformed': transformed})
 
-   @savefig groupby_transform_plot.png width=4in
+   @savefig groupby_transform_plot.png
    compare.plot()
 
 Another common data transform is to replace missing data with the group mean.
