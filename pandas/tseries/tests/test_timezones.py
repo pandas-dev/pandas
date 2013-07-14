@@ -631,6 +631,22 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         self.assertTrue(ind.tz is not None)
 
+    def test_datetimeindex_tz(self):
+        """ Test different DatetimeIndex constructions with timezone
+        Follow-up of #4229
+        """
+        
+        arr = ['11/10/2005 08:00:00', '11/10/2005 09:00:00']
+        
+        idx1 = to_datetime(arr).tz_localize('US/Eastern')
+        idx2 = DatetimeIndex(start="2005-11-10 08:00:00", freq='H', periods=2, tz='US/Eastern')
+        idx3 = DatetimeIndex(arr, tz='US/Eastern')
+        idx4 = DatetimeIndex(np.array(arr), tz='US/Eastern')
+        
+        for other in [idx2, idx3, idx4]:
+            self.assert_(idx1.equals(other))
+
+
 class TestTimeZones(unittest.TestCase):
     _multiprocess_can_split_ = True
 

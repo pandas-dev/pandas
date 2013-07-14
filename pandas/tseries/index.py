@@ -208,9 +208,10 @@ class DatetimeIndex(Int64Index):
                     return data
 
         if issubclass(data.dtype.type, basestring):
-            subarr = _str_to_dt_array(data, offset, dayfirst=dayfirst,
+            data = _str_to_dt_array(data, offset, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
-        elif issubclass(data.dtype.type, np.datetime64):
+
+        if issubclass(data.dtype.type, np.datetime64):
             if isinstance(data, DatetimeIndex):
                 if tz is None:
                     tz = data.tz
