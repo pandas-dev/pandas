@@ -258,7 +258,7 @@ interpolation assumes equally spaced points.
 
    ts.interpolate().head()
 
-   @savefig series_interpolate.png width=6in
+   @savefig series_interpolate.png
    ts.interpolate().plot()
 
 Index aware interpolation is available via the ``method`` keyword:
