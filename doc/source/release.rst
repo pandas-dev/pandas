@@ -338,6 +338,8 @@ pandas 0.12
   - Fixed the legend displaying in ``DataFrame.plot(kind='kde')`` (:issue:`4216`)
   - Fixed bug where Index slices weren't carrying the name attribute
     (:issue:`4226`)
+  - Fixed bug in initializing ``DatetimeIndex`` with an array of strings
+    in a certain time zone (:issue:`4229`)
 
 pandas 0.11.0
 =============
