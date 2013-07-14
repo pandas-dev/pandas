@@ -12,3 +12,5 @@ matplotlib==1.2.1
 patsy==0.1.0
 html5lib==1.0b2
 lxml==3.2.1
+scipy==0.10.0
+beautifulsoup4==4.2.1

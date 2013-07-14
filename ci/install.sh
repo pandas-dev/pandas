@@ -21,9 +21,8 @@ echo "inside $0"
 pip install -I git+https://github.com/pypa/pip@42102e9deaea99db08b681d06906c2945f6f95e2#egg=pip
 pv="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$pv" == "2" ] && pv=""
-[ "$pv" == "2" ] && DISTRIBUTE_VERSION="==0.6.35"
 
-pip install -I distribute${DISTRIBUTE_VERSION}
+pip install -I -U setuptools
 pip install wheel
 
 # comment this line to disable the fetching of wheel files
@@ -40,16 +39,13 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
 fi
 
 time pip install $PIP_ARGS -r ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt
+time sudo apt-get install libatlas-base-dev gfortran
 
 # Optional Deps
 if [ x"$FULL_DEPS" == x"true" ]; then
     echo "Installing FULL_DEPS"
-   # for pytables gets the lib as well
+    # for pytables gets the lib as well
     time sudo apt-get $APT_ARGS install libhdf5-serial-dev
-    time sudo apt-get $APT_ARGS install python${pv}-bs4
-    time sudo apt-get $APT_ARGS install python${pv}-scipy
-
-    time sudo apt-get $APT_ARGS remove python${pv}-lxml
 
     # fool statsmodels into thinking pandas was already installed
     # so it won't refuse to install itself.
