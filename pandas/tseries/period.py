@@ -1060,7 +1060,7 @@ class PeriodIndex(Int64Index):
         values = np.array(list(self),dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
-        
+
         imask = -mask
         values[imask] = np.array([ u'%s' % dt for dt in values[imask] ])
         return values.tolist()
@@ -1070,6 +1070,7 @@ class PeriodIndex(Int64Index):
             return self.item()
 
         self.freq = getattr(obj, 'freq', None)
+        self.name = getattr(obj, 'name', None)
 
     def __repr__(self):
         output = str(self.__class__) + '\n'
