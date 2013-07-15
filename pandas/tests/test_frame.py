@@ -6,7 +6,6 @@ import cPickle as pickle
 import operator
 import re
 import unittest
-
 import nose
 
 from numpy import random, nan
