@@ -681,6 +681,10 @@ class Series(generic.PandasContainer, pa.Array):
                 return self._get_values(key)
             else:
                 try:
+                    # handle the dup indexing case (GH 4246)
+                    if isinstance(key, (list,tuple)):
+                        return self.ix[key]
+
                     return self.reindex(key)
                 except Exception:
                     # [slice(0, 5, None)] will break if you convert to ndarray,
@@ -2637,8 +2641,13 @@ class Series(generic.PandasContainer, pa.Array):
         new_index, indexer = self.index.reindex(index, method=method,
                                                 level=level, limit=limit,
                                                 takeable=takeable)
+
+        # GH4246 (dispatch to a common method with frame to handle possibly duplicate index)
+        return self._reindex_with_indexers(new_index, indexer, copy=copy, fill_value=fill_value)
+
+    def _reindex_with_indexers(self, index, indexer, copy, fill_value):
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
-        return Series(new_values, index=new_index, name=self.name)
+        return Series(new_values, index=index, name=self.name)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
