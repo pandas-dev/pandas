@@ -700,7 +700,7 @@ Reading from an excel file
 
 .. ipython:: python
 
-   read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel('foo.xlsx', 'sheet1', index_col=None, na_values=['NA'])
 
 .. ipython:: python
    :suppress:
