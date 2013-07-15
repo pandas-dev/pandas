@@ -1293,7 +1293,7 @@ class DataCol(IndexCol):
         self.dtype_attr = u"%s_dtype" % self.name
         self.set_data(data)
 
-    def __repr__(self):
+    def __unicode__(self):
         return "name->%s,cname->%s,dtype->%s,shape->%s" % (self.name, self.cname, self.dtype, self.shape)
 
     def __eq__(self, other):
@@ -2265,7 +2265,7 @@ class Table(Storer):
     def table_type_short(self):
         return self.table_type.split('_')[0]
 
-    def __repr__(self):
+    def __unicode__(self):
         """ return a pretty representatgion of myself """
         self.infer_axes()
         dc = ",dc->[%s]" % ','.join(self.data_columns) if len(self.data_columns) else ''
