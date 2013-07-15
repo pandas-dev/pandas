@@ -1,6 +1,6 @@
 ###Guidelines
 
-All contributions, bug reports, bug fixes, documentation improvments,
+All contributions, bug reports, bug fixes, documentation improvements,
 enhancements and ideas are welcome.
 
 The Github "issues" tab contains some issues labels "Good as first PR", these are
@@ -34,7 +34,7 @@ your contribution or address the issue you're having.
     See the "Getting Travis-CI going" below.
   - We suggest you enable Travis-CI on your fork, to make it easier for the team
      to see that the PR does indeed pass all the tests.
-  - Back-compatiblitiy **really** matters. Pandas already has a large user-base and
+  - Back-compatibility **really** matters. Pandas already has a large user-base and
     a lot of existing user code. Don't break old code if you can avoid it
     Explain the need if there is one in the PR.
     Changes to method signatures should be made in a way which doesn't break existing
@@ -113,7 +113,7 @@ page for any PR you submit. For example:
 
 See the Green "Good to merge!" banner? that's it.
 
-This is especially important for new contributors, as memebers of the pandas dev team
+This is especially important for new contributors, as members of the pandas dev team
 like to know the test suite passes before considering it for merging.
 Even regular contributors who test religiously on their local box (using tox
 for example) often rely on a PR+travis=green to make double sure everything
