@@ -18,12 +18,13 @@ apt-add-repository ppa:fkrull/deadsnakes -y
 apt-get update
 
 # install some deps and virtualenv
-apt-get install python-pip libfreetype6-dev libpng12-dev -y
+apt-get install python-pip libfreetype6-dev libpng12-dev libhdf5-serial-dev \
+    g++ libatlas-base-dev gfortran -y
 pip install virtualenv
-apt-get install libhdf5-serial-dev g++ -y
 apt-get build-dep python-lxml -y
 
 export PYTHONIOENCODING='utf-8'
+export VIRTUALENV_DISTRIBUTE=0
 
 function generate_wheels() {
     # get the requirements file
@@ -50,11 +51,7 @@ function generate_wheels() {
 
     # install pip setuptools
     pip install -I --download-cache /tmp 'git+https://github.com/pypa/pip@42102e9d#egg=pip'
-    DISTRIBUTE_VERSION=
-    if [ "${PY_MAJOR}" == "2" ]; then
-        DISTRIBUTE_VERSION="==0.6.35"
-    fi
-    pip install -I --download-cache /tmp distribute${DISTRIBUTE_VERSION}
+    pip install -I -U --download-cache /tmp setuptools
     pip install -I --download-cache /tmp wheel
 
     # make the dir if it doesn't exist
