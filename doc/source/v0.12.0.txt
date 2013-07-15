@@ -437,6 +437,7 @@ Bug Fixes
       names (:issue:`3873`)
     - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to
       ``reindex`` for location-based taking
+    - Allow non-unique indexing in series via ``.ix/.loc`` and ``__getitem`` (:issue:`4246)
 
   - ``DataFrame.from_records`` did not accept empty recarrays (:issue:`3682`)
   - ``read_html`` now correctly skips tests (:issue:`3741`)
@@ -462,7 +463,7 @@ Bug Fixes
     (:issue:`4089`)
   - Fixed bug in ``DataFrame.replace`` where a nested dict wasn't being
     iterated over when regex=False (:issue:`4115`)
-  - Fixed bug in the parsing of microseconds when using the ``format`` 
+  - Fixed bug in the parsing of microseconds when using the ``format``
     argument in ``to_datetime`` (:issue:`4152`)
   - Fixed bug in ``PandasAutoDateLocator`` where ``invert_xaxis`` triggered
     incorrectly ``MilliSecondLocator``  (:issue:`3990`)

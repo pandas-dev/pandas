@@ -928,7 +928,7 @@ class Index(PandasObject, np.ndarray):
                     if method is not None or limit is not None:
                         raise ValueError("cannot reindex a non-unique index "
                                          "with a method or limit")
-                    indexer, _ = self.get_indexer_non_unique(target)
+                    indexer, missing = self.get_indexer_non_unique(target)
 
         return target, indexer
 
