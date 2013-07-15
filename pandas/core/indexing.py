@@ -481,12 +481,12 @@ class _NDFrameIndexer(object):
                     new_indexer = (Index(cur_indexer) + Index(missing_indexer)).values
                     new_indexer[missing_indexer] = -1
 
-                    # need to reindex with an indexer on a specific axis
-                    from pandas.core.frame import DataFrame
-                    if not (type(self.obj) == DataFrame):
-                        raise NotImplementedError("cannot handle non-unique indexing for non-DataFrame (yet)")
+                    # reindex with the specified axis
+                    ndim = self.obj.ndim
+                    if axis+1 > ndim:
+                        raise AssertionError("invalid indexing error with non-unique index")
 
-                    args = [None] * 4
+                    args = [None] * (2*ndim)
                     args[2*axis] = new_labels
                     args[2*axis+1] = new_indexer
 

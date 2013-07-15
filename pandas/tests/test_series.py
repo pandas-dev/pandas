@@ -788,6 +788,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(np.isscalar(obj['c']))
         self.assert_(obj['c'] == 0)
 
+    def test_getitem_dups_with_missing(self):
+
+        # breaks reindex, so need to use .ix internally
+        # GH 4246
+        s = Series([1,2,3,4],['foo','bar','foo','bah'])
+        expected = s.ix[['foo','bar','bah','bam']]
+        result = s[['foo','bar','bah','bam']]
+        assert_series_equal(result,expected)
+
     def test_setitem_ambiguous_keyerror(self):
         s = Series(range(10), index=range(0, 20, 2))
         self.assertRaises(KeyError, s.__setitem__, 1, 5)
@@ -1141,7 +1150,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(np.arange(10))
         mask = s > 5
         self.assertRaises(ValueError, s.__setitem__, mask, ([0]*5,))
-        
+
     def test_where_broadcast(self):
         # Test a variety of differently sized series
         for size in range(2, 6):
