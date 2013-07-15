@@ -92,17 +92,6 @@ class UltraJSONTests(TestCase):
         encoded = ujson.dumps(sut, double_precision=15)
         ujson.decode(encoded)
 
-    def test_decimalDecodeTest(self):
-        sut = {u'a': 4.56}
-        encoded = ujson.encode(sut)
-        decoded = ujson.decode(encoded)
-
-        # Roundtrip works on 32-bit / fails on 64-bit
-        if sys.maxsize < 2**32:
-            self.assertEqual(sut, decoded)
-        else:
-            self.assertNotEqual(sut, decoded)
-
     def test_decimalDecodeTestPrecise(self):
         sut = {u'a': 4.56}
         encoded = ujson.encode(sut)
