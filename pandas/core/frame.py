@@ -5481,6 +5481,38 @@ class DataFrame(NDFrame):
 
         return self._constructor(new_data)
 
+    def isin(self, values, axis=None):
+        """
+        Return boolean vector showing whether elements in the DataFrame are
+        exactly contained in the passed sequence of values.
+
+        Parameters
+        ----------
+        values : sequence (array-like) or dict of {label: sequence}.
+        axis : {None, 0, 1}
+            Compute isin row-wise (axis=0) or column-wise (axis=1)
+            Mandatory if values is a dict, ignored otherwise.
+
+        Returns
+        -------
+
+        bools : Series of booleans
+        """
+        if not isinstance(values, dict):
+            return self.applymap(values.__contains__)
+
+        else:
+            from pandas.tools.merge import concat
+            if axis == 1:
+                return concat((self[col].isin(vals) for col, vals in
+                               values.iteritems()), axis=1)
+            elif axis == 0:
+                return concat((self.loc[row].isin(vals) for row, vals in
+                               values.iteritems()), axis=1).T
+            else:
+                raise TypeError('Axis must be "0" or "1" when values is a dict '
+                                'Got "%s" instead.' % str(axis))
+
     #----------------------------------------------------------------------
     # Deprecated stuff
 
