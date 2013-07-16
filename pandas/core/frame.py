@@ -233,7 +233,7 @@ def _arith_method(op, name, str_rep = None, default_axis='columns', fill_zeros=N
                 return self._combine_series(casted, na_op, fill_value,
                                             axis, level)
             elif other.ndim == 2:
-                casted = DataFrame(other, index=self.index,
+                casted = self._constructor(other, index=self.index,
                                    columns=self.columns)
                 return self._combine_frame(casted, na_op, fill_value, level)
             else:  # pragma: no cover
@@ -297,7 +297,7 @@ def _flex_comp_method(op, name, str_rep = None, default_axis='columns'):
                 return self._combine_series(casted, na_op, None, axis, level)
 
             elif other.ndim == 2:
-                casted = DataFrame(other, index=self.index,
+                casted = self._constructor(other, index=self.index,
                                    columns=self.columns)
 
                 return self._flex_compare_frame(casted, na_op, str_rep, level)
@@ -1771,7 +1771,7 @@ class DataFrame(NDFrame):
         bd = dict()
         for b in self._data.blocks:
             b = b.reindex_items_from(columns or b.items)
-            bd[str(b.dtype)] = DataFrame(BlockManager([ b ], [ b.items, self.index ]))
+            bd[str(b.dtype)] = self._constructor(BlockManager([ b ], [ b.items, self.index ]))
         return bd
 
     blocks = property(fget=as_blocks)
@@ -1841,12 +1841,12 @@ class DataFrame(NDFrame):
         (vals, idx, cols), object_state = state
 
         index = _unpickle_array(idx)
-        dm = DataFrame(vals, index=index, columns=_unpickle_array(cols),
+        dm = self._constructor(vals, index=index, columns=_unpickle_array(cols),
                        copy=False)
 
         if object_state is not None:
             ovals, _, ocols = object_state
-            objects = DataFrame(ovals, index=index,
+            objects = self._constructor(ovals, index=index,
                                 columns=_unpickle_array(ocols),
                                 copy=False)
 
@@ -2041,7 +2041,7 @@ class DataFrame(NDFrame):
                 result.columns = result_columns
             else:
                 new_values = self.values[:, loc]
-                result = DataFrame(new_values, index=self.index,
+                result = self._constructor(new_values, index=self.index,
                                    columns=result_columns)
             if len(result.columns) == 1:
                 top = result.columns[0]
@@ -2558,7 +2558,7 @@ class DataFrame(NDFrame):
         if copy and fdata is self._data:
             fdata = fdata.copy()
 
-        left_result = DataFrame(fdata)
+        left_result = self._constructor(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
 
         fill_na = notnull(fill_value) or (method is not None)
@@ -2737,7 +2737,7 @@ class DataFrame(NDFrame):
         if copy and new_data is self._data:
             new_data = new_data.copy()
 
-        return DataFrame(new_data)
+        return self._constructor(new_data)
 
     def reindex_like(self, other, method=None, copy=True, limit=None,
                      fill_value=NA):
@@ -2985,7 +2985,7 @@ class DataFrame(NDFrame):
         if self._is_mixed_type:
             if axis == 0:
                 new_data = self._data.take(indices, axis=1, verify=False)
-                return DataFrame(new_data)
+                return self._constructor(new_data)
             else:
                 new_columns = self.columns.take(indices)
                 return self.reindex(columns=new_columns)
@@ -2999,7 +2999,7 @@ class DataFrame(NDFrame):
             else:
                 new_columns = self.columns.take(indices)
                 new_index = self.index
-            return DataFrame(new_values, index=new_index,
+            return self._constructor(new_values, index=new_index,
                              columns=new_columns)
 
     #----------------------------------------------------------------------
@@ -4075,7 +4075,7 @@ class DataFrame(NDFrame):
             raise NotImplementedError
 
         if not isinstance(other, DataFrame):
-            other = DataFrame(other)
+            other = self._constructor(other)
 
         other = other.reindex_like(self)
 
@@ -4425,7 +4425,7 @@ class DataFrame(NDFrame):
 
         # TODO: mixed type case
         if result.ndim == 2:
-            return DataFrame(result, index=self.index,
+            return self._constructor(result, index=self.index,
                              columns=self.columns)
         else:
             return Series(result, index=self._get_agg_axis(axis))
@@ -4592,10 +4592,10 @@ class DataFrame(NDFrame):
 
             index = None if other.name is None else [other.name]
             other = other.reindex(self.columns, copy=False)
-            other = DataFrame(other.values.reshape((1, len(other))),
+            other = self._constructor(other.values.reshape((1, len(other))),
                               index=index, columns=self.columns)
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
-            other = DataFrame(other)
+            other = self._constructor(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():
                 other = other.ix[:, self.columns]
 
@@ -4660,7 +4660,7 @@ class DataFrame(NDFrame):
         if isinstance(other, Series):
             if other.name is None:
                 raise AssertionError('Other Series must have a name')
-            other = DataFrame({other.name: other})
+            other = self._constructor({other.name: other})
 
         if isinstance(other, DataFrame):
             return merge(self, other, left_on=on, how=how,
@@ -4862,7 +4862,7 @@ class DataFrame(NDFrame):
         numdata = self._get_numeric_data()
 
         if len(numdata.columns) == 0:
-            return DataFrame(dict((k, v.describe())
+            return self._constructor(dict((k, v.describe())
                                   for k, v in self.iteritems()),
                              columns=self.columns)
 
@@ -4954,7 +4954,7 @@ class DataFrame(NDFrame):
         labels = com._ensure_int64(frame.index.labels[level])
         counts = lib.count_level_2d(mask, labels, len(level_index))
 
-        result = DataFrame(counts, index=level_index,
+        result = self._constructor(counts, index=level_index,
                            columns=frame.columns)
 
         if axis == 1:
