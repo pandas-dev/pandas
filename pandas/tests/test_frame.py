@@ -10661,11 +10661,26 @@ starting,ending,measure
         assert_frame_equal(result, expected)
 
         # non unique columns
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
         df.columns = ['A', 'A']
         expected = DataFrame(False, df.index, df.columns)
         expected.loc[0, 'A'] = True
         result = df.isin(d)
         assert_frame_equal(result, expected)
+
+        # iloc
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        d = {0: ['a']}
+        expected = DataFrame(False, df.index, df.columns)
+
+        # without using iloc
+        result = df.isin(d)
+        assert_frame_equal(result, expected)        
+
+        # using iloc
+        result = df.isin(d, iloc=True)
+        expected.iloc[0, 0] = True
+        assert_frame_equal(result, expected)        
 
 
 if __name__ == '__main__':

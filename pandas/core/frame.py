@@ -5482,14 +5482,16 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
 
-    def isin(self, values):
+    def isin(self, values, iloc=False):
         """
-        Return boolean DataFrame showing whether each elements in the DataFrame is
-        contained in items.
+        Return boolean DataFrame showing whether each element in the DataFrame is
+        contained in values.
 
         Parameters
         ----------
         values : iterable or dictionary of columns to values
+        iloc : boolean, if passing a dict as values, describe columns using integer
+                        locations (default is to use labels)
 
         Returns
         -------
@@ -5500,8 +5502,13 @@ class DataFrame(NDFrame):
             from collections import defaultdict
             from pandas.tools.merge import concat
             values = defaultdict(list, values)
-            return concat((self.iloc[:, [i]].isin(values[ind] or values[i])
-                             for i, ind in enumerate(self.columns)), axis=1)
+            if iloc:
+                return concat((self.iloc[:, [i]].isin(values[i])
+                                 for i, col in enumerate(self.columns)), axis=1)
+            else:
+                return concat((self.iloc[:, [i]].isin(values[col])
+                                 for i, col in enumerate(self.columns)), axis=1)
+
 
         else:
             return DataFrame(lib.ismember(self.values.ravel(),

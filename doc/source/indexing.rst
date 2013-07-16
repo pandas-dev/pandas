@@ -476,12 +476,18 @@ a list of items you want to check for.
 
 .. ipython:: python
 
-   df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
-                   'ids2': ['a', 'n', 'c', 'n']})
-
    values = {'ids': ['a', 'b'], 'vals': [1, 3]}
 
    df.isin(values)
+
+You can also describe columns using integer location:
+
+.. ipython:: python
+
+   values = {0: ['a', 'b']}
+
+   df.isin(values, iloc=True)
+
 
 Where and Masking
 ~~~~~~~~~~~~~~~~~
