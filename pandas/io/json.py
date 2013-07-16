@@ -1,17 +1,16 @@
 
 # pylint: disable-msg=E1101,W0613,W0603
-from StringIO import StringIO
 import os
+
+import pandas.json as _json
 
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
-import pandas.json as _json
 loads = _json.loads
 dumps = _json.dumps
 
 import numpy as np
 from pandas.tslib import iNaT
-import pandas.lib as lib
 
 ### interface to/from ###
 

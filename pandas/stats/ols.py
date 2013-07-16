@@ -11,7 +11,6 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Series, isnull
 from pandas.core.base import StringMixin
-from pandas.core.common import _ensure_float64
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly

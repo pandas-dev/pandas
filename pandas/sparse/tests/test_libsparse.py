@@ -1,18 +1,13 @@
 from unittest import TestCase
-
-from pandas import Series
+import operator
 
 import nose
-from numpy import nan
 import numpy as np
-import operator
-from numpy.testing import assert_almost_equal, assert_equal
-
-from pandas.core.sparse import SparseSeries
-from pandas import DataFrame
-
+from numpy.testing import assert_equal
 from pandas._sparse import IntIndex, BlockIndex
 import pandas._sparse as splib
+
+from pandas import Series
 
 TEST_LENGTH = 20
 

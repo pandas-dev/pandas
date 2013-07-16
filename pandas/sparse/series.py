@@ -5,25 +5,22 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
+import operator
+
 from numpy import nan, ndarray
 import numpy as np
-
-import operator
+from pandas._sparse import BlockIndex, IntIndex
+import pandas._sparse as splib
 
 from pandas.core.common import isnull
 from pandas.core.index import Index, _ensure_index
 from pandas.core.series import Series, TimeSeries, _maybe_match_name
 from pandas.core.frame import DataFrame
 import pandas.core.common as com
-import pandas.core.datetools as datetools
-
 from pandas.util import py3compat
-
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
-from pandas._sparse import BlockIndex, IntIndex
-import pandas._sparse as splib
-
 from pandas.util.decorators import Appender
+
 
 #------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods

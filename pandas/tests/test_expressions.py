@@ -1,27 +1,18 @@
 # pylint: disable-msg=W0612,E1101
 
 import unittest
-import nose
-
 import operator
-from numpy import random, nan
-from numpy.random import randn
+
+import nose
 import numpy as np
 from numpy.testing import assert_array_equal
 
-import pandas as pan
-from pandas.core.api import DataFrame, Series, notnull, isnull
+from pandas.core.api import DataFrame
 from pandas.core import expressions as expr
-
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
+from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 from pandas.util import py3compat
 
-import pandas.util.testing as tm
-import pandas.lib as lib
-
-from numpy.testing.decorators import slow
 
 if not expr._USE_NUMEXPR:
     raise nose.SkipTest
@@ -127,11 +118,11 @@ class TestExpressions(unittest.TestCase):
                         result   = expr.evaluate(op, op_str, f, f, use_numexpr=True)
                         expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
                         assert_array_equal(result,expected.values)
-                
+
                         result   = expr._can_use_numexpr(op, op_str, f2, f2, 'evaluate')
                         self.assert_(result == False)
 
-        
+
         expr.set_use_numexpr(False)
         testit()
         expr.set_use_numexpr(True)
@@ -148,7 +139,7 @@ class TestExpressions(unittest.TestCase):
 
                 f11 = f
                 f12 = f + 1
-            
+
                 f21 = f2
                 f22 = f2 + 1
 
@@ -162,7 +153,7 @@ class TestExpressions(unittest.TestCase):
                     result   = expr.evaluate(op, op_str, f11, f12, use_numexpr=True)
                     expected = expr.evaluate(op, op_str, f11, f12, use_numexpr=False)
                     assert_array_equal(result,expected.values)
-                    
+
                     result   = expr._can_use_numexpr(op, op_str, f21, f22, 'evaluate')
                     self.assert_(result == False)
 
@@ -179,7 +170,7 @@ class TestExpressions(unittest.TestCase):
         def testit():
             for f in [ self.frame, self.frame2, self.mixed, self.mixed2 ]:
 
-                
+
                 for cond in [ True, False ]:
 
                     c = np.empty(f.shape,dtype=np.bool_)

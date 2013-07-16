@@ -3,8 +3,13 @@ SQL-style merge routines
 """
 
 import itertools
-import numpy as np
 import types
+
+import numpy as np
+import pandas.lib as lib
+import pandas.algos as algos
+import pandas.hashtable as _hash
+
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
@@ -19,10 +24,6 @@ from pandas.util.decorators import cache_readonly, Appender, Substitution
 from pandas.core.common import PandasError
 from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
-
-import pandas.lib as lib
-import pandas.algos as algos
-import pandas.hashtable as _hash
 
 
 @Substitution('\nleft : DataFrame')

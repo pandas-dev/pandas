@@ -9,8 +9,6 @@ import numpy as np
 from pandas import DataFrame
 import pandas as pd
 import pandas.io.parsers as psr
-import pandas.lib as lib
-from pandas.io.date_converters import generic_parser
 import pandas.io.auth as auth
 from pandas.util.decorators import Appender, Substitution
 

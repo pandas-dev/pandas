@@ -4,7 +4,6 @@ import sys
 
 import numpy as np
 
-import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
 from pandas.util.py3compat import StringIO
@@ -161,9 +160,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime, datetime/dateutil.parser._result, str
     """
     from pandas.core.config import get_option
-    from pandas.tseries.offsets import DateOffset
-    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
-                                            _get_freq_str)
+    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers)
 
     if not isinstance(arg, basestring):
         return arg

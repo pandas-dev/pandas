@@ -1,9 +1,9 @@
-from numpy.testing import run_module_suite, assert_equal, TestCase
+import unittest
+
+from numpy.testing import assert_equal, TestCase
+import nose
 
 from pandas.util.testing import assert_almost_equal
-
-import nose
-import unittest
 
 raise nose.SkipTest('skipping this for now')
 

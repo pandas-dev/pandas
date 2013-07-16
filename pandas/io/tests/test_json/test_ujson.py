@@ -1,5 +1,4 @@
-﻿import unittest
-from unittest import TestCase
+﻿from unittest import TestCase
 
 import pandas.json as ujson
 try:
@@ -10,18 +9,13 @@ import math
 import nose
 import platform
 import sys
-import time
-import datetime
-import calendar
 import StringIO
 import re
-import random
 import decimal
 from functools import partial
 import pandas.util.py3compat as py3compat
 
 import numpy as np
-from pandas.util.testing import assert_almost_equal
 from numpy.testing import (assert_array_equal,
                            assert_array_almost_equal_nulp,
                            assert_approx_equal)

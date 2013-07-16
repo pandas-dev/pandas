@@ -1,12 +1,12 @@
 # pylint: disable=E1103
 
+import numpy as np
+
 from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex
-from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
 import pandas.core.common as com
-import numpy as np
 
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',

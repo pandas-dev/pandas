@@ -1,36 +1,21 @@
 # pylint: disable-msg=E1101,W0612
-from datetime import datetime, time, timedelta, tzinfo, date
-import sys
-import os
+from datetime import datetime, timedelta, tzinfo, date
 import unittest
-import nose
 
+import nose
 import numpy as np
 import pytz
-
-from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
-                    date_range, Timestamp)
-
-from pandas import DatetimeIndex, Int64Index, to_datetime
-
-from pandas.core.daterange import DateRange
-import pandas.core.datetools as datetools
-import pandas.tseries.offsets as offsets
-from pandas.tseries.index import bdate_range, date_range
-import pandas.tseries.tools as tools
 from pytz import NonExistentTimeError
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal, assertRaisesRegexp
+from pandas import (Index, Series, DataFrame, date_range, Timestamp)
+from pandas import DatetimeIndex, to_datetime
+import pandas.core.datetools as datetools
+import pandas.tseries.offsets as offsets
+from pandas.tseries.index import bdate_range
+import pandas.tseries.tools as tools
+from pandas.util.testing import assert_series_equal, assertRaisesRegexp
 import pandas.util.testing as tm
-
-import pandas.lib as lib
-import cPickle as pickle
-import pandas.core.datetools as dt
-from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
-import pandas.util.py3compat as py3compat
-from pandas.core.datetools import BDay
-import pandas.core.common as com
 
 
 def _skip_if_no_pytz():
@@ -139,7 +124,6 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(result, expected)
 
     def test_tz_localize_dti(self):
-        from pandas.tseries.offsets import Hour
 
         dti = DatetimeIndex(start='1/1/2005', end='1/1/2005 0:00:30.256',
                             freq='L')

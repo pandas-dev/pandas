@@ -8,9 +8,7 @@ import numpy as np
 
 from pandas.core.api import value_counts
 from pandas.core.categorical import Categorical
-from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.core.frame import DataFrame
-from pandas.util.testing import assert_almost_equal
 import pandas.core.common as com
 
 import pandas.util.testing as tm

@@ -13,6 +13,9 @@ import types
 from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
+import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.index as _index
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_promote, _maybe_upcast,
@@ -27,22 +30,16 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
-
 import pandas.core.array as pa
-
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, cache_readonly
-
-import pandas.lib as lib
-import pandas.tslib as tslib
-import pandas.index as _index
-
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.core.config import get_option
+
 
 __all__ = ['Series', 'TimeSeries']
 

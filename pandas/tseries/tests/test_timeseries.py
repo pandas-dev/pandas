@@ -1,13 +1,14 @@
 # pylint: disable-msg=E1101,W0612
-import pandas.util.compat as itertools
 from datetime import datetime, time, timedelta
 import sys
 import os
 import unittest
 
 import nose
-
 import numpy as np
+
+import pandas.util.compat as itertools
+
 randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame,

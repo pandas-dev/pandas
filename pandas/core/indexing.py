@@ -1,12 +1,11 @@
 # pylint: disable=W0223
 
-from datetime import datetime
+import numpy as np
+
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex, _ensure_index
 import pandas.core.common as com
-import pandas.lib as lib
 
-import numpy as np
 
 # the supported indexers
 def get_indexers_list():

@@ -1,13 +1,14 @@
 # pylint: disable=E1103
 
-import nose
 import unittest
-
 from datetime import datetime
+
+import nose
 from numpy.random import randn
 from numpy import nan
 import numpy as np
 import random
+import pandas.algos as algos
 
 from pandas import *
 from pandas.tseries.index import DatetimeIndex
@@ -15,8 +16,8 @@ from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands,
                                  makeCustomDataframe as mkdf)
-import pandas.algos as algos
 import pandas.util.testing as tm
+
 
 a_ = np.array
 

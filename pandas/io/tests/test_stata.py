@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
-from pandas.io.stata import read_stata, StataReader, StataWriter
+from pandas.io.stata import read_stata, StataReader
 import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean
 from pandas.util.misc import is_little_endian

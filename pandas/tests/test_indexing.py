@@ -1,26 +1,20 @@
 # pylint: disable-msg=W0612,E1101
 import unittest
-import nose
 import itertools
 from StringIO import StringIO
 
-from numpy import random, nan
+import nose
+from numpy import nan
 from numpy.random import randn
 import numpy as np
-from numpy.testing import assert_array_equal
 
 import pandas as pd
-import pandas.core.common as com
-from pandas.core.api import (DataFrame, Index, Series, Panel, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Timestamp)
+from pandas.core.api import (DataFrame, Index, Series, Panel, MultiIndex, Timestamp)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
-from pandas.util import py3compat
-
 import pandas.util.testing as tm
-import pandas.lib as lib
 from pandas import date_range
-from numpy.testing.decorators import slow
+
 
 _verbose = False
 

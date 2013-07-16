@@ -1,7 +1,5 @@
 import numpy as np
 
-import pandas as pd
-
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 import pandas.core.nanops as nanops

@@ -1,8 +1,7 @@
-from pandas.core.base import StringMixin
-from pandas.util.py3compat import StringIO
-
 import numpy as np
 
+from pandas.core.base import StringMixin
+from pandas.util.py3compat import StringIO
 from pandas.core.api import Series, DataFrame
 import pandas.stats.common as common
 from pandas.util.decorators import cache_readonly

@@ -4,23 +4,20 @@ Misc tools for implementing data structures
 
 import itertools
 import re
-from datetime import datetime
+import codecs
+import csv
 
 from numpy.lib.format import read_array, write_array
 import numpy as np
-
 import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 
 from pandas.util import py3compat
-import codecs
-import csv
-
 from pandas.util.py3compat import StringIO, BytesIO
-
 from pandas.core.config import get_option
 from pandas.core import array as pa
+
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:

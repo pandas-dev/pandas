@@ -1,21 +1,9 @@
-from datetime import datetime
-import os
-import operator
 import unittest
 import nose
 
-import numpy as np
-
 from pandas.core import panelnd
 from pandas.core.panel import Panel
-import pandas.core.common as com
-from pandas.util import py3compat
-
-from pandas.util.testing import (assert_panel_equal,
-                                 assert_panel4d_equal,
-                                 assert_frame_equal,
-                                 assert_series_equal,
-                                 assert_almost_equal)
+from pandas.util.testing import assert_panel_equal
 import pandas.util.testing as tm
 
 

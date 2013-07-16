@@ -1,20 +1,12 @@
 # pylint: disable-msg=W0612,E1101
-from copy import deepcopy
-from datetime import datetime, timedelta
-from StringIO import StringIO
-import cPickle as pickle
-import operator
-import os
 import unittest
 
 import nose
-
-from pandas import DataFrame
-import pandas as pd
-
 from numpy import nan
 import numpy as np
 
+from pandas import DataFrame
+import pandas as pd
 from pandas.core.reshape import melt, convert_dummies, lreshape
 import pandas.util.testing as tm
 

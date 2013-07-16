@@ -1,9 +1,9 @@
 import unittest
-import nose
 import sys
 import functools
-
 from datetime import datetime
+
+import nose
 from numpy.random import randn
 import numpy as np
 
@@ -15,6 +15,7 @@ from pandas.util.py3compat import PY3
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.util.testing as tm
+
 
 N, K = 100, 10
 

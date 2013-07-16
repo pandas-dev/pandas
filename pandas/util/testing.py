@@ -12,7 +12,7 @@ import os
 
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager, closing
+from contextlib import contextmanager
 from httplib import HTTPException
 from urllib2 import urlopen
 from distutils.version import LooseVersion
@@ -30,8 +30,6 @@ import pandas.core.panel4d as panel4d
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
-
-from pandas.io.common import urlopen
 
 Index = index.Index
 MultiIndex = index.MultiIndex

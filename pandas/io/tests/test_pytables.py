@@ -1,10 +1,9 @@
-import nose
 import unittest
-import os
 import sys
 import warnings
-
 import datetime
+
+import nose
 import numpy as np
 
 import pandas
@@ -19,7 +18,6 @@ from pandas.tests.test_frame import assert_frame_equal
 from pandas import concat, Timestamp
 from pandas.util import py3compat
 
-from numpy.testing.decorators import slow
 
 try:
     import tables

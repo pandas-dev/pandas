@@ -12,7 +12,7 @@ import nose
 import numpy as np
 from numpy.testing.decorators import slow
 
-from pandas import date_range, bdate_range
+from pandas import date_range
 from pandas.core.panel import Panel
 from pandas import DataFrame, Index, Series, notnull, datetools
 from pandas.stats.api import ols

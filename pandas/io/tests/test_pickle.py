@@ -2,20 +2,18 @@
 
 """ manage legacy pickle tests """
 
-from datetime import datetime, timedelta
-import operator
 import pickle
 import unittest
-import nose
 import os
 
-import numpy as np
+import nose
+
 import pandas.util.testing as tm
-import pandas as pd
 from pandas import Index
 from pandas.sparse.tests import test_sparse
 from pandas.util import py3compat
 from pandas.util.misc import is_little_endian
+
 
 class TestPickle(unittest.TestCase):
     _multiprocess_can_split_ = True

@@ -11,7 +11,6 @@ from pandas.tseries.index import DatetimeIndex
 from pandas import Timestamp
 from pandas.tseries.offsets import generate_range
 from pandas.tseries.index import cdate_range, bdate_range, date_range
-import pandas.tseries.tools as tools
 
 import pandas.core.datetools as datetools
 from pandas.util.testing import assertRaisesRegexp

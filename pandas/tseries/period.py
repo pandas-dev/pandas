@@ -1,25 +1,22 @@
 # pylint: disable=E1101,E1103,W0232
 import operator
-
 from datetime import datetime, date
-import numpy as np
-from pandas.core.base import PandasObject
 
-import pandas.tseries.offsets as offsets
+import numpy as np
+import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.algos as _algos
+import pandas.core.common as com
+import pandas.tseries.frequencies as _freq_mod
+
+from pandas.lib import Timestamp
+from pandas.core.base import PandasObject
 from pandas.tseries.frequencies import (get_freq_code as _gfc,
                                         _month_numbers, FreqGroup)
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
-import pandas.tseries.frequencies as _freq_mod
-
-import pandas.core.common as com
-from pandas.core.common import isnull, _NS_DTYPE, _INT64_DTYPE
+from pandas.core.common import isnull, _INT64_DTYPE
 from pandas.util import py3compat
-
-from pandas.lib import Timestamp
-import pandas.lib as lib
-import pandas.tslib as tslib
-import pandas.algos as _algos
 
 
 #---------------

@@ -6,13 +6,16 @@ import cPickle as pickle
 import operator
 import re
 import unittest
-import nose
 
+import nose
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
 from numpy.testing import assert_array_equal
+from pandas.parser import CParserError
+import pandas.lib as lib
+from numpy.testing.decorators import slow
 
 import pandas as pan
 import pandas.core.nanops as nanops
@@ -20,12 +23,10 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
-                             MultiIndex, DatetimeIndex, Timestamp, Period)
+                             MultiIndex, DatetimeIndex, Timestamp)
 from pandas import date_range
 import pandas as pd
 from pandas.io.parsers import read_csv
-from pandas.parser import CParserError
-
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
@@ -34,11 +35,8 @@ from pandas.util.testing import (assert_almost_equal,
                                  ensure_clean)
 from pandas.util import py3compat
 from pandas.util.compat import OrderedDict
-
 import pandas.util.testing as tm
-import pandas.lib as lib
 
-from numpy.testing.decorators import slow
 
 def _skip_if_no_scipy():
     try:
@@ -3142,7 +3140,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_operators_timedelta64(self):
 
-        from datetime import datetime, timedelta
+        from datetime import timedelta
         df = DataFrame(dict(A = date_range('2012-1-1', periods=3, freq='D'),
                             B = date_range('2012-1-2', periods=3, freq='D'),
                             C = Timestamp('20120101')-timedelta(minutes=5,seconds=5)))
@@ -6910,7 +6908,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result,expected)
 
         # test case from
-        from pandas.util.testing import makeCustomDataframe as mkdf
         df = DataFrame({'A' : Series([3,0],dtype='int64'), 'B' : Series([0,3],dtype='int64') })
         result = df.replace(3, df.mean().to_dict())
         expected = df.copy().astype('float64')
@@ -8453,7 +8450,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df, expected)
 
     def test_sort_index_different_sortorder(self):
-        import random
         A = np.arange(20).repeat(5)
         B = np.tile(np.arange(5), 20)
 

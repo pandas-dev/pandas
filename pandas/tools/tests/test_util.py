@@ -1,11 +1,11 @@
-import os
-import nose
 import unittest
 
+import nose
 import numpy as np
 from numpy.testing import assert_equal
 
 from pandas.tools.util import cartesian_product
+
 
 class TestCartesianProduct(unittest.TestCase):
 

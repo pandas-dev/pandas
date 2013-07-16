@@ -4,20 +4,18 @@ from datetime import datetime
 
 from numpy import nan
 import numpy as np
-from pandas.core.base import PandasObject
+import pandas.lib as lib
+import pandas.tslib as tslib
+from pandas.tslib import Timestamp
 
+from pandas.core.base import PandasObject
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 _TD_DTYPE)
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _handle_legacy_indexes)
 from pandas.core.indexing import _check_slice_bounds, _maybe_convert_indices
 import pandas.core.common as com
-import pandas.lib as lib
-import pandas.tslib as tslib
 import pandas.core.expressions as expressions
-
-from pandas.tslib import Timestamp
-from pandas.util import py3compat
 
 
 class Block(PandasObject):

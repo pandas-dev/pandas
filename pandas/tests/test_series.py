@@ -1,28 +1,24 @@
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime, timedelta, date
-import os
+from datetime import datetime, timedelta
 import operator
 import unittest
 
 import nose
-
 from numpy import nan
 import numpy as np
 import numpy.ma as ma
-import pandas as pd
+import pandas.lib as lib
 
+import pandas as pd
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 import pandas.core.config as cf
 import pandas.core.series as smod
-import pandas.lib as lib
-
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
-
 from pandas.util.py3compat import StringIO
 from pandas.util import py3compat
 from pandas.util.testing import (assert_series_equal,
@@ -3210,7 +3206,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_periodindex(self):
-        from pandas import period_range, Period
+        from pandas import period_range
+
         N = 50
         rng = period_range('1/1/1990', periods=N, freq='H')
         ts = Series(np.random.randn(N), index=rng)

@@ -2,14 +2,13 @@
 Quantilization functions and related stuff
 """
 
-from pandas.core.api import DataFrame, Series
+import numpy as np
+
+from pandas.core.api import Series
 from pandas.core.categorical import Categorical
-from pandas.core.index import _ensure_index
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
-
-import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
