@@ -217,14 +217,14 @@ def _comp_method(op, name):
             name = _maybe_match_name(self, other)
             if len(self) != len(other):
                 raise ValueError('Series lengths must match to compare')
-            return self._constructor(na_op(self.values, other.values),
+            return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
         elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
         elif isinstance(other, pa.Array):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
-            return self._constructor(na_op(self.values, np.asarray(other)),
+            return Series(na_op(self.values, np.asarray(other)),
                           index=self.index, name=self.name)
         else:
             values = self.values
@@ -238,7 +238,7 @@ def _comp_method(op, name):
             if np.isscalar(res):
                 raise TypeError('Could not compare %s type with Series'
                                 % type(other))
-            return self._constructor(na_op(values, other),
+            return Series(na_op(values, other),
                           index=self.index, name=self.name)
     return wrapper
 
@@ -273,13 +273,13 @@ def _bool_method(op, name):
 
         if isinstance(other, Series):
             name = _maybe_match_name(self, other)
-            return self._constructor(na_op(self.values, other.values),
+            return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
-            return self._constructor(na_op(self.values, other),
+            return Series(na_op(self.values, other),
                           index=self.index, name=self.name)
     return wrapper
 
@@ -523,13 +523,10 @@ class Series(generic.PandasContainer, pa.Array):
         pass
 
     @property
-<<<<<<< Updated upstream
-=======
     def _constructor(self):
         return self.__class__
 
     @property
->>>>>>> Stashed changes
     def _can_hold_na(self):
         return not is_integer_dtype(self.dtype)
 
@@ -2264,12 +2261,12 @@ class Series(generic.PandasContainer, pa.Array):
         mask = isnull(values)
 
         if mask.any():
-            result = self._constructor(-1,index=self.index,name=self.name,dtype='int64')
+            result = Series(-1,index=self.index,name=self.name,dtype='int64')
             notmask = -mask
             result.values[notmask] = np.argsort(self.values[notmask], kind=kind)
             return result
         else:
-            return self._constructor(np.argsort(values, kind=kind), index=self.index,
+            return Series(np.argsort(values, kind=kind), index=self.index,
                           name=self.name,dtype='int64')
 
     def rank(self, method='average', na_option='keep', ascending=True):
@@ -2654,15 +2651,7 @@ class Series(generic.PandasContainer, pa.Array):
 
     def _reindex_with_indexers(self, index, indexer, copy, fill_value):
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        return Series(new_values, index=index, name=self.name)
-=======
-        return self._constructor(new_values, index=new_index, name=self.name)
->>>>>>> Stashed changes
-=======
-        return self._constructor(new_values, index=new_index, name=self.name)
->>>>>>> Stashed changes
+        return self._constructor(new_values, index=index, name=self.name)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
@@ -2898,7 +2887,7 @@ class Series(generic.PandasContainer, pa.Array):
         """
         value_set = set(values)
         result = lib.ismember(self.values, value_set)
-        return self._constructor(result, self.index, name=self.name)
+        return Series(result, self.index, name=self.name)
 
     def between(self, left, right, inclusive=True):
         """
