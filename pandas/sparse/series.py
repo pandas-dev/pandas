@@ -192,7 +192,7 @@ class SparseSeries(SparseArray, Series):
     @property
     def _constructor(self):
         def make_sp_series(data, index=None, name=None):
-            return self.__class__(data, index=index, fill_value=self.fill_value,
+            return SparseSeries(data, index=index, fill_value=self.fill_value,
                                 kind=self.kind, name=name)
 
         return make_sp_series
