@@ -2,3 +2,5 @@ numpy==1.6.1
 cython==0.19.1
 python-dateutil==2.1
 pytz==2013b
+http://www.crummy.com/software/BeautifulSoup/bs4/download/4.2/beautifulsoup4-4.2.0.tar.gz
+html5lib==1.0b2
