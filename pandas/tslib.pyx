@@ -581,6 +581,10 @@ cdef inline bint is_timestamp(object o):
 
 cdef class _NaT(_Timestamp):
 
+    def __hash__(_NaT self):
+        # py3k needs this defined here
+        return hash(self.value)
+
     def __richcmp__(_NaT self, object other, int op):
         # if not isinstance(other, (_NaT, _Timestamp)):
         #     raise TypeError('Cannot compare %s with NaT' % type(other))
