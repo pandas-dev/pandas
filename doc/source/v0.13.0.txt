@@ -1,0 +1,20 @@
+.. _whatsnew_0130:
+
+v0.13.0 (August ??, 2013)
+------------------------
+
+This is a major release from 0.12.0 and includes several new features and
+enhancements along with a large number of bug fixes.
+
+API changes
+~~~~~~~~~~~
+
+Enhancements
+~~~~~~~~~~~~
+
+Bug Fixes
+~~~~~~~~~
+
+See the :ref:`full release notes
+<release>` or issue tracker
+on GitHub for a complete list.
