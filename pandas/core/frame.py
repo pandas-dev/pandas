@@ -4488,7 +4488,7 @@ class DataFrame(NDFrame):
                 except (NameError, UnboundLocalError):  # pragma: no cover
                     # no k defined yet
                     pass
-                raise e
+                raise
 
 
         if len(results) > 0 and _is_sequence(results[0]):
