@@ -77,7 +77,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 
 
 def test_bs4_version_fails():
-    _skip_if_no('bs4')
+    _skip_if_none_of(('bs4', 'html5lib'))
     import bs4
     if bs4.__version__ == LooseVersion('4.2.0'):
         assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
