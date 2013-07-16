@@ -5,8 +5,6 @@ import itertools
 
 import numpy as np
 
-import six
-
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
@@ -691,7 +689,7 @@ def melt(frame, id_vars=None, value_vars=None,
         else:
             var_name = [frame.columns.name if frame.columns.name is not None
                         else 'variable']
-    if isinstance(var_name, six.string_types):
+    if isinstance(var_name, basestring):
         var_name = [var_name]
 
     N, K = frame.shape
