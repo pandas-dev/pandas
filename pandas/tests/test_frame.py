@@ -10639,50 +10639,34 @@ starting,ending,measure
                         'ids2': ['a', 'n', 'c', 'n']},
                         index=['foo', 'bar', 'baz', 'qux'])
         other = ['a', 'b', 'c']
-        result_none = df[['ids', 'ids2']].isin(other)
-        expected_none = DataFrame({'ids':  [True, True, False, False],
-                                  'ids2': [True, False, True, False]},
-                                  index=['foo', 'bar', 'baz', 'qux'])
 
-        assert_frame_equal(result_none, expected_none)
-
-        # axis = None
-        result_none_full = df.isin(other)
-        expected_none_full = DataFrame({'ids': [True, True, False, False],
-                                        'ids2': [True, False, True, False],
-                                        'vals': [False, False, False, False]},
-                                        index=['foo', 'bar', 'baz', 'qux'])
-
-        assert_frame_equal(result_none_full, expected_none_full)
-
-    def test_isin_dict(self):
-        df = DataFrame({'A': ['a', 'b', 'c', 'd'], 'B': [1, 2, 3, 4],
-                        'C': [1, 5, 7, 8]},
-                        index=['foo', 'bar', 'baz', 'qux'])
-        other = {'A': ('a', 'b'), 'B': (1, 3)}
-        result = df.isin(other, axis=1)
-        expected = DataFrame({'A': [True, True, False, False],
-                              'B': [True, False, True, False]},
-                              index=['foo', 'bar', 'baz', 'qux'])
+        result = df.isin(other)
+        expected = DataFrame([df.loc[s].isin(other) for s in df.index])
         assert_frame_equal(result, expected)
 
-    def test_isin_row(self):
-        df = DataFrame({'A': ['a', 'b', 'c', 'd'], 'B': [1, 2, 3, 4],
-                        'C': [1, 5, 7, 8]},
-                        index=['foo', 'bar', 'baz', 'qux'])
-        ind_other = {'foo': ['a', 1, 1],
-                     'bar': ['d', 2, 1],
-                     'baz': ['nn', 'nn', 'nn']}
+    def test_isin_empty(self):
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        result = df.isin([])
+        expected = pd.DataFrame(False, df.index, df.columns)
+        assert_frame_equal(result, expected)
 
-        result_ind = df.isin(ind_other, axis=0)
-        expected_ind = DataFrame({'A': [True, False, False],
-                                  'B': [True, True, False],
-                                  'C': [True, False, False]},
-                            index=['foo', 'bar', 'baz']).reindex_like(result_ind)
+    def test_isin_dict(self):
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        d = {'A': ['a']}
 
-        assert_frame_equal(result_ind, expected_ind)
+        expected = DataFrame(False, df.index, df.columns)
+        expected.loc[0, 'A'] = True
 
-        self.assertRaises(TypeError, df.isin, ind_other)
+        result = df.isin(d)
+        assert_frame_equal(result, expected)
+
+        # non unique columns
+        df.columns = ['A', 'A']
+        expected = DataFrame(False, df.index, df.columns)
+        expected.loc[0, 'A'] = True
+        result = df.isin(d)
+        assert_frame_equal(result, expected)
+
 
 if __name__ == '__main__':
     # unittest.main()

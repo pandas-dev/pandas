@@ -456,11 +456,9 @@ and :ref:`Advanced Indexing <indexing.advanced>` you may select along more than 
 
    df2.loc[criterion & (df2['b'] == 'x'),'b':'c']
 
-*New in 0.12.0*
-
 DataFrame also has an ``isin`` method.  When calling ``isin``, pass a set of
-values as either an array or dict.  If values is just an array, ``isin`` returns
-a DataFrame of booleans that is the same shape as the original DataFrame, with Trues
+values as either an array or dict.  If values is an array, ``isin`` returns
+a DataFrame of booleans that is the same shape as the original DataFrame, with True
 wherever the element is in the sequence of values.
 
 .. ipython:: python
@@ -472,10 +470,9 @@ wherever the element is in the sequence of values.
 
    df.isin(values)
 
-Oftentimes you'll want to match certain values with certain columns or rows.
-Just make values a ``dict`` where the key is the row or column, and the value is
-a list of items you want to check for.  Make sure to set axis equal to 0 for
-row-wise or 1 for column-wise matching.
+Oftentimes you'll want to match certain values with certain columns.
+Just make values a ``dict`` where the key is the column, and the value is
+a list of items you want to check for.
 
 .. ipython:: python
 
@@ -484,7 +481,7 @@ row-wise or 1 for column-wise matching.
 
    values = {'ids': ['a', 'b'], 'vals': [1, 3]}
 
-   df.isin(values, axis=1)
+   df.isin(values)
 
 Where and Masking
 ~~~~~~~~~~~~~~~~~

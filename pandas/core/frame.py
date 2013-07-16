@@ -5481,37 +5481,33 @@ class DataFrame(NDFrame):
 
         return self._constructor(new_data)
 
-    def isin(self, values, axis=None):
+
+    def isin(self, values):
         """
-        Return boolean vector showing whether elements in the DataFrame are
-        exactly contained in the passed sequence of values.
+        Return boolean DataFrame showing whether each elements in the DataFrame is
+        contained in items.
 
         Parameters
         ----------
-        values : sequence (array-like) or dict of {label: sequence}.
-        axis : {None, 0, 1}
-            Compute isin row-wise (axis=0) or column-wise (axis=1)
-            Mandatory if values is a dict, ignored otherwise.
+        values : iterable or dictionary of columns to values
 
         Returns
         -------
 
-        bools : Series of booleans
+        DataFrame of booleans
         """
-        if not isinstance(values, dict):
-            return self.applymap(values.__contains__)
+        if isinstance(values, dict):
+            from collections import defaultdict
+            from pandas.tools.merge import concat
+            values = defaultdict(list, values)
+            return concat((self.iloc[:, [i]].isin(values[ind] or values[i])
+                             for i, ind in enumerate(self.columns)), axis=1)
 
         else:
-            from pandas.tools.merge import concat
-            if axis == 1:
-                return concat((self[col].isin(vals) for col, vals in
-                               values.iteritems()), axis=1)
-            elif axis == 0:
-                return concat((self.loc[row].isin(vals) for row, vals in
-                               values.iteritems()), axis=1).T
-            else:
-                raise TypeError('Axis must be "0" or "1" when values is a dict '
-                                'Got "%s" instead.' % str(axis))
+            return DataFrame(lib.ismember(self.values.ravel(),
+                                          set(values)).reshape(self.shape),
+                             self.index,
+                             self.columns)
 
     #----------------------------------------------------------------------
     # Deprecated stuff
