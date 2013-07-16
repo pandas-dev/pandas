@@ -9,10 +9,5 @@ if [ x"$LOCALE_OVERRIDE" != x"" ]; then
 
 fi
 
-echo nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas;
-nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas;
-
-# if [ x"$VBENCH" == x"true" ]; then
-#     python vb_suite/perf_HEAD.py;
-#     exit
-# fi
+echo nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+nosetests --exe -w /tmp -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
