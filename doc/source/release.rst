@@ -341,6 +341,7 @@ pandas 0.12
     (:issue:`4226`)
   - Fixed bug in initializing ``DatetimeIndex`` with an array of strings
     in a certain time zone (:issue:`4229`)
+  - Fixed bug where html5lib wasn't being properly skipped (:issue:`4265`)
 
 pandas 0.11.0
 =============
