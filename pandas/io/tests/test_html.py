@@ -43,9 +43,17 @@ def _skip_if_no(module_name):
 def _skip_if_none_of(module_names):
     if isinstance(module_names, basestring):
         _skip_if_no(module_names)
+        if module_names == 'bs4':
+            import bs4
+            if bs4.__version__ == LooseVersion('4.2.0'):
+                raise nose.SkipTest
     else:
         if not all(_have_module(module_name) for module_name in module_names):
             raise nose.SkipTest
+        if 'bs4' in module_names:
+            import bs4
+            if bs4.__version__ == LooseVersion('4.2.0'):
+                raise nose.SkipTest
 
 
 DATA_PATH = get_data_path()
@@ -82,10 +90,6 @@ class TestReadHtmlBase(TestCase):
 
     def try_skip(self):
         _skip_if_none_of(('bs4', 'html5lib'))
-        import bs4
-        if (bs4.__version__ == LooseVersion('4.2.0') and
-            self.flavor != ['lxml']):
-            raise nose.SkipTest
 
     def setup_data(self):
         self.spam_data = os.path.join(DATA_PATH, 'spam.html')
@@ -425,7 +429,8 @@ class TestReadHtmlLxml(TestCase):
     def test_spam_data_fail(self):
         from lxml.etree import XMLSyntaxError
         spam_data = os.path.join(DATA_PATH, 'spam.html')
-        self.assertRaises(XMLSyntaxError, self.run_read_html, spam_data, flavor=['lxml'])
+        self.assertRaises(XMLSyntaxError, self.run_read_html, spam_data,
+                          flavor=['lxml'])
 
     def test_banklist_data_fail(self):
         from lxml.etree import XMLSyntaxError
