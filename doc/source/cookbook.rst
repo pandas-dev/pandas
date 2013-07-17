@@ -149,6 +149,9 @@ The :ref:`grouping <groupby>` docs.
 `Create multiple aggregated columns
 <http://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
 
+`Create a value counts column and reassign back to the DataFrame
+<http://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
+
 Expanding Data
 ~~~~~~~~~~~~~~
 
