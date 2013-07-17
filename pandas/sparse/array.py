@@ -261,7 +261,7 @@ to sparse
     def sp_values(self):
         # caching not an option, leaks memory
         return self.view(np.ndarray)
-    
+
     def get_values(self, fill=None):
         """ return a dense representation """
         return self.to_dense(fill=fill)
@@ -309,7 +309,7 @@ to sparse
             loc += n
 
         if loc >= n or loc < 0:
-            raise Exception('Out of bounds access')
+            raise IndexError('Out of bounds access')
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
@@ -327,11 +327,12 @@ to sparse
         """
         if not ((axis == 0)):
             raise AssertionError()
-        indices = np.asarray(indices, dtype=int)
+        indices = np.atleast_1d(np.asarray(indices, dtype=int))
 
+        # allow -1 to indicate missing values
         n = len(self)
-        if (indices >= n).any():
-            raise Exception('out of bounds access')
+        if ((indices >= n) | (indices < -1)).any():
+            raise IndexError('out of bounds access')
 
         if self.sp_index.npoints > 0:
             locs = np.array([self.sp_index.lookup(loc) if loc > -1 else -1 for loc in indices ])
@@ -356,7 +357,7 @@ to sparse
         #    self.values[key] = value
         #else:
         #    raise Exception("SparseArray does not support seting non-scalars via setitem")
-        raise Exception("SparseArray does not support setting via setitem")
+        raise TypeError("SparseArray does not support item assignment via setitem")
 
     def __setslice__(self, i, j, value):
         if i < 0:
@@ -371,7 +372,7 @@ to sparse
         #x = self.values
         #x[slobj] = value
         #self.values = x
-        raise Exception("SparseArray does not support seting via slices")
+        raise TypeError("SparseArray does not support item assignment via slices")
 
     def astype(self, dtype=None):
         """

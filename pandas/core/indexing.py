@@ -507,11 +507,7 @@ class _NDFrameIndexer(object):
                     if axis+1 > ndim:
                         raise AssertionError("invalid indexing error with non-unique index")
 
-                    args = [None] * (2*ndim)
-                    args[2*axis] = new_labels
-                    args[2*axis+1] = new_indexer
-
-                    result = result._reindex_with_indexers(*args, copy=False, fill_value=np.nan)
+                    result = result._reindex_with_indexers({ axis : [ new_labels, new_indexer ] }, copy=True)
 
                 return result
 

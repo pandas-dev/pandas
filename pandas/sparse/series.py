@@ -105,9 +105,6 @@ class SparseSeries(Series):
                 data = data.copy()
         else:
 
-            if index is None:
-                raise TypeError('must pass index!')
-
             is_sparse_array = isinstance(data, SparseArray)
             if fill_value is None:
                 if is_sparse_array:
@@ -156,8 +153,6 @@ class SparseSeries(Series):
                     data = data.reindex(index,copy=False)
 
             else:
-                if index is None:
-                    raise Exception('must pass index!')
 
                 length = len(index)
 
@@ -330,8 +325,6 @@ class SparseSeries(Series):
                     _data      = self._data,
                     fill_value = self.fill_value,
                     name       = self.name)
-
-
 
     def _unpickle_series_compat(self, state):
 

@@ -519,8 +519,6 @@ class DatetimeIndex(Int64Index):
 
         return summary
 
-    __str__ = __repr__
-
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))

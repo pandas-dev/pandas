@@ -1,5 +1,6 @@
 import random
 from copy import deepcopy
+from pandas.core.common import _values_from_object
 
 import numpy as np
 from pandas.compat import range, zip
@@ -498,7 +499,7 @@ class GeomHistogram(Layer):
             else:
                 ax = fig.gca()
         x = self.data[self.aes['x']]
-        ax.hist(x, self.bins, facecolor=self.colour)
+        ax.hist(_values_from_object(x), self.bins, facecolor=self.colour)
         ax.set_xlabel(self.aes['x'])
         return fig, ax
 

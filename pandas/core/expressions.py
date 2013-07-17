@@ -6,6 +6,7 @@ Offer fast expression evaluation thru numexpr
 
 """
 import numpy as np
+from pandas.core.common import _values_from_object
 
 try:
     import numexpr as ne
@@ -106,7 +107,7 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error = False, **eval_kwargs):
     return result
 
 def _where_standard(cond, a, b, raise_on_error=True):
-    return np.where(cond, a, b)
+    return np.where(_values_from_object(cond), _values_from_object(a), _values_from_object(b))
 
 def _where_numexpr(cond, a, b, raise_on_error = False):
     result = None

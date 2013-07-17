@@ -282,6 +282,31 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.empty = Series([], index=[])
 
+    def test_scalar_conversion(self):
+
+        # Pass in scalar is disabled
+        scalar = Series(0.5)
+        self.assert_(not isinstance(scalar, float))
+
+        # coercion
+        self.assert_(float(Series([1.])) == 1.0)
+        self.assert_(int(Series([1.])) == 1)
+        self.assert_(long(Series([1.])) == 1)
+
+        self.assert_(bool(Series([True])) == True)
+        self.assert_(bool(Series([False])) == False)
+
+        self.assert_(bool(Series([True,True])) == True)
+        self.assert_(bool(Series([False,True])) == True)
+
+    def test_astype(self):
+        s = Series(np.random.randn(5),name='foo')
+
+        for dtype in ['float32','float64','int64','int32']:
+            astyped = s.astype(dtype)
+            self.assert_(astyped.dtype == dtype)
+            self.assert_(astyped.name == s.name)
+
     def test_constructor(self):
         # Recognize TimeSeries
         self.assert_(self.ts.is_time_series == True)
@@ -293,10 +318,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(tm.equalContents(derived.index, self.ts.index))
         # Ensure new index is not created
         self.assertEquals(id(self.ts.index), id(derived.index))
-
-        # Pass in scalar (now disabled)
-        #scalar = Series(0.5)
-        #self.assert_(isinstance(scalar, float))
 
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
@@ -2516,6 +2537,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s[5] = np.nan
         result = s.idxmax()
         self.assert_(result == 4)
+
+    def test_ndarray_compat(self):
+
+        # test numpy compat with Series as sub-class of NDFrame
+        tsdf = DataFrame(np.random.randn(1000, 3), columns=['A', 'B', 'C'],
+                         index=date_range('1/1/2000', periods=1000))
+
+        def f(x):
+            return x[x.argmax()]
+        result = tsdf.apply(f)
+        expected = tsdf.max()
+        assert_series_equal(result,expected)
 
     def test_operators_corner(self):
         series = self.ts

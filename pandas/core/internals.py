@@ -125,6 +125,7 @@ class Block(PandasObject):
     def __unicode__(self):
 
         # don't want to print out all of the items here
+        name = com.pprint_thing(self.__class__.__name__)
         if self._is_single_block:
 
             result = '%s: %s dtype: %s' % (
@@ -325,11 +326,11 @@ class Block(PandasObject):
 
         return blocks
 
-    def astype(self, dtype, copy=True, raise_on_error=True, values=None):
+    def astype(self, dtype, copy=False, raise_on_error=True, values=None):
         return self._astype(dtype, copy=copy, raise_on_error=raise_on_error,
                             values=values)
 
-    def _astype(self, dtype, copy=True, raise_on_error=True, values=None,
+    def _astype(self, dtype, copy=False, raise_on_error=True, values=None,
                 klass=None):
         """
         Coerce to the new type (if copy=True, return a new copy)
@@ -342,8 +343,9 @@ class Block(PandasObject):
             return self
 
         try:
+            # force the copy here
             if values is None:
-                values = com._astype_nansafe(self.values, dtype, copy=copy)
+                values = com._astype_nansafe(self.values, dtype, copy=True)
             newb = make_block(values, self.items, self.ref_items, ndim=self.ndim,
                               fastpath=True, dtype=dtype, klass=klass)
         except:
@@ -352,12 +354,11 @@ class Block(PandasObject):
             newb = self.copy() if copy else self
 
         if newb.is_numeric and self.is_numeric:
-            if (newb.shape != self.shape or
-                    (not copy and newb.itemsize < self.itemsize)):
+            if newb.shape != self.shape:
                 raise TypeError("cannot set astype for copy = [%s] for dtype "
                                 "(%s [%s]) with smaller itemsize that current "
                                 "(%s [%s])" % (copy, self.dtype.name,
-                                self.itemsize, newb.dtype.name, newb.itemsize))
+                                               self.itemsize, newb.dtype.name, newb.itemsize))
         return newb
 
     def convert(self, copy = True, **kwargs):
@@ -507,7 +508,14 @@ class Block(PandasObject):
                     # need a new block
                     if m.any():
 
-                        n = new[i] if isinstance(new, np.ndarray) else new
+                        n = new[i] if isinstance(new, np.ndarray) else np.array(new)
+
+                        # type of the new block
+                        dtype, _ = com._maybe_promote(n.dtype)
+
+                        # we need to exiplicty astype here to make a copy
+                        n = n.astype(dtype)
+
                         block = create_block(v,m,n,item)
 
                     else:
@@ -834,7 +842,7 @@ class ObjectBlock(Block):
         """ we can be a bool if we have only bool values but are of type object """
         return lib.is_bool_array(self.values.ravel())
 
-    def convert(self, convert_dates = True, convert_numeric = True, copy = True, by_item = True):
+    def convert(self, convert_dates=True, convert_numeric=True, copy=True, by_item=True):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
             by definition we ARE an ObjectBlock!!!!!
@@ -853,7 +861,8 @@ class ObjectBlock(Block):
                 values = com._possibly_convert_objects(values, convert_dates=convert_dates, convert_numeric=convert_numeric)
                 values = _block_shape(values)
                 items = self.items.take([i])
-                newb = make_block(values, items, self.ref_items, ndim = self.ndim)
+                placement = None if is_unique else [i]
+                newb = make_block(values, items, self.ref_items, ndim=self.ndim, placement=placement)
                 blocks.append(newb)
 
         else:
@@ -938,9 +947,12 @@ class ObjectBlock(Block):
         else:
             # if the thing to replace is not a string or compiled regex call
             # the superclass method -> to_replace is some kind of object
-            return super(ObjectBlock, self).replace(to_replace, value,
-                                                    inplace=inplace,
-                                                    filter=filter, regex=regex)
+            result = super(ObjectBlock, self).replace(to_replace, value,
+                                                      inplace=inplace,
+                                                      filter=filter, regex=regex)
+            if not isinstance(result, list):
+                result = [ result]
+            return result
 
         new_values = self.values if inplace else self.values.copy()
 
@@ -1047,7 +1059,7 @@ class DatetimeBlock(Block):
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)
 
-    def astype(self, dtype, copy = True, raise_on_error=True):
+    def astype(self, dtype, copy=False, raise_on_error=True):
         """
         handle convert to object as a special case
         """
@@ -1088,7 +1100,7 @@ class SparseBlock(Block):
     _verify_integrity = False
     _ftype = 'sparse'
 
-    def __init__(self, values, items, ref_items, ndim=None, fastpath=False):
+    def __init__(self, values, items, ref_items, ndim=None, fastpath=False, placement=None):
 
         # kludgetastic
         if ndim is not None:
@@ -1285,7 +1297,7 @@ class SparseBlock(Block):
             return []
         return super(SparseBlock, self).split_block_at(self, item)
 
-def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None, fastpath=False):
+def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None, fastpath=False, placement=None):
 
     if klass is None:
         dtype = dtype or values.dtype
@@ -1323,7 +1335,7 @@ def make_block(values, items, ref_items, klass=None, ndim=None, dtype=None, fast
             if klass is None:
                 klass = ObjectBlock
 
-    return klass(values, items, ref_items, ndim=ndim, fastpath=fastpath)
+    return klass(values, items, ref_items, ndim=ndim, fastpath=fastpath, placement=placement)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -1711,8 +1723,12 @@ class BlockManager(PandasObject):
                 new_rb = []
                 for b in rb:
                     if b.dtype == np.object_:
-                        new_rb.extend(b.replace(s, d, inplace=inplace,
-                                                regex=regex))
+                        result = b.replace(s, d, inplace=inplace,
+                                           regex=regex)
+                        if isinstance(result, list):
+                            new_rb.extend(result)
+                        else:
+                            new_rb.append(result)
                     else:
                         # get our mask for this element, sized to this
                         # particular block
@@ -1889,6 +1905,7 @@ class BlockManager(PandasObject):
             if len(self.blocks) == 1:
                 blk = self.blocks[0]
                 newb = make_block(blk._slice(slobj),
+                                  new_items,
                                   new_items,
                                   klass=blk.__class__,
                                   fastpath=True,
@@ -2302,47 +2319,50 @@ class BlockManager(PandasObject):
         ref_locs  = self._set_ref_locs()
         prev_items_map = self._items_map.pop(block) if ref_locs is not None else None
 
-        # compute the split mask
-        loc = block.items.get_loc(item)
-        if type(loc) == slice or com.is_integer(loc):
-            mask = np.array([True] * len(block))
-            mask[loc] = False
-        else:  # already a mask, inverted
-            mask = -loc
+        # if we can't consolidate, then we are removing this block in its entirey
+        if block._can_consolidate:
 
-        # split the block
-        counter = 0
-        for s, e in com.split_ranges(mask):
+            # compute the split mask
+            loc = block.items.get_loc(item)
+            if type(loc) == slice or com.is_integer(loc):
+                mask = np.array([True] * len(block))
+                mask[loc] = False
+            else:  # already a mask, inverted
+                mask = -loc
 
-            sblock = make_block(block.values[s:e],
-                                block.items[s:e].copy(),
-                                block.ref_items,
-                                klass=block.__class__,
-                                fastpath=True)
+            # split the block
+            counter = 0
+            for s, e in com.split_ranges(mask):
 
-            self.blocks.append(sblock)
+                sblock = make_block(block.values[s:e],
+                                    block.items[s:e].copy(),
+                                    block.ref_items,
+                                    klass=block.__class__,
+                                    fastpath=True)
 
-            # update the _ref_locs/_items_map
-            if ref_locs is not None:
+                self.blocks.append(sblock)
 
-                # fill the item_map out for this sub-block
-                m = maybe_create_block_in_items_map(self._items_map,sblock)
-                for j, itm in enumerate(sblock.items):
+                # update the _ref_locs/_items_map
+                if ref_locs is not None:
 
-                    # is this item masked (e.g. was deleted)?
-                    while (True):
+                    # fill the item_map out for this sub-block
+                    m = maybe_create_block_in_items_map(self._items_map,sblock)
+                    for j, itm in enumerate(sblock.items):
 
-                        if counter > len(mask) or mask[counter]:
-                            break
-                        else:
-                            counter += 1
+                        # is this item masked (e.g. was deleted)?
+                        while (True):
 
-                    # find my mapping location
-                    m[j] = prev_items_map[counter]
-                    counter += 1
+                            if counter > len(mask) or mask[counter]:
+                                break
+                            else:
+                                counter += 1
 
-                # set the ref_locs in this block
-                sblock.set_ref_locs(m)
+                        # find my mapping location
+                        m[j] = prev_items_map[counter]
+                        counter += 1
+
+                    # set the ref_locs in this block
+                    sblock.set_ref_locs(m)
 
         # reset the ref_locs to the new structure
         if ref_locs is not None:
@@ -2619,7 +2639,7 @@ class BlockManager(PandasObject):
             new_items = MultiIndex.from_tuples(items, names=self.items.names)
         else:
             items = [mapper(x) for x in self.items]
-            new_items = Index(items, names=self.items.names)
+            new_items = Index(items, name=self.items.name)
 
         new_blocks = []
         for block in self.blocks:
@@ -2863,7 +2883,7 @@ def form_blocks(arrays, names, axes):
 
     for i, (k, v) in enumerate(zip(names, arrays)):
         if isinstance(v, SparseArray) or is_sparse_series(v):
-            sparse_items.append((i, k,v))
+            sparse_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.floating):
             float_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.complexfloating):
@@ -2966,7 +2986,7 @@ def _sparse_blockify(tuples, ref_items, dtype = None):
     """ return an array of blocks that potentially have different dtypes (and are sparse) """
 
     new_blocks = []
-    for names, array in tuples:
+    for i, names, array in tuples:
 
         if not isinstance(names, (list,tuple)):
             names = [ names ]

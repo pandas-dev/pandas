@@ -45,17 +45,22 @@ _INT64_DTYPE = np.dtype(np.int64)
 _DATELIKE_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]'] ])
 
 def is_series(obj):
-    return getattr(obj,'_typ',None) == 'series'
+    return getattr(obj, '_typ' ,None) == 'series'
+
 def is_sparse_series(obj):
-    return getattr(obj,'_subtyp',None) in ('sparse_series','sparse_time_series')
+    return getattr(obj, '_subtyp', None) in ('sparse_series','sparse_time_series')
+
 def is_sparse_array_like(obj):
-    return getattr(obj,'_subtyp',None) in ['sparse_array','sparse_series','sparse_array']
+    return getattr(obj, '_subtyp', None) in ['sparse_array','sparse_series','sparse_array']
+
 def is_dataframe(obj):
-    return getattr(obj,'_typ',None) == 'dataframe'
+    return getattr(obj, '_typ', None) == 'dataframe'
+
 def is_panel(obj):
-    return getattr(obj,'_typ',None) == 'panel'
+    return getattr(obj, '_typ', None) == 'panel'
+
 def is_generic(obj):
-    return getattr(obj,'_data',None) is not None
+    return getattr(obj, '_data', None) is not None
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -1155,7 +1160,10 @@ def _maybe_box(indexer, values, obj, key):
 
 def _values_from_object(o):
     """ return my values or the object if we are say an ndarray """
-    return o.get_values() if hasattr(o,'get_values') else o
+    f = getattr(o,'get_values',None)
+    if f is not None:
+        o = f()
+    return o
 
 def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     """ if we have an object dtype, try to coerce dates and/or numers """
@@ -1733,7 +1741,8 @@ _ensure_object = algos.ensure_object
 
 
 def _astype_nansafe(arr, dtype, copy=True):
-    """ return a view if copy is False """
+    """ return a view if copy is False, but
+        need to be very careful as the result shape could change! """
     if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)
 

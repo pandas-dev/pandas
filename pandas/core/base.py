@@ -9,20 +9,6 @@ class StringMixin(object):
     """implements string methods so long as object defines a `__unicode__` method.
     Handles Python2/3 compatibility transparently."""
     # side note - this could be made into a metaclass if more than one object nees
-    def __str__(self):
-
-class PandasObject(object):
-    """ The base class for pandas objects """
-
-    #----------------------------------------------------------------------
-    # Reconstruction
-
-    def save(self, path):
-        com.save(self, path)
-
-    @classmethod
-    def load(cls, path):
-        return com.load(path)
 
     #----------------------------------------------------------------------
     # Formatting

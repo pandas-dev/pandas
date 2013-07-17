@@ -1196,7 +1196,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                           maj='major', majo='items')
 
         # test invalid kwargs
-        self.assertRaises(KeyError, self.panel.transpose, 'minor',
+        self.assertRaises(AssertionError, self.panel.transpose, 'minor',
                           maj='major', minor='items')
 
         result = self.panel.transpose(2, 1, 0)
