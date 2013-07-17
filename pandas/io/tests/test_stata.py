@@ -48,11 +48,10 @@ class StataTests(unittest.TestCase):
                              columns=['float_miss', 'double_miss', 'byte_miss',
                                       'int_miss', 'long_miss'])
 
-        for i, col in enumerate(parsed.columns):
-            np.testing.assert_almost_equal(
-                parsed[col],
-                expected[expected.columns[i]]
-            )
+        # this is an oddity as really the nan should be float64, but
+        # the casting doesn't fail so need to match stata here
+        expected['float_miss'] = expected['float_miss'].astype(np.float32)
+        tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta2(self):
         expected = DataFrame.from_records(
@@ -101,14 +100,16 @@ class StataTests(unittest.TestCase):
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta3(self):
+
         parsed = self.read_dta(self.dta3)
+
+        # match stata here
         expected = self.read_csv(self.csv3)
-        for i, col in enumerate(parsed.columns):
-            np.testing.assert_almost_equal(
-                parsed[col],
-                expected[expected.columns[i]],
-                decimal=3
-            )
+        expected = expected.astype(np.float32)
+        expected['year'] = expected['year'].astype(np.int32)
+        expected['quarter']= expected['quarter'].astype(np.int16)
+
+        tm.assert_frame_equal(parsed,expected)
 
     def test_read_dta4(self):
         parsed = self.read_dta(self.dta4)
@@ -164,37 +165,19 @@ class StataTests(unittest.TestCase):
     def test_read_dta7(self):
         expected = read_csv(self.csv7, parse_dates=True, sep='\t')
         parsed = self.read_dta(self.dta7)
-
-        for i, col in enumerate(parsed.columns):
-            np.testing.assert_almost_equal(
-                parsed[col],
-                expected[expected.columns[i]],
-                decimal=3
-            )
+        tm.assert_frame_equal(parsed, expected)
 
     @nose.tools.nottest
     def test_read_dta8(self):
         expected = read_csv(self.csv8, parse_dates=True, sep='\t')
         parsed = self.read_dta(self.dta8)
-
-        for i, col in enumerate(parsed.columns):
-            np.testing.assert_almost_equal(
-                parsed[col],
-                expected[expected.columns[i]],
-                decimal=3
-            )
+        tm.assert_frame_equal(parsed, expected)
 
     @nose.tools.nottest
     def test_read_dta9(self):
         expected = read_csv(self.csv9, parse_dates=True, sep='\t')
         parsed = self.read_dta(self.dta9)
-
-        for i, col in enumerate(parsed.columns):
-            np.testing.assert_equal(
-                parsed[col],
-                expected[expected.columns[i]],
-                decimal=3
-            )
+        assert_frame_equal(parsed, expected)
 
     def test_read_write_dta10(self):
         if not is_little_endian():

@@ -552,10 +552,6 @@ class DataFrame(NDFrame):
     def shape(self):
         return (len(self.index), len(self.columns))
 
-    # Class behavior
-    def __nonzero__(self):
-        raise ValueError("Cannot call bool() on DataFrame.")
-
     def _repr_fits_vertical_(self):
         """
         Check length against max_rows.
@@ -1874,7 +1870,6 @@ class DataFrame(NDFrame):
 
     def _slice(self, slobj, axis=0, raise_on_error=False):
         axis = self._get_block_manager_axis(axis)
-        new_data = self._data.get_slice(slobj, axis=axis)
         new_data = self._data.get_slice(slobj, axis=axis, raise_on_error=raise_on_error)
         return self._constructor(new_data)
 
@@ -2222,32 +2217,34 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
+    def _reindex_axes(self, axes, level, limit, method, fill_value, copy, takeable=False):
       frame = self
 
       columns = axes['columns']
       if columns is not None:
           frame = frame._reindex_columns(columns, copy, level,
-                                         fill_value, limit)
+                                         fill_value, limit, takeable=takeable)
 
       index = axes['index']
       if index is not None:
           frame = frame._reindex_index(index, method, copy, level,
-                                       fill_value, limit)
+                                       fill_value, limit, takeable=takeable)
 
       return frame
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None):
+                       limit=None, takeable=False):
         new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit)
+                                                limit=limit, copy_if_needed=True,
+                                                takeable=takeable)
         return self._reindex_with_indexers({ 0 : [ new_index, indexer ] },
                                            copy=copy, fill_value=fill_value)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None):
+                         limit=None, takeable=False):
         new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit)
+                                                    limit=limit, copy_if_needed=True,
+                                                    takeable=takeable)
         return self._reindex_with_indexers({ 1 : [ new_columns, indexer ] },
                                            copy=copy, fill_value=fill_value)
 
@@ -2269,47 +2266,6 @@ class DataFrame(NDFrame):
             return self._reindex_with_indexers({ 1 : [ new_columns, col_indexer ] }, copy=copy, fill_value=fill_value)
         else:
             return self.copy() if copy else self
-
-    def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None, takeable=False):
-        new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit, copy_if_needed=True,
-                                                takeable=takeable)
-        return self._reindex_with_indexers(new_index, indexer, None, None,
-                                           copy, fill_value)
-
-    def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None, takeable=False):
-        new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit, copy_if_needed=True,
-                                                    takeable=takeable)
-        return self._reindex_with_indexers(None, None, new_columns, indexer,
-                                           copy, fill_value)
-
-    def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
-                               copy, fill_value):
-        new_data = self._data
-        if row_indexer is not None:
-            row_indexer = com._ensure_int64(row_indexer)
-            new_data = new_data.reindex_indexer(index, row_indexer, axis=1,
-                                                fill_value=fill_value)
-        elif index is not None and index is not new_data.axes[1]:
-            new_data = new_data.copy(deep=copy)
-            new_data.axes[1] = index
-
-        if col_indexer is not None:
-            # TODO: speed up on homogeneous DataFrame objects
-            col_indexer = com._ensure_int64(col_indexer)
-            new_data = new_data.reindex_indexer(columns, col_indexer, axis=0,
-                                                fill_value=fill_value)
-        elif columns is not None and columns is not new_data.axes[0]:
-            new_data = new_data.reindex_items(columns, copy=copy,
-                                              fill_value=fill_value)
-
-        if copy and new_data is self._data:
-            new_data = new_data.copy()
-
-        return DataFrame(new_data)
 
     def reindex_like(self, other, method=None, copy=True, limit=None,
                      fill_value=NA):

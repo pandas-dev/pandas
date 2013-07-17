@@ -44,10 +44,15 @@ When using pandas, we recommend the following import convention:
 Series
 ------
 
-:class:`Series` is a one-dimensional labeled array (technically a subclass of
-ndarray) capable of holding any data type (integers, strings, floating point
-numbers, Python objects, etc.). The axis labels are collectively referred to as
-the **index**. The basic method to create a Series is to call:
+.. warning::
+
+   In 0.13.0 ``Series`` has internaly been refactored to no longer sub-class ``ndarray``
+   but instead subclass ``NDFrame``, similarly to the rest of the pandas containers. This should be
+   a transparent change with only very limited API implications (See the :ref:`release notes <release.refactoring_0_13_0>`)
+
+:class:`Series` is a one-dimensional labeled array capable of holding any data
+type (integers, strings, floating point numbers, Python objects, etc.). The axis
+labels are collectively referred to as the **index**. The basic method to create a Series is to call:
 
 ::
 
@@ -109,9 +114,8 @@ provided. The value will be repeated to match the length of **index**
 Series is ndarray-like
 ~~~~~~~~~~~~~~~~~~~~~~
 
-As a subclass of ndarray, Series is a valid argument to most NumPy functions
-and behaves similarly to a NumPy array. However, things like slicing also slice
-the index.
+``Series`` acts very similary to a ``ndarray``, and is a valid argument to most NumPy functions.
+However, things like slicing also slice the index.
 
 .. ipython :: python
 
@@ -177,7 +181,7 @@ labels.
 
 The result of an operation between unaligned Series will have the **union** of
 the indexes involved. If a label is not found in one Series or the other, the
-result will be marked as missing (NaN). Being able to write code without doing
+result will be marked as missing ``NaN``. Being able to write code without doing
 any explicit data alignment grants immense freedom and flexibility in
 interactive data analysis and research. The integrated data alignment features
 of the pandas data structures set pandas apart from the majority of related
@@ -924,11 +928,11 @@ Here we slice to a Panel4D.
     from pandas.core import panelnd
     Panel5D = panelnd.create_nd_panel_factory(
         klass_name   = 'Panel5D',
-        axis_orders  = [ 'cool', 'labels','items','major_axis','minor_axis'],
-        axis_slices  = { 'labels' : 'labels', 'items' : 'items',
-	                 'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
-        slicer       = Panel4D,
-        axis_aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
+        orders  = [ 'cool', 'labels','items','major_axis','minor_axis'],
+        slices  = { 'labels' : 'labels', 'items' : 'items',
+	                'major_axis' : 'major_axis', 'minor_axis' : 'minor_axis' },
+        slicer  = Panel4D,
+        aliases = { 'major' : 'major_axis', 'minor' : 'minor_axis' },
         stat_axis    = 2)
 
     p5d = Panel5D(dict(C1 = p4d))

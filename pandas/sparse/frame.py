@@ -20,7 +20,8 @@ from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.core.datetools as datetools
-from pandas.core.internals import BlockManager, form_blocks
+from pandas.core.internals import BlockManager, create_block_manager_from_arrays
+
 from pandas.core.generic import NDFrame
 from pandas.sparse.series import SparseSeries,SparseArray
 from pandas.util.decorators import Appender
@@ -727,12 +728,7 @@ def dict_to_manager(sdict, columns, index):
     # from BlockManager perspective
     axes = [_ensure_index(columns), _ensure_index(index)]
 
-    # segregates dtypes and forms blocks matching to columns
-    blocks = form_blocks([ sdict[c] for c in columns ], columns, axes)
-
-    # consolidate for now
-    mgr = BlockManager(blocks, axes)
-    return mgr.consolidate()
+    return create_block_manager_from_arrays([ sdict[c] for c in columns ], columns, axes)
 
 def stack_sparse_frame(frame):
     """

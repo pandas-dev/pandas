@@ -379,6 +379,14 @@ def _radd_compat(left, right):
 
     return output
 
+def _coerce_method(converter):
+    """ install the scalar coercion methods """
+
+    def wrapper(self):
+        if len(self) == 1:
+            return converter(self.iloc[0])
+        raise TypeError("cannot convert the series to {0}".format(str(converter)))
+    return wrapper
 
 def _maybe_match_name(a, b):
     name = None
@@ -500,6 +508,7 @@ class Series(generic.NDFrame):
         If None, dtype will be inferred
     copy : boolean, default False, copy input data
     """
+    _prop_attributes    = ['name']
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -572,12 +581,14 @@ class Series(generic.NDFrame):
                     data = data.to_dense()
 
             if index is None:
+                if not is_list_like(data):
+                    data = [ data ]
                 index = _default_index(len(data))
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype,copy=copy)
+                    data = data.astype(dtype, raise_on_error=False)
                 elif copy:
                     data = data.copy()
             else:
@@ -708,6 +719,18 @@ class Series(generic.NDFrame):
 
     def __contains__(self, key):
         return key in self.index
+
+    # coercion
+    __float__ = _coerce_method(float)
+    __long__ = _coerce_method(int)
+    __int__ = _coerce_method(int)
+    __bool__ = _coerce_method(bool)
+
+    def __nonzero__(self):
+        # special case of a single element bool series degenerating to a scalar
+        if self.dtype == np.bool_ and len(self) == 1:
+            return bool(self.iloc[0])
+        return not self.empty
 
     # we are preserving name here
     def __getstate__(self):
@@ -1731,6 +1754,10 @@ class Series(generic.NDFrame):
         if i == -1:
             return pa.NA
         return self.index[i]
+
+    # ndarray compat
+    argmin = idxmin
+    argmax = idxmax
 
     def cumsum(self, axis=0, dtype=None, out=None, skipna=True):
         """
@@ -2848,12 +2875,12 @@ class Series(generic.NDFrame):
 
         # GH4246 (dispatch to a common method with frame to handle possibly
         # duplicate index)
-        return self._reindex_with_indexers(new_index, indexer, copy=copy,
-                                           fill_value=fill_value)
+        return self._reindex_with_indexers({ 0 : [new_index, indexer] }, copy=copy, fill_value=fill_value)
 
-    def _reindex_with_indexers(self, index, indexer, copy, fill_value):
+    def _reindex_with_indexers(self, reindexers, copy, fill_value=None):
+        index, indexer = reindexers[0]
         new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
-        return self._constructor(new_values, index=new_index, name=self.name)
+        return self._constructor(new_values, index=index, name=self.name)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
