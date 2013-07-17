@@ -50,7 +50,7 @@ def _skip_if_none_of(module_names):
     else:
         not_found = [module_name for module_name in module_names if not
                      _have_module(module_name)]
-        if not_found == module_names:
+        if set(not_found) & set(module_names):
             raise nose.SkipTest("{0} not found".format(not_found))
         if 'bs4' in module_names:
             import bs4
