@@ -235,7 +235,8 @@ pandas 0.12
       names (:issue:`3873`)
     - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to
       ``reindex`` for location-based taking
-    - Allow non-unique indexing in series via ``.ix/.loc`` and ``__getitem`` (:issue:`4246)
+    - Allow non-unique indexing in series via ``.ix/.loc`` and ``__getitem__`` (:issue:`4246`)
+    - Fixed non-unique indexing memory allocation issue with ``.ix/.loc`` (:issue:`4280`)
 
   - Fixed bug in groupby with empty series referencing a variable before assignment. (:issue:`3510`)
   - Allow index name to be used in groupby for non MultiIndex (:issue:`4014`)
