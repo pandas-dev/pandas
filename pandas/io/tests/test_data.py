@@ -10,7 +10,7 @@ from pandas import DataFrame
 from pandas.io import data as web
 from pandas.io.data import DataReader, SymbolWarning
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
-                                 assert_frame_equal, network)
+                                 network)
 from numpy.testing import assert_array_equal
 
 
@@ -343,6 +343,7 @@ class TestDataReader(unittest.TestCase):
                      "F-F_Research_Data_Factors_weekly", "6_Portfolios_2x3",
                      "F-F_ST_Reversal_Factor"):
             ff = DataReader(name, "famafrench")
+            assert ff
             assert isinstance(ff, dict)
 
 

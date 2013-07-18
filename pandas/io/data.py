@@ -453,8 +453,8 @@ def get_data_fred(name, start=dt.datetime(2010, 1, 1),
 def get_data_famafrench(name):
     # path of zip files
     zip_file_url = ('http://mba.tuck.dartmouth.edu/pages/faculty/'
-                    'ken.french/ftp/')
-    zip_file_path = '{0}{1}.zip'.format(zip_file_url, name)
+                    'ken.french/ftp')
+    zip_file_path = '{0}/{1}.zip'.format(zip_file_url, name)
 
     with urlopen(zip_file_path) as url:
         raw = url.read()
@@ -463,13 +463,13 @@ def get_data_famafrench(name):
         tmpf.write(raw)
 
         with ZipFile(tmpf, 'r') as zf:
-            data = zf.read(name + '.txt').splitlines()
+            data = zf.open(name + '.txt').readlines()
 
     line_lengths = np.array(map(len, data))
-    file_edges = np.where(line_lengths)[0]
+    file_edges = np.where(line_lengths == 2)[0]
 
     datasets = {}
-    edges = itertools.izip(file_edges[:-1], file_edges[1:])
+    edges = itertools.izip(file_edges + 1, file_edges[1:])
     for i, (left_edge, right_edge) in enumerate(edges):
         dataset = [d.split() for d in data[left_edge:right_edge]]
         if len(dataset) > 10:
@@ -479,13 +479,14 @@ def get_data_famafrench(name):
             header = dataset[header_index]
             ds_header = dataset[header_index + 1:]
             # to ensure the header is unique
-            header = ['{0} {1}'.format(*items) for items in enumerate(header,
-                                                                      start=1)]
-            index = np.fromiter((d[0] for d in ds_header), dtype=int)
-            dataset = np.fromiter((d[1:] for d in ds_header), dtype=float)
+            header = ['{0} {1}'.format(j, hj) for j, hj in enumerate(header,
+                                                                     start=1)]
+            index = np.array([d[0] for d in ds_header], dtype=int)
+            dataset = np.array([d[1:] for d in ds_header], dtype=float)
             datasets[i] = DataFrame(dataset, index, columns=header)
 
     return datasets
+
 
 # Items needed for options class
 CUR_MONTH = dt.datetime.now().month
