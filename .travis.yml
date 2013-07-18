@@ -3,20 +3,20 @@ language: python
 python:
   - 2.6
 
-env:
-  global:
-    - NOSE_ARGS="not slow" UPLOAD=true
-
 matrix:
   include:
+    - python: 2.6
+      env: NOSE_ARGS="not slow" CLIPBOARD=xclip
     - python: 2.7
-      env: NOSE_ARGS="slow and not network"  LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true JOB_TAG=_LOCALE
+      env: NOSE_ARGS="slow and not network" LOCALE_OVERRIDE="zh_CN.GB18030" FULL_DEPS=true JOB_TAG=_LOCALE
     - python: 2.7
-      env: NOSE_ARGS="not slow" FULL_DEPS=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true GUI=gtk2
     - python: 3.2
-      env: NOSE_ARGS="not slow" FULL_DEPS=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true GUI=qt4
     - python: 3.3
-      env: NOSE_ARGS="not slow" FULL_DEPS=true
+      env: NOSE_ARGS="not slow" FULL_DEPS=true CLIPBOARD=xsel
+  exclude:
+    - python: 2.6
 
 # allow importing from site-packages,
 # so apt-get python-x works for system pythons
@@ -27,7 +27,7 @@ virtualenv:
 before_install:
   - echo "Waldo1"
   - echo $VIRTUAL_ENV
-  - df
+  - df -h
   - date
   # - export PIP_ARGS=-q # comment this this to debug travis install issues
   # - export APT_ARGS=-qq # comment this to debug travis install issues
@@ -35,6 +35,8 @@ before_install:
   - export ZIP_FLAGS=-q # comment this to debug travis install issues
   - ci/before_install.sh
   - python -V
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
 
 install:
   - echo "Waldo2"

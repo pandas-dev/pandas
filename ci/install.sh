@@ -41,6 +41,22 @@ fi
 time pip install $PIP_ARGS -r ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt
 time sudo apt-get install libatlas-base-dev gfortran
 
+
+# install gui for clipboard testing
+if [ -n "$GUI" ]; then
+    echo "Using GUI clipboard: $GUI"
+    [ -n "$pv" ] && py="py"
+    time sudo apt-get $APT_ARGS install python${pv}-${py}${GUI}
+fi
+
+
+# install a clipboard
+if [ -n "$CLIPBOARD" ]; then
+    echo "Using clipboard: $CLIPBOARD"
+    time sudo apt-get $APT_ARGS install $CLIPBOARD
+fi
+
+
 # Optional Deps
 if [ x"$FULL_DEPS" == x"true" ]; then
     echo "Installing FULL_DEPS"
