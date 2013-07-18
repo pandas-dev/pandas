@@ -1102,6 +1102,40 @@ class TestIndexing(unittest.TestCase):
         result = df2['A']['B2']
         assert_frame_equal(result,expected)
 
+    def test_non_unique_loc_memory_error(self):
+
+        # GH 4280
+        # non_unique index with a large selection triggers a memory error
+
+        columns = list('ABCDEFG')
+        def gen_test(l,l2):
+            return pd.concat([ DataFrame(randn(l,len(columns)),index=range(l),columns=columns),
+                               DataFrame(np.ones((l2,len(columns))),index=[0]*l2,columns=columns) ])
+
+
+        def gen_expected(df,mask):
+            l = len(mask)
+            return pd.concat([
+                df.take([0],convert=False),
+                DataFrame(np.ones((l,len(columns))),index=[0]*l,columns=columns),
+                df.take(mask[1:],convert=False) ])
+
+        df = gen_test(900,100)
+        self.assert_(not df.index.is_unique)
+
+        mask = np.arange(100)
+        result = df.loc[mask]
+        expected = gen_expected(df,mask)
+        assert_frame_equal(result,expected)
+
+        df = gen_test(900000,100000)
+        self.assert_(not df.index.is_unique)
+
+        mask = np.arange(100000)
+        result = df.loc[mask]
+        expected = gen_expected(df,mask)
+        assert_frame_equal(result,expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

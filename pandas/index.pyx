@@ -278,14 +278,19 @@ cdef class IndexEngine:
             dict d = {}
             object val
             int count = 0, count_missing = 0
-            Py_ssize_t i, j, n, n_t
+            Py_ssize_t i, j, n, n_t, n_alloc
 
         self._ensure_mapping_populated()
         values = self._get_index_values()
         stargets = set(targets)
         n = len(values)
         n_t = len(targets)
-        result  = np.empty(n*n_t, dtype=np.int64)
+        if n > 10000:
+            n_alloc = 10000
+        else:
+            n_alloc = n
+
+        result  = np.empty(n_alloc, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
         # form the set of the results (like ismember)
@@ -304,12 +309,21 @@ cdef class IndexEngine:
             # found
             if val in d:
                 for j in d[val]:
+
+                   # realloc if needed
+                   if count >= n_alloc:
+                      n_alloc += 10000
+                      result = np.resize(result, n_alloc)
+
                    result[count] = j
                    count += 1
 
             # value not found
             else:
 
+                if count >= n_alloc:
+                     n_alloc += 10000
+                     result = np.resize(result, n_alloc)
                 result[count] = -1
                 count += 1
                 missing[count_missing] = i
