@@ -78,6 +78,15 @@ your contribution or address the issue you're having.
   - For extra brownie points, use "git rebase -i" to squash and reorder
     commits in your PR so that the history makes the most sense. Use your own
     judgment to decide what history needs to be preserved.
+  - Pandas source code should not (with some exceptions, such as 3rd party licensed code),
+    generally speaking, include an "Authors:" list or attribution to individuals in source code.
+    The RELEASE.rst details changes and enhancements to the code over time,
+    a "thanks goes to @JohnSmith." as part of the appropriate entry is a suitable way to acknowledge
+    contributions, the rest is git blame/log.
+    Feel free to ask the commiter who merges your code to include such an entry
+    or include it directly yourself as part of the PR if you'd like to. We're always glad to have
+    new contributors join us from the ever-growing pandas community.
+    You may also be interested in the copyright policy as detailed in the pandas [LICENSE](https://github.com/pydata/pandas/blob/master/LICENSE).
   - On the subject of [PEP8](http://www.python.org/dev/peps/pep-0008/): yes.
   - On the subject of massive PEP8 fix PRs touching everything, please consider the following:
     - They create merge conflicts for people working in their own fork.
