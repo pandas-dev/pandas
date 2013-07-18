@@ -145,7 +145,7 @@ class TestPandasContainer(unittest.TestCase):
         _check_all_orients(DataFrame(biggie, dtype=np.float64),
                            dtype=np.float64, convert_axes=False)
         _check_all_orients(DataFrame(biggie, dtype=np.int), dtype=np.int, convert_axes=False)
-        _check_all_orients(DataFrame(biggie, dtype='<U3'), dtype='<U3', convert_axes=False,
+        _check_all_orients(DataFrame(biggie, dtype='U3'), dtype='U3', convert_axes=False,
                            raise_ok=ValueError)
 
         # empty
