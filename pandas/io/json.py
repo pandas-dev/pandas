@@ -16,9 +16,9 @@ import pandas.lib as lib
 ### interface to/from ###
 
 def to_json(path_or_buf, obj, orient=None, date_format='epoch', double_precision=10, force_ascii=True):
-        
+
     if isinstance(obj, Series):
-        s = SeriesWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision, 
+        s = SeriesWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
                          ensure_ascii=force_ascii).write()
     elif isinstance(obj, DataFrame):
         s = FrameWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
@@ -41,7 +41,7 @@ class Writer(object):
 
         if orient is None:
             orient = self._default_orient
-            
+
         self.orient = orient
         self.date_format = date_format
         self.double_precision = double_precision
@@ -64,18 +64,35 @@ class Writer(object):
         if self._needs_to_date(data):
             return data.apply(lambda x: x.isoformat())
         return data
-    
+
     def copy_if_needed(self):
         """ copy myself if necessary """
         if not self.is_copy:
             self.obj = self.obj.copy()
             self.is_copy = True
 
+    def _validate(self):
+        """ validate that we can accurately write the data """
+        pass
+
+    def _raise_on_small_floats(self):
+        raise ValueError("ujson currently cannot accurately format float data less\n"
+                         "than 1e-15. A work-around is to multiply the data by\n"
+                         "a large positive factor and divide on deseriliazation\n")
+
     def write(self):
+        self._validate()
         return dumps(self.obj, orient=self.orient, double_precision=self.double_precision, ensure_ascii=self.ensure_ascii)
 
 class SeriesWriter(Writer):
     _default_orient = 'index'
+
+    def _validate(self):
+        if issubclass(self.obj.dtype.type, np.floating):
+            values = self.obj.values
+            values = values[values.nonzero()[0]]
+            if len(values) and (np.abs(values)<1e-15).any():
+                self._raise_on_small_floats()
 
     def _format_axes(self):
         if self._needs_to_date(self.obj.index):
@@ -94,6 +111,13 @@ class SeriesWriter(Writer):
 
 class FrameWriter(Writer):
     _default_orient = 'columns'
+
+    def _validate(self):
+        cols = [ k for k, v in self.obj.dtypes.iteritems() if issubclass(v.type,np.floating) ]
+        values = self.obj.loc[:,cols].values.ravel()
+        values = values[values.nonzero()[0]]
+        if len(values) and (np.abs(values)<1e-15).any():
+            self._raise_on_small_floats()
 
     def _format_axes(self):
         """ try to axes if they are datelike """
@@ -186,13 +210,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     return obj
 
 class Parser(object):
-    
+
     def __init__(self, json, orient, dtype=True, convert_axes=True, convert_dates=True, keep_default_dates=False, numpy=False):
         self.json = json
 
         if orient is None:
             orient = self._default_orient
-            
+
         self.orient = orient
         self.dtype = dtype
 
@@ -207,7 +231,7 @@ class Parser(object):
 
     def parse(self):
 
-        # try numpy 
+        # try numpy
         numpy = self.numpy
         if numpy:
             self._parse_numpy()
@@ -269,7 +293,7 @@ class Parser(object):
                 pass
 
         if data.dtype == 'float':
-            
+
             # coerce floats to 64
             try:
                 data = data.astype('float64')
@@ -291,7 +315,7 @@ class Parser(object):
 
         # coerce ints to 64
         if data.dtype == 'int':
-            
+
             # coerce floats to 64
             try:
                 data = data.astype('int64')
@@ -322,7 +346,7 @@ class Parser(object):
         if issubclass(new_data.dtype.type,np.number):
             if not ((new_data == iNaT) | (new_data > 31536000000000000L)).all():
                 return data, False
-                
+
         try:
             new_data = to_datetime(new_data)
         except:
@@ -342,7 +366,7 @@ class SeriesParser(Parser):
     _default_orient = 'index'
 
     def _parse_no_numpy(self):
-    
+
         json = self.json
         orient = self.orient
         if orient == "split":

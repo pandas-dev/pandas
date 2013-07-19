@@ -1020,6 +1020,11 @@ Writing to a file, with a date index and a date column
    dfj2.to_json('test.json')
    open('test.json').read()
 
+.. warning::
+
+   Currently ``usjon`` cannot format small float numbers (< 1e15). A ``ValueError``
+   will be raised in these cases.
+
 Reading JSON
 ~~~~~~~~~~~~
 
