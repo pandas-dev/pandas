@@ -99,8 +99,8 @@ Optional dependencies
 
     - `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
       okay.)
-    - `BeautifulSoup4`_ and `lxml`_ 
-    - `BeautifulSoup4`_ and `html5lib`_ and `lxml`_ 
+    - `BeautifulSoup4`_ and `lxml`_
+    - `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
     - Only `lxml`_, although see :ref:`HTML reading gotchas <html-gotchas>`
       for reasons as to why you should probably **not** take this approach.
 
