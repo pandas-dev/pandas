@@ -409,6 +409,18 @@ class TestPandasContainer(unittest.TestCase):
         expected = DataFrame([[1,2],[1,2]],columns=['a','b'])
         assert_frame_equal(result,expected)
 
+    def test_small_floats(self):
+
+        # raise
+        df = DataFrame([[1e-16,'foo',1e-8]],columns=list('ABC'))
+        self.assertRaises(ValueError, df.to_json)
+        s = Series([1e-16])
+        self.assertRaises(ValueError, s.to_json)
+
+        # ok
+        df = DataFrame([[1e-15,'foo',1e-8]],columns=list('ABC'))
+        df.to_json()
+
     @network
     @slow
     def test_round_trip_exception_(self):

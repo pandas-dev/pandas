@@ -37,6 +37,8 @@ pandas 0.12
   - Support for reading Amazon S3 files. (:issue:`3504`)
   - Added module for reading and writing Stata files: pandas.io.stata (:issue:`1512`)
     includes ``to_stata`` DataFrame method, and a ``read_stata`` top-level reader
+  - Added module for reading and writing JSON strings/files: pandas.io.json (:issue:`3876`)
+    includes ``to_json`` DataFrame/Series method, and a ``read_json`` top-level reader
   - Added support for writing in ``to_csv`` and reading in ``read_csv``,
     multi-index columns. The ``header`` option in ``read_csv`` now accepts a
     list of the rows from which to read the index. Added the option,
@@ -345,6 +347,7 @@ pandas 0.12
   - Fixed bug where html5lib wasn't being properly skipped (:issue:`4265`)
   - Fixed bug where get_data_famafrench wasn't using the correct file edges
     (:issue:`4281`)
+  - Raise a ``ValueError`` if trying to format small floats with ``to_json`` (:issue:`4042`)
 
 pandas 0.11.0
 =============
