@@ -41,7 +41,7 @@ class UltraJSONTests(TestCase):
 
     def test_encodeDecimal(self):
         sut = decimal.Decimal("1337.1337")
-        encoded = ujson.encode(sut, double_precision=100)
+        encoded = ujson.encode(sut, double_precision=15)
         decoded = ujson.decode(encoded)
         self.assertEquals(decoded, 1337.1337)
 
@@ -73,7 +73,7 @@ class UltraJSONTests(TestCase):
         encoded = json.dumps(sut)
         decoded = json.loads(encoded)
         self.assertEqual(sut, decoded)
-        encoded = ujson.encode(sut, double_precision=100)
+        encoded = ujson.encode(sut, double_precision=15)
         decoded = ujson.decode(encoded)
         self.assertEqual(sut, decoded)
 
@@ -82,7 +82,7 @@ class UltraJSONTests(TestCase):
         encoded = json.dumps(sut)
         decoded = json.loads(encoded)
         self.assertEqual(sut, decoded)
-        encoded = ujson.encode(sut, double_precision=100)
+        encoded = ujson.encode(sut, double_precision=15)
         decoded = ujson.decode(encoded)
         self.assertEqual(sut, decoded)
 
@@ -97,6 +97,16 @@ class UltraJSONTests(TestCase):
         encoded = ujson.encode(sut)
         decoded = ujson.decode(encoded, precise_float=True)
         self.assertEqual(sut, decoded)
+
+    def test_encodeDoubleTinyExponential(self):
+        num = 1e-40
+        self.assertEqual(num, ujson.decode(ujson.encode(num)))
+        num = 1e-100
+        self.assertEqual(num, ujson.decode(ujson.encode(num)))
+        num = -1e-45
+        self.assertEqual(num, ujson.decode(ujson.encode(num)))
+        num = -1e-145
+        self.assertEqual(num, ujson.decode(ujson.encode(num)))
 
     def test_encodeDictWithUnicodeKeys(self):
         input = { u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1" }
@@ -158,15 +168,9 @@ class UltraJSONTests(TestCase):
 
     def test_invalidDoublePrecision(self):
         input = 30.12345678901234567890
-        output = ujson.encode(input, double_precision = 20)
-        # should snap to the max, which is 15
-        self.assertEquals(round(input, 15), json.loads(output))
-        self.assertEquals(round(input, 15), ujson.decode(output))
 
-        output = ujson.encode(input, double_precision = -1)
-        # also should snap to the max, which is 15
-        self.assertEquals(round(input, 15), json.loads(output))
-        self.assertEquals(round(input, 15), ujson.decode(output))
+        self.assertRaises(ValueError, ujson.encode, input, double_precision = 20)
+        self.assertRaises(ValueError, ujson.encode, input, double_precision = -1)
 
         # will throw typeError
         self.assertRaises(TypeError, ujson.encode, input, double_precision = '9')
@@ -896,13 +900,13 @@ class NumpyJSONTests(TestCase):
 
     def testFloatMax(self):
         num = np.float(np.finfo(np.float).max/10)
-        assert_approx_equal(np.float(ujson.decode(ujson.encode(num))), num, 15)
+        assert_approx_equal(np.float(ujson.decode(ujson.encode(num, double_precision=15))), num, 15)
 
         num = np.float32(np.finfo(np.float32).max/10)
-        assert_approx_equal(np.float32(ujson.decode(ujson.encode(num))), num, 15)
+        assert_approx_equal(np.float32(ujson.decode(ujson.encode(num, double_precision=15))), num, 15)
 
         num = np.float64(np.finfo(np.float64).max/10)
-        assert_approx_equal(np.float64(ujson.decode(ujson.encode(num))), num, 15)
+        assert_approx_equal(np.float64(ujson.decode(ujson.encode(num, double_precision=15))), num, 15)
 
     def testArrays(self):
         arr = np.arange(100);
