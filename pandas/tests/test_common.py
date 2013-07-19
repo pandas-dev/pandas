@@ -5,7 +5,7 @@ import re
 import nose
 import unittest
 
-from pandas import Series, DataFrame, date_range, DatetimeIndex
+from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -116,6 +116,24 @@ def test_datetimeindex_from_empty_datetime64_array():
     for unit in [ 'ms', 'us', 'ns' ]:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
         assert(len(idx) == 0)
+
+def test_nan_to_nat_conversions():
+
+    df = DataFrame(dict({
+        'A' : np.asarray(range(10),dtype='float64'),
+        'B' : Timestamp('20010101') }))
+    df.iloc[3:6,:] = np.nan
+    result = df.loc[4,'B'].value
+    assert(result == iNaT)
+
+    values = df['B'].values
+    result, changed = com._maybe_upcast_indexer(values,tuple([slice(8,9)]),np.nan)
+    assert(isnull(result[8]))
+
+    # numpy < 1.7.0 is wrong
+    from distutils.version import LooseVersion
+    if LooseVersion(np.__version__) >= '1.7.0':
+        assert(result[8] == np.datetime64('NaT'))
 
 def test_any_none():
     assert(com._any_none(1, 2, 3, None))
