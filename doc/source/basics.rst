@@ -1228,7 +1228,7 @@ You can get/set options directly as attributes of the top-level ``options`` attr
    pd.options.display.max_rows
 
 
-There is also an API composed of 4 relavent functions, available directly from the ``pandas``
+There is also an API composed of 4 relevant functions, available directly from the ``pandas``
 namespace, and they are:
 
 - ``get_option`` / ``set_option`` - get/set the value of a single option.
