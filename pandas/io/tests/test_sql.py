@@ -246,6 +246,16 @@ class TestSQLite(unittest.TestCase):
         table_name = 'table_if_exists'
         sql_select = "SELECT * FROM %s" % table_name
 
+        def clean_up(test_table_to_drop):
+            """
+            Drops tables created from individual tests
+            so no dependencies arise from sequential tests
+            """
+            if sql.table_exists(test_table_to_drop, self.db, flavor='sqlite'):
+                cur = self.db.cursor()
+                cur.execute("DROP TABLE %s" % test_table_to_drop)
+                cur.close()
+
         # test if invalid value for if_exists raises appropriate error
         self.assertRaises(ValueError,
                           sql.write_frame,
@@ -254,10 +264,7 @@ class TestSQLite(unittest.TestCase):
                           name=table_name,
                           flavor='sqlite',
                           if_exists='notvalidvalue')
-        if sql.table_exists(table_name, self.db, flavor='sqlite'):
-            cur = self.db.cursor()
-            cur.execute("DROP TABLE %s" % table_name)
-            cur.close()
+        clean_up(table_name)
 
         # test if_exists='replace'
         sql.write_frame(frame=df_if_exists_1, con=self.db, name=table_name,
@@ -266,10 +273,7 @@ class TestSQLite(unittest.TestCase):
                         flavor='sqlite', if_exists='replace')
         self.assertEqual(sql.tquery(sql_select, con=self.db),
                          [(3, 'C'), (4, 'D'), (5, 'E')])
-        if sql.table_exists(table_name, self.db, flavor='sqlite'):
-            cur = self.db.cursor()
-            cur.execute("DROP TABLE %s" % table_name)
-            cur.close()
+        clean_up(table_name)
                         
 
 
