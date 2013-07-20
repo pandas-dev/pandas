@@ -42,6 +42,7 @@ _POSSIBLY_CAST_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]','O','int8'
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
+_DATELIKE_DTYPES = set([ np.dtype(t) for t in ['M8[ns]','m8[ns]'] ])
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -718,6 +719,12 @@ def _infer_dtype_from_scalar(val):
     return dtype, val
 
 
+def _maybe_cast_scalar(dtype, value):
+    """ if we a scalar value and are casting to a dtype that needs nan -> NaT conversion """
+    if np.isscalar(value) and dtype in _DATELIKE_DTYPES and isnull(value):
+        return tslib.iNaT
+    return value
+
 def _maybe_promote(dtype, fill_value=np.nan):
 
     # if we passed an array here, determine the fill value by dtype
@@ -789,6 +796,7 @@ def _maybe_upcast_putmask(result, mask, other, dtype=None, change=None):
 
     if mask.any():
 
+        other = _maybe_cast_scalar(result.dtype, other)
         def changeit():
 
             # try to directly set by expanding our array to full
@@ -851,6 +859,7 @@ def _maybe_upcast_indexer(result, indexer, other, dtype=None):
         return the result and a changed flag
         """
 
+    other = _maybe_cast_scalar(result.dtype, other)
     original_dtype = result.dtype
     def changeit():
         # our type is wrong here, need to upcast
