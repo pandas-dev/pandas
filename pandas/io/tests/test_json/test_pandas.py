@@ -289,6 +289,16 @@ class TestPandasContainer(unittest.TestCase):
         s = Series([1, 2, 3])
         self.assertRaises(ValueError, s.to_json, orient="garbage")
 
+    def test_series_from_json_precise_float(self):
+        s = Series([4.56, 4.56, 4.56])
+        result = read_json(s.to_json(), typ='series', precise_float=True)
+        assert_series_equal(result, s)
+
+    def test_frame_from_json_precise_float(self):
+        df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
+        result = read_json(df.to_json(), precise_float=True)
+        assert_frame_equal(result, df)
+
     def test_typ(self):
 
         s = Series(range(6), index=['a','b','c','d','e','f'], dtype='int64')

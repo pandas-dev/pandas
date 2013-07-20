@@ -35,6 +35,9 @@ pandas 0.12
     list of ``DataFrame`` s courtesy of @cpcloud. (:issue:`3477`,
     :issue:`3605`, :issue:`3606`)
   - Support for reading Amazon S3 files. (:issue:`3504`)
+  - Added module for reading and writing JSON strings/files: pandas.io.json
+    includes ``to_json`` DataFrame/Series method, and a ``read_json`` top-level reader
+    various issues (:issue:`1226`, :issue:`3804`, :issue:`3876`, :issue:`3867`, :issue:`1305`)
   - Added module for reading and writing Stata files: pandas.io.stata (:issue:`1512`)
     includes ``to_stata`` DataFrame method, and a ``read_stata`` top-level reader
   - Added support for writing in ``to_csv`` and reading in ``read_csv``,

@@ -206,6 +206,7 @@ I/O Enhancements
   - Added module for reading and writing json format files: ``pandas.io.json``
     accessable via ``read_json`` top-level function for reading,
     and ``to_json`` DataFrame method for writing, :ref:`See the docs<io.json>`
+    various issues (:issue:`1226`, :issue:`3804`, :issue:`3876`, :issue:`3867`, :issue:`1305`)
 
   - ``MultiIndex`` column support for reading and writing csv format files
 
