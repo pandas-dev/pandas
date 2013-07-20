@@ -507,8 +507,10 @@ void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value)
 
 int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc, double value)
 {
-  /* if input is larger than thres_max, revert to exponential */
+  /* if input is beyond the thresholds, revert to exponential */
   const double thres_max = (double) 1e16 - 1;
+  const double thres_min = (double) 1e-15;
+  char precision_str[20];
   int count;
   double diff = 0.0;
   char* str = enc->offset;
@@ -540,6 +542,23 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc, double value
     value = -value;
   }
 
+  /* 
+  for very large or small numbers switch back to native sprintf for 
+  exponentials.  anyone want to write code to replace this? */
+  if (value > thres_max || (value != 0.0 && fabs(value) <  thres_min))
+  {
+    precision_str[0] = '%';
+    precision_str[1] = '.';
+#ifdef _WIN32
+    sprintf_s(precision_str+2, sizeof(precision_str)-2, "%ug", enc->doublePrecision);
+    enc->offset += sprintf_s(str, enc->end - enc->offset, precision_str, neg ? -value : value);
+#else
+    snprintf(precision_str+2, sizeof(precision_str)-2, "%ug", enc->doublePrecision);
+    enc->offset += snprintf(str, enc->end - enc->offset, precision_str, neg ? -value : value);
+#endif
+    return TRUE;
+  }
+
   pow10 = g_pow10[enc->doublePrecision];
 
   whole = (unsigned long long) value;
@@ -564,22 +583,6 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc, double value
     if last digit is 0.  That last part is strange */
     ++frac;
   }
-
-  /* for very large numbers switch back to native sprintf for exponentials.
-  anyone want to write code to replace this? */
-  /*
-  normal printf behavior is to print EVERY whole number digit
-  which can be 100s of characters overflowing your buffers == bad
-  */
-  if (value > thres_max)
-  {
-#ifdef _WIN32
-  enc->offset += sprintf_s(str, enc->end - enc->offset, "%.15e", neg ? -value : value);
-#else
-  enc->offset += snprintf(str, enc->end - enc->offset, "%.15e", neg ? -value : value);
-#endif
-     return TRUE;
-   }
 
   if (enc->doublePrecision == 0)
   {
