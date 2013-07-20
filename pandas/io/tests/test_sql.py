@@ -266,15 +266,38 @@ class TestSQLite(unittest.TestCase):
                           if_exists='notvalidvalue')
         clean_up(table_name)
 
+        # test if_exists='fail'
+        sql.write_frame(frame=df_if_exists_1, con=self.db, name=table_name,
+                        flavor='sqlite', if_exists='fail')
+        self.assertRaises(ValueError,
+                          sql.write_frame,
+                          frame=df_if_exists_1,
+                          con=self.db,
+                          name=table_name,
+                          flavor='sqlite',
+                          if_exists='fail')
+
         # test if_exists='replace'
         sql.write_frame(frame=df_if_exists_1, con=self.db, name=table_name,
                         flavor='sqlite', if_exists='replace')
+        self.assertEqual(sql.tquery(sql_select, con=self.db),
+                         [(1, 'A'), (2, 'B')])
         sql.write_frame(frame=df_if_exists_2, con=self.db, name=table_name,
                         flavor='sqlite', if_exists='replace')
         self.assertEqual(sql.tquery(sql_select, con=self.db),
                          [(3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
                         
+        # test if_exists='append'
+        sql.write_frame(frame=df_if_exists_1, con=self.db, name=table_name,
+                        flavor='sqlite', if_exists='fail')
+        self.assertEqual(sql.tquery(sql_select, con=self.db),
+                         [(1, 'A'), (2, 'B')])
+        sql.write_frame(frame=df_if_exists_2, con=self.db, name=table_name,
+                        flavor='sqlite', if_exists='append')
+        self.assertEqual(sql.tquery(sql_select, con=self.db),
+                         [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
+        clean_up(table_name)
 
 
 class TestMySQL(unittest.TestCase):
