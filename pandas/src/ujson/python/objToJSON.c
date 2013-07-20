@@ -1696,6 +1696,15 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
     encoder->encodeHTMLChars = 1;
   }
 
+  if (idoublePrecision > JSON_DOUBLE_MAX_DECIMALS || idoublePrecision < 0) 
+  {
+      PyErr_Format (
+          PyExc_ValueError, 
+          "Invalid value '%d' for option 'double_precision', max is '%u'", 
+          idoublePrecision,
+          JSON_DOUBLE_MAX_DECIMALS);
+      return NULL;
+  }
   encoder->doublePrecision = idoublePrecision;
 
   if (sOrient != NULL)
