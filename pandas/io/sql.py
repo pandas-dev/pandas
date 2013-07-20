@@ -9,6 +9,7 @@ import traceback
 
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
+from pandas import notnull
 
 #------------------------------------------------------------------------------
 # Helper execution function
@@ -244,6 +245,8 @@ def _write_mysql(frame, table, names, cur):
     wildcards = ','.join([r'%s'] * len(names))
     insert_query = "INSERT INTO %s (%s) VALUES (%s)" % (
         table, col_names, wildcards)
+    # convert NaN to None object
+    frame = frame.where(notnull(frame), None)
     data = [tuple(x) for x in frame.values]
     cur.executemany(insert_query, data)
 
