@@ -567,7 +567,7 @@ class Series(generic.PandasContainer, pa.Array):
 
     @property
     def ix(self):
-        if self._ix is None:
+        if self._ix is None: # defined in indexing.py; pylint: disable=E0203
             self._ix = _SeriesIndexer(self, 'ix')
 
         return self._ix
