@@ -106,7 +106,7 @@ class UltraJSONTests(TestCase):
         num = -1e-45
         self.assertEqual(num, ujson.decode(ujson.encode(num)))
         num = -1e-145
-        self.assertEqual(num, ujson.decode(ujson.encode(num)))
+        self.assert_(np.allclose(num, ujson.decode(ujson.encode(num))))
 
     def test_encodeDictWithUnicodeKeys(self):
         input = { u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1" }
