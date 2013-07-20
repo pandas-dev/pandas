@@ -1532,6 +1532,26 @@ advanced strategies
 
         read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
+.. versionadded:: 0.13
+
+There are now two ways to read in sheets from an Excel file. You can provide
+either the index of a sheet or its name. If the value provided is an integer
+then it is assumed that the integer refers to the index of a sheet, otherwise
+if a string is passed then it is assumed that the string refers to the name of
+a particular sheet in the file.
+
+Using the sheet name:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+
+Using the sheet index:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 0, index_col=None, na_values=['NA'])
+
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. `read_excel` takes
 a `parse_cols` keyword to allow you to specify a subset of columns to parse.
