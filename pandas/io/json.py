@@ -16,9 +16,9 @@ import pandas.lib as lib
 ### interface to/from ###
 
 def to_json(path_or_buf, obj, orient=None, date_format='epoch', double_precision=10, force_ascii=True):
-        
+
     if isinstance(obj, Series):
-        s = SeriesWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision, 
+        s = SeriesWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
                          ensure_ascii=force_ascii).write()
     elif isinstance(obj, DataFrame):
         s = FrameWriter(obj, orient=orient, date_format=date_format, double_precision=double_precision,
@@ -41,7 +41,7 @@ class Writer(object):
 
         if orient is None:
             orient = self._default_orient
-            
+
         self.orient = orient
         self.date_format = date_format
         self.double_precision = double_precision
@@ -64,7 +64,7 @@ class Writer(object):
         if self._needs_to_date(data):
             return data.apply(lambda x: x.isoformat())
         return data
-    
+
     def copy_if_needed(self):
         """ copy myself if necessary """
         if not self.is_copy:
@@ -155,8 +155,10 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         default is True
     keep_default_dates : boolean, default True. If parsing dates,
         then parse the default datelike columns
-    numpy: direct decoding to numpy arrays. default is False.Note that the JSON ordering MUST be the same
+    numpy : direct decoding to numpy arrays. default is False.Note that the JSON ordering MUST be the same
         for each term if numpy=True.
+    precise_float : boolean, default False. Set to enable usage of higher precision (strtod) function
+        when decoding string to double values. Default (False) is to use fast but less precise builtin functionality
 
     Returns
     -------
@@ -187,7 +189,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     return obj
 
 class Parser(object):
-    
+
     def __init__(self, json, orient, dtype=True, convert_axes=True,
                  convert_dates=True, keep_default_dates=False, numpy=False,
                  precise_float=False):
@@ -195,7 +197,7 @@ class Parser(object):
 
         if orient is None:
             orient = self._default_orient
-            
+
         self.orient = orient
         self.dtype = dtype
 
@@ -211,7 +213,7 @@ class Parser(object):
 
     def parse(self):
 
-        # try numpy 
+        # try numpy
         numpy = self.numpy
         if numpy:
             self._parse_numpy()
@@ -273,7 +275,7 @@ class Parser(object):
                 pass
 
         if data.dtype == 'float':
-            
+
             # coerce floats to 64
             try:
                 data = data.astype('float64')
@@ -295,7 +297,7 @@ class Parser(object):
 
         # coerce ints to 64
         if data.dtype == 'int':
-            
+
             # coerce floats to 64
             try:
                 data = data.astype('int64')
@@ -326,7 +328,7 @@ class Parser(object):
         if issubclass(new_data.dtype.type,np.number):
             if not ((new_data == iNaT) | (new_data > 31536000000000000L)).all():
                 return data, False
-                
+
         try:
             new_data = to_datetime(new_data)
         except:
@@ -346,7 +348,7 @@ class SeriesParser(Parser):
     _default_orient = 'index'
 
     def _parse_no_numpy(self):
-    
+
         json = self.json
         orient = self.orient
         if orient == "split":

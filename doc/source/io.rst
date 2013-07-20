@@ -1060,6 +1060,8 @@ is ``None``. To explicity force ``Series`` parsing, pass ``typ=series``
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default datelike columns
 - ``numpy`` : direct decoding to numpy arrays. default is False;
   Note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
+- ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function
+  when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is
 not parsable.
