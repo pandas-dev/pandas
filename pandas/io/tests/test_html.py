@@ -4,6 +4,7 @@ from cStringIO import StringIO
 from unittest import TestCase
 import warnings
 from distutils.version import LooseVersion
+import urllib2
 
 import nose
 from nose.tools import assert_raises
@@ -24,7 +25,7 @@ from pandas import DataFrame, MultiIndex, read_csv, Timestamp
 from pandas.util.testing import (assert_frame_equal, network,
                                  get_data_path)
 
-from pandas.util.testing import makeCustomDataframe as mkdf
+from pandas.util.testing import makeCustomDataframe as mkdf, rands
 
 
 def _have_module(module_name):
@@ -285,9 +286,15 @@ class TestReadHtmlBase(TestCase):
 
         assert_framelist_equal(df1, df2)
 
+    @network
     def test_bad_url_protocol(self):
-        self.assertRaises(ValueError, self.run_read_html, 'git://github.com',
-                          '.*Water.*')
+        self.assertRaises(urllib2.URLError, self.run_read_html,
+                          'git://github.com', '.*Water.*')
+
+    @network
+    def test_invalid_url(self):
+        self.assertRaises(urllib2.URLError, self.run_read_html,
+                          'http://www.a23950sdfa908sd.com')
 
     @slow
     def test_file_url(self):

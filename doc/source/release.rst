@@ -111,6 +111,8 @@ pandas 0.12
     of the default datetime.min and datetime.max (respectively), thanks @SleepingPills
   - ``read_html`` now raises when no tables are found and BeautifulSoup==4.2.0
     is detected (:issue:`4214`)
+  - ``read_html`` now raises a ``URLError`` instead of catching and raising a
+    ``ValueError`` (:issue:`4303`, :issue:`4305`)
 
 **API Changes**
 

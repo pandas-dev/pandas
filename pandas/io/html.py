@@ -113,11 +113,8 @@ def _read(io):
     raw_text : str
     """
     if _is_url(io):
-        try:
-            with urlopen(io) as url:
-                raw_text = url.read()
-        except urllib2.URLError:
-            raise ValueError('Invalid URL: "{0}"'.format(io))
+        with urlopen(io) as url:
+            raw_text = url.read()
     elif hasattr(io, 'read'):
         raw_text = io.read()
     elif os.path.isfile(io):
