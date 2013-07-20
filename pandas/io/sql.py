@@ -196,6 +196,10 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
             if_exists='append'
         else:
             if_exists='fail'
+    
+    if if_exists not in ('fail', 'replace', 'append'):
+        raise ValueError, "'%s' is not valid for if_exists" % if_exists
+
     exists = table_exists(name, con, flavor)
     if if_exists == 'fail' and exists:
         raise ValueError, "Table '%s' already exists." % name
