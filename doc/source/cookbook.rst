@@ -41,6 +41,9 @@ These are some neat pandas ``idioms``
 `How to select from a frame with complex criteria?
 <http://stackoverflow.com/questions/15315452/selecting-with-complex-criteria-from-pandas-dataframe>`__
 
+`Select rows closest to a user defined numer
+<http://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__
+
 .. _cookbook.selection:
 
 Selection
