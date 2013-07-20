@@ -98,6 +98,30 @@ class UltraJSONTests(TestCase):
         decoded = ujson.decode(encoded, precise_float=True)
         self.assertEqual(sut, decoded)
 
+    def test_decimalDecodeTestPreciseDoubleBig(self):
+        sut = {u'a': 4.56e300}
+        encoded = ujson.encode(sut)
+        decoded = ujson.decode(encoded, precise_float=True)
+        self.assertEqual(sut, decoded)
+
+    def test_decimalDecodeTestPreciseDoubleSmall(self):
+        sut = {u'a': 4.56e-300}
+        encoded = ujson.encode(sut)
+        decoded = ujson.decode(encoded, precise_float=True)
+        self.assertEqual(sut, decoded)
+
+    def test_decimalDecodeTestPreciseSingleBig(self):
+        sut = {u'a': 4.56e35}
+        encoded = ujson.encode(sut)
+        decoded = ujson.decode(encoded, precise_float=True)
+        self.assertEqual(sut, decoded)
+
+    def test_decimalDecodeTestPreciseSingleSmall(self):
+        sut = {u'a': 4.56e-35}
+        encoded = ujson.encode(sut)
+        decoded = ujson.decode(encoded, precise_float=True)
+        self.assertEqual(sut, decoded)
+
     def test_encodeDictWithUnicodeKeys(self):
         input = { u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1" }
         output = ujson.encode(input)
@@ -1411,6 +1435,26 @@ class PandasJSONTests(TestCase):
         self.assertAlmostEquals(1.7893, ujson.loads("1.7893"), places=places)
         self.assertAlmostEquals(1.893, ujson.loads("1.893"), places=places)
         self.assertAlmostEquals(1.3, ujson.loads("1.3"), places=places)
+
+        self.assertEquals(1.1234567893e-300, ujson.loads("1.1234567893e-300"))
+        self.assertEquals(1.234567893e-300, ujson.loads("1.234567893e-300"))
+        self.assertEquals(1.34567893e-300, ujson.loads("1.34567893e-300"))
+        self.assertEquals(1.4567893e-300, ujson.loads("1.4567893e-300"))
+        self.assertEquals(1.567893e-300, ujson.loads("1.567893e-300"))
+        self.assertEquals(1.67893e-300, ujson.loads("1.67893e-300"))
+        self.assertEquals(1.7893e-300, ujson.loads("1.7893e-300"))
+        self.assertEquals(1.893e-300, ujson.loads("1.893e-300"))
+        self.assertEquals(1.3e-300, ujson.loads("1.3e-300"))
+
+        self.assertEquals(1.1234567893e300, ujson.loads("1.1234567893e300"))
+        self.assertEquals(1.234567893e300, ujson.loads("1.234567893e300"))
+        self.assertEquals(1.34567893e300, ujson.loads("1.34567893e300"))
+        self.assertEquals(1.4567893e300, ujson.loads("1.4567893e300"))
+        self.assertEquals(1.567893e300, ujson.loads("1.567893e300"))
+        self.assertEquals(1.67893e300, ujson.loads("1.67893e300"))
+        self.assertEquals(1.7893e300, ujson.loads("1.7893e300"))
+        self.assertEquals(1.893e300, ujson.loads("1.893e300"))
+        self.assertEquals(1.3e300, ujson.loads("1.3e300"))
 
     def test_encodeBigSet(self):
         s = set()
