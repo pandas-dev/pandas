@@ -257,8 +257,18 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.plot, kind='kde')
         _check_plot_works(self.ts.plot, kind='density')
         ax = self.ts.plot(kind='kde', logy=True)
-        self.assert_(ax.get_yscale() == 'log')
+        self.assertEqual(ax.get_yscale(), 'log')
 
+    @slow
+    def test_kde_kwargs(self):
+        _skip_if_no_scipy()
+        from numpy import linspace
+        _check_plot_works(self.ts.plot, kind='kde', bw_method=.5, ind=linspace(-100,100,20))
+        _check_plot_works(self.ts.plot, kind='density', bw_method=.5, ind=linspace(-100,100,20))
+        ax = self.ts.plot(kind='kde', logy=True, bw_method=.5, ind=linspace(-100,100,20))
+        self.assertEqual(ax.get_yscale(), 'log')
+
+    @slow
     def test_kde_color(self):
         _skip_if_no_scipy()
         ax = self.ts.plot(kind='kde', logy=True, color='r')

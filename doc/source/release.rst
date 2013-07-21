@@ -30,6 +30,10 @@ pandas 0.13
 **Release date:** not-yet-released
 
 **New features**
+  - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
+    ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
+    the bandwidth, and to gkde.evaluate() to specify the indicies at which it
+    is evaluated, respecttively. See scipy docs.
 
   - Added ``isin`` method to DataFrame (:issue:`4211`)
   - Clipboard functionality now works with PySide (:issue:`4282`)
