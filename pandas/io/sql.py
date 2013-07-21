@@ -208,13 +208,16 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
         if if_exists == 'fail':
             raise ValueError, "Table '%s' already exists." % name
         elif if_exists == 'replace':
-            create = "DROP TABLE %s;" % name + get_schema(frame, name, flavor)
+            cur = con.cursor()
+            cur.execute("DROP TABLE %s;" % name)
+            cur.close()
+            create = get_schema(frame, name, flavor)
     else:
         create = get_schema(frame, name, flavor)
 
     if create is not None:
         cur = con.cursor()
-        cur.executescript(create)
+        cur.execute(create)
         cur.close()
 
     cur = con.cursor()
