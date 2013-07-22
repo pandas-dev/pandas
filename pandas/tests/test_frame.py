@@ -2236,7 +2236,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         def testit():
             DataFrame({'a': False, 'b': True})
-        assertRaisesRegexp(ValueError, 'If using all scalar values, you must must pass an index', testit)
+        assertRaisesRegexp(ValueError, 'If using all scalar values, you must pass an index', testit)
 
     def test_insert_error_msmgs(self):
 
@@ -2774,6 +2774,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # pass some columns
         recons = DataFrame.from_items(items, columns=['C', 'B', 'A'])
         assert_frame_equal(recons, self.frame.ix[:, ['C', 'B', 'A']])
+        # not any column either a dict, a list, a tuple, or a numpy.ndarray
+        import array
+        recons_ar = DataFrame.from_items([('A', array.array('i', range(10)))])
+        recons_rg = DataFrame.from_items([('A', range(10))])
+        recons_np = DataFrame.from_items([('A', np.array(range(10)))])
+        self.assertEquals(tuple(recons_ar['A']),
+                          tuple(recons_rg['A']))
+        self.assertEquals(tuple(recons_ar['A']),
+                          tuple(recons_np['A']))
+
+        
 
         # orient='index'
 
