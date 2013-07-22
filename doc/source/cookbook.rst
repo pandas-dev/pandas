@@ -304,6 +304,12 @@ The :ref:`CSV <io.read_csv_table>` docs
 `Reading the first few lines of a frame
 <http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
 
+Reading a file that is compressed but not by ``gzip/bz2`` (the native compresed formats which ``read_csv`` understands).
+This example shows a ``WinZipped`` file, but is a general application of opening the file within a context manager and
+using that handle to read.
+`See here
+<http://stackoverflow.com/questions/17789907/pandas-convert-winzipped-csv-file-to-data-frame>`__
+
 `Inferring dtypes from a file
 <http://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
