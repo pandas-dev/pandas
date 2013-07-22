@@ -145,6 +145,7 @@ def _comp_method(func, name):
 
 
 class Panel(NDFrame):
+
     """
     Represents wide format panel data, stored as 3-dimensional array
 
@@ -163,72 +164,9 @@ class Panel(NDFrame):
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
     """
 
-<<<<<<< HEAD
-    _AXIS_ORDERS = ['items', 'major_axis', 'minor_axis']
-    _AXIS_NUMBERS = dict((a, i) for i, a in enumerate(_AXIS_ORDERS))
-    _AXIS_ALIASES = {
-        'major': 'major_axis',
-        'minor': 'minor_axis'
-    }
-    _AXIS_NAMES = dict(enumerate(_AXIS_ORDERS))
-    _AXIS_SLICEMAP = {
-        'major_axis': 'index',
-        'minor_axis': 'columns'
-    }
-    _AXIS_LEN = len(_AXIS_ORDERS)
-
-    # major
-    _default_stat_axis = 1
-
-    # info axis
-    _het_axis = 0
-    _info_axis = _AXIS_ORDERS[_het_axis]
-
-    items = lib.AxisProperty(0)
-    major_axis = lib.AxisProperty(1)
-    minor_axis = lib.AxisProperty(2)
-
-    # return the type of the slice constructor
-    _constructor_sliced = DataFrame
-
-    def _construct_axes_dict(self, axes=None, **kwargs):
-        """ Return an axes dictionary for myself """
-        d = dict([(a, getattr(self, a)) for a in (axes or self._AXIS_ORDERS)])
-        d.update(kwargs)
-        return d
-
-    @staticmethod
-    def _construct_axes_dict_from(self, axes, **kwargs):
-        """ Return an axes dictionary for the passed axes """
-        d = dict([(a, ax) for a, ax in zip(self._AXIS_ORDERS, axes)])
-        d.update(kwargs)
-        return d
-
-    def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
-        """ Return an axes dictionary for myself """
-        d = dict([(self._AXIS_SLICEMAP[a], getattr(self, a))
-                 for a in (axes or self._AXIS_ORDERS)])
-        d.update(kwargs)
-        return d
-
-    __add__ = _arith_method(operator.add, '__add__')
-    __sub__ = _arith_method(operator.sub, '__sub__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__')
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__')
-    __mul__ = _arith_method(operator.mul, '__mul__')
-    __pow__ = _arith_method(operator.pow, '__pow__')
-
-    __radd__ = _arith_method(operator.add, '__radd__')
-    __rmul__ = _arith_method(operator.mul, '__rmul__')
-    __rsub__ = _arith_method(lambda x, y: y - x, '__rsub__')
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__rtruediv__')
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__rfloordiv__')
-    __rpow__ = _arith_method(lambda x, y: y ** x, '__rpow__')
-=======
     @property
     def _constructor(self):
         return type(self)
->>>>>>> ENH/CLN: refactor of common code from frame/panel to generic.py
 
     _constructor_sliced = DataFrame
 
@@ -267,12 +205,7 @@ class Panel(NDFrame):
         NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
     def _init_dict(self, data, axes, dtype=None):
-<<<<<<< HEAD
-        haxis = axes.pop(self._het_axis)
-=======
-        from pandas.util.compat import OrderedDict
         haxis = axes.pop(self._info_axis_number)
->>>>>>> ENH/CLN: refactor of common code from frame/panel to generic.py
 
         # prefilter if haxis passed
         if haxis is not None:
@@ -281,7 +214,7 @@ class Panel(NDFrame):
                                in compat.iteritems(data) if k in haxis)
         else:
             ks = list(data.keys())
-            if not isinstance(data,OrderedDict):
+            if not isinstance(data, OrderedDict):
                 ks = _try_sort(ks)
             haxis = Index(ks)
 
@@ -339,7 +272,6 @@ class Panel(NDFrame):
         -------
         Panel
         """
-
         orient = orient.lower()
         if orient == 'minor':
             new_data = OrderedDefaultdict(dict)
@@ -352,7 +284,7 @@ class Panel(NDFrame):
 
         d = cls._homogenize_dict(cls, data, intersect=intersect, dtype=dtype)
         ks = list(d['data'].keys())
-        if not isinstance(d['data'],OrderedDict):
+        if not isinstance(d['data'], OrderedDict):
             ks = list(sorted(ks))
         d[cls._info_axis_name] = Index(ks)
         return cls(**d)
@@ -416,7 +348,7 @@ class Panel(NDFrame):
                 ax = _ensure_index(ax)
             fixed_axes.append(ax)
 
-        return create_block_manager_from_blocks([ values ], fixed_axes)
+        return create_block_manager_from_blocks([values], fixed_axes)
 
     #----------------------------------------------------------------------
     # Comparison methods
@@ -602,7 +534,7 @@ class Panel(NDFrame):
             axes = self._expand_axes(args)
             d = self._construct_axes_dict_from(self, axes, copy=False)
             result = self.reindex(**d)
-            args  = list(args)
+            args = list(args)
             likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
             made_bigger = not np.array_equal(
                 axes[0], self._info_axis)
@@ -906,7 +838,7 @@ class Panel(NDFrame):
 
         # xs cannot handle a non-scalar key, so just reindex here
         if _is_list_like(key):
-            return self.reindex(**{ self._get_axis_name(axis) : key })
+            return self.reindex(**{self._get_axis_name(axis): key})
 
         return self.xs(key, axis=axis)
 
@@ -1192,7 +1124,7 @@ class Panel(NDFrame):
         if not isinstance(other, self._constructor):
             other = self._constructor(other)
 
-        axis_name   = self._info_axis_name
+        axis_name = self._info_axis_name
         axis_values = self._info_axis
         other = other.reindex(**{axis_name: axis_values})
 
@@ -1257,7 +1189,8 @@ class Panel(NDFrame):
         """
 
         result = dict()
-        if isinstance(frames,OrderedDict): # caller differs dict/ODict, presered type
+        # caller differs dict/ODict, presered type
+        if isinstance(frames, OrderedDict):
             result = OrderedDict()
 
         adj_frames = OrderedDict()
@@ -1366,7 +1299,7 @@ Return %(desc)s over requested axis
 Parameters
 ----------
 axis : {""" + ', '.join(cls._AXIS_ORDERS) + "} or {" \
-+ ', '.join([str(i) for i in range(cls._AXIS_LEN)]) + """}
+            + ', '.join([str(i) for i in range(cls._AXIS_LEN)]) + """}
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA
@@ -1440,13 +1373,13 @@ If all values are NA, result will be NA"""
             return self._reduce(nanops.nanmin, axis=axis, skipna=skipna)
         cls.min = min
 
-Panel._setup_axes(axes      = ['items', 'major_axis', 'minor_axis'],
-                  info_axis = 0,
-                  stat_axis = 1,
-                  aliases   = { 'major': 'major_axis',
-                                'minor': 'minor_axis' },
-                  slicers   = { 'major_axis': 'index',
-                                'minor_axis': 'columns' })
+Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'],
+                  info_axis=0,
+                  stat_axis=1,
+                  aliases={'major': 'major_axis',
+                           'minor': 'minor_axis'},
+                  slicers={'major_axis': 'index',
+                           'minor_axis': 'columns'})
 Panel._add_aggregate_operations()
 
 WidePanel = Panel

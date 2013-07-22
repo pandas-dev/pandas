@@ -21,7 +21,9 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 _infer_dtype_from_scalar, _maybe_promote)
 from pandas.core.base import PandasObject
 
+
 class NDFrame(PandasObject):
+
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -32,9 +34,10 @@ class NDFrame(PandasObject):
     axes : list
     copy : boolean, default False
     """
-    _internal_names     = ['_data','name','_subtyp','_index','_default_kind','_default_fill_value']
+    _internal_names = [
+        '_data', 'name', '_subtyp', '_index', '_default_kind', '_default_fill_value']
     _internal_names_set = set(_internal_names)
-    _prop_attributes    = []
+    _prop_attributes = []
 
     def __init__(self, data, axes=None, copy=False, dtype=None, fastpath=False):
 
@@ -55,7 +58,8 @@ class NDFrame(PandasObject):
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
-                mgr = mgr.reindex_axis(axe, axis=self._get_block_manager_axis(a), copy=False)
+                mgr = mgr.reindex_axis(
+                    axe, axis=self._get_block_manager_axis(a), copy=False)
 
         # do not copy BlockManager unless explicitly done
         if copy and dtype is None:
@@ -75,7 +79,7 @@ class NDFrame(PandasObject):
 
     def __hash__(self):
         raise TypeError('{0!r} objects are mutable, thus they cannot be'
-                              ' hashed'.format(self.__class__.__name__))
+                        ' hashed'.format(self.__class__.__name__))
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -91,8 +95,9 @@ class NDFrame(PandasObject):
     # Axis
 
     @classmethod
-    def _setup_axes(cls, axes, info_axis = None, stat_axis = None, aliases = None, slicers = None,
-                    axes_are_reversed = False, build_axes = True, ns = None):
+    def _setup_axes(
+        cls, axes, info_axis=None, stat_axis=None, aliases=None, slicers=None,
+            axes_are_reversed=False, build_axes=True, ns=None):
         """ provide axes setup for the major PandasObjects
 
             axes : the names of the axes in order (lowest to highest)
@@ -104,47 +109,48 @@ class NDFrame(PandasObject):
             build_axes : setup the axis properties (default True)
             """
 
-        cls._AXIS_ORDERS  = axes
-        cls._AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(axes) ])
-        cls._AXIS_LEN     = len(axes)
+        cls._AXIS_ORDERS = axes
+        cls._AXIS_NUMBERS = dict([(a, i) for i, a in enumerate(axes)])
+        cls._AXIS_LEN = len(axes)
         cls._AXIS_ALIASES = aliases or dict()
-        cls._AXIS_IALIASES = dict([ (v,k) for k, v in cls._AXIS_ALIASES.items() ])
-        cls._AXIS_NAMES    = dict([(i, a) for i, a in enumerate(axes) ])
+        cls._AXIS_IALIASES = dict([(v, k)
+                                  for k, v in cls._AXIS_ALIASES.items()])
+        cls._AXIS_NAMES = dict([(i, a) for i, a in enumerate(axes)])
         cls._AXIS_SLICEMAP = slicers or None
         cls._AXIS_REVERSED = axes_are_reversed
 
         # typ
-        setattr(cls,'_typ',cls.__name__.lower())
+        setattr(cls, '_typ', cls.__name__.lower())
 
         # indexing support
         cls._ix = None
 
         if info_axis is not None:
             cls._info_axis_number = info_axis
-            cls._info_axis_name   = axes[info_axis]
+            cls._info_axis_name = axes[info_axis]
 
         if stat_axis is not None:
             cls._stat_axis_number = stat_axis
-            cls._stat_axis_name   = axes[stat_axis]
+            cls._stat_axis_name = axes[stat_axis]
 
         # setup the actual axis
         if build_axes:
 
             def set_axis(a, i):
-                setattr(cls,a,lib.AxisProperty(i))
+                setattr(cls, a, lib.AxisProperty(i))
 
             if axes_are_reversed:
-                m = cls._AXIS_LEN-1
+                m = cls._AXIS_LEN - 1
                 for i, a in cls._AXIS_NAMES.items():
-                    set_axis(a,m-i)
+                    set_axis(a, m - i)
             else:
                 for i, a in cls._AXIS_NAMES.items():
-                    set_axis(a,i)
+                    set_axis(a, i)
 
         # addtl parms
         if isinstance(ns, dict):
             for k, v in ns.items():
-                setattr(cls,k,v)
+                setattr(cls, k, v)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """ return an axes dictionary for myself """
@@ -180,7 +186,8 @@ class NDFrame(PandasObject):
             if alias is not None:
                 if a in kwargs:
                     if alias in kwargs:
-                        raise Exception("arguments are multually exclusive for [%s,%s]" % (a,alias))
+                        raise Exception(
+                            "arguments are multually exclusive for [%s,%s]" % (a, alias))
                     continue
                 if alias in kwargs:
                     kwargs[a] = kwargs.pop(alias)
@@ -195,7 +202,7 @@ class NDFrame(PandasObject):
                         raise AssertionError(
                             "not enough arguments specified!")
 
-        axes = dict([ (a,kwargs.get(a)) for a in self._AXIS_ORDERS])
+        axes = dict([(a, kwargs.get(a)) for a in self._AXIS_ORDERS])
         return axes, kwargs
 
     @classmethod
@@ -241,8 +248,8 @@ class NDFrame(PandasObject):
         """ map the axis to the block_manager axis """
         axis = self._get_axis_number(axis)
         if self._AXIS_REVERSED:
-            m = self._AXIS_LEN-1
-            return m-axis
+            m = self._AXIS_LEN - 1
+            return m - axis
         return axis
 
     @property
@@ -322,9 +329,12 @@ class NDFrame(PandasObject):
         """
 
         # construct the args
-        axes, kwargs = self._construct_axes_from_arguments(args, kwargs, require_all=True)
-        axes_names   = tuple([ self._get_axis_name(  axes[a]) for a in self._AXIS_ORDERS ])
-        axes_numbers = tuple([ self._get_axis_number(axes[a]) for a in self._AXIS_ORDERS ])
+        axes, kwargs = self._construct_axes_from_arguments(
+            args, kwargs, require_all=True)
+        axes_names = tuple([self._get_axis_name(axes[a])
+                            for a in self._AXIS_ORDERS])
+        axes_numbers = tuple([self._get_axis_number(axes[a])
+                             for a in self._AXIS_ORDERS])
 
         # we must have unique axes
         if len(axes) != len(set(axes)):
@@ -374,7 +384,7 @@ class NDFrame(PandasObject):
     def squeeze(self):
         """ squeeze length 1 dimensions """
         try:
-            return self.ix[tuple([ slice(None) if len(a) > 1 else a[0] for a in self.axes ])]
+            return self.ix[tuple([slice(None) if len(a) > 1 else a[0] for a in self.axes])]
         except:
             return self
 
@@ -432,7 +442,7 @@ class NDFrame(PandasObject):
     # Comparisons
 
     def _indexed_same(self, other):
-        return all([ self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS])
+        return all([self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS])
 
     def reindex(self, *args, **kwds):
         raise NotImplementedError
@@ -528,11 +538,11 @@ class NDFrame(PandasObject):
                 for k in self._internal_names:
                     if k in state:
                         v = state[k]
-                        object.__setattr__(self,k,v)
+                        object.__setattr__(self, k, v)
 
                 for k, v in state.items():
                     if k not in self._internal_names:
-                        object.__setattr__(self,k,v)
+                        object.__setattr__(self, k, v)
 
             else:
                 self._unpickle_series_compat(state)
@@ -643,8 +653,9 @@ class NDFrame(PandasObject):
         """
 
         from pandas.io import json
-        return json.to_json(path_or_buf=path_or_buf, obj=self, orient=orient, date_format=date_format,
-                            double_precision=double_precision, force_ascii=force_ascii)
+        return json.to_json(
+            path_or_buf=path_or_buf, obj=self, orient=orient, date_format=date_format,
+            double_precision=double_precision, force_ascii=force_ascii)
 
     #----------------------------------------------------------------------
     # Fancy Indexing
@@ -653,14 +664,14 @@ class NDFrame(PandasObject):
     def _create_indexer(cls, name, indexer):
         """ create an indexer like _name in the class """
         iname = '_%s' % name
-        setattr(cls,iname,None)
+        setattr(cls, iname, None)
 
         def _indexer(self):
-            if getattr(self,iname,None) is None:
-                setattr(self,iname,indexer(self, name))
-            return getattr(self,iname)
+            if getattr(self, iname, None) is None:
+                setattr(self, iname, indexer(self, name))
+            return getattr(self, iname)
 
-        setattr(cls,name,property(_indexer))
+        setattr(cls, name, property(_indexer))
 
     def get(self, key, default=None):
         """
@@ -754,7 +765,8 @@ class NDFrame(PandasObject):
         # check/convert indicies here
         if convert:
             axis = self._get_axis_number(axis)
-            indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+            indices = _maybe_convert_indices(
+                indices, len(self._get_axis(axis)))
 
         if axis == 0:
             labels = self._get_axis(axis)
@@ -778,12 +790,13 @@ class NDFrame(PandasObject):
         -------
         selection : type of caller
         """
-        axis        = self._get_axis_number(axis)
-        axis_name   = self._get_axis_name(axis)
+        axis = self._get_axis_number(axis)
+        axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis)
 
         if len(axis_values) > 0:
-            new_axis = axis_values[np.asarray([bool(crit(label)) for label in axis_values])]
+            new_axis = axis_values[
+                np.asarray([bool(crit(label)) for label in axis_values])]
         else:
             new_axis = axis_values
 
@@ -953,12 +966,12 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method     = kwargs.get('method')
-        level      = kwargs.get('level')
-        copy       = kwargs.get('copy',True)
-        limit      = kwargs.get('limit')
-        fill_value = kwargs.get('fill_value',np.nan)
-        takeable   = kwargs.get('takeable',False)
+        method = kwargs.get('method')
+        level = kwargs.get('level')
+        copy = kwargs.get('copy', True)
+        limit = kwargs.get('limit')
+        fill_value = kwargs.get('fill_value', np.nan)
+        takeable = kwargs.get('takeable', False)
 
         self._consolidate_inplace()
 
@@ -980,15 +993,18 @@ class NDFrame(PandasObject):
         obj = self
         for a in self._AXIS_ORDERS:
             labels = axes[a]
-            if labels is None: continue
+            if labels is None:
+                continue
 
             # convert to an index if we are not a multi-selection
             if level is None:
                 labels = _ensure_index(labels)
 
-            axis   = self._get_axis_number(a)
-            new_index, indexer = self._get_axis(a).reindex(labels, level=level, limit=limit, takeable=takeable)
-            obj    = obj._reindex_with_indexers({ axis : [ labels, indexer ] }, method, fill_value, copy)
+            axis = self._get_axis_number(a)
+            new_index, indexer = self._get_axis(a).reindex(
+                labels, level=level, limit=limit, takeable=takeable)
+            obj = obj._reindex_with_indexers(
+                {axis: [labels, indexer]}, method, fill_value, copy)
 
         return obj
 
@@ -1038,11 +1054,11 @@ class NDFrame(PandasObject):
         """
         self._consolidate_inplace()
 
-        axis_name   = self._get_axis_name(axis)
+        axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit, copy_if_needed=True)
-        return self._reindex_with_indexers({ axis : [ new_index, indexer ] }, method, fill_value, copy)
+        return self._reindex_with_indexers({axis: [new_index, indexer]}, method, fill_value, copy)
 
     def _reindex_with_indexers(self, reindexers, method=None, fill_value=np.nan, copy=False):
 
@@ -1054,8 +1070,9 @@ class NDFrame(PandasObject):
 
             # reindex the axis
             if method is not None:
-                new_data = new_data.reindex_axis(index, method=method, axis=baxis,
-                                                 fill_value=fill_value, copy=copy)
+                new_data = new_data.reindex_axis(
+                    index, method=method, axis=baxis,
+                    fill_value=fill_value, copy=copy)
 
             elif indexer is not None:
                 # TODO: speed up on homogeneous DataFrame objects
@@ -1069,7 +1086,7 @@ class NDFrame(PandasObject):
 
             elif baxis > 0 and index is not None and index is not new_data.axes[baxis]:
                 new_data = new_data.copy(deep=copy)
-                new_data.set_axis(baxis,index)
+                new_data.set_axis(baxis, index)
 
         if copy and new_data is self._data:
             new_data = new_data.copy()
@@ -1107,11 +1124,11 @@ class NDFrame(PandasObject):
 
         if axis is None:
             axis = self._info_axis_name
-        axis_name   = self._get_axis_name(axis)
+        axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
 
         if items is not None:
-            return self.reindex(**{ axis_name : [r for r in items if r in axis_values ] })
+            return self.reindex(**{axis_name: [r for r in items if r in axis_values]})
         elif like:
             matchf = lambda x: (like in x if isinstance(x, basestring)
                                 else like in str(x))
@@ -1128,7 +1145,7 @@ class NDFrame(PandasObject):
     def _propogate_attributes(self, other):
         """ propogate attributes from other to self"""
         for name in self._prop_attributes:
-            object.__setattr__(self,name,getattr(other,name,None))
+            object.__setattr__(self, name, getattr(other, name, None))
         return self
 
     def __getattr__(self, name):
@@ -1280,14 +1297,15 @@ class NDFrame(PandasObject):
         bd = dict()
         for b in self._data.blocks:
             b = b.reindex_items_from(columns or b.items)
-            bd[str(b.dtype)] = self._constructor(BlockManager([ b ], [ b.items, self.index ]))
+            bd[str(b.dtype)] = self._constructor(
+                BlockManager([b], [b.items, self.index]))
         return bd
 
     @property
     def blocks(self):
         return self.as_blocks()
 
-    def astype(self, dtype, copy = True, raise_on_error = True):
+    def astype(self, dtype, copy=True, raise_on_error=True):
         """
         Cast object to input numpy.dtype
         Return a copy when copy = True (be really careful with this!)
@@ -1302,7 +1320,8 @@ class NDFrame(PandasObject):
         casted : type of caller
         """
 
-        mgr = self._data.astype(dtype, copy = copy, raise_on_error = raise_on_error)
+        mgr = self._data.astype(
+            dtype, copy=copy, raise_on_error=raise_on_error)
         return self._constructor(mgr)._propogate_attributes(self)
 
     def copy(self, deep=True):
@@ -1384,8 +1403,9 @@ class NDFrame(PandasObject):
         self._consolidate_inplace()
 
         axis = self._get_axis_number(axis)
-        if axis+1 > self._AXIS_LEN:
-            raise ValueError("invalid axis passed for object type {0}".format(type(self)))
+        if axis + 1 > self._AXIS_LEN:
+            raise ValueError(
+                "invalid axis passed for object type {0}".format(type(self)))
 
         if value is None:
             if method is None:
@@ -1396,11 +1416,11 @@ class NDFrame(PandasObject):
                 return self.T.fillna(method=method, limit=limit).T
 
             method = com._clean_fill_method(method)
-            new_data = self._data.interpolate(method  = method,
-                                              axis    = axis,
-                                              limit   = limit,
-                                              inplace = inplace,
-                                              coerce  = True)
+            new_data = self._data.interpolate(method=method,
+                                              axis=axis,
+                                              limit=limit,
+                                              inplace=inplace,
+                                              coerce=True)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
@@ -1563,7 +1583,7 @@ class NDFrame(PandasObject):
             items = to_replace.items()
             keys, values = itertools.izip(*items)
 
-            are_mappings = [ is_dictlike(v) for v in values]
+            are_mappings = [is_dictlike(v) for v in values]
 
             if any(are_mappings):
                 if not all(are_mappings):
@@ -1599,7 +1619,8 @@ class NDFrame(PandasObject):
                                                         inplace=inplace,
                                                         regex=regex)
 
-                elif not isinstance(value, (list, np.ndarray)):  # {'A': NA} -> 0
+                # {'A': NA} -> 0
+                elif not isinstance(value, (list, np.ndarray)):
                     new_data = self._data
                     for k, src in to_replace.iteritems():
                         if k in self:
@@ -1981,7 +2002,7 @@ class NDFrame(PandasObject):
         (left, right) : (type of input, type of other)
             Aligned objects
         """
-        from pandas import DataFrame,Series
+        from pandas import DataFrame, Series
 
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
@@ -2016,13 +2037,12 @@ class NDFrame(PandasObject):
                     self.columns.join(other.columns, how=join, level=level,
                                       return_indexers=True)
 
-        left  = self._reindex_with_indexers({ 0 : [ join_index,   ilidx ],
-                                              1 : [ join_columns, clidx ] },
-                                            copy=copy, fill_value=fill_value)
-        right = other._reindex_with_indexers({ 0 : [ join_index,   iridx ],
-                                               1 : [ join_columns, cridx ] },
+        left = self._reindex_with_indexers({0: [join_index,   ilidx],
+                                            1: [join_columns, clidx]},
+                                           copy=copy, fill_value=fill_value)
+        right = other._reindex_with_indexers({0: [join_index,   iridx],
+                                              1: [join_columns, cridx]},
                                              copy=copy, fill_value=fill_value)
-
 
         if method is not None:
             left = left.fillna(axis=fill_axis, method=method, limit=limit)
@@ -2101,7 +2121,8 @@ class NDFrame(PandasObject):
                 raise ValueError('where requires an ndarray like object for its '
                                  'condition')
             if cond.shape != self.shape:
-                raise ValueError('Array conditional must be same shape as self')
+                raise ValueError(
+                    'Array conditional must be same shape as self')
             cond = self._constructor(cond, **self._construct_axes_dict())
 
         if inplace:
@@ -2127,7 +2148,7 @@ class NDFrame(PandasObject):
             if self.ndim == 1:
 
                 # try to set the same dtype as ourselves
-                new_other = np.array(other,dtype=self.dtype)
+                new_other = np.array(other, dtype=self.dtype)
                 if not (new_other == np.array(other)).all():
                     other = np.array(other)
 
@@ -2140,7 +2161,7 @@ class NDFrame(PandasObject):
 
                 other = np.array(other)
 
-        if isinstance(other,np.ndarray):
+        if isinstance(other, np.ndarray):
 
             if other.shape != self.shape:
 
@@ -2172,13 +2193,14 @@ class NDFrame(PandasObject):
                         if not try_quick:
 
                             dtype, fill_value = _maybe_promote(other.dtype)
-                            new_other = np.empty(len(icond),dtype=dtype)
+                            new_other = np.empty(len(icond), dtype=dtype)
                             new_other.fill(fill_value)
                             com._maybe_upcast_putmask(new_other, icond, other)
                             other = new_other
 
                     else:
-                        raise ValueError('Length of replacements must equal series length')
+                        raise ValueError(
+                            'Length of replacements must equal series length')
 
                 else:
                     raise ValueError('other must be the same shape as self '
@@ -2189,11 +2211,13 @@ class NDFrame(PandasObject):
                 other = self._constructor(other, **self._construct_axes_dict())
 
         if inplace:
-            # we may have different type blocks come out of putmask, so reconstruct the block manager
-            self._data = self._data.putmask(cond,other,inplace=True)
+            # we may have different type blocks come out of putmask, so
+            # reconstruct the block manager
+            self._data = self._data.putmask(cond, other, inplace=True)
 
         else:
-            new_data = self._data.where(other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
+            new_data = self._data.where(
+                other, cond, raise_on_error=raise_on_error, try_cast=try_cast)
 
             return self._constructor(new_data)
 
@@ -2602,5 +2626,4 @@ class NDFrame(PandasObject):
 
 # install the indexerse
 for _name, _indexer in indexing.get_indexers_list():
-    NDFrame._create_indexer(_name,_indexer)
-
+    NDFrame._create_indexer(_name, _indexer)

@@ -22,8 +22,9 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 is_sparse_array_like)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
-from pandas.core.indexing import (_SeriesIndexer, _check_bool_indexer, _check_slice_bounds,
-                                  _is_index_slice, _maybe_convert_indices)
+from pandas.core.indexing import (
+    _SeriesIndexer, _check_bool_indexer, _check_slice_bounds,
+    _is_index_slice, _maybe_convert_indices)
 from pandas.core import generic
 from pandas.core.internals import SingleBlockManager
 from pandas.tseries.index import DatetimeIndex
@@ -69,18 +70,18 @@ def _arith_method(op, name, fill_zeros=None):
         try:
 
             result = op(x, y)
-            result = com._fill_zeros(result,y,fill_zeros)
+            result = com._fill_zeros(result, y, fill_zeros)
 
         except TypeError:
             result = pa.empty(len(x), dtype=x.dtype)
-            if isinstance(y, (pa.Array,Series)):
+            if isinstance(y, (pa.Array, Series)):
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], y[mask])
             else:
                 mask = notnull(x)
                 result[mask] = op(x[mask], y)
 
-            result, changed = com._maybe_upcast_putmask(result,-mask,pa.NA)
+            result, changed = com._maybe_upcast_putmask(result, -mask, pa.NA)
 
         return result
 
@@ -243,19 +244,19 @@ def _arith_method(op, name, fill_zeros=None):
             arr = na_op(lvalues, rvalues)
 
             name = _maybe_match_name(self, other)
-            return self._constructor(wrap_results(arr), index=join_idx, name=name,dtype=dtype)
+            return self._constructor(wrap_results(arr), index=join_idx, name=name, dtype=dtype)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
-            if hasattr(lvalues,'values'):
+            if hasattr(lvalues, 'values'):
                 lvalues = lvalues.values
             return self._constructor(wrap_results(na_op(lvalues, rvalues)),
-                          index=self.index, name=self.name, dtype=dtype)
+                                     index=self.index, name=self.name, dtype=dtype)
     return wrapper
 
 
-def _comp_method(op, name, masker = False):
+def _comp_method(op, name, masker=False):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -265,7 +266,7 @@ def _comp_method(op, name, masker = False):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, (pa.Array,Series)):
+            if isinstance(y, (pa.Array, Series)):
                 if y.dtype != np.object_:
                     result = lib.vec_compare(x, y.astype(np.object_), op)
                 else:
@@ -285,14 +286,14 @@ def _comp_method(op, name, masker = False):
             if len(self) != len(other):
                 raise ValueError('Series lengths must match to compare')
             return self._constructor(na_op(self.values, other.values),
-                          index=self.index, name=name)
+                                     index=self.index, name=name)
         elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
-        elif isinstance(other, (pa.Array,Series)):
+        elif isinstance(other, (pa.Array, Series)):
             if len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
             return self._constructor(na_op(self.values, np.asarray(other)),
-                          index=self.index, name=self.name)
+                                     index=self.index, name=self.name)
         else:
 
             mask = isnull(self)
@@ -334,7 +335,7 @@ def _bool_method(op, name):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, (pa.Array,Series)):
+            if isinstance(y, (pa.Array, Series)):
                 if (x.dtype == np.bool_ and
                         y.dtype == np.bool_):  # pragma: no cover
                     result = op(x, y)  # when would this be hit?
@@ -353,13 +354,13 @@ def _bool_method(op, name):
         if isinstance(other, Series):
             name = _maybe_match_name(self, other)
             return self._constructor(na_op(self.values, other.values),
-                          index=self.index, name=name)
+                                     index=self.index, name=name)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
             # scalars
             return self._constructor(na_op(self.values, other),
-                          index=self.index, name=self.name)
+                                     index=self.index, name=self.name)
     return wrapper
 
 
@@ -379,14 +380,17 @@ def _radd_compat(left, right):
 
     return output
 
+
 def _coerce_method(converter):
     """ install the scalar coercion methods """
 
     def wrapper(self):
         if len(self) == 1:
             return converter(self.iloc[0])
-        raise TypeError("cannot convert the series to {0}".format(str(converter)))
+        raise TypeError(
+            "cannot convert the series to {0}".format(str(converter)))
     return wrapper
+
 
 def _maybe_match_name(a, b):
     name = None
@@ -426,7 +430,7 @@ def _flex_method(op, name):
                                level=level, fill_value=fill_value)
         else:
             return self._constructor(op(self.values, other), self.index,
-                          name=self.name)
+                                     name=self.name)
 
     f.__name__ = name
     return f
@@ -480,6 +484,8 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
 
 #----------------------------------------------------------------------
 # Series class
+
+
 class Series(generic.NDFrame):
 
     """
@@ -508,7 +514,7 @@ class Series(generic.NDFrame):
         If None, dtype will be inferred
     copy : boolean, default False, copy input data
     """
-    _prop_attributes    = ['name']
+    _prop_attributes = ['name']
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -582,7 +588,7 @@ class Series(generic.NDFrame):
 
             if index is None:
                 if not is_list_like(data):
-                    data = [ data ]
+                    data = [data]
                 index = _default_index(len(data))
 
             # create/copy the manager
@@ -597,11 +603,10 @@ class Series(generic.NDFrame):
 
                 data = SingleBlockManager(data, index, fastpath=True)
 
-
         generic.NDFrame.__init__(self, data, fastpath=True)
 
-        object.__setattr__(self,'name',name)
-        self._set_axis(0,index,fastpath=True)
+        object.__setattr__(self, 'name', name)
+        self._set_axis(0, index, fastpath=True)
 
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False, fastpath=False):
@@ -624,7 +629,7 @@ class Series(generic.NDFrame):
 
     @property
     def is_time_series(self):
-        return self._subtyp in ['time_series','sparse_time_series']
+        return self._subtyp in ['time_series', 'sparse_time_series']
 
     _index = None
 
@@ -646,15 +651,15 @@ class Series(generic.NDFrame):
                     self._data.set_axis(axis, labels)
         self._set_subtyp(is_all_dates)
 
-        object.__setattr__(self,'_index',labels)
+        object.__setattr__(self, '_index', labels)
         if not fastpath:
             self._data.set_axis(axis, labels)
 
     def _set_subtyp(self, is_all_dates):
         if is_all_dates:
-            object.__setattr__(self,'_subtyp','time_series')
+            object.__setattr__(self, '_subtyp', 'time_series')
         else:
-            object.__setattr__(self,'_subtyp','series')
+            object.__setattr__(self, '_subtyp', 'series')
 
     # ndarray compatibility
     @property
@@ -704,10 +709,10 @@ class Series(generic.NDFrame):
     def size(self):
         return self.__len__()
 
-    def view(self, dtype = None):
-        return self._constructor(self.values.view(dtype),index=self.index,name=self.name)
+    def view(self, dtype=None):
+        return self._constructor(self.values.view(dtype), index=self.index, name=self.name)
 
-    def __array__(self, result = None):
+    def __array__(self, result=None):
         """ the array interface, return my values """
         return self.values
 
@@ -734,12 +739,12 @@ class Series(generic.NDFrame):
 
     # we are preserving name here
     def __getstate__(self):
-        return dict(_data = self._data, name = self.name)
+        return dict(_data=self._data, name=self.name)
 
     def _unpickle_series_compat(self, state):
         if isinstance(state, dict):
             self._data = state['_data']
-            self.name  = state['name']
+            self.name = state['name']
             self.index = self._data.index
 
         elif isinstance(state, tuple):
@@ -749,7 +754,7 @@ class Series(generic.NDFrame):
             nd_state, own_state = state
 
             # recreate the ndarray
-            data = np.empty(nd_state[1],dtype=nd_state[2])
+            data = np.empty(nd_state[1], dtype=nd_state[2])
             np.ndarray.__setstate__(data, nd_state)
 
             # backwards compat
@@ -769,14 +774,14 @@ class Series(generic.NDFrame):
     # indexers
     @property
     def axes(self):
-        return [ self.index ]
+        return [self.index]
 
     def _maybe_box(self, values):
         """ genericically box the values """
 
-        if isinstance(values,self.__class__):
+        if isinstance(values, self.__class__):
             return values
-        elif not hasattr(values,'__iter__'):
+        elif not hasattr(values, '__iter__'):
             v = lib.infer_dtype([values])
             if v == 'datetime':
                 return lib.Timestamp(v)
@@ -786,7 +791,7 @@ class Series(generic.NDFrame):
         if v == 'datetime':
             return lib.map_infer(values, lib.Timestamp)
 
-        if isinstance(values,np.ndarray):
+        if isinstance(values, np.ndarray):
             return self.__class__(values)
 
         return values
@@ -839,7 +844,7 @@ class Series(generic.NDFrame):
             return self.index.get_value(self, key)
         except InvalidIndexError:
             pass
-        except (KeyError,ValueError):
+        except (KeyError, ValueError):
             if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                 # kludge
                 pass
@@ -883,7 +888,8 @@ class Series(generic.NDFrame):
                             return self._get_values(key)
                     raise
 
-            if not isinstance(key, (list, pa.Array, Series)):  # pragma: no cover
+            # pragma: no cover
+            if not isinstance(key, (list, pa.Array, Series)):
                 key = list(key)
 
             if isinstance(key, Index):
@@ -901,7 +907,7 @@ class Series(generic.NDFrame):
             else:
                 try:
                     # handle the dup indexing case (GH 4246)
-                    if isinstance(key, (list,tuple)):
+                    if isinstance(key, (list, tuple)):
                         return self.ix[key]
 
                     return self.reindex(key)
@@ -928,7 +934,7 @@ class Series(generic.NDFrame):
     def _get_values(self, indexer):
         try:
             return self._constructor(self._data.get_slice(indexer),
-                                     name=self.name,fastpath=True)
+                                     name=self.name, fastpath=True)
         except Exception:
             return self.values[indexer]
 
@@ -936,7 +942,7 @@ class Series(generic.NDFrame):
         try:
             self._set_with_engine(key, value)
             return
-        except (KeyError,ValueError):
+        except (KeyError, ValueError):
             values = self.values
             if (com.is_integer(key)
                     and not self.index.inferred_type == 'integer'):
@@ -969,7 +975,7 @@ class Series(generic.NDFrame):
 
         if _is_bool_indexer(key):
             key = _check_bool_indexer(self.index, key)
-            self.where(~key,value,inplace=True)
+            self.where(~key, value, inplace=True)
         else:
             self._set_with(key, value)
 
@@ -1065,8 +1071,9 @@ class Series(generic.NDFrame):
         """
         See numpy.ndarray.reshape
         """
-        if order not in ['C','F']:
-            raise TypeError("must specify a tuple / singular length to reshape")
+        if order not in ['C', 'F']:
+            raise TypeError(
+                "must specify a tuple / singular length to reshape")
 
         if isinstance(newshape, tuple) and len(newshape) > 1:
             return self.values.reshape(newshape, order=order)
@@ -1178,7 +1185,7 @@ class Series(generic.NDFrame):
                 self.name = name or self.name
             else:
                 return self._constructor(self.values.copy(), index=new_index,
-                              name=self.name)
+                                         name=self.name)
         elif inplace:
             raise TypeError('Cannot reset_index inplace on a Series '
                             'to create a DataFrame')
@@ -1298,8 +1305,9 @@ class Series(generic.NDFrame):
                 with open(buf, 'w') as f:
                     f.write(the_repr)
 
-    def _get_repr(self, name=False, print_header=False, length=True, dtype=True,
-                  na_rep='NaN', float_format=None):
+    def _get_repr(
+        self, name=False, print_header=False, length=True, dtype=True,
+            na_rep='NaN', float_format=None):
         """
 
         Internal function, should always return unicode string
@@ -1339,16 +1347,20 @@ class Series(generic.NDFrame):
     __add__ = _arith_method(operator.add, '__add__')
     __sub__ = _arith_method(operator.sub, '__sub__')
     __mul__ = _arith_method(operator.mul, '__mul__')
-    __truediv__ = _arith_method(operator.truediv, '__truediv__', fill_zeros=np.inf)
-    __floordiv__ = _arith_method(operator.floordiv, '__floordiv__', fill_zeros=np.inf)
+    __truediv__ = _arith_method(
+        operator.truediv, '__truediv__', fill_zeros=np.inf)
+    __floordiv__ = _arith_method(
+        operator.floordiv, '__floordiv__', fill_zeros=np.inf)
     __pow__ = _arith_method(operator.pow, '__pow__')
     __mod__ = _arith_method(operator.mod, '__mod__', fill_zeros=np.nan)
 
     __radd__ = _arith_method(_radd_compat, '__add__')
     __rmul__ = _arith_method(operator.mul, '__mul__')
     __rsub__ = _arith_method(lambda x, y: y - x, '__sub__')
-    __rtruediv__ = _arith_method(lambda x, y: y / x, '__truediv__', fill_zeros=np.inf)
-    __rfloordiv__ = _arith_method(lambda x, y: y // x, '__floordiv__', fill_zeros=np.inf)
+    __rtruediv__ = _arith_method(
+        lambda x, y: y / x, '__truediv__', fill_zeros=np.inf)
+    __rfloordiv__ = _arith_method(
+        lambda x, y: y // x, '__floordiv__', fill_zeros=np.inf)
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
     __rmod__ = _arith_method(lambda x, y: y % x, '__mod__', fill_zeros=np.nan)
 
@@ -1385,7 +1397,8 @@ class Series(generic.NDFrame):
     # Python 2 division operators
     if not compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', fill_zeros=np.inf)
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__div__', fill_zeros=np.inf)
+        __rdiv__ = _arith_method(
+            lambda x, y: y / x, '__div__', fill_zeros=np.inf)
         __idiv__ = __div__
 
     #----------------------------------------------------------------------
@@ -1884,7 +1897,8 @@ class Series(generic.NDFrame):
         """
         result = _values_from_object(self).round(decimals, out=out)
         if out is None:
-            result = self._constructor(result, index=self.index, name=self.name)
+            result = self._constructor(
+                result, index=self.index, name=self.name)
 
         return result
 
@@ -1970,7 +1984,7 @@ class Series(generic.NDFrame):
                       pretty_name(ub), 'max']
             data += [self.mean(), self.std(), self.min(),
                      self.quantile(
-                     lb), self.median(), self.quantile(ub),
+                         lb), self.median(), self.quantile(ub),
                      self.max()]
 
         return self._constructor(data, index=names)
@@ -2292,7 +2306,7 @@ class Series(generic.NDFrame):
         """
         other = other.reindex_like(self)
         mask = notnull(other)
-        com._maybe_upcast_putmask(self.values,mask,other,change=self.values)
+        com._maybe_upcast_putmask(self.values, mask, other, change=self.values)
 
     #----------------------------------------------------------------------
     # Reindexing, sorting
@@ -2385,13 +2399,15 @@ class Series(generic.NDFrame):
         mask = isnull(values)
 
         if mask.any():
-            result = Series(-1,index=self.index,name=self.name,dtype='int64')
+            result = Series(
+                -1, index=self.index, name=self.name, dtype='int64')
             notmask = -mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
             return self._constructor(result, index=self.index, name=self.name)
         else:
-            return self._constructor(np.argsort(values, kind=kind), index=self.index,
-                          name=self.name,dtype='int64')
+            return self._constructor(
+                np.argsort(values, kind=kind), index=self.index,
+                name=self.name, dtype='int64')
 
     def rank(self, method='average', na_option='keep', ascending=True):
         """
@@ -2470,7 +2486,7 @@ class Series(generic.NDFrame):
             sortedIdx[:n] = idx[bad]
 
         return self._constructor(arr[sortedIdx], index=self.index[sortedIdx],
-                      name=self.name)
+                                 name=self.name)
 
     def sortlevel(self, level=0, ascending=True):
         """
@@ -2712,7 +2728,7 @@ class Series(generic.NDFrame):
 
         def _rep_one(s, to_rep, v):  # replace single value
             mask = com.mask_missing(s.values, to_rep)
-            com._maybe_upcast_putmask(s.values,mask,v,change=change)
+            com._maybe_upcast_putmask(s.values, mask, v, change=change)
 
         def _rep_dict(rs, to_rep):  # replace {[src] -> dest}
 
@@ -2729,12 +2745,10 @@ class Series(generic.NDFrame):
                     masks[d] = com.mask_missing(rs.values, sset)
 
                 for d, m in masks.iteritems():
-                    com._maybe_upcast_putmask(rs.values,m,d,change=change)
+                    com._maybe_upcast_putmask(rs.values, m, d, change=change)
             else:  # if no risk of clobbering then simple
                 for d, sset in dd.iteritems():
                     _rep_one(rs, sset, d)
-
-
 
         if np.isscalar(to_replace):
             to_replace = [to_replace]
@@ -2743,7 +2757,8 @@ class Series(generic.NDFrame):
             _rep_dict(result, to_replace)
         elif isinstance(to_replace, (list, pa.Array, Series)):
 
-            if isinstance(value, (list, pa.Array, Series)):  # check same length
+            # check same length
+            if isinstance(value, (list, pa.Array, Series)):
                 vl, rl = len(value), len(to_replace)
                 if vl == rl:
                     _rep_dict(result, dict(zip(to_replace, value)))
@@ -2886,7 +2901,7 @@ class Series(generic.NDFrame):
         """ for compatibility with higher dims """
         if axis != 0:
             raise ValueError("cannot reindex series on non-zero axis!")
-        return self.reindex(index=labels,**kwargs)
+        return self.reindex(index=labels, **kwargs)
 
     def take(self, indices, axis=0, convert=True):
         """
@@ -2904,7 +2919,8 @@ class Series(generic.NDFrame):
         """
         # check/convert indicies here
         if convert:
-            indices = _maybe_convert_indices(indices, len(self._get_axis(axis)))
+            indices = _maybe_convert_indices(
+                indices, len(self._get_axis(axis)))
 
         indices = com._ensure_platform_int(indices)
         new_index = self.index.take(indices)
@@ -3113,15 +3129,16 @@ class Series(generic.NDFrame):
         elif isinstance(self.index, PeriodIndex):
             orig_offset = datetools.to_offset(self.index.freq)
             if orig_offset == offset:
-                return self._constructor(_get_values(), self.index.shift(periods),
-                              name=self.name)
+                return self._constructor(
+                    _get_values(), self.index.shift(periods),
+                    name=self.name)
             msg = ('Given freq %s does not match PeriodIndex freq %s' %
                    (offset.rule_code, orig_offset.rule_code))
             raise ValueError(msg)
         else:
             return self._constructor(_get_values(),
-                          index=self.index.shift(periods, offset),
-                          name=self.name)
+                                     index=self.index.shift(periods, offset),
+                                     name=self.name)
 
     def asof(self, where):
         """
@@ -3256,7 +3273,8 @@ class Series(generic.NDFrame):
         """
         mapper_f = _get_rename_function(mapper)
         result = self if inplace else self.copy()
-        result.index = Index([mapper_f(x) for x in self.index], name=self.index.name)
+        result.index = Index([mapper_f(x)
+                             for x in self.index], name=self.index.name)
 
         if not inplace:
             return result
@@ -3376,7 +3394,8 @@ Series._setup_axes(['index'], info_axis=0)
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 # reinstall the SeriesIndexer
-Series._create_indexer('ix',_SeriesIndexer) # defined in indexing.py; pylint: disable=E0203
+# defined in indexing.py; pylint: disable=E0203
+Series._create_indexer('ix', _SeriesIndexer)
 
 #------------------------------------------------------------------------------
 # Supplementary functions
@@ -3387,6 +3406,7 @@ def remove_na(series):
     Return series containing only true/non-NaN values, possibly empty.
     """
     return series[notnull(_values_from_object(series))]
+
 
 def _sanitize_array(data, index, dtype=None, copy=False,
                     raise_cast_failure=False):
@@ -3558,4 +3578,3 @@ import pandas.tools.plotting as _gfx
 
 Series.plot = _gfx.plot_series
 Series.hist = _gfx.hist_series
-

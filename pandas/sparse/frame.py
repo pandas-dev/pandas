@@ -23,11 +23,13 @@ import pandas.core.datetools as datetools
 from pandas.core.internals import BlockManager, create_block_manager_from_arrays
 
 from pandas.core.generic import NDFrame
-from pandas.sparse.series import SparseSeries,SparseArray
+from pandas.sparse.series import SparseSeries, SparseArray
 from pandas.util.decorators import Appender
 import pandas.lib as lib
 
+
 class SparseDataFrame(DataFrame):
+
     """
     DataFrame containing sparse floating point data in the form of SparseSeries
     objects
@@ -62,16 +64,16 @@ class SparseDataFrame(DataFrame):
                 default_fill_value = data.default_fill_value
             if default_kind is None:
                 default_kind = data.default_kind
-        elif isinstance(data, (SparseSeries,SparseArray)):
+        elif isinstance(data, (SparseSeries, SparseArray)):
             if index is None:
                 index = data.index
             if default_fill_value is None:
                 default_fill_value = data.fill_value
-            if columns is None and hasattr(data,'name'):
-                columns = [ data.name ]
+            if columns is None and hasattr(data, 'name'):
+                columns = [data.name]
             if columns is None:
                 raise Exception("cannot pass a series w/o a name or columns")
-            data = { columns[0] : data }
+            data = {columns[0]: data}
 
         if default_fill_value is None:
             default_fill_value = np.nan
@@ -90,13 +92,15 @@ class SparseDataFrame(DataFrame):
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         elif isinstance(data, SparseDataFrame):
-            mgr = self._init_mgr(data._data, dict(index=index, columns=columns), dtype=dtype, copy=copy)
+            mgr = self._init_mgr(
+                data._data, dict(index=index, columns=columns), dtype=dtype, copy=copy)
         elif isinstance(data, DataFrame):
             mgr = self._init_dict(data, data.index, data.columns)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         elif isinstance(data, BlockManager):
-            mgr = self._init_mgr(data, axes = dict(index=index, columns=columns), dtype=dtype, copy=copy)
+            mgr = self._init_mgr(
+                data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy)
         elif data is None:
             data = {}
 
@@ -129,10 +133,10 @@ class SparseDataFrame(DataFrame):
 
             # fill if requested
             if fill_value is not None and not isnull(fill_value):
-                result.fillna(fill_value,inplace=True)
+                result.fillna(fill_value, inplace=True)
 
             # set the default_fill_value
-            #if default_fill_value is not None:
+            # if default_fill_value is not None:
             #    result._default_fill_value = default_fill_value
             return result
 
@@ -206,11 +210,11 @@ class SparseDataFrame(DataFrame):
 
     def __getstate__(self):
         # pickling
-        return dict(_typ                = self._typ,
-                    _subtyp             = self._subtyp,
-                    _data               = self._data,
-                    _default_fill_value = self._default_fill_value,
-                    _default_kind       = self._default_kind)
+        return dict(_typ=self._typ,
+                    _subtyp=self._subtyp,
+                    _data=self._data,
+                    _default_fill_value=self._default_fill_value,
+                    _default_kind=self._default_kind)
 
     def _unpickle_sparse_frame_compat(self, state):
         """ original pickle format """
@@ -280,12 +284,14 @@ class SparseDataFrame(DataFrame):
 
     def fillna(self, value=None, method=None, axis=0, inplace=False,
                limit=None, downcast=None):
-        new_self = super(SparseDataFrame, self).fillna(value=value, method=method, axis=axis,
-                                                       inplace=inplace, limit=limit, downcast=downcast)
+        new_self = super(
+            SparseDataFrame, self).fillna(value=value, method=method, axis=axis,
+                                          inplace=inplace, limit=limit, downcast=downcast)
         if not inplace:
             self = new_self
 
-        # set the fill value if we are filling as a scalar with nothing special going on
+        # set the fill value if we are filling as a scalar with nothing special
+        # going on
         if value is not None and value == value and method is None and limit is None:
             self._default_fill_value = value
 
@@ -297,12 +303,13 @@ class SparseDataFrame(DataFrame):
 
     def _sanitize_column(self, key, value):
         sp_maker = lambda x, index=None: SparseArray(x,
-                                         index=index,
-                                         fill_value=self._default_fill_value,
-                                         kind=self._default_kind)
+                                                     index=index,
+                                                     fill_value=self._default_fill_value,
+                                                     kind=self._default_kind)
         if isinstance(value, SparseSeries):
-            clean = value.reindex(self.index).as_sparse_array(fill_value=self._default_fill_value,
-                                                              kind=self._default_kind)
+            clean = value.reindex(
+                self.index).as_sparse_array(fill_value=self._default_fill_value,
+                                            kind=self._default_kind)
 
         elif isinstance(value, SparseArray):
             if len(value) != len(self.index):
@@ -323,7 +330,7 @@ class SparseDataFrame(DataFrame):
 
         # Scalar
         else:
-            clean = sp_maker(value,self.index)
+            clean = sp_maker(value, self.index)
 
         # always return a SparseArray!
         return clean
@@ -435,7 +442,7 @@ class SparseDataFrame(DataFrame):
                     new_data[col] = func(this[col], other[col])
 
         # if the fill values are the same use them? or use a valid one
-        other_fill_value = getattr(other,'default_fill_value',np.nan)
+        other_fill_value = getattr(other, 'default_fill_value', np.nan)
         if self.default_fill_value == other_fill_value:
             new_fill_value = self.default_fill_value
         elif np.isnan(self.default_fill_value) and not np.isnan(other_fill_value):
@@ -569,8 +576,8 @@ class SparseDataFrame(DataFrame):
 
     def _reindex_with_indexers(self, reindexers, method=None, copy=False, fill_value=np.nan):
 
-        index,   row_indexer = reindexers.get(0,(None,None))
-        columns, col_indexer = reindexers.get(1,(None, None))
+        index,   row_indexer = reindexers.get(0, (None, None))
+        columns, col_indexer = reindexers.get(1, (None, None))
 
         if columns is None:
             columns = self.columns
@@ -580,8 +587,9 @@ class SparseDataFrame(DataFrame):
             if col not in self:
                 continue
             if row_indexer is not None:
-                new_arrays[col] = com.take_1d(self[col].get_values(), row_indexer,
-                                              fill_value=fill_value)
+                new_arrays[col] = com.take_1d(
+                    self[col].get_values(), row_indexer,
+                    fill_value=fill_value)
             else:
                 new_arrays[col] = self[col]
 
@@ -614,7 +622,7 @@ class SparseDataFrame(DataFrame):
         this, other = this._maybe_rename_join(other, lsuffix, rsuffix)
 
         from pandas import concat
-        return concat([this,other],axis=1,verify_integrity=True)
+        return concat([this, other], axis=1, verify_integrity=True)
 
     def _maybe_rename_join(self, other, lsuffix, rsuffix):
         intersection = self.columns.intersection(other.columns)
@@ -728,7 +736,8 @@ def dict_to_manager(sdict, columns, index):
     # from BlockManager perspective
     axes = [_ensure_index(columns), _ensure_index(index)]
 
-    return create_block_manager_from_arrays([ sdict[c] for c in columns ], columns, axes)
+    return create_block_manager_from_arrays([sdict[c] for c in columns], columns, axes)
+
 
 def stack_sparse_frame(frame):
     """
